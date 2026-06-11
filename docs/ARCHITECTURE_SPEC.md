@@ -13,7 +13,7 @@
 - 테이블 생성은 Intel BID C 에서 Go/Rust 양쪽으로 직접 추출/생성한다
 - Go 구현 경로는 Intel BID C 구현을 직접 기계적으로 포팅하는 경로다
 - Rust 구현 경로는 Go 구현 경로에서 생성하는 경로다
-- full Rust 구현 artifact 생성 경로는 `tools/go2rs` 하나만 허용한다
+- full Rust 구현 artifact 생성 경로는 `devtools/tools/go2rs` 하나만 허용한다
 - 생성물은 재현 가능해야 한다
 
 ## 목표 구조
@@ -38,9 +38,9 @@ Intel BID C source
 - 테이블은 C 에서 Go/Rust 양쪽으로 생성한다
 - Go 구현은 C 구현의 직접 기계적 포팅 경로다
 - Rust 구현은 Go 구현에서 생성한다
-- `bid754-rs/src/generated` 의 full Rust 구현 artifact 는 `tools/go2rs` 출력이어야 한다
-- Rust 구현 품질, Rust idiom, 성능 최적화 개선은 `tools/go2rs` 또는 그 support/prelude 생성 규칙을 고쳐 재생성하는 방식으로만 한다
-- `tools/go2rs` 변경의 의미 회귀 방어선은 재생성 후 generated Rust 검증(고정 벡터 + native readtest)과 go2rs 자체 골든 테스트다. go2rs 를 바꾸면 이 게이트들을 통과해야 한다
+- `bid754-rs/src/generated` 의 full Rust 구현 artifact 는 `devtools/tools/go2rs` 출력이어야 한다
+- Rust 구현 품질, Rust idiom, 성능 최적화 개선은 `devtools/tools/go2rs` 또는 그 support/prelude 생성 규칙을 고쳐 재생성하는 방식으로만 한다
+- `devtools/tools/go2rs` 변경의 의미 회귀 방어선은 재생성 후 generated Rust 검증(고정 벡터 + native readtest)과 go2rs 자체 골든 테스트다. go2rs 를 바꾸면 이 게이트들을 통과해야 한다
 - 별도 Go->Rust 변환기, C->Rust 구현 생성기, hand-written Rust 대체 구현, generated Rust 직접 수정은 허용하지 않는다
 - public Go value-type entrypoint, method, constructor 는 별도 구현 경로가 아니라 API 배선이며, 반드시 Go 기계적 포팅 경로로 연결되어야 한다
 - public Go 런타임 경로가 Go 포팅 경로를 우회해서 Intel BID C 를 직접 호출하는 구조는 과도기 debt 이며 목표 구조가 아니다
@@ -108,37 +108,38 @@ Rust 구현 경로 자체는 위 목표 구조의 생성 구현 경로에 속하
 
 핵심 배치:
 
-- `bid-go/`: Intel BID C 를 Go 로 직접 기계 포팅한 구현 경로
-- `bid-go/cexport/`: Go 기계 포트 일부를 C ABI 로 노출하던 legacy compatibility module. 정규 `readtest` 생성 검증 경로가 아니며, placeholder C stub snapshot 은 quarantine 상태로 정상 링크 입력에서 제외한다. 이 경로의 C stub 는 public Go runtime path 또는 regular verification 완료 근거로 쓰지 않는다. `cexport`, `libbidgo.a`, `libbidgo.h` 는 local build output 이며 checked-in artifact 가 아니다
-- repository root package `bid754`: public Go value type, API routing/plumbing, generated root-package declarations, generated root-package tests
-- `generated/go/`, `generated/rust/`, `generated/json/`, `generated/testspec/`: C 또는 공식 입력에서 생성된 table/symbol/test-spec artifacts
+- `bid754-go/`: 공개 Go 구현 모듈 (`github.com/sky1core/bid754/bid754-go`). 모듈 루트 package `bid754` 에 public Go value type, API routing/plumbing, generated 모듈 루트 declarations, generated 모듈 루트 tests 가 있다
+- `bid754-go/internal/bidgo/`: Intel BID C 를 Go 로 직접 기계 포팅한 구현 경로 (package `bidgo`)
+- `bid754-go/internal/bidgo/cexport/`: Go 기계 포트 일부를 C ABI 로 노출하던 legacy compatibility module. 정규 `readtest` 생성 검증 경로가 아니며, placeholder C stub snapshot 은 quarantine 상태로 정상 링크 입력에서 제외한다. 이 경로의 C stub 는 public Go runtime path 또는 regular verification 완료 근거로 쓰지 않는다. `cexport`, `libbidgo.a`, `libbidgo.h` 는 local build output 이며 checked-in artifact 가 아니다
+- `bid754-go/internal/testspec/`: `devtools/cmd/testgen` 이 생성하는 generated test-spec loader/schema 플러밍. generated 검증 경로의 일부이며 직접 수정하지 않는다
+- `devtools/generated/go/`, `devtools/generated/rust/`, `devtools/generated/json/`, `devtools/generated/testspec/`: C 또는 공식 입력에서 생성된 table/symbol/test-spec artifacts
 - `bid754-rs/src/generated/`: Go 기계 포팅 경로에서 생성된 Rust 구현 artifacts
 - `bid754-rs/src/tables.rs`: Intel BID C 에서 생성된 Rust table artifact 를 Rust 구현 경로에 연결하는 compatibility layer
-- `bidcodec/`: BID encode/decode/parse helper package
-- `bid-codec-rs/`: standalone Rust BID codec helper package
-- `bid-codec-java/`: Java BID codec helper package
-- `bid-codec-py/`: Python BID codec helper package
-- `bid-codec-js/`: JavaScript/TypeScript BID codec helper package
-- `bid-codec-swift/`: Swift BID codec helper package
-- `bid-codec-vectors/`: `cmd/testgen` 이 생성한 BID codec cross-language vector artifact
-- `tests/`: pinned IBM decTest 공식 입력
-- `third_party/intel_dfp/`: pinned Intel BID C 공식 입력 및 native build output 위치
+- `bid754-codec-go/`: 공개 standalone Go BID codec 모듈 (`github.com/sky1core/bid754/bid754-codec-go`, package `bidcodec`)
+- `bid754-codec-rs/`: standalone Rust BID codec helper package
+- `bid754-codec-java/`: Java BID codec helper package
+- `bid754-codec-py/`: Python BID codec helper package
+- `bid754-codec-js/`: JavaScript/TypeScript BID codec helper package
+- `bid754-codec-swift/`: Swift BID codec helper package
+- `bid754-codec-vectors/`: `devtools/cmd/testgen` 이 생성한 BID codec cross-language vector artifact
+- `devtools/tests/`: pinned IBM decTest 공식 입력
+- `devtools/third_party/intel_dfp/`: pinned Intel BID C 공식 입력 및 native build output 위치
+- `devtools/cmd/*`, `devtools/tools/*`, `devtools/internal/*`: generation/extraction/conversion/test-spec tooling (비공개 도구 모듈 `github.com/sky1core/bid754/devtools`)
 
 Generated Rust overflow policy:
 
 - `bid754-rs` must not disable Rust overflow checks at the Cargo profile level
-- C/Go-style integer wraparound and oversized shift behavior must be emitted explicitly by `tools/go2rs` with generated `wrapping_*` / checked-shift support, not hidden behind Cargo profile settings
+- C/Go-style integer wraparound and oversized shift behavior must be emitted explicitly by `devtools/tools/go2rs` with generated `wrapping_*` / checked-shift support, not hidden behind Cargo profile settings
 - `make audit-rust-overflow` is the current audit boundary: it runs the generated Rust tests under the default Rust test profile and again with `RUSTFLAGS='-C overflow-checks=yes'`
-- this policy is not a license to add hand-written unchecked arithmetic; generated implementation behavior must stay in `tools/go2rs` or generated support/prelude rules
+- this policy is not a license to add hand-written unchecked arithmetic; generated implementation behavior must stay in `devtools/tools/go2rs` or generated support/prelude rules
 
 Generated Rust `std` policy:
 
 - full `bid754-rs` is currently a `std` crate
-- standalone `bid-codec-rs` may keep its own `no_std` support, but that does not imply the generated full Rust implementation supports `no_std`
+- standalone `bid754-codec-rs` may keep its own `no_std` support, but that does not imply the generated full Rust implementation supports `no_std`
 - adding `no_std` support for `bid754-rs` requires a separate generator/support-module pass that removes or gates current `String`, `Vec`, `format!`, and `std::env` usage
-- `cmd/*`, `tools/*`, `internal/*`: generation/extraction/conversion/test-spec tooling
 
-`bidcodec` 언어별 helper 는 전체 Decimal 산술 구현이 아니다. 이 경로의 책임은
+BID codec 언어별 helper 는 전체 Decimal 산술 구현이 아니다. 이 경로의 책임은
 BID 비트열과 `{sign, coefficient, exponent, kind, payload}` 구성요소 사이의
 encode/decode/parse 계층과 little-endian bytes API 를 각 언어에서 동일 벡터로
 검증하는 것이다. 필수 언어 집합은 Go, Rust, Java, Python,
@@ -148,12 +149,12 @@ repo-level generated vector consumer 검증이고, `make audit-bidcodec-packages
 는 여섯 standalone package 의 build/package/install/import 경계까지 확인하는
 별도 품질 게이트다.
 
-root package 에 generated 파일이 존재할 수 있다. package `bid754` 에 속한 public declaration 이나 test runner 는 Go package 제약 때문에 root 에 있어야 할 수 있으며, 이 경우 파일 헤더와 generator/manifest 재현성으로 generated 여부를 판정한다. root 의 generated 검증 플러밍(예: `dectest_spec_test.go`, `generated_*` dispatch/runner)은 generated 검증 경로의 일부이고, exported API 가 아니라 unexported 심볼로 유지한다.
+`bid754-go` 모듈 루트 package 에 generated 파일이 존재할 수 있다. package `bid754` 에 속한 public declaration 이나 test runner 는 Go package 제약 때문에 모듈 루트에 있어야 할 수 있으며, 이 경우 파일 헤더와 generator/manifest 재현성으로 generated 여부를 판정한다. 모듈 루트의 generated 검증 플러밍(예: `dectest_spec_test.go`, `generated_*` dispatch/runner)과 `bid754-go/internal/testspec/` loader 플러밍은 generated 검증 경로의 일부이고, exported API 가 아니라 모듈 외부에 노출되지 않는 심볼/패키지로 유지한다.
 
 금지되는 구조:
 
 - generated artifact 를 고치기 위해 generated 파일을 직접 편집하는 것
-- root 에 있다는 이유만으로 generated root-package test/dispatch 파일을 hand-maintained 로 취급하는 것
+- 모듈 루트에 있다는 이유만으로 generated 모듈 루트 test/dispatch 파일을 hand-maintained 로 취급하는 것
 - public API routing/plumbing 을 별도의 구현 백엔드처럼 문서화하는 것
 - DPD canonicalization 자료를 BID 구현 완료 근거처럼 사용하는 것
 

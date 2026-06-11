@@ -1,6 +1,6 @@
 # bidcodec for Go
 
-`github.com/sky1core/bid754/bidcodec` is the Go BID codec helper package. It is not the
+`github.com/sky1core/bid754/bid754-codec-go` is the Go BID codec helper package. It is not the
 full decimal arithmetic implementation. Its scope is BID bit layout
 encode/decode, little-endian byte encode/decode, and the shared BID codec string
 format used by the cross-language vector suite.
@@ -43,10 +43,10 @@ make test-bidcodec
 make audit-bidcodec-packages
 ```
 
-This package consumes `../bid-codec-vectors/vectors.json` through a generated
+This package consumes `../bid754-codec-vectors/vectors.json` through a generated
 test harness. `make audit-bidcodec-packages` additionally checks the standalone
 package consumption boundary by creating an isolated local git release
-repository tagged `bidcodec/v0.1.0` (Go multi-module subdirectory tag convention), then consuming `github.com/sky1core/bid754/bidcodec v0.1.0`
+repository tagged `bid754-codec-go/v0.1.0` (Go multi-module subdirectory tag convention), then consuming `github.com/sky1core/bid754/bid754-codec-go v0.1.0`
 without a local `replace`. The generated vector harness is guarded by the
 `bid754_bidcodec_vectors` build tag so ordinary package consumers do not depend
 on repository-relative vector files.

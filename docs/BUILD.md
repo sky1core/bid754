@@ -4,17 +4,22 @@ This document describes how to build and verify the current checked-out tree. It
 
 ## Portable Default
 
-The default root Go path is:
+There is no root Go module. The portable default Go path runs inside the
+`bid754-go/` module:
 
 ```bash
-go test ./...
+cd bid754-go && go test ./...
 ```
 
-Equivalent Make target:
+Equivalent Make target (from the repository root):
 
 ```bash
 make test
 ```
+
+Direct `go` commands must run inside one of the checked-in Go modules
+(`bid754-go/`, `bid754-codec-go/`, `devtools/`); the Make targets handle the
+module directories for you.
 
 This path is intentionally portable and does not require local C libraries.
 It also does not require untracked authoritative generator input trees. Tests
@@ -36,24 +41,26 @@ make full-audit
 
 `make full-audit` is the top-level reproducible audit target. It runs the
 shell script syntax gate, the active portable Go module tests, vet checks,
-Go module tidy/verify hygiene, the bid-go/bidcodec zero-dependency contract,
+Go module tidy/verify hygiene, the
+bid754-go/bid754-codec-go/devtools zero-dependency contract,
 the portable cgo-purity contract, generated Rust tests, generated-artifact
 reproducibility, the dependency vulnerability scan (requires `osv-scanner`),
-the `bid-go/cexport` quarantine guard audit, the six-language standalone BID
+the `bid754-go/internal/bidgo/cexport` quarantine guard audit, the
+six-language standalone BID
 codec package audit and vector consumers, BID string vector verification, the
 generated Rust overflow policy audit, and the native smoke/generated
 FFI/generated readtest/generated decTest/Rust native gates. The native gates
 are required by default: when `.env.sh`, Intel BID `libbid.a`, or IBM
 decNumber are missing, the target fails; set
 `FULL_AUDIT_ALLOW_MISSING_NATIVE=1` to skip the native gates explicitly.
-Legacy `run_tests.sh`, `run_tests_and_benchmarks.sh`, and
-`scripts/build_all.sh` are thin wrappers around this target for test
+Legacy `devtools/run_tests.sh`, `devtools/run_tests_and_benchmarks.sh`, and
+`devtools/scripts/build_all.sh` are thin wrappers around this target for test
 verification.
 
 The Linux verification legs run locally in Docker without a CI service:
 `make verify-linux` (or the per-leg
 `verify-linux-portable-arm64`/`verify-linux-portable-amd64`/`verify-linux-native-amd64`
-targets). See `scripts/verify_linux.sh` for what each leg covers.
+targets). See `devtools/scripts/verify_linux.sh` for what each leg covers.
 
 To run the current benchmark boundary:
 
@@ -61,11 +68,13 @@ To run the current benchmark boundary:
 make bench
 ```
 
-This runs Intel BID C direct benchmarks, root public Go API with the native
-tag, `bid-go` direct mechanical-port calls, and generated Rust Criterion
+This runs Intel BID C direct benchmarks, the `bid754-go` public Go API with
+the native tag, direct Go mechanical-port (`bid754-go/internal/bidgo`) calls,
+and generated Rust Criterion
 benches. The fair cross-implementation matrix is `bid32`/`bid64`/`bid128` by
-`add`, `mul`, `div`, `parse`, and `to_string` for Intel C, `bid-go`, and
-generated Rust. Root public Go API benchmarks are reported as an additional
+`add`, `mul`, `div`, `parse`, and `to_string` for Intel C, the Go mechanical
+port, and
+generated Rust. Public Go API benchmarks are reported as an additional
 wrapper/API surface. `bench-native`, `bench-bid-go`, and `bench-rust` run those
 surfaces individually.
 
@@ -104,8 +113,8 @@ Prepare the environment:
 
 ```bash
 make doctor
-bash ./scripts/install_ibm_decnumber.sh
-./scripts/setup_c_libs.sh
+bash ./devtools/scripts/install_ibm_decnumber.sh
+./devtools/scripts/setup_c_libs.sh
 ```
 
 Then run:
@@ -120,7 +129,8 @@ make test-native-dectest
 
 Notes:
 
-- current native smoke links Intel BID from `third_party/intel_dfp/lib`
+- current native smoke links Intel BID from `devtools/third_party/intel_dfp/lib`
+- the `bid754_native` build tag works only inside a full repository checkout: its cgo paths reference `devtools/third_party/` by relative path, so a `bid754-go` module downloaded with `go get` cannot build native-tagged code
 - `make test-native-ffi` is the non-short generated C FFI exact bit-compare gate
 - `make test-native-readtest` is the non-short generated Intel readtest native gate
 - `make test-native-dectest` is the non-short generated IBM decTest native gate
@@ -128,6 +138,10 @@ Notes:
 - that requirement is a current implementation detail, not the source-of-truth architecture
 
 ## Generators
+
+Generators and extraction tools live in the `devtools/` module and run with
+`devtools/` as their working directory; the Make targets below handle the
+`cd devtools` step.
 
 Prepare authoritative generator inputs first:
 
@@ -151,13 +165,14 @@ artifact tests:
 make verify-generated
 ```
 
-`make verify-generated` snapshots and compares the checked-in generated Go
-root tests/dispatch files, BID codec vector consumers, BID string vector
+`make verify-generated` snapshots and compares the checked-in generated
+`bid754-go` tests/dispatch files, the generated `bid754-go/internal/testspec`
+spec loader package, BID codec vector consumers, BID string vector
 consumers, Rust generated readtest runner, Rust readtest dispatch audit, and
 `bid754-rs/src/generated` after rerunning the generators.
 
 Generated files are reproducible artifacts. Do not edit them directly.
-`make generate-testspec` also regenerates the checked-in BID codec vector data at `bid-codec-vectors/vectors.json`.
+`make generate-testspec` also regenerates the checked-in BID codec vector data at `bid754-codec-vectors/vectors.json`.
 It also regenerates the repo-level BID codec vector consumer harnesses for Go,
 standalone Rust, Rust full-library, Java, Python, JavaScript/TypeScript, and
 Swift, plus the BID string vector consumers for the Go mechanical port and the
@@ -178,11 +193,11 @@ Be explicit about scope:
 - `make test-native-readtest` runs `TestGeneratedReadCases` without `-short` and is the native generated Intel readtest gate
 - `make test-native-dectest` runs `TestGeneratedDectestSuites` without `-short` and is the native generated decTest CI gate
 - native smoke is a narrower native verification path
-- `generated/testspec/` (`spec_index.json` plus the `readtest/` and `ffi/` case shards) is generated from the verification manifests; for Intel `readtest.in` the generator derives the active checked-in BID readtest subset mechanically from `readtest.h`, `readtest.in`, the repository's discoverable BID constructors/methods, the documented historical scope rule (`CMP_FUZZYSTATUS - explicit historical skip 함수군 + CMP_EQUALSTATUS`), and the current spec-phase exclusion list
+- `devtools/generated/testspec/` (`spec_index.json` plus the `readtest/` and `ffi/` case shards) is generated from the verification manifests; for Intel `readtest.in` the generator derives the active checked-in BID readtest subset mechanically from `readtest.h`, `readtest.in`, the repository's discoverable BID constructors/methods, the documented historical scope rule (`CMP_FUZZYSTATUS - explicit historical skip 함수군 + CMP_EQUALSTATUS`), and the current spec-phase exclusion list
 - the checked-in Intel readtest subset is source-driven and includes a generated `readtest.h` function audit; the current counts live in `TEST_GENERATION_SPEC.md` and the generated audit artifacts
 - this closes the current supported-surface readtest required gap; do not describe it as Intel readtest 전체 because `CMP_RELATIVEERR` and out-of-scope binary/DPD/reverse conversion functions remain outside the operative profile
 - the exact readtest case count and profile mix can change when upstream Intel inputs or the repository's currently wired BID surface changes
-- decTest suites are selected mechanically from official `tests/*.decTest` inputs by scanning file operations and keeping only files whose non-ignored operations fit the current checked-in supported operation sets; the file counts live in `TEST_GENERATION_SPEC.md`
+- decTest suites are selected mechanically from official `devtools/tests/*.decTest` inputs by scanning file operations and keeping only files whose non-ignored operations fit the current checked-in supported operation sets; the file counts live in `TEST_GENERATION_SPEC.md`
 - the generated native FFI exact bit-compare subset compares return value and `_IDEC_flags` where exposed; the covered function groups and counts live in `TEST_GENERATION_SPEC.md`
 - `bid754-rs` `ffi-fuzz` is a randomized Rust-vs-Intel-C complement for selected arithmetic functions; it compares both result bits and `_IDEC_flags`, but it is not the generated regular FFI profile
 - Go `FuzzGeneratedArithmeticResultOnlyNative` is a native-only result-string fuzz complement from generated decTest seeds; it does not compare decTest status or IEEE flags and is not a regular generated verification domain

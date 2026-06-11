@@ -47,6 +47,6 @@ make test-bidcodec
 make audit-bidcodec-packages
 ```
 
-This package consumes `../bid-codec-vectors/vectors.json` through a generated
+This package consumes `../bid754-codec-vectors/vectors.json` through a generated
 test harness. `make audit-bidcodec-packages` additionally checks release build
 and an external Swift package consumer smoke.

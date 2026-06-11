@@ -1,6 +1,6 @@
-# bid-codec for Rust
+# bid754-codec for Rust
 
-`bid-codec` is the standalone Rust BID codec helper crate. It is not the full
+`bid754-codec` is the standalone Rust BID codec helper crate. It is not the full
 `bid754-rs` decimal arithmetic implementation. Its scope is BID bit layout
 encode/decode, little-endian byte encode/decode, and the shared BID codec string
 format used by the cross-language vector suite.
@@ -46,7 +46,7 @@ make test-bidcodec
 make audit-bidcodec-packages
 ```
 
-This crate consumes `../bid-codec-vectors/vectors.json` through a generated
+This crate consumes `../bid754-codec-vectors/vectors.json` through a generated
 test harness during repository verification. `make audit-bidcodec-packages`
 additionally checks `cargo package --locked`, docs, lints, and an external
 path-consumer smoke. The package gate intentionally runs without

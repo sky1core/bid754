@@ -2,7 +2,7 @@
 
 This repository is MIT licensed for bid754 contributor-authored code. Some
 checked-in artifacts are derivative works of pinned third-party inputs: the
-`bid-go/` mechanical port and the generated tables/symbols/test artifacts are
+`bid754-go/internal/bidgo/` mechanical port and the generated tables/symbols/test artifacts are
 derived from the Intel BID C sources, and the generated decTest artifacts are
 derived from the IBM decTest data. The pinned inputs themselves are not
 vendored to bypass the setup flow; they are downloaded and checksum-verified
@@ -19,13 +19,13 @@ with redistributions of the derived artifacts.
 - SHA-256: `1df86132e7a31fd74d784fee1c679b21a088f73a8ec979cfaf784c200392e125`.
 - License: BSD 3-Clause, as provided by the Intel archive
   ([full text](#intel-decimal-floating-point-math-library-license-bsd-3-clause)).
-- Derived artifacts in this repository: `bid-go/` (mechanical port of the C
+- Derived artifacts in this repository: `bid754-go/internal/bidgo/` (mechanical port of the C
   sources; per-file porting headers identify the originating C file),
-  `generated/go/intel_dfp_tables.go`, `generated/rust/intel_dfp_tables.rs`,
-  `generated/json/intel_dfp_symbols.json`, `bid754-rs/src/generated/`
+  `devtools/generated/go/intel_dfp_tables.go`, `devtools/generated/rust/intel_dfp_tables.rs`,
+  `devtools/generated/json/intel_dfp_symbols.json`, `bid754-rs/src/generated/`
   (generated from the Go port), `bid754-rs/src/tables.rs` (table data via
-  `generated/rust/intel_dfp_tables.rs`), generated readtest case data under
-  `generated/testspec/`, the `tools/registry/*.json` extraction
+  `devtools/generated/rust/intel_dfp_tables.rs`), generated readtest case data under
+  `devtools/generated/testspec/`, the `devtools/tools/registry/*.json` extraction
   registries (the symbol inventory via the Go mechanical port, and the
   readtest-surface registries via the Intel readtest headers), and the
   generated root-package
@@ -47,7 +47,7 @@ with redistributions of the derived artifacts.
   distribution page (speleotrove.com/decimal) states that `dectest.zip` is
   part of the decNumber package documentation and covered by the ICU license.
 - Derived artifacts in this repository: decTest-extracted case data inside
-  `generated/testspec/spec_index.json` (fuzz cases and decTest suite
+  `devtools/generated/testspec/spec_index.json` (fuzz cases and decTest suite
   manifests) and the generated root-package decTest runner files that embed
   decTest-derived expectations (the `generated_dectest_*` files).
 - Local setup: `make setup-generation-inputs`.
@@ -60,7 +60,7 @@ with redistributions of the derived artifacts.
 - SHA-256: `14ec2cf30b58758493a7661b78b80abfb281652b61a425b85cda83173518fe25`.
 - License: ICU License, as provided by the decNumber archive
   ([full text](#icu-license-ibm-dectest-and-ibm-decnumber)).
-- Local setup: `bash ./scripts/install_ibm_decnumber.sh`.
+- Local setup: `bash ./devtools/scripts/install_ibm_decnumber.sh`.
 
 IBM decNumber is not the canonical implementation target for this repository.
 It remains a current-tree native helper only.
@@ -69,15 +69,15 @@ It remains a current-tree native helper only.
 
 The standalone BID codec packages are contributor-authored MIT packages:
 
-- `bidcodec/`
-- `bid-codec-rs/`
-- `bid-codec-java/`
-- `bid-codec-py/`
-- `bid-codec-js/`
-- `bid-codec-swift/`
+- `bid754-codec-go/`
+- `bid754-codec-rs/`
+- `bid754-codec-java/`
+- `bid754-codec-py/`
+- `bid754-codec-js/`
+- `bid754-codec-swift/`
 
 Their generated vector consumers read the repository-level
-`bid-codec-vectors/vectors.json` artifact during repository verification. The
+`bid754-codec-vectors/vectors.json` artifact during repository verification. The
 standalone packages do not vendor that generated vector file as package data.
 
 ## Full License Texts

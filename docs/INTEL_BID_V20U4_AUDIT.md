@@ -61,13 +61,13 @@ Build/example layout also changed:
 
 - Added `sticky_bit` and `MIN_DIGITS` behavior for input strings longer than `MAX_STRING_DIGITS_128`.
 - Prevents reading past the retained digit buffer and fixes rounding for very long decimal128 strings.
-- Ported to `bid-go/bid128_string.go` and regenerated to Rust.
+- Ported to `bid754-go/internal/bidgo/bid128_string.go` and regenerated to Rust.
 
 `bid64_string.c`:
 
 - Changed a carry-overflow path from resetting `add_expon` to incrementing it.
 - Fixes rounding-up/down exponent handling for strings with more than 17 coefficient digits.
-- Ported to `bid-go/bid64_from_string.go` and regenerated to Rust.
+- Ported to `bid754-go/internal/bidgo/bid64_from_string.go` and regenerated to Rust.
 
 Regression tests were added for both upstream release-note cases.
 
@@ -100,8 +100,8 @@ Regression tests were added for both upstream release-note cases.
   79,056 to 79,060. The current checked-in supported-surface profile has since
   expanded to 81,009 generated `readtest` cases (80,964 from the Intel readtest
   profile plus 45 IEEE-deviation regression supplement rows); see `TEST_GENERATION_SPEC.md`
-  and `generated/testspec/spec_index.json` (with its `readtest/` case shards)
-  for the current case count.
+  and `devtools/generated/testspec/spec_index.json` (with its `readtest/` case
+  shards) for the current case count.
 - The added generated readtest coverage exposed the decimal128 long-string bug in generated Rust before the Go port was updated.
 - Native readtest helper parsing was adjusted to match Intel `readtest.c` two-word 128-bit hex parsing for bracketed BID128 literals.
 

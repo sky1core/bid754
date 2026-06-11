@@ -1,5 +1,5 @@
 // types.rs - BID type definitions
-// Ported from: bid-go/internal.go (type definitions)
+// Ported from: bid754-go/internal/bidgo/internal.go (type definitions)
 // All types match Intel BID library layout exactly.
 
 /// BID_UINT128 represents a 128-bit unsigned integer.

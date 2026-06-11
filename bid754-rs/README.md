@@ -1,8 +1,10 @@
 # bid754 Rust Crate
 
-This crate is the repository-internal Rust implementation generated from the
-Go mechanical port of Intel BID C. It is intentionally marked
-`publish = false`.
+This crate is bid754's public Rust implementation in pre-release form,
+generated from the Go mechanical port of Intel BID C. Current pre-release
+limits: it is still marked `publish = false`, it does not define a stable
+external Rust API yet (the generated modules are exposed directly), and the
+user-facing Rust API layer is a later phase.
 
 ## API Boundary
 
@@ -19,11 +21,12 @@ These modules are not a semver contract. Do not treat them as a published Rust
 library surface until a separate stable wrapper API is specified and tested.
 
 `RoundingMode::NearestDown` and `BID_ROUNDING_NEAREST_DOWN` are non-IEEE
-decTest compatibility values for this internal/generated crate. A future stable
+decTest compatibility values for generated/internal verification plumbing. A
+future stable
 Rust API must keep that mode behind an explicit verification or compatibility
 adapter rather than exposing it as a normal IEEE rounding mode.
 
-The standalone public BID codec package is `../bid-codec-rs`; it has its own
+The standalone public BID codec package is `../bid754-codec-rs`; it has its own
 package metadata, README, lockfile, and generated cross-language vector tests.
 
 ## Verification

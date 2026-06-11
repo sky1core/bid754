@@ -6,29 +6,45 @@ BID-oriented IEEE 754 decimal floating-point work rooted in Intel BID C sources.
 
 This repository now separates goal docs from current-tree docs.
 
-Authoritative goal/spec documents:
+Authoritative goal/spec documents (under `docs/`):
 
-- `SPEC.md`
-- `ARCHITECTURE_SPEC.md`
-- `IEEE754_SPEC.md`
-- `PLATFORM_SPEC.md`
-- `TEST_GENERATION_SPEC.md`
-- `DEPENDENCIES_SPEC.md`
+- `docs/SPEC.md`
+- `docs/ARCHITECTURE_SPEC.md`
+- `docs/IEEE754_SPEC.md`
+- `docs/PLATFORM_SPEC.md`
+- `docs/TEST_GENERATION_SPEC.md`
+- `docs/DEPENDENCIES_SPEC.md`
 
 This `README.md` describes the current checked-out tree and developer workflow. It must not silently redefine the project goal.
 
-Project goal and scope are defined in `SPEC.md`.
+Project goal and scope are defined in `docs/SPEC.md`.
 
 ## Repository Identity
 
-The source repository URL and the Go import namespace are the same identity:
-`github.com/sky1core/bid754`. The root module carries the public API and the
-`bid-go/` mechanical-port package; `bidcodec/` is a standalone module in the
-same repository.
+This repository is the language-neutral `bid754` monorepo. The first-class
+deliverables are the per-language bid754 libraries; the
+`Intel BID C -> Go mechanical port -> generated Rust` chain is the
+manufacturing methodology behind them, not a ranking among them.
+
+The source repository URL and the Go module namespace prefix are the same
+identity: `github.com/sky1core/bid754`. There is no root Go module; the two
+public Go modules are `github.com/sky1core/bid754/bid754-go` (full
+implementation) and `github.com/sky1core/bid754/bid754-codec-go` (standalone
+codec). The module-root package of `bid754-go` is named `bid754`, so use a
+named import:
+
+```go
+import bid754 "github.com/sky1core/bid754/bid754-go"
+```
+
+Release tags follow the Go multi-module convention: `bid754-go/v0.1.0` and
+`bid754-codec-go/v0.1.0` version the Go modules, while root `v0.1.0`-style
+tags version the repository snapshot for Swift Package Manager.
 
 ## License
 
-Contributor-authored code is MIT licensed (`LICENSE`). The `bid-go/` mechanical
+Contributor-authored code is MIT licensed (`LICENSE`). The
+`bid754-go/internal/bidgo/` mechanical
 port and several generated artifacts are derivative works of the Intel Decimal
 Floating-Point Math Library (BSD 3-Clause) and of IBM decTest data (ICU
 License); the full third-party license texts and the exact derived-artifact
@@ -38,18 +54,18 @@ list live in `THIRD_PARTY_NOTICES.md`.
 
 | Path | Status |
 | --- | --- |
-| `bidcodec/`, `bid-codec-rs/`, `bid-codec-java/`, `bid-codec-py/`, `bid-codec-js/`, `bid-codec-swift/` | standalone BID codec packages intended for publication |
-| root Go module (`github.com/sky1core/bid754`) | public Go API surface (includes the `bid-go/` package) |
-| `bid-go/` | Go mechanical-port package inside the root module; not a separate module |
-| `bid754-rs/` | repo-internal generated verification crate (`publish = false`); not a published Rust API |
+| `bid754-go/` | public Go implementation module (`github.com/sky1core/bid754/bid754-go`); the Go mechanical port lives inside it as `internal/bidgo/` |
+| `bid754-codec-go/`, `bid754-codec-rs/`, `bid754-codec-java/`, `bid754-codec-py/`, `bid754-codec-js/`, `bid754-codec-swift/` | standalone BID codec packages intended for publication |
+| `bid754-rs/` | public Rust implementation, pre-release: still `publish = false`, no stable external Rust API yet; the user-facing API layer and crates.io publication are a later phase |
 | `bid754-rs/libbid-sys/` | repo-internal FFI test bindings (`publish = false`) |
-| `bid-go/cexport/` | quarantined legacy stubs guarded against linking |
+| `devtools/` | non-published tooling module (generators, scripts, pinned inputs); never tagged or consumed as a dependency |
+| `bid754-go/internal/bidgo/cexport/` | quarantined legacy stubs guarded against linking |
 
 ## Toolchain Prerequisites
 
 | Workflow | Requires |
 | --- | --- |
-| `make test` (portable Go) | Go (per `go.mod` toolchain) |
+| `make test` (portable Go) | Go (per `bid754-go/go.mod` toolchain) |
 | `make test-all` | + Rust stable/cargo, Java 17+, Python 3, Node.js + npm, Swift, ripgrep (`rg`); network on first run (npm/pip fetches) |
 | `make full-audit` | + `osv-scanner`, and the native prerequisites below (or `FULL_AUDIT_ALLOW_MISSING_NATIVE=1`) |
 | native gates (`make test-native-*`) | C toolchain (clang or gcc), `curl`, `unzip`, `shasum`, network for pinned downloads on first setup |
@@ -59,7 +75,7 @@ list live in `THIRD_PARTY_NOTICES.md`.
 
 Current verified workflows in this tree:
 
-- portable default: `go test ./...`
+- portable default: `cd bid754-go && go test ./...`
 - active checked-in language modules with portable test paths: `make test-all`
 - active Go module vet checks: `make vet-go-modules`
 - active Go module tidy/verify hygiene: `make audit-go-modules`
@@ -92,13 +108,14 @@ Current tree notes:
 
 ## Portable Workflow
 
-The default root Go path is portable and does not require local C libraries:
+There is no root Go module; the portable default Go path runs inside the
+`bid754-go/` module and does not require local C libraries:
 
 ```bash
-go test ./...
+cd bid754-go && go test ./...
 ```
 
-Equivalent Make target:
+Equivalent Make target (from the repository root):
 
 ```bash
 make test
@@ -125,11 +142,12 @@ make full-audit
 
 `make full-audit` is the top-level reproducible audit gate; the authoritative
 step list is the `_full-audit` target in the Makefile, documented in
-`BUILD.md`. The native gates are required by default — if `.env.sh`, Intel BID
+`docs/BUILD.md`. The native gates are required by default — if `.env.sh`, Intel BID
 `libbid.a`, or IBM decNumber are missing, `make full-audit` fails instead of
 silently passing a reduced gate (`FULL_AUDIT_ALLOW_MISSING_NATIVE=1` skips
-them explicitly). Legacy `run_tests.sh`, `run_tests_and_benchmarks.sh`, and
-`scripts/build_all.sh` delegate to this target.
+them explicitly). Legacy `devtools/run_tests.sh`,
+`devtools/run_tests_and_benchmarks.sh`, and
+`devtools/scripts/build_all.sh` delegate to this target.
 
 To run the current benchmark boundary:
 
@@ -137,11 +155,13 @@ To run the current benchmark boundary:
 make bench
 ```
 
-`make bench` runs Intel BID C direct benchmarks, root public Go API native-tag
-benchmarks, `bid-go` mechanical-port direct benchmarks, and generated Rust
+`make bench` runs Intel BID C direct benchmarks, `bid754-go` public Go API
+native-tag benchmarks, Go mechanical-port (`internal/bidgo`) direct
+benchmarks, and generated Rust
 Criterion benchmarks. The fair cross-implementation matrix is
 `bid32`/`bid64`/`bid128` across `add`, `mul`, `div`, `parse`, and `to_string`
-for Intel C, `bid-go`, and generated Rust. Root public Go API benchmarks are
+for Intel C, the Go mechanical port, and generated Rust. Public Go API
+benchmarks are
 reported as an additional wrapper/API surface over the Go mechanical port.
 Intel C native benchmark runs require the pinned source-built `libbid.a` with
 the dependency-spec build flags, including `CFLAGS_OPT=-O3 -ffp-contract=off`; setup scripts
@@ -153,8 +173,8 @@ Prepare the native environment:
 
 ```bash
 make doctor
-bash ./scripts/install_ibm_decnumber.sh
-./scripts/setup_c_libs.sh
+bash ./devtools/scripts/install_ibm_decnumber.sh
+./devtools/scripts/setup_c_libs.sh
 ```
 
 Then run:
@@ -181,11 +201,13 @@ make verify-linux-portable-amd64   # linux/amd64: Go modules + Rust portable
 make verify-linux-native-amd64     # linux/amd64: Intel BID C oracle native gates
 ```
 
-`scripts/verify_linux.sh` injects the working tree (tracked plus
+`devtools/scripts/verify_linux.sh` injects the working tree (tracked plus
 untracked-but-not-ignored files) into a pinned
-`ubuntu:24.04`-based image (Go pinned to the `go.mod` toolchain, rustup
-stable), reuses the pinned third-party archives cached under `third_party/`
-and `tests/` when present, and writes per-leg logs to
+`ubuntu:24.04`-based image (Go pinned to the `bid754-go/go.mod` toolchain,
+rustup
+stable), reuses the pinned third-party archives cached under
+`devtools/third_party/`
+and `devtools/tests/` when present, and writes per-leg logs to
 `test_results/latest_linux_<leg>_results.txt`. The native leg builds IBM
 decNumber and Intel BID inside the container and runs the same
 smoke/FFI/readtest/decTest/Rust-native gates as the macOS native workflow.
@@ -208,40 +230,40 @@ make verify-generated
 Representative checked-in generated artifacts (the authoritative full set is
 the `verify-generated` recipe in the Makefile):
 
-- `generated_types.go`
-- `generated/go/intel_dfp_tables.go`
-- `generated/rust/intel_dfp_tables.rs`
-- `generated/json/intel_dfp_symbols.json`
-- `generated/testspec/` (`spec_index.json` + `readtest/`, `ffi/` case shards)
-- `bid-codec-vectors/vectors.json`
+- `bid754-go/generated_types.go`
+- `devtools/generated/go/intel_dfp_tables.go`
+- `devtools/generated/rust/intel_dfp_tables.rs`
+- `devtools/generated/json/intel_dfp_symbols.json`
+- `devtools/generated/testspec/` (`spec_index.json` + `readtest/`, `ffi/` case shards)
+- `bid754-codec-vectors/vectors.json`
 
 Generated files are not edited directly. Change the manifest/generator and regenerate.
-Some generated Go files intentionally remain in the repository root because they are package `bid754` tests or public root-package declarations; they carry `Code generated` headers rather than living under `generated/`.
+Some generated Go files intentionally remain at the `bid754-go/` module root because they are package `bid754` tests or public declarations; they carry `Code generated` headers rather than living under `devtools/generated/`. The generated spec loader package `bid754-go/internal/testspec/` is emitted by testgen as well.
 
 Current artifact roles:
 
-- `generated/go/intel_dfp_tables.go` and `generated/rust/intel_dfp_tables.rs` are table artifacts generated from Intel BID C inputs
-- `bid-codec-vectors/vectors.json` is generated by `cmd/testgen` from `testgen_manifest.json` using an independent BID bit-layout reference codec as the cross-language vector source
-- the required BID codec language consumers are `bidcodec/`, `bid-codec-rs/`, `bid-codec-java/`, `bid-codec-py/`, `bid-codec-js/`, and `bid-codec-swift/`
+- `devtools/generated/go/intel_dfp_tables.go` and `devtools/generated/rust/intel_dfp_tables.rs` are table artifacts generated from Intel BID C inputs
+- `bid754-codec-vectors/vectors.json` is generated by `devtools/cmd/testgen` from `devtools/testgen_manifest.json` using an independent BID bit-layout reference codec as the cross-language vector source
+- the required BID codec language consumers are `bid754-codec-go/`, `bid754-codec-rs/`, `bid754-codec-java/`, `bid754-codec-py/`, `bid754-codec-js/`, and `bid754-codec-swift/`
 - `make test-bidcodec` verifies the generated vector artifact against all six required language consumers; `make audit-bidcodec-packages` additionally checks standalone package build/package/install/import boundaries and replays generated vectors from external consumers where the package artifact is installed or linked
 - these table artifacts do not mean the whole Go implementation is generated from C
 - the intended Go runtime path still means the public Go value-type surface should ride the Go mechanical port rather than direct C runtime glue or fake stubs
 - the generated Rust implementation path is produced from the Go mechanical-port path; hand-maintained Rust support modules remain API/support plumbing rather than an alternate arithmetic source of truth
-- `tools/go2rs` is the only permitted generator for the full Rust implementation artifacts under `bid754-rs/src/generated`; Rust idiom or performance improvements for that path must be implemented in `tools/go2rs` or its generated support/prelude rules and regenerated
+- `devtools/tools/go2rs` is the only permitted generator for the full Rust implementation artifacts under `bid754-rs/src/generated`; Rust idiom or performance improvements for that path must be implemented in `devtools/tools/go2rs` or its generated support/prelude rules and regenerated
 
 ## Testing and Verification
 
-The authoritative testing direction lives in `TEST_GENERATION_SPEC.md`.
+The authoritative testing direction lives in `docs/TEST_GENERATION_SPEC.md`.
 
 Important current-tree distinction:
 
-- `generated/testspec/` (`spec_index.json` plus the `readtest/` and `ffi/` case shards) is generated from the verification manifests; for Intel `readtest.in` the generator derives the active checked-in BID readtest subset mechanically from `readtest.h`, `readtest.in`, the repository's discoverable BID methods/constructors, the documented historical scope rule (`CMP_FUZZYSTATUS - explicit historical skip 함수군 + CMP_EQUALSTATUS`), and the current spec-phase exclusion list
-- the checked-in Intel readtest subset is source-driven and includes a generated `readtest.h` function audit; the current selected/excluded function counts live in `TEST_GENERATION_SPEC.md` and the generated audit artifacts
+- `devtools/generated/testspec/` (`spec_index.json` plus the `readtest/` and `ffi/` case shards) is generated from the verification manifests; for Intel `readtest.in` the generator derives the active checked-in BID readtest subset mechanically from `readtest.h`, `readtest.in`, the repository's discoverable BID methods/constructors, the documented historical scope rule (`CMP_FUZZYSTATUS - explicit historical skip 함수군 + CMP_EQUALSTATUS`), and the current spec-phase exclusion list
+- the checked-in Intel readtest subset is source-driven and includes a generated `readtest.h` function audit; the current selected/excluded function counts live in `docs/TEST_GENERATION_SPEC.md` and the generated audit artifacts
 - this closes the current supported-surface readtest required gap; it is still not "Intel readtest 전체" because non-`fmod` `CMP_RELATIVEERR` math/transcendental groups and out-of-scope binary/DPD/reverse conversion functions remain outside the operative profile
-- the Rust generated readtest dispatch audit dispatches every selected function with 0 skips, plus the duplicate Intel `CMP_RELATIVEERR` comparator rows for `bid32/64/128_fmod`; counts live in `TEST_GENERATION_SPEC.md`
+- the Rust generated readtest dispatch audit dispatches every selected function with 0 skips, plus the duplicate Intel `CMP_RELATIVEERR` comparator rows for `bid32/64/128_fmod`; counts live in `docs/TEST_GENERATION_SPEC.md`
 - the exact readtest case count can change when upstream Intel inputs or the repository's currently wired BID surface changes
-- decTest suites are selected mechanically from official `tests/*.decTest` inputs by scanning each file's operations and keeping only files whose non-ignored operations stay within the current checked-in supported operation sets; the selected/remaining file counts live in `TEST_GENERATION_SPEC.md`
-- the generated native FFI exact bit-compare subset compares result and `_IDEC_flags` where the Intel symbol exposes flags and cycles rounding modes `0..4` for `_IDEC_round` symbols; the covered function groups and counts live in `TEST_GENERATION_SPEC.md`
+- decTest suites are selected mechanically from official `devtools/tests/*.decTest` inputs by scanning each file's operations and keeping only files whose non-ignored operations stay within the current checked-in supported operation sets; the selected/remaining file counts live in `docs/TEST_GENERATION_SPEC.md`
+- the generated native FFI exact bit-compare subset compares result and `_IDEC_flags` where the Intel symbol exposes flags and cycles rounding modes `0..4` for `_IDEC_round` symbols; the covered function groups and counts live in `docs/TEST_GENERATION_SPEC.md`
 - that is useful subset verification
 - it is not the same thing as full readtest/decTest/FFI verification; FFI bit-compare still excludes out-of-scope reverse binary-to-BID, binary80, DPD, FE, mixed-width Intel extension, and string-conversion groups
 - BID string conversion is not counted as an FFI bit-compare gap; it is covered by the generated readtest-derived `make test-bid-string` boundary because that domain compares parsed bits, status, and normalized text rather than a simple decimal-return C symbol

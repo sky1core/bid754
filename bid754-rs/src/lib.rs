@@ -1,14 +1,17 @@
-//! Repository-internal Rust implementation crate for bid754.
+//! Public Rust implementation crate for bid754, in pre-release form.
 //!
-//! This crate is not a stable public Rust API and is not published. The
-//! `pub` modules below are exposed so repository integration tests, benches,
+//! This crate is generated from the Go mechanical port of Intel BID C. It is
+//! still `publish = false`, and it does not define a stable external Rust API
+//! yet: the user-facing Rust API layer is a later phase. The `pub` modules
+//! below are exposed so repository integration tests, benches,
 //! and generated verification harnesses can call the Go-to-Rust generated
 //! implementation directly. Treat `gen_types`, `gen_constants`, `tables`, and
-//! `generated` as generated/internal compatibility surface, not as a semver
+//! `generated` as generated/non-stable compatibility surface, not as a semver
 //! contract.
 //!
-//! Standalone BID component encode/decode helpers live in `bid-codec-rs`; that
-//! package has its own public package boundary and generated vector tests.
+//! Standalone BID component encode/decode helpers live in `bid754-codec-rs`;
+//! that package has its own public package boundary and generated vector
+//! tests.
 
 #![allow(
     non_snake_case,
@@ -24,7 +27,7 @@
     overflowing_literals
 )]
 
-// Generated from symbol registry (tools/registry/symbols.json)
+// Generated from symbol registry (devtools/tools/registry/symbols.json)
 pub mod gen_types;
 pub mod gen_constants;
 

@@ -1,6 +1,7 @@
-# bid-codec for Python
+# bid754-codec for Python
 
-`bid_codec` is the Python BID codec helper package. It is not a full decimal
+`bid754-codec` is the Python BID codec helper package on PyPI; its import
+module is `bid_codec`. It is not a full decimal
 arithmetic implementation. Its scope is BID bit layout encode/decode,
 little-endian byte encode/decode, and the shared BID codec string format used by
 the cross-language vector suite.
@@ -45,6 +46,6 @@ make test-bidcodec
 make audit-bidcodec-packages
 ```
 
-This package consumes `../bid-codec-vectors/vectors.json` through a generated
+This package consumes `../bid754-codec-vectors/vectors.json` through a generated
 test harness. `make audit-bidcodec-packages` additionally checks wheel build,
 typed marker inclusion, install, and import smoke.

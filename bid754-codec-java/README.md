@@ -44,7 +44,7 @@ make test-bidcodec
 make audit-bidcodec-packages
 ```
 
-This package consumes `../bid-codec-vectors/vectors.json` through a generated
+This package consumes `../bid754-codec-vectors/vectors.json` through a generated
 test harness. `make audit-bidcodec-packages` additionally checks the Gradle
 package build, Maven publication metadata, and an external jar consumer smoke.
 The standalone Maven coordinate is `dev.bid754.bidcodec:bid-codec-java:0.1.0`.
