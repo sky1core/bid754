@@ -1,0 +1,183 @@
+// Package testspec is the generated data model and loader for the shared
+// generated test spec (devtools/generated/testspec). It is emitted by
+// devtools testgen so the bid754-go module can read generated cases without
+// depending on the devtools module. The schema source of truth lives in
+// devtools/internal/testgen; harness coverage assertions guard against
+// schema drift.
+package testspec
+
+type SharedSpec struct {
+	DectestSuites           []GeneratedDectestSuite            `json:"dectest_suites"`
+	DectestFileAudits       []GeneratedDectestFileAudit        `json:"dectest_file_audits,omitempty"`
+	DectestRuntimeSkipAudit []GeneratedDectestRuntimeSkipAudit `json:"dectest_runtime_skip_audit,omitempty"`
+	ReadCases               []GeneratedReadCase                `json:"read_cases"`
+	ReadtestProfileAudit    []GeneratedReadtestProfileAudit    `json:"readtest_profile_audit,omitempty"`
+	FuzzCases               []GeneratedFuzzCase                `json:"fuzz_cases"`
+	FFICases                []GeneratedFFICase                 `json:"ffi_cases"`
+}
+
+// SpecIndex is the on-disk root of the split generated test spec layout.
+// It carries every SharedSpec section except read_cases/ffi_cases, which are
+// stored as per-suite/per-function shard files listed here in generation order.
+type SpecIndex struct {
+	DectestSuites           []GeneratedDectestSuite            `json:"dectest_suites"`
+	DectestFileAudits       []GeneratedDectestFileAudit        `json:"dectest_file_audits,omitempty"`
+	DectestRuntimeSkipAudit []GeneratedDectestRuntimeSkipAudit `json:"dectest_runtime_skip_audit,omitempty"`
+	ReadtestProfileAudit    []GeneratedReadtestProfileAudit    `json:"readtest_profile_audit,omitempty"`
+	FuzzCases               []GeneratedFuzzCase                `json:"fuzz_cases"`
+	ReadtestShardFiles      []string                           `json:"readtest_shard_files"`
+	FFIShardFiles           []string                           `json:"ffi_shard_files"`
+}
+
+// ReadtestShardHeader holds the eleven GeneratedReadCase fields that are
+// constant for every case of one readtest suite.
+type ReadtestShardHeader struct {
+	Suite                   string   `json:"suite"`
+	Group                   string   `json:"group,omitempty"`
+	Format                  string   `json:"format"`
+	Header                  string   `json:"header"`
+	Source                  string   `json:"source"`
+	Function                string   `json:"function"`
+	Kind                    string   `json:"kind"`
+	OutputType              string   `json:"output_type,omitempty"`
+	InputTypes              []string `json:"input_types,omitempty"`
+	CompareGroup            string   `json:"compare_group,omitempty"`
+	NativeCompareSkipReason string   `json:"native_compare_skip_reason,omitempty"`
+}
+
+// ReadtestShard is one generated/testspec/readtest/<suite>.json file.
+type ReadtestShard struct {
+	ReadtestShardHeader
+	Cases []ReadtestShardCase `json:"cases"`
+}
+
+// ReadtestShardCase holds the per-case GeneratedReadCase fields.
+type ReadtestShardCase struct {
+	ID       string   `json:"id"`
+	Line     int      `json:"line"`
+	Operands []string `json:"operands"`
+	Expected string   `json:"expected"`
+	Status   string   `json:"status"`
+	Rounding int      `json:"rounding"`
+}
+
+// FFIShardHeader holds the seven GeneratedFFICase fields that are constant
+// for every case of one FFI function.
+type FFIShardHeader struct {
+	Suite       string `json:"suite"`
+	Format      string `json:"format"`
+	Operation   string `json:"operation"`
+	Function    string `json:"function"`
+	LinkName    string `json:"link_name"`
+	Declaration string `json:"declaration"`
+	Source      string `json:"source"`
+}
+
+// FFIShard is one generated/testspec/ffi/<function>.json file.
+type FFIShard struct {
+	FFIShardHeader
+	Cases []FFIShardCase `json:"cases"`
+}
+
+// FFIShardCase holds the per-case GeneratedFFICase fields.
+type FFIShardCase struct {
+	ID       string   `json:"id"`
+	Rounding int      `json:"rounding"`
+	Operands []string `json:"operands"`
+}
+
+type GeneratedDectestSuite struct {
+	Name                string   `json:"name"`
+	Pattern             string   `json:"pattern"`
+	TestType            string   `json:"test_type"`
+	Files               []string `json:"files"`
+	SupportedOperations []string `json:"supported_operations,omitempty"`
+	IgnoredOperations   []string `json:"ignored_operations,omitempty"`
+}
+
+type GeneratedDectestFileAudit struct {
+	File                              string                       `json:"file"`
+	Operations                        []string                     `json:"operations"`
+	SelectedSuites                    []string                     `json:"selected_suites,omitempty"`
+	UnsupportedBySuite                map[string][]string          `json:"unsupported_by_suite,omitempty"`
+	UnsupportedReasonsBySuite         map[string]map[string]string `json:"unsupported_reasons_by_suite,omitempty"`
+	UnsupportedClassificationsBySuite map[string]map[string]string `json:"unsupported_classifications_by_suite,omitempty"`
+}
+
+type GeneratedDectestRuntimeSkipAudit struct {
+	Suite       string         `json:"suite"`
+	Cases       int            `json:"cases"`
+	SkipReasons map[string]int `json:"skip_reasons,omitempty"`
+}
+
+type GeneratedReadCase struct {
+	Suite                   string   `json:"suite"`
+	Group                   string   `json:"group,omitempty"`
+	Format                  string   `json:"format"`
+	Header                  string   `json:"header"`
+	Source                  string   `json:"source"`
+	ID                      string   `json:"id"`
+	Line                    int      `json:"line"`
+	Function                string   `json:"function"`
+	Kind                    string   `json:"kind"`
+	OutputType              string   `json:"output_type,omitempty"`
+	InputTypes              []string `json:"input_types,omitempty"`
+	CompareGroup            string   `json:"compare_group,omitempty"`
+	NativeCompareSkipReason string   `json:"native_compare_skip_reason,omitempty"`
+	Operands                []string `json:"operands"`
+	Expected                string   `json:"expected"`
+	Status                  string   `json:"status"`
+	Rounding                int      `json:"rounding"`
+}
+
+type GeneratedReadtestProfileAudit struct {
+	Profile           string                           `json:"profile"`
+	Header            string                           `json:"header"`
+	Source            string                           `json:"source"`
+	Selection         string                           `json:"selection"`
+	TotalFunctions    int                              `json:"total_functions"`
+	SelectedFunctions int                              `json:"selected_functions"`
+	ExcludedFunctions int                              `json:"excluded_functions"`
+	Functions         []GeneratedReadtestFunctionAudit `json:"functions"`
+}
+
+type GeneratedReadtestFunctionAudit struct {
+	Function       string   `json:"function"`
+	OutputType     string   `json:"output_type,omitempty"`
+	InputTypes     []string `json:"input_types,omitempty"`
+	CompareGroup   string   `json:"compare_group,omitempty"`
+	Selected       bool     `json:"selected"`
+	Format         string   `json:"format,omitempty"`
+	Kind           string   `json:"kind,omitempty"`
+	Group          string   `json:"group,omitempty"`
+	Reason         string   `json:"reason"`
+	Classification string   `json:"classification"`
+}
+
+type GeneratedFuzzCase struct {
+	Suite        string   `json:"suite"`
+	TestType     string   `json:"test_type"`
+	Source       string   `json:"source"`
+	ID           string   `json:"id"`
+	Operation    string   `json:"operation"`
+	Operands     []string `json:"operands"`
+	Expected     string   `json:"expected"`
+	Precision    int      `json:"precision"`
+	RoundingMode string   `json:"rounding_mode"`
+	MaxExponent  int      `json:"max_exponent"`
+	MinExponent  int      `json:"min_exponent"`
+	Clamp        int      `json:"clamp"`
+}
+
+type GeneratedFFICase struct {
+	Suite       string   `json:"suite"`
+	ID          string   `json:"id"`
+	Format      string   `json:"format"`
+	Operation   string   `json:"operation"`
+	Function    string   `json:"function"`
+	LinkName    string   `json:"link_name"`
+	Declaration string   `json:"declaration"`
+	Source      string   `json:"source"`
+	Rounding    int      `json:"rounding"`
+	Operands    []string `json:"operands"`
+}

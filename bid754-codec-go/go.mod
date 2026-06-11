@@ -1,4 +1,4 @@
-module github.com/sky1core/bid754/bidcodec
+module github.com/sky1core/bid754/bid754-codec-go
 
 go 1.21
 

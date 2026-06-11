@@ -34,14 +34,14 @@ ehthumbs.db
 Thumbs.db
 
 # Build artifacts
-/third_party/*/lib/*.a
-/third_party/*/lib/*.so
-/third_party/*/lib/*.dylib
+/devtools/third_party/*/lib/*.a
+/devtools/third_party/*/lib/*.so
+/devtools/third_party/*/lib/*.dylib
 
 # Legacy cexport local build outputs
-/bid-go/cexport/cexport
-/bid-go/cexport/libbidgo.a
-/bid-go/cexport/libbidgo.h
+/bid754-go/internal/bidgo/cexport/cexport
+/bid754-go/internal/bidgo/cexport/libbidgo.a
+/bid754-go/internal/bidgo/cexport/libbidgo.h
 
 # Temporary files
 *.tmp
@@ -49,8 +49,8 @@ Thumbs.db
 *.log
 
 # Test data
-/testdata/temp/
-/testdata/output/
+/devtools/testdata/temp/
+/devtools/testdata/output/
 
 # Backup files
 *.bak
@@ -62,18 +62,18 @@ Thumbs.db
 .env.local
 
 # Third-party source files (should be downloaded, not committed)
-/third_party/intel_dfp/*
-!/third_party/intel_dfp/.gitkeep
-!/third_party/intel_dfp/README.md
-!/third_party/intel_dfp/download.sh
+/devtools/third_party/intel_dfp/*
+!/devtools/third_party/intel_dfp/.gitkeep
+!/devtools/third_party/intel_dfp/README.md
+!/devtools/third_party/intel_dfp/download.sh
 
 # IBM decNumber source files (if added later)
-/third_party/ibm_decnumber/*
-!/third_party/ibm_decnumber/.gitkeep
-!/third_party/ibm_decnumber/README.md
+/devtools/third_party/ibm_decnumber/*
+!/devtools/third_party/ibm_decnumber/.gitkeep
+!/devtools/third_party/ibm_decnumber/README.md
 
 # Intel DFP build artifacts
-third_party/intel_dfp/*.o
+devtools/third_party/intel_dfp/*.o
 
 # Memory profiling files
 *.prof
@@ -86,11 +86,11 @@ coverage.html
 /debug/
 
 # IBM decTest suite (if downloaded)
-/tests/*
-!/tests/
-!/tests/.gitkeep
-!/tests/README.md
+/devtools/tests/*
+!/devtools/tests/
+!/devtools/tests/.gitkeep
+!/devtools/tests/README.md
 
 # Local tool build outputs
-/platformdigest
-/codegen
+/bid754-go/platformdigest
+/devtools/codegen

@@ -10,7 +10,7 @@ import (
 )
 
 func TestBid64RoundIntegralZeroIntelReadtest(t *testing.T) {
-	testFile := "../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestBid64RoundIntegralZeroIntelReadtest(t *testing.T) {
 }
 
 func TestBid64ModfIntelReadtest(t *testing.T) {
-	testFile := "../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {

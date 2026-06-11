@@ -7,7 +7,7 @@
 # portable legs. All digests must agree on case count and SHA-256.
 set -euo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 files=()
 for f in test_results/digest_*.txt; do

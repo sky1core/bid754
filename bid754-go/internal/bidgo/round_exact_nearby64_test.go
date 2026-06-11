@@ -10,7 +10,7 @@ import (
 )
 
 func testBid64RoundIntegralUnaryIntelReadtest(t *testing.T, prefix string, fn func(uint64) (uint64, uint32)) {
-	testFile := "../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {
@@ -65,7 +65,7 @@ func testBid64RoundIntegralUnaryIntelReadtest(t *testing.T, prefix string, fn fu
 }
 
 func TestBid64RoundIntegralExactIntelReadtest(t *testing.T) {
-	testFile := "../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {
@@ -125,7 +125,7 @@ func TestBid64RoundIntegralExactIntelReadtest(t *testing.T) {
 }
 
 func TestBid64NearbyIntIntelReadtest(t *testing.T) {
-	testFile := "../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {

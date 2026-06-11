@@ -4,19 +4,19 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 INTEL_VERSION="v20U4"
 INTEL_URL="https://www.netlib.org/misc/intel/IntelRDFPMathLib20U4.tar.gz"
 INTEL_SHA256="1df86132e7a31fd74d784fee1c679b21a088f73a8ec979cfaf784c200392e125"
-INTEL_ARCHIVE="$PROJECT_ROOT/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz"
+INTEL_ARCHIVE="$PROJECT_ROOT/devtools/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz"
 INTEL_VERSION_MARKER="release 2.0 Update 4"
-INTEL_DIR="$PROJECT_ROOT/third_party/intel_dfp"
+INTEL_DIR="$PROJECT_ROOT/devtools/third_party/intel_dfp"
 
 DECTEST_URL="https://speleotrove.com/decimal/dectest.zip"
 DECTEST_SHA256="b70a224cd52e82b7a8150aedac5efa2d0cb3941696fd829bdbe674f9f65c3926"
-DECTEST_ARCHIVE="$PROJECT_ROOT/tests/dectest.zip"
-DECTEST_DIR="$PROJECT_ROOT/tests"
+DECTEST_ARCHIVE="$PROJECT_ROOT/devtools/tests/dectest.zip"
+DECTEST_DIR="$PROJECT_ROOT/devtools/tests"
 
 usage() {
     echo "usage: $0 [all|intel|dectest]" >&2

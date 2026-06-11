@@ -5,7 +5,7 @@
 
 use crate::gen_types::{BID_UINT128, BID_UINT192, BID_UINT256, DEC_DIGITS};
 
-include!(concat!(env!("CARGO_MANIFEST_DIR"), "/../generated/rust/intel_dfp_tables.rs"));
+include!(concat!(env!("CARGO_MANIFEST_DIR"), "/../devtools/generated/rust/intel_dfp_tables.rs"));
 
 const fn wrap_u128<const N: usize>(src: [UInt128Words; N]) -> [BID_UINT128; N] {
     let mut out = [BID_UINT128 { w: [0u64, 0u64] }; N];

@@ -16,7 +16,7 @@
 # The repository working tree is injected as a tar stream of tracked plus
 # untracked-but-not-ignored files, so host build artifacts (.env.sh, macOS
 # libbid.a, test_results/, caches) never leak into the container. Pinned
-# upstream archives already cached under third_party/ are copied in when
+# upstream archives already cached under devtools/third_party/ are copied in when
 # present; otherwise the setup scripts download them against pinned SHA-256.
 set -euo pipefail
 
@@ -27,7 +27,7 @@ usage() {
 
 [ $# -eq 1 ] || usage
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
 run_leg() {
@@ -41,11 +41,11 @@ run_leg() {
             # them from its preceding verify-generated step; the CI arm64
             # portable job has no such step). make digest emits the
             # PLATFORM-DIGEST line consumed by make verify-digest.
-            gate_cmd='bash scripts/setup_generation_inputs.sh intel && make test-go-modules && make test-rust && make digest'
+            gate_cmd='bash devtools/scripts/setup_generation_inputs.sh intel && make test-go-modules && make test-rust && make digest'
             ;;
         portable-amd64)
             platform=linux/amd64; arch=amd64
-            gate_cmd='bash scripts/setup_generation_inputs.sh intel && make test-go-modules && make test-rust && make digest'
+            gate_cmd='bash devtools/scripts/setup_generation_inputs.sh intel && make test-go-modules && make test-rust && make digest'
             ;;
         native-amd64)
             platform=linux/amd64; arch=amd64
@@ -53,7 +53,7 @@ run_leg() {
             # BID C sources (cgen/csymbols sync tests inside the -short run)
             # and the IBM decTest originals that the native decTest gate
             # parses next to the IBM decNumber oracle.
-            gate_cmd='bash scripts/setup_generation_inputs.sh && bash scripts/install_ibm_decnumber.sh && bash scripts/setup_c_libs.sh && make doctor && make test-native-smoke && make test-native-ffi && make test-native-readtest && make test-native-dectest && make test-rust-native'
+            gate_cmd='bash devtools/scripts/setup_generation_inputs.sh && bash devtools/scripts/install_ibm_decnumber.sh && bash devtools/scripts/setup_c_libs.sh && make doctor && make test-native-smoke && make test-native-ffi && make test-native-readtest && make test-native-dectest && make test-rust-native'
             ;;
         *)
             usage
@@ -62,7 +62,7 @@ run_leg() {
 
     local image="bid754-verify:$arch"
     echo "==> [$leg_name] building $image ($platform)"
-    docker build --platform "$platform" -t "$image" docker/verify
+    docker build --platform "$platform" -t "$image" devtools/docker/verify
 
     mkdir -p test_results
     local log="test_results/latest_linux_${leg_name}_results.txt"
@@ -71,16 +71,16 @@ run_leg() {
     # metadata entries, which would land as stale files in the container tree.
     git ls-files -coz --exclude-standard | COPYFILE_DISABLE=1 tar --null -T - -cf - | \
         docker run --rm -i --platform "$platform" \
-            -v "$repo_root/third_party/intel_dfp:/host-cache/third_party/intel_dfp:ro" \
-            -v "$repo_root/third_party/ibm_decnumber:/host-cache/third_party/ibm_decnumber:ro" \
-            -v "$repo_root/tests:/host-cache/tests:ro" \
+            -v "$repo_root/devtools/third_party/intel_dfp:/host-cache/devtools/third_party/intel_dfp:ro" \
+            -v "$repo_root/devtools/third_party/ibm_decnumber:/host-cache/devtools/third_party/ibm_decnumber:ro" \
+            -v "$repo_root/devtools/tests:/host-cache/devtools/tests:ro" \
             -v bid754-cargo-registry:/root/.cargo/registry \
             "$image" \
             bash -o pipefail -ec '
                 tar -xf - -C /work
-                for f in /host-cache/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz \
-                         /host-cache/third_party/ibm_decnumber/decNumber-icu-368.zip \
-                         /host-cache/tests/dectest.zip; do
+                for f in /host-cache/devtools/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz \
+                         /host-cache/devtools/third_party/ibm_decnumber/decNumber-icu-368.zip \
+                         /host-cache/devtools/tests/dectest.zip; do
                     if [ -f "$f" ]; then
                         cp "$f" "/work/${f#/host-cache/}"
                     fi

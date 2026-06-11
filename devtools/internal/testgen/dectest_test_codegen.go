@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	dectestGeneratedNativeTestPath = "generated_dectest_cases_native_test.go"
-	dectestGeneratedStubTestPath   = "generated_dectest_cases_stub_test.go"
-	dectestGeneratedDispatchPath   = "generated_dectest_dispatch.go"
+	dectestGeneratedNativeTestPath = "../bid754-go/generated_dectest_cases_native_test.go"
+	dectestGeneratedStubTestPath   = "../bid754-go/generated_dectest_cases_stub_test.go"
+	dectestGeneratedDispatchPath   = "../bid754-go/generated_dectest_dispatch.go"
 )
 
 type dectestExecutorTemplate struct {
@@ -20,27 +20,27 @@ type dectestExecutorTemplate struct {
 }
 
 var dectestExecutorTemplates = []dectestExecutorTemplate{
-	{OutputPath: "dectest_class.go", TemplatePath: "internal/testgen/dectest_templates/dectest_class.go.tmpl"},
-	{OutputPath: "dectest_compare.go", TemplatePath: "internal/testgen/dectest_templates/dectest_compare.go.tmpl"},
-	{OutputPath: "dectest_comparetotal.go", TemplatePath: "internal/testgen/dectest_templates/dectest_comparetotal.go.tmpl"},
-	{OutputPath: "dectest_copy.go", TemplatePath: "internal/testgen/dectest_templates/dectest_copy.go.tmpl"},
-	{OutputPath: "dectest_driver.go", TemplatePath: "internal/testgen/dectest_templates/dectest_driver.go.tmpl"},
-	{OutputPath: "dectest_spec_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_spec_test.go.tmpl"},
-	{OutputPath: "dectest_fma.go", TemplatePath: "internal/testgen/dectest_templates/dectest_fma.go.tmpl"},
-	{OutputPath: "dectest_helpers.go", TemplatePath: "internal/testgen/dectest_templates/dectest_helpers.go.tmpl"},
-	{OutputPath: "dectest_logb.go", TemplatePath: "internal/testgen/dectest_templates/dectest_logb.go.tmpl"},
-	{OutputPath: "dectest_minmax.go", TemplatePath: "internal/testgen/dectest_templates/dectest_minmax.go.tmpl"},
-	{OutputPath: "dectest_native.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native.go.tmpl"},
-	{OutputPath: "dectest_native_stub.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native_stub.go.tmpl"},
-	{OutputPath: "dectest_next.go", TemplatePath: "internal/testgen/dectest_templates/dectest_next.go.tmpl"},
-	{OutputPath: "dectest_nexttoward.go", TemplatePath: "internal/testgen/dectest_templates/dectest_nexttoward.go.tmpl"},
-	{OutputPath: "dectest_reduce.go", TemplatePath: "internal/testgen/dectest_templates/dectest_reduce.go.tmpl"},
-	{OutputPath: "dectest_remainder.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remainder.go.tmpl"},
-	{OutputPath: "dectest_remaindernear.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remaindernear.go.tmpl"},
-	{OutputPath: "dectest_samequantum.go", TemplatePath: "internal/testgen/dectest_templates/dectest_samequantum.go.tmpl"},
-	{OutputPath: "dectest_scaleb.go", TemplatePath: "internal/testgen/dectest_templates/dectest_scaleb.go.tmpl"},
-	{OutputPath: "dectest_tointegral.go", TemplatePath: "internal/testgen/dectest_templates/dectest_tointegral.go.tmpl"},
-	{OutputPath: "dectest_unary.go", TemplatePath: "internal/testgen/dectest_templates/dectest_unary.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_class.go", TemplatePath: "internal/testgen/dectest_templates/dectest_class.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_compare.go", TemplatePath: "internal/testgen/dectest_templates/dectest_compare.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_comparetotal.go", TemplatePath: "internal/testgen/dectest_templates/dectest_comparetotal.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_copy.go", TemplatePath: "internal/testgen/dectest_templates/dectest_copy.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_driver.go", TemplatePath: "internal/testgen/dectest_templates/dectest_driver.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_spec_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_spec_test.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_fma.go", TemplatePath: "internal/testgen/dectest_templates/dectest_fma.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_helpers.go", TemplatePath: "internal/testgen/dectest_templates/dectest_helpers.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_logb.go", TemplatePath: "internal/testgen/dectest_templates/dectest_logb.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_minmax.go", TemplatePath: "internal/testgen/dectest_templates/dectest_minmax.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_native.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_native_stub.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native_stub.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_next.go", TemplatePath: "internal/testgen/dectest_templates/dectest_next.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_nexttoward.go", TemplatePath: "internal/testgen/dectest_templates/dectest_nexttoward.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_reduce.go", TemplatePath: "internal/testgen/dectest_templates/dectest_reduce.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_remainder.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remainder.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_remaindernear.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remaindernear.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_samequantum.go", TemplatePath: "internal/testgen/dectest_templates/dectest_samequantum.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_scaleb.go", TemplatePath: "internal/testgen/dectest_templates/dectest_scaleb.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_tointegral.go", TemplatePath: "internal/testgen/dectest_templates/dectest_tointegral.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_unary.go", TemplatePath: "internal/testgen/dectest_templates/dectest_unary.go.tmpl"},
 }
 
 type dectestGeneratedSuiteCoverage struct {
@@ -548,7 +548,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 type generatedDectestSuiteCoverage struct {
@@ -588,7 +588,7 @@ func TestGeneratedDectestSuites(t *testing.T) {
 	}
 }
 
-func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testgen.GeneratedDectestSuite) {
+func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testspec.GeneratedDectestSuite) {
 	t.Helper()
 	if len(suites) != len(expectedGeneratedDectestSuiteCoverage) {
 		t.Fatalf("generated dectest suite count = %d, want %d", len(suites), len(expectedGeneratedDectestSuiteCoverage))
@@ -603,7 +603,7 @@ func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testgen.Generate
 		}
 		gotCases := 0
 		for _, testFile := range suite.Files {
-			cases, err := parseDecTestFile(testFile)
+			cases, err := parseDecTestFile(filepath.Join("..", "devtools", testFile))
 			if err != nil {
 				t.Fatalf("parseDecTestFile(%q): %v", testFile, err)
 			}
@@ -615,7 +615,7 @@ func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testgen.Generate
 	}
 }
 
-func assertGeneratedDectestRuntimeSkipAudit(t *testing.T, audits []testgen.GeneratedDectestRuntimeSkipAudit) {
+func assertGeneratedDectestRuntimeSkipAudit(t *testing.T, audits []testspec.GeneratedDectestRuntimeSkipAudit) {
 	t.Helper()
 	if len(audits) != len(expectedGeneratedDectestSuiteCoverage) {
 		t.Fatalf("generated dectest runtime skip audit count = %d, want %d", len(audits), len(expectedGeneratedDectestSuiteCoverage))
@@ -655,26 +655,26 @@ func assertGeneratedDectestSkipReasons(t *testing.T, suite string, got, want map
 	}
 }
 
-func loadGeneratedDectestSpecForTest(t *testing.T) testgen.SharedSpec {
+func loadGeneratedDectestSpecForTest(t *testing.T) testspec.SharedSpec {
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatalf("resolve generated dectest file path")
 	}
-	spec, err := testgen.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "generated", "testspec", "spec_index.json"))
+	spec, err := testspec.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "..", "devtools", "generated", "testspec", "spec_index.json"))
 	if err != nil {
 		t.Fatalf("load shared spec: %v", err)
 	}
 	return spec
 }
 
-func runGeneratedDectestSuite(t *testing.T, suite testgen.GeneratedDectestSuite) decTestSuiteTotals {
+func runGeneratedDectestSuite(t *testing.T, suite testspec.GeneratedDectestSuite) decTestSuiteTotals {
 	t.Helper()
 
 	result := decTestSuiteTotals{Name: suite.Name}
 	skipReasons := map[string]int{}
 	for _, testFile := range suite.Files {
-		cases, err := parseDecTestFile(testFile)
+		cases, err := parseDecTestFile(filepath.Join("..", "devtools", testFile))
 		if err != nil {
 			t.Fatalf("parseDecTestFile(%q): %v", testFile, err)
 		}

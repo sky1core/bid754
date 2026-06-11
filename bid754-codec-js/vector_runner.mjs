@@ -18,7 +18,7 @@ import {
   toString,
 } from "@bid754/bid-codec";
 
-const vectorsPath = process.argv[2] ?? "../bid-codec-vectors/vectors.json";
+const vectorsPath = process.argv[2] ?? "../bid754-codec-vectors/vectors.json";
 const vectorFile = JSON.parse(readFileSync(vectorsPath, "utf8"));
 const expectedFormatVersion = 1;
 if (vectorFile.format_version !== expectedFormatVersion) {

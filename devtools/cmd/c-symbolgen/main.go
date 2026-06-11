@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sky1core/bid754/internal/csymbols"
+	"github.com/sky1core/bid754/devtools/internal/csymbols"
 )
 
 func main() {

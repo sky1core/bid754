@@ -4,7 +4,7 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 
 echo "Setting up bid754 dependencies..."
 
@@ -50,7 +50,7 @@ check_ibm_decnumber() {
 
 # Function to check if Intel DFP is ready
 check_intel_dfp() {
-    if [ -f "$PROJECT_ROOT/third_party/intel_dfp/lib/libbid.a" ]; then
+    if [ -f "$PROJECT_ROOT/devtools/third_party/intel_dfp/lib/libbid.a" ]; then
         echo -e "${GREEN}✓ Intel DFP library found${NC}"
         return 0
     else
@@ -124,7 +124,7 @@ write_intel_dfp_build_stamp() {
 build_intel_dfp() {
     echo -e "${YELLOW}Building Intel DFP library...${NC}"
     
-    INTEL_DIR="$PROJECT_ROOT/third_party/intel_dfp"
+    INTEL_DIR="$PROJECT_ROOT/devtools/third_party/intel_dfp"
 
     # Extract if needed
     if [ ! -d "$INTEL_DIR/src" ]; then
@@ -196,7 +196,7 @@ if ! check_ibm_decnumber; then
 if ! check_intel_dfp; then
     build_intel_dfp
 else
-    INTEL_DIR="$PROJECT_ROOT/third_party/intel_dfp"
+    INTEL_DIR="$PROJECT_ROOT/devtools/third_party/intel_dfp"
     extra_cflags=""
     opt_cflags="${INTEL_DFP_OPT_CFLAGS:--O3 -ffp-contract=off}"
     if [ "$ARCH_TYPE" = "arm64" ]; then
@@ -226,8 +226,8 @@ elif [ -d "/usr/local/include/libdecnumber" ]; then
 fi
 
 # Intel DFP paths
-export CGO_CFLAGS="-I$PROJECT_ROOT/third_party/intel_dfp/include \$CGO_CFLAGS"
-export CGO_LDFLAGS="-L$PROJECT_ROOT/third_party/intel_dfp/lib \$CGO_LDFLAGS"
+export CGO_CFLAGS="-I$PROJECT_ROOT/devtools/third_party/intel_dfp/include \$CGO_CFLAGS"
+export CGO_LDFLAGS="-L$PROJECT_ROOT/devtools/third_party/intel_dfp/lib \$CGO_LDFLAGS"
 export GOFLAGS="-tags=bid754_native \$GOFLAGS"
 
 # Platform-specific flags

@@ -1,4 +1,4 @@
-module github.com/sky1core/bid754
+module github.com/sky1core/bid754/bid754-go
 
 go 1.23
 

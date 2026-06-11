@@ -9,16 +9,16 @@ import (
 )
 
 const (
-	bidCodecVectorsGoTestPath             = "bidcodec/vector_test.go"
-	bidCodecVectorsGoExternalTestPath     = "bidcodec/testdata/external_vector_test.go"
-	bidCodecVectorsRustTestPath           = "bid754-rs/tests/bid_codec_vectors.rs"
-	bidCodecVectorsStandaloneRustTestPath = "bid-codec-rs/tests/vectors.rs"
-	bidCodecVectorsJavaRunnerPath         = "bid-codec-java/src/test/java/dev/bid754/bidcodec/VectorRunner.java"
-	bidCodecVectorsJavaTestPath           = "bid-codec-java/src/test/java/dev/bid754/bidcodec/VectorTest.java"
-	bidCodecVectorsPythonTestPath         = "bid-codec-py/tests/test_vectors.py"
-	bidCodecVectorsJSTestPath             = "bid-codec-js/src/vectors.test.ts"
-	bidCodecVectorsJSRunnerPath           = "bid-codec-js/vector_runner.mjs"
-	bidCodecVectorsSwiftRunnerPath        = "bid-codec-swift/Sources/BidCodecVectorRunner/main.swift"
+	bidCodecVectorsGoTestPath             = "../bid754-codec-go/vector_test.go"
+	bidCodecVectorsGoExternalTestPath     = "../bid754-codec-go/testdata/external_vector_test.go"
+	bidCodecVectorsRustTestPath           = "../bid754-rs/tests/bid_codec_vectors.rs"
+	bidCodecVectorsStandaloneRustTestPath = "../bid754-codec-rs/tests/vectors.rs"
+	bidCodecVectorsJavaRunnerPath         = "../bid754-codec-java/src/test/java/dev/bid754/bidcodec/VectorRunner.java"
+	bidCodecVectorsJavaTestPath           = "../bid754-codec-java/src/test/java/dev/bid754/bidcodec/VectorTest.java"
+	bidCodecVectorsPythonTestPath         = "../bid754-codec-py/tests/test_vectors.py"
+	bidCodecVectorsJSTestPath             = "../bid754-codec-js/src/vectors.test.ts"
+	bidCodecVectorsJSRunnerPath           = "../bid754-codec-js/vector_runner.mjs"
+	bidCodecVectorsSwiftRunnerPath        = "../bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift"
 )
 
 //go:embed bidcodec_templates/*
@@ -151,7 +151,7 @@ const (
 
 func loadVectors(t *testing.T) []vectorEntry {
 	t.Helper()
-	data, err := os.ReadFile("../bid-codec-vectors/vectors.json")
+	data, err := os.ReadFile("../bid754-codec-vectors/vectors.json")
 	if err != nil {
 		t.Fatalf("failed to read vectors.json: %v", err)
 	}
@@ -589,7 +589,7 @@ const EXPECTED_BID64_CANONICAL: usize = 4_210;
 const EXPECTED_BID128_CANONICAL: usize = 3_641;
 
 fn vectors_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bid-codec-vectors/vectors.json")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bid754-codec-vectors/vectors.json")
 }
 
 fn load_vectors() -> Vec<Vector> {
@@ -1006,10 +1006,10 @@ func bidCodecGoExternalVectorTestOutput(repoTest []byte) []byte {
 	}
 	out = strings.Replace(out,
 		"\t\"testing\"\n)",
-		"\t\"testing\"\n\n\tcodec \"github.com/sky1core/bid754/bidcodec\"\n)",
+		"\t\"testing\"\n\n\tcodec \"github.com/sky1core/bid754/bid754-codec-go\"\n)",
 		1,
 	)
-	if !strings.Contains(out, `codec "github.com/sky1core/bid754/bidcodec"`) {
+	if !strings.Contains(out, `codec "github.com/sky1core/bid754/bid754-codec-go"`) {
 		panic("failed to derive external Go BID codec vector test import")
 	}
 	out = strings.Replace(out,

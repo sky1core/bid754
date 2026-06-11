@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"testing"
 
-	codec "github.com/sky1core/bid754/bidcodec"
+	codec "github.com/sky1core/bid754/bid754-codec-go"
 )
 
 type Components = codec.Components
@@ -77,7 +77,7 @@ const (
 
 func loadVectors(t *testing.T) []vectorEntry {
 	t.Helper()
-	data, err := os.ReadFile("../bid-codec-vectors/vectors.json")
+	data, err := os.ReadFile("../bid754-codec-vectors/vectors.json")
 	if err != nil {
 		t.Fatalf("failed to read vectors.json: %v", err)
 	}

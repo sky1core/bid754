@@ -6950,8 +6950,8 @@ fn supported_readtest_func(func_name: &str) -> bool {
 
 fn find_readtest_in() -> PathBuf {
     let candidates = [
-        "third_party/intel_dfp/TESTS/readtest.in",
-        "../third_party/intel_dfp/TESTS/readtest.in",
+        "../devtools/third_party/intel_dfp/TESTS/readtest.in",
+        "devtools/third_party/intel_dfp/TESTS/readtest.in",
     ];
     for c in &candidates {
         let p = Path::new(c);

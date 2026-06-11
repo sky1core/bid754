@@ -4,7 +4,7 @@ use std::path::PathBuf;
 fn main() {
     let manifest_dir =
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
-    let lib_dir = manifest_dir.join("../../third_party/intel_dfp/lib");
+    let lib_dir = manifest_dir.join("../../devtools/third_party/intel_dfp/lib");
     let lib_path = lib_dir.join("libbid.a");
     if !lib_path.exists() {
         panic!(

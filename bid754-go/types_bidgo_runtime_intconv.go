@@ -1,6 +1,6 @@
 package bid754
 
-import bidgo "github.com/sky1core/bid754/bid-go"
+import bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 
 func decimal32BIDConvertToInt8Port(d Decimal32BID, mode RoundingMode) (int8, ExceptionFlags) {
 	var result int8

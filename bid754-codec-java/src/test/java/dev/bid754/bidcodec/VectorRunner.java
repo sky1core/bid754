@@ -29,7 +29,7 @@ public final class VectorRunner {
     public static void main(String[] args) throws IOException {
         Path vectorsPath = args.length > 0
                 ? Path.of(args[0])
-                : Path.of("..", "bid-codec-vectors", "vectors.json");
+                : Path.of("..", "bid754-codec-vectors", "vectors.json");
         List<Map<String, Object>> vectors = new Json(Files.readString(vectorsPath)).parseVectorFile();
         verifyCoverageProfile(vectors);
         verifyAnchorVectors();

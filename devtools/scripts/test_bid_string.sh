@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 go_cache=${GOCACHE:-/tmp/go-cache}
 
 cd "$repo_root"
@@ -85,7 +85,7 @@ require_discovered_consumer() {
   fi
 }
 
-require_discovered_consumer "$go_modules_file" "." "Go mechanical port (bid-go package in the root module)"
+require_discovered_consumer "$go_modules_file" "./bid754-go" "Go mechanical port (bidgo package in the bid754-go module)"
 require_discovered_consumer "$rust_tests_file" "./bid754-rs:bid_string_vectors" "Rust generated implementation"
 
 sort -u "$go_modules_file" | while IFS= read -r module_dir; do

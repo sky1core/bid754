@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 results_dir="$repo_root/test_results"
 timestamp=$(date +"%Y%m%d_%H%M%S")
 test_output="$results_dir/full_audit_${timestamp}.txt"

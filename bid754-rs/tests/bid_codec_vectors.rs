@@ -42,7 +42,7 @@ const EXPECTED_BID64_CANONICAL: usize = 4_210;
 const EXPECTED_BID128_CANONICAL: usize = 3_641;
 
 fn vectors_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bid-codec-vectors/vectors.json")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bid754-codec-vectors/vectors.json")
 }
 
 fn load_vectors() -> Vec<Vector> {

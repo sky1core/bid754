@@ -3,7 +3,7 @@ package bid754
 import (
 	"testing"
 
-	bidgo "github.com/sky1core/bid754/bid-go"
+	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
 
 type predicateCase32 struct {

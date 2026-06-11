@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 func TestGeneratedDectestSuiteSelection(t *testing.T) {
@@ -23,7 +23,7 @@ func TestGeneratedDectestSuiteSelection(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		files, err := getTestFiles("tests", tc.pattern)
+		files, err := getTestFiles("../devtools/tests", tc.pattern)
 		if err != nil {
 			t.Fatalf("getTestFiles(%q) error: %v", tc.pattern, err)
 		}
@@ -89,7 +89,7 @@ func TestGeneratedDectestSuiteSelection(t *testing.T) {
 	assertGeneratedSuiteMissing(t, spec, "*.decTest", "tests/testall.decTest")
 }
 
-func assertGeneratedSuiteContains(t *testing.T, spec testgen.SharedSpec, pattern, wantFile string) {
+func assertGeneratedSuiteContains(t *testing.T, spec testspec.SharedSpec, pattern, wantFile string) {
 	t.Helper()
 
 	for _, suite := range spec.DectestSuites {
@@ -107,7 +107,7 @@ func assertGeneratedSuiteContains(t *testing.T, spec testgen.SharedSpec, pattern
 	t.Fatalf("generated suite %q not found", pattern)
 }
 
-func assertGeneratedSuiteMissing(t *testing.T, spec testgen.SharedSpec, pattern, unwantedFile string) {
+func assertGeneratedSuiteMissing(t *testing.T, spec testspec.SharedSpec, pattern, unwantedFile string) {
 	t.Helper()
 
 	for _, suite := range spec.DectestSuites {
@@ -160,7 +160,7 @@ func FuzzGeneratedArithmeticResultOnlyNative(f *testing.F) {
 	})
 }
 
-func loadSharedSpecForTest(t *testing.T) testgen.SharedSpec {
+func loadSharedSpecForTest(t *testing.T) testspec.SharedSpec {
 	t.Helper()
 	spec, err := loadSharedSpecFromDisk()
 	if err != nil {
@@ -169,10 +169,10 @@ func loadSharedSpecForTest(t *testing.T) testgen.SharedSpec {
 	return spec
 }
 
-func loadSharedSpecFromDisk() (testgen.SharedSpec, error) {
+func loadSharedSpecFromDisk() (testspec.SharedSpec, error) {
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
-		return testgen.SharedSpec{}, fmt.Errorf("resolve shared_cases_test.go path")
+		return testspec.SharedSpec{}, fmt.Errorf("resolve shared_cases_test.go path")
 	}
-	return testgen.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "generated", "testspec", "spec_index.json"))
+	return testspec.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "..", "devtools", "generated", "testspec", "spec_index.json"))
 }

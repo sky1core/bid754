@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	bidStringVectorsGoTestPath   = "bid-go/string_vectors_test.go"
-	bidStringVectorsRustTestPath = "bid754-rs/tests/bid_string_vectors.rs"
+	bidStringVectorsGoTestPath   = "../bid754-go/internal/bidgo/string_vectors_test.go"
+	bidStringVectorsRustTestPath = "../bid754-rs/tests/bid_string_vectors.rs"
 )
 
 type bidStringVectorCounts struct {
@@ -315,7 +315,7 @@ func loadGeneratedBIDStringReadCases(t *testing.T) []generatedStringReadCase {
 	if !ok {
 		t.Fatalf("resolve generated string vector test path")
 	}
-	baseDir := filepath.Join(filepath.Dir(currentFile), "..", "generated", "testspec")
+	baseDir := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "devtools", "generated", "testspec")
 	var readCases []generatedStringReadCase
 	for _, shardFile := range generatedBIDStringShardFiles {
 		path := filepath.Join(baseDir, filepath.FromSlash(shardFile))
@@ -697,7 +697,7 @@ fn count_bid_string_case(counts: &mut GeneratedBIDStringCounts, tc: &ReadCase) {
 }
 
 fn testspec_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../generated/testspec")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../devtools/generated/testspec")
 }
 
 fn load_string_read_cases() -> Vec<ReadCase> {

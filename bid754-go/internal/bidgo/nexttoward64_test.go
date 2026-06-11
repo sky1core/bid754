@@ -9,7 +9,7 @@ import (
 )
 
 func TestBid64NextTowardIntelReadtest(t *testing.T) {
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return

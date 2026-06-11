@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sky1core/bid754/internal/readtestspec"
+	"github.com/sky1core/bid754/devtools/internal/readtestspec"
 )
 
 func main() {

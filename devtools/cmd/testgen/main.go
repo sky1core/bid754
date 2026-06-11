@@ -5,7 +5,7 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/devtools/internal/testgen"
 )
 
 func main() {
@@ -48,5 +48,8 @@ func main() {
 	}
 	if err := testgen.WriteBidStringVectorTestOutputs(repoRoot, spec); err != nil {
 		log.Fatalf("write generated BID string vector tests: %v", err)
+	}
+	if err := testgen.WriteTestspecPackageOutputs(repoRoot); err != nil {
+		log.Fatalf("write generated testspec package: %v", err)
 	}
 }

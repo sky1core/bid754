@@ -176,7 +176,7 @@ func loadGeneratedBIDStringReadCases(t *testing.T) []generatedStringReadCase {
 	if !ok {
 		t.Fatalf("resolve generated string vector test path")
 	}
-	baseDir := filepath.Join(filepath.Dir(currentFile), "..", "generated", "testspec")
+	baseDir := filepath.Join(filepath.Dir(currentFile), "..", "..", "..", "devtools", "generated", "testspec")
 	var readCases []generatedStringReadCase
 	for _, shardFile := range generatedBIDStringShardFiles {
 		path := filepath.Join(baseDir, filepath.FromSlash(shardFile))

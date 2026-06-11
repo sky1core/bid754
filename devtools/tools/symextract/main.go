@@ -81,7 +81,7 @@ type ParamDef struct {
 
 func main() {
 	projectRoot := findProjectRoot()
-	bidGoDir := filepath.Join(projectRoot, "bid-go")
+	bidGoDir := filepath.Join(projectRoot, "..", "bid754-go", "internal", "bidgo")
 
 	reg := extractSymbols(bidGoDir)
 

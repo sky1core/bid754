@@ -4,8 +4,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-INTEL_DIR="$PROJECT_ROOT/third_party/intel_dfp"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+INTEL_DIR="$PROJECT_ROOT/devtools/third_party/intel_dfp"
 ARCH="$(uname -m)"
 
 INTEL_DFP_EXTRA_CFLAGS=""

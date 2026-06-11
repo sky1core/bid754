@@ -1,4 +1,4 @@
-# Local Linux verification image for bid754, used by scripts/verify_linux.sh
+# Local Linux verification image for bid754, used by devtools/scripts/verify_linux.sh
 # to run the Linux gates without GitHub Actions. Toolchain surface mirrors the
 # CI workflow's ubuntu-24.04 jobs for the Go/Rust/C gates; built per-arch via
 # docker build --platform linux/amd64 | linux/arm64.

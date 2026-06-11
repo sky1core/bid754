@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 var expectedGeneratedFFIFormatCounts = map[string]int{
@@ -650,7 +650,7 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	}
 }
 
-func assertGeneratedFFICoverage(t *testing.T, cases []testgen.GeneratedFFICase) {
+func assertGeneratedFFICoverage(t *testing.T, cases []testspec.GeneratedFFICase) {
 	t.Helper()
 	formatCounts := map[string]int{}
 	operationCounts := map[string]int{}
@@ -692,13 +692,13 @@ func assertGeneratedFFIIntCounts(t *testing.T, label string, got, want map[int]i
 	}
 }
 
-func loadGeneratedFFISpecForTest(t *testing.T) testgen.SharedSpec {
+func loadGeneratedFFISpecForTest(t *testing.T) testspec.SharedSpec {
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatalf("resolve generated ffi file path")
 	}
-	spec, err := testgen.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "generated", "testspec", "spec_index.json"))
+	spec, err := testspec.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "..", "devtools", "generated", "testspec", "spec_index.json"))
 	if err != nil {
 		t.Fatalf("load shared spec: %v", err)
 	}

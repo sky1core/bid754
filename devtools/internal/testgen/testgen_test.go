@@ -26,16 +26,16 @@ func TestBidCodecVectorGeneratorDoesNotImportBidCodecUnderTest(t *testing.T) {
 			t.Fatalf("ParseFile(%q): %v", path, err)
 		}
 		for _, imp := range file.Imports {
-			if imp.Path.Value == `"github.com/sky1core/bid754/bidcodec"` {
-				t.Fatalf("%s imports github.com/sky1core/bid754/bidcodec; BID codec vectors must use the independent reference codec, not the package under test", path)
+			if imp.Path.Value == `"github.com/sky1core/bid754/bid754-codec-go"` {
+				t.Fatalf("%s imports github.com/sky1core/bid754/bid754-codec-go; BID codec vectors must use the independent reference codec, not the package under test", path)
 			}
 		}
 	}
 }
 
 func TestBidCodecVectorAnchorsMatchSpec(t *testing.T) {
-	repoRoot := filepath.Clean(filepath.Join("..", ".."))
-	data, err := os.ReadFile(filepath.Join(repoRoot, "TEST_GENERATION_SPEC.md"))
+	repoRoot := filepath.Clean(filepath.Join("..", "..", ".."))
+	data, err := os.ReadFile(filepath.Join(repoRoot, "docs", "TEST_GENERATION_SPEC.md"))
 	if err != nil {
 		t.Fatalf("ReadFile(TEST_GENERATION_SPEC.md): %v", err)
 	}
@@ -112,7 +112,7 @@ func TestDectestExecutorRootFilesAreGenerated(t *testing.T) {
 	for _, item := range dectestExecutorTemplates {
 		generatedExecutorPaths[filepath.Join(repoRoot, item.OutputPath)] = true
 	}
-	files, err := filepath.Glob(filepath.Join(repoRoot, "dectest_*.go"))
+	files, err := filepath.Glob(filepath.Join(repoRoot, "..", "bid754-go", "dectest_*.go"))
 	if err != nil {
 		t.Fatalf("Glob dectest_*.go: %v", err)
 	}

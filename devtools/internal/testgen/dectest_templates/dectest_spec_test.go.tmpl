@@ -6,24 +6,24 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 var (
 	generatedTestSpecOnce sync.Once
-	generatedSuiteSpec    testgen.SharedSpec
+	generatedSuiteSpec    testspec.SharedSpec
 	generatedTestSpecErr  error
 )
 
-func loadGeneratedTestSpec() (testgen.SharedSpec, error) {
+func loadGeneratedTestSpec() (testspec.SharedSpec, error) {
 	generatedTestSpecOnce.Do(func() {
 		_, currentFile, _, ok := runtime.Caller(0)
 		if !ok {
 			generatedTestSpecErr = fmt.Errorf("resolve dectest_spec_test.go path")
 			return
 		}
-		path := filepath.Join(filepath.Dir(currentFile), "generated", "testspec", "spec_index.json")
-		spec, err := testgen.LoadGenerated(path)
+		path := filepath.Join(filepath.Dir(currentFile), "..", "devtools", "generated", "testspec", "spec_index.json")
+		spec, err := testspec.LoadGenerated(path)
 		if err != nil {
 			generatedTestSpecErr = fmt.Errorf("load generated test spec %q: %w", path, err)
 			return

@@ -3,7 +3,7 @@ package bid754_test
 import (
 	"fmt"
 
-	"github.com/sky1core/bid754"
+	bid754 "github.com/sky1core/bid754/bid754-go"
 )
 
 // Decimal strings render in the Intel BID coefficient-exponent form

@@ -1,9 +1,9 @@
-// tools/go2rs/main.go - Go to Rust automatic converter for the bid-go implementation path
+// devtools/tools/go2rs/main.go - Go to Rust automatic converter for the bidgo implementation path
 //
-// Reads bid-go/*.go files (excluding tests and tables) and produces Rust source
-// files in bid754-rs/src/generated/.
+// Reads ../bid754-go/internal/bidgo/*.go files (excluding tests and tables) and
+// produces Rust source files in ../bid754-rs/src/generated/.
 //
-// Usage: go run tools/go2rs/main.go
+// Usage: cd devtools && go run ./tools/go2rs
 
 package main
 
@@ -24,10 +24,10 @@ import (
 	"strings"
 )
 
-// Project paths (relative to project root)
+// Project paths (relative to the devtools module root, where tools run from)
 const (
-	bidGoDir  = "bid-go"
-	outputDir = "bid754-rs/src/generated"
+	bidGoDir  = "../bid754-go/internal/bidgo"
+	outputDir = "../bid754-rs/src/generated"
 )
 
 type Registry struct {
@@ -289,8 +289,8 @@ func parseTypeCheckedPackage(srcDir string, targets []string) (*token.FileSet, m
 		Uses:  make(map[*ast.Ident]types.Object),
 	}
 	conf := types.Config{Importer: importer.Default()}
-	if _, err := conf.Check("github.com/sky1core/bid754/bid-go", fset, parsedFiles, info); err != nil {
-		fatal("typecheck bid-go for go2rs: %v", err)
+	if _, err := conf.Check("github.com/sky1core/bid754/bid754-go/internal/bidgo", fset, parsedFiles, info); err != nil {
+		fatal("typecheck bidgo for go2rs: %v", err)
 	}
 	return fset, parsedTargets, info
 }

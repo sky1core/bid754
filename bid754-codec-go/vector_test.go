@@ -47,7 +47,7 @@ const (
 
 func loadVectors(t *testing.T) []vectorEntry {
 	t.Helper()
-	data, err := os.ReadFile("../bid-codec-vectors/vectors.json")
+	data, err := os.ReadFile("../bid754-codec-vectors/vectors.json")
 	if err != nil {
 		t.Fatalf("failed to read vectors.json: %v", err)
 	}

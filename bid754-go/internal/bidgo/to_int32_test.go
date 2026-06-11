@@ -58,7 +58,7 @@ func parseReadtestUint16(s string) (uint16, error) {
 func testUint16Readtest(t *testing.T, prefix string, fn func(uint64) (uint16, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return
@@ -115,7 +115,7 @@ func testUint16Readtest(t *testing.T, prefix string, fn func(uint64) (uint16, ui
 func testUint8Readtest(t *testing.T, prefix string, fn func(uint64) (uint8, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return
@@ -172,7 +172,7 @@ func testUint8Readtest(t *testing.T, prefix string, fn func(uint64) (uint8, uint
 func testUint32Readtest(t *testing.T, prefix string, fn func(uint64) (uint32, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return
@@ -229,7 +229,7 @@ func testUint32Readtest(t *testing.T, prefix string, fn func(uint64) (uint32, ui
 func testUint64Readtest(t *testing.T, prefix string, fn func(uint64) (uint64, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return
@@ -286,7 +286,7 @@ func testUint64Readtest(t *testing.T, prefix string, fn func(uint64) (uint64, ui
 func testSignedIntReadtest[T ~int8 | ~int16 | ~int32 | ~int64](t *testing.T, prefix string, parse func(string) (int64, error), fn func(uint64) (T, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return

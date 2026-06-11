@@ -9,7 +9,7 @@ import (
 )
 
 func finalizeRustGenerated(projectRoot string) {
-	generatedDir := filepath.Join(projectRoot, "bid754-rs", "src", "generated")
+	generatedDir := filepath.Join(projectRoot, "..", "bid754-rs", "src", "generated")
 
 	applyRustGeneratedRewrites(generatedDir)
 

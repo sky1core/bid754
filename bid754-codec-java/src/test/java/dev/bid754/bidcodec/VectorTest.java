@@ -39,7 +39,7 @@ class VectorTest {
 
     @BeforeAll
     static void loadVectors() throws IOException {
-        Path vectorsPath = Path.of("..", "bid-codec-vectors", "vectors.json");
+        Path vectorsPath = Path.of("..", "bid754-codec-vectors", "vectors.json");
         assertTrue(Files.isRegularFile(vectorsPath), "vectors.json not found at " + vectorsPath.toAbsolutePath());
         JSONObject root = new JSONObject(Files.readString(vectorsPath));
         assertEquals(EXPECTED_FORMAT_VERSION, root.getInt("format_version"), "unsupported BID codec vectors format_version");

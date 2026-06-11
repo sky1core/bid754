@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	readtestGeneratedNativePath = "generated_readtest_dispatch_native.go"
-	readtestGeneratedStubPath   = "generated_readtest_dispatch_stub.go"
+	readtestGeneratedNativePath = "../bid754-go/generated_readtest_dispatch_native.go"
+	readtestGeneratedStubPath   = "../bid754-go/generated_readtest_dispatch_stub.go"
 	readtestSymbolSourcePath    = "generated/json/intel_dfp_symbols.json"
 )
 
@@ -120,8 +120,8 @@ func generateReadtestNativeDispatch(reads []ReadTestSpec, symbols map[string]sym
 	c.WriteString("//go:build cgo && bid754_native\n\n")
 	c.WriteString("package bid754\n\n")
 	c.WriteString("/*\n")
-	c.WriteString("#cgo CFLAGS: -DDECNUMDIGITS=34 -I${SRCDIR}/third_party/intel_dfp/src -I${SRCDIR}/third_party/intel_dfp/include\n")
-	c.WriteString("#cgo LDFLAGS: -ldecnumber -L${SRCDIR}/third_party/intel_dfp/lib -lbid -lm\n\n")
+	c.WriteString("#cgo CFLAGS: -DDECNUMDIGITS=34 -I${SRCDIR}/../devtools/third_party/intel_dfp/src -I${SRCDIR}/../devtools/third_party/intel_dfp/include\n")
+	c.WriteString("#cgo LDFLAGS: -ldecnumber -L${SRCDIR}/../devtools/third_party/intel_dfp/lib -lbid -lm\n\n")
 	c.WriteString("#include <stdint.h>\n")
 	c.WriteString("#include <string.h>\n")
 	c.WriteString("#include <stdlib.h>\n")

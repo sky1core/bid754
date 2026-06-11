@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 go_cache=${GOCACHE:-/tmp/go-cache}
 wheel_dir=$(mktemp -d)
 audit_tmp=$(mktemp -d)
 
 cleanup_bidcodec_python_artifacts() {
-  rm -rf "$repo_root/bid-codec-py/.pytest_cache"
-  find "$repo_root/bid-codec-py" -type d -name __pycache__ -prune -exec rm -rf {} +
+  rm -rf "$repo_root/bid754-codec-py/.pytest_cache"
+  find "$repo_root/bid754-codec-py" -type d -name __pycache__ -prune -exec rm -rf {} +
 }
 
 cleanup() {
@@ -24,14 +24,14 @@ fi
 
 cd "$repo_root"
 
-vectors_path="$repo_root/bid-codec-vectors/vectors.json"
-audit_vectors_dir="$audit_tmp/bid-codec-vectors"
+vectors_path="$repo_root/bid754-codec-vectors/vectors.json"
+audit_vectors_dir="$audit_tmp/bid754-codec-vectors"
 mkdir -p "$audit_vectors_dir"
 cp "$vectors_path" "$audit_vectors_dir/vectors.json"
 
 echo "==> BID codec package license/provenance files"
 test -f THIRD_PARTY_NOTICES.md
-for package_dir in bidcodec bid-codec-rs bid-codec-java bid-codec-py bid-codec-js bid-codec-swift; do
+for package_dir in bid754-codec-go bid754-codec-rs bid754-codec-java bid754-codec-py bid754-codec-js bid754-codec-swift; do
   if [ ! -f "$package_dir/LICENSE" ]; then
     echo "missing package-local LICENSE: $package_dir/LICENSE" >&2
     exit 1
@@ -39,20 +39,20 @@ for package_dir in bidcodec bid-codec-rs bid-codec-java bid-codec-py bid-codec-j
 done
 
 echo "==> Go BID codec package tests"
-(cd bidcodec && GOCACHE="$go_cache" go test ./...)
-(cd bidcodec && GOCACHE="$go_cache" go test -tags bid754_bidcodec_vectors ./...)
+(cd bid754-codec-go && GOCACHE="$go_cache" go test ./...)
+(cd bid754-codec-go && GOCACHE="$go_cache" go test -tags bid754_bidcodec_vectors ./...)
 go_module_version="v0.1.0"
-# The bidcodec module lives in a subdirectory of the repository, so module
-# resolution follows the Go multi-module convention: the VCS root is the
-# repository URL and the module version tag is prefixed with the module
-# subdirectory ("bidcodec/v0.1.0"). Mirror that exact layout here.
+# The bid754-codec-go module lives in a subdirectory of the repository, so
+# module resolution follows the Go multi-module convention: the VCS root is
+# the repository URL and the module version tag is prefixed with the module
+# subdirectory ("bid754-codec-go/v0.1.0"). Mirror that exact layout here.
 go_release="$audit_tmp/go-bidcodec-release"
-mkdir -p "$go_release/bidcodec"
-cp bidcodec/LICENSE bidcodec/README.md bidcodec/go.mod bidcodec/*.go "$go_release/bidcodec/"
+mkdir -p "$go_release/bid754-codec-go"
+cp bid754-codec-go/LICENSE bid754-codec-go/README.md bid754-codec-go/go.mod bid754-codec-go/*.go "$go_release/bid754-codec-go/"
 git -C "$go_release" init -q
 git -C "$go_release" add .
 git -C "$go_release" -c user.name=bid754-audit -c user.email=bid754-audit@example.invalid commit -qm "audit go bidcodec release"
-git -C "$go_release" tag "bidcodec/$go_module_version"
+git -C "$go_release" tag "bid754-codec-go/$go_module_version"
 go_gitconfig="$audit_tmp/go-gitconfig"
 cat >"$go_gitconfig" <<EOF
 [url "file://$go_release/"]
@@ -65,7 +65,7 @@ module bidcodec-smoke
 
 go 1.21
 
-require github.com/sky1core/bid754/bidcodec $go_module_version
+require github.com/sky1core/bid754/bid754-codec-go $go_module_version
 EOF
 cat >"$go_smoke/main.go" <<'EOF'
 package main
@@ -73,7 +73,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/sky1core/bid754/bidcodec"
+	bidcodec "github.com/sky1core/bid754/bid754-codec-go"
 )
 
 func main() {
@@ -83,19 +83,19 @@ func main() {
 	}
 }
 EOF
-(cd "$go_smoke" && GIT_CONFIG_GLOBAL="$go_gitconfig" GIT_ALLOW_PROTOCOL=file GOPRIVATE=github.com/sky1core/bid754 GOPROXY=direct GOCACHE="$go_cache" go mod download github.com/sky1core/bid754/bidcodec)
+(cd "$go_smoke" && GIT_CONFIG_GLOBAL="$go_gitconfig" GIT_ALLOW_PROTOCOL=file GOPRIVATE=github.com/sky1core/bid754 GOPROXY=direct GOCACHE="$go_cache" go mod download github.com/sky1core/bid754/bid754-codec-go)
 (cd "$go_smoke" && GIT_CONFIG_GLOBAL="$go_gitconfig" GIT_ALLOW_PROTOCOL=file GOPRIVATE=github.com/sky1core/bid754 GOPROXY=direct GOCACHE="$go_cache" go run .)
-downloaded_go_version=$(cd "$go_smoke" && GIT_CONFIG_GLOBAL="$go_gitconfig" GIT_ALLOW_PROTOCOL=file GOPRIVATE=github.com/sky1core/bid754 GOPROXY=direct GOCACHE="$go_cache" go list -m -f '{{.Version}}{{if .Replace}} replace{{end}}' github.com/sky1core/bid754/bidcodec)
+downloaded_go_version=$(cd "$go_smoke" && GIT_CONFIG_GLOBAL="$go_gitconfig" GIT_ALLOW_PROTOCOL=file GOPRIVATE=github.com/sky1core/bid754 GOPROXY=direct GOCACHE="$go_cache" go list -m -f '{{.Version}}{{if .Replace}} replace{{end}}' github.com/sky1core/bid754/bid754-codec-go)
 if [ "$downloaded_go_version" != "$go_module_version" ]; then
   echo "unexpected Go BID codec module resolution: $downloaded_go_version" >&2
   exit 1
 fi
-cp bidcodec/testdata/external_vector_test.go "$go_smoke/vector_test.go"
+cp bid754-codec-go/testdata/external_vector_test.go "$go_smoke/vector_test.go"
 (cd "$go_smoke" && GIT_CONFIG_GLOBAL="$go_gitconfig" GIT_ALLOW_PROTOCOL=file GOPRIVATE=github.com/sky1core/bid754 GOPROXY=direct GOCACHE="$go_cache" go test -tags bid754_bidcodec_vectors ./...)
 
 echo "==> Rust BID codec package, docs, and repo vectors"
 (
-  cd bid-codec-rs
+  cd bid754-codec-rs
   cargo package --locked
   cargo doc --locked --no-deps
   cargo clippy --locked --all-targets -- -D warnings
@@ -110,7 +110,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-bid-codec = { path = "$repo_root/bid-codec-rs" }
+bid-codec = { path = "$repo_root/bid754-codec-rs" }
 EOF
 cat >"$rust_smoke/src/main.rs" <<'EOF'
 fn main() {
@@ -122,7 +122,7 @@ fn main() {
 EOF
 (cd "$rust_smoke" && cargo run --quiet)
 mkdir -p "$rust_smoke/tests"
-cp bid-codec-rs/tests/vectors.rs "$rust_smoke/tests/vectors.rs"
+cp bid754-codec-rs/tests/vectors.rs "$rust_smoke/tests/vectors.rs"
 cat >>"$rust_smoke/Cargo.toml" <<'EOF'
 
 [dev-dependencies]
@@ -133,9 +133,9 @@ EOF
 
 echo "==> Java BID codec package build"
 (
-  cd bid-codec-java
+  cd bid754-codec-java
   java_maven_repo="$audit_tmp/java-maven"
-  "$repo_root/scripts/run_pinned_gradle.sh" -q clean build publishMavenJavaPublicationToAuditRepository -Pbid754AuditMavenRepo="$java_maven_repo"
+  "$repo_root/devtools/scripts/run_pinned_gradle.sh" -q clean build publishMavenJavaPublicationToAuditRepository -Pbid754AuditMavenRepo="$java_maven_repo"
   java_smoke="$audit_tmp/java-smoke"
   mkdir -p "$java_smoke"
   java_version=$(awk -F"'" '/^version = / { print $2; exit }' build.gradle)
@@ -173,13 +173,13 @@ EOF
   java -cp "$jar:$java_smoke" BidCodecSmoke
   java_vectors="$audit_tmp/java-vectors"
   mkdir -p "$java_vectors"
-  javac -cp "$jar" -d "$java_vectors" "$repo_root/bid-codec-java/src/test/java/dev/bid754/bidcodec/VectorRunner.java"
+  javac -cp "$jar" -d "$java_vectors" "$repo_root/bid754-codec-java/src/test/java/dev/bid754/bidcodec/VectorRunner.java"
   java -cp "$jar:$java_vectors" dev.bid754.bidcodec.VectorRunner "$vectors_path"
 )
 
 echo "==> Python BID codec wheel and typed marker"
 (
-  cd bid-codec-py
+  cd bid754-codec-py
   rm -rf build dist
   find . -maxdepth 1 -name '*.egg-info' -exec rm -rf {} +
   py_version=$(python3 - <<'PY'
@@ -222,7 +222,7 @@ PY
   "$py_venv/bin/python" -m pip install "pytest==9.0.2"
   py_vectors="$audit_tmp/python-vectors"
   mkdir -p "$py_vectors/tests"
-  cp "$repo_root/bid-codec-py/tests/test_vectors.py" "$py_vectors/tests/test_vectors.py"
+  cp "$repo_root/bid754-codec-py/tests/test_vectors.py" "$py_vectors/tests/test_vectors.py"
   (cd "$py_vectors" && "$py_venv/bin/python" -m pytest tests)
   rm -rf build dist
   find . -maxdepth 1 -name '*.egg-info' -exec rm -rf {} +
@@ -230,7 +230,7 @@ PY
 
 echo "==> JavaScript/TypeScript BID codec package build and pack"
 (
-  cd bid-codec-js
+  cd bid754-codec-js
   npm ci
   npm run build
   npm test
@@ -257,12 +257,12 @@ if (c.kind !== Kind.Normal || c.coefficient !== 1n || toString(c) !== "+1E+0") {
 }
 EOF
   )
-  cp "$repo_root/bid-codec-js/vector_runner.mjs" "$js_smoke/vector-audit.mjs"
+  cp "$repo_root/bid754-codec-js/vector_runner.mjs" "$js_smoke/vector-audit.mjs"
   (cd "$js_smoke" && node vector-audit.mjs "$vectors_path")
 )
 
 echo "==> Swift BID codec release build"
-(cd bid-codec-swift && swift build -c release)
+(cd bid754-codec-swift && swift build -c release)
 swift_smoke="$audit_tmp/swift-smoke"
 mkdir -p "$swift_smoke/Sources/VectorAudit"
 cat >"$swift_smoke/Package.swift" <<EOF
@@ -273,19 +273,19 @@ import PackageDescription
 let package = Package(
     name: "BidCodecVectorAudit",
     dependencies: [
-        .package(path: "$repo_root/bid-codec-swift"),
+        .package(path: "$repo_root/bid754-codec-swift"),
     ],
     targets: [
         .executableTarget(
             name: "VectorAudit",
             dependencies: [
-                .product(name: "BidCodec", package: "bid-codec-swift"),
+                .product(name: "BidCodec", package: "bid754-codec-swift"),
             ]
         ),
     ]
 )
 EOF
-cp bid-codec-swift/Sources/BidCodecVectorRunner/main.swift "$swift_smoke/Sources/VectorAudit/main.swift"
+cp bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift "$swift_smoke/Sources/VectorAudit/main.swift"
 (cd "$swift_smoke" && swift run -c release VectorAudit "$vectors_path")
 
 echo "==> Package audit complete (cross-language vector verification runs separately via make test-bidcodec)"

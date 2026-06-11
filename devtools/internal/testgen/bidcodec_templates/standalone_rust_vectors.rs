@@ -194,7 +194,7 @@ fn payload_u64(v: &Vector) -> u64 {
 }
 
 fn vectors_path() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bid-codec-vectors/vectors.json")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bid754-codec-vectors/vectors.json")
 }
 
 fn load_vectors() -> Option<Vec<Vector>> {

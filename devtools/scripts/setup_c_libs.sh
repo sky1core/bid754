@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # 스크립트 경로
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 
 # 플랫폼 감지
 OS="$(uname -s)"
@@ -122,7 +122,7 @@ write_intel_dfp_build_stamp() {
 build_intel_dfp() {
     echo -e "${BLUE}Intel DFP 라이브러리 빌드 중...${NC}"
     
-    INTEL_DIR="$PROJECT_ROOT/third_party/intel_dfp"
+    INTEL_DIR="$PROJECT_ROOT/devtools/third_party/intel_dfp"
 
     # 소스 압축 해제
     if [ ! -d "$INTEL_DIR/src" ]; then
@@ -207,8 +207,8 @@ elif [ -d "/usr/local/include/libdecnumber" ]; then
 fi
 
 # Intel DFP 경로
-export CGO_CFLAGS="-I$PROJECT_ROOT/third_party/intel_dfp/include \$CGO_CFLAGS"
-export CGO_LDFLAGS="-L$PROJECT_ROOT/third_party/intel_dfp/lib \$CGO_LDFLAGS"
+export CGO_CFLAGS="-I$PROJECT_ROOT/devtools/third_party/intel_dfp/include \$CGO_CFLAGS"
+export CGO_LDFLAGS="-L$PROJECT_ROOT/devtools/third_party/intel_dfp/lib \$CGO_LDFLAGS"
 export GOFLAGS="-tags=bid754_native \$GOFLAGS"
 
 # 플랫폼별 플래그

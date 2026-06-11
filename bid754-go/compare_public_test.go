@@ -4,7 +4,7 @@ import (
 	"testing"
 	"unsafe"
 
-	bidgo "github.com/sky1core/bid754/bid-go"
+	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
 
 type compareCase32 struct {

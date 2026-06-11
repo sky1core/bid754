@@ -24,7 +24,7 @@ func parseBracketHexUint64Readtest(s string, hexPattern *regexp.Regexp) (uint64,
 func testBid64Binary32Readtest(t *testing.T, prefix string, fn func(uint64, int) (uint32, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return
@@ -86,7 +86,7 @@ func testBid64Binary32Readtest(t *testing.T, prefix string, fn func(uint64, int)
 func testBid64Binary64Readtest(t *testing.T, prefix string, fn func(uint64, int) (uint64, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return
@@ -148,7 +148,7 @@ func testBid64Binary64Readtest(t *testing.T, prefix string, fn func(uint64, int)
 func testBid64Binary128Readtest(t *testing.T, prefix string, fn func(uint64, int) (BID_UINT128, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return
@@ -211,7 +211,7 @@ func testBid64Binary128Readtest(t *testing.T, prefix string, fn func(uint64, int
 func testBid128Binary128Readtest(t *testing.T, prefix string, fn func(BID_UINT128, int) (BID_UINT128, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return

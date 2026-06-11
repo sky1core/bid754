@@ -9,12 +9,12 @@ import (
 
 // TestBidCodecVectorAnchorsExistInCheckedInVectors enforces the spec contract
 // that every anchor record stays byte-for-byte present in the checked-in
-// bid-codec-vectors/vectors.json. If a generator change drops or alters an
+// bid754-codec-vectors/vectors.json. If a generator change drops or alters an
 // anchor record, this test fails even though the consumer-side anchor checks
 // (which are independent of vectors.json) would still pass.
 func TestBidCodecVectorAnchorsExistInCheckedInVectors(t *testing.T) {
-	repoRoot := filepath.Clean(filepath.Join("..", ".."))
-	raw, err := os.ReadFile(filepath.Join(repoRoot, "bid-codec-vectors", "vectors.json"))
+	repoRoot := filepath.Clean(filepath.Join("..", "..", ".."))
+	raw, err := os.ReadFile(filepath.Join(repoRoot, "bid754-codec-vectors", "vectors.json"))
 	if err != nil {
 		t.Fatalf("read checked-in vectors.json: %v", err)
 	}

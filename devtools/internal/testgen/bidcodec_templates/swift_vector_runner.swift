@@ -317,7 +317,7 @@ private func expectThrows(_ body: () throws -> Void, _ label: String) {
 
 private let vectorsPath = CommandLine.arguments.count > 1
     ? URL(fileURLWithPath: CommandLine.arguments[1])
-    : URL(fileURLWithPath: "../bid-codec-vectors/vectors.json")
+    : URL(fileURLWithPath: "../bid754-codec-vectors/vectors.json")
 private let data = try Data(contentsOf: vectorsPath)
 private let vectorFile = try JSONDecoder().decode(VectorFile.self, from: data)
 if vectorFile.format_version != expectedFormatVersion {

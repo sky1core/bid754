@@ -39,7 +39,7 @@ interface VectorFile {
   vectors: Vector[];
 }
 
-const vectorsPath = resolve(__dirname, "../../bid-codec-vectors/vectors.json");
+const vectorsPath = resolve(__dirname, "../../bid754-codec-vectors/vectors.json");
 const vectorFile: VectorFile = JSON.parse(readFileSync(vectorsPath, "utf-8"));
 const expectedFormatVersion = {{BID_CODEC_VECTOR_FORMAT_VERSION}};
 if (vectorFile.format_version !== expectedFormatVersion) {

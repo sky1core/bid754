@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	ffiGeneratedNativeSupportPath = "generated_ffi_bitcompare_native.go"
-	ffiGeneratedNativeTestPath    = "generated_ffi_bitcompare_native_test.go"
-	ffiGeneratedStubTestPath      = "generated_ffi_bitcompare_stub_test.go"
+	ffiGeneratedNativeSupportPath = "../bid754-go/generated_ffi_bitcompare_native.go"
+	ffiGeneratedNativeTestPath    = "../bid754-go/generated_ffi_bitcompare_native_test.go"
+	ffiGeneratedStubTestPath      = "../bid754-go/generated_ffi_bitcompare_stub_test.go"
 )
 
 type ffiGeneratedCoverageCounts struct {
@@ -73,7 +73,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 var expectedGeneratedFFIFormatCounts = map[string]int{
@@ -121,7 +121,7 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	}
 }
 
-func assertGeneratedFFICoverage(t *testing.T, cases []testgen.GeneratedFFICase) {
+func assertGeneratedFFICoverage(t *testing.T, cases []testspec.GeneratedFFICase) {
 	t.Helper()
 	formatCounts := map[string]int{}
 	operationCounts := map[string]int{}
@@ -163,13 +163,13 @@ func assertGeneratedFFIIntCounts(t *testing.T, label string, got, want map[int]i
 	}
 }
 
-func loadGeneratedFFISpecForTest(t *testing.T) testgen.SharedSpec {
+func loadGeneratedFFISpecForTest(t *testing.T) testspec.SharedSpec {
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatalf("resolve generated ffi file path")
 	}
-	spec, err := testgen.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "generated", "testspec", "spec_index.json"))
+	spec, err := testspec.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "..", "devtools", "generated", "testspec", "spec_index.json"))
 	if err != nil {
 		t.Fatalf("load shared spec: %v", err)
 	}
@@ -187,8 +187,8 @@ func GenerateFFITestOutputs(spec SharedSpec) (map[string][]byte, error) {
 package bid754
 
 /*
-#cgo CFLAGS: -DDECNUMDIGITS=34 -I${SRCDIR}/third_party/intel_dfp/src -I${SRCDIR}/third_party/intel_dfp/include
-#cgo LDFLAGS: -ldecnumber -L${SRCDIR}/third_party/intel_dfp/lib -lbid -lm
+#cgo CFLAGS: -DDECNUMDIGITS=34 -I${SRCDIR}/../devtools/third_party/intel_dfp/src -I${SRCDIR}/../devtools/third_party/intel_dfp/include
+#cgo LDFLAGS: -ldecnumber -L${SRCDIR}/../devtools/third_party/intel_dfp/lib -lbid -lm
 
 #include <stdint.h>
 #include "bid_conf.h"
@@ -205,7 +205,7 @@ import (
 	"strings"
 	"unsafe"
 
-	bidgo "github.com/sky1core/bid754/bid-go"
+	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
 
 func generatedFFICRoundingMode(rounding int) C._IDEC_round {

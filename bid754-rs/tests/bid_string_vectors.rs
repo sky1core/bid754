@@ -184,7 +184,7 @@ fn count_bid_string_case(counts: &mut GeneratedBIDStringCounts, tc: &ReadCase) {
 }
 
 fn testspec_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../generated/testspec")
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../devtools/generated/testspec")
 }
 
 fn load_string_read_cases() -> Vec<ReadCase> {

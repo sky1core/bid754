@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 type generatedDectestSuiteCoverage struct {
@@ -111,7 +111,7 @@ func TestGeneratedDectestSuites(t *testing.T) {
 	}
 }
 
-func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testgen.GeneratedDectestSuite) {
+func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testspec.GeneratedDectestSuite) {
 	t.Helper()
 	if len(suites) != len(expectedGeneratedDectestSuiteCoverage) {
 		t.Fatalf("generated dectest suite count = %d, want %d", len(suites), len(expectedGeneratedDectestSuiteCoverage))
@@ -126,7 +126,7 @@ func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testgen.Generate
 		}
 		gotCases := 0
 		for _, testFile := range suite.Files {
-			cases, err := parseDecTestFile(testFile)
+			cases, err := parseDecTestFile(filepath.Join("..", "devtools", testFile))
 			if err != nil {
 				t.Fatalf("parseDecTestFile(%q): %v", testFile, err)
 			}
@@ -138,7 +138,7 @@ func assertGeneratedDectestSuiteCoverage(t *testing.T, suites []testgen.Generate
 	}
 }
 
-func assertGeneratedDectestRuntimeSkipAudit(t *testing.T, audits []testgen.GeneratedDectestRuntimeSkipAudit) {
+func assertGeneratedDectestRuntimeSkipAudit(t *testing.T, audits []testspec.GeneratedDectestRuntimeSkipAudit) {
 	t.Helper()
 	if len(audits) != len(expectedGeneratedDectestSuiteCoverage) {
 		t.Fatalf("generated dectest runtime skip audit count = %d, want %d", len(audits), len(expectedGeneratedDectestSuiteCoverage))
@@ -178,26 +178,26 @@ func assertGeneratedDectestSkipReasons(t *testing.T, suite string, got, want map
 	}
 }
 
-func loadGeneratedDectestSpecForTest(t *testing.T) testgen.SharedSpec {
+func loadGeneratedDectestSpecForTest(t *testing.T) testspec.SharedSpec {
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatalf("resolve generated dectest file path")
 	}
-	spec, err := testgen.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "generated", "testspec", "spec_index.json"))
+	spec, err := testspec.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "..", "devtools", "generated", "testspec", "spec_index.json"))
 	if err != nil {
 		t.Fatalf("load shared spec: %v", err)
 	}
 	return spec
 }
 
-func runGeneratedDectestSuite(t *testing.T, suite testgen.GeneratedDectestSuite) decTestSuiteTotals {
+func runGeneratedDectestSuite(t *testing.T, suite testspec.GeneratedDectestSuite) decTestSuiteTotals {
 	t.Helper()
 
 	result := decTestSuiteTotals{Name: suite.Name}
 	skipReasons := map[string]int{}
 	for _, testFile := range suite.Files {
-		cases, err := parseDecTestFile(testFile)
+		cases, err := parseDecTestFile(filepath.Join("..", "devtools", testFile))
 		if err != nil {
 			t.Fatalf("parseDecTestFile(%q): %v", testFile, err)
 		}

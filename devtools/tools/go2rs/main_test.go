@@ -423,7 +423,7 @@ func TestFormerAlternateSourcesConvertWithoutFallbacks(t *testing.T) {
 		"to_binary64.go",
 		"nexttoward64.go",
 	} {
-		code, err := convertFile(filepath.Join(root, "bid-go", name), reg)
+		code, err := convertFile(filepath.Join(root, bidGoDir, name), reg)
 		if err != nil {
 			t.Fatalf("convertFile(%s): %v", name, err)
 		}

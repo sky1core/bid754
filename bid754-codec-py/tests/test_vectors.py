@@ -27,7 +27,7 @@ from bid_codec.bid import (
     to_string,
 )
 
-VECTORS_PATH = Path(__file__).resolve().parent.parent.parent / "bid-codec-vectors" / "vectors.json"
+VECTORS_PATH = Path(__file__).resolve().parent.parent.parent / "bid754-codec-vectors" / "vectors.json"
 
 _KIND_MAP = {
     "zero": Kind.ZERO,

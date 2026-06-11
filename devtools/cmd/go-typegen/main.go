@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sky1core/bid754/internal/gotypegen"
+	"github.com/sky1core/bid754/devtools/internal/gotypegen"
 )
 
 func main() {

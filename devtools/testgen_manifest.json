@@ -498,7 +498,7 @@
     }
   ],
   "bid_codec_vectors": {
-    "output": "bid-codec-vectors/vectors.json",
+    "output": "../bid754-codec-vectors/vectors.json",
     "seed": 20260327,
     "random_cases_per_format": 5000
   }

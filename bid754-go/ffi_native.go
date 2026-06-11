@@ -3,8 +3,8 @@
 package bid754
 
 /*
-#cgo CFLAGS: -DDECNUMDIGITS=34 -I${SRCDIR}/third_party/intel_dfp/src -I${SRCDIR}/third_party/intel_dfp/include
-#cgo LDFLAGS: -ldecnumber -L${SRCDIR}/third_party/intel_dfp/lib -lbid -lm
+#cgo CFLAGS: -DDECNUMDIGITS=34 -I${SRCDIR}/../devtools/third_party/intel_dfp/src -I${SRCDIR}/../devtools/third_party/intel_dfp/include
+#cgo LDFLAGS: -ldecnumber -L${SRCDIR}/../devtools/third_party/intel_dfp/lib -lbid -lm
 
 #include <stdint.h>
 #include "bid_conf.h"

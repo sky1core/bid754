@@ -4,11 +4,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 PREFIX="${BID754_DECNUMBER_PREFIX:-$HOME/local}"
 WORKDIR="${BID754_DECNUMBER_WORKDIR:-${TMPDIR:-/tmp}/bid754-decnumber-368}"
-CACHE_DIR="${BID754_DECNUMBER_CACHE:-$PROJECT_ROOT/third_party/ibm_decnumber}"
+CACHE_DIR="${BID754_DECNUMBER_CACHE:-$PROJECT_ROOT/devtools/third_party/ibm_decnumber}"
 DECNUMBER_URL="${BID754_DECNUMBER_URL:-https://www.speleotrove.com/decimal/decNumber-icu-368.zip}"
 DECNUMBER_SHA256="14ec2cf30b58758493a7661b78b80abfb281652b61a425b85cda83173518fe25"
 DECNUMBER_ARCHIVE="$CACHE_DIR/decNumber-icu-368.zip"
@@ -76,7 +76,7 @@ Installed files:
   $PREFIX/include/libdecnumber/dpd/decimal32.h
 
 Next steps:
-  bash "$PROJECT_ROOT/scripts/setup_c_libs.sh"
+  bash "$PROJECT_ROOT/devtools/scripts/setup_c_libs.sh"
   source "$PROJECT_ROOT/.env.sh"
   go test -tags bid754_native -short ./...
 EOF

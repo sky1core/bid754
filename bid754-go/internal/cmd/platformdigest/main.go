@@ -19,12 +19,12 @@ import (
 	"strings"
 	"unsafe"
 
-	bidgo "github.com/sky1core/bid754/bid-go"
-	"github.com/sky1core/bid754/internal/testgen"
+	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 func main() {
-	spec, err := testgen.LoadGenerated("generated/testspec/spec_index.json")
+	spec, err := testspec.LoadGenerated("../devtools/generated/testspec/spec_index.json")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "platformdigest: load testspec: %v\n", err)
 		os.Exit(1)
@@ -48,7 +48,7 @@ func main() {
 		runtime.GOOS, runtime.GOARCH, len(lines), hex.EncodeToString(sum[:]))
 }
 
-func digestLine(c testgen.GeneratedReadCase) (string, bool) {
+func digestLine(c testspec.GeneratedReadCase) (string, bool) {
 	out, ok := runCase(c)
 	if !ok {
 		return "", false
@@ -56,7 +56,7 @@ func digestLine(c testgen.GeneratedReadCase) (string, bool) {
 	return fmt.Sprintf("%s|%s|rnd=%d|%s", c.Function, c.ID, c.Rounding, out), true
 }
 
-func runCase(c testgen.GeneratedReadCase) (string, bool) {
+func runCase(c testspec.GeneratedReadCase) (string, bool) {
 	rnd := c.Rounding
 	switch c.Function {
 	case "bid32_add", "bid32_sub", "bid32_mul", "bid32_div":

@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/sky1core/bid754/internal/readtestspec"
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/devtools/internal/readtestspec"
+	"github.com/sky1core/bid754/devtools/internal/testgen"
 )
 
 type ReadtestSpec struct {
@@ -364,7 +364,7 @@ func parseRustFuncSigLine(line string) (RustFuncSig, bool) {
 }
 
 func loadRustFuncSigs(projectRoot string) map[string]RustFuncSig {
-	dir := filepath.Join(projectRoot, "bid754-rs", "src", "generated")
+	dir := filepath.Join(projectRoot, "..", "bid754-rs", "src", "generated")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil
@@ -780,7 +780,7 @@ func generateReadtestRust(projectRoot string) {
 		specsByName[spec.Name] = append(specsByName[spec.Name], spec)
 	}
 
-	outPath := filepath.Join(projectRoot, "bid754-rs", "tests", "readtest_generated.rs")
+	outPath := filepath.Join(projectRoot, "..", "bid754-rs", "tests", "readtest_generated.rs")
 	auditPath := filepath.Join(projectRoot, "generated", "testspec", "rust_readtest_dispatch_audit.json")
 
 	var sb strings.Builder
@@ -2822,8 +2822,8 @@ func readtestRunner() string {
 	return `
 fn find_readtest_in() -> PathBuf {
     let candidates = [
-        "third_party/intel_dfp/TESTS/readtest.in",
-        "../third_party/intel_dfp/TESTS/readtest.in",
+        "../devtools/third_party/intel_dfp/TESTS/readtest.in",
+        "devtools/third_party/intel_dfp/TESTS/readtest.in",
     ];
     for c in &candidates {
         let p = Path::new(c);

@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	readtestGeneratedNativeTestPath = "generated_readtest_cases_native_test.go"
-	readtestGeneratedStubTestPath   = "generated_readtest_cases_stub_test.go"
+	readtestGeneratedNativeTestPath = "../bid754-go/generated_readtest_cases_native_test.go"
+	readtestGeneratedStubTestPath   = "../bid754-go/generated_readtest_cases_stub_test.go"
 )
 
 type readtestGeneratedCaseCounts struct {
@@ -132,7 +132,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sky1core/bid754/internal/testgen"
+	"github.com/sky1core/bid754/bid754-go/internal/testspec"
 )
 
 type generatedReadCaseCounts struct {
@@ -284,7 +284,7 @@ func TestGeneratedReadCases(t *testing.T) {
 	}
 }
 
-func countGeneratedReadCases(cases []testgen.GeneratedReadCase) generatedReadCaseCounts {
+func countGeneratedReadCases(cases []testspec.GeneratedReadCase) generatedReadCaseCounts {
 	counts := generatedReadCaseCounts{
 		Functions:     map[string]int{},
 		Groups:        map[string]int{},
@@ -360,20 +360,20 @@ func assertGeneratedReadStringCounts(t *testing.T, label string, got, want map[s
 	}
 }
 
-func loadGeneratedReadSpecForTest(t *testing.T) testgen.SharedSpec {
+func loadGeneratedReadSpecForTest(t *testing.T) testspec.SharedSpec {
 	t.Helper()
 	_, currentFile, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatalf("resolve generated readtest file path")
 	}
-	spec, err := testgen.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "generated", "testspec", "spec_index.json"))
+	spec, err := testspec.LoadGenerated(filepath.Join(filepath.Dir(currentFile), "..", "devtools", "generated", "testspec", "spec_index.json"))
 	if err != nil {
 		t.Fatalf("load shared spec: %v", err)
 	}
 	return spec
 }
 
-func generatedReadCaseBits(tc testgen.GeneratedReadCase) (string, string, error) {
+func generatedReadCaseBits(tc testspec.GeneratedReadCase) (string, string, error) {
 	if len(tc.Operands) != 1 {
 		return "", "", fmt.Errorf("%s expects 1 operand, got %d", tc.Kind, len(tc.Operands))
 	}
@@ -392,7 +392,7 @@ func generatedReadCaseBits(tc testgen.GeneratedReadCase) (string, string, error)
 	}
 }
 
-func generatedReadCaseString(tc testgen.GeneratedReadCase) (string, string, error) {
+func generatedReadCaseString(tc testspec.GeneratedReadCase) (string, string, error) {
 	if len(tc.Operands) != 1 {
 		return "", "", fmt.Errorf("%s expects 1 operand, got %d", tc.Kind, len(tc.Operands))
 	}
@@ -423,7 +423,7 @@ func generatedReadCaseString(tc testgen.GeneratedReadCase) (string, string, erro
 	}
 }
 
-func generatedReadCaseRenderedDecimal(tc testgen.GeneratedReadCase, bits string) (string, error) {
+func generatedReadCaseRenderedDecimal(tc testspec.GeneratedReadCase, bits string) (string, error) {
 	switch tc.Format {
 	case "decimal32":
 		raw, err := parseGeneratedReadtestUintBits(bits, 32)
@@ -451,7 +451,7 @@ func generatedReadCaseRenderedDecimal(tc testgen.GeneratedReadCase, bits string)
 	}
 }
 
-func generatedReadCaseOperationBits(tc testgen.GeneratedReadCase) (string, string, error) {
+func generatedReadCaseOperationBits(tc testspec.GeneratedReadCase) (string, string, error) {
 	switch tc.Format {
 	case "decimal32":
 		raw, status, err := nativeReadtestGeneratedBID32(tc.Function, tc.Rounding, tc.Operands)
@@ -476,7 +476,7 @@ func generatedReadCaseOperationBits(tc testgen.GeneratedReadCase) (string, strin
 	}
 }
 
-func generatedReadCaseOperationString(tc testgen.GeneratedReadCase) (string, string, error) {
+func generatedReadCaseOperationString(tc testspec.GeneratedReadCase) (string, string, error) {
 	switch tc.Format {
 	case "decimal32":
 		raw, status, err := nativeReadtestGeneratedBID32(tc.Function, tc.Rounding, tc.Operands)
@@ -504,7 +504,7 @@ func generatedReadCaseOperationString(tc testgen.GeneratedReadCase) (string, str
 	}
 }
 
-func generatedReadCaseExpectedString(tc testgen.GeneratedReadCase) (string, error) {
+func generatedReadCaseExpectedString(tc testspec.GeneratedReadCase) (string, error) {
 	if !strings.HasPrefix(strings.TrimSpace(tc.Expected), "[") {
 		return tc.Expected, nil
 	}
@@ -535,7 +535,7 @@ func generatedReadCaseExpectedString(tc testgen.GeneratedReadCase) (string, erro
 	}
 }
 
-func generatedReadCaseScalarString(tc testgen.GeneratedReadCase) (string, string, error) {
+func generatedReadCaseScalarString(tc testspec.GeneratedReadCase) (string, string, error) {
 	switch tc.OutputType {
 	case "OP_BIN32":
 		value, status, err := nativeReadtestGeneratedBinary32(tc.Function, tc.Rounding, tc.Operands)

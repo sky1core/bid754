@@ -1,6 +1,6 @@
 {
   "package": "bid754",
-  "output": "generated_types.go",
+  "output": "../bid754-go/generated_types.go",
   "type_aliases": [
     {
       "name": "EncodingFormat",

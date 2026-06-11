@@ -20,7 +20,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version-file: go.mod
+          go-version-file: bid754-go/go.mod
 
       - name: Set up Rust
         run: |
@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: bid-codec-js/package-lock.json
+          cache-dependency-path: bid754-codec-js/package-lock.json
 
       - name: Verify required toolchains
         run: |
@@ -80,7 +80,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version-file: go.mod
+          go-version-file: bid754-go/go.mod
 
       - name: Set up Rust
         run: |
@@ -94,7 +94,7 @@ jobs:
           rustc --version
 
       - name: Prepare pinned generation inputs (internal/cgen and internal/csymbols read the extracted Intel BID C sources)
-        run: bash ./scripts/setup_generation_inputs.sh intel
+        run: bash ./devtools/scripts/setup_generation_inputs.sh intel
 
       - name: Run Go module tests (includes fixed string vectors)
         run: make test-go-modules
@@ -121,16 +121,16 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version-file: go.mod
+          go-version-file: bid754-go/go.mod
 
       - name: Prepare pinned generation inputs (Intel BID C sources and IBM decTest originals)
-        run: bash ./scripts/setup_generation_inputs.sh
+        run: bash ./devtools/scripts/setup_generation_inputs.sh
 
       - name: Install IBM decNumber
-        run: bash ./scripts/install_ibm_decnumber.sh
+        run: bash ./devtools/scripts/install_ibm_decnumber.sh
 
       - name: Prepare Intel BID and env (-ffp-contract=off)
-        run: bash ./scripts/setup_c_libs.sh
+        run: bash ./devtools/scripts/setup_c_libs.sh
 
       - name: Run doctor
         run: make doctor

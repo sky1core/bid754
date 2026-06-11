@@ -135,7 +135,7 @@ func loadRegistry(path string) *Registry {
 // ==================== Rust Generation ====================
 
 func generateRust(reg *Registry, projectRoot string) {
-	outDir := filepath.Join(projectRoot, "bid754-rs", "src")
+	outDir := filepath.Join(projectRoot, "..", "bid754-rs", "src")
 
 	// 1. Generate types.rs
 	genRustTypes(reg, outDir)

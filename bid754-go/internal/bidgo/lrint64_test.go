@@ -12,7 +12,7 @@ import (
 func testBid64IntRoundReadtest(t *testing.T, prefix string, fn func(uint64, int) (int64, uint32)) {
 	t.Helper()
 
-	file, err := os.Open("../third_party/intel_dfp/TESTS/readtest.in")
+	file, err := os.Open("../../../devtools/third_party/intel_dfp/TESTS/readtest.in")
 	if err != nil {
 		t.Skipf("Intel test file not found: %v", err)
 		return

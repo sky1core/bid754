@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-cache_dir="${BID754_AUDIT_CACHE:-$repo_root/third_party/intel_dfp}"
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+cache_dir="${BID754_AUDIT_CACHE:-$repo_root/devtools/third_party/intel_dfp}"
 
 u3_url="https://www.netlib.org/misc/intel/IntelRDFPMathLib20U3.tar.gz"
 u4_url="https://www.netlib.org/misc/intel/IntelRDFPMathLib20U4.tar.gz"
