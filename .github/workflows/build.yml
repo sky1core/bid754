@@ -45,6 +45,17 @@ jobs:
           cache: npm
           cache-dependency-path: bid754-codec-js/package-lock.json
 
+      # test-bidcodec (devtools/scripts/test_bidcodec.sh) requires rg, which
+      # hosted runners do not ship by default.
+      - name: Install ripgrep
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y ripgrep
+          else
+            brew install ripgrep
+          fi
+
       - name: Verify required toolchains
         run: |
           go version
@@ -55,6 +66,7 @@ jobs:
           python3 --version
           npm --version
           swift --version
+          rg --version
 
       - name: Verify generated artifacts
         run: make verify-generated
