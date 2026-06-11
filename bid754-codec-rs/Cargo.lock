@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "bid-codec"
+name = "bid754-codec"
 version = "0.1.0"
 dependencies = [
  "serde",

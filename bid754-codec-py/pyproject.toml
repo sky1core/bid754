@@ -3,7 +3,7 @@ requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bid-codec"
+name = "bid754-codec"
 version = "0.1.0"
 description = "BID (Binary Integer Decimal) encoding/decoding for IEEE 754 decimal floating-point"
 readme = "README.md"

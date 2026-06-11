@@ -1,4 +1,4 @@
-use bid_codec::{
+use bid754_codec::{
     decode128, decode128_bytes, decode32, decode32_bytes, decode64, decode64_bytes, encode128,
     encode128_bytes, encode32, encode32_bytes, encode64, encode64_bytes, from_string, to_string,
     try_decode128_bytes, try_decode32_bytes, try_decode64_bytes, Kind,
@@ -98,7 +98,7 @@ fn test_bid_codec_error_semantics() {
     }
 }
 
-fn expect_bid32_string_roundtrip(v: &Vector, c: &bid_codec::Components, failures: &mut Vec<String>) {
+fn expect_bid32_string_roundtrip(v: &Vector, c: &bid754_codec::Components, failures: &mut Vec<String>) {
     let got = to_string(c);
     if got != v.decimal_string {
         failures.push(format!("hex={} to_string: got {}, want {}", v.hex, got, v.decimal_string));
@@ -116,7 +116,7 @@ fn expect_bid32_string_roundtrip(v: &Vector, c: &bid_codec::Components, failures
     }
 }
 
-fn expect_bid64_string_roundtrip(v: &Vector, c: &bid_codec::Components, failures: &mut Vec<String>) {
+fn expect_bid64_string_roundtrip(v: &Vector, c: &bid754_codec::Components, failures: &mut Vec<String>) {
     let got = to_string(c);
     if got != v.decimal_string {
         failures.push(format!("hex={} to_string: got {}, want {}", v.hex, got, v.decimal_string));
@@ -134,7 +134,7 @@ fn expect_bid64_string_roundtrip(v: &Vector, c: &bid_codec::Components, failures
     }
 }
 
-fn expect_bid128_string_roundtrip(v: &Vector, c: &bid_codec::Components, failures: &mut Vec<String>) {
+fn expect_bid128_string_roundtrip(v: &Vector, c: &bid754_codec::Components, failures: &mut Vec<String>) {
     let got = to_string(c);
     if got != v.decimal_string {
         failures.push(format!(

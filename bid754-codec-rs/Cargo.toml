@@ -1,12 +1,12 @@
 [package]
-name = "bid-codec"
+name = "bid754-codec"
 version = "0.1.0"
 edition = "2021"
 description = "BID (Binary Integer Decimal) IEEE 754 codec for decimal floating-point interchange"
 readme = "README.md"
 homepage = "https://github.com/sky1core/bid754"
 repository = "https://github.com/sky1core/bid754"
-documentation = "https://docs.rs/bid-codec"
+documentation = "https://docs.rs/bid754-codec"
 license = "MIT"
 
 [features]

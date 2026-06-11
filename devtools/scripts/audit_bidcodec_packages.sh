@@ -105,19 +105,19 @@ rust_smoke="$audit_tmp/rust-smoke"
 mkdir -p "$rust_smoke/src"
 cat >"$rust_smoke/Cargo.toml" <<EOF
 [package]
-name = "bid-codec-smoke"
+name = "bid754-codec-smoke"
 version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-bid-codec = { path = "$repo_root/bid754-codec-rs" }
+bid754-codec = { path = "$repo_root/bid754-codec-rs" }
 EOF
 cat >"$rust_smoke/src/main.rs" <<'EOF'
 fn main() {
-    let c = bid_codec::decode32(0x32800001);
-    assert_eq!(c.kind, bid_codec::Kind::Normal);
+    let c = bid754_codec::decode32(0x32800001);
+    assert_eq!(c.kind, bid754_codec::Kind::Normal);
     assert_eq!(c.coefficient, 1);
-    assert_eq!(bid_codec::to_string(&c), "+1E+0");
+    assert_eq!(bid754_codec::to_string(&c), "+1E+0");
 }
 EOF
 (cd "$rust_smoke" && cargo run --quiet)
@@ -197,9 +197,9 @@ from pathlib import Path
 from zipfile import ZipFile
 
 version = os.environ["PY_VERSION"]
-wheels = sorted(Path(os.environ["WHEEL_DIR"]).glob(f"bid_codec-{version}-*.whl"), key=lambda p: p.stat().st_mtime)
+wheels = sorted(Path(os.environ["WHEEL_DIR"]).glob(f"bid754_codec-{version}-*.whl"), key=lambda p: p.stat().st_mtime)
 if not wheels:
-    raise SystemExit(f"missing Python wheel for bid-codec version {version}")
+    raise SystemExit(f"missing Python wheel for bid754-codec version {version}")
 wheel = wheels[-1]
 with ZipFile(wheel) as zf:
     names = set(zf.namelist())
@@ -210,7 +210,7 @@ PY
   python3 -m compileall -q bid_codec
   py_venv="$audit_tmp/python-venv"
   python3 -m venv "$py_venv"
-  "$py_venv/bin/python" -m pip install --no-index --find-links "$wheel_dir" "bid-codec==$py_version"
+  "$py_venv/bin/python" -m pip install --no-index --find-links "$wheel_dir" "bid754-codec==$py_version"
   "$py_venv/bin/python" - <<'PY'
 from bid_codec import Kind, decode32, to_string
 
