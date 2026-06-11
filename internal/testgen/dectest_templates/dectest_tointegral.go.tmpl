@@ -1,0 +1,216 @@
+package bid754
+
+import (
+	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+)
+
+func executePortableToIntegralOperation(tc decTestCase) (decTestExecResult, error) {
+	if len(tc.Operands) != 1 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+	}
+
+	op := normalizeDecTestOperation(tc.Operation)
+	if op != "tointegral" && op != "tointegralx" {
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+
+	operand, ok := parseComparableDecimal(tc.Operands[0])
+	if !ok {
+		return decTestExecResult{}, fmt.Errorf("invalid decimal input")
+	}
+
+	switch operand.special {
+	case decTestSpecialInvalidSyntax:
+		return decTestExecResult{Result: "NaN", Flags: FlagInvalidOperation}, nil
+	case decTestSpecialInfinity:
+		if operand.sign < 0 {
+			return decTestExecResult{Result: "-Infinity"}, nil
+		}
+		return decTestExecResult{Result: "Infinity"}, nil
+	case decTestSpecialQuietNaN:
+		return decTestExecResult{Result: formatQuietNaNResult(operand.nanSign, operand.payload)}, nil
+	case decTestSpecialSignalingNaN:
+		return decTestExecResult{
+			Result: formatQuietNaNResult(operand.nanSign, operand.payload),
+			Flags:  FlagInvalidOperation,
+		}, nil
+	}
+
+	return roundFiniteToIntegral(tc, operand)
+}
+
+func roundFiniteToIntegral(tc decTestCase, operand decTestComparableDecimal) (decTestExecResult, error) {
+	op := normalizeDecTestOperation(tc.Operation)
+	rawParsed, rawOK := parseRawFiniteDecimal(tc.Operands[0])
+	wasNegativeExponent := rawOK && rawParsed.exponent < 0
+
+	if operand.exponent >= 0 {
+		flags := ExceptionFlags(0)
+		if op == "tointegralx" && !operand.isZero && wasNegativeExponent {
+			flags |= FlagRounded
+		}
+		return decTestExecResult{Result: formatComparableIntegral(operand), Flags: flags}, nil
+	}
+
+	divisor := pow10BigInt(-operand.exponent)
+	coefficient, ok := new(big.Int).SetString(operand.digits, 10)
+	if !ok {
+		return decTestExecResult{}, fmt.Errorf("invalid decimal digits %q", operand.digits)
+	}
+
+	integerPart := new(big.Int)
+	remainder := new(big.Int)
+	integerPart.QuoRem(coefficient, divisor, remainder)
+
+	flags := ExceptionFlags(0)
+	if !operand.isZero && op == "tointegralx" {
+		flags |= FlagRounded
+		if remainder.Sign() != 0 {
+			flags |= FlagInexact
+		}
+	}
+
+	if shouldRoundAwayFromZero(integerPart, remainder, divisor, operand.sign, tc.RoundingMode) {
+		integerPart.Add(integerPart, big.NewInt(1))
+	}
+
+	if integerPart.Sign() == 0 {
+		if operand.sign < 0 {
+			return decTestExecResult{Result: "-0", Flags: flags}, nil
+		}
+		return decTestExecResult{Result: "0", Flags: flags}, nil
+	}
+
+	result := integerPart.String()
+	if operand.sign < 0 {
+		result = "-" + result
+	}
+
+	return decTestExecResult{Result: result, Flags: flags}, nil
+}
+
+func formatComparableIntegral(operand decTestComparableDecimal) string {
+	if operand.isZero {
+		if operand.sign < 0 {
+			return "-0"
+		}
+		return "0"
+	}
+
+	sign := ""
+	if operand.sign < 0 {
+		sign = "-"
+	}
+
+	if operand.exponent == 0 {
+		return sign + operand.digits
+	}
+
+	if operand.exponent > 0 {
+		adjusted := len(operand.digits) + operand.exponent - 1
+		if len(operand.digits) == 1 {
+			return fmt.Sprintf("%s%sE+%d", sign, operand.digits, adjusted)
+		}
+		return fmt.Sprintf("%s%s.%sE+%d", sign, operand.digits[:1], operand.digits[1:], adjusted)
+	}
+
+	return sign + operand.digits
+}
+
+func pow10BigInt(power int) *big.Int {
+	if power <= 0 {
+		return big.NewInt(1)
+	}
+	base := big.NewInt(10)
+	exp := big.NewInt(int64(power))
+	return new(big.Int).Exp(base, exp, nil)
+}
+
+func shouldRoundAwayFromZero(integerPart, remainder, divisor *big.Int, sign int, rounding string) bool {
+	if remainder.Sign() == 0 {
+		return false
+	}
+
+	switch strings.ToLower(strings.TrimSpace(rounding)) {
+	case "", "half_even":
+		twice := new(big.Int).Lsh(new(big.Int).Set(remainder), 1)
+		switch twice.Cmp(divisor) {
+		case -1:
+			return false
+		case 1:
+			return true
+		default:
+			return integerPart.Bit(0) == 1
+		}
+	case "half_up":
+		twice := new(big.Int).Lsh(new(big.Int).Set(remainder), 1)
+		return twice.Cmp(divisor) >= 0
+	case "half_down":
+		twice := new(big.Int).Lsh(new(big.Int).Set(remainder), 1)
+		return twice.Cmp(divisor) > 0
+	case "up":
+		return true
+	case "down":
+		return false
+	case "ceiling":
+		return sign >= 0
+	case "floor":
+		return sign < 0
+	case "05up":
+		lastDigit := new(big.Int).Mod(integerPart, big.NewInt(10)).Int64()
+		return lastDigit == 0 || lastDigit == 5
+	default:
+		return false
+	}
+}
+
+type rawFiniteDecimal struct {
+	exponent int
+	isZero   bool
+}
+
+func parseRawFiniteDecimal(input string) (rawFiniteDecimal, bool) {
+	if _, ok := normalizeSpecialDecimalResult(input); ok {
+		return rawFiniteDecimal{}, false
+	}
+
+	trimmed := strings.TrimSpace(strings.Trim(input, "'\""))
+	trimmed = strings.TrimPrefix(trimmed, "+")
+	trimmed = strings.TrimPrefix(trimmed, "-")
+	if trimmed == "" {
+		return rawFiniteDecimal{}, false
+	}
+
+	mantissa := trimmed
+	exponent := 0
+	if idx := strings.IndexAny(trimmed, "Ee"); idx >= 0 {
+		mantissa = trimmed[:idx]
+		parsed, err := strconv.Atoi(trimmed[idx+1:])
+		if err != nil {
+			return rawFiniteDecimal{}, false
+		}
+		exponent = parsed
+	}
+
+	digitsOnly := strings.ReplaceAll(mantissa, ".", "")
+	if digitsOnly == "" {
+		return rawFiniteDecimal{}, false
+	}
+
+	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
+		exponent -= len(mantissa) - dot - 1
+	}
+
+	isZero := true
+	for _, r := range digitsOnly {
+		if r != '0' {
+			isZero = false
+			break
+		}
+	}
+
+	return rawFiniteDecimal{exponent: exponent, isZero: isZero}, true
+}

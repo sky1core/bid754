@@ -1,0 +1,41 @@
+package bid754
+
+import "fmt"
+
+func executeDecTestLogBOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if normalizeDecTestOperation(tc.Operation) != "logb" {
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+	if len(tc.Operands) != 1 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+	}
+	if decTestOperandString(tc.Operands[0]) == "#" {
+		return decTestExecResult{Result: "NaN", Flags: FlagInvalidOperation}, nil
+	}
+
+	switch testType {
+	case "decimal32":
+		a, err := NewDecimal32BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.LogB()
+		return decTestExecResult{Result: result.String(), Flags: flags}, nil
+	case "decimal64":
+		a, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.LogB()
+		return decTestExecResult{Result: result.String(), Flags: flags}, nil
+	case "decimal128":
+		a, err := NewDecimal128BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.LogB()
+		return decTestExecResult{Result: result.String(), Flags: flags}, nil
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}

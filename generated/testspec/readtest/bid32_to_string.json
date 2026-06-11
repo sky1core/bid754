@@ -1,0 +1,36 @@
+{
+  "suite": "bid32_to_string",
+  "group": "decimal32_strings",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid32_to_string",
+  "kind": "to_string",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_to_string_71935","line":61757,"operands":["[0200000a]"],"expected":"+1.0e-96","status":"00","rounding":0},
+    {"id":"bid32_to_string_71936","line":61758,"operands":["[3200000a]"],"expected":"+1.0","status":"00","rounding":0},
+    {"id":"bid32_to_string_71937","line":61759,"operands":["[6018967f]"],"expected":"+9.999999e-95","status":"00","rounding":0},
+    {"id":"bid32_to_string_71938","line":61760,"operands":["[77f8967f]"],"expected":"+9.999999e96","status":"00","rounding":0},
+    {"id":"bid32_to_string_71939","line":61761,"operands":["[78000000]"],"expected":"+Inf","status":"00","rounding":0},
+    {"id":"bid32_to_string_71940","line":61762,"operands":["[78000200]"],"expected":"+Inf","status":"00","rounding":0},
+    {"id":"bid32_to_string_71941","line":61763,"operands":["[7c000000]"],"expected":"+NaN","status":"00","rounding":0},
+    {"id":"bid32_to_string_71942","line":61764,"operands":["[7c000200]"],"expected":"+NaN","status":"00","rounding":0},
+    {"id":"bid32_to_string_71943","line":61765,"operands":["[7e000000]"],"expected":"+SNaN","status":"00","rounding":0},
+    {"id":"bid32_to_string_71944","line":61766,"operands":["[7e000200]"],"expected":"+SNaN","status":"00","rounding":0},
+    {"id":"bid32_to_string_71945","line":61767,"operands":["[8200000a]"],"expected":"-1.0e-96","status":"00","rounding":0},
+    {"id":"bid32_to_string_71946","line":61768,"operands":["[b200000a]"],"expected":"-1.0","status":"00","rounding":0},
+    {"id":"bid32_to_string_71947","line":61769,"operands":["[e018967f]"],"expected":"-9.999999e-95","status":"00","rounding":0},
+    {"id":"bid32_to_string_71948","line":61770,"operands":["[f7f8967f]"],"expected":"-9.999999e96","status":"00","rounding":0},
+    {"id":"bid32_to_string_71949","line":61771,"operands":["[f8000000]"],"expected":"-Inf","status":"00","rounding":0},
+    {"id":"bid32_to_string_71950","line":61772,"operands":["[f8fff000]"],"expected":"-Inf","status":"00","rounding":0},
+    {"id":"bid32_to_string_71951","line":61773,"operands":["[fc000000]"],"expected":"-NaN","status":"00","rounding":0},
+    {"id":"bid32_to_string_71952","line":61774,"operands":["[fcfff000]"],"expected":"-NaN","status":"00","rounding":0},
+    {"id":"bid32_to_string_71953","line":61775,"operands":["[fe000000]"],"expected":"-SNaN","status":"00","rounding":0},
+    {"id":"bid32_to_string_71954","line":61776,"operands":["[fefff000]"],"expected":"-SNaN","status":"00","rounding":0}
+  ]
+}

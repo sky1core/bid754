@@ -1,0 +1,42 @@
+{
+  "suite": "bid_setDecimalRoundingDirection",
+  "group": "status_control_operations",
+  "format": "status",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid_setDecimalRoundingDirection",
+  "kind": "status_control",
+  "output_type": "OP_BID_UINT32",
+  "input_types": [
+    "OP_BID_UINT32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid_setDecimalRoundingDirection_70473","line":91661,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_setDecimalRoundingDirection_70474","line":91662,"operands":["-1"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_setDecimalRoundingDirection_70475","line":91663,"operands":["1"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid_setDecimalRoundingDirection_70476","line":91664,"operands":["5"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_setDecimalRoundingDirection_70477","line":91665,"operands":["6"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_setDecimalRoundingDirection_70478","line":91666,"operands":["0"],"expected":"0","status":"00","rounding":1},
+    {"id":"bid_setDecimalRoundingDirection_70479","line":91667,"operands":["-1"],"expected":"1","status":"00","rounding":1},
+    {"id":"bid_setDecimalRoundingDirection_70480","line":91668,"operands":["1"],"expected":"1","status":"00","rounding":1},
+    {"id":"bid_setDecimalRoundingDirection_70481","line":91669,"operands":["5"],"expected":"1","status":"00","rounding":1},
+    {"id":"bid_setDecimalRoundingDirection_70482","line":91670,"operands":["6"],"expected":"1","status":"00","rounding":1},
+    {"id":"bid_setDecimalRoundingDirection_70483","line":91671,"operands":["0"],"expected":"0","status":"00","rounding":2},
+    {"id":"bid_setDecimalRoundingDirection_70484","line":91672,"operands":["1"],"expected":"1","status":"00","rounding":2},
+    {"id":"bid_setDecimalRoundingDirection_70485","line":91673,"operands":["-1"],"expected":"2","status":"00","rounding":2},
+    {"id":"bid_setDecimalRoundingDirection_70486","line":91674,"operands":["5"],"expected":"2","status":"00","rounding":2},
+    {"id":"bid_setDecimalRoundingDirection_70487","line":91675,"operands":["6"],"expected":"2","status":"00","rounding":2},
+    {"id":"bid_setDecimalRoundingDirection_70488","line":91676,"operands":["0"],"expected":"0","status":"00","rounding":3},
+    {"id":"bid_setDecimalRoundingDirection_70489","line":91677,"operands":["1"],"expected":"1","status":"00","rounding":3},
+    {"id":"bid_setDecimalRoundingDirection_70490","line":91678,"operands":["-1"],"expected":"3","status":"00","rounding":3},
+    {"id":"bid_setDecimalRoundingDirection_70491","line":91679,"operands":["5"],"expected":"3","status":"00","rounding":3},
+    {"id":"bid_setDecimalRoundingDirection_70492","line":91680,"operands":["6"],"expected":"3","status":"00","rounding":3},
+    {"id":"bid_setDecimalRoundingDirection_70493","line":91681,"operands":["0"],"expected":"0","status":"00","rounding":4},
+    {"id":"bid_setDecimalRoundingDirection_70494","line":91682,"operands":["1"],"expected":"1","status":"00","rounding":4},
+    {"id":"bid_setDecimalRoundingDirection_70495","line":91683,"operands":["-1"],"expected":"4","status":"00","rounding":4},
+    {"id":"bid_setDecimalRoundingDirection_70496","line":91684,"operands":["5"],"expected":"4","status":"00","rounding":4},
+    {"id":"bid_setDecimalRoundingDirection_70497","line":91685,"operands":["6"],"expected":"4","status":"00","rounding":4},
+    {"id":"bid_setDecimalRoundingDirection_70498","line":95808,"operands":["8"],"expected":"4","status":"00","rounding":4}
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "suite": "bid128_isFinite",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_isFinite",
+  "kind": "unary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_isFinite_53303","line":2931,"operands":["[0001ed09bead87c0378d8e62ffffffff]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53304","line":2932,"operands":["[0001ed09bead87c0378d8e64ffffffff]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53305","line":2933,"operands":["-0"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53306","line":2934,"operands":["0"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53307","line":2935,"operands":["[069ebbde47cecaf6,46be7beaba7b59b2]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53308","line":2936,"operands":["[0e3676b062a501d1,0b09be374b9584af]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53309","line":2937,"operands":["[0e89a019d51dfb52,6d3d4f5cec95045e]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53310","line":2938,"operands":["[2fc2e6f5db986999,e05bf17d978fe530]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53311","line":2939,"operands":["[38f8c0be302ea603,57e8f20e5933296f]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53312","line":2940,"operands":["+5296735256349.E0"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53313","line":2941,"operands":["[587840394b1e4028,1e9750988e309c82]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53314","line":2942,"operands":["[7c0013fea80d776e,4da30049fb4205a6]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53315","line":2943,"operands":["[7c003fffffffffff38c15b08ffffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53316","line":2944,"operands":["[7c003fffffffffff38c15b0affffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53317","line":2945,"operands":["[a34647a87b5d409d,0b81a865d0b81418]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53318","line":2946,"operands":["[b1a03c62cd15d1e3,984fecd726ec37f2]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53319","line":2947,"operands":["[b1cc5b6aee8fe1c3,d7ba66922fd8e8d7]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53320","line":2948,"operands":["[b596000000000000,0000000000000000]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53321","line":2949,"operands":["-Infinity"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53322","line":2950,"operands":["Infinity"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isFinite_53323","line":2952,"operands":["SNaN"],"expected":"0","status":"00","rounding":0}
+  ]
+}

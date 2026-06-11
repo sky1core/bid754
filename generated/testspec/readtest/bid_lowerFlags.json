@@ -1,0 +1,34 @@
+{
+  "suite": "bid_lowerFlags",
+  "group": "status_control_operations",
+  "format": "status",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid_lowerFlags",
+  "kind": "status_control",
+  "output_type": "OP_BID_UINT32",
+  "input_types": [
+    "OP_BID_UINT32",
+    "OP_BID_UINT32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid_lowerFlags_70383","line":91618,"operands":["0","0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_lowerFlags_70384","line":91619,"operands":["0","1"],"expected":"0","status":"01","rounding":0},
+    {"id":"bid_lowerFlags_70385","line":91620,"operands":["0","2"],"expected":"0","status":"02","rounding":0},
+    {"id":"bid_lowerFlags_70386","line":91621,"operands":["0","3"],"expected":"0","status":"03","rounding":0},
+    {"id":"bid_lowerFlags_70387","line":91622,"operands":["0","4"],"expected":"0","status":"04","rounding":0},
+    {"id":"bid_lowerFlags_70388","line":91623,"operands":["0","63"],"expected":"0","status":"3F","rounding":0},
+    {"id":"bid_lowerFlags_70389","line":91624,"operands":["12","59"],"expected":"0","status":"33","rounding":0},
+    {"id":"bid_lowerFlags_70390","line":91625,"operands":["12","60"],"expected":"0","status":"30","rounding":0},
+    {"id":"bid_lowerFlags_70391","line":91626,"operands":["2","1"],"expected":"0","status":"01","rounding":0},
+    {"id":"bid_lowerFlags_70392","line":91627,"operands":["2","16"],"expected":"0","status":"10","rounding":0},
+    {"id":"bid_lowerFlags_70393","line":91628,"operands":["2","2"],"expected":"0","status":"02","rounding":0},
+    {"id":"bid_lowerFlags_70394","line":91629,"operands":["2","3"],"expected":"0","status":"03","rounding":0},
+    {"id":"bid_lowerFlags_70395","line":91630,"operands":["36","20"],"expected":"0","status":"10","rounding":0},
+    {"id":"bid_lowerFlags_70396","line":91631,"operands":["40","15"],"expected":"0","status":"07","rounding":0},
+    {"id":"bid_lowerFlags_70397","line":91632,"operands":["57","55"],"expected":"0","status":"06","rounding":0},
+    {"id":"bid_lowerFlags_70398","line":91633,"operands":["57","57"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_lowerFlags_70399","line":91634,"operands":["57","58"],"expected":"0","status":"02","rounding":0}
+  ]
+}

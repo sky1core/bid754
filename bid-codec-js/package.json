@@ -1,0 +1,41 @@
+{
+  "name": "@bid754/bid-codec",
+  "version": "0.1.0",
+  "description": "BID (Binary Integer Decimal) encoding/decoding for IEEE 754 decimal floating-point",
+  "homepage": "https://github.com/sky1core/bid754",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sky1core/bid754.git",
+    "directory": "bid-codec-js"
+  },
+  "bugs": {
+    "url": "https://github.com/sky1core/bid754/issues"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.cjs"
+    }
+  },
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "browser": "./dist/bid-codec.global.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup && cp dist/esm/index.d.mts dist/esm/index.d.ts && echo '{\"type\":\"module\"}' > dist/esm/package.json",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "devDependencies": {
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.0"
+  },
+  "license": "MIT"
+}

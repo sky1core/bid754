@@ -1,0 +1,13 @@
+{
+  "library": "intel_dfp",
+  "output": "generated/json/intel_dfp_symbols.json",
+  "headers": [
+    {
+      "path": "third_party/intel_dfp/src/bid_conf.h"
+    },
+    {
+      "path": "third_party/intel_dfp/src/bid_functions.h",
+      "extract_symbols": true
+    }
+  ]
+}

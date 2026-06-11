@@ -1,0 +1,857 @@
+// stubs.c - legacy C ABI compatibility state and placeholders
+// This file provides:
+// 1. Global rounding mode and flags variables
+// 2. Historical link placeholders for symbols not exported by this legacy C ABI
+//
+// This file is not part of the regular generated readtest verification path and
+// must not be used as evidence that public Go stubs are acceptable.
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
+#include <math.h>
+#include <fenv.h>
+
+// Intel BID compatible types
+typedef uint64_t BID_UINT64;
+typedef uint32_t BID_UINT32;
+typedef struct { uint64_t w[2]; } BID_UINT128;
+typedef unsigned int _IDEC_flags;
+typedef unsigned int _IDEC_round;
+
+extern _IDEC_round __bid_IDEC_glbround;
+extern _IDEC_flags __bid_IDEC_glbflags;
+
+// Implemented in Go (main.go)
+extern void __bid64_to_string(char *ps, BID_UINT64 x);
+
+static int bid_set_binary_rounding_from_decimal(void) {
+    int old = fegetround();
+    switch (__bid_IDEC_glbround) {
+    case 0: // BID_ROUNDING_TO_NEAREST
+    case 4: // BID_ROUNDING_TIES_AWAY (no direct binary mode)
+        fesetround(FE_TONEAREST);
+        break;
+    case 1: // BID_ROUNDING_DOWN
+        fesetround(FE_DOWNWARD);
+        break;
+    case 2: // BID_ROUNDING_UP
+        fesetround(FE_UPWARD);
+        break;
+    case 3: // BID_ROUNDING_TO_ZERO
+        fesetround(FE_TOWARDZERO);
+        break;
+    default:
+        fesetround(FE_TONEAREST);
+        break;
+    }
+    return old;
+}
+
+static void bid_restore_binary_rounding(int old) {
+    if (old != -1) {
+        fesetround(old);
+    }
+}
+
+static double bid64_to_double_via_string(BID_UINT64 x) {
+    char s[128];
+    __bid64_to_string(s, x);
+    if (strstr(s, "SNaN") || strstr(s, "NaN")) {
+        return NAN;
+    }
+    if (strstr(s, "Inf")) {
+        return s[0] == '-' ? -INFINITY : INFINITY;
+    }
+    return strtod(s, NULL);
+}
+
+static long double bid64_to_long_double_via_string(BID_UINT64 x) {
+    char s[128];
+    __bid64_to_string(s, x);
+    if (strstr(s, "SNaN") || strstr(s, "NaN")) {
+        return NAN;
+    }
+    if (strstr(s, "Inf")) {
+        return s[0] == '-' ? -INFINITY : INFINITY;
+    }
+    return strtold(s, NULL);
+}
+
+// ============ GLOBAL STATE ============
+
+_IDEC_round __bid_IDEC_glbround = 0;
+_IDEC_flags __bid_IDEC_glbflags = 0;
+
+int __bid_getDecimalRoundingDirection(void) { return __bid_IDEC_glbround; }
+void __bid_setDecimalRoundingDirection(int r) { __bid_IDEC_glbround = r; }
+void __bid_lowerFlags(_IDEC_flags f) { __bid_IDEC_glbflags &= ~f; }
+void __bid_restoreFlags(_IDEC_flags f, _IDEC_flags m) { __bid_IDEC_glbflags = (f & m) | (__bid_IDEC_glbflags & ~m); }
+_IDEC_flags __bid_saveFlags(_IDEC_flags m) { return __bid_IDEC_glbflags & m; }
+void __bid_signalException(_IDEC_flags f) { __bid_IDEC_glbflags |= f; }
+_IDEC_flags __bid_testFlags(_IDEC_flags m) { return __bid_IDEC_glbflags & m; }
+_IDEC_flags __bid_testSavedFlags(_IDEC_flags s, _IDEC_flags m) { return s & m; }
+
+// ============ BID64 STUBS ============
+// Note: __bid64_add, __bid64_sub, __bid64_mul, __bid64_div, __bid64_from_string
+// are implemented in Go (main.go)
+
+// __bid64_abs - implemented in Go
+// __bid64_copy - implemented in Go
+// __bid64_copySign - implemented in Go
+// __bid64_negate - implemented in Go
+BID_UINT64 __bid64_inf(void) { return 0x7800000000000000ULL; }
+// __bid64_nan - implemented in Go
+// __bid64_fdim - implemented in Go
+// __bid64_fma - implemented in Go
+// __bid64_fmod - implemented in Go
+// __bid64_frexp - implemented in Go
+// __bid64_from_int32 - implemented in Go
+// __bid64_from_int64 - implemented in Go
+// __bid64_from_uint32 - implemented in Go
+// __bid64_from_uint64 - implemented in Go
+// __bid64_ldexp - implemented in Go
+// __bid64_maxnum - implemented in Go
+// __bid64_maxnum_mag - implemented in Go
+// __bid64_minnum - implemented in Go
+// __bid64_minnum_mag - implemented in Go
+// __bid64_modf - implemented in Go
+// __bid64_nearbyint - implemented in Go
+// __bid64_nextafter - implemented in Go
+// __bid64_nextdown - implemented in Go
+// __bid64_nexttoward - implemented in Go
+// __bid64_nextup - implemented in Go
+// __bid64_quantize - implemented in Go
+// __bid64_quantum - implemented in Go
+// __bid64_rem - implemented in Go
+// __bid64_round_integral_exact - implemented in Go
+// __bid64_round_integral_nearest_away - implemented in Go
+// __bid64_round_integral_nearest_even - implemented in Go
+// __bid64_round_integral_negative - implemented in Go
+// __bid64_round_integral_positive - implemented in Go
+// __bid64_round_integral_zero - implemented in Go
+// __bid64_scalbln - implemented in Go
+// __bid64_scalbn - implemented in Go
+// __bid64_sqrt - implemented in Go
+
+// bid64 transcendental
+BID_UINT64 __bid64_acos(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_acosh(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_asin(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_asinh(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_atan(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_atan2(BID_UINT64 x, BID_UINT64 y) { return 0; }
+BID_UINT64 __bid64_atanh(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_cbrt(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_cos(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_cosh(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_erf(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_erfc(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_exp(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_exp10(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_exp2(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_expm1(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_hypot(BID_UINT64 x, BID_UINT64 y) { return 0; }
+BID_UINT64 __bid64_lgamma(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_log(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_log10(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_log1p(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_log2(BID_UINT64 x) { return 0; }
+// __bid64_logb - implemented in Go
+BID_UINT64 __bid64_pow(BID_UINT64 x, BID_UINT64 y) { return 0; }
+BID_UINT64 __bid64_sin(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_sinh(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_tan(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_tanh(BID_UINT64 x) { return 0; }
+BID_UINT64 __bid64_tgamma(BID_UINT64 x) { return 0; }
+
+// bid64 predicates
+// __bid64_class - implemented in Go
+// __bid64_ilogb - implemented in Go
+// __bid64_isCanonical - implemented in Go
+// __bid64_isFinite - implemented in Go
+// __bid64_isInf - implemented in Go
+// __bid64_isNaN - implemented in Go
+// __bid64_isNormal - implemented in Go
+// __bid64_isSignaling - implemented in Go
+// __bid64_isSigned - implemented in Go
+// __bid64_isSubnormal - implemented in Go
+// __bid64_isZero - implemented in Go
+// __bid64_quantexp - implemented in Go
+// __bid64_radix - implemented in Go
+// __bid64_sameQuantum - implemented in Go
+// __bid64_totalOrder - implemented in Go
+// __bid64_totalOrderMag - implemented in Go
+// __bid64_llquantexp - implemented in Go
+// __bid64_llrint - implemented in Go
+// __bid64_llround - implemented in Go
+// __bid64_lrint - implemented in Go
+// __bid64_lround - implemented in Go
+
+// bid64 comparisons
+// __bid64_quiet_equal - implemented in Go
+// __bid64_quiet_greater - implemented in Go
+// __bid64_quiet_greater_equal - implemented in Go
+// __bid64_quiet_greater_unordered - implemented in Go
+// __bid64_quiet_less - implemented in Go
+// __bid64_quiet_less_equal - implemented in Go
+// __bid64_quiet_less_unordered - implemented in Go
+// __bid64_quiet_not_equal - implemented in Go
+// __bid64_quiet_not_greater - implemented in Go
+// __bid64_quiet_not_less - implemented in Go
+// __bid64_quiet_ordered - implemented in Go
+// __bid64_quiet_unordered - implemented in Go
+// __bid64_signaling_greater - implemented in Go
+// __bid64_signaling_greater_equal - implemented in Go
+// __bid64_signaling_greater_unordered - implemented in Go
+// __bid64_signaling_less - implemented in Go
+// __bid64_signaling_less_equal - implemented in Go
+// __bid64_signaling_less_unordered - implemented in Go
+// __bid64_signaling_not_greater - implemented in Go
+// __bid64_signaling_not_less - implemented in Go
+
+// bid64 conversions
+// __bid64_to_bid32 - implemented in Go
+// __bid64_to_bid128 - implemented in Go
+// __bid64_to_binary32 - implemented in Go
+// __bid64_to_binary64 - implemented in Go
+long double __bid64_to_binary80(BID_UINT64 x) {
+    int old = bid_set_binary_rounding_from_decimal();
+    long double r = bid64_to_long_double_via_string(x);
+    bid_restore_binary_rounding(old);
+    return r;
+}
+// __bid64_to_binary128 - implemented in Go
+// __bid64_to_string - implemented in Go
+
+// bid64 to int
+// __bid64_to_int8_ceil - implemented in Go
+// __bid64_to_int8_floor - implemented in Go
+// __bid64_to_int8_int - implemented in Go
+// __bid64_to_int8_rnint - implemented in Go
+// __bid64_to_int8_rninta - implemented in Go
+// __bid64_to_int8_xceil - implemented in Go
+// __bid64_to_int8_xfloor - implemented in Go
+// __bid64_to_int8_xint - implemented in Go
+// __bid64_to_int8_xrnint - implemented in Go
+// __bid64_to_int8_xrninta - implemented in Go
+
+// __bid64_to_int16_ceil - implemented in Go
+// __bid64_to_int16_floor - implemented in Go
+// __bid64_to_int16_int - implemented in Go
+// __bid64_to_int16_rnint - implemented in Go
+// __bid64_to_int16_rninta - implemented in Go
+// __bid64_to_int16_xceil - implemented in Go
+// __bid64_to_int16_xfloor - implemented in Go
+// __bid64_to_int16_xint - implemented in Go
+// __bid64_to_int16_xrnint - implemented in Go
+// __bid64_to_int16_xrninta - implemented in Go
+
+// __bid64_to_int32_ceil - implemented in Go
+// __bid64_to_int32_floor - implemented in Go
+// __bid64_to_int32_int - implemented in Go
+// __bid64_to_int32_rnint - implemented in Go
+// __bid64_to_int32_rninta - implemented in Go
+// __bid64_to_int32_xceil - implemented in Go
+// __bid64_to_int32_xfloor - implemented in Go
+// __bid64_to_int32_xint - implemented in Go
+// __bid64_to_int32_xrnint - implemented in Go
+// __bid64_to_int32_xrninta - implemented in Go
+
+// __bid64_to_int64_ceil - implemented in Go
+// __bid64_to_int64_floor - implemented in Go
+// __bid64_to_int64_int - implemented in Go
+// __bid64_to_int64_rnint - implemented in Go
+// __bid64_to_int64_rninta - implemented in Go
+// __bid64_to_int64_xceil - implemented in Go
+// __bid64_to_int64_xfloor - implemented in Go
+// __bid64_to_int64_xint - implemented in Go
+// __bid64_to_int64_xrnint - implemented in Go
+// __bid64_to_int64_xrninta - implemented in Go
+
+// bid64 to uint
+// __bid64_to_uint8_ceil - implemented in Go
+// __bid64_to_uint8_floor - implemented in Go
+// __bid64_to_uint8_int - implemented in Go
+// __bid64_to_uint8_rnint - implemented in Go
+// __bid64_to_uint8_rninta - implemented in Go
+// __bid64_to_uint8_xceil - implemented in Go
+// __bid64_to_uint8_xfloor - implemented in Go
+// __bid64_to_uint8_xint - implemented in Go
+// __bid64_to_uint8_xrnint - implemented in Go
+// __bid64_to_uint8_xrninta - implemented in Go
+
+// __bid64_to_uint16_ceil - implemented in Go
+// __bid64_to_uint16_floor - implemented in Go
+// __bid64_to_uint16_int - implemented in Go
+// __bid64_to_uint16_rnint - implemented in Go
+// __bid64_to_uint16_rninta - implemented in Go
+// __bid64_to_uint16_xceil - implemented in Go
+// __bid64_to_uint16_xfloor - implemented in Go
+// __bid64_to_uint16_xint - implemented in Go
+// __bid64_to_uint16_xrnint - implemented in Go
+// __bid64_to_uint16_xrninta - implemented in Go
+
+// __bid64_to_uint32_ceil - implemented in Go
+// __bid64_to_uint32_floor - implemented in Go
+// __bid64_to_uint32_int - implemented in Go
+// __bid64_to_uint32_rnint - implemented in Go
+// __bid64_to_uint32_rninta - implemented in Go
+// __bid64_to_uint32_xceil - implemented in Go
+// __bid64_to_uint32_xfloor - implemented in Go
+// __bid64_to_uint32_xint - implemented in Go
+// __bid64_to_uint32_xrnint - implemented in Go
+// __bid64_to_uint32_xrninta - implemented in Go
+
+// __bid64_to_uint64_ceil - implemented in Go
+// __bid64_to_uint64_floor - implemented in Go
+// __bid64_to_uint64_int - implemented in Go
+// __bid64_to_uint64_rnint - implemented in Go
+// __bid64_to_uint64_rninta - implemented in Go
+// __bid64_to_uint64_xceil - implemented in Go
+// __bid64_to_uint64_xfloor - implemented in Go
+// __bid64_to_uint64_xint - implemented in Go
+// __bid64_to_uint64_xrnint - implemented in Go
+// __bid64_to_uint64_xrninta - implemented in Go
+
+// bid64 mixed-width
+BID_UINT64 __bid64ddq_fma(BID_UINT64 x, BID_UINT64 y, BID_UINT128 z) { return 0; }
+BID_UINT64 __bid64dq_add(BID_UINT64 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64dq_div(BID_UINT64 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64dq_mul(BID_UINT64 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64dq_sub(BID_UINT64 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64dqd_fma(BID_UINT64 x, BID_UINT128 y, BID_UINT64 z) { return 0; }
+BID_UINT64 __bid64dqq_fma(BID_UINT64 x, BID_UINT128 y, BID_UINT128 z) { return 0; }
+BID_UINT64 __bid64q_sqrt(BID_UINT128 x) { return 0; }
+BID_UINT64 __bid64qd_add(BID_UINT128 x, BID_UINT64 y) { return 0; }
+BID_UINT64 __bid64qd_div(BID_UINT128 x, BID_UINT64 y) { return 0; }
+BID_UINT64 __bid64qd_mul(BID_UINT128 x, BID_UINT64 y) { return 0; }
+BID_UINT64 __bid64qd_sub(BID_UINT128 x, BID_UINT64 y) { return 0; }
+BID_UINT64 __bid64qdd_fma(BID_UINT128 x, BID_UINT64 y, BID_UINT64 z) { return 0; }
+BID_UINT64 __bid64qdq_fma(BID_UINT128 x, BID_UINT64 y, BID_UINT128 z) { return 0; }
+BID_UINT64 __bid64qq_add(BID_UINT128 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64qq_div(BID_UINT128 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64qq_mul(BID_UINT128 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64qq_sub(BID_UINT128 x, BID_UINT128 y) { return 0; }
+BID_UINT64 __bid64qqd_fma(BID_UINT128 x, BID_UINT128 y, BID_UINT64 z) { return 0; }
+BID_UINT64 __bid64qqq_fma(BID_UINT128 x, BID_UINT128 y, BID_UINT128 z) { return 0; }
+
+// ============ BID32 STUBS ============
+
+BID_UINT32 __bid32_abs(BID_UINT32 x) { return x & 0x7FFFFFFFU; }
+BID_UINT32 __bid32_add(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_copy(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_copySign(BID_UINT32 x, BID_UINT32 y) { return (x & 0x7FFFFFFFU) | (y & 0x80000000U); }
+BID_UINT32 __bid32_div(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_fdim(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_fma(BID_UINT32 x, BID_UINT32 y, BID_UINT32 z) { return 0; }
+BID_UINT32 __bid32_fmod(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_frexp(BID_UINT32 x, int *y) { *y = 0; return 0; }
+BID_UINT32 __bid32_from_int32(int x) { return 0; }
+BID_UINT32 __bid32_from_int64(int64_t x) { return 0; }
+BID_UINT32 __bid32_from_string(const char *s) { return 0; }
+BID_UINT32 __bid32_from_uint32(unsigned int x) { return 0; }
+BID_UINT32 __bid32_from_uint64(uint64_t x) { return 0; }
+BID_UINT32 __bid32_inf(void) { return 0x78000000U; }
+BID_UINT32 __bid32_ldexp(BID_UINT32 x, int n) { return x; }
+BID_UINT32 __bid32_maxnum(BID_UINT32 x, BID_UINT32 y) { return x; }
+BID_UINT32 __bid32_maxnum_mag(BID_UINT32 x, BID_UINT32 y) { return x; }
+BID_UINT32 __bid32_minnum(BID_UINT32 x, BID_UINT32 y) { return x; }
+BID_UINT32 __bid32_minnum_mag(BID_UINT32 x, BID_UINT32 y) { return x; }
+BID_UINT32 __bid32_modf(BID_UINT32 x, BID_UINT32 *y) { *y = 0; return 0; }
+BID_UINT32 __bid32_mul(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_nan(const char *s) { return 0x7C000000U; }
+BID_UINT32 __bid32_nearbyint(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_negate(BID_UINT32 x) { return x ^ 0x80000000U; }
+BID_UINT32 __bid32_nextafter(BID_UINT32 x, BID_UINT32 y) { return x; }
+BID_UINT32 __bid32_nextdown(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_nexttoward(BID_UINT32 x, BID_UINT32 y) { return x; }
+BID_UINT32 __bid32_nextup(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_quantize(BID_UINT32 x, BID_UINT32 y) { return x; }
+BID_UINT32 __bid32_quantum(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_rem(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_round_integral_exact(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_round_integral_nearest_away(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_round_integral_nearest_even(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_round_integral_negative(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_round_integral_positive(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_round_integral_zero(BID_UINT32 x) { return x; }
+BID_UINT32 __bid32_scalbln(BID_UINT32 x, long n) { return x; }
+BID_UINT32 __bid32_scalbn(BID_UINT32 x, int n) { return x; }
+BID_UINT32 __bid32_sqrt(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_sub(BID_UINT32 x, BID_UINT32 y) { return 0; }
+
+// bid32 transcendental
+BID_UINT32 __bid32_acos(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_acosh(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_asin(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_asinh(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_atan(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_atan2(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_atanh(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_cbrt(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_cos(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_cosh(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_erf(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_erfc(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_exp(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_exp10(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_exp2(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_expm1(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_hypot(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_lgamma(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_log(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_log10(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_log1p(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_log2(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_logb(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_pow(BID_UINT32 x, BID_UINT32 y) { return 0; }
+BID_UINT32 __bid32_sin(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_sinh(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_tan(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_tanh(BID_UINT32 x) { return 0; }
+BID_UINT32 __bid32_tgamma(BID_UINT32 x) { return 0; }
+
+// bid32 predicates
+int __bid32_class(BID_UINT32 x) { return 0; }
+int __bid32_ilogb(BID_UINT32 x) { return 0; }
+int __bid32_isCanonical(BID_UINT32 x) { return 1; }
+int __bid32_isFinite(BID_UINT32 x) { return 1; }
+int __bid32_isInf(BID_UINT32 x) { return 0; }
+int __bid32_isNaN(BID_UINT32 x) { return 0; }
+int __bid32_isNormal(BID_UINT32 x) { return 1; }
+int __bid32_isSignaling(BID_UINT32 x) { return 0; }
+int __bid32_isSigned(BID_UINT32 x) { return (x >> 31) != 0; }
+int __bid32_isSubnormal(BID_UINT32 x) { return 0; }
+int __bid32_isZero(BID_UINT32 x) { return 0; }
+int __bid32_quantexp(BID_UINT32 x) { return 0; }
+int __bid32_radix(BID_UINT32 x) { return 10; }
+int __bid32_sameQuantum(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_totalOrder(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_totalOrderMag(BID_UINT32 x, BID_UINT32 y) { return 0; }
+long long __bid32_llquantexp(BID_UINT32 x) { return 0; }
+long long __bid32_llrint(BID_UINT32 x) { return 0; }
+long long __bid32_llround(BID_UINT32 x) { return 0; }
+long __bid32_lrint(BID_UINT32 x) { return 0; }
+long __bid32_lround(BID_UINT32 x) { return 0; }
+
+// bid32 comparisons
+int __bid32_quiet_equal(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_greater(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_greater_equal(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_greater_unordered(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_less(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_less_equal(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_less_unordered(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_not_equal(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_not_greater(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_not_less(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_quiet_ordered(BID_UINT32 x, BID_UINT32 y) { return 1; }
+int __bid32_quiet_unordered(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_greater(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_greater_equal(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_greater_unordered(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_less(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_less_equal(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_less_unordered(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_not_greater(BID_UINT32 x, BID_UINT32 y) { return 0; }
+int __bid32_signaling_not_less(BID_UINT32 x, BID_UINT32 y) { return 0; }
+
+// bid32 conversions
+BID_UINT64 __bid32_to_bid64(BID_UINT32 x) { return 0; }
+BID_UINT128 __bid32_to_bid128(BID_UINT32 x) { BID_UINT128 r = {0}; return r; }
+float __bid32_to_binary32(BID_UINT32 x) { return 0.0f; }
+double __bid32_to_binary64(BID_UINT32 x) { return 0.0; }
+long double __bid32_to_binary80(BID_UINT32 x) { return 0.0L; }
+long double __bid32_to_binary128(BID_UINT32 x) { return 0.0L; }
+void __bid32_to_string(char *s, BID_UINT32 x) { strcpy(s, "0"); }
+
+// bid32 to int/uint (abbreviated - same pattern as bid64)
+signed char __bid32_to_int8_ceil(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_floor(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_int(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_rnint(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_rninta(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_xceil(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_xfloor(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_xint(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_xrnint(BID_UINT32 x) { return 0; }
+signed char __bid32_to_int8_xrninta(BID_UINT32 x) { return 0; }
+
+short __bid32_to_int16_ceil(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_floor(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_int(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_rnint(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_rninta(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_xceil(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_xfloor(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_xint(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_xrnint(BID_UINT32 x) { return 0; }
+short __bid32_to_int16_xrninta(BID_UINT32 x) { return 0; }
+
+int __bid32_to_int32_ceil(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_floor(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_int(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_rnint(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_rninta(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_xceil(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_xfloor(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_xint(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_xrnint(BID_UINT32 x) { return 0; }
+int __bid32_to_int32_xrninta(BID_UINT32 x) { return 0; }
+
+int64_t __bid32_to_int64_ceil(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_floor(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_int(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_rnint(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_rninta(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_xceil(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_xfloor(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_xint(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_xrnint(BID_UINT32 x) { return 0; }
+int64_t __bid32_to_int64_xrninta(BID_UINT32 x) { return 0; }
+
+unsigned char __bid32_to_uint8_ceil(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_floor(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_int(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_rnint(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_rninta(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_xceil(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_xfloor(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_xint(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_xrnint(BID_UINT32 x) { return 0; }
+unsigned char __bid32_to_uint8_xrninta(BID_UINT32 x) { return 0; }
+
+unsigned short __bid32_to_uint16_ceil(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_floor(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_int(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_rnint(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_rninta(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_xceil(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_xfloor(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_xint(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_xrnint(BID_UINT32 x) { return 0; }
+unsigned short __bid32_to_uint16_xrninta(BID_UINT32 x) { return 0; }
+
+unsigned int __bid32_to_uint32_ceil(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_floor(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_int(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_rnint(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_rninta(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_xceil(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_xfloor(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_xint(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_xrnint(BID_UINT32 x) { return 0; }
+unsigned int __bid32_to_uint32_xrninta(BID_UINT32 x) { return 0; }
+
+uint64_t __bid32_to_uint64_ceil(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_floor(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_int(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_rnint(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_rninta(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_xceil(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_xfloor(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_xint(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_xrnint(BID_UINT32 x) { return 0; }
+uint64_t __bid32_to_uint64_xrninta(BID_UINT32 x) { return 0; }
+
+// ============ BID128 STUBS ============
+
+BID_UINT128 __bid128_abs(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_add(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_copy(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_copySign(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_div(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_fdim(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_fma(BID_UINT128 x, BID_UINT128 y, BID_UINT128 z) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_fmod(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_frexp(BID_UINT128 x, int *y) { BID_UINT128 r = {0}; *y = 0; return r; }
+BID_UINT128 __bid128_from_int32(int x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_from_int64(int64_t x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_from_string(const char *s) {
+    BID_UINT128 r = {0};
+    if (!s) return r;
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
+    if (strcmp(s, "inf") == 0 || strcmp(s, "+inf") == 0 ||
+        strcmp(s, "Infinity") == 0 || strcmp(s, "+Infinity") == 0) {
+        r.w[1] = 0x7800000000000000ull;
+        return r;
+    }
+    if (strcmp(s, "-inf") == 0 || strcmp(s, "-Infinity") == 0) {
+        r.w[1] = 0xf800000000000000ull;
+        return r;
+    }
+    if (strcmp(s, "nan") == 0 || strcmp(s, "+nan") == 0) {
+        r.w[1] = 0x7c00000000000000ull;
+        return r;
+    }
+    if (strcmp(s, "-nan") == 0) {
+        r.w[1] = 0xfc00000000000000ull;
+        return r;
+    }
+    if (strcmp(s, "snan") == 0 || strcmp(s, "+snan") == 0) {
+        r.w[1] = 0x7e00000000000000ull;
+        return r;
+    }
+    if (strcmp(s, "-snan") == 0) {
+        r.w[1] = 0xfe00000000000000ull;
+        return r;
+    }
+    return r;
+}
+BID_UINT128 __bid128_from_uint32(unsigned int x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_from_uint64(uint64_t x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_inf(void) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_ldexp(BID_UINT128 x, int n) { return x; }
+BID_UINT128 __bid128_maxnum(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_maxnum_mag(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_minnum(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_minnum_mag(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_modf(BID_UINT128 x, BID_UINT128 *y) { BID_UINT128 r = {0}; *y = r; return r; }
+BID_UINT128 __bid128_mul(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_nan(const char *s) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_nearbyint(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_negate(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_nextafter(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_nextdown(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_nexttoward(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_nextup(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_quantize(BID_UINT128 x, BID_UINT128 y) { return x; }
+BID_UINT128 __bid128_quantum(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_rem(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_round_integral_exact(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_round_integral_nearest_away(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_round_integral_nearest_even(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_round_integral_negative(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_round_integral_positive(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_round_integral_zero(BID_UINT128 x) { return x; }
+BID_UINT128 __bid128_scalbln(BID_UINT128 x, long n) { return x; }
+BID_UINT128 __bid128_scalbn(BID_UINT128 x, int n) { return x; }
+BID_UINT128 __bid128_sqrt(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_sub(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+
+// bid128 transcendental (abbreviated)
+BID_UINT128 __bid128_acos(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_acosh(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_asin(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_asinh(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_atan(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_atan2(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_atanh(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_cbrt(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_cos(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_cosh(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_erf(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_erfc(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_exp(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_exp10(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_exp2(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_expm1(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_hypot(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_lgamma(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_log(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_log10(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_log1p(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_log2(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_logb(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_pow(BID_UINT128 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_sin(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_sinh(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_tan(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_tanh(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128_tgamma(BID_UINT128 x) { BID_UINT128 r = {0}; return r; }
+
+// bid128 predicates
+int __bid128_class(BID_UINT128 x) { return 0; }
+int __bid128_ilogb(BID_UINT128 x) { return 0; }
+int __bid128_isCanonical(BID_UINT128 x) { return 1; }
+int __bid128_isFinite(BID_UINT128 x) { return 1; }
+int __bid128_isInf(BID_UINT128 x) { return 0; }
+int __bid128_isNaN(BID_UINT128 x) { return 0; }
+int __bid128_isNormal(BID_UINT128 x) { return 1; }
+int __bid128_isSignaling(BID_UINT128 x) { return 0; }
+int __bid128_isSigned(BID_UINT128 x) { return 0; }
+int __bid128_isSubnormal(BID_UINT128 x) { return 0; }
+int __bid128_isZero(BID_UINT128 x) { return 0; }
+int __bid128_quantexp(BID_UINT128 x) { return 0; }
+int __bid128_radix(BID_UINT128 x) { return 10; }
+int __bid128_sameQuantum(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_totalOrder(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_totalOrderMag(BID_UINT128 x, BID_UINT128 y) { return 0; }
+long long __bid128_llquantexp(BID_UINT128 x) { return 0; }
+long long __bid128_llrint(BID_UINT128 x) { return 0; }
+long long __bid128_llround(BID_UINT128 x) { return 0; }
+long __bid128_lrint(BID_UINT128 x) { return 0; }
+long __bid128_lround(BID_UINT128 x) { return 0; }
+
+// bid128 comparisons
+int __bid128_quiet_equal(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_greater(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_greater_equal(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_greater_unordered(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_less(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_less_equal(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_less_unordered(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_not_equal(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_not_greater(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_not_less(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_quiet_ordered(BID_UINT128 x, BID_UINT128 y) { return 1; }
+int __bid128_quiet_unordered(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_greater(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_greater_equal(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_greater_unordered(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_less(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_less_equal(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_less_unordered(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_not_greater(BID_UINT128 x, BID_UINT128 y) { return 0; }
+int __bid128_signaling_not_less(BID_UINT128 x, BID_UINT128 y) { return 0; }
+
+// bid128 conversions
+BID_UINT32 __bid128_to_bid32(BID_UINT128 x) { return 0; }
+BID_UINT64 __bid128_to_bid64(BID_UINT128 x) { return 0; }
+float __bid128_to_binary32(BID_UINT128 x) { return 0.0f; }
+double __bid128_to_binary64(BID_UINT128 x) { return 0.0; }
+long double __bid128_to_binary80(BID_UINT128 x) { return 0.0L; }
+long double __bid128_to_binary128(BID_UINT128 x) { return 0.0L; }
+void __bid128_to_string(char *s, BID_UINT128 x) { strcpy(s, "0"); }
+
+// bid128 to int/uint (abbreviated - same pattern)
+signed char __bid128_to_int8_ceil(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_floor(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_int(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_rnint(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_rninta(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_xceil(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_xfloor(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_xint(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_xrnint(BID_UINT128 x) { return 0; }
+signed char __bid128_to_int8_xrninta(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_ceil(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_floor(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_int(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_rnint(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_rninta(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_xceil(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_xfloor(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_xint(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_xrnint(BID_UINT128 x) { return 0; }
+short __bid128_to_int16_xrninta(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_ceil(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_floor(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_int(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_rnint(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_rninta(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_xceil(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_xfloor(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_xint(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_xrnint(BID_UINT128 x) { return 0; }
+int __bid128_to_int32_xrninta(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_ceil(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_floor(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_int(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_rnint(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_rninta(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_xceil(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_xfloor(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_xint(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_xrnint(BID_UINT128 x) { return 0; }
+int64_t __bid128_to_int64_xrninta(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_ceil(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_floor(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_int(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_rnint(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_rninta(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_xceil(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_xfloor(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_xint(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_xrnint(BID_UINT128 x) { return 0; }
+unsigned char __bid128_to_uint8_xrninta(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_ceil(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_floor(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_int(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_rnint(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_rninta(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_xceil(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_xfloor(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_xint(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_xrnint(BID_UINT128 x) { return 0; }
+unsigned short __bid128_to_uint16_xrninta(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_ceil(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_floor(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_int(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_rnint(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_rninta(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_xceil(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_xfloor(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_xint(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_xrnint(BID_UINT128 x) { return 0; }
+unsigned int __bid128_to_uint32_xrninta(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_ceil(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_floor(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_int(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_rnint(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_rninta(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_xceil(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_xfloor(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_xint(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_xrnint(BID_UINT128 x) { return 0; }
+uint64_t __bid128_to_uint64_xrninta(BID_UINT128 x) { return 0; }
+
+// bid128 mixed-width
+BID_UINT128 __bid128d_sqrt(BID_UINT64 x) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dd_add(BID_UINT64 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dd_div(BID_UINT64 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dd_mul(BID_UINT64 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dd_sub(BID_UINT64 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128ddd_fma(BID_UINT64 x, BID_UINT64 y, BID_UINT64 z) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128ddq_fma(BID_UINT64 x, BID_UINT64 y, BID_UINT128 z) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dq_add(BID_UINT64 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dq_div(BID_UINT64 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dq_mul(BID_UINT64 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dq_sub(BID_UINT64 x, BID_UINT128 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dqd_fma(BID_UINT64 x, BID_UINT128 y, BID_UINT64 z) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128dqq_fma(BID_UINT64 x, BID_UINT128 y, BID_UINT128 z) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128qd_add(BID_UINT128 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128qd_div(BID_UINT128 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128qd_mul(BID_UINT128 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128qd_sub(BID_UINT128 x, BID_UINT64 y) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128qdd_fma(BID_UINT128 x, BID_UINT64 y, BID_UINT64 z) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128qdq_fma(BID_UINT128 x, BID_UINT64 y, BID_UINT128 z) { BID_UINT128 r = {0}; return r; }
+BID_UINT128 __bid128qqd_fma(BID_UINT128 x, BID_UINT128 y, BID_UINT64 z) { BID_UINT128 r = {0}; return r; }
+
+// ============ UTILITY FUNCTIONS ============
+
+BID_UINT128 __bid_dpd_to_bid128(BID_UINT128 x) { return x; }
+BID_UINT32 __bid_dpd_to_bid32(BID_UINT32 x) { return x; }
+BID_UINT64 __bid_dpd_to_bid64(BID_UINT64 x) { return x; }
+BID_UINT128 __bid_to_dpd128(BID_UINT128 x) { return x; }
+BID_UINT32 __bid_to_dpd32(BID_UINT32 x) { return x; }
+BID_UINT64 __bid_to_dpd64(BID_UINT64 x) { return x; }
+int __bid_feclearexcept(int e) { return 0; }
+int __bid_fegetexceptflag(_IDEC_flags *f, int e) { *f = 0; return 0; }
+int __bid_feraiseexcept(int e) { return 0; }
+int __bid_fesetexceptflag(const _IDEC_flags *f, int e) { return 0; }
+int __bid_fetestexcept(int e) { return 0; }
+int __bid_is754(void) { return 1; }
+int __bid_is754R(void) { return 1; }
+BID_UINT128 __bid_strtod128(const char *s, char **e) { BID_UINT128 r = {0}; if(e) *e = (char*)s; return r; }
+BID_UINT32 __bid_strtod32(const char *s, char **e) { if(e) *e = (char*)s; return 0; }
+BID_UINT64 __bid_strtod64(const char *s, char **e) { if(e) *e = (char*)s; return 0; }
+BID_UINT128 __bid_wcstod128(const wchar_t *s, wchar_t **e) { BID_UINT128 r = {0}; if(e) *e = (wchar_t*)s; return r; }
+BID_UINT32 __bid_wcstod32(const wchar_t *s, wchar_t **e) { if(e) *e = (wchar_t*)s; return 0; }
+BID_UINT64 __bid_wcstod64(const wchar_t *s, wchar_t **e) { if(e) *e = (wchar_t*)s; return 0; }
+
+// Binary conversion stubs
+BID_UINT128 __binary128_to_bid128(long double x) { BID_UINT128 r = {0}; return r; }
+BID_UINT32 __binary128_to_bid32(long double x) { return 0; }
+BID_UINT64 __binary128_to_bid64(long double x) { return 0; }
+BID_UINT128 __binary32_to_bid128(float x) { BID_UINT128 r = {0}; return r; }
+BID_UINT32 __binary32_to_bid32(float x) { return 0; }
+BID_UINT64 __binary32_to_bid64(float x) { return 0; }
+BID_UINT128 __binary64_to_bid128(double x) { BID_UINT128 r = {0}; return r; }
+BID_UINT32 __binary64_to_bid32(double x) { return 0; }
+BID_UINT64 __binary64_to_bid64(double x) { return 0; }
+BID_UINT128 __binary80_to_bid128(long double x) { BID_UINT128 r = {0}; return r; }
+BID_UINT32 __binary80_to_bid32(long double x) { return 0; }
+BID_UINT64 __binary80_to_bid64(long double x) { return 0; }

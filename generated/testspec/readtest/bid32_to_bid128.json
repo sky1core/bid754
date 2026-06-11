@@ -1,0 +1,22 @@
+{
+  "suite": "bid32_to_bid128",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid32_to_bid128",
+  "kind": "unary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_to_bid128_54214","line":57920,"operands":["[3d000000]"],"expected":"[306a0000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid32_to_bid128_54215","line":57921,"operands":["[7c000100]"],"expected":"[7c0000033b2e3c9fd0803ce800000000]","status":"00","rounding":0},
+    {"id":"bid32_to_bid128_54216","line":57922,"operands":["[92229c08]"],"expected":"[afbe0000000000000000000000229c08]","status":"00","rounding":0},
+    {"id":"bid32_to_bid128_54217","line":57923,"operands":["[e5c005c3]"],"expected":"[afd200000000000000000000008005c3]","status":"00","rounding":0},
+    {"id":"bid32_to_bid128_54218","line":57924,"operands":["[fe000000]"],"expected":"[fc000000000000000000000000000000]","status":"01","rounding":0},
+    {"id":"bid32_to_bid128_54219","line":57925,"operands":["-Infinity"],"expected":"[f8000000000000000000000000000000]","status":"00","rounding":0}
+  ]
+}

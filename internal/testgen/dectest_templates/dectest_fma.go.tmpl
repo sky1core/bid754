@@ -1,0 +1,219 @@
+package bid754
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+func executeDecTestFMAOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if normalizeDecTestOperation(tc.Operation) != "fma" {
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+	if len(tc.Operands) != 3 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 3 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	for _, operand := range tc.Operands {
+		if decTestOperandString(operand) == "#" {
+			return decTestExecResult{Result: "NaN", Flags: FlagInvalidOperation}, nil
+		}
+	}
+
+	rndMode, ok := decTestBIDRoundingMode(tc.RoundingMode)
+	if !ok {
+		return decTestExecResult{}, fmt.Errorf("%w: fma rounding mode %q", errUnsupportedDecTestOperation, tc.RoundingMode)
+	}
+
+	switch testType {
+	case "decimal32":
+		x, err := NewDecimal32BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		y, err := NewDecimal32BIDDirect(decTestOperandString(tc.Operands[1]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		z, err := NewDecimal32BIDDirect(decTestOperandString(tc.Operands[2]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := decimal32BIDFMAPortMode(x, y, z, rndMode)
+		return decTestExecResult{Result: result.String(), Flags: decTestFMAFlags(tc, result.String(), flags, result.Class())}, nil
+	case "decimal64":
+		x, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		y, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[1]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		z, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[2]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := decimal64BIDFMAPortMode(x, y, z, rndMode)
+		return decTestExecResult{Result: result.String(), Flags: decTestFMAFlags(tc, result.String(), flags, result.Class())}, nil
+	case "decimal128":
+		x, err := NewDecimal128BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		y, err := NewDecimal128BIDDirect(decTestOperandString(tc.Operands[1]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		z, err := NewDecimal128BIDDirect(decTestOperandString(tc.Operands[2]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := decimal128BIDFMAPortMode(x, y, z, rndMode)
+		return decTestExecResult{Result: result.String(), Flags: decTestFMAFlags(tc, result.String(), flags, result.Class())}, nil
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func decTestBIDRoundingMode(rounding string) (int, bool) {
+	switch strings.ToLower(strings.TrimSpace(rounding)) {
+	case "", "half_even":
+		return bidgoRoundingNearestEven, true
+	case "half_up":
+		return bidgoRoundingNearestAway, true
+	case "down":
+		return bidgoRoundingTowardZero, true
+	case "ceiling":
+		return bidgoRoundingTowardPositive, true
+	case "floor":
+		return bidgoRoundingTowardNegative, true
+	default:
+		return 0, false
+	}
+}
+
+func decTestFMAFlags(tc decTestCase, result string, flags ExceptionFlags, class DecimalClass) ExceptionFlags {
+	if flags&FlagInexact != 0 {
+		flags |= FlagRounded
+	}
+	flags = decTestFlagsWithSubnormalClass(flags, class)
+	if flags&FlagUnderflow != 0 {
+		flags |= FlagSubnormal
+		if tc.Clamp == 1 && decTestFiniteResultIsZero(result) {
+			flags |= FlagClamped
+		}
+	}
+	if tc.Clamp == 1 && flags&FlagClamped == 0 && shouldAddFMAZeroClampedFlag(tc, result) {
+		flags |= FlagClamped
+	}
+	if tc.Clamp == 1 && flags&FlagClamped == 0 && shouldAddFMAClampedFlag(tc, result, flags) {
+		flags |= FlagClamped
+	}
+	return flags
+}
+
+func shouldAddFMAZeroClampedFlag(tc decTestCase, result string) bool {
+	if normalizeDecTestOperation(tc.Operation) != "fma" {
+		return false
+	}
+	parsed, ok := parseDecTestFiniteRepresentation(result)
+	return ok && parsed.isZero && parsed.exponent == tc.MinExponent-(tc.Precision-1)
+}
+
+func shouldAddFMAClampedFlag(tc decTestCase, result string, flags ExceptionFlags) bool {
+	if normalizeDecTestOperation(tc.Operation) != "fma" {
+		return false
+	}
+	if flags&(FlagInexact|FlagRounded|FlagOverflow) != 0 {
+		return false
+	}
+	parsed, ok := parseDecTestFiniteRepresentation(result)
+	if !ok || parsed.isZero {
+		return false
+	}
+	return parsed.exponent >= tc.MaxExponent-(tc.Precision-1) &&
+		(parsed.hasTrailingFractionZeros || parsed.hasTrailingCoefficientZeros ||
+			parsed.adjustedExponent >= tc.MaxExponent && parsed.digits < tc.Precision)
+}
+
+func decTestFiniteResultIsZero(result string) bool {
+	parsed, ok := parseDecTestFiniteRepresentation(result)
+	return ok && parsed.isZero
+}
+
+type decTestFiniteRepresentation struct {
+	exponent                    int
+	adjustedExponent            int
+	digits                      int
+	hasTrailingFractionZeros    bool
+	hasTrailingCoefficientZeros bool
+	isZero                      bool
+}
+
+func parseDecTestFiniteRepresentation(input string) (decTestFiniteRepresentation, bool) {
+	if _, ok := normalizeSpecialDecimalResult(input); ok {
+		return decTestFiniteRepresentation{}, false
+	}
+
+	trimmed := strings.TrimSpace(strings.Trim(input, "'\""))
+	trimmed = strings.TrimPrefix(trimmed, "+")
+	trimmed = strings.TrimPrefix(trimmed, "-")
+	if trimmed == "" {
+		return decTestFiniteRepresentation{}, false
+	}
+
+	mantissa := trimmed
+	exponent := 0
+	if idx := strings.IndexAny(trimmed, "Ee"); idx >= 0 {
+		mantissa = trimmed[:idx]
+		parsed, err := strconv.Atoi(trimmed[idx+1:])
+		if err != nil {
+			return decTestFiniteRepresentation{}, false
+		}
+		exponent = parsed
+	}
+
+	if strings.Count(mantissa, ".") > 1 {
+		return decTestFiniteRepresentation{}, false
+	}
+
+	hasTrailingFractionZeros := false
+	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
+		fraction := mantissa[dot+1:]
+		hasTrailingFractionZeros = strings.TrimRight(fraction, "0") != fraction
+		exponent -= len(fraction)
+		mantissa = mantissa[:dot] + fraction
+	}
+	if mantissa == "" {
+		return decTestFiniteRepresentation{}, false
+	}
+
+	isZero := true
+	for _, r := range mantissa {
+		if r < '0' || r > '9' {
+			return decTestFiniteRepresentation{}, false
+		}
+		if r != '0' {
+			isZero = false
+		}
+	}
+
+	significant := strings.TrimLeft(mantissa, "0")
+	digits := len(significant)
+	adjustedExponent := exponent + digits - 1
+	hasTrailingCoefficientZeros := digits > 1 && strings.HasSuffix(significant, "0")
+	if isZero {
+		digits = 0
+		adjustedExponent = exponent
+		hasTrailingCoefficientZeros = false
+	}
+
+	return decTestFiniteRepresentation{
+		exponent:                    exponent,
+		adjustedExponent:            adjustedExponent,
+		digits:                      digits,
+		hasTrailingFractionZeros:    hasTrailingFractionZeros,
+		hasTrailingCoefficientZeros: hasTrailingCoefficientZeros,
+		isZero:                      isZero,
+	}, true
+}

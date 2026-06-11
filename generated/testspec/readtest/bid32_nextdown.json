@@ -1,0 +1,42 @@
+{
+  "suite": "bid32_nextdown",
+  "group": "decimal32_operations",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid32_nextdown",
+  "kind": "unary_op",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_nextdown_2473","line":50337,"operands":["[00000001]"],"expected":"[00000000]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2474","line":50338,"operands":["[00080001]"],"expected":"[00080000]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2475","line":50339,"operands":["1.0"],"expected":"[6bd8967f]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2476","line":50340,"operands":["-1.0"],"expected":"[af8f4241]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2477","line":50341,"operands":["1.0e-96"],"expected":"[0001869f]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2478","line":50342,"operands":["-1.0e-96"],"expected":"[800186a1]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2479","line":50343,"operands":["[6098967f]"],"expected":"[6098967e]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2480","line":50344,"operands":["[60989680]"],"expected":"[80000001]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2481","line":50345,"operands":["[78000000]"],"expected":"[77f8967f]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2482","line":50346,"operands":["[7c000000]"],"expected":"[7c000000]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2483","line":50347,"operands":["[7c8f423f]"],"expected":"[7c0f423f]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2484","line":50348,"operands":["[7c8f4240]"],"expected":"[7c000000]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2485","line":50349,"operands":["[7e100000]"],"expected":"[7c000000]","status":"01","rounding":0},
+    {"id":"bid32_nextdown_2486","line":50350,"operands":["[7e100100]"],"expected":"[7c000100]","status":"01","rounding":0},
+    {"id":"bid32_nextdown_2487","line":50351,"operands":["[7e8f423f]"],"expected":"[7c0f423f]","status":"01","rounding":0},
+    {"id":"bid32_nextdown_2488","line":50352,"operands":["[7e8f4240]"],"expected":"[7c000000]","status":"01","rounding":0},
+    {"id":"bid32_nextdown_2489","line":50353,"operands":["[80000001]"],"expected":"[80000002]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2490","line":50354,"operands":["9.999999e-95"],"expected":"[6018967e]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2491","line":50355,"operands":["-9.999999e-95"],"expected":"[808f4240]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2492","line":50356,"operands":["9.999999e96"],"expected":"[77f8967e]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2493","line":50357,"operands":["-9.999999e96"],"expected":"[f8000000]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2494","line":50358,"operands":["[f8000000]"],"expected":"[f8000000]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2495","line":50359,"operands":["[fc100000]"],"expected":"[fc000000]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2496","line":50360,"operands":["[fc100100]"],"expected":"[fc000100]","status":"00","rounding":0},
+    {"id":"bid32_nextdown_2497","line":50361,"operands":["[fe000000]"],"expected":"[fc000000]","status":"01","rounding":0},
+    {"id":"bid32_nextdown_2498","line":50362,"operands":["-Infinity"],"expected":"[f8000000]","status":"00","rounding":0}
+  ]
+}

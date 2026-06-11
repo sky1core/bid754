@@ -1,0 +1,35 @@
+{
+  "suite": "bid128_isInf",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_isInf",
+  "kind": "unary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_isInf_53430","line":2953,"operands":["-0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53431","line":2954,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53432","line":2955,"operands":["[0001ed09bead87c0378d8e62ffffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53433","line":2956,"operands":["[0001ed09bead87c0378d8e64ffffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53434","line":2957,"operands":["[0a57e401d7f2f4bf,1a0275159b396b2a]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53435","line":2958,"operands":["[3737d5460658b655,02508fbbc30ff543]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53436","line":2959,"operands":["[5902fa4ce8711964,0b0601200002a041]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53437","line":2960,"operands":["[7c003fffffffffff38c15b08ffffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53438","line":2961,"operands":["[7c003fffffffffff38c15b0affffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53439","line":2962,"operands":["[8cd4ffbce0ecd8e2,7cba342f141e4231]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53440","line":2963,"operands":["[8dd84ed793886329,1f6560ffe1332f11]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53441","line":2964,"operands":["[935d9c0d11b20b30,9b8116fd41f5394f]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53442","line":2965,"operands":["[94bc000000000000,0000000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53443","line":2966,"operands":["[9b6e000000000000,0000000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53444","line":2967,"operands":["[a9a7b8e122afeacc,d57a83774becaedb]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53445","line":2968,"operands":["[b05fafc0064a7b31,37c23276a8be7ed3]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53446","line":2969,"operands":["[be42bd49b8cd1d75,9da62cb45a360a56]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isInf_53447","line":2970,"operands":["Infinity"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isInf_53448","line":2972,"operands":["SNaN"],"expected":"0","status":"00","rounding":0}
+  ]
+}

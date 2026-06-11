@@ -1,0 +1,72 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+}
+
+group = 'dev.bid754.bidcodec'
+version = '0.1.0'
+description = 'BID (Binary Integer Decimal) encoding/decoding for IEEE 754 decimal floating-point'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.json:json:20231013'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'skipped', 'failed'
+        showStandardStreams = false
+    }
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.addStringOption('Xdoclint:all,-missing', '-quiet')
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'bid-codec-java'
+                description = project.description
+                url = 'https://github.com/sky1core/bid754'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/license/mit'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/sky1core/bid754.git'
+                    developerConnection = 'scm:git:https://github.com/sky1core/bid754.git'
+                    url = 'https://github.com/sky1core/bid754'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'audit'
+            url = uri(findProperty('bid754AuditMavenRepo') ?: layout.buildDirectory.dir('audit-maven-repo'))
+        }
+    }
+}

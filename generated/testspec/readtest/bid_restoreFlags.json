@@ -1,0 +1,32 @@
+{
+  "suite": "bid_restoreFlags",
+  "group": "status_control_operations",
+  "format": "status",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid_restoreFlags",
+  "kind": "status_control",
+  "output_type": "OP_BID_UINT32",
+  "input_types": [
+    "OP_BID_UINT32",
+    "OP_BID_UINT32",
+    "OP_BID_UINT32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid_restoreFlags_70435","line":91635,"operands":["0","0","0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_restoreFlags_70436","line":91636,"operands":["0","0","1"],"expected":"0","status":"01","rounding":0},
+    {"id":"bid_restoreFlags_70437","line":91637,"operands":["0","0","2"],"expected":"0","status":"02","rounding":0},
+    {"id":"bid_restoreFlags_70438","line":91638,"operands":["0","0","3"],"expected":"0","status":"03","rounding":0},
+    {"id":"bid_restoreFlags_70439","line":91639,"operands":["0","16","40"],"expected":"0","status":"28","rounding":0},
+    {"id":"bid_restoreFlags_70440","line":91640,"operands":["0","16","50"],"expected":"0","status":"22","rounding":0},
+    {"id":"bid_restoreFlags_70441","line":91641,"operands":["0","20","34"],"expected":"0","status":"22","rounding":0},
+    {"id":"bid_restoreFlags_70442","line":91642,"operands":["0","20","35"],"expected":"0","status":"23","rounding":0},
+    {"id":"bid_restoreFlags_70443","line":91643,"operands":["0","4","18"],"expected":"0","status":"12","rounding":0},
+    {"id":"bid_restoreFlags_70444","line":91644,"operands":["0","4","19"],"expected":"0","status":"13","rounding":0},
+    {"id":"bid_restoreFlags_70445","line":91645,"operands":["0","61","57"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_restoreFlags_70446","line":91646,"operands":["0","61","58"],"expected":"0","status":"02","rounding":0},
+    {"id":"bid_restoreFlags_70447","line":91647,"operands":["0","65","57"],"expected":"0","status":"38","rounding":0},
+    {"id":"bid_restoreFlags_70448","line":91648,"operands":["0","65","58"],"expected":"0","status":"3A","rounding":0}
+  ]
+}

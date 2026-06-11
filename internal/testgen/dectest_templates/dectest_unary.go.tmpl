@@ -1,0 +1,127 @@
+package bid754
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+const (
+	bid32NaNMask        uint32 = 0x7c000000
+	bid32SignalingMask  uint32 = 0x7e000000
+	bid32SignalingBit   uint32 = 0x02000000
+	bid64NaNMask        uint64 = 0x7c00000000000000
+	bid64SignalingMask  uint64 = 0x7e00000000000000
+	bid64SignalingBit   uint64 = 0x0200000000000000
+	bid128NaNMaskHigh   uint64 = 0x7c00000000000000
+	bid128SignalMaskHi  uint64 = 0x7e00000000000000
+	bid128SignalBitHigh uint64 = 0x0200000000000000
+)
+
+func executeDecTestUnaryOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	op := normalizeDecTestOperation(tc.Operation)
+	switch op {
+	case "abs", "plus", "minus":
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+	if len(tc.Operands) != 1 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+	}
+	if decTestOperandString(tc.Operands[0]) == "#" {
+		return decTestExecResult{Result: "NaN", Flags: FlagInvalidOperation}, nil
+	}
+
+	switch testType {
+	case "decimal32":
+		a, err := NewDecimal32BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := executeDecimal32UnaryOperation(op, a)
+		return decTestExecResult{Result: result.String(), Flags: decTestFlagsWithSubnormalClass(flags, result.Class())}, nil
+	case "decimal64":
+		a, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := executeDecimal64UnaryOperation(op, a)
+		return decTestExecResult{Result: result.String(), Flags: decTestFlagsWithSubnormalClass(flags, result.Class())}, nil
+	case "decimal128":
+		a, err := NewDecimal128BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := executeDecimal128UnaryOperation(op, a)
+		return decTestExecResult{Result: result.String(), Flags: decTestFlagsWithSubnormalClass(flags, result.Class())}, nil
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func executeDecimal32UnaryOperation(op string, a Decimal32BID) (Decimal32BID, ExceptionFlags) {
+	switch op {
+	case "abs":
+		return decTestDecimal32Abs(a)
+	case "plus":
+		return decimal32BIDAddPortModeFlags(0, a, defaultBIDRoundingMode)
+	default:
+		return decimal32BIDSubPortModeFlags(0, a, defaultBIDRoundingMode)
+	}
+}
+
+func executeDecimal64UnaryOperation(op string, a Decimal64BID) (Decimal64BID, ExceptionFlags) {
+	switch op {
+	case "abs":
+		return decTestDecimal64Abs(a)
+	case "plus":
+		return decimal64BIDAddPortModeFlags(0, a, defaultBIDRoundingMode)
+	default:
+		return decimal64BIDSubPortModeFlags(0, a, defaultBIDRoundingMode)
+	}
+}
+
+func executeDecimal128UnaryOperation(op string, a Decimal128BID) (Decimal128BID, ExceptionFlags) {
+	zero := Decimal128BID{}
+	switch op {
+	case "abs":
+		return decTestDecimal128Abs(a)
+	case "plus":
+		return decimal128BIDAddPortModeFlags(zero, a, defaultBIDRoundingMode)
+	default:
+		return decimal128BIDSubPortModeFlags(zero, a, defaultBIDRoundingMode)
+	}
+}
+
+func decTestDecimal32Abs(a Decimal32BID) (Decimal32BID, ExceptionFlags) {
+	bits := a.ToUint32()
+	if bits&bid32NaNMask == bid32NaNMask {
+		if bits&bid32SignalingMask == bid32SignalingMask {
+			return Decimal32BID(bits &^ bid32SignalingBit), FlagInvalidOperation
+		}
+		return a, 0
+	}
+	return a.Abs(), 0
+}
+
+func decTestDecimal64Abs(a Decimal64BID) (Decimal64BID, ExceptionFlags) {
+	bits := a.ToUint64()
+	if bits&bid64NaNMask == bid64NaNMask {
+		if bits&bid64SignalingMask == bid64SignalingMask {
+			return Decimal64BID(bits &^ bid64SignalingBit), FlagInvalidOperation
+		}
+		return a, 0
+	}
+	return a.Abs(), 0
+}
+
+func decTestDecimal128Abs(a Decimal128BID) (Decimal128BID, ExceptionFlags) {
+	words := *(*bidUint128Words)(unsafe.Pointer(&a))
+	if words.w[1]&bid128NaNMaskHigh == bid128NaNMaskHigh {
+		if words.w[1]&bid128SignalMaskHi == bid128SignalMaskHi {
+			words.w[1] &^= bid128SignalBitHigh
+			return *(*Decimal128BID)(unsafe.Pointer(&words)), FlagInvalidOperation
+		}
+		return a, 0
+	}
+	return a.Abs(), 0
+}

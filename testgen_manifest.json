@@ -1,0 +1,505 @@
+{
+  "output": "generated/testspec/spec_index.json",
+  "dectest_suites": [
+    {
+      "name": "Decimal32",
+      "pattern": "ds*.decTest",
+      "test_type": "decimal32",
+      "directory": "tests",
+      "supported_operations": [
+        "toSci",
+        "toEng"
+      ],
+      "ignored_operations": [
+        "apply"
+      ]
+    },
+    {
+      "name": "Decimal64",
+      "pattern": "dd*.decTest",
+      "test_type": "decimal64",
+      "directory": "tests",
+      "supported_operations": [
+        "add",
+        "subtract",
+        "multiply",
+        "divide",
+        "quantize",
+        "compare",
+        "compareSig",
+        "compareTotal",
+        "compareTotMag",
+        "class",
+        "samequantum",
+        "min",
+        "max",
+        "minmag",
+        "maxmag",
+        "abs",
+        "plus",
+        "minus",
+        "fma",
+        "logB",
+        "scaleB",
+        "remainder",
+        "remainderNear",
+        "nexttoward",
+        "nextplus",
+        "nextminus",
+        "reduce",
+        "copy",
+        "copyAbs",
+        "copyNegate",
+        "copySign",
+        "toSci",
+        "toEng",
+        "toIntegralX"
+      ],
+      "ignored_operations": [
+        "apply"
+      ]
+    },
+    {
+      "name": "Decimal128",
+      "pattern": "dq*.decTest",
+      "test_type": "decimal128",
+      "directory": "tests",
+      "supported_operations": [
+        "add",
+        "subtract",
+        "multiply",
+        "divide",
+        "quantize",
+        "compare",
+        "compareSig",
+        "compareTotal",
+        "compareTotMag",
+        "class",
+        "samequantum",
+        "min",
+        "max",
+        "minmag",
+        "maxmag",
+        "abs",
+        "plus",
+        "minus",
+        "fma",
+        "logB",
+        "scaleB",
+        "remainder",
+        "remainderNear",
+        "nexttoward",
+        "nextplus",
+        "nextminus",
+        "copy",
+        "copyAbs",
+        "copyNegate",
+        "copySign",
+        "toSci",
+        "toEng",
+        "toIntegral",
+        "toIntegralX"
+      ],
+      "ignored_operations": [
+        "apply"
+      ]
+    },
+    {
+      "name": "General",
+      "pattern": "*.decTest",
+      "test_type": "general",
+      "directory": "tests",
+      "supported_operations": [
+        "add",
+        "subtract",
+        "multiply",
+        "divide",
+        "quantize",
+        "compare",
+        "compareSig",
+        "toSci",
+        "toEng",
+        "toIntegral",
+        "toIntegralX"
+      ],
+      "ignored_operations": [
+        "apply"
+      ],
+      "exclude_prefixes": [
+        "dd",
+        "dq",
+        "ds"
+      ]
+    }
+  ],
+  "readtests": [
+    {
+      "name": "bid32_from_string_ieee754_overflow_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_regressions_bid32_cdiverge.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid32_from_string ignores rnd_mode on the no-exponent overflow path (always Inf); these rows pin the IEEE 754 directed-overflow behavior that intentionally diverges from pinned C",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "bid32_from_string_ieee754_overflow_cmatch",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_regressions_bid32_cmatch.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "bid64_from_string_ieee754_overflow_cdiverge",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_regressions_bid64_cdiverge.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid64_from_string ignores rnd_mode on the no-exponent overflow path (always Inf); these rows pin the IEEE 754 directed-overflow behavior that intentionally diverges from pinned C",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "bid64_from_string_ieee754_overflow_cmatch",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_regressions_bid64_cmatch.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "bid128_from_string_ieee754_overflow_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_regressions_bid128_cmatch.in",
+      "function": "bid128_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "readtest_profiles": [
+    {
+      "name": "intel_readtest_current_surface",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "third_party/intel_dfp/TESTS/readtest.in",
+      "formats": [
+        "decimal32",
+        "decimal64",
+        "decimal128"
+      ],
+      "statuses": [],
+      "rounding_modes": [],
+      "selection": "repo_supported_surface"
+    }
+  ],
+  "fuzztests": [
+    {
+      "name": "decimal64_arithmetic",
+      "test_type": "decimal64",
+      "sources": [
+        "tests/ddAdd.decTest",
+        "tests/ddSubtract.decTest",
+        "tests/ddMultiply.decTest",
+        "tests/ddDivide.decTest"
+      ],
+      "operations": [
+        "add",
+        "subtract",
+        "multiply",
+        "divide"
+      ],
+      "limit": 64
+    },
+    {
+      "name": "general_arithmetic",
+      "test_type": "general",
+      "sources": [
+        "tests/add.decTest",
+        "tests/subtract.decTest",
+        "tests/multiply.decTest",
+        "tests/divide.decTest"
+      ],
+      "operations": [
+        "add",
+        "subtract",
+        "multiply",
+        "divide"
+      ],
+      "limit": 64
+    }
+  ],
+  "ffi_tests": [
+    {
+      "name": "bid_native_bitcompare_subset",
+      "symbols": "generated/json/intel_dfp_symbols.json",
+      "functions": [
+        "bid32_add",
+        "bid32_sub",
+        "bid32_mul",
+        "bid32_div",
+        "bid32_quantize",
+        "bid32_fma",
+        "bid32_rem",
+        "bid32_fmod",
+        "bid32_round_integral_exact",
+        "bid32_copy",
+        "bid32_negate",
+        "bid32_abs",
+        "bid32_copySign",
+      "bid32_sqrt",
+      "bid32_logb",
+      "bid32_scalbn",
+      "bid32_nextup",
+      "bid32_nextdown",
+      "bid32_ldexp",
+      "bid32_scalbln",
+      "bid32_quantum",
+      "bid32_quantexp",
+      "bid32_llquantexp",
+      "bid32_ilogb",
+      "bid32_sameQuantum",
+      "bid32_radix",
+      "bid32_class",
+      "bid32_isSigned",
+      "bid32_isNormal",
+      "bid32_isSubnormal",
+      "bid32_isFinite",
+      "bid32_isZero",
+      "bid32_isInf",
+      "bid32_isNaN",
+      "bid32_isSignaling",
+      "bid32_isCanonical",
+      "bid32_totalOrder",
+      "bid32_totalOrderMag",
+      "bid32_quiet_equal",
+      "bid32_quiet_greater",
+      "bid32_quiet_greater_equal",
+      "bid32_quiet_greater_unordered",
+      "bid32_quiet_less",
+      "bid32_quiet_less_equal",
+      "bid32_quiet_less_unordered",
+      "bid32_quiet_not_equal",
+      "bid32_quiet_not_greater",
+      "bid32_quiet_not_less",
+      "bid32_quiet_ordered",
+      "bid32_quiet_unordered",
+      "bid32_signaling_greater",
+      "bid32_signaling_greater_equal",
+      "bid32_signaling_greater_unordered",
+      "bid32_signaling_less",
+      "bid32_signaling_less_equal",
+      "bid32_signaling_less_unordered",
+      "bid32_signaling_not_greater",
+      "bid32_signaling_not_less",
+      "bid64_add",
+      "bid64_sub",
+      "bid64_mul",
+        "bid64_div",
+        "bid64_quantize",
+        "bid64_fma",
+        "bid64_rem",
+        "bid64_fmod",
+        "bid64_round_integral_exact",
+        "bid64_copy",
+        "bid64_negate",
+        "bid64_abs",
+        "bid64_copySign",
+      "bid64_sqrt",
+      "bid64_logb",
+      "bid64_scalbn",
+      "bid64_nextup",
+      "bid64_nextdown",
+      "bid64_ldexp",
+      "bid64_scalbln",
+      "bid64_quantum",
+      "bid64_quantexp",
+      "bid64_llquantexp",
+      "bid64_ilogb",
+      "bid64_sameQuantum",
+      "bid64_radix",
+      "bid64_class",
+      "bid64_isSigned",
+      "bid64_isNormal",
+      "bid64_isSubnormal",
+      "bid64_isFinite",
+      "bid64_isZero",
+      "bid64_isInf",
+      "bid64_isNaN",
+      "bid64_isSignaling",
+      "bid64_isCanonical",
+      "bid64_totalOrder",
+      "bid64_totalOrderMag",
+      "bid64_quiet_equal",
+      "bid64_quiet_greater",
+      "bid64_quiet_greater_equal",
+      "bid64_quiet_greater_unordered",
+      "bid64_quiet_less",
+      "bid64_quiet_less_equal",
+      "bid64_quiet_less_unordered",
+      "bid64_quiet_not_equal",
+      "bid64_quiet_not_greater",
+      "bid64_quiet_not_less",
+      "bid64_quiet_ordered",
+      "bid64_quiet_unordered",
+      "bid64_signaling_greater",
+      "bid64_signaling_greater_equal",
+      "bid64_signaling_greater_unordered",
+      "bid64_signaling_less",
+      "bid64_signaling_less_equal",
+      "bid64_signaling_less_unordered",
+      "bid64_signaling_not_greater",
+      "bid64_signaling_not_less",
+      "bid128_add",
+      "bid128_sub",
+      "bid128_mul",
+        "bid128_div",
+        "bid128_quantize",
+        "bid128_fma",
+        "bid128_rem",
+        "bid128_fmod",
+        "bid128_round_integral_exact",
+        "bid128_copy",
+        "bid128_negate",
+        "bid128_abs",
+        "bid128_copySign",
+      "bid128_sqrt",
+      "bid128_logb",
+      "bid128_scalbn",
+      "bid128_nextup",
+      "bid128_nextdown",
+      "bid128_ldexp",
+      "bid128_scalbln",
+      "bid128_quantum",
+      "bid128_quantexp",
+      "bid128_llquantexp",
+      "bid128_ilogb",
+      "bid128_sameQuantum",
+      "bid128_radix",
+      "bid128_class",
+      "bid128_isSigned",
+      "bid128_isNormal",
+      "bid128_isSubnormal",
+      "bid128_isFinite",
+      "bid128_isZero",
+      "bid128_isInf",
+      "bid128_isNaN",
+      "bid128_isSignaling",
+      "bid128_isCanonical",
+      "bid128_totalOrder",
+      "bid128_totalOrderMag",
+      "bid128_quiet_equal",
+      "bid128_quiet_greater",
+      "bid128_quiet_greater_equal",
+      "bid128_quiet_greater_unordered",
+      "bid128_quiet_less",
+      "bid128_quiet_less_equal",
+      "bid128_quiet_less_unordered",
+      "bid128_quiet_not_equal",
+      "bid128_quiet_not_greater",
+      "bid128_quiet_not_less",
+      "bid128_quiet_ordered",
+      "bid128_quiet_unordered",
+      "bid128_signaling_greater",
+      "bid128_signaling_greater_equal",
+      "bid128_signaling_greater_unordered",
+      "bid128_signaling_less",
+      "bid128_signaling_less_equal",
+      "bid128_signaling_less_unordered",
+      "bid128_signaling_not_greater",
+      "bid128_signaling_not_less"
+    ],
+    "function_patterns": [
+      "^bid(32|64|128)_to_(int8|int16|int32|int64|uint8|uint16|uint32|uint64)_(ceil|floor|int|rnint|rninta|xceil|xfloor|xint|xrnint|xrninta)$",
+      "^bid(32|64|128)_from_(int32|int64|uint32|uint64)$",
+      "^bid(32|64|128)_to_bid(32|64|128)$",
+      "^bid(32|64|128)_to_binary(32|64|128)$"
+    ],
+    "cases_per_function": 48,
+    "seed": 754
+    }
+  ],
+  "bid_codec_vectors": {
+    "output": "bid-codec-vectors/vectors.json",
+    "seed": 20260327,
+    "random_cases_per_format": 5000
+  }
+}

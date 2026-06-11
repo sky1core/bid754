@@ -1,0 +1,36 @@
+{
+  "suite": "bid64_isNormal",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_isNormal",
+  "kind": "unary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_isNormal_53144","line":67029,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53145","line":67030,"operands":["[0000000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53146","line":67031,"operands":["[0000000220000880]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53147","line":67032,"operands":["[0042000880060800]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53148","line":67033,"operands":["[0f19eda8ce8d0d7c]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53149","line":67034,"operands":["[1240000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53150","line":67035,"operands":["[176ca85dbd0e3ed8]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53151","line":67036,"operands":["[1b77fad26e664ee7]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53152","line":67037,"operands":["[20f6514fb338a22c]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53153","line":67038,"operands":["[56867713cac397e3]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53154","line":67039,"operands":["[6489214a172fbc88]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53155","line":67040,"operands":["[6eaba7a5b910bc03]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53156","line":67041,"operands":["[94206ef326033fa3]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53157","line":67042,"operands":["[bbdd8c9fffac1f7b]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53158","line":67043,"operands":["[c3bdd7e750efbf92]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53159","line":67044,"operands":["[e97982db520f3b12]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53160","line":67045,"operands":["[f56adf1cb46269c8]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53161","line":67046,"operands":["[fdeffefd7c367377]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53162","line":67047,"operands":["-Infinity"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isNormal_53163","line":67048,"operands":["Infinity"],"expected":"0","status":"00","rounding":0}
+  ]
+}

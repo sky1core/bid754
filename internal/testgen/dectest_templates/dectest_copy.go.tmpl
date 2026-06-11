@@ -1,0 +1,109 @@
+package bid754
+
+import (
+	"fmt"
+	"strings"
+)
+
+func executeDecTestCopyOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	op := normalizeDecTestOperation(tc.Operation)
+	switch op {
+	case "copy", "copyabs", "copynegate":
+		if len(tc.Operands) != 1 {
+			return decTestExecResult{}, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+		}
+	case "copysign":
+		if len(tc.Operands) != 2 {
+			return decTestExecResult{}, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+		}
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+
+	switch testType {
+	case "decimal32":
+		result, err := executeDecimal32CopyOperation(op, tc.Operands)
+		return decTestExecResult{Result: result}, err
+	case "decimal64":
+		result, err := executeDecimal64CopyOperation(op, tc.Operands)
+		return decTestExecResult{Result: result}, err
+	case "decimal128":
+		result, err := executeDecimal128CopyOperation(op, tc.Operands)
+		return decTestExecResult{Result: result}, err
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func executeDecimal32CopyOperation(op string, operands []string) (string, error) {
+	a, err := NewDecimal32BIDDirect(decTestOperandString(operands[0]))
+	if err != nil {
+		return "", err
+	}
+	switch op {
+	case "copy":
+		return a.Copy().String(), nil
+	case "copyabs":
+		return a.Abs().String(), nil
+	case "copynegate":
+		return a.Negate().String(), nil
+	case "copysign":
+		b, err := NewDecimal32BIDDirect(decTestOperandString(operands[1]))
+		if err != nil {
+			return "", err
+		}
+		return a.CopySign(b).String(), nil
+	default:
+		return "", fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+func executeDecimal64CopyOperation(op string, operands []string) (string, error) {
+	a, err := NewDecimal64BIDDirect(decTestOperandString(operands[0]))
+	if err != nil {
+		return "", err
+	}
+	switch op {
+	case "copy":
+		return a.Copy().String(), nil
+	case "copyabs":
+		return a.Abs().String(), nil
+	case "copynegate":
+		return a.Negate().String(), nil
+	case "copysign":
+		b, err := NewDecimal64BIDDirect(decTestOperandString(operands[1]))
+		if err != nil {
+			return "", err
+		}
+		return a.CopySign(b).String(), nil
+	default:
+		return "", fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+func executeDecimal128CopyOperation(op string, operands []string) (string, error) {
+	a, err := NewDecimal128BIDDirect(decTestOperandString(operands[0]))
+	if err != nil {
+		return "", err
+	}
+	switch op {
+	case "copy":
+		return a.Copy().String(), nil
+	case "copyabs":
+		return a.Abs().String(), nil
+	case "copynegate":
+		return a.Negate().String(), nil
+	case "copysign":
+		b, err := NewDecimal128BIDDirect(decTestOperandString(operands[1]))
+		if err != nil {
+			return "", err
+		}
+		return a.CopySign(b).String(), nil
+	default:
+		return "", fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+func decTestOperandString(input string) string {
+	return strings.Trim(input, "'\"")
+}

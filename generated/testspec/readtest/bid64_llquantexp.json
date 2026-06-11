@@ -1,0 +1,24 @@
+{
+  "suite": "bid64_llquantexp",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_llquantexp",
+  "kind": "unary_op",
+  "output_type": "OP_INT64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_llquantexp_79727","line":127078,"operands":["[322000000000007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_79728","line":127079,"operands":["[B22000000000007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_79729","line":127080,"operands":["[3240000000000000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_79730","line":127081,"operands":["[B240000000000000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_79731","line":127082,"operands":["[5FE38D7EA4C68000]"],"expected":"369","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_79732","line":127083,"operands":["[DFE38D7EA4C68000]"],"expected":"369","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_79733","line":127084,"operands":["[0000000000000001]"],"expected":"-398","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_79734","line":127085,"operands":["[8000000000000001]"],"expected":"-398","status":"00","rounding":0}
+  ]
+}

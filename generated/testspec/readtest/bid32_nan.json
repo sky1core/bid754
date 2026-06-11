@@ -1,0 +1,18 @@
+{
+  "suite": "bid32_nan",
+  "group": "decimal32_operations",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid32_nan",
+  "kind": "unary_op",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_nan_79788","line":50152,"operands":["0"],"expected":"[7c000000]","status":"00","rounding":0},
+    {"id":"bid32_nan_79789","line":50153,"operands":["1"],"expected":"[7c000001]","status":"00","rounding":0}
+  ]
+}

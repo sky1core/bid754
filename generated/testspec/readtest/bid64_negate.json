@@ -1,0 +1,31 @@
+{
+  "suite": "bid64_negate",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_negate",
+  "kind": "unary_op",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_negate_3666","line":72103,"operands":["-0"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_negate_3667","line":72104,"operands":["0"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_negate_3668","line":72105,"operands":["[0bd1000000000000]"],"expected":"[8bd1000000000000]","status":"00","rounding":0},
+    {"id":"bid64_negate_3669","line":72106,"operands":["[0fcf000000000000]"],"expected":"[8fcf000000000000]","status":"00","rounding":0},
+    {"id":"bid64_negate_3670","line":72107,"operands":["[13c0000000000000]"],"expected":"[93c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_negate_3671","line":72108,"operands":["[286e30609a2e0627]"],"expected":"[a86e30609a2e0627]","status":"00","rounding":0},
+    {"id":"bid64_negate_3672","line":72109,"operands":["[454b948762d28008]"],"expected":"[c54b948762d28008]","status":"00","rounding":0},
+    {"id":"bid64_negate_3673","line":72110,"operands":["[51d48f690517f435]"],"expected":"[d1d48f690517f435]","status":"00","rounding":0},
+    {"id":"bid64_negate_3674","line":72111,"operands":["[61e2cf8004a62830]"],"expected":"[e1e2cf8004a62830]","status":"00","rounding":0},
+    {"id":"bid64_negate_3675","line":72112,"operands":["[9e592e1cd58718c1]"],"expected":"[1e592e1cd58718c1]","status":"00","rounding":0},
+    {"id":"bid64_negate_3676","line":72113,"operands":["[b080000000000000]"],"expected":"[3080000000000000]","status":"00","rounding":0},
+    {"id":"bid64_negate_3677","line":72114,"operands":["[b7ef8416f3c99d8b]"],"expected":"[37ef8416f3c99d8b]","status":"00","rounding":0},
+    {"id":"bid64_negate_3678","line":72115,"operands":["[d4acd4c449d27624]"],"expected":"[54acd4c449d27624]","status":"00","rounding":0},
+    {"id":"bid64_negate_3679","line":72116,"operands":["Infinity"],"expected":"[f800000000000000]","status":"00","rounding":0},
+    {"id":"bid64_negate_3680","line":72118,"operands":["SNaN"],"expected":"[fe00000000000000]","status":"00","rounding":0}
+  ]
+}

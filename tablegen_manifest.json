@@ -1,0 +1,391 @@
+{
+  "go_package": "generatedtables",
+  "go_output": "generated/go/intel_dfp_tables.go",
+  "rust_output": "generated/rust/intel_dfp_tables.rs",
+  "tables": [
+    {
+      "name": "bid_bid_bid_recip_scale32",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidBidBidRecipScale32",
+      "rust_name": "BID_BID_BID_RECIP_SCALE32"
+    },
+    {
+      "name": "bid_bid_reciprocals10_32",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidBidReciprocals10_32",
+      "rust_name": "BID_BID_RECIPROCALS10_32"
+    },
+    {
+      "name": "bid_convert_table",
+      "source": "third_party/intel_dfp/src/bid_convert_data.c",
+      "go_name": "BidConvertTable",
+      "rust_name": "BID_CONVERT_TABLE"
+    },
+    {
+      "name": "bid_estimate_bin_expon",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidEstimateBinExpon",
+      "rust_name": "BID_ESTIMATE_BIN_EXPON"
+    },
+    {
+      "name": "bid_estimate_decimal_digits",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidEstimateDecimalDigits",
+      "rust_name": "BID_ESTIMATE_DECIMAL_DIGITS"
+    },
+    {
+      "name": "bid_Ex128m128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidEx128M128",
+      "rust_name": "BID_EX128M128"
+    },
+    {
+      "name": "bid_Ex64m64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidEx64M64",
+      "rust_name": "BID_EX64M64"
+    },
+    {
+      "name": "bid_factors",
+      "source": "third_party/intel_dfp/src/bid_convert_data.c",
+      "go_name": "BidFactors",
+      "rust_name": "BID_FACTORS"
+    },
+    {
+      "name": "bid_half128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidHalf128",
+      "rust_name": "BID_HALF128"
+    },
+    {
+      "name": "bid_half64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidHalf64",
+      "rust_name": "BID_HALF64"
+    },
+    {
+      "name": "bid_Kx128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidKx128",
+      "rust_name": "BID_KX128"
+    },
+    {
+      "name": "bid_Kx64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidKx64",
+      "rust_name": "BID_KX64"
+    },
+    {
+      "name": "bid_maskhigh128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMaskHigh128",
+      "rust_name": "BID_MASKHIGH128"
+    },
+    {
+      "name": "bid_mask128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMask128",
+      "rust_name": "BID_MASK128"
+    },
+    {
+      "name": "bid_mask64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMask64",
+      "rust_name": "BID_MASK64"
+    },
+    {
+      "name": "bid_midi_tbl",
+      "source": "third_party/intel_dfp/src/bid128_2_str_tables.c",
+      "go_name": "BidMidiTbl",
+      "rust_name": "BID_MIDI_TBL"
+    },
+    {
+      "name": "bid_midpoint128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMidpoint128",
+      "rust_name": "BID_MIDPOINT128"
+    },
+    {
+      "name": "bid_midpoint192",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMidpoint192",
+      "rust_name": "BID_MIDPOINT192"
+    },
+    {
+      "name": "bid_midpoint256",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMidpoint256",
+      "rust_name": "BID_MIDPOINT256"
+    },
+    {
+      "name": "bid_midpoint64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMidpoint64",
+      "rust_name": "BID_MIDPOINT64"
+    },
+    {
+      "name": "bid_nr_digits",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidNrDigits",
+      "rust_name": "BID_NR_DIGITS"
+    },
+    {
+      "name": "mod10_18_tbl",
+      "source": "third_party/intel_dfp/src/bid128_2_str_tables.c",
+      "go_name": "Mod10_18Tbl",
+      "rust_name": "MOD10_18_TBL"
+    },
+    {
+      "name": "bid_onehalf128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidOneHalf128",
+      "rust_name": "BID_ONEHALF128"
+    },
+    {
+      "name": "bid_mult_factor",
+      "source": "third_party/intel_dfp/src/bid64_compare.c",
+      "go_name": "BidMultFactor",
+      "rust_name": "BID_MULT_FACTOR_COMPARE64"
+    },
+    {
+      "name": "bid_mult_factor",
+      "source": "third_party/intel_dfp/src/bid32_noncomp.c",
+      "go_name": "Bid32MultFactor",
+      "rust_name": "BID_MULT_FACTOR_NONCOMP32"
+    },
+    {
+      "name": "bid_mult_factor",
+      "source": "third_party/intel_dfp/src/bid64_minmax.c",
+      "go_name": "BidMultFactorMinmax",
+      "rust_name": "BID_MULT_FACTOR_MINMAX64"
+    },
+    {
+      "name": "bid_mult_factor",
+      "source": "third_party/intel_dfp/src/bid32_minmax.c",
+      "go_name": "BidMultFactor32",
+      "rust_name": "BID_MULT_FACTOR_MINMAX32"
+    },
+    {
+      "name": "bid_packed_10000_zeros",
+      "source": "third_party/intel_dfp/src/bid_convert_data.c",
+      "go_name": "BidPacked10000Zeros",
+      "rust_name": "BID_PACKED_10000_ZEROS"
+    },
+    {
+      "name": "bid_power10_index_binexp",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidPower10IndexBinExp",
+      "rust_name": "BID_POWER10_INDEX_BINEXP"
+    },
+    {
+      "name": "bid_power10_index_binexp_128",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidPower10IndexBinExp128",
+      "rust_name": "BID_POWER10_INDEX_BINEXP_128"
+    },
+    {
+      "name": "bid_power10_table_128",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidPower10Table128",
+      "rust_name": "BID_POWER10_TABLE_128"
+    },
+    {
+      "name": "bid_reciprocals10_128",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidReciprocals10_128",
+      "rust_name": "BID_RECIPROCALS10_128"
+    },
+    {
+      "name": "bid_reciprocals10_64",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidReciprocals10_64",
+      "rust_name": "BID_RECIPROCALS10_64"
+    },
+    {
+      "name": "bid_recip_scale",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidRecipScale",
+      "rust_name": "BID_RECIP_SCALE"
+    },
+    {
+      "name": "bid_round_const_table",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidRoundConstTable",
+      "rust_name": "BID_ROUND_CONST_TABLE"
+    },
+    {
+      "name": "bid_round_const_table_128",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidRoundConstTable128",
+      "rust_name": "BID_ROUND_CONST_TABLE_128"
+    },
+    {
+      "name": "bid_shiftright128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidShiftRight128",
+      "rust_name": "BID_SHIFTRIGHT128"
+    },
+    {
+      "name": "bid_short_recip_scale",
+      "source": "third_party/intel_dfp/src/bid_decimal_data.c",
+      "go_name": "BidShortRecipScale",
+      "rust_name": "BID_SHORT_RECIP_SCALE"
+    },
+    {
+      "name": "bid_ten2k64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2K64",
+      "rust_name": "BID_TEN2K64"
+    },
+    {
+      "name": "bid_ten2k256",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2K256",
+      "rust_name": "BID_TEN2K256"
+    },
+    {
+      "name": "bid_ten2mxtrunc128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2MxTrunc128",
+      "rust_name": "BID_TEN2MXTRUNC128"
+    },
+    {
+      "name": "bid_ten2mxtrunc192",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2MxTrunc192",
+      "rust_name": "BID_TEN2MXTRUNC192"
+    },
+    {
+      "name": "bid_ten2mxtrunc256",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2MxTrunc256",
+      "rust_name": "BID_TEN2MXTRUNC256"
+    },
+    {
+      "name": "bid_ten2mxtrunc64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2MxTrunc64",
+      "rust_name": "BID_TEN2MXTRUNC64"
+    },
+    {
+      "name": "bid_ten2mk128",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2MK128",
+      "rust_name": "BID_TEN2MK128"
+    },
+    {
+      "name": "bid_ten2mk128trunc",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2MK128Trunc",
+      "rust_name": "BID_TEN2MK128TRUNC"
+    },
+    {
+      "name": "bid_ten2mk64",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidTen2MK64",
+      "rust_name": "BID_TEN2MK64"
+    },
+    {
+      "name": "bid_Kx192",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidKx192",
+      "rust_name": "BID_KX192"
+    },
+    {
+      "name": "bid_Kx256",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidKx256",
+      "rust_name": "BID_KX256"
+    },
+    {
+      "name": "bid_Ex192m192",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidEx192M192",
+      "rust_name": "BID_EX192M192"
+    },
+    {
+      "name": "bid_Ex256m256",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidEx256M256",
+      "rust_name": "BID_EX256M256"
+    },
+    {
+      "name": "bid_half192",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidHalf192",
+      "rust_name": "BID_HALF192"
+    },
+    {
+      "name": "bid_half256",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidHalf256",
+      "rust_name": "BID_HALF256"
+    },
+    {
+      "name": "bid_mask192",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMask192",
+      "rust_name": "BID_MASK192"
+    },
+    {
+      "name": "bid_mask256",
+      "source": "third_party/intel_dfp/src/bid128.c",
+      "go_name": "BidMask256",
+      "rust_name": "BID_MASK256"
+    },
+    {
+      "name": "bid_roundbound_128",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidRoundbound128",
+      "rust_name": "BID_ROUNDBOUND_128"
+    },
+    {
+      "name": "bid_breakpoints_binary32",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidBreakpointsBinary32",
+      "rust_name": "BID_BREAKPOINTS_BINARY32"
+    },
+    {
+      "name": "bid_exponents_binary32",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidExponentsBinary32",
+      "rust_name": "BID_EXPONENTS_BINARY32"
+    },
+    {
+      "name": "bid_multipliers1_binary32",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidMultipliers1Binary32",
+      "rust_name": "BID_MULTIPLIERS1_BINARY32"
+    },
+    {
+      "name": "bid_multipliers2_binary32",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidMultipliers2Binary32",
+      "rust_name": "BID_MULTIPLIERS2_BINARY32"
+    },
+    {
+      "name": "bid_breakpoints_binary64",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidBreakpointsBinary64",
+      "rust_name": "BID_BREAKPOINTS_BINARY64"
+    },
+    {
+      "name": "bid_exponents_binary64",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidExponentsBinary64",
+      "rust_name": "BID_EXPONENTS_BINARY64"
+    },
+    {
+      "name": "bid_multipliers1_binary64",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidMultipliers1Binary64",
+      "rust_name": "BID_MULTIPLIERS1_BINARY64"
+    },
+    {
+      "name": "bid_multipliers2_binary64",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidMultipliers2Binary64",
+      "rust_name": "BID_MULTIPLIERS2_BINARY64"
+    }
+  ]
+}

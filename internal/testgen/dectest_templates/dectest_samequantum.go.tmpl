@@ -1,0 +1,74 @@
+package bid754
+
+import "fmt"
+
+func executeDecTestSameQuantumOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if len(tc.Operands) != 2 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+
+	var same bool
+	switch testType {
+	case "decimal32":
+		a, b, err := parseDecimal32BIDPair(tc.Operands)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		same = a.SameQuantum(b)
+	case "decimal64":
+		a, b, err := parseDecimal64BIDPair(tc.Operands)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		same = a.SameQuantum(b)
+	case "decimal128":
+		a, b, err := parseDecimal128BIDPair(tc.Operands)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		same = a.SameQuantum(b)
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+
+	if same {
+		return decTestExecResult{Result: "1"}, nil
+	}
+	return decTestExecResult{Result: "0"}, nil
+}
+
+func parseDecimal32BIDPair(operands []string) (Decimal32BID, Decimal32BID, error) {
+	a, err := NewDecimal32BIDDirect(decTestOperandString(operands[0]))
+	if err != nil {
+		return 0, 0, err
+	}
+	b, err := NewDecimal32BIDDirect(decTestOperandString(operands[1]))
+	if err != nil {
+		return 0, 0, err
+	}
+	return a, b, nil
+}
+
+func parseDecimal64BIDPair(operands []string) (Decimal64BID, Decimal64BID, error) {
+	a, err := NewDecimal64BIDDirect(decTestOperandString(operands[0]))
+	if err != nil {
+		return 0, 0, err
+	}
+	b, err := NewDecimal64BIDDirect(decTestOperandString(operands[1]))
+	if err != nil {
+		return 0, 0, err
+	}
+	return a, b, nil
+}
+
+func parseDecimal128BIDPair(operands []string) (Decimal128BID, Decimal128BID, error) {
+	a, err := NewDecimal128BIDDirect(decTestOperandString(operands[0]))
+	if err != nil {
+		return Decimal128BID{}, Decimal128BID{}, err
+	}
+	b, err := NewDecimal128BIDDirect(decTestOperandString(operands[1]))
+	if err != nil {
+		return Decimal128BID{}, Decimal128BID{}, err
+	}
+	return a, b, nil
+}

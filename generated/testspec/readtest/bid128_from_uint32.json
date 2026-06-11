@@ -1,0 +1,36 @@
+{
+  "suite": "bid128_from_uint32",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_from_uint32",
+  "kind": "unary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_BID_UINT32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_from_uint32_46688","line":2697,"operands":["103397952"],"expected":"[3040000000000000000000000629ba40]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46689","line":2698,"operands":["1330244968"],"expected":"[3040000000000000000000004f49ed68]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46690","line":2699,"operands":["147908358"],"expected":"[30400000000000000000000008d0e706]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46691","line":2700,"operands":["1557964421"],"expected":"[3040000000000000000000005cdca685]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46692","line":2701,"operands":["1701773569"],"expected":"[304000000000000000000000656f0101]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46693","line":2702,"operands":["1726400552"],"expected":"[30400000000000000000000066e6c828]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46694","line":2703,"operands":["1970394217"],"expected":"[3040000000000000000000007571d469]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46695","line":2704,"operands":["2069079581"],"expected":"[3040000000000000000000007b53a61d]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46696","line":2705,"operands":["2252194484"],"expected":"[304000000000000000000000863dc2b4]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46697","line":2706,"operands":["2302595981"],"expected":"[304000000000000000000000893ed38d]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46698","line":2707,"operands":["2670922056"],"expected":"[3040000000000000000000009f330948]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46699","line":2708,"operands":["2799702556"],"expected":"[304000000000000000000000a6e0121c]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46700","line":2709,"operands":["3112874904"],"expected":"[304000000000000000000000b98ab398]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46701","line":2710,"operands":["3346272456"],"expected":"[304000000000000000000000c77410c8]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46702","line":2711,"operands":["3493448917"],"expected":"[304000000000000000000000d039ccd5]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46703","line":2712,"operands":["3526470664"],"expected":"[304000000000000000000000d231ac08]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46704","line":2713,"operands":["3688739202"],"expected":"[304000000000000000000000dbddb182]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46705","line":2714,"operands":["3965430364"],"expected":"[304000000000000000000000ec5baa5c]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46706","line":2715,"operands":["4081525952"],"expected":"[304000000000000000000000f34724c0]","status":"00","rounding":0},
+    {"id":"bid128_from_uint32_46707","line":2716,"operands":["898117571"],"expected":"[30400000000000000000000035882fc3]","status":"00","rounding":0}
+  ]
+}

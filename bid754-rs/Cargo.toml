@@ -1,0 +1,33 @@
+[package]
+name = "bid754"
+version = "0.1.0"
+edition = "2021"
+description = "IEEE 754-2019 decimal floating-point (BID encoding) generated from the Go mechanical port"
+license = "MIT AND BSD-3-Clause"
+repository = "https://github.com/sky1core/bid754"
+publish = false
+readme = "README.md"
+
+[features]
+default = []
+# native test gates: ffi-native pulls in the Intel BID C oracle (libbid-sys),
+# which only builds where libbid.a exists (Linux amd64, macOS arm64). Without
+# these features `cargo test` runs only the portable fixed-vector tests, so it
+# works on platforms where Intel BID does not build (e.g. Linux arm64).
+ffi-native = ["dep:libbid-sys"]
+ffi-fuzz = ["ffi-native"]
+
+[dependencies]
+num-bigint = "=0.4.6"
+num-traits = "=0.2.19"
+libbid-sys = { path = "libbid-sys", optional = true }
+
+[dev-dependencies]
+criterion = "=0.5.1"
+rand = "=0.8.6"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+
+[[bench]]
+name = "core"
+harness = false

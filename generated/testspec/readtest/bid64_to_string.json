@@ -1,0 +1,28 @@
+{
+  "suite": "bid64_to_string",
+  "group": "decimal64_strings",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_to_string",
+  "kind": "to_string",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_to_string_3491","line":82838,"operands":["[31c0000000000037]"],"expected":"+55E+0","status":"00","rounding":0},
+    {"id":"bid64_to_string_3492","line":82839,"operands":["[64ff55cb7bb8be2b]"],"expected":"+0E-239","status":"00","rounding":0},
+    {"id":"bid64_to_string_3493","line":82840,"operands":["[69dbb75d7734cd9e]"],"expected":"+0E-83","status":"00","rounding":0},
+    {"id":"bid64_to_string_3494","line":82841,"operands":["[6ddd5f2bc961d9c6]"],"expected":"+0E+45","status":"00","rounding":0},
+    {"id":"bid64_to_string_3495","line":82842,"operands":["[7933324ba39af65d]"],"expected":"+Inf","status":"00","rounding":0},
+    {"id":"bid64_to_string_3496","line":82843,"operands":["[7c03ffffffffffff]"],"expected":"+NaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_3497","line":82844,"operands":["[7e00000000000000]"],"expected":"+SNaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_3498","line":82845,"operands":["[be20000000000014]"],"expected":"-20E+99","status":"00","rounding":0},
+    {"id":"bid64_to_string_3499","line":82846,"operands":["[ff9ef506fff9e3bf]"],"expected":"-SNaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_3500","line":82847,"operands":["[ffdbb3ffaefefdff]"],"expected":"-SNaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_3501","line":82848,"operands":["[f8f0000000000001]"],"expected":"-Inf","status":"00","rounding":3},
+    {"id":"bid64_to_string_3502","line":82849,"operands":["[fcf0000000000000]"],"expected":"-NaN","status":"00","rounding":3}
+  ]
+}

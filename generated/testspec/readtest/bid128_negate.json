@@ -1,0 +1,36 @@
+{
+  "suite": "bid128_negate",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_negate",
+  "kind": "unary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_negate_3884","line":11241,"operands":["[0001ed09bead87c0378d8e62ffffffff]"],"expected":"[8001ed09bead87c0378d8e62ffffffff]","status":"00","rounding":0},
+    {"id":"bid128_negate_3885","line":11242,"operands":["[0001ed09bead87c0378d8e64ffffffff]"],"expected":"[8001ed09bead87c0378d8e64ffffffff]","status":"00","rounding":0},
+    {"id":"bid128_negate_3886","line":11243,"operands":["-0"],"expected":"[30400000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_negate_3887","line":11244,"operands":["0"],"expected":"[b0400000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_negate_3888","line":11245,"operands":["[126fdbaf02bceaee,d9697b435c361fe1]"],"expected":"[926fdbaf02bceaeed9697b435c361fe1]","status":"00","rounding":0},
+    {"id":"bid128_negate_3889","line":11246,"operands":["[2b237eb316d839ca,2d37d68b0227c11e]"],"expected":"[ab237eb316d839ca2d37d68b0227c11e]","status":"00","rounding":0},
+    {"id":"bid128_negate_3890","line":11247,"operands":["[4e1c2958e3bd4c51,6f86468008d2aa28]"],"expected":"[ce1c2958e3bd4c516f86468008d2aa28]","status":"00","rounding":0},
+    {"id":"bid128_negate_3891","line":11248,"operands":["[50d3b7f263af5b88,b87a6768ec8b46d0]"],"expected":"[d0d3b7f263af5b88b87a6768ec8b46d0]","status":"00","rounding":0},
+    {"id":"bid128_negate_3892","line":11249,"operands":["[50d9e61cdd280bd8,e25a31953ffc0a48]"],"expected":"[d0d9e61cdd280bd8e25a31953ffc0a48]","status":"00","rounding":0},
+    {"id":"bid128_negate_3893","line":11250,"operands":["[7c003fffffffffff38c15b08ffffffff]"],"expected":"[fc003fffffffffff38c15b08ffffffff]","status":"00","rounding":0},
+    {"id":"bid128_negate_3894","line":11251,"operands":["[7c003fffffffffff38c15b0affffffff]"],"expected":"[fc003fffffffffff38c15b0affffffff]","status":"00","rounding":0},
+    {"id":"bid128_negate_3895","line":11252,"operands":["[8daa55a8f5cff6db,55b5bea4a37b8a72]"],"expected":"[0daa55a8f5cff6db55b5bea4a37b8a72]","status":"00","rounding":0},
+    {"id":"bid128_negate_3896","line":11253,"operands":["[9b147225df5ff554,350ecd34592da44a]"],"expected":"[1b147225df5ff554350ecd34592da44a]","status":"00","rounding":0},
+    {"id":"bid128_negate_3897","line":11254,"operands":["[9e477b02c3805ef4,b738f98b244817dd]"],"expected":"[1e477b02c3805ef4b738f98b244817dd]","status":"00","rounding":0},
+    {"id":"bid128_negate_3898","line":11255,"operands":["[a21e1edbb763cb70,4d680be7caaddd1a]"],"expected":"[221e1edbb763cb704d680be7caaddd1a]","status":"00","rounding":0},
+    {"id":"bid128_negate_3899","line":11256,"operands":["[aa1a04dcb7d4ea0f,8363e10e1240d936]"],"expected":"[2a1a04dcb7d4ea0f8363e10e1240d936]","status":"00","rounding":0},
+    {"id":"bid128_negate_3900","line":11257,"operands":["[fffffffffeffffba,b0086298e0a00010]"],"expected":"[7ffffffffeffffbab0086298e0a00010]","status":"00","rounding":0},
+    {"id":"bid128_negate_3901","line":11258,"operands":["-Infinity"],"expected":"[78000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_negate_3902","line":11259,"operands":["Infinity"],"expected":"[f8000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_negate_3903","line":11261,"operands":["SNaN"],"expected":"[fe000000000000000000000000000000]","status":"00","rounding":0}
+  ]
+}

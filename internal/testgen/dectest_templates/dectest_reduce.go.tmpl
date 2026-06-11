@@ -1,0 +1,28 @@
+package bid754
+
+import "fmt"
+
+func executeDecTestReduceOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if len(tc.Operands) != 1 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+	}
+	if decTestOperandString(tc.Operands[0]) == "#" {
+		return decTestExecResult{Result: "NaN", Flags: FlagInvalidOperation}, nil
+	}
+
+	switch testType {
+	case "decimal64":
+		a, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.Reduce()
+		return decTestExecResult{Result: result.String(), Flags: decTestReduceFlags(flags, result)}, nil
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func decTestReduceFlags(flags ExceptionFlags, result Decimal64BID) ExceptionFlags {
+	return decTestFlagsWithSubnormalClass(flags, result.Class())
+}

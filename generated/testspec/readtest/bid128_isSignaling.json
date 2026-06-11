@@ -1,0 +1,35 @@
+{
+  "suite": "bid128_isSignaling",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_isSignaling",
+  "kind": "unary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_isSignaling_53491","line":3017,"operands":["-0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53492","line":3018,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53493","line":3019,"operands":["[0001ed09bead87c0378d8e62ffffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53494","line":3020,"operands":["[0001ed09bead87c0378d8e64ffffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53495","line":3021,"operands":["[041044f2703fe2d8,fd85989865ebe87b]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53496","line":3022,"operands":["[13aa000000000000,0000000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53497","line":3023,"operands":["[3664db3ee13f5c05,0db8edd219ca964c]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53498","line":3024,"operands":["[7c00061ccb0a291e,65f549f4dc5e31c4]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53499","line":3025,"operands":["[7c003fffffffffff38c15b08ffffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53500","line":3026,"operands":["[7c003fffffffffff38c15b0affffffff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53501","line":3027,"operands":["[82b17468499ab719,19d2bb2c0fb23df0]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53502","line":3028,"operands":["[858a2ae1be255ac2,e5c96a599c35a1e2]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53503","line":3029,"operands":["[86d4c3261d14ad32,41fa2f426682032a]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53504","line":3030,"operands":["[a294a762989a4354,3e8759e80229fe58]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53505","line":3031,"operands":["[a3ea377d806481be,43653c96237e2c57]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53506","line":3032,"operands":["[fe00000000000000,0000000000000000]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53507","line":3033,"operands":["-Infinity"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53508","line":3034,"operands":["Infinity"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSignaling_53509","line":3035,"operands":["SNaN"],"expected":"1","status":"00","rounding":0}
+  ]
+}

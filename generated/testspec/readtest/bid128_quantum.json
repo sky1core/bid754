@@ -1,0 +1,31 @@
+{
+  "suite": "bid128_quantum",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_quantum",
+  "kind": "unary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_quantum_79773","line":127124,"operands":["[304C0000000000000000000000003039]"],"expected":"[304C0000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79774","line":127125,"operands":["[B04C0000000000000000000000003039]"],"expected":"[304C0000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79775","line":127126,"operands":["[302C0000000000000000000000003039]"],"expected":"[302C0000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79776","line":127127,"operands":["[B02C0000000000000000000000003039]"],"expected":"[302C0000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79777","line":127128,"operands":["[30360000000000000000000000003039]"],"expected":"[30360000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79778","line":127129,"operands":["[B0360000000000000000000000003039]"],"expected":"[30360000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79779","line":127130,"operands":["[303E000000000000000000000001E23A]"],"expected":"[303E0000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79780","line":127131,"operands":["[5FFE314DC6448D9338C15B0A00000000]"],"expected":"[5FFE0000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79781","line":127132,"operands":["[DFFE314DC6448D9338C15B0A00000000]"],"expected":"[5FFE0000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79782","line":127133,"operands":["[30400000000000000000000000000000]"],"expected":"[30400000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79783","line":127134,"operands":["[B0400000000000000000000000000000]"],"expected":"[30400000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79784","line":127135,"operands":["[00000000000000000000000000000001]"],"expected":"[00000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79785","line":127136,"operands":["[80000000000000000000000000000001]"],"expected":"[00000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79786","line":127137,"operands":["[00000000000000000000000000000000]"],"expected":"[00000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_quantum_79787","line":127138,"operands":["[78000000000000000000000000000000]"],"expected":"[78000000000000000000000000000000]","status":"00","rounding":0}
+  ]
+}

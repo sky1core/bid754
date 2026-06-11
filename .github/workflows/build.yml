@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  portable-test:
+    name: Portable Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Set up Java
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: bid-codec-js/package-lock.json
+
+      - name: Verify required toolchains
+        run: |
+          go version
+          rustc --version
+          cargo --version
+          javac -version
+          java -version
+          python3 --version
+          npm --version
+          swift --version
+
+      - name: Verify generated artifacts
+        run: make verify-generated
+
+      - name: Run Go and Rust tests
+        run: make test-all
+
+      - name: Run doctor
+        run: make doctor
+
+  # Linux arm64: Intel BID C oracle does not build here (upstream makefile is
+  # x86-only), so this job verifies the operational paths (Go portable + Rust)
+  # and the platform-independent fixed vectors instead of native FFI bit-compare.
+  # See PLATFORM_SPEC.md section 1 and 4.
+  portable-arm64-linux:
+    name: Portable arm64 Linux
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Verify toolchains
+        run: |
+          go version
+          uname -m
+          rustc --version
+
+      - name: Prepare pinned generation inputs (internal/cgen and internal/csymbols read the extracted Intel BID C sources)
+        run: bash ./scripts/setup_generation_inputs.sh intel
+
+      - name: Run Go module tests (includes fixed string vectors)
+        run: make test-go-modules
+
+      - name: Run Rust portable tests (fixed string/codec vectors; readtest is ffi-native, run in native job)
+        run: make test-rust
+
+  # Native FFI bit-compare against the live Intel BID C oracle, run on both
+  # platforms where Intel BID builds (Linux amd64 and macOS arm64). Together
+  # with the portable arm64 Linux job above these cross-cover the guaranteed
+  # matrix. See PLATFORM_SPEC.md section 4.
+  native:
+    name: Native (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+
+      - name: Prepare pinned generation inputs (Intel BID C sources and IBM decTest originals)
+        run: bash ./scripts/setup_generation_inputs.sh
+
+      - name: Install IBM decNumber
+        run: bash ./scripts/install_ibm_decnumber.sh
+
+      - name: Prepare Intel BID and env (-ffp-contract=off)
+        run: bash ./scripts/setup_c_libs.sh
+
+      - name: Run doctor
+        run: make doctor
+
+      - name: Run native smoke tests
+        run: make test-native-smoke
+
+      - name: Run generated FFI bit-compare
+        run: make test-native-ffi
+
+      - name: Run generated readtest suites
+        run: make test-native-readtest
+
+      - name: Run generated decTest suites
+        run: make test-native-dectest
+
+      - name: Run Rust native tests (readtest vs Intel BID oracle)
+        run: make test-rust-native
+
+  script-check:
+    name: Shell Script Check
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Validate shell scripts
+        run: make check-scripts

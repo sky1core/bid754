@@ -1,0 +1,27 @@
+{
+  "suite": "bid32_from_string_ieee754_overflow_cmatch",
+  "group": "decimal32_ieee754_regressions",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "testdata/readtest_ieee754_regressions_bid32_cmatch.in",
+  "function": "bid32_from_string",
+  "kind": "from_string",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80969","line":6,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":0},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80970","line":7,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":2},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80971","line":8,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":4},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80972","line":9,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":0},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80973","line":10,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":1},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80974","line":11,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":4},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80975","line":12,"operands":["1E100"],"expected":"[78000000]","status":"28","rounding":0},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80976","line":13,"operands":["1E100"],"expected":"[77f8967f]","status":"28","rounding":1},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80977","line":14,"operands":["1E100"],"expected":"[77f8967f]","status":"28","rounding":3},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80978","line":15,"operands":["-1E100"],"expected":"[f7f8967f]","status":"28","rounding":2},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_80979","line":16,"operands":["-1E100"],"expected":"[f7f8967f]","status":"28","rounding":3}
+  ]
+}

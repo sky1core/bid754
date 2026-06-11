@@ -1,0 +1,42 @@
+{
+  "suite": "bid128_nextdown",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_nextdown",
+  "kind": "unary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_nextdown_2741","line":11326,"operands":["[0000000000000000,0000000000000001]"],"expected":"[00000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2742","line":11327,"operands":["[0001ed09bead87c0378d8e62ffffffff]"],"expected":"[0001ed09bead87c0378d8e62fffffffe]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2743","line":11328,"operands":["[0001ed09bead87c0378d8e64ffffffff]"],"expected":"[80000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2744","line":11329,"operands":["[0040000000000000,0000000000000002]"],"expected":"[000009dc5ada82b70b59df01ffffffff]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2745","line":11330,"operands":["[0080000000000000,0000000000000001]"],"expected":"[003ded09bead87c0378d8e63ffffffff]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2746","line":11331,"operands":["-0"],"expected":"[80000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2747","line":11332,"operands":["0"],"expected":"[80000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2748","line":11333,"operands":["[1dc2205f885182d0,5c4d7fcc63056120]"],"expected":"[1dc143bb532f1c239b06fdfbde35cb3f]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2749","line":11334,"operands":["[2297188ee5995a16,571813d4cb7ca060]"],"expected":"[2297188ee5995a16571813d4cb7ca05f]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2750","line":11335,"operands":["[380a24e29845b5f2,60cd9cf82855437a]"],"expected":"[380970d9f2b91b77c80821b19354a2c3]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2751","line":11336,"operands":["[380bcf9425550818,1807cc6de69fcee7]"],"expected":"[380bcf94255508181807cc6de69fcee6]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2752","line":11337,"operands":["[6ffff2fd7eefff9f,5801404100000401]"],"expected":"[80000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2753","line":11338,"operands":["[7c003fffffffffff38c15b08ffffffff]"],"expected":"[7c000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2754","line":11339,"operands":["[7c003fffffffffff38c15b0affffffff]"],"expected":"[7c000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2755","line":11340,"operands":["[7e00000000000000,0000000000000000]"],"expected":"[7c000000000000000000000000000000]","status":"01","rounding":0},
+    {"id":"bid128_nextdown_2756","line":11341,"operands":["[7e000b4bdd5ec3e2,4d174387ac15f085]"],"expected":"[7c000b4bdd5ec3e24d174387ac15f085]","status":"01","rounding":0},
+    {"id":"bid128_nextdown_2757","line":11342,"operands":["[8bae000000000000,0000000000000000]"],"expected":"[80000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2758","line":11343,"operands":["-9.999999999999999999999999999999999E+6144"],"expected":"[f8000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2759","line":11344,"operands":["[f8fa90e5dcfb4727,540dba68bc2a5f7d]"],"expected":"[f8000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2760","line":11345,"operands":["[fdbffffd9ff7c3ff,7ff3be5e87fe7747]"],"expected":"[fc000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2761","line":11346,"operands":["[fe00000000000000,0000000000000000]"],"expected":"[fc000000000000000000000000000000]","status":"01","rounding":0},
+    {"id":"bid128_nextdown_2762","line":11347,"operands":["[fe000574f7d3802a,d93137567a500098]"],"expected":"[fc000574f7d3802ad93137567a500098]","status":"01","rounding":0},
+    {"id":"bid128_nextdown_2763","line":11348,"operands":["[fe00243684088649,0784a9055dbc2753]"],"expected":"[fc002436840886490784a9055dbc2753]","status":"01","rounding":0},
+    {"id":"bid128_nextdown_2764","line":11349,"operands":["[ffffbfffffffffff,fa8cdfac7ffefdf7]"],"expected":"[fc000000000000000000000000000000]","status":"01","rounding":0},
+    {"id":"bid128_nextdown_2765","line":11350,"operands":["Infinity"],"expected":"[5fffed09bead87c0378d8e63ffffffff]","status":"00","rounding":0},
+    {"id":"bid128_nextdown_2766","line":11352,"operands":["SNaN"],"expected":"[7c000000000000000000000000000000]","status":"01","rounding":0}
+  ]
+}

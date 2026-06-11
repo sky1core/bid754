@@ -1,0 +1,30 @@
+{
+  "suite": "bid128_isSigned",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_isSigned",
+  "kind": "unary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_isSigned_53102","line":3036,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53103","line":3037,"operands":["[0d1b4a11dd2b2c2d,4d69c430aae5a351]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53104","line":3038,"operands":["[1010080201c40408,0200000808020000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53105","line":3039,"operands":["[1da7727000019412,043034285964b3e5]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53106","line":3040,"operands":["[291faf7540e31c98,a37ad09f66370b5c]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53107","line":3041,"operands":["[32ed04cf2a6dd797,3b5689f82fd08e7b]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53108","line":3042,"operands":["[4f33bb3daf404b48,2895c9fcdd30262f]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53109","line":3043,"operands":["[5bd983e54f226f4e,447f2d30f6d2853d]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53110","line":3044,"operands":["[5d037a9f76ec79f3,169e495eb8705c03]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53111","line":3045,"operands":["[7800000000000000,0000000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53112","line":3046,"operands":["[d4aa000000000000,0000000000000000]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53113","line":3047,"operands":["[dabc266156593af8,4fd97dc923bc7064]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53114","line":3048,"operands":["Infinity"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid128_isSigned_53115","line":3049,"operands":["-Infinity"],"expected":"1","status":"00","rounding":0}
+  ]
+}

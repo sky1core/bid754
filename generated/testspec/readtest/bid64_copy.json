@@ -1,0 +1,31 @@
+{
+  "suite": "bid64_copy",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_copy",
+  "kind": "unary_op",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_copy_3651","line":64735,"operands":["0"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_copy_3652","line":64736,"operands":["-0"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_copy_3653","line":64737,"operands":["[0b3b000000000000]"],"expected":"[0b3b000000000000]","status":"00","rounding":0},
+    {"id":"bid64_copy_3654","line":64738,"operands":["[1bf1eb878bd92f90]"],"expected":"[1bf1eb878bd92f90]","status":"00","rounding":0},
+    {"id":"bid64_copy_3655","line":64739,"operands":["[2ebc30b0f5d6db60]"],"expected":"[2ebc30b0f5d6db60]","status":"00","rounding":0},
+    {"id":"bid64_copy_3656","line":64740,"operands":["[39924d7d31b3d9af]"],"expected":"[39924d7d31b3d9af]","status":"00","rounding":0},
+    {"id":"bid64_copy_3657","line":64741,"operands":["[56a6a32dd0a507da]"],"expected":"[56a6a32dd0a507da]","status":"00","rounding":0},
+    {"id":"bid64_copy_3658","line":64742,"operands":["[91a5e22e38f2f4eb]"],"expected":"[91a5e22e38f2f4eb]","status":"00","rounding":0},
+    {"id":"bid64_copy_3659","line":64743,"operands":["[995a75bdbe299504]"],"expected":"[995a75bdbe299504]","status":"00","rounding":0},
+    {"id":"bid64_copy_3660","line":64744,"operands":["[9a60000000000000]"],"expected":"[9a60000000000000]","status":"00","rounding":0},
+    {"id":"bid64_copy_3661","line":64745,"operands":["[9d410f21af28e834]"],"expected":"[9d410f21af28e834]","status":"00","rounding":0},
+    {"id":"bid64_copy_3662","line":64746,"operands":["[bebab2a41b98f61a]"],"expected":"[bebab2a41b98f61a]","status":"00","rounding":0},
+    {"id":"bid64_copy_3663","line":64747,"operands":["[e118d2eb2d0c4469]"],"expected":"[e118d2eb2d0c4469]","status":"00","rounding":0},
+    {"id":"bid64_copy_3664","line":64748,"operands":["Infinity"],"expected":"[7800000000000000]","status":"00","rounding":0},
+    {"id":"bid64_copy_3665","line":64750,"operands":["SNaN"],"expected":"[7e00000000000000]","status":"00","rounding":0}
+  ]
+}

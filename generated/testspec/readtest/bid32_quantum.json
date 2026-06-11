@@ -1,0 +1,31 @@
+{
+  "suite": "bid32_quantum",
+  "group": "decimal32_operations",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid32_quantum",
+  "kind": "unary_op",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_quantum_79743","line":127094,"operands":["[35803039]"],"expected":"[35800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79744","line":127095,"operands":["[B5803039]"],"expected":"[35800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79745","line":127096,"operands":["[2D803039]"],"expected":"[2D800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79746","line":127097,"operands":["[AD803039]"],"expected":"[2D800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79747","line":127098,"operands":["[30003039]"],"expected":"[30000001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79748","line":127099,"operands":["[B0003039]"],"expected":"[30000001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79749","line":127100,"operands":["[3201E23A]"],"expected":"[32000001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79750","line":127101,"operands":["[5F8F4240]"],"expected":"[5F800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79751","line":127102,"operands":["[DF8F4240]"],"expected":"[5F800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79752","line":127103,"operands":["[32800000]"],"expected":"[32800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79753","line":127104,"operands":["[B2800000]"],"expected":"[32800001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79754","line":127105,"operands":["[00000001]"],"expected":"[00000001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79755","line":127106,"operands":["[80000001]"],"expected":"[00000001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79756","line":127107,"operands":["[00000000]"],"expected":"[00000001]","status":"00","rounding":0},
+    {"id":"bid32_quantum_79757","line":127108,"operands":["[78000000]"],"expected":"[78000000]","status":"00","rounding":0}
+  ]
+}

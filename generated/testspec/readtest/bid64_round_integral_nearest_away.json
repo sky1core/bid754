@@ -1,0 +1,40 @@
+{
+  "suite": "bid64_round_integral_nearest_away",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_round_integral_nearest_away",
+  "kind": "unary_op",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_round_integral_nearest_away_2085","line":75095,"operands":["[0000000000000000]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2086","line":75096,"operands":["[001040000000140c]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2087","line":75097,"operands":["0"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2088","line":75098,"operands":["[0ebf000000000000]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2089","line":75099,"operands":["[3000042000096042]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2090","line":75100,"operands":["[318ad42b83214976]"],"expected":"[31c01bb8c14fb160]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2091","line":75101,"operands":["[344d663e925522bd]"],"expected":"[344d663e925522bd]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2092","line":75102,"operands":["[352287c45d071d0f]"],"expected":"[352287c45d071d0f]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2093","line":75103,"operands":["[38191e30b4b7f718]"],"expected":"[38191e30b4b7f718]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2094","line":75104,"operands":["[42e06477388fc706]"],"expected":"[42e06477388fc706]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2095","line":75105,"operands":["[44d139ed5c11b67e]"],"expected":"[44d139ed5c11b67e]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2096","line":75106,"operands":["[65315f0102f71959]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2097","line":75107,"operands":["[ae7ce2cf6b3dec4b]"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2098","line":75108,"operands":["[b11650001088834b]"],"expected":"[b1c0000176577647]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2099","line":75109,"operands":["[b1a0000000000000]"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2100","line":75110,"operands":["[b840000000000000]"],"expected":"[b840000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2101","line":75111,"operands":["[c46d127074d850c9]"],"expected":"[c46d127074d850c9]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2102","line":75112,"operands":["[c59e55d5feef1bfe]"],"expected":"[c59e55d5feef1bfe]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2103","line":75113,"operands":["[e9884af887152ee2]"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2104","line":75114,"operands":["[ecf9bf677edce7ce]"],"expected":"[ecf9bf677edce7ce]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2105","line":75115,"operands":["[f2f5d1ebb9b6abc8]"],"expected":"[cbc0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2106","line":75116,"operands":["[ffffffffffffffff]"],"expected":"[fc00000000000000]","status":"01","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2107","line":75117,"operands":["Infinity"],"expected":"[7800000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_nearest_away_2108","line":75119,"operands":["SNaN"],"expected":"[7c00000000000000]","status":"01","rounding":0}
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "suite": "bid32_round_integral_nearest_even",
+  "group": "decimal32_operations",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid32_round_integral_nearest_even",
+  "kind": "unary_op",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_round_integral_nearest_even_1794","line":54509,"operands":["[00000001]"],"expected":"[32800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1795","line":54510,"operands":["[00080001]"],"expected":"[32800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1796","line":54511,"operands":["1.0"],"expected":"[32800001]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1797","line":54512,"operands":["-1.0"],"expected":"[b2800001]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1798","line":54513,"operands":["1.0e-96"],"expected":"[32800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1799","line":54514,"operands":["-1.0e-96"],"expected":"[b2800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1800","line":54515,"operands":["[6098967f]"],"expected":"[32800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1801","line":54516,"operands":["[60989680]"],"expected":"[32800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1802","line":54517,"operands":["[7c000000]"],"expected":"[7c000000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1803","line":54518,"operands":["[7c8f423f]"],"expected":"[7c0f423f]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1804","line":54519,"operands":["[7c8f4240]"],"expected":"[7c000000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1805","line":54520,"operands":["[7e100000]"],"expected":"[7c000000]","status":"01","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1806","line":54521,"operands":["[7e100100]"],"expected":"[7c000100]","status":"01","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1807","line":54522,"operands":["[7e8f423f]"],"expected":"[7c0f423f]","status":"01","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1808","line":54523,"operands":["[7e8f4240]"],"expected":"[7c000000]","status":"01","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1809","line":54524,"operands":["[80000001]"],"expected":"[b2800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1810","line":54525,"operands":["9.999999e-95"],"expected":"[32800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1811","line":54526,"operands":["-9.999999e-95"],"expected":"[b2800000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1812","line":54527,"operands":["9.999999e96"],"expected":"[77f8967f]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1813","line":54528,"operands":["-9.999999e96"],"expected":"[f7f8967f]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1814","line":54529,"operands":["[fc100000]"],"expected":"[fc000000]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1815","line":54530,"operands":["[fc100100]"],"expected":"[fc000100]","status":"00","rounding":0},
+    {"id":"bid32_round_integral_nearest_even_1816","line":54531,"operands":["[fe000000]"],"expected":"[fc000000]","status":"01","rounding":0}
+  ]
+}

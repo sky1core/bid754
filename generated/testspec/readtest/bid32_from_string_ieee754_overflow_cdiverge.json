@@ -1,0 +1,21 @@
+{
+  "suite": "bid32_from_string_ieee754_overflow_cdiverge",
+  "group": "decimal32_ieee754_regressions",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "testdata/readtest_ieee754_regressions_bid32_cdiverge.in",
+  "function": "bid32_from_string",
+  "kind": "from_string",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "native_compare_skip_reason": "pinned Intel BID C bid32_from_string ignores rnd_mode on the no-exponent overflow path (always Inf); these rows pin the IEEE 754 directed-overflow behavior that intentionally diverges from pinned C",
+  "cases": [
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_80965","line":7,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[77f8967f]","status":"28","rounding":1},
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_80966","line":8,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[77f8967f]","status":"28","rounding":3},
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_80967","line":9,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f7f8967f]","status":"28","rounding":2},
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_80968","line":10,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f7f8967f]","status":"28","rounding":3}
+  ]
+}

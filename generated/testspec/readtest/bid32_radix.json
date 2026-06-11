@@ -1,0 +1,18 @@
+{
+  "suite": "bid32_radix",
+  "group": "decimal32_operations",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid32_radix",
+  "kind": "unary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_radix_70499","line":96154,"operands":["[00000000]"],"expected":"10","status":"00","rounding":0},
+    {"id":"bid32_radix_70500","line":96155,"operands":["1.0"],"expected":"10","status":"00","rounding":0}
+  ]
+}

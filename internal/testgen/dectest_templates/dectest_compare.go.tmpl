@@ -1,0 +1,275 @@
+package bid754
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+type decTestSpecialKind int
+
+const (
+	decTestSpecialNone decTestSpecialKind = iota
+	decTestSpecialInfinity
+	decTestSpecialQuietNaN
+	decTestSpecialSignalingNaN
+	decTestSpecialInvalidSyntax
+)
+
+type decTestComparableDecimal struct {
+	sign     int
+	digits   string
+	exponent int
+	isZero   bool
+	special  decTestSpecialKind
+	nanSign  string
+	payload  string
+}
+
+func executePortableCompareOperation(tc decTestCase) (decTestExecResult, error) {
+	if len(tc.Operands) != 2 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+
+	op := normalizeDecTestOperation(tc.Operation)
+	if op != "compare" && op != "comparesig" {
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+
+	left, ok := parseComparableDecimal(tc.Operands[0])
+	if !ok {
+		return decTestExecResult{}, fmt.Errorf("invalid decimal input")
+	}
+	right, ok := parseComparableDecimal(tc.Operands[1])
+	if !ok {
+		return decTestExecResult{}, fmt.Errorf("invalid decimal input")
+	}
+
+	result, flags := executeComparableDecimals(op, left, right)
+	return decTestExecResult{Result: result, Flags: flags}, nil
+}
+
+func executeComparableDecimals(op string, left, right decTestComparableDecimal) (string, ExceptionFlags) {
+	if result, flags, ok := selectNaNCompareResult(op, left, right); ok {
+		return result, flags
+	}
+
+	switch {
+	case left.special == decTestSpecialInfinity || right.special == decTestSpecialInfinity:
+		return compareInfiniteDecimals(left, right), 0
+	default:
+		cmp := compareFiniteDecimals(left, right)
+		switch {
+		case cmp < 0:
+			return "-1", 0
+		case cmp > 0:
+			return "1", 0
+		default:
+			return "0", 0
+		}
+	}
+}
+
+func selectNaNCompareResult(op string, left, right decTestComparableDecimal) (string, ExceptionFlags, bool) {
+	leftSignals := left.special == decTestSpecialSignalingNaN || left.special == decTestSpecialInvalidSyntax
+	rightSignals := right.special == decTestSpecialSignalingNaN || right.special == decTestSpecialInvalidSyntax
+	leftNaN := left.special == decTestSpecialQuietNaN || leftSignals
+	rightNaN := right.special == decTestSpecialQuietNaN || rightSignals
+
+	if !leftNaN && !rightNaN {
+		return "", 0, false
+	}
+
+	flags := ExceptionFlags(0)
+	if op == "comparesig" || leftSignals || rightSignals {
+		flags |= FlagInvalidOperation
+	}
+
+	switch {
+	case leftSignals:
+		return formatQuietNaNResult(left.nanSign, left.payload), flags, true
+	case rightSignals:
+		return formatQuietNaNResult(right.nanSign, right.payload), flags, true
+	case leftNaN:
+		return formatQuietNaNResult(left.nanSign, left.payload), flags, true
+	default:
+		return formatQuietNaNResult(right.nanSign, right.payload), flags, true
+	}
+}
+
+func compareInfiniteDecimals(left, right decTestComparableDecimal) string {
+	switch {
+	case left.special == decTestSpecialInfinity && right.special == decTestSpecialInfinity:
+		switch {
+		case left.sign < right.sign:
+			return "-1"
+		case left.sign > right.sign:
+			return "1"
+		default:
+			return "0"
+		}
+	case left.special == decTestSpecialInfinity:
+		if left.sign < 0 {
+			return "-1"
+		}
+		return "1"
+	case right.special == decTestSpecialInfinity:
+		if right.sign < 0 {
+			return "1"
+		}
+		return "-1"
+	default:
+		return "0"
+	}
+}
+
+func compareFiniteDecimals(left, right decTestComparableDecimal) int {
+	if left.isZero && right.isZero {
+		return 0
+	}
+	if left.sign != right.sign {
+		if left.sign < right.sign {
+			return -1
+		}
+		return 1
+	}
+
+	magnitude := compareFiniteMagnitude(left, right)
+	if left.sign < 0 {
+		return -magnitude
+	}
+	return magnitude
+}
+
+func compareFiniteMagnitude(left, right decTestComparableDecimal) int {
+	if left.isZero && right.isZero {
+		return 0
+	}
+	if left.isZero {
+		return -1
+	}
+	if right.isZero {
+		return 1
+	}
+
+	leftAdjusted := len(left.digits) + left.exponent
+	rightAdjusted := len(right.digits) + right.exponent
+	switch {
+	case leftAdjusted < rightAdjusted:
+		return -1
+	case leftAdjusted > rightAdjusted:
+		return 1
+	}
+
+	width := len(left.digits)
+	if len(right.digits) > width {
+		width = len(right.digits)
+	}
+	leftDigits := left.digits + strings.Repeat("0", width-len(left.digits))
+	rightDigits := right.digits + strings.Repeat("0", width-len(right.digits))
+	switch {
+	case leftDigits < rightDigits:
+		return -1
+	case leftDigits > rightDigits:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func parseComparableDecimal(input string) (decTestComparableDecimal, bool) {
+	trimmed := strings.TrimSpace(strings.Trim(input, "'\""))
+	if trimmed == "" {
+		return decTestComparableDecimal{}, false
+	}
+	if trimmed == "#" {
+		return decTestComparableDecimal{special: decTestSpecialInvalidSyntax}, true
+	}
+
+	sign := 1
+	nanSign := ""
+	switch trimmed[0] {
+	case '+':
+		trimmed = trimmed[1:]
+	case '-':
+		sign = -1
+		nanSign = "-"
+		trimmed = trimmed[1:]
+	}
+	if trimmed == "" {
+		return decTestComparableDecimal{}, false
+	}
+
+	lower := strings.ToLower(trimmed)
+	switch {
+	case lower == "inf" || lower == "infinity":
+		return decTestComparableDecimal{sign: sign, special: decTestSpecialInfinity}, true
+	case strings.HasPrefix(lower, "snan"):
+		return decTestComparableDecimal{
+			sign:    sign,
+			special: decTestSpecialSignalingNaN,
+			nanSign: nanSign,
+			payload: normalizeNaNPayload(trimmed[4:]),
+		}, true
+	case strings.HasPrefix(lower, "qnan"):
+		return decTestComparableDecimal{
+			sign:    sign,
+			special: decTestSpecialQuietNaN,
+			nanSign: nanSign,
+			payload: normalizeNaNPayload(trimmed[4:]),
+		}, true
+	case strings.HasPrefix(lower, "nan"):
+		return decTestComparableDecimal{
+			sign:    sign,
+			special: decTestSpecialQuietNaN,
+			nanSign: nanSign,
+			payload: normalizeNaNPayload(trimmed[3:]),
+		}, true
+	}
+
+	mantissa := trimmed
+	exponent := 0
+	if idx := strings.IndexAny(trimmed, "Ee"); idx >= 0 {
+		mantissa = trimmed[:idx]
+		parsedExponent, err := strconv.Atoi(trimmed[idx+1:])
+		if err != nil {
+			return decTestComparableDecimal{}, false
+		}
+		exponent = parsedExponent
+	}
+
+	if strings.Count(mantissa, ".") > 1 {
+		return decTestComparableDecimal{}, false
+	}
+	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
+		exponent -= len(mantissa) - dot - 1
+		mantissa = mantissa[:dot] + mantissa[dot+1:]
+	}
+	if mantissa == "" {
+		return decTestComparableDecimal{}, false
+	}
+	for _, r := range mantissa {
+		if r < '0' || r > '9' {
+			return decTestComparableDecimal{}, false
+		}
+	}
+
+	mantissa = strings.TrimLeft(mantissa, "0")
+	if mantissa == "" {
+		return decTestComparableDecimal{sign: sign, isZero: true}, true
+	}
+	for strings.HasSuffix(mantissa, "0") {
+		mantissa = mantissa[:len(mantissa)-1]
+		exponent++
+	}
+
+	return decTestComparableDecimal{
+		sign:     sign,
+		digits:   mantissa,
+		exponent: exponent,
+	}, true
+}
+
+func formatQuietNaNResult(sign, payload string) string {
+	return sign + "NaN" + payload
+}

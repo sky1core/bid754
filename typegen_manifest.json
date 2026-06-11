@@ -1,0 +1,137 @@
+{
+  "package": "bid754",
+  "output": "generated_types.go",
+  "type_aliases": [
+    {
+      "name": "EncodingFormat",
+      "underlying": "int",
+      "comment": "EncodingFormat is the decimal encoding format selector."
+    },
+    {
+      "name": "RoundingMode",
+      "underlying": "int",
+      "comment": "RoundingMode is the IEEE 754 rounding selector."
+    },
+    {
+      "name": "ExceptionFlags",
+      "underlying": "int",
+      "comment": "ExceptionFlags stores IEEE 754 exception bits."
+    }
+  ],
+  "const_groups": [
+    {
+      "type": "EncodingFormat",
+      "comment": "Encoding formats.",
+      "values": [
+        {
+          "name": "EncodingBID",
+          "expr": "iota",
+          "comment": "Binary Integer Decimal (Intel)"
+        }
+      ]
+    },
+    {
+      "type": "RoundingMode",
+      "comment": "Rounding modes.",
+      "values": [
+        {
+          "name": "RoundNearestEven",
+          "expr": "iota",
+          "comment": "IEEE 754 default"
+        },
+        {
+          "name": "RoundNearestAway",
+          "expr": "iota",
+          "comment": "Nearest, ties away from zero"
+        },
+        {
+          "name": "RoundTowardZero",
+          "expr": "iota",
+          "comment": "Toward zero"
+        },
+        {
+          "name": "RoundTowardPositive",
+          "expr": "iota",
+          "comment": "Toward positive infinity"
+        },
+        {
+          "name": "RoundTowardNegative",
+          "expr": "iota",
+          "comment": "Toward negative infinity"
+        }
+      ]
+    },
+    {
+      "type": "ExceptionFlags",
+      "comment": "Exception flags.",
+      "values": [
+        {
+          "name": "FlagInexact",
+          "expr": "1 << iota",
+          "comment": "Inexact result"
+        },
+        {
+          "name": "FlagUnderflow",
+          "expr": "1 << iota",
+          "comment": "Underflow"
+        },
+        {
+          "name": "FlagOverflow",
+          "expr": "1 << iota",
+          "comment": "Overflow"
+        },
+        {
+          "name": "FlagDivisionByZero",
+          "expr": "1 << iota",
+          "comment": "Division by zero"
+        },
+        {
+          "name": "FlagInvalidOperation",
+          "expr": "1 << iota",
+          "comment": "Invalid operation"
+        },
+        {
+          "name": "FlagSubnormal",
+          "expr": "1 << iota",
+          "comment": "Subnormal result"
+        },
+        {
+          "name": "FlagRounded",
+          "expr": "1 << iota",
+          "comment": "Rounded result"
+        },
+        {
+          "name": "FlagClamped",
+          "expr": "1 << iota",
+          "comment": "Exponent clamped"
+        }
+      ]
+    }
+  ],
+  "value_types": [
+    {
+      "name": "Decimal32BID",
+      "underlying": "uint32",
+      "comment": "Decimal32BID is a 32-bit BID decimal routed through the Go mechanical port path.",
+      "accessor_name": "ToUint32",
+      "accessor_type": "uint32",
+      "accessor_comment": "ToUint32 returns the raw 32-bit BID bit pattern."
+    },
+    {
+      "name": "Decimal64BID",
+      "underlying": "uint64",
+      "comment": "Decimal64BID is a 64-bit BID decimal routed through the Go mechanical port path.",
+      "accessor_name": "ToUint64",
+      "accessor_type": "uint64",
+      "accessor_comment": "ToUint64 returns the raw 64-bit BID bit pattern."
+    },
+    {
+      "name": "Decimal128BID",
+      "underlying": "[16]byte",
+      "comment": "Decimal128BID is a 128-bit BID decimal with 1:1 byte correspondence.",
+      "accessor_name": "ToBytes",
+      "accessor_type": "[16]byte",
+      "accessor_comment": "ToBytes returns the raw 128-bit BID bit pattern as 16 bytes."
+    }
+  ]
+}

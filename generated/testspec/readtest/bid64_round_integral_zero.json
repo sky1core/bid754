@@ -1,0 +1,43 @@
+{
+  "suite": "bid64_round_integral_zero",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_round_integral_zero",
+  "kind": "unary_op",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_round_integral_zero_2166","line":75206,"operands":["[0000000000000000]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2167","line":75207,"operands":["[00e0000000000000]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2168","line":75208,"operands":["0"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2169","line":75209,"operands":["+10011001001110000.010E0"],"expected":"[31e38e7ec7da0a98]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2170","line":75210,"operands":["[12f48c419c7c162c]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2171","line":75211,"operands":["[1c7c77621629c5c1]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2172","line":75212,"operands":["[2004000040600010]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2173","line":75213,"operands":["[300008313e021000]"],"expected":"[31c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2174","line":75214,"operands":["[3044020248482608]"],"expected":"[31c0000000000468]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2175","line":75215,"operands":["[3ba71f380a6bd963]"],"expected":"[3ba71f380a6bd963]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2176","line":75216,"operands":["[3dc0000000000000]"],"expected":"[3dc0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2177","line":75217,"operands":["[72f8031406c00cd0]"],"expected":"[72f8031406c00cd0]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2178","line":75218,"operands":["[97380e63bd57041b]"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2179","line":75219,"operands":["[a80231d6acd74f18]"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2180","line":75220,"operands":["[aea9db49a45d7aaf]"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2181","line":75221,"operands":["[b1bc6ea70343d80e]"],"expected":"[b1c2d7dd8053959b]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2182","line":75222,"operands":["[b3c3f729d481bb82]"],"expected":"[b3c3f729d481bb82]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2183","line":75223,"operands":["[b44956b0e6f1d142]"],"expected":"[b44956b0e6f1d142]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2184","line":75224,"operands":["[bd1807d37267366f]"],"expected":"[bd1807d37267366f]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2185","line":75225,"operands":["[c7998a089b34fdcc]"],"expected":"[c7998a089b34fdcc]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2186","line":75226,"operands":["[d582a26bd30897ec]"],"expected":"[d582a26bd30897ec]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2187","line":75227,"operands":["[eabafffbfdfdffff]"],"expected":"[b1c0000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2188","line":75228,"operands":["[ede38ae279475ae0]"],"expected":"[b780000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2189","line":75229,"operands":["[fdbfe96ffbdff9e7]"],"expected":"[fc00000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2190","line":75230,"operands":["[ff7ffffffffffeff]"],"expected":"[fc00000000000000]","status":"01","rounding":0},
+    {"id":"bid64_round_integral_zero_2191","line":75231,"operands":["-Infinity"],"expected":"[f800000000000000]","status":"00","rounding":0},
+    {"id":"bid64_round_integral_zero_2192","line":75232,"operands":["SNaN"],"expected":"[7c00000000000000]","status":"01","rounding":0}
+  ]
+}

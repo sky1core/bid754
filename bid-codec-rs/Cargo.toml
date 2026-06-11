@@ -1,0 +1,20 @@
+[package]
+name = "bid-codec"
+version = "0.1.0"
+edition = "2021"
+description = "BID (Binary Integer Decimal) IEEE 754 codec for decimal floating-point interchange"
+readme = "README.md"
+homepage = "https://github.com/sky1core/bid754"
+repository = "https://github.com/sky1core/bid754"
+documentation = "https://docs.rs/bid-codec"
+license = "MIT"
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+
+[dev-dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"

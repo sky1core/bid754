@@ -1,0 +1,72 @@
+package bid754
+
+import (
+	"fmt"
+	"strings"
+)
+
+func executeDecTestNextTowardOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if len(tc.Operands) != 2 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	if decTestOperandString(tc.Operands[0]) == "#" || decTestOperandString(tc.Operands[1]) == "#" {
+		return decTestExecResult{Result: "NaN", Flags: FlagInvalidOperation}, nil
+	}
+
+	switch testType {
+	case "decimal32":
+		a, err := NewDecimal32BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		target32, err := NewDecimal32BIDDirect(decTestOperandString(tc.Operands[1]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		target, _ := target32.ToDecimal128()
+		result, flags := a.NextToward(target)
+		resultString := result.String()
+		return decTestExecResult{Result: resultString, Flags: decTestNextTowardFlags(flags, resultString, tc.Operands)}, nil
+	case "decimal64":
+		a, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[0]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		target64, err := NewDecimal64BIDDirect(decTestOperandString(tc.Operands[1]))
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		target, _ := target64.ToDecimal128()
+		result, flags := a.NextToward(target)
+		resultString := result.String()
+		return decTestExecResult{Result: resultString, Flags: decTestNextTowardFlags(flags, resultString, tc.Operands)}, nil
+	case "decimal128":
+		a, b, err := parseDecimal128BIDPair(tc.Operands)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.NextToward(b)
+		resultString := result.String()
+		return decTestExecResult{Result: resultString, Flags: decTestNextTowardFlags(flags, resultString, tc.Operands)}, nil
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func decTestNextTowardFlags(flags ExceptionFlags, result string, operands []string) ExceptionFlags {
+	for _, operand := range operands {
+		if strings.Contains(strings.ToLower(decTestOperandString(operand)), "snan") {
+			flags |= FlagInvalidOperation
+		}
+	}
+	if flags&FlagInexact != 0 {
+		flags |= FlagRounded
+	}
+	if flags&FlagUnderflow != 0 {
+		flags |= FlagSubnormal
+		if parsed, ok := parseComparableDecimal(result); ok && parsed.isZero {
+			flags |= FlagClamped
+		}
+	}
+	return flags
+}

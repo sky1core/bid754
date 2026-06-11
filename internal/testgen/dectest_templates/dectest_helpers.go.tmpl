@@ -1,0 +1,180 @@
+package bid754
+
+import (
+	"math"
+	"strconv"
+	"strings"
+)
+
+// normalizeDecimalResult normalizes a decTest result string.
+func normalizeDecimalResult(result string) string {
+	// Remove quotes
+	result = strings.Trim(result, "'\"")
+
+	if normalized, ok := normalizeSpecialDecimalResult(result); ok {
+		return normalized
+	}
+
+	return normalizeDecimalString(result)
+}
+
+func normalizeSpecialDecimalResult(result string) (string, bool) {
+	trimmed := strings.TrimSpace(strings.Trim(result, "'\""))
+	if trimmed == "" {
+		return "", false
+	}
+
+	sign := ""
+	switch trimmed[0] {
+	case '+':
+		trimmed = trimmed[1:]
+	case '-':
+		sign = "-"
+		trimmed = trimmed[1:]
+	}
+
+	lower := strings.ToLower(trimmed)
+	switch {
+	case lower == "inf" || lower == "infinity":
+		if sign == "-" {
+			return "-Infinity", true
+		}
+		return "Infinity", true
+	case strings.HasPrefix(lower, "snan"):
+		payload := normalizeNaNPayload(trimmed[4:])
+		return sign + "sNaN" + payload, true
+	case strings.HasPrefix(lower, "qnan"):
+		payload := normalizeNaNPayload(trimmed[4:])
+		return sign + "NaN" + payload, true
+	case strings.HasPrefix(lower, "nan"):
+		payload := normalizeNaNPayload(trimmed[3:])
+		return sign + "NaN" + payload, true
+	default:
+		return "", false
+	}
+}
+
+func normalizeNaNPayload(payload string) string {
+	if payload == "" {
+		return ""
+	}
+	if _, err := strconv.ParseUint(payload, 10, 64); err != nil {
+		return payload
+	}
+
+	payload = strings.TrimLeft(payload, "0")
+	if payload == "" {
+		return ""
+	}
+	return payload
+}
+
+// areResultsEquivalent reports whether two results are effectively equal.
+func areResultsEquivalent(result1, result2 string) bool {
+	// Direct comparison
+	if result1 == result2 {
+		return true
+	}
+
+	// Parse as numbers and compare
+	f1, err1 := strconv.ParseFloat(result1, 64)
+	f2, err2 := strconv.ParseFloat(result2, 64)
+
+	if err1 == nil && err2 == nil {
+		// Check if they're essentially the same number
+		diff := math.Abs(f1 - f2)
+
+		// For very small numbers, use absolute tolerance
+		if math.Abs(f1) < 1e-10 && math.Abs(f2) < 1e-10 {
+			return diff < 1e-15
+		}
+
+		// For larger numbers, use relative tolerance
+		maxVal := math.Max(math.Abs(f1), math.Abs(f2))
+		if maxVal > 0 {
+			relativeError := diff / maxVal
+			// Allow up to 1 ULP (unit in the last place) difference
+			return relativeError < 1e-15
+		}
+
+		return diff < 1e-15
+	}
+
+	// Special case: different representations of the same number
+	norm1 := normalizeForComparison(result1)
+	norm2 := normalizeForComparison(result2)
+
+	return norm1 == norm2
+}
+
+// normalizeForComparison normalizes a value for comparison.
+func normalizeForComparison(s string) string {
+	// Remove all whitespace
+	s = strings.ReplaceAll(s, " ", "")
+
+	// Convert to lowercase for case-insensitive comparison
+	s = strings.ToLower(s)
+
+	// Handle scientific notation variations
+	s = strings.ReplaceAll(s, "e+0", "")
+	s = strings.ReplaceAll(s, "e-0", "")
+	s = strings.ReplaceAll(s, "e+00", "")
+	s = strings.ReplaceAll(s, "e-00", "")
+
+	// Remove leading + sign
+	s = strings.TrimPrefix(s, "+")
+
+	// Normalize decimal representation
+	if strings.Contains(s, ".") {
+		s = strings.TrimRight(s, "0")
+		if strings.HasSuffix(s, ".") {
+			s += "0"
+		}
+	}
+
+	return s
+}
+
+// isWithinPrecisionTolerance reports whether two values agree within the
+// suite precision tolerance.
+func isWithinPrecisionTolerance(expected, actual string, precision int) bool {
+	// Direct match
+	if expected == actual {
+		return true
+	}
+
+	// Parse as numbers
+	expectedFloat, err1 := strconv.ParseFloat(expected, 64)
+	actualFloat, err2 := strconv.ParseFloat(actual, 64)
+
+	if err1 != nil || err2 != nil {
+		return false
+	}
+
+	// Calculate the acceptable error based on precision
+	// For decimal32 (7 digits), allow error in the 7th digit
+	// For decimal64 (16 digits), allow error in the 16th digit
+	tolerance := math.Pow(10, -float64(precision))
+
+	diff := math.Abs(expectedFloat - actualFloat)
+	maxVal := math.Max(math.Abs(expectedFloat), math.Abs(actualFloat))
+
+	if maxVal == 0 {
+		return diff < tolerance
+	}
+
+	relativeError := diff / maxVal
+	return relativeError < tolerance || diff < tolerance
+}
+
+// formatNaNResult formats a NaN result in decTest spelling.
+func formatNaNResult(result string, expectedSign bool) string {
+	if strings.Contains(strings.ToLower(result), "nan") {
+		if expectedSign && !strings.HasPrefix(result, "-") {
+			return "-NaN"
+		} else if !expectedSign && strings.HasPrefix(result, "-") {
+			return "NaN"
+		}
+	}
+	return result
+}

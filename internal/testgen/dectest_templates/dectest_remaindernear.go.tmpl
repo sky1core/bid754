@@ -1,0 +1,45 @@
+package bid754
+
+import "fmt"
+
+func executeDecTestRemainderNearOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if normalizeDecTestOperation(tc.Operation) != "remaindernear" {
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+	if len(tc.Operands) != 2 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	if decTestOperandString(tc.Operands[0]) == "#" || decTestOperandString(tc.Operands[1]) == "#" {
+		return decTestExecResult{Result: "NaN", Flags: FlagInvalidOperation}, nil
+	}
+
+	switch testType {
+	case "decimal32":
+		a, b, err := parseDecimal32BIDPair(tc.Operands)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.Remainder(b)
+		return decTestExecResult{Result: result.String(), Flags: decTestRemainderNearFlags(flags, result.Class())}, nil
+	case "decimal64":
+		a, b, err := parseDecimal64BIDPair(tc.Operands)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.Remainder(b)
+		return decTestExecResult{Result: result.String(), Flags: decTestRemainderNearFlags(flags, result.Class())}, nil
+	case "decimal128":
+		a, b, err := parseDecimal128BIDPair(tc.Operands)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
+		result, flags := a.Remainder(b)
+		return decTestExecResult{Result: result.String(), Flags: decTestRemainderNearFlags(flags, result.Class())}, nil
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func decTestRemainderNearFlags(flags ExceptionFlags, class DecimalClass) ExceptionFlags {
+	return decTestFlagsWithSubnormalClass(flags, class)
+}

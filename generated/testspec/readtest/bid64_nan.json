@@ -1,0 +1,18 @@
+{
+  "suite": "bid64_nan",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_nan",
+  "kind": "unary_op",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_nan_79790","line":72001,"operands":["0"],"expected":"[7c00000000000000]","status":"00","rounding":0},
+    {"id":"bid64_nan_79791","line":72002,"operands":["1"],"expected":"[7c00000000000001]","status":"00","rounding":0}
+  ]
+}

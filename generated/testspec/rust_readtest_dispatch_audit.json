@@ -1,0 +1,2614 @@
+{
+  "version": "1.0",
+  "source": "tools/registry/readtest_specs.json + generated/testspec/spec_index.json",
+  "skip_manifest": "tools/registry/rust_readtest_skip_manifest.json",
+  "dispatched": 521,
+  "skipped": 0,
+  "functions": [
+    {
+      "function": "bid128_abs",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_class",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_copy",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_copySign",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_fdim",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_fma",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_fmod",
+      "compare": "CMP_RELATIVEERR",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_fmod",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_frexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_int32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_int64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_string",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_uint32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_uint64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_ilogb",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_inf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isCanonical",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isFinite",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isInf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isNaN",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isNormal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isSignaling",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isSigned",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isSubnormal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isZero",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_ldexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_llquantexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_llrint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_llround",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_logb",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_lrint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_lround",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_maxnum",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_maxnum_mag",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_minnum",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_minnum_mag",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_modf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nan",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nearbyint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_negate",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nextafter",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nextdown",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nexttoward",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nextup",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quantexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quantize",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quantum",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_greater_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_greater_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_less_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_less_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_not_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_not_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_not_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_ordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_radix",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_rem",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_exact",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_nearest_away",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_nearest_even",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_negative",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_positive",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_zero",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_sameQuantum",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_scalbln",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_scalbn",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_greater_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_greater_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_less_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_less_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_not_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_not_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_sqrt",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_bid32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_bid64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_binary128",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_binary32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_binary64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_string",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_totalOrder",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_totalOrderMag",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_abs",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_class",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_copy",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_copySign",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_fdim",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_fma",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_fmod",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_fmod",
+      "compare": "CMP_RELATIVEERR",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_frexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_int32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_int64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_string",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_uint32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_uint64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_ilogb",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_inf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isCanonical",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isFinite",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isInf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isNaN",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isNormal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isSignaling",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isSigned",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isSubnormal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isZero",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_ldexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_llquantexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_llrint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_llround",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_logb",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_lrint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_lround",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_maxnum",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_maxnum_mag",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_minnum",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_minnum_mag",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_modf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nan",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nearbyint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_negate",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nextafter",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nextdown",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nexttoward",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nextup",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quantexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quantize",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quantum",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_greater_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_greater_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_less_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_less_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_not_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_not_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_not_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_ordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_radix",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_rem",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_exact",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_nearest_away",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_nearest_even",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_negative",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_positive",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_zero",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_sameQuantum",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_scalbln",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_scalbn",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_greater_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_greater_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_less_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_less_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_not_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_not_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_sqrt",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_bid128",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_bid64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_binary128",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_binary32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_binary64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_string",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_totalOrder",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_totalOrderMag",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_abs",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_class",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_copy",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_copySign",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_fdim",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_fma",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_fmod",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_fmod",
+      "compare": "CMP_RELATIVEERR",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_frexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_int32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_int64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_string",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_uint32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_uint64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_ilogb",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_inf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isCanonical",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isFinite",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isInf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isNaN",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isNormal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isSignaling",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isSigned",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isSubnormal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isZero",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_ldexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_llquantexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_llrint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_llround",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_logb",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_lrint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_lround",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_maxnum",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_maxnum_mag",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_minnum",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_minnum_mag",
+      "compare": "CMP_EQUALSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_modf",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nan",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nearbyint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_negate",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nextafter",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nextdown",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nexttoward",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nextup",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quantexp",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quantize",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quantum",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_greater_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_greater_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_less_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_less_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_not_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_not_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_not_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_ordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_radix",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_rem",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_exact",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_nearest_away",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_nearest_even",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_negative",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_positive",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_zero",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_sameQuantum",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_scalbln",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_scalbn",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_greater_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_greater_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_less_equal",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_less_unordered",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_not_greater",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_not_less",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_sqrt",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_bid128",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_bid32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_binary128",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_binary32",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_binary64",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_string",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_ceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_floor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_int",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_rnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_rninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xceil",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xfloor",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xrnint",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xrninta",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_totalOrder",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_totalOrderMag",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_getDecimalRoundingDirection",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_lowerFlags",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_restoreFlags",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_saveFlags",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_setDecimalRoundingDirection",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_signalException",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_testFlags",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_testSavedFlags",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched"
+    }
+  ]
+}

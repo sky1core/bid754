@@ -1,0 +1,311 @@
+package dev.bid754.bidcodec;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
+
+import java.math.BigInteger;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Cross-validation tests driven by vectors.json.
+ *
+ * For each vector:
+ *   1. decode: hex -> decode32/64/128 -> compare sign/coefficient/exponent/kind
+ *   2. roundtrip: if canonical, encode -> compare encoded_hex
+ */
+class VectorTest {
+    private static final int EXPECTED_TOTAL = 15046;
+    private static final int EXPECTED_BID32 = 5019;
+    private static final int EXPECTED_BID64 = 5017;
+    private static final int EXPECTED_BID128 = 5010;
+    private static final int EXPECTED_BID32_CANONICAL = 4464;
+    private static final int EXPECTED_BID64_CANONICAL = 4210;
+    private static final int EXPECTED_BID128_CANONICAL = 3641;
+    private static final int EXPECTED_FORMAT_VERSION = {{BID_CODEC_VECTOR_FORMAT_VERSION}};
+    private static final String ANCHOR_VECTOR_JSON = {{BID_CODEC_JAVA_ANCHOR_JSON}};
+
+    private static JSONArray vectors;
+
+    @BeforeAll
+    static void loadVectors() throws IOException {
+        Path vectorsPath = Path.of("..", "bid-codec-vectors", "vectors.json");
+        assertTrue(Files.isRegularFile(vectorsPath), "vectors.json not found at " + vectorsPath.toAbsolutePath());
+        JSONObject root = new JSONObject(Files.readString(vectorsPath));
+        assertEquals(EXPECTED_FORMAT_VERSION, root.getInt("format_version"), "unsupported BID codec vectors format_version");
+        vectors = root.getJSONArray("vectors");
+    }
+
+    @Test
+    void coverageProfile() {
+        assertEquals(EXPECTED_TOTAL, vectors.length(), "vector total changed");
+        assertEquals(EXPECTED_BID32, countVectors("bid32", false), "BID32 vector count changed");
+        assertEquals(EXPECTED_BID64, countVectors("bid64", false), "BID64 vector count changed");
+        assertEquals(EXPECTED_BID128, countVectors("bid128", false), "BID128 vector count changed");
+        assertEquals(EXPECTED_BID32_CANONICAL, countVectors("bid32", true), "BID32 canonical vector count changed");
+        assertEquals(EXPECTED_BID64_CANONICAL, countVectors("bid64", true), "BID64 canonical vector count changed");
+        assertEquals(EXPECTED_BID128_CANONICAL, countVectors("bid128", true), "BID128 canonical vector count changed");
+    }
+
+    @Test
+    void errorSemantics() {
+        assertThrows(IllegalArgumentException.class, () -> BidCodec.decodeBytes32(new byte[3]));
+        assertThrows(IllegalArgumentException.class, () -> BidCodec.decodeBytes32(new byte[5]));
+        assertThrows(IllegalArgumentException.class, () -> BidCodec.decodeBytes64(new byte[7]));
+        assertThrows(IllegalArgumentException.class, () -> BidCodec.decodeBytes64(new byte[9]));
+        assertThrows(IllegalArgumentException.class, () -> BidCodec.decodeBytes128(new byte[15]));
+        assertThrows(IllegalArgumentException.class, () -> BidCodec.decodeBytes128(new byte[17]));
+        for (String input : new String[] {"", "NaNabc", "SNaN-1", "1.2.3", "1E", "1Eabc", "1E2147483648", "1.0E2147483648"}) {
+            assertThrows(IllegalArgumentException.class, () -> BidCodec.fromString(input), input);
+        }
+    }
+
+    @Test
+    void anchorVectors() {
+        JSONArray anchors = new JSONArray(ANCHOR_VECTOR_JSON);
+        assertEquals({{BID_CODEC_VECTOR_ANCHOR_COUNT}}, anchors.length(), "BID codec anchor count changed");
+        for (int i = 0; i < anchors.length(); i++) {
+            JSONObject v = anchors.getJSONObject(i);
+            assertTrue(v.getBoolean("canonical"), "anchor must be canonical");
+            Components c = switch (v.getString("type")) {
+                case "bid32" -> BidCodec.decode32(Integer.parseUnsignedInt(v.getString("hex"), 16));
+                case "bid64" -> BidCodec.decode64(Long.parseUnsignedLong(v.getString("hex"), 16));
+                case "bid128" -> BidCodec.decode128(
+                        Long.parseUnsignedLong(v.getString("hex"), 16),
+                        Long.parseUnsignedLong(v.getString("hex_hi"), 16));
+                default -> throw new IllegalArgumentException("unknown anchor type: " + v.getString("type"));
+            };
+            verifyDecode(v);
+            assertEquals(v.getInt("exponent"), c.exponent(), "anchor exponent mismatch");
+            verifyRoundtrip(v);
+        }
+    }
+
+    @TestFactory
+    Collection<DynamicTest> bid32Decode() {
+        return generateDecodeTests("bid32");
+    }
+
+    @TestFactory
+    Collection<DynamicTest> bid64Decode() {
+        return generateDecodeTests("bid64");
+    }
+
+    @TestFactory
+    Collection<DynamicTest> bid128Decode() {
+        return generateDecodeTests("bid128");
+    }
+
+    @TestFactory
+    Collection<DynamicTest> bid32Roundtrip() {
+        return generateRoundtripTests("bid32");
+    }
+
+    @TestFactory
+    Collection<DynamicTest> bid64Roundtrip() {
+        return generateRoundtripTests("bid64");
+    }
+
+    @TestFactory
+    Collection<DynamicTest> bid128Roundtrip() {
+        return generateRoundtripTests("bid128");
+    }
+
+    // ==================== Decode tests ====================
+
+    private Collection<DynamicTest> generateDecodeTests(String type) {
+        Collection<DynamicTest> tests = new ArrayList<>();
+        for (int i = 0; i < vectors.length(); i++) {
+            JSONObject v = vectors.getJSONObject(i);
+            if (!type.equals(v.getString("type"))) continue;
+
+            String hex = v.getString("hex");
+            String displayName = type + " decode [" + hex;
+            if (type.equals("bid128")) {
+                displayName += "_" + v.getString("hex_hi");
+            }
+            displayName += "]";
+
+            tests.add(DynamicTest.dynamicTest(displayName, () -> verifyDecode(v)));
+        }
+        return tests;
+    }
+
+    private int countVectors(String type, boolean canonicalOnly) {
+        int count = 0;
+        for (int i = 0; i < vectors.length(); i++) {
+            JSONObject v = vectors.getJSONObject(i);
+            if (!type.equals(v.getString("type"))) continue;
+            if (canonicalOnly && !v.getBoolean("canonical")) continue;
+            count++;
+        }
+        return count;
+    }
+
+    private void verifyDecode(JSONObject v) {
+        String type = v.getString("type");
+        Components c;
+
+        switch (type) {
+            case "bid32" -> {
+                int bits = Integer.parseUnsignedInt(v.getString("hex"), 16);
+                c = BidCodec.decode32(bits);
+            }
+            case "bid64" -> {
+                long bits = Long.parseUnsignedLong(v.getString("hex"), 16);
+                c = BidCodec.decode64(bits);
+            }
+            case "bid128" -> {
+                long lo = Long.parseUnsignedLong(v.getString("hex"), 16);
+                long hi = Long.parseUnsignedLong(v.getString("hex_hi"), 16);
+                c = BidCodec.decode128(lo, hi);
+            }
+            default -> throw new IllegalArgumentException("unknown type: " + type);
+        }
+
+        // sign
+        assertEquals(v.getBoolean("sign"), c.sign(), "sign mismatch");
+
+        // kind
+        DecimalKind expectedKind = parseKind(v.getString("kind"));
+        assertEquals(expectedKind, c.kind(), "kind mismatch");
+
+        // exponent (for zero and normal)
+        if (expectedKind == DecimalKind.ZERO || expectedKind == DecimalKind.NORMAL) {
+            assertEquals(v.getInt("exponent"), c.exponent(), "exponent mismatch");
+        }
+
+        // coefficient
+        String coeffStr = v.getString("coefficient");
+        if (expectedKind == DecimalKind.NORMAL) {
+            assertNotNull(c.coefficient(), "coefficient should not be null for NORMAL");
+            assertEquals(new BigInteger(coeffStr), c.coefficient(), "coefficient mismatch");
+        } else if (expectedKind == DecimalKind.ZERO) {
+            // zero: coefficient is null or zero
+            assertTrue(c.coefficient() == null || c.coefficient().signum() == 0,
+                    "coefficient should be null or zero for ZERO");
+        }
+
+        // NaN payload
+        if ((expectedKind == DecimalKind.QNAN || expectedKind == DecimalKind.SNAN) && v.has("payload")) {
+            String payloadStr = v.getString("payload");
+            BigInteger expectedPayload = new BigInteger(payloadStr);
+            // Low64 NaN payload vectors are exposed through the payload field.
+            if (type.equals("bid128") && c.coefficient() != null) {
+                assertEquals(expectedPayload, c.coefficient(), "NaN payload (coefficient) mismatch");
+            } else {
+                assertEquals(expectedPayload.longValue(), c.payload(), "NaN payload mismatch");
+            }
+        }
+
+        String decimalString = v.getString("decimal_string");
+        assertEquals(decimalString, BidCodec.toString(c), "toString mismatch");
+        Components parsed = BidCodec.fromString(decimalString);
+        switch (type) {
+            case "bid32" -> assertEquals(
+                    v.getString("encoded_hex"),
+                    String.format("%08x", BidCodec.encode32(parsed)),
+                    "fromString encode32 mismatch");
+            case "bid64" -> assertEquals(
+                    v.getString("encoded_hex"),
+                    String.format("%016x", BidCodec.encode64(parsed)),
+                    "fromString encode64 mismatch");
+            case "bid128" -> {
+                long[] encoded = BidCodec.encode128(parsed);
+                assertEquals(v.getString("encoded_hex"), String.format("%016x", encoded[0]),
+                        "fromString encode128 lo mismatch");
+                assertEquals(v.getString("encoded_hi"), String.format("%016x", encoded[1]),
+                        "fromString encode128 hi mismatch");
+            }
+        }
+    }
+
+    // ==================== Roundtrip tests ====================
+
+    private Collection<DynamicTest> generateRoundtripTests(String type) {
+        Collection<DynamicTest> tests = new ArrayList<>();
+        for (int i = 0; i < vectors.length(); i++) {
+            JSONObject v = vectors.getJSONObject(i);
+            if (!type.equals(v.getString("type"))) continue;
+            if (!v.getBoolean("canonical")) continue;
+
+            String hex = v.getString("hex");
+            String displayName = type + " roundtrip [" + hex;
+            if (type.equals("bid128")) {
+                displayName += "_" + v.getString("hex_hi");
+            }
+            displayName += "]";
+
+            tests.add(DynamicTest.dynamicTest(displayName, () -> verifyRoundtrip(v)));
+        }
+        return tests;
+    }
+
+    private void verifyRoundtrip(JSONObject v) {
+        String type = v.getString("type");
+        String expectedHex = v.getString("encoded_hex");
+
+        switch (type) {
+            case "bid32" -> {
+                int bits = Integer.parseUnsignedInt(v.getString("hex"), 16);
+                Components c = BidCodec.decode32(bits);
+                int encoded = BidCodec.encode32(c);
+                assertEquals(
+                        expectedHex,
+                        String.format("%08x", encoded),
+                        String.format("roundtrip mismatch: input 0x%s -> decoded -> encoded 0x%08x",
+                                v.getString("hex"), encoded));
+            }
+            case "bid64" -> {
+                long bits = Long.parseUnsignedLong(v.getString("hex"), 16);
+                Components c = BidCodec.decode64(bits);
+                long encoded = BidCodec.encode64(c);
+                assertEquals(
+                        expectedHex,
+                        String.format("%016x", encoded),
+                        String.format("roundtrip mismatch: input 0x%s -> decoded -> encoded 0x%016x",
+                                v.getString("hex"), encoded));
+            }
+            case "bid128" -> {
+                long lo = Long.parseUnsignedLong(v.getString("hex"), 16);
+                long hi = Long.parseUnsignedLong(v.getString("hex_hi"), 16);
+                Components c = BidCodec.decode128(lo, hi);
+                long[] encoded = BidCodec.encode128(c);
+                String expectedHi = v.getString("encoded_hi");
+                assertEquals(
+                        expectedHex,
+                        String.format("%016x", encoded[0]),
+                        String.format("roundtrip lo mismatch: input %s_%s",
+                                v.getString("hex_hi"), v.getString("hex")));
+                assertEquals(
+                        expectedHi,
+                        String.format("%016x", encoded[1]),
+                        String.format("roundtrip hi mismatch: input %s_%s",
+                                v.getString("hex_hi"), v.getString("hex")));
+            }
+        }
+    }
+
+    // ==================== Helpers ====================
+
+    private static DecimalKind parseKind(String kind) {
+        return switch (kind) {
+            case "normal" -> DecimalKind.NORMAL;
+            case "zero" -> DecimalKind.ZERO;
+            case "inf" -> DecimalKind.INFINITY;
+            case "qnan" -> DecimalKind.QNAN;
+            case "snan" -> DecimalKind.SNAN;
+            default -> throw new IllegalArgumentException("unknown kind: " + kind);
+        };
+    }
+
+}

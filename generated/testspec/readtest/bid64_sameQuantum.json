@@ -1,0 +1,39 @@
+{
+  "suite": "bid64_sameQuantum",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_sameQuantum",
+  "kind": "binary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC64",
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_sameQuantum_53693","line":75233,"operands":["[0000000000000000]","[698d80a4efe33f69]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53694","line":75234,"operands":["0","-0"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53695","line":75235,"operands":["-0","SNaN"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53696","line":75236,"operands":["+1000000010.000000E0","0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53697","line":75237,"operands":["[29c95cda703c6a50]","[97db1cf7f4ee8859]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53698","line":75238,"operands":["[2dcb525f907dee77]","[d93546fbedfc552e]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53699","line":75239,"operands":["[471850f138942eeb]","[5d7c6bc158b0b732]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53700","line":75240,"operands":["[7c00000000000000]","[fef3ffffffffffff]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53701","line":75241,"operands":["[7e00000000000000]","[7cf3ffffffffffff]"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53702","line":75242,"operands":["[7e2697ccba10d426]","[fa2571792acbc717]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53703","line":75243,"operands":["[8b7c50916fc999f4]","[20909cda923baf84]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53704","line":75244,"operands":["[8c9dce6f7b8ed1a6]","[990793fa2ca53a1a]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53705","line":75245,"operands":["[9920000000000000]","[08c5000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53706","line":75246,"operands":["[9ae0000000000000]","[0e9c000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53707","line":75247,"operands":["[a1926dee3ae9ff0a]","[ba60000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53708","line":75248,"operands":["[a23f9f5f02e2ccd6]","[2f8167c39503829d]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53709","line":75249,"operands":["[cbfc15ab001e11cc]","[072486c8f96be096]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53710","line":75250,"operands":["[d880000000000000]","[c6bd8171578f2264]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53711","line":75251,"operands":["[f4e4b9fff4ff6bf3]","[3ccf6b9605feb0ac]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53712","line":75252,"operands":["[fae73b5bf373db7f]","[a9ceaee4c5dc851a]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53713","line":75253,"operands":["Infinity","-0.E0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_sameQuantum_53714","line":75254,"operands":["Infinity","Infinity"],"expected":"1","status":"00","rounding":0}
+  ]
+}

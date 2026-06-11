@@ -1,0 +1,18 @@
+{
+  "suite": "bid128_nan",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128_nan",
+  "kind": "unary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128_nan_79792","line":11104,"operands":["0"],"expected":"[7c000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nan_79793","line":11105,"operands":["1"],"expected":"[7c000000000000000000000000000001]","status":"00","rounding":0}
+  ]
+}

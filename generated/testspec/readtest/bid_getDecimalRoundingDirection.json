@@ -1,0 +1,21 @@
+{
+  "suite": "bid_getDecimalRoundingDirection",
+  "group": "status_control_operations",
+  "format": "status",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid_getDecimalRoundingDirection",
+  "kind": "status_control",
+  "output_type": "OP_BID_UINT32",
+  "input_types": [
+    "OP_BID_UINT32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid_getDecimalRoundingDirection_70468","line":91611,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_getDecimalRoundingDirection_70469","line":91612,"operands":["0"],"expected":"1","status":"00","rounding":1},
+    {"id":"bid_getDecimalRoundingDirection_70470","line":91613,"operands":["0"],"expected":"2","status":"00","rounding":2},
+    {"id":"bid_getDecimalRoundingDirection_70471","line":91614,"operands":["0"],"expected":"3","status":"00","rounding":3},
+    {"id":"bid_getDecimalRoundingDirection_70472","line":91615,"operands":["0"],"expected":"4","status":"00","rounding":4}
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "suite": "bid64_isInf",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64_isInf",
+  "kind": "unary_op",
+  "output_type": "OP_INT32",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64_isInf_53415","line":66999,"operands":["-0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53416","line":67000,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53417","line":67001,"operands":["[0e2a000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53418","line":67002,"operands":["[426bd93b6d5a55ff]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53419","line":67003,"operands":["[452ed318d6be629d]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53420","line":67004,"operands":["[83b9dd4ef6f10188]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53421","line":67005,"operands":["[8b5d556f8b318648]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53422","line":67006,"operands":["[931f66ce5754afaa]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53423","line":67007,"operands":["[9840000000000000]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53424","line":67008,"operands":["[9e2fe80093f4056b]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53425","line":67009,"operands":["[c57708cdda260a7c]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53426","line":67010,"operands":["[dc929d20fa722a17]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53427","line":67011,"operands":["[ddaedd7658bad294]"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid64_isInf_53428","line":67012,"operands":["Infinity"],"expected":"1","status":"00","rounding":0},
+    {"id":"bid64_isInf_53429","line":67014,"operands":["SNaN"],"expected":"0","status":"00","rounding":0}
+  ]
+}
