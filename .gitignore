@@ -34,6 +34,7 @@ ehthumbs.db
 Thumbs.db
 
 # Build artifacts
+/.build/
 /devtools/third_party/*/lib/*.a
 /devtools/third_party/*/lib/*.so
 /devtools/third_party/*/lib/*.dylib

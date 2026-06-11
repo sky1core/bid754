@@ -111,4 +111,4 @@ echo "==> JavaScript/TypeScript BID codec vector tests: bid754-codec-js"
 (cd bid754-codec-js && npm ci && npm run build && npm test)
 
 echo "==> Swift BID codec vector tests: bid754-codec-swift"
-(cd bid754-codec-swift && swift run BidCodecVectorRunner ../bid754-codec-vectors/vectors.json)
+swift run BidCodecVectorRunner bid754-codec-vectors/vectors.json

@@ -262,7 +262,7 @@ EOF
 )
 
 echo "==> Swift BID codec release build"
-(cd bid754-codec-swift && swift build -c release)
+swift build -c release
 swift_smoke="$audit_tmp/swift-smoke"
 mkdir -p "$swift_smoke/Sources/VectorAudit"
 cat >"$swift_smoke/Package.swift" <<EOF
@@ -273,13 +273,13 @@ import PackageDescription
 let package = Package(
     name: "BidCodecVectorAudit",
     dependencies: [
-        .package(path: "$repo_root/bid754-codec-swift"),
+        .package(name: "bid754", path: "$repo_root"),
     ],
     targets: [
         .executableTarget(
             name: "VectorAudit",
             dependencies: [
-                .product(name: "BidCodec", package: "bid754-codec-swift"),
+                .product(name: "BidCodec", package: "bid754"),
             ]
         ),
     ]
