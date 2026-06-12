@@ -26,7 +26,11 @@ mkdir -p "$WORKDIR" "$CACHE_DIR"
 
 if [ ! -f "$DECNUMBER_ARCHIVE" ]; then
     echo "Downloading IBM decNumber 3.68 from $DECNUMBER_URL"
-    curl -L --fail --show-error --silent "$DECNUMBER_URL" -o "$DECNUMBER_ARCHIVE"
+    # speleotrove.com intermittently times out in CI; retry with curl's
+    # default exponential backoff instead of failing on first connect.
+    curl -L --fail --show-error --silent \
+        --retry 5 --retry-connrefused --connect-timeout 30 \
+        "$DECNUMBER_URL" -o "$DECNUMBER_ARCHIVE"
 fi
 
 got_sha="$(shasum -a 256 "$DECNUMBER_ARCHIVE" | awk '{print $1}')"

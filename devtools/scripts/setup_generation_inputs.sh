@@ -38,7 +38,11 @@ download_file() {
     local output="$2"
     mkdir -p "$(dirname "$output")"
     echo "downloading $url"
-    curl -L --fail --show-error --silent "$url" -o "$output"
+    # netlib.org/speleotrove.com intermittently time out in CI; retry with
+    # curl's default exponential backoff instead of failing on first connect.
+    curl -L --fail --show-error --silent \
+        --retry 5 --retry-connrefused --connect-timeout 30 \
+        "$url" -o "$output"
 }
 
 verify_sha256() {

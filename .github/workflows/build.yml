@@ -2,6 +2,10 @@ name: CI
 
 on:
   push:
+    # Branch pushes only: release tags point at already-tested commits, so
+    # tag pushes would just rerun the same commit (3 duplicate runs per
+    # release) and burn external-download quota.
+    branches: ["**"]
   pull_request:
 
 jobs:
