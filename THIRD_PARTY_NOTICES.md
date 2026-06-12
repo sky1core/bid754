@@ -20,7 +20,10 @@ with redistributions of the derived artifacts.
 - License: BSD 3-Clause, as provided by the Intel archive
   ([full text](#intel-decimal-floating-point-math-library-license-bsd-3-clause)).
 - Derived artifacts in this repository: `bid754-go/internal/bidgo/` (mechanical port of the C
-  sources; per-file porting headers identify the originating C file),
+  sources; per-file porting headers or in-file porting annotations identify
+  the originating C file(s), and the few bid754-authored helper
+  implementation files in that directory are marked as such in their file
+  headers),
   `devtools/generated/go/intel_dfp_tables.go`, `devtools/generated/rust/intel_dfp_tables.rs`,
   `devtools/generated/json/intel_dfp_symbols.json`, `bid754-rs/src/generated/`
   (generated from the Go port), `bid754-rs/src/tables.rs` (table data via

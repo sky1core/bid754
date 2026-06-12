@@ -298,7 +298,7 @@ func bid_round64_2_18(q, x int, C uint64, incr_exp *int,
 
 // bid_round128_19_38_for64 - 128비트 라운딩 (64비트 입력용)
 // Intel bid_round128_19_38의 uint64 입력 경로(1 <= x <= 19) 기계적 포팅
-// Source: third_party/intel_dfp/src/bid_round.c
+// Source: IntelRDFPMathLib20U4/LIBRARY/src/bid_round.c
 var bid_Kx128_for64 = [19]BID_UINT128{
 	{w: [2]uint64{0xcccccccccccccccd, 0xcccccccccccccccc}},
 	{w: [2]uint64{0x3d70a3d70a3d70a4, 0xa3d70a3d70a3d70a}},

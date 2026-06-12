@@ -1,3 +1,10 @@
+// Ported from: IntelRDFPMathLib20U4/LIBRARY/src/bid64_modf.c
+// (the local unpack helper follows the unpack block in bid64_round_integral.c)
+// Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
+//
+// This file is a mechanical translation of the Intel BID library to Go.
+// All logic, magic numbers, and table references are preserved exactly.
+
 package bidgo
 
 func bid64UnpackFiniteForRoundLocal(x uint64) (uint64, int, uint64) {

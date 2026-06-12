@@ -1,3 +1,13 @@
+// Ported from: IntelRDFPMathLib20U4/LIBRARY/src/bid64_round_integral.c
+// (Bid64NearbyInt follows bid64_nearbyintd.c; the local rounding tables are
+// copied from the tables in bid128.c)
+// Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
+//
+// Derived from the Intel BID library: per-function control flow, rounding
+// tables, magic constants, and comments follow the C source; the digit
+// count uses bid_estimate_decimal_digits and bid_power10_table_128 instead
+// of the C bid_nr_digits structure.
+
 package bidgo
 
 import "math"

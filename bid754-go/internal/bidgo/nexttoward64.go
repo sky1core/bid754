@@ -1,3 +1,11 @@
+// Ported from: IntelRDFPMathLib20U4/LIBRARY/src/bid64_nexttowardd.c
+// (the BID128 NaN narrowing follows bid128_to_bid64 in bid64_to_bid128.c)
+// Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
+//
+// Derived from the Intel BID library: control flow, branch order, magic
+// constants, and comments follow the C source; the wide-value comparisons
+// use math/big instead of the C 128-bit helper macros.
+
 package bidgo
 
 import "math/big"

@@ -1,3 +1,8 @@
+// bid754-authored implementation (no originating Intel C file): the Intel
+// BID library has no reduce operation; this implements the decTest
+// trailing-zero reduction for Decimal64. The NaN/Inf/unpack boilerplate
+// follows the Intel idiom used across the ported files.
+
 package bidgo
 
 // Bid64Reduce removes trailing zeros from the coefficient and adjusts the exponent.

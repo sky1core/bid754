@@ -1,7 +1,7 @@
 package bidgo
 
 // Intel BID rounding tables - 기계적 포팅
-// Source: third_party/intel_dfp/src/bid128.c
+// Source: IntelRDFPMathLib20U4/LIBRARY/src/bid128.c
 
 // bid_midpoint64 - 1/2 * 10^x for x = 1 to 19
 // Used in bid_round64_2_18 to add 0.5 ULP before truncation

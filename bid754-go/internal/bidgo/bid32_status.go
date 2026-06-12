@@ -1,3 +1,7 @@
+// bid754-authored helper (no originating Intel C file): composes BID32
+// operation status flags by routing through the ported BID64 functions
+// (Bid32ToBid64, the BID64 operation, Bid64ToBid32) and OR-ing their flags.
+
 package bidgo
 
 func bid32_flags_via_bid64_binary(x, y uint32, rndMode int, op64 func(uint64, uint64, int) (uint64, uint32)) uint32 {

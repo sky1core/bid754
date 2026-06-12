@@ -1,3 +1,11 @@
+// Ported from: IntelRDFPMathLib20U4/LIBRARY/src/bid32_to_bid64.c
+// (the bid32 packing helpers follow get_BID32 and very_fast_get_BID32 in
+// bid_internal.h)
+// Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
+//
+// This file is a mechanical translation of the Intel BID library to Go.
+// All logic, magic numbers, and table references are preserved exactly.
+
 package bidgo
 
 import (

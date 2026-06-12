@@ -1,3 +1,13 @@
+// Special-value (NaN/Inf) wrapper paths ported from:
+// IntelRDFPMathLib20U4/LIBRARY/src/bid_binarydecimal.c
+// Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
+//
+// The finite-value conversion core in this file (floorLog2Rat, roundRatToInt,
+// bid64FiniteToBinaryBits, bidFiniteBigToBinary128Bits) is a bid754-authored
+// implementation using exact math/big rational arithmetic; it replaces the
+// Intel breakpoint/multiplier table algorithm while matching its results.
+// The NaN/Inf packing arithmetic is derived from the Intel C macros.
+
 package bidgo
 
 import "math/big"
@@ -292,7 +302,8 @@ func bid128FiniteToBinary128Bits(sign uint64, exp10 int, coeff *big.Int, mode in
 	return bidFiniteBigToBinary128Bits(sign, exp10, coeff, mode)
 }
 
-// Bid64ToBinary32 is ported from Intel bid_binarydecimal.c: bid64_to_binary32.
+// Bid64ToBinary32 follows Intel bid_binarydecimal.c bid64_to_binary32 for
+// special values; the finite path goes through bid64FiniteToBinaryBits.
 func Bid64ToBinary32(x uint64, rndMode int) (uint32, uint32) {
 	signX, exponentX, coefficientX, valid := unpack_BID64(x)
 	flags := uint32(0)
@@ -323,7 +334,8 @@ func Bid64ToBinary32(x uint64, rndMode int) (uint32, uint32) {
 	return bits32, flags
 }
 
-// Bid64ToBinary64 is ported from Intel bid_binarydecimal.c: bid64_to_binary64.
+// Bid64ToBinary64 follows Intel bid_binarydecimal.c bid64_to_binary64 for
+// special values; the finite path goes through bid64FiniteToBinaryBits.
 func Bid64ToBinary64(x uint64, rndMode int) (uint64, uint32) {
 	signX, exponentX, coefficientX, valid := unpack_BID64(x)
 	flags := uint32(0)
@@ -348,7 +360,8 @@ func Bid64ToBinary64(x uint64, rndMode int) (uint64, uint32) {
 	return bits64, flags
 }
 
-// Bid64ToBinary128 is ported from Intel bid_binarydecimal.c: bid64_to_binary128.
+// Bid64ToBinary128 follows Intel bid_binarydecimal.c bid64_to_binary128 for
+// special values; the finite path goes through bidFiniteBigToBinary128Bits.
 func Bid64ToBinary128(x uint64, rndMode int) (BID_UINT128, uint32) {
 	signX, exponentX, coefficientX, valid := unpack_BID64(x)
 	flags := uint32(0)
@@ -378,7 +391,8 @@ func Bid64ToBinary128(x uint64, rndMode int) (BID_UINT128, uint32) {
 }
 
 // Bid128ToBinary128 converts BID128 to binary128.
-// Ported from Intel bid_binarydecimal.c: bid128_to_binary128.
+// Follows Intel bid_binarydecimal.c bid128_to_binary128 for special values;
+// the finite path goes through bidFiniteBigToBinary128Bits.
 func Bid128ToBinary128(x BID_UINT128, rndMode int) (BID_UINT128, uint32) {
 	d := bid128Decode(x.w[1], x.w[0])
 	flags := uint32(0)
