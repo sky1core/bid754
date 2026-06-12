@@ -1,6 +1,24 @@
 # bid754
 
+[![CI](https://github.com/sky1core/bid754/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/sky1core/bid754/actions/workflows/build.yml)
+
 Intel BID C 원본을 기준으로 하는 BID 중심 IEEE 754 decimal 프로젝트입니다.
+
+## 현재 상태 요약
+
+- 지금 사용 가능 (`v0.1.0` 태그): Go 구현 모듈
+  `github.com/sky1core/bid754/bid754-go`(고정폭 `Decimal32/64/128`)와
+  standalone Go codec 모듈 `github.com/sky1core/bid754/bid754-codec-go`.
+  Swift codec 은 루트 `v0.1.0` 태그로 Swift Package Manager 에서 사용
+  가능합니다.
+- Pre-release: Rust 구현 `bid754-rs` 는 아직 `publish = false` 이고 안정
+  외부 API 가 없습니다.
+- 6개 언어 BID codec 패키지(Go, Rust, Java, Python, JavaScript/TypeScript,
+  Swift)는 공통 generated vector 로 트리 안에서 검증됩니다. Go 모듈/SwiftPM
+  경로 외의 레지스트리 발행은 이후 단계입니다.
+- 비트 재현성 보장 플랫폼: macOS arm64, Linux amd64, Linux arm64 만.
+  Windows amd64, 32-bit x86, big-endian 은 명시적으로 보장하지 않습니다
+  (`docs/PLATFORM_SPEC.md`).
 
 ## 먼저 읽을 문서
 

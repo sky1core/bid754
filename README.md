@@ -1,6 +1,24 @@
 # bid754
 
+[![CI](https://github.com/sky1core/bid754/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/sky1core/bid754/actions/workflows/build.yml)
+
 BID-oriented IEEE 754 decimal floating-point work rooted in Intel BID C sources.
+
+## Status at a Glance
+
+- Usable today (tagged `v0.1.0`): the Go implementation module
+  `github.com/sky1core/bid754/bid754-go` (fixed-width `Decimal32/64/128`)
+  and the standalone Go codec module
+  `github.com/sky1core/bid754/bid754-codec-go`; the Swift codec is
+  consumable through Swift Package Manager via the root `v0.1.0` tag.
+- Pre-release: the Rust implementation `bid754-rs` stays `publish = false`
+  with no stable external API yet.
+- The six BID codec packages (Go, Rust, Java, Python, JavaScript/TypeScript,
+  Swift) are verified in-tree against shared generated vectors; registry
+  publication beyond the Go module and SwiftPM paths is a later phase.
+- Guaranteed bit-reproducible platforms: macOS arm64, Linux amd64, and
+  Linux arm64 only. Windows amd64, 32-bit x86, and big-endian targets are
+  explicitly not guaranteed (`docs/PLATFORM_SPEC.md`).
 
 ## Read This First
 
