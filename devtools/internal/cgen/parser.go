@@ -81,11 +81,15 @@ func ParseTableFile(repoRoot string, spec TableSpec) (Table, error) {
 	}
 
 	return Table{
-		Spec:      spec,
-		CType:     ctype,
-		Dims:      dims,
-		Value:     value,
-		SourceRel: spec.Source,
+		Spec:  spec,
+		CType: ctype,
+		Dims:  dims,
+		Value: value,
+		// Provenance shown in generated-file comments, expressed from the
+		// repository root. spec.Source is read relative to the devtools module
+		// (the generator's working directory); the checked-in comment points
+		// readers at the same file from the repo root.
+		SourceRel: filepath.Join("devtools", spec.Source),
 	}, nil
 }
 
