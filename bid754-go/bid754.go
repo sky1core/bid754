@@ -16,6 +16,12 @@
 // digest; intentional deviations from the pinned C library are documented
 // in IEEE754_SPEC.md.
 //
+// The arithmetic and conversion runtime currently raises the five IEEE 754
+// exception flags: FlagInvalidOperation, FlagDivisionByZero, FlagOverflow,
+// FlagUnderflow, and FlagInexact. FlagSubnormal, FlagRounded, and
+// FlagClamped are defined for the decTest/status verification surface and
+// are not produced by the public arithmetic runtime today.
+//
 // String formatting follows the Intel BID coefficient-exponent form, e.g.
 // "+12400E-2". See the package examples for typical usage.
 package bid754

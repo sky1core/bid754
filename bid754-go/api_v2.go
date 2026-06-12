@@ -198,7 +198,10 @@ func IsValidDecimalString(s string) bool {
 }
 
 // GetRequiredPrecision returns the minimum significant-digit precision the
-// decimal literal s requires.
+// decimal literal s requires. Trailing zeros do not raise the requirement:
+// "1.2300000" needs 3 significant digits. This is the canonical minimal
+// precision of the value, matching the narrowest-type selection in
+// ParseDecimal, not the literal's written digit count.
 func GetRequiredPrecision(s string) int {
 	return determinePrecisionFromString(s)
 }

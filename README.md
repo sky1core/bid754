@@ -19,6 +19,9 @@ BID-oriented IEEE 754 decimal floating-point work rooted in Intel BID C sources.
 - Guaranteed bit-reproducible platforms: macOS arm64, Linux amd64, and
   Linux arm64 only. Windows amd64, 32-bit x86, and big-endian targets are
   explicitly not guaranteed (`docs/PLATFORM_SPEC.md`).
+- Consumer quick check: `cd bid754-go && go test ./...` (portable, Go
+  toolchain only). The full reproducible audit (`make full-audit`) is a
+  maintainer gate with heavier multi-language and native prerequisites.
 
 ## Read This First
 
