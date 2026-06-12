@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test full-audit-native-gates test-portable test-go-modules vet-go-modules audit-go-modules audit-zero-deps audit-portable-purity test-rust test-rust-native test-all full-audit _full-audit test-bidcodec audit-bidcodec-packages audit-cexport-quarantine audit-dependencies check-scripts test-bid-string audit-intel-bid-v20u4 audit-rust-overflow test-native test-native-smoke test-native-ffi test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bid-go bench-rust bench-comparison bench-intel test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
+.PHONY: all test full-audit-native-gates test-portable test-go-modules vet-go-modules audit-go-modules audit-zero-deps audit-portable-purity test-rust test-rust-native test-all full-audit _full-audit test-bidcodec audit-bidcodec-packages audit-cexport-quarantine audit-dependencies check-scripts test-bid-string audit-intel-bid-v20u4 audit-rust-overflow test-native test-native-smoke test-native-ffi test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-comparison bench-intel test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
 
 NATIVE_TAGS ?= -tags bid754_native
 GOENV = GOCACHE=$${GOCACHE:-/tmp/go-cache}
@@ -150,7 +150,7 @@ audit-cexport-quarantine:
 			echo "cexport quarantine guard did not fail"; \
 			exit 1; \
 		fi; \
-		printf "%s\n" "$$out" | grep -F "bid754: bid-go/cexport legacy stubs are quarantined" >/dev/null || { \
+		printf "%s\n" "$$out" | grep -F "bid754: bid754-go/internal/bidgo/cexport legacy stubs are quarantined" >/dev/null || { \
 			echo "cexport failed for an unexpected reason"; \
 			exit 1; \
 		}; \
@@ -301,7 +301,7 @@ bench-quick:
 # 전체 벤치마크: Intel C, root public API, Go mechanical port, and generated Rust.
 bench:
 	@$(MAKE) bench-native
-	@$(MAKE) bench-bid-go
+	@$(MAKE) bench-bidgo
 	@$(MAKE) bench-rust
 	@cat test_results/latest_benchmark_root_results.txt test_results/latest_benchmark_bid_go_results.txt test_results/latest_benchmark_rust_results.txt > test_results/latest_benchmark_results.txt
 
@@ -313,7 +313,7 @@ bench-native:
 	@cp test_results/latest_benchmark_root_results.txt test_results/latest_benchmark_results.txt
 
 # Go mechanical-port direct 벤치마크
-bench-bid-go:
+bench-bidgo:
 	@echo "📊 bidgo mechanical-port direct 벤치마크 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go test -bench=. -benchmem -run=^$$ -timeout 600s ./internal/bidgo) | tee test_results/latest_benchmark_bid_go_results.txt'
@@ -620,7 +620,7 @@ help:
 	@echo "  make test-native-dectest generated decTest native non-short 검증"
 	@echo "  make test-native    native 전체 테스트"
 	@echo "  make bench-native   Intel C direct + root public API native-tag 벤치마크 (.env.sh 필요)"
-	@echo "  make bench-bid-go   bidgo mechanical-port direct 벤치마크"
+	@echo "  make bench-bidgo    bidgo mechanical-port direct 벤치마크"
 	@echo "  make bench-rust     generated Rust Criterion 벤치마크"
 	@echo "  make test-dectest   generated decTest native non-short 검증"
 	@echo "  make bench-comparison  native 백엔드/float 기준선 벤치마크 (.env.sh 필요)"

@@ -4,7 +4,7 @@ package bid754
 //
 // IEEE 754-1985 did not include decimal floating-point formats, and the
 // pinned Intel BID upstream reports the same (bid_is754() returns 0 in
-// third_party/intel_dfp/LIBRARY/src/bid_flag_operations.c).
+// IntelRDFPMathLib20U4/LIBRARY/src/bid_flag_operations.c).
 func Is754Version1985() bool {
 	return false
 }
@@ -13,7 +13,7 @@ func Is754Version1985() bool {
 //
 // The supported BID decimal surface implements the IEEE 754-2008 decimal
 // requirements; the pinned Intel BID upstream reports the same (bid_is754R()
-// returns 1 in third_party/intel_dfp/LIBRARY/src/bid_flag_operations.c).
+// returns 1 in IntelRDFPMathLib20U4/LIBRARY/src/bid_flag_operations.c).
 func Is754Version2008() bool {
 	return true
 }

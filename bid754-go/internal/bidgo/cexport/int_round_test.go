@@ -34,7 +34,7 @@ func parseCexportFlags(s string) (uint32, bool) {
 }
 
 func testIntRoundReadtest(t *testing.T, prefix string, fn func(uint64, int) (int64, uint32)) {
-	testFile := "../../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {
@@ -185,7 +185,7 @@ func TestBid64ToInt32XintIntelReadtest(t *testing.T) {
 }
 
 func testUintRoundReadtest(t *testing.T, prefix string, fn func(uint64, int) (uint64, uint32)) {
-	testFile := "../../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {

@@ -1,6 +1,6 @@
 # cexport - C ABI Export for Intel readtest
 
-이 디렉토리는 bid-go의 Pure Go BID 구현 일부를 C ABI로 노출하던 legacy
+이 디렉토리는 Go 기계적 포트(`bid754-go/internal/bidgo`)의 Pure Go BID 구현 일부를 C ABI로 노출하던 legacy
 compatibility module 입니다. 현재 프로젝트의 정규 Intel `readtest` 검증 경로는
 `cmd/testgen`/`internal/testgen` 이 생성하는 dispatch/test harness 이며, 이
 디렉토리가 regular verification 완료 근거가 아닙니다.
@@ -69,7 +69,7 @@ regular verification 으로 쓰일지 legacy compatibility 로 남을지 먼저 
 ### 1. libbidgo.a 빌드
 
 ```bash
-cd bid-go/cexport
+cd bid754-go/internal/bidgo/cexport
 CGO_ENABLED=1 go build -buildmode=c-archive -o libbidgo.a
 ```
 
@@ -82,10 +82,10 @@ output 으로 남기고, source tree 에 커밋하지 않습니다.
 Intel readtest Makefile은 `../LIBRARY/libbid.a`를 링크한다. `BID_LIB` 변수를 오버라이드:
 
 ```bash
-cd third_party/intel_dfp/TESTS
+cd devtools/third_party/intel_dfp/TESTS
 
 # libbidgo.a 경로 (절대 경로 또는 상대 경로)
-BIDGO_LIB=/path/to/bid-go/cexport/libbidgo.a
+BIDGO_LIB=/path/to/bid754-go/internal/bidgo/cexport/libbidgo.a
 
 # Go 런타임 링크 필요
 make OS_TYPE=LINUX CC=clang \
@@ -108,7 +108,7 @@ make OS_TYPE=LINUX CC=clang \
 
 ## 함수 구현 추가 방법
 
-1. bid-go 패키지에 해당 함수 구현 (예: `Bid64Sqrt`)
+1. bidgo 패키지(`bid754-go/internal/bidgo`)에 해당 함수 구현 (예: `Bid64Sqrt`)
 2. main.go에 `//export` 래퍼 추가
 3. stubs.c에서 해당 함수 스텁 제거
 4. 이 경로가 regular verification 으로 쓰일지, legacy compatibility 로 남을지 스펙에 먼저 고정
@@ -119,7 +119,7 @@ make OS_TYPE=LINUX CC=clang \
 # Intel readtest 참고
 
 아래 내용은 Intel readtest 포맷 참고용입니다. 현재 저장소의 공식 readtest 운영
-범위와 생성 규칙은 루트 `TEST_GENERATION_SPEC.md` 를 따릅니다.
+범위와 생성 규칙은 `docs/TEST_GENERATION_SPEC.md` 를 따릅니다.
 
 ## readtest 비교 모드 3가지
 
@@ -130,14 +130,14 @@ make OS_TYPE=LINUX CC=clang \
 | **CMP_RELATIVEERR** | ULP 오차 허용 | sin, cos, exp, log, pow 등 초월함수 |
 
 **소스 위치:**
-- `third_party/intel_dfp/TESTS/readtest.h` - 함수별 비교 모드 설정
-- `third_party/intel_dfp/TESTS/readtest.c:check_results()` - 비교 로직
+- `devtools/third_party/intel_dfp/TESTS/readtest.h` - 함수별 비교 모드 설정
+- `devtools/third_party/intel_dfp/TESTS/readtest.c:check_results()` - 비교 로직
 
 ## readtest.in 포맷
 
 | 항목 | 내용 |
 |------|------|
-| **위치** | `third_party/intel_dfp/TESTS/readtest.in` |
+| **위치** | `devtools/third_party/intel_dfp/TESTS/readtest.in` |
 | **포맷** | `함수명 반올림모드 입력1 입력2 [예상결과_hex] 플래그` |
 | **용도** | BID 비트 단위 정확성 검증 |
 

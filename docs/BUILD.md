@@ -75,7 +75,7 @@ benches. The fair cross-implementation matrix is `bid32`/`bid64`/`bid128` by
 `add`, `mul`, `div`, `parse`, and `to_string` for Intel C, the Go mechanical
 port, and
 generated Rust. Public Go API benchmarks are reported as an additional
-wrapper/API surface. `bench-native`, `bench-bid-go`, and `bench-rust` run those
+wrapper/API surface. `bench-native`, `bench-bidgo`, and `bench-rust` run those
 surfaces individually.
 
 To verify the generated BID codec vector consumers for the required Go, Rust,

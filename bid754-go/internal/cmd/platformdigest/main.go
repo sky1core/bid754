@@ -4,7 +4,8 @@
 //
 // It replays every generated readtest case whose function belongs to the
 // seed-sensitive core set (add/sub/mul/div/fma/sqrt in all three widths)
-// through bid-go, recording parsed operand bits, result bits, and flags.
+// through the Go port (internal/bidgo), recording parsed operand bits,
+// result bits, and flags.
 // Two platforms agree bit-for-bit on these operations iff their digests match.
 package main
 
@@ -170,7 +171,7 @@ func runCase(c testspec.GeneratedReadCase) (string, bool) {
 }
 
 // operandN parses a readtest operand: "[hex]" is a direct bit pattern, and
-// anything else goes through the bid-go from_string path (whose parsing
+// anything else goes through the Go port from_string path (whose parsing
 // determinism is therefore part of the digest as well).
 func operand32(ops []string, i int) (uint32, bool) {
 	if i >= len(ops) {

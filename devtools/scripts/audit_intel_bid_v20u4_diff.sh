@@ -45,7 +45,11 @@ download_if_missing() {
   mkdir -p "$(dirname "$output")"
   if [ ! -f "$output" ]; then
     echo "downloading $url"
-    curl -L --fail --show-error --silent "$url" -o "$output"
+    # netlib.org intermittently times out; retry with curl's default
+    # exponential backoff instead of failing on first connect.
+    curl -L --fail --show-error --silent \
+      --retry 5 --retry-connrefused --connect-timeout 30 \
+      "$url" -o "$output"
   fi
 }
 

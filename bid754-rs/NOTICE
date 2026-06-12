@@ -1,10 +1,11 @@
 bid754-rs NOTICE
 
-The Rust sources under src/generated/ are generated from the bid754 bid-go
-module, which is a mechanical port of the Intel(R) Decimal Floating-Point
-Math Library v20U4 C sources. src/tables.rs carries table data that likewise
-originates from those C sources (via the repository-level
-generated/rust/intel_dfp_tables.rs artifact). These artifacts are derivative
+The Rust sources under src/generated/ are generated from the bid754 Go
+mechanical port (bid754-go/internal/bidgo) of the Intel(R) Decimal
+Floating-Point Math Library v20U4 C sources.
+src/tables.rs carries table data that likewise originates from those C
+sources (via the repository-level devtools/generated/rust/intel_dfp_tables.rs
+artifact). These artifacts are derivative
 works of that library and are redistributed under the bid754 MIT license
 together with the original Intel BSD 3-Clause notice reproduced below, which
 must be retained.

@@ -45,7 +45,7 @@ func parseBracketHexUint128(s string, hexPattern *regexp.Regexp) (uint64, uint64
 }
 
 func testBinary32Readtest(t *testing.T, prefix string, fn func(uint64, int) (uint32, uint32)) {
-	testFile := "../../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {
@@ -104,7 +104,7 @@ func testBinary32Readtest(t *testing.T, prefix string, fn func(uint64, int) (uin
 }
 
 func testBinary64Readtest(t *testing.T, prefix string, fn func(uint64, int) (uint64, uint32)) {
-	testFile := "../../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {
@@ -163,7 +163,7 @@ func testBinary64Readtest(t *testing.T, prefix string, fn func(uint64, int) (uin
 }
 
 func testBinary128Readtest(t *testing.T, prefix string, fn func(uint64, int) (uint64, uint64, uint32)) {
-	testFile := "../../third_party/intel_dfp/TESTS/readtest.in"
+	testFile := "../../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
 
 	file, err := os.Open(testFile)
 	if err != nil {

@@ -1,6 +1,6 @@
-bid754 bid-go/cexport NOTICE
+bid754 bidgo/cexport NOTICE
 
-This quarantined legacy module wraps the bid-go mechanical port, which is a
+This quarantined legacy module wraps the bidgo mechanical port, which is a
 derivative work of the Intel(R) Decimal Floating-Point Math Library v20U4 C
 sources. See ../NOTICE for the full Intel BSD 3-Clause notice, which must be
 retained with redistributions.

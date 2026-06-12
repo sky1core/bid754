@@ -1,4 +1,4 @@
-bid754 bid-go NOTICE
+bid754 bidgo NOTICE
 
 The Go sources in this module are a mechanical port of the Intel(R) Decimal
 Floating-Point Math Library v20U4 C sources (per-file porting headers identify the
