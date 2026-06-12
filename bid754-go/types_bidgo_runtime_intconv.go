@@ -1,6 +1,10 @@
 package bid754
 
-import bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
+import (
+	"fmt"
+
+	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
+)
 
 func decimal32BIDConvertToInt8Port(d Decimal32BID, mode RoundingMode) (int8, ExceptionFlags) {
 	var result int8
@@ -17,7 +21,7 @@ func decimal32BIDConvertToInt8Port(d Decimal32BID, mode RoundingMode) (int8, Exc
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt8Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt8Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -37,7 +41,7 @@ func decimal32BIDConvertToInt8ExactPort(d Decimal32BID, mode RoundingMode) (int8
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt8Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt8Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -57,7 +61,7 @@ func decimal32BIDConvertToInt16Port(d Decimal32BID, mode RoundingMode) (int16, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt16Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt16Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -77,7 +81,7 @@ func decimal32BIDConvertToInt16ExactPort(d Decimal32BID, mode RoundingMode) (int
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt16Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt16Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -97,7 +101,7 @@ func decimal32BIDConvertToInt32Port(d Decimal32BID, mode RoundingMode) (int32, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt32Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt32Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -117,7 +121,7 @@ func decimal32BIDConvertToInt32ExactPort(d Decimal32BID, mode RoundingMode) (int
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt32Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt32Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -137,7 +141,7 @@ func decimal32BIDConvertToInt64Port(d Decimal32BID, mode RoundingMode) (int64, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt64Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt64Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -157,7 +161,7 @@ func decimal32BIDConvertToInt64ExactPort(d Decimal32BID, mode RoundingMode) (int
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToInt64Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToInt64Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -177,7 +181,7 @@ func decimal32BIDConvertToUint8Port(d Decimal32BID, mode RoundingMode) (uint8, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint8Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint8Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -197,7 +201,7 @@ func decimal32BIDConvertToUint8ExactPort(d Decimal32BID, mode RoundingMode) (uin
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint8Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint8Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -217,7 +221,7 @@ func decimal32BIDConvertToUint16Port(d Decimal32BID, mode RoundingMode) (uint16,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint16Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint16Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -237,7 +241,7 @@ func decimal32BIDConvertToUint16ExactPort(d Decimal32BID, mode RoundingMode) (ui
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint16Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint16Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -257,7 +261,7 @@ func decimal32BIDConvertToUint32Port(d Decimal32BID, mode RoundingMode) (uint32,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint32Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint32Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -277,7 +281,7 @@ func decimal32BIDConvertToUint32ExactPort(d Decimal32BID, mode RoundingMode) (ui
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint32Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint32Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -297,7 +301,7 @@ func decimal32BIDConvertToUint64Port(d Decimal32BID, mode RoundingMode) (uint64,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint64Floor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint64Rnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -317,7 +321,7 @@ func decimal32BIDConvertToUint64ExactPort(d Decimal32BID, mode RoundingMode) (ui
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid32ToUint64Xfloor(d.ToUint32())
 	default:
-		result, flags = bidgo.Bid32ToUint64Xrnint(d.ToUint32())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -337,7 +341,7 @@ func decimal64BIDConvertToInt8Port(d Decimal64BID, mode RoundingMode) (int8, Exc
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt8Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt8Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -357,7 +361,7 @@ func decimal64BIDConvertToInt8ExactPort(d Decimal64BID, mode RoundingMode) (int8
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt8Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt8Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -377,7 +381,7 @@ func decimal64BIDConvertToInt16Port(d Decimal64BID, mode RoundingMode) (int16, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt16Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt16Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -397,7 +401,7 @@ func decimal64BIDConvertToInt16ExactPort(d Decimal64BID, mode RoundingMode) (int
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt16Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt16Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -417,7 +421,7 @@ func decimal64BIDConvertToInt32Port(d Decimal64BID, mode RoundingMode) (int32, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt32Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt32Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -437,7 +441,7 @@ func decimal64BIDConvertToInt32ExactPort(d Decimal64BID, mode RoundingMode) (int
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt32Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt32Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -457,7 +461,7 @@ func decimal64BIDConvertToInt64Port(d Decimal64BID, mode RoundingMode) (int64, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt64Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt64Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -477,7 +481,7 @@ func decimal64BIDConvertToInt64ExactPort(d Decimal64BID, mode RoundingMode) (int
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToInt64Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToInt64Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -497,7 +501,7 @@ func decimal64BIDConvertToUint8Port(d Decimal64BID, mode RoundingMode) (uint8, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint8Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint8Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -517,7 +521,7 @@ func decimal64BIDConvertToUint8ExactPort(d Decimal64BID, mode RoundingMode) (uin
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint8Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint8Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -537,7 +541,7 @@ func decimal64BIDConvertToUint16Port(d Decimal64BID, mode RoundingMode) (uint16,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint16Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint16Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -557,7 +561,7 @@ func decimal64BIDConvertToUint16ExactPort(d Decimal64BID, mode RoundingMode) (ui
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint16Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint16Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -577,7 +581,7 @@ func decimal64BIDConvertToUint32Port(d Decimal64BID, mode RoundingMode) (uint32,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint32Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint32Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -597,7 +601,7 @@ func decimal64BIDConvertToUint32ExactPort(d Decimal64BID, mode RoundingMode) (ui
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint32Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint32Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -617,7 +621,7 @@ func decimal64BIDConvertToUint64Port(d Decimal64BID, mode RoundingMode) (uint64,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint64Floor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint64Rnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -637,7 +641,7 @@ func decimal64BIDConvertToUint64ExactPort(d Decimal64BID, mode RoundingMode) (ui
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid64ToUint64Xfloor(d.ToUint64())
 	default:
-		result, flags = bidgo.Bid64ToUint64Xrnint(d.ToUint64())
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -657,7 +661,7 @@ func decimal128BIDConvertToInt8Port(d Decimal128BID, mode RoundingMode) (int8, E
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt8Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt8Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -677,7 +681,7 @@ func decimal128BIDConvertToInt8ExactPort(d Decimal128BID, mode RoundingMode) (in
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt8Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt8Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -697,7 +701,7 @@ func decimal128BIDConvertToInt16Port(d Decimal128BID, mode RoundingMode) (int16,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt16Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt16Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -717,7 +721,7 @@ func decimal128BIDConvertToInt16ExactPort(d Decimal128BID, mode RoundingMode) (i
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt16Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt16Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -737,7 +741,7 @@ func decimal128BIDConvertToInt32Port(d Decimal128BID, mode RoundingMode) (int32,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt32Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt32Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -757,7 +761,7 @@ func decimal128BIDConvertToInt32ExactPort(d Decimal128BID, mode RoundingMode) (i
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt32Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt32Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -777,7 +781,7 @@ func decimal128BIDConvertToInt64Port(d Decimal128BID, mode RoundingMode) (int64,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt64Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt64Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -797,7 +801,7 @@ func decimal128BIDConvertToInt64ExactPort(d Decimal128BID, mode RoundingMode) (i
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToInt64Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToInt64Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -817,7 +821,7 @@ func decimal128BIDConvertToUint8Port(d Decimal128BID, mode RoundingMode) (uint8,
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint8Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint8Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -837,7 +841,7 @@ func decimal128BIDConvertToUint8ExactPort(d Decimal128BID, mode RoundingMode) (u
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint8Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint8Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -857,7 +861,7 @@ func decimal128BIDConvertToUint16Port(d Decimal128BID, mode RoundingMode) (uint1
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint16Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint16Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -877,7 +881,7 @@ func decimal128BIDConvertToUint16ExactPort(d Decimal128BID, mode RoundingMode) (
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint16Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint16Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -897,7 +901,7 @@ func decimal128BIDConvertToUint32Port(d Decimal128BID, mode RoundingMode) (uint3
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint32Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint32Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -917,7 +921,7 @@ func decimal128BIDConvertToUint32ExactPort(d Decimal128BID, mode RoundingMode) (
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint32Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint32Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -937,7 +941,7 @@ func decimal128BIDConvertToUint64Port(d Decimal128BID, mode RoundingMode) (uint6
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint64Floor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint64Rnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }
@@ -957,7 +961,7 @@ func decimal128BIDConvertToUint64ExactPort(d Decimal128BID, mode RoundingMode) (
 	case RoundTowardNegative:
 		result, flags = bidgo.Bid128ToUint64Xfloor(decimal128BIDAsBidgo(d))
 	default:
-		result, flags = bidgo.Bid128ToUint64Xrnint(decimal128BIDAsBidgo(d))
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 	return result, bidgoExceptionFlags(flags)
 }

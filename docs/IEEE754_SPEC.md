@@ -106,11 +106,11 @@ Rust API is introduced later, non-IEEE rounding modes must stay behind an
 explicit verification/compatibility adapter instead of being exposed as normal
 IEEE rounding modes.
 
-### Public Go `ParseDecimal` width-selection policy
+### Public Go `ParseNarrowestDecimal` width-selection policy
 
-`ParseDecimal` is API routing/plumbing. It chooses a fixed BID width and then
-delegates to `NewDecimal32`, `NewDecimal64`, or `NewDecimal128`; it is not an
-alternate decimal parser.
+`ParseNarrowestDecimal` is API routing/plumbing. It chooses a fixed BID width
+and then delegates to `NewDecimal32`, `NewDecimal64`, or `NewDecimal128`; it is
+not an alternate decimal parser.
 
 For finite numeric strings, width selection uses the coefficient's minimum
 significant decimal digits after removing exponent notation, leading zeros, and

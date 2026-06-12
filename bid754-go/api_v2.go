@@ -6,9 +6,11 @@ import (
 	"strings"
 )
 
-// ParseDecimal parses s and returns the narrowest BID type whose precision
-// holds the literal: Decimal32BID, Decimal64BID, or Decimal128BID.
-func ParseDecimal(s string) (interface{}, error) {
+// ParseNarrowestDecimal parses s and returns the narrowest BID type whose
+// precision holds the literal: Decimal32BID, Decimal64BID, or Decimal128BID.
+// Because the returned width depends on the input, the result is an interface
+// value; callers that want a fixed width should use NewDecimal32/64/128.
+func ParseNarrowestDecimal(s string) (interface{}, error) {
 	if payloadPrecision, ok := determineNaNPayloadPrecision(s); ok {
 		switch {
 		case payloadPrecision <= 6:
@@ -83,6 +85,14 @@ func NewDecimal32(s string) (Decimal32BID, error) {
 	return NewDecimal32BIDDirect(s)
 }
 
+// NewDecimal32WithFlags parses a decimal string literal into a Decimal32BID
+// and also returns the exception flags raised while parsing, e.g. FlagInexact
+// when the literal is not exactly representable in 7 digits, or FlagOverflow
+// for an out-of-range exponent.
+func NewDecimal32WithFlags(s string) (Decimal32BID, ExceptionFlags, error) {
+	return newDecimal32BIDWithFlagsPort(s)
+}
+
 // NewDecimal32FromInt converts an int32 into a Decimal32BID via its decimal
 // string form.
 func NewDecimal32FromInt(i int32) (Decimal32BID, error) {
@@ -91,25 +101,25 @@ func NewDecimal32FromInt(i int32) (Decimal32BID, error) {
 }
 
 // NewDecimal32FromInt32 converts int32 to Decimal32BID with the requested rounding mode and returned flags.
-// Unknown RoundingMode values are routed as RoundNearestEven.
+// Passing a RoundingMode outside the defined constants panics.
 func NewDecimal32FromInt32(x int32, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDFromInt32Port(x, mode)
 }
 
 // NewDecimal32FromUint32 converts uint32 to Decimal32BID with the requested rounding mode and returned flags.
-// Unknown RoundingMode values are routed as RoundNearestEven.
+// Passing a RoundingMode outside the defined constants panics.
 func NewDecimal32FromUint32(x uint32, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDFromUint32Port(x, mode)
 }
 
 // NewDecimal32FromInt64 converts int64 to Decimal32BID with the requested rounding mode and returned flags.
-// Unknown RoundingMode values are routed as RoundNearestEven.
+// Passing a RoundingMode outside the defined constants panics.
 func NewDecimal32FromInt64(x int64, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDFromInt64Port(x, mode)
 }
 
 // NewDecimal32FromUint64 converts uint64 to Decimal32BID with the requested rounding mode and returned flags.
-// Unknown RoundingMode values are routed as RoundNearestEven.
+// Passing a RoundingMode outside the defined constants panics.
 func NewDecimal32FromUint64(x uint64, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDFromUint64Port(x, mode)
 }
@@ -117,6 +127,14 @@ func NewDecimal32FromUint64(x uint64, mode RoundingMode) (Decimal32BID, Exceptio
 // NewDecimal64 parses a decimal string literal into a Decimal64BID.
 func NewDecimal64(s string) (Decimal64BID, error) {
 	return NewDecimal64BIDDirect(s)
+}
+
+// NewDecimal64WithFlags parses a decimal string literal into a Decimal64BID
+// and also returns the exception flags raised while parsing, e.g. FlagInexact
+// when the literal is not exactly representable in 16 digits, or FlagOverflow
+// for an out-of-range exponent.
+func NewDecimal64WithFlags(s string) (Decimal64BID, ExceptionFlags, error) {
+	return newDecimal64BIDWithFlagsPort(s)
 }
 
 // NewDecimal64FromInt converts an int64 into a Decimal64BID via its decimal
@@ -137,13 +155,13 @@ func NewDecimal64FromUint32(x uint32) Decimal64BID {
 }
 
 // NewDecimal64FromInt64 converts int64 to Decimal64BID with the requested rounding mode and returned flags.
-// Unknown RoundingMode values are routed as RoundNearestEven.
+// Passing a RoundingMode outside the defined constants panics.
 func NewDecimal64FromInt64(x int64, mode RoundingMode) (Decimal64BID, ExceptionFlags) {
 	return decimal64BIDFromInt64Port(x, mode)
 }
 
 // NewDecimal64FromUint64 converts uint64 to Decimal64BID with the requested rounding mode and returned flags.
-// Unknown RoundingMode values are routed as RoundNearestEven.
+// Passing a RoundingMode outside the defined constants panics.
 func NewDecimal64FromUint64(x uint64, mode RoundingMode) (Decimal64BID, ExceptionFlags) {
 	return decimal64BIDFromUint64Port(x, mode)
 }
@@ -151,6 +169,14 @@ func NewDecimal64FromUint64(x uint64, mode RoundingMode) (Decimal64BID, Exceptio
 // NewDecimal128 parses a decimal string literal into a Decimal128BID.
 func NewDecimal128(s string) (Decimal128BID, error) {
 	return NewDecimal128BIDDirect(s)
+}
+
+// NewDecimal128WithFlags parses a decimal string literal into a Decimal128BID
+// and also returns the exception flags raised while parsing, e.g. FlagInexact
+// when the literal is not exactly representable in 34 digits, or FlagOverflow
+// for an out-of-range exponent.
+func NewDecimal128WithFlags(s string) (Decimal128BID, ExceptionFlags, error) {
+	return newDecimal128BIDWithFlagsPort(s)
 }
 
 // NewDecimal128FromInt converts an int64 into a Decimal128BID via its decimal
@@ -201,7 +227,7 @@ func IsValidDecimalString(s string) bool {
 // decimal literal s requires. Trailing zeros do not raise the requirement:
 // "1.2300000" needs 3 significant digits. This is the canonical minimal
 // precision of the value, matching the narrowest-type selection in
-// ParseDecimal, not the literal's written digit count.
+// ParseNarrowestDecimal, not the literal's written digit count.
 func GetRequiredPrecision(s string) int {
 	return determinePrecisionFromString(s)
 }

@@ -1,6 +1,7 @@
 package bid754
 
 import (
+	"fmt"
 	"testing"
 
 	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
@@ -106,7 +107,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Rnint(x) }},
 		}},
 		{name: "ConvertToInt8Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt8Exact(mode)
@@ -117,7 +117,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt8Xrnint(x) }},
 		}},
 		{name: "ConvertToInt16", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt16(mode)
@@ -128,7 +127,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Rnint(x) }},
 		}},
 		{name: "ConvertToInt16Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt16Exact(mode)
@@ -139,7 +137,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt16Xrnint(x) }},
 		}},
 		{name: "ConvertToInt32", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt32(mode)
@@ -150,7 +147,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Rnint(x) }},
 		}},
 		{name: "ConvertToInt32Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt32Exact(mode)
@@ -161,7 +157,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt32Xrnint(x) }},
 		}},
 		{name: "ConvertToInt64", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt64(mode)
@@ -172,7 +167,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Rnint(x) }},
 		}},
 		{name: "ConvertToInt64Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt64Exact(mode)
@@ -183,7 +177,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToInt64Xrnint(x) }},
 		}},
 		{name: "ConvertToUint8", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint8(mode)
@@ -194,7 +187,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Rnint(x) }},
 		}},
 		{name: "ConvertToUint8Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint8Exact(mode)
@@ -205,7 +197,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint8Xrnint(x) }},
 		}},
 		{name: "ConvertToUint16", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint16(mode)
@@ -216,7 +207,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Rnint(x) }},
 		}},
 		{name: "ConvertToUint16Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint16Exact(mode)
@@ -227,7 +217,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint16Xrnint(x) }},
 		}},
 		{name: "ConvertToUint32", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint32(mode)
@@ -238,7 +227,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Rnint(x) }},
 		}},
 		{name: "ConvertToUint32Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint32Exact(mode)
@@ -249,7 +237,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint32Xrnint(x) }},
 		}},
 		{name: "ConvertToUint64", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint64(mode)
@@ -260,7 +247,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Rnint(x) }},
 		}},
 		{name: "ConvertToUint64Exact", public: func(d Decimal32BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint64Exact(mode)
@@ -271,7 +257,6 @@ func TestConvertToIntegerPublicRoutingDecimal32(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint32) (any, uint32) { return bidgo.Bid32ToUint64Xrnint(x) }},
 		}},
 	}
 	for _, tt := range tests {
@@ -304,7 +289,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Rnint(x) }},
 		}},
 		{name: "ConvertToInt8Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt8Exact(mode)
@@ -315,7 +299,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt8Xrnint(x) }},
 		}},
 		{name: "ConvertToInt16", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt16(mode)
@@ -326,7 +309,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Rnint(x) }},
 		}},
 		{name: "ConvertToInt16Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt16Exact(mode)
@@ -337,7 +319,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt16Xrnint(x) }},
 		}},
 		{name: "ConvertToInt32", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt32(mode)
@@ -348,7 +329,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Rnint(x) }},
 		}},
 		{name: "ConvertToInt32Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt32Exact(mode)
@@ -359,7 +339,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt32Xrnint(x) }},
 		}},
 		{name: "ConvertToInt64", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt64(mode)
@@ -370,7 +349,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Rnint(x) }},
 		}},
 		{name: "ConvertToInt64Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt64Exact(mode)
@@ -381,7 +359,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToInt64Xrnint(x) }},
 		}},
 		{name: "ConvertToUint8", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint8(mode)
@@ -392,7 +369,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Rnint(x) }},
 		}},
 		{name: "ConvertToUint8Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint8Exact(mode)
@@ -403,7 +379,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint8Xrnint(x) }},
 		}},
 		{name: "ConvertToUint16", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint16(mode)
@@ -414,7 +389,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Rnint(x) }},
 		}},
 		{name: "ConvertToUint16Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint16Exact(mode)
@@ -425,7 +399,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint16Xrnint(x) }},
 		}},
 		{name: "ConvertToUint32", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint32(mode)
@@ -436,7 +409,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Rnint(x) }},
 		}},
 		{name: "ConvertToUint32Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint32Exact(mode)
@@ -447,7 +419,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint32Xrnint(x) }},
 		}},
 		{name: "ConvertToUint64", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint64(mode)
@@ -458,7 +429,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Rnint(x) }},
 		}},
 		{name: "ConvertToUint64Exact", public: func(d Decimal64BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint64Exact(mode)
@@ -469,7 +439,6 @@ func TestConvertToIntegerPublicRoutingDecimal64(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x uint64) (any, uint32) { return bidgo.Bid64ToUint64Xrnint(x) }},
 		}},
 	}
 	for _, tt := range tests {
@@ -502,7 +471,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Rnint(x) }},
 		}},
 		{name: "ConvertToInt8Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt8Exact(mode)
@@ -513,7 +481,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt8Xrnint(x) }},
 		}},
 		{name: "ConvertToInt16", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt16(mode)
@@ -524,7 +491,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Rnint(x) }},
 		}},
 		{name: "ConvertToInt16Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt16Exact(mode)
@@ -535,7 +501,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt16Xrnint(x) }},
 		}},
 		{name: "ConvertToInt32", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt32(mode)
@@ -546,7 +511,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Rnint(x) }},
 		}},
 		{name: "ConvertToInt32Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt32Exact(mode)
@@ -557,7 +521,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt32Xrnint(x) }},
 		}},
 		{name: "ConvertToInt64", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt64(mode)
@@ -568,7 +531,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Rnint(x) }},
 		}},
 		{name: "ConvertToInt64Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToInt64Exact(mode)
@@ -579,7 +541,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToInt64Xrnint(x) }},
 		}},
 		{name: "ConvertToUint8", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint8(mode)
@@ -590,7 +551,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Rnint(x) }},
 		}},
 		{name: "ConvertToUint8Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint8Exact(mode)
@@ -601,7 +561,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint8Xrnint(x) }},
 		}},
 		{name: "ConvertToUint16", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint16(mode)
@@ -612,7 +571,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Rnint(x) }},
 		}},
 		{name: "ConvertToUint16Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint16Exact(mode)
@@ -623,7 +581,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint16Xrnint(x) }},
 		}},
 		{name: "ConvertToUint32", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint32(mode)
@@ -634,7 +591,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Rnint(x) }},
 		}},
 		{name: "ConvertToUint32Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint32Exact(mode)
@@ -645,7 +601,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint32Xrnint(x) }},
 		}},
 		{name: "ConvertToUint64", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint64(mode)
@@ -656,7 +611,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Int(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Ceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Floor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Rnint(x) }},
 		}},
 		{name: "ConvertToUint64Exact", public: func(d Decimal128BID, mode RoundingMode) (any, ExceptionFlags) {
 			result, flags := d.ConvertToUint64Exact(mode)
@@ -667,7 +621,6 @@ func TestConvertToIntegerPublicRoutingDecimal128(t *testing.T) {
 			{name: "towardZero", mode: RoundTowardZero, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Xint(x) }},
 			{name: "towardPositive", mode: RoundTowardPositive, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Xceil(x) }},
 			{name: "towardNegative", mode: RoundTowardNegative, direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Xfloor(x) }},
-			{name: "unknownDefault", mode: RoundingMode(99), direct: func(x bidgo.BID_UINT128) (any, uint32) { return bidgo.Bid128ToUint64Xrnint(x) }},
 		}},
 	}
 	for _, tt := range tests {
@@ -693,11 +646,6 @@ func TestConvertToIntegerModeAndFlagMatrix(t *testing.T) {
 			mustConvertToAny(frac.ConvertToInt32(RoundTowardZero)),
 			mustConvertToAny(frac.ConvertToInt32(RoundTowardNegative)),
 		})
-		nearest, nearestFlags := frac.ConvertToInt32(RoundNearestEven)
-		unknown, unknownFlags := frac.ConvertToInt32(RoundingMode(99))
-		if nearest != unknown || nearestFlags != unknownFlags {
-			t.Fatalf("Decimal32 ConvertToInt32 unknown mode = %d/%s, want nearest %d/%s", unknown, unknownFlags, nearest, nearestFlags)
-		}
 		_, nonExactFlags := frac.ConvertToInt32(RoundTowardZero)
 		_, exactFlags := frac.ConvertToInt32Exact(RoundTowardZero)
 		if nonExactFlags.HasFlag(FlagInexact) || !exactFlags.HasFlag(FlagInexact) {
@@ -715,11 +663,6 @@ func TestConvertToIntegerModeAndFlagMatrix(t *testing.T) {
 			mustConvertToAny(frac.ConvertToInt32(RoundTowardZero)),
 			mustConvertToAny(frac.ConvertToInt32(RoundTowardNegative)),
 		})
-		nearest, nearestFlags := frac.ConvertToInt32(RoundNearestEven)
-		unknown, unknownFlags := frac.ConvertToInt32(RoundingMode(99))
-		if nearest != unknown || nearestFlags != unknownFlags {
-			t.Fatalf("Decimal64 ConvertToInt32 unknown mode = %d/%s, want nearest %d/%s", unknown, unknownFlags, nearest, nearestFlags)
-		}
 		_, nonExactFlags := frac.ConvertToInt32(RoundTowardZero)
 		_, exactFlags := frac.ConvertToInt32Exact(RoundTowardZero)
 		if nonExactFlags.HasFlag(FlagInexact) || !exactFlags.HasFlag(FlagInexact) {
@@ -737,11 +680,6 @@ func TestConvertToIntegerModeAndFlagMatrix(t *testing.T) {
 			mustConvertToAny(frac.ConvertToInt32(RoundTowardZero)),
 			mustConvertToAny(frac.ConvertToInt32(RoundTowardNegative)),
 		})
-		nearest, nearestFlags := frac.ConvertToInt32(RoundNearestEven)
-		unknown, unknownFlags := frac.ConvertToInt32(RoundingMode(99))
-		if nearest != unknown || nearestFlags != unknownFlags {
-			t.Fatalf("Decimal128 ConvertToInt32 unknown mode = %d/%s, want nearest %d/%s", unknown, unknownFlags, nearest, nearestFlags)
-		}
 		_, nonExactFlags := frac.ConvertToInt32(RoundTowardZero)
 		_, exactFlags := frac.ConvertToInt32Exact(RoundTowardZero)
 		if nonExactFlags.HasFlag(FlagInexact) || !exactFlags.HasFlag(FlagInexact) {
@@ -782,12 +720,44 @@ func testBidgoRoundingMode(mode RoundingMode) int {
 	case RoundTowardNegative:
 		return bidgoRoundingTowardNegative
 	default:
-		return bidgoRoundingNearestEven
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
+	}
+}
+
+// TestInvalidRoundingModePanics pins the explicit-failure contract across the
+// public rounding-mode entrypoints: a RoundingMode outside the defined
+// constants must panic, not silently fall back to a default mode.
+func TestInvalidRoundingModePanics(t *testing.T) {
+	bad := RoundingMode(99)
+	cases := []struct {
+		name string
+		call func()
+	}{
+		{"NewDecimal32FromInt32", func() { NewDecimal32FromInt32(1, bad) }},
+		{"NewDecimal64FromInt64", func() { NewDecimal64FromInt64(1, bad) }},
+		{"Decimal32.ConvertToInt32", func() { mustDecimal32BID(t, "1.5").ConvertToInt32(bad) }},
+		{"Decimal64.ConvertToInt32", func() { mustDecimal64BID(t, "1.5").ConvertToInt32(bad) }},
+		{"Decimal128.ConvertToInt32", func() { mustDecimal128BID(t, "1.5").ConvertToInt32(bad) }},
+		{"Decimal32.ToBinary64", func() { mustDecimal32BID(t, "1.5").ToBinary64(bad) }},
+		{"Add64BIDWithContext", func() {
+			one := mustDecimal64BID(t, "1")
+			Add64BIDWithContext(one, one, &ArithmeticContext{RoundingMode: bad})
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatalf("%s with invalid RoundingMode did not panic", tc.name)
+				}
+			}()
+			tc.call()
+		})
 	}
 }
 
 func TestFromIntPublicRouting(t *testing.T) {
-	modes := []RoundingMode{RoundNearestEven, RoundNearestAway, RoundTowardZero, RoundTowardPositive, RoundTowardNegative, RoundingMode(99)}
+	modes := []RoundingMode{RoundNearestEven, RoundNearestAway, RoundTowardZero, RoundTowardPositive, RoundTowardNegative}
 	for _, mode := range modes {
 		t.Run(mode.String(), func(t *testing.T) {
 			bidMode := testBidgoRoundingMode(mode)
@@ -849,19 +819,11 @@ func TestFromIntPublicRouting(t *testing.T) {
 	d32Nearest, _ := NewDecimal32FromInt32(123456789, RoundNearestEven)
 	d32Zero, _ := NewDecimal32FromInt32(123456789, RoundTowardZero)
 	d32Positive, _ := NewDecimal32FromInt32(123456789, RoundTowardPositive)
-	d32Unknown, _ := NewDecimal32FromInt32(123456789, RoundingMode(99))
-	if d32Unknown != d32Nearest {
-		t.Fatalf("NewDecimal32FromInt32 unknown mode = %08x, want nearest-even %08x", d32Unknown.ToUint32(), d32Nearest.ToUint32())
-	}
 	assertIntConvModeDifference(t, []any{d32Nearest, d32Zero, d32Positive})
 
 	d64Nearest, _ := NewDecimal64FromUint64(^uint64(0), RoundNearestEven)
 	d64Zero, _ := NewDecimal64FromUint64(^uint64(0), RoundTowardZero)
 	d64Positive, _ := NewDecimal64FromUint64(^uint64(0), RoundTowardPositive)
-	d64Unknown, _ := NewDecimal64FromUint64(^uint64(0), RoundingMode(99))
-	if d64Unknown != d64Nearest {
-		t.Fatalf("NewDecimal64FromUint64 unknown mode = %016x, want nearest-even %016x", d64Unknown.ToUint64(), d64Nearest.ToUint64())
-	}
 	assertIntConvModeDifference(t, []any{d64Nearest, d64Zero, d64Positive})
 }
 

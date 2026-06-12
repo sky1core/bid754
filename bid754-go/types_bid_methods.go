@@ -161,16 +161,19 @@ func (d Decimal32BID) String() string { return decimal32BIDStringPort(d) }
 func (d Decimal32BID) PrettyString() string { return decimal32BIDPrettyStringPort(d) }
 
 // ToBinary32 converts d to binary32 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal32BID) ToBinary32(mode RoundingMode) (float32, ExceptionFlags) {
 	return decimal32BIDToBinary32Port(d, mode)
 }
 
 // ToBinary64 converts d to binary64 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal32BID) ToBinary64(mode RoundingMode) (float64, ExceptionFlags) {
 	return decimal32BIDToBinary64Port(d, mode)
 }
 
 // ToBinary128 converts d to binary128 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal32BID) ToBinary128(mode RoundingMode) (Binary128, ExceptionFlags) {
 	return decimal32BIDToBinary128Port(d, mode)
 }
@@ -407,16 +410,19 @@ func (d Decimal64BID) String() string { return decimal64BIDStringPort(d) }
 func (d Decimal64BID) PrettyString() string { return decimal64BIDPrettyStringPort(d) }
 
 // ToBinary32 converts d to binary32 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal64BID) ToBinary32(mode RoundingMode) (float32, ExceptionFlags) {
 	return decimal64BIDToBinary32Port(d, mode)
 }
 
 // ToBinary64 converts d to binary64 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal64BID) ToBinary64(mode RoundingMode) (float64, ExceptionFlags) {
 	return decimal64BIDToBinary64Port(d, mode)
 }
 
 // ToBinary128 converts d to binary128 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal64BID) ToBinary128(mode RoundingMode) (Binary128, ExceptionFlags) {
 	return decimal64BIDToBinary128Port(d, mode)
 }
@@ -427,7 +433,8 @@ func (d Decimal64BID) ToDecimal128() (Decimal128BID, ExceptionFlags) {
 }
 
 // ToDecimal32 converts to the narrower Decimal32 format (IEEE 754
-// convertFormat, clause 5.4.2), rounding with the given mode.
+// convertFormat, clause 5.4.2), rounding with the given mode. A RoundingMode
+// outside the defined constants panics.
 func (d Decimal64BID) ToDecimal32(mode RoundingMode) (Decimal32BID, ExceptionFlags) {
 	return decimal64BIDToDecimal32Port(d, mode)
 }
@@ -540,13 +547,15 @@ func (d Decimal128BID) Fmod(other Decimal128BID) (Decimal128BID, ExceptionFlags)
 }
 
 // ToDecimal64 converts to the narrower Decimal64 format (IEEE 754
-// convertFormat, clause 5.4.2), rounding with the given mode.
+// convertFormat, clause 5.4.2), rounding with the given mode. A RoundingMode
+// outside the defined constants panics.
 func (d Decimal128BID) ToDecimal64(mode RoundingMode) (Decimal64BID, ExceptionFlags) {
 	return decimal128BIDToDecimal64Port(d, mode)
 }
 
 // ToDecimal32 converts to the narrower Decimal32 format (IEEE 754
-// convertFormat, clause 5.4.2), rounding with the given mode.
+// convertFormat, clause 5.4.2), rounding with the given mode. A RoundingMode
+// outside the defined constants panics.
 func (d Decimal128BID) ToDecimal32(mode RoundingMode) (Decimal32BID, ExceptionFlags) {
 	return decimal128BIDToDecimal32Port(d, mode)
 }
@@ -664,16 +673,19 @@ func (d Decimal128BID) PrettyString() string {
 }
 
 // ToBinary32 converts d to binary32 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal128BID) ToBinary32(mode RoundingMode) (float32, ExceptionFlags) {
 	return decimal128BIDToBinary32Port(d, mode)
 }
 
 // ToBinary64 converts d to binary64 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal128BID) ToBinary64(mode RoundingMode) (float64, ExceptionFlags) {
 	return decimal128BIDToBinary64Port(d, mode)
 }
 
 // ToBinary128 converts d to binary128 using mode and returns the exception flags raised by the operation.
+// A RoundingMode outside the defined constants panics.
 func (d Decimal128BID) ToBinary128(mode RoundingMode) (Binary128, ExceptionFlags) {
 	return decimal128BIDToBinary128Port(d, mode)
 }

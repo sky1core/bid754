@@ -66,6 +66,8 @@ func (ctx *ArithmeticContext) Clone() *ArithmeticContext {
 }
 
 // WithRounding returns a copy of the context with the given rounding mode.
+// The mode is validated when the context is used by an operation: a mode
+// outside the defined constants panics there, not here.
 func (ctx *ArithmeticContext) WithRounding(mode RoundingMode) *ArithmeticContext {
 	newCtx := ctx.Clone()
 	newCtx.RoundingMode = mode
@@ -87,6 +89,8 @@ func DefaultArithmeticContext() *ArithmeticContext {
 
 // SetDefaultRounding atomically sets the global default rounding mode used
 // by DefaultArithmeticContext and by context operations given a nil context.
+// A mode outside the defined constants is stored as-is and panics when an
+// operation later uses it.
 func SetDefaultRounding(mode RoundingMode) {
 	defaultArithmeticRoundingMode.Store(int32(mode))
 }
@@ -94,7 +98,8 @@ func SetDefaultRounding(mode RoundingMode) {
 // === Context-based operations (optional) ===
 
 // Most operations are value-type methods; these helpers exist for callers
-// that need an explicit rounding mode with flag accumulation.
+// that need an explicit rounding mode with flag accumulation. A context
+// rounding mode outside the defined constants panics.
 
 // Add32BIDWithContext returns a + b rounded with the context mode and
 // accumulates the raised flags into ctx. A nil ctx uses the global default

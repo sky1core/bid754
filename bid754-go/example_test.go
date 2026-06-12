@@ -15,12 +15,12 @@ func Example() {
 	// Output: +12400E-2
 }
 
-// ParseDecimal picks the narrowest BID width whose precision holds the
-// literal.
-func ExampleParseDecimal() {
-	v, _ := bid754.ParseDecimal("3.14159265358979")
+// ParseNarrowestDecimal picks the narrowest BID width whose precision holds
+// the literal.
+func ExampleParseNarrowestDecimal() {
+	v, _ := bid754.ParseNarrowestDecimal("3.14159265358979")
 	fmt.Printf("%T\n", v)
-	w, _ := bid754.ParseDecimal("1.5")
+	w, _ := bid754.ParseNarrowestDecimal("1.5")
 	fmt.Printf("%T\n", w)
 	// Output:
 	// bid754.Decimal64BID

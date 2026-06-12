@@ -32,7 +32,7 @@ func bidgoRoundingMode(mode RoundingMode) int {
 	case RoundTowardNegative:
 		return bidgoRoundingTowardNegative
 	default:
-		return defaultBIDRoundingMode
+		panic(fmt.Sprintf("bid754: invalid RoundingMode %d", int(mode)))
 	}
 }
 
@@ -344,6 +344,14 @@ func newDecimal32BIDDirectPort(s string) (Decimal32BID, error) {
 	return result, nil
 }
 
+func newDecimal32BIDWithFlagsPort(s string) (Decimal32BID, ExceptionFlags, error) {
+	result, flags := parseDecimal32BIDPort(s)
+	if invalidBIDStringInput(s, bidgo.Bid32IsNaN(result.ToUint32())) {
+		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
+	}
+	return result, flags, nil
+}
+
 func parseDecimal32BIDPort(s string) (Decimal32BID, ExceptionFlags) {
 	return parseDecimal32BIDPortMode(s, defaultBIDRoundingMode)
 }
@@ -647,6 +655,14 @@ func newDecimal64BIDDirectPort(s string) (Decimal64BID, error) {
 		return 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, nil
+}
+
+func newDecimal64BIDWithFlagsPort(s string) (Decimal64BID, ExceptionFlags, error) {
+	result, flags := parseDecimal64BIDPort(s)
+	if invalidBIDStringInput(s, bidgo.Bid64IsNaN(result.ToUint64()) != 0) {
+		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
+	}
+	return result, flags, nil
 }
 
 func parseDecimal64BIDPort(s string) (Decimal64BID, ExceptionFlags) {
@@ -989,6 +1005,14 @@ func newDecimal128BIDDirectPort(s string) (Decimal128BID, error) {
 		return Decimal128BID{}, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, nil
+}
+
+func newDecimal128BIDWithFlagsPort(s string) (Decimal128BID, ExceptionFlags, error) {
+	result, flags := parseDecimal128BIDPort(s)
+	if invalidBIDStringInput(s, bidgo.Bid128IsNaN(decimal128BIDAsBidgo(result)) != 0) {
+		return Decimal128BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
+	}
+	return result, flags, nil
 }
 
 func parseDecimal128BIDPort(s string) (Decimal128BID, ExceptionFlags) {

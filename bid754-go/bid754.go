@@ -22,6 +22,9 @@
 // FlagClamped are defined for the decTest/status verification surface and
 // are not produced by the public arithmetic runtime today.
 //
+// Any operation given a RoundingMode outside the five defined constants
+// panics rather than silently substituting a default mode.
+//
 // String formatting follows the Intel BID coefficient-exponent form, e.g.
 // "+12400E-2". See the package examples for typical usage.
 package bid754

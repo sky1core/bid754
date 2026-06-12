@@ -23,7 +23,32 @@ func TestDeterminePrecisionFromStringIgnoresExponentAndInsignificantZeros(t *tes
 	}
 }
 
-func TestParseDecimalSelectsWidthFromCoefficientPolicy(t *testing.T) {
+func TestNewDecimalWithFlagsSurfacesParseFlags(t *testing.T) {
+	// Decimal32 holds 7 significant digits, so an 8-digit literal must round
+	// during parsing and raise FlagInexact; an exact literal raises no flags;
+	// an invalid literal returns an error.
+	const overPrecise = "1.2345678" // 8 significant digits
+	v32, f32, err := NewDecimal32WithFlags(overPrecise)
+	if err != nil {
+		t.Fatalf("NewDecimal32WithFlags(%s): %v", overPrecise, err)
+	}
+	if f32&FlagInexact == 0 {
+		t.Fatalf("NewDecimal32WithFlags(%s) flags = %v, want FlagInexact set", overPrecise, f32)
+	}
+	if v32 != mustDecimal32BID(t, overPrecise) {
+		t.Fatalf("NewDecimal32WithFlags(%s) value mismatch vs NewDecimal32BIDDirect", overPrecise)
+	}
+
+	if _, f64, err := NewDecimal64WithFlags("1"); err != nil || f64 != 0 {
+		t.Fatalf("NewDecimal64WithFlags(1) = flags %v, err %v; want no flags, no error", f64, err)
+	}
+
+	if _, _, err := NewDecimal128WithFlags("not-a-number"); err == nil {
+		t.Fatalf("NewDecimal128WithFlags(not-a-number) error = nil, want error")
+	}
+}
+
+func TestParseNarrowestDecimalSelectsWidthFromCoefficientPolicy(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string
@@ -36,17 +61,17 @@ func TestParseDecimalSelectsWidthFromCoefficientPolicy(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := ParseDecimal(tc.input)
+		got, err := ParseNarrowestDecimal(tc.input)
 		if err != nil {
-			t.Fatalf("ParseDecimal(%q): %v", tc.input, err)
+			t.Fatalf("ParseNarrowestDecimal(%q): %v", tc.input, err)
 		}
 		if gotType := parsedDecimalType(got); gotType != tc.want {
-			t.Fatalf("ParseDecimal(%q) type = %s, want %s", tc.input, gotType, tc.want)
+			t.Fatalf("ParseNarrowestDecimal(%q) type = %s, want %s", tc.input, gotType, tc.want)
 		}
 	}
 }
 
-func TestParseDecimalSelectsWidthForNaNPayloadPreservation(t *testing.T) {
+func TestParseNarrowestDecimalSelectsWidthForNaNPayloadPreservation(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string
@@ -57,12 +82,12 @@ func TestParseDecimalSelectsWidthForNaNPayloadPreservation(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, err := ParseDecimal(tc.input)
+		got, err := ParseNarrowestDecimal(tc.input)
 		if err != nil {
-			t.Fatalf("ParseDecimal(%q): %v", tc.input, err)
+			t.Fatalf("ParseNarrowestDecimal(%q): %v", tc.input, err)
 		}
 		if gotType := parsedDecimalType(got); gotType != tc.want {
-			t.Fatalf("ParseDecimal(%q) type = %s, want %s", tc.input, gotType, tc.want)
+			t.Fatalf("ParseNarrowestDecimal(%q) type = %s, want %s", tc.input, gotType, tc.want)
 		}
 	}
 }
