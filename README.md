@@ -23,6 +23,14 @@ BID-oriented IEEE 754 decimal floating-point work rooted in Intel BID C sources.
   toolchain only). The full reproducible audit (`make full-audit`) is a
   maintainer gate with heavier multi-language and native prerequisites.
 
+## Background
+
+Decimal floating-point background, for readers new to the domain:
+
+- [IEEE 754](https://en.wikipedia.org/wiki/IEEE_754) — the floating-point standard this library targets (2019 revision).
+- [Decimal floating point](https://en.wikipedia.org/wiki/Decimal_floating_point) — the decimal formats and their two encodings, Binary Integer Decimal (BID, used here) and Densely Packed Decimal (DPD).
+- Per-format references: [decimal32](https://en.wikipedia.org/wiki/Decimal32_floating-point_format), [decimal64](https://en.wikipedia.org/wiki/Decimal64_floating-point_format), [decimal128](https://en.wikipedia.org/wiki/Decimal128_floating-point_format).
+
 ## Read This First
 
 This repository now separates goal docs from current-tree docs.
