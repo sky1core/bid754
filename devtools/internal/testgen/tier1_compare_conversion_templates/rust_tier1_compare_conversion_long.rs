@@ -1,7 +1,7 @@
 #![cfg(feature = "tier1-long")]
 
 use bid754::generated::bid32_exports::{bid32_max_num, bid32_max_num_mag, bid32_min_num, bid32_min_num_mag};
-use bid754::{Decimal128, Decimal32, Decimal64, ExceptionFlags, RoundingMode};
+use bid754::{Binary128, Decimal128, Decimal32, Decimal64, ExceptionFlags, RoundingMode};
 use libbid_sys::BID_UINT128 as C128;
 
 const BOUNDARY32_COUNT: u64 = @@TIER1_BOUNDARY32_COUNT@@;
@@ -49,6 +49,8 @@ const TO_INT_OPERATION_COUNT: u64 = 80;
 const WIDTH_OPERATION_COUNT32: u64 = 2;
 const WIDTH_OPERATION_COUNT64: u64 = 6;
 const WIDTH_OPERATION_COUNT128: u64 = 10;
+// One-way BID -> binary interchange conversions: 3 targets x 5 rounding modes.
+const BINARY_OPERATION_COUNT: u64 = 15;
 const CONSTRUCTOR_OPERATION_COUNT: u64 = 36;
 
 const COMPARE_RANDOM_PAIRS32: u64 = 1 << 20;
@@ -60,6 +62,9 @@ const TO_INT_RANDOM128: u64 = 1 << 17;
 const WIDTH_RANDOM32: u64 = 1 << 18;
 const WIDTH_RANDOM64: u64 = 1 << 18;
 const WIDTH_RANDOM128: u64 = 1 << 17;
+const BINARY_RANDOM32: u64 = 1 << 18;
+const BINARY_RANDOM64: u64 = 1 << 18;
+const BINARY_RANDOM128: u64 = 1 << 17;
 const CONSTRUCTOR_RANDOM: u64 = 1 << 20;
 
 #[derive(Clone, Copy, Debug)]
@@ -472,6 +477,62 @@ fn check_width(value: RawDecimal, op: WidthOp) {
     assert_eq!(public_width(value, op), native_width(value, op), "width-conversion mismatch value={value:?} op={op:?}");
 }
 
+#[derive(Clone, Copy, Debug)]
+struct BinaryOp { source: u8, dest: u8, mode: Mode }
+
+fn binary_ops(source: u8) -> Vec<BinaryOp> {
+    let mut v = Vec::with_capacity(BINARY_OPERATION_COUNT as usize);
+    for dest in [32u8, 64, 128] {
+        v.extend(MODES.iter().copied().map(|mode| BinaryOp { source, dest, mode }));
+    }
+    v
+}
+
+fn binary128_words(value: Binary128) -> Words {
+    let raw = value.to_le_bytes();
+    Words {
+        lo: u64::from_le_bytes(raw[0..8].try_into().unwrap()),
+        hi: u64::from_le_bytes(raw[8..16].try_into().unwrap()),
+    }
+}
+
+fn native_binary(value: RawDecimal, op: BinaryOp) -> (Bits, u32) {
+    let mut flags = 0u32;
+    let bits = unsafe { match (value, op.source, op.dest) {
+        (RawDecimal::D32(x), 32, 32) => Bits::D32(libbid_sys::bid32_to_binary32(x, op.mode.native, &mut flags).to_bits()),
+        (RawDecimal::D32(x), 32, 64) => Bits::D64(libbid_sys::bid32_to_binary64(x, op.mode.native, &mut flags).to_bits()),
+        (RawDecimal::D32(x), 32, 128) => Bits::D128(c128_words(libbid_sys::bid32_to_binary128(x, op.mode.native, &mut flags))),
+        (RawDecimal::D64(x), 64, 32) => Bits::D32(libbid_sys::bid64_to_binary32(x, op.mode.native, &mut flags).to_bits()),
+        (RawDecimal::D64(x), 64, 64) => Bits::D64(libbid_sys::bid64_to_binary64(x, op.mode.native, &mut flags).to_bits()),
+        (RawDecimal::D64(x), 64, 128) => Bits::D128(c128_words(libbid_sys::bid64_to_binary128(x, op.mode.native, &mut flags))),
+        (RawDecimal::D128(x), 128, 32) => Bits::D32(libbid_sys::bid128_to_binary32(c128(x), op.mode.native, &mut flags).to_bits()),
+        (RawDecimal::D128(x), 128, 64) => Bits::D64(libbid_sys::bid128_to_binary64(c128(x), op.mode.native, &mut flags).to_bits()),
+        (RawDecimal::D128(x), 128, 128) => Bits::D128(c128_words(libbid_sys::bid128_to_binary128(c128(x), op.mode.native, &mut flags))),
+        _ => panic!("invalid binary operation {op:?} for {value:?}"),
+    }};
+    (bits, flags)
+}
+
+fn public_binary(value: RawDecimal, op: BinaryOp) -> (Bits, u32) {
+    let (bits, flags) = match (value, op.source, op.dest) {
+        (RawDecimal::D32(x), 32, 32) => { let (v, f) = Decimal32::from_bits(x).to_f32(op.mode.public); (Bits::D32(v.to_bits()), f) },
+        (RawDecimal::D32(x), 32, 64) => { let (v, f) = Decimal32::from_bits(x).to_f64(op.mode.public); (Bits::D64(v.to_bits()), f) },
+        (RawDecimal::D32(x), 32, 128) => { let (v, f) = Decimal32::from_bits(x).to_binary128(op.mode.public); (Bits::D128(binary128_words(v)), f) },
+        (RawDecimal::D64(x), 64, 32) => { let (v, f) = Decimal64::from_bits(x).to_f32(op.mode.public); (Bits::D32(v.to_bits()), f) },
+        (RawDecimal::D64(x), 64, 64) => { let (v, f) = Decimal64::from_bits(x).to_f64(op.mode.public); (Bits::D64(v.to_bits()), f) },
+        (RawDecimal::D64(x), 64, 128) => { let (v, f) = Decimal64::from_bits(x).to_binary128(op.mode.public); (Bits::D128(binary128_words(v)), f) },
+        (RawDecimal::D128(x), 128, 32) => { let (v, f) = decimal128(x).to_f32(op.mode.public); (Bits::D32(v.to_bits()), f) },
+        (RawDecimal::D128(x), 128, 64) => { let (v, f) = decimal128(x).to_f64(op.mode.public); (Bits::D64(v.to_bits()), f) },
+        (RawDecimal::D128(x), 128, 128) => { let (v, f) = decimal128(x).to_binary128(op.mode.public); (Bits::D128(binary128_words(v)), f) },
+        _ => panic!("invalid public binary operation {op:?} for {value:?}"),
+    };
+    (bits, public_raw_flags(flags))
+}
+
+fn check_binary(value: RawDecimal, op: BinaryOp) {
+    assert_eq!(public_binary(value, op), native_binary(value, op), "binary-conversion mismatch value={value:?} op={op:?}");
+}
+
 fn constructor_ops() -> Vec<ConstructorOp> {
     let mut result = Vec::with_capacity(36);
     for kind in [ConstructorKind::I32, ConstructorKind::U32, ConstructorKind::I64, ConstructorKind::U64] {
@@ -547,6 +608,9 @@ fn tier1_compare_conversion_corpus_contract() {
     assert_eq!(width_ops(32).len(), WIDTH_OPERATION_COUNT32 as usize);
     assert_eq!(width_ops(64).len(), WIDTH_OPERATION_COUNT64 as usize);
     assert_eq!(width_ops(128).len(), WIDTH_OPERATION_COUNT128 as usize);
+    assert_eq!(binary_ops(32).len(), BINARY_OPERATION_COUNT as usize);
+    assert_eq!(binary_ops(64).len(), BINARY_OPERATION_COUNT as usize);
+    assert_eq!(binary_ops(128).len(), BINARY_OPERATION_COUNT as usize);
     assert_eq!(constructor_ops().len(), CONSTRUCTOR_OPERATION_COUNT as usize);
     assert_eq!(random_word(0xdec75432c04d5001, 0, 0), @@TIER1_RANDOM_SAMPLE0@@);
     assert_eq!(random_word(0xdec75464c0a70001, (1 << 18) - 1, 0), @@TIER1_RANDOM_SAMPLE1@@);
@@ -658,6 +722,15 @@ fn tier1_conversion_structured_native_differential() {
     assert_eq!(count, WIDTH_STRUCTURED64); total += count; executed += shard.owned_count(count);
     count = 0; for &x in BOUNDARY128.iter().chain(SEMANTIC128) { for op in width_ops(128) { if shard.owns(count) { check_width(RawDecimal::D128(x), op); } count += 1; } }
     assert_eq!(count, WIDTH_STRUCTURED128); total += count; executed += shard.owned_count(count);
+    let binary_structured32 = (BOUNDARY32.len() + SEMANTIC32.len()) as u64 * BINARY_OPERATION_COUNT;
+    count = 0; for &x in BOUNDARY32.iter().chain(SEMANTIC32) { for op in binary_ops(32) { if shard.owns(count) { check_binary(RawDecimal::D32(x), op); } count += 1; } }
+    assert_eq!(count, binary_structured32); total += count; executed += shard.owned_count(count);
+    let binary_structured64 = (BOUNDARY64.len() + SEMANTIC64.len()) as u64 * BINARY_OPERATION_COUNT;
+    count = 0; for &x in BOUNDARY64.iter().chain(SEMANTIC64) { for op in binary_ops(64) { if shard.owns(count) { check_binary(RawDecimal::D64(x), op); } count += 1; } }
+    assert_eq!(count, binary_structured64); total += count; executed += shard.owned_count(count);
+    let binary_structured128 = (BOUNDARY128.len() + SEMANTIC128.len()) as u64 * BINARY_OPERATION_COUNT;
+    count = 0; for &x in BOUNDARY128.iter().chain(SEMANTIC128) { for op in binary_ops(128) { if shard.owns(count) { check_binary(RawDecimal::D128(x), op); } count += 1; } }
+    assert_eq!(count, binary_structured128); total += count; executed += shard.owned_count(count);
     count = 0;
     for &op in &ctor_ops {
         match op.kind {
@@ -688,6 +761,12 @@ fn tier1_conversion_deterministic_random_native_differential() {
     assert_eq!(count + WIDTH_STRUCTURED64, WIDTH_TOTAL64); total += count; executed += shard.owned_count(count);
     let width128 = width_ops(128); count = 0; for i in 0..WIDTH_RANDOM128 { if shard.owns(count) { check_width(RawDecimal::D128(Words { lo: random_word(0xdec754c0c0de0001, i, 0), hi: random_word(0xdec754c0c0de0001, i, 1) }), width128[i as usize % width128.len()]); } count += 1; }
     assert_eq!(count + WIDTH_STRUCTURED128, WIDTH_TOTAL128); total += count; executed += shard.owned_count(count);
+    let binary32 = binary_ops(32); count = 0; for i in 0..BINARY_RANDOM32 { if shard.owns(count) { check_binary(RawDecimal::D32(random_word(0xdec75432c0b10001, i, 0) as u32), binary32[i as usize % binary32.len()]); } count += 1; }
+    assert_eq!(count, BINARY_RANDOM32); total += count; executed += shard.owned_count(count);
+    let binary64 = binary_ops(64); count = 0; for i in 0..BINARY_RANDOM64 { if shard.owns(count) { check_binary(RawDecimal::D64(random_word(0xdec75464c0b10001, i, 0)), binary64[i as usize % binary64.len()]); } count += 1; }
+    assert_eq!(count, BINARY_RANDOM64); total += count; executed += shard.owned_count(count);
+    let binary128 = binary_ops(128); count = 0; for i in 0..BINARY_RANDOM128 { if shard.owns(count) { check_binary(RawDecimal::D128(Words { lo: random_word(0xdec754c0c0b10001, i, 0), hi: random_word(0xdec754c0c0b10001, i, 1) }), binary128[i as usize % binary128.len()]); } count += 1; }
+    assert_eq!(count, BINARY_RANDOM128); total += count; executed += shard.owned_count(count);
     count = 0; for i in 0..CONSTRUCTOR_RANDOM { if shard.owns(count) { check_constructor(random_word(0xdec754c0c0570001, i, 0), ctor_ops[i as usize % ctor_ops.len()]); } count += 1; }
     assert_eq!(count + CONSTRUCTOR_STRUCTURED, CONSTRUCTOR_TOTAL); total += count; executed += shard.owned_count(count);
     assert_eq!(total, CONVERSION_RANDOM); assert_eq!(CONVERSION_STRUCTURED + total, CONVERSION_TOTAL);

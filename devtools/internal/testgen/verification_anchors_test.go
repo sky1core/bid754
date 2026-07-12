@@ -320,7 +320,7 @@ func loadTier1CompareConversionLongInventory(t *testing.T) tier1CompareConversio
 	}
 	constants := map[string]uint64{}
 	prefixes := []string{
-		"tier1Compare", "tier1Conversion", "tier1Constructor", "tier1Quiet",
+		"tier1Binary", "tier1Compare", "tier1Conversion", "tier1Constructor", "tier1Quiet",
 		"tier1MinMax", "tier1ToInteger", "tier1Width",
 	}
 	for _, decl := range file.Decls {

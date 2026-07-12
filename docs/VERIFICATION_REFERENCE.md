@@ -106,7 +106,7 @@ The Tier 1 long Go and Rust runners are generated from shared corpus rules:
 
 - arithmetic, quantize, remainder/fmod, and ScaleB;
 - quiet comparisons and MinNum/MaxNum/MinNumMag/MaxNumMag; and
-- integer/BID and BID-width conversions.
+- integer/BID, BID-width, and one-way BID-to-binary conversions.
 
 Their exact operation census, structured/random counts, finite-transition
 limits, complete rounding-mode groups, and tuple hashes are pinned in

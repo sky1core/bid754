@@ -181,6 +181,11 @@ func tier1CompareConversionCountsFor(
 		widthRandom32     = uint64(1) << 18
 		widthRandom64     = uint64(1) << 18
 		widthRandom128    = uint64(1) << 17
+		// One-way BID -> binary interchange: 3 targets x 5 rounding modes.
+		binaryOps         = uint64(15)
+		binaryRandom32    = uint64(1) << 18
+		binaryRandom64    = uint64(1) << 18
+		binaryRandom128   = uint64(1) << 17
 		constructorRandom = uint64(1) << 20
 	)
 	compareStructured := func(boundary uint64) uint64 {
@@ -213,9 +218,12 @@ func tier1CompareConversionCountsFor(
 	result.widthTotal128 = result.widthStructured128 + widthRandom128
 	result.constructorTotal = result.constructorStructured + constructorRandom
 	result.conversionStructured = result.toIntStructured32 + result.toIntStructured64 + result.toIntStructured128 +
-		result.widthStructured32 + result.widthStructured64 + result.widthStructured128 + result.constructorStructured
+		result.widthStructured32 + result.widthStructured64 + result.widthStructured128 +
+		(boundary32+semantic32)*binaryOps + (boundary64+semantic64)*binaryOps + (boundary128+semantic128)*binaryOps +
+		result.constructorStructured
 	result.conversionRandom = toIntRandom32 + toIntRandom64 + toIntRandom128 +
-		widthRandom32 + widthRandom64 + widthRandom128 + constructorRandom
+		widthRandom32 + widthRandom64 + widthRandom128 +
+		binaryRandom32 + binaryRandom64 + binaryRandom128 + constructorRandom
 	result.conversionTotal = result.conversionStructured + result.conversionRandom
 	return result
 }

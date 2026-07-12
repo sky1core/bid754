@@ -190,6 +190,27 @@ unsafe extern "C" {
     pub fn bid128_to_bid32(x: BID_UINT128, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> BID_UINT32;
     #[link_name = "__bid128_to_bid64"]
     pub fn bid128_to_bid64(x: BID_UINT128, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> BID_UINT64;
+    // One-way BID -> binary interchange conversions. Intel declares the
+    // binary128 return with the same 128-bit two-word layout the BID_UINT128
+    // struct carries (the Go cgo oracle relies on the same equivalence).
+    #[link_name = "__bid32_to_binary32"]
+    pub fn bid32_to_binary32(x: BID_UINT32, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> f32;
+    #[link_name = "__bid32_to_binary64"]
+    pub fn bid32_to_binary64(x: BID_UINT32, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> f64;
+    #[link_name = "__bid32_to_binary128"]
+    pub fn bid32_to_binary128(x: BID_UINT32, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> BID_UINT128;
+    #[link_name = "__bid64_to_binary32"]
+    pub fn bid64_to_binary32(x: BID_UINT64, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> f32;
+    #[link_name = "__bid64_to_binary64"]
+    pub fn bid64_to_binary64(x: BID_UINT64, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> f64;
+    #[link_name = "__bid64_to_binary128"]
+    pub fn bid64_to_binary128(x: BID_UINT64, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> BID_UINT128;
+    #[link_name = "__bid128_to_binary32"]
+    pub fn bid128_to_binary32(x: BID_UINT128, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> f32;
+    #[link_name = "__bid128_to_binary64"]
+    pub fn bid128_to_binary64(x: BID_UINT128, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> f64;
+    #[link_name = "__bid128_to_binary128"]
+    pub fn bid128_to_binary128(x: BID_UINT128, rnd: _IDEC_round, pfpsf: *mut _IDEC_flags) -> BID_UINT128;
 
     // String conversions
     #[link_name = "__bid32_to_string"]

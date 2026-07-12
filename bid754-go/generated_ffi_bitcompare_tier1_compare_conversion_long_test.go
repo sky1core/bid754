@@ -6,6 +6,7 @@ package bid754
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -62,6 +63,16 @@ const (
 	tier1ToIntegerTotal64        = tier1ToIntegerStructured64 + tier1ToIntegerRandom64
 	tier1ToIntegerTotal128       = tier1ToIntegerStructured128 + tier1ToIntegerRandom128
 
+	// One-way BID -> binary interchange conversions: 3 targets x 5 rounding
+	// modes from every source width.
+	tier1BinaryOperationsPerSource = uint64(15)
+	tier1BinaryStructured32        = (tier1CompareConversionBoundary32Count + tier1ConversionSemantic32Count) * tier1BinaryOperationsPerSource
+	tier1BinaryStructured64        = (tier1CompareConversionBoundary64Count + tier1ConversionSemantic64Count) * tier1BinaryOperationsPerSource
+	tier1BinaryStructured128       = (tier1CompareConversionBoundary128Count + tier1ConversionSemantic128Count) * tier1BinaryOperationsPerSource
+	tier1BinaryRandom32            = uint64(1) << 18
+	tier1BinaryRandom64            = uint64(1) << 18
+	tier1BinaryRandom128           = uint64(1) << 17
+
 	tier1WidthOperationsFrom32  = uint64(2)
 	tier1WidthOperationsFrom64  = uint64(6)
 	tier1WidthOperationsFrom128 = uint64(10)
@@ -89,9 +100,11 @@ const (
 	tier1ConstructorConvenienceChecks = tier1ConstructorInt32Count + 2*tier1ConstructorInt64Count
 
 	tier1ConversionStructured = tier1ToIntegerStructured32 + tier1ToIntegerStructured64 + tier1ToIntegerStructured128 +
-		tier1WidthStructured32 + tier1WidthStructured64 + tier1WidthStructured128 + tier1ConstructorStructured
+		tier1WidthStructured32 + tier1WidthStructured64 + tier1WidthStructured128 +
+		tier1BinaryStructured32 + tier1BinaryStructured64 + tier1BinaryStructured128 + tier1ConstructorStructured
 	tier1ConversionRandom = tier1ToIntegerRandom32 + tier1ToIntegerRandom64 + tier1ToIntegerRandom128 +
-		tier1WidthRandom32 + tier1WidthRandom64 + tier1WidthRandom128 + tier1ConstructorRandom
+		tier1WidthRandom32 + tier1WidthRandom64 + tier1WidthRandom128 +
+		tier1BinaryRandom32 + tier1BinaryRandom64 + tier1BinaryRandom128 + tier1ConstructorRandom
 	tier1ConversionTotal = tier1ConversionStructured + tier1ConversionRandom
 )
 
@@ -923,6 +936,110 @@ func tier1CheckToInteger128(t *testing.T, value Decimal128BID, operation tier1To
 	tier1CheckToInteger(t, 128, operand, operation, public, unknownFlags)
 }
 
+type tier1BinaryOperation struct {
+	source int
+	dest   int
+	mode   tier1ArithmeticMode
+}
+
+func tier1BinaryOperations(source int) []tier1BinaryOperation {
+	var operations []tier1BinaryOperation
+	for _, dest := range []int{32, 64, 128} {
+		for _, mode := range tier1ArithmeticModes {
+			operations = append(operations, tier1BinaryOperation{source: source, dest: dest, mode: mode})
+		}
+	}
+	return operations
+}
+
+func tier1CheckBinaryConversion(t *testing.T, operation tier1BinaryOperation, operand string, public string, unknownFlags ExceptionFlags) {
+	t.Helper()
+	function := fmt.Sprintf("bid%d_to_binary%d", operation.source, operation.dest)
+	tc := generatedFFICase{
+		Format:    fmt.Sprintf("decimal%d", operation.source),
+		Operation: fmt.Sprintf("to_binary%d", operation.dest),
+		Function:  function,
+		Rounding:  operation.mode.native,
+		Operands:  []string{operand},
+	}
+	native, port, err := runGeneratedFFICaseBinaryConversion(tc)
+	if err != nil {
+		t.Fatalf("%s native/port binary conversion: %v", function, err)
+	}
+	if unknownFlags != 0 || native != port || native != public {
+		t.Fatalf("%s mismatch: operand=%s mode=%s C=%s port=%s public=%s unknown_public_flags=%s", function, operand, operation.mode.name, native, port, public, unknownFlags)
+	}
+}
+
+func tier1PublicBinary32(source Decimal32BID, operation tier1BinaryOperation) (string, ExceptionFlags) {
+	switch operation.dest {
+	case 32:
+		result, flags := source.ToBinary32(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%08x/%08x", math.Float32bits(result), rawFlags), unknown
+	case 64:
+		result, flags := source.ToBinary64(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%016x/%08x", math.Float64bits(result), rawFlags), unknown
+	case 128:
+		result, flags := source.ToBinary128(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BID(result.ToBytes())), rawFlags), unknown
+	}
+	panic(fmt.Sprintf("unknown Decimal32 binary-conversion destination %d", operation.dest))
+}
+
+func tier1PublicBinary64(source Decimal64BID, operation tier1BinaryOperation) (string, ExceptionFlags) {
+	switch operation.dest {
+	case 32:
+		result, flags := source.ToBinary32(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%08x/%08x", math.Float32bits(result), rawFlags), unknown
+	case 64:
+		result, flags := source.ToBinary64(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%016x/%08x", math.Float64bits(result), rawFlags), unknown
+	case 128:
+		result, flags := source.ToBinary128(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BID(result.ToBytes())), rawFlags), unknown
+	}
+	panic(fmt.Sprintf("unknown Decimal64 binary-conversion destination %d", operation.dest))
+}
+
+func tier1PublicBinary128(source Decimal128BID, operation tier1BinaryOperation) (string, ExceptionFlags) {
+	switch operation.dest {
+	case 32:
+		result, flags := source.ToBinary32(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%08x/%08x", math.Float32bits(result), rawFlags), unknown
+	case 64:
+		result, flags := source.ToBinary64(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%016x/%08x", math.Float64bits(result), rawFlags), unknown
+	case 128:
+		result, flags := source.ToBinary128(operation.mode.public)
+		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BID(result.ToBytes())), rawFlags), unknown
+	}
+	panic(fmt.Sprintf("unknown Decimal128 binary-conversion destination %d", operation.dest))
+}
+
+func tier1CheckBinary32(t *testing.T, value uint32, operation tier1BinaryOperation) {
+	public, unknownFlags := tier1PublicBinary32(Decimal32BID(value), operation)
+	tier1CheckBinaryConversion(t, operation, fmt.Sprintf("%08x", value), public, unknownFlags)
+}
+
+func tier1CheckBinary64(t *testing.T, value uint64, operation tier1BinaryOperation) {
+	public, unknownFlags := tier1PublicBinary64(Decimal64BID(value), operation)
+	tier1CheckBinaryConversion(t, operation, fmt.Sprintf("%016x", value), public, unknownFlags)
+}
+
+func tier1CheckBinary128(t *testing.T, value Decimal128BID, operation tier1BinaryOperation) {
+	public, unknownFlags := tier1PublicBinary128(value, operation)
+	tier1CheckBinaryConversion(t, operation, formatFFIUint128Bits(value), public, unknownFlags)
+}
+
 type tier1WidthOperation struct {
 	source  int
 	dest    int
@@ -1224,6 +1341,11 @@ func TestTier1ConversionStructuredNativeDifferential(t *testing.T) {
 		len(tier1WidthOperations(128)) != int(tier1WidthOperationsFrom128) {
 		t.Fatal("Tier 1 width-conversion operation count mismatch")
 	}
+	if len(tier1BinaryOperations(32)) != int(tier1BinaryOperationsPerSource) ||
+		len(tier1BinaryOperations(64)) != int(tier1BinaryOperationsPerSource) ||
+		len(tier1BinaryOperations(128)) != int(tier1BinaryOperationsPerSource) {
+		t.Fatal("Tier 1 binary-conversion operation count mismatch")
+	}
 	shard := tier1CompareConversionLoadShard(t)
 	var structuredTotal uint64
 	var structuredExecuted uint64
@@ -1382,6 +1504,84 @@ func TestTier1ConversionStructuredNativeDifferential(t *testing.T) {
 		t.Logf("Decimal128-source structured width exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
 	})
 
+	t.Run("binary_from_decimal32", func(t *testing.T) {
+		operations := tier1BinaryOperations(32)
+		var comparison uint64
+		visit := func(value uint32) {
+			for _, operation := range operations {
+				if shard.owns(comparison) {
+					tier1CheckBinary32(t, value, operation)
+				}
+				comparison++
+			}
+		}
+		for _, value := range tier1ArithmeticBoundary32 {
+			visit(value)
+		}
+		for _, value := range tier1ConversionSemantic32 {
+			visit(value)
+		}
+		if comparison != tier1BinaryStructured32 {
+			t.Fatalf("Decimal32-source structured binary conversions=%d want=%d", comparison, tier1BinaryStructured32)
+		}
+		structuredTotal += comparison
+		structuredExecuted += shard.ownedCount(comparison)
+		structuredDomains++
+		t.Logf("Decimal32-source structured binary exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
+	})
+
+	t.Run("binary_from_decimal64", func(t *testing.T) {
+		operations := tier1BinaryOperations(64)
+		var comparison uint64
+		visit := func(value uint64) {
+			for _, operation := range operations {
+				if shard.owns(comparison) {
+					tier1CheckBinary64(t, value, operation)
+				}
+				comparison++
+			}
+		}
+		for _, value := range tier1ArithmeticBoundary64 {
+			visit(value)
+		}
+		for _, value := range tier1ConversionSemantic64 {
+			visit(value)
+		}
+		if comparison != tier1BinaryStructured64 {
+			t.Fatalf("Decimal64-source structured binary conversions=%d want=%d", comparison, tier1BinaryStructured64)
+		}
+		structuredTotal += comparison
+		structuredExecuted += shard.ownedCount(comparison)
+		structuredDomains++
+		t.Logf("Decimal64-source structured binary exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
+	})
+
+	t.Run("binary_from_decimal128", func(t *testing.T) {
+		operations := tier1BinaryOperations(128)
+		var comparison uint64
+		visit := func(value Decimal128BID) {
+			for _, operation := range operations {
+				if shard.owns(comparison) {
+					tier1CheckBinary128(t, value, operation)
+				}
+				comparison++
+			}
+		}
+		for _, words := range tier1ArithmeticBoundary128 {
+			visit(tier1ArithmeticDecimal128(words))
+		}
+		for _, words := range tier1ConversionSemantic128 {
+			visit(tier1ArithmeticDecimal128(words))
+		}
+		if comparison != tier1BinaryStructured128 {
+			t.Fatalf("Decimal128-source structured binary conversions=%d want=%d", comparison, tier1BinaryStructured128)
+		}
+		structuredTotal += comparison
+		structuredExecuted += shard.ownedCount(comparison)
+		structuredDomains++
+		t.Logf("Decimal128-source structured binary exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
+	})
+
 	t.Run("integer_constructors", func(t *testing.T) {
 		var comparison uint64
 		for _, operation := range constructorOperations {
@@ -1442,7 +1642,7 @@ func TestTier1ConversionStructuredNativeDifferential(t *testing.T) {
 		t.Logf("exact integer-constructor convenience checks: %d", executed)
 	})
 
-	if structuredDomains == 7 {
+	if structuredDomains == 10 {
 		if structuredTotal != tier1ConversionStructured {
 			t.Fatalf("Tier 1 structured conversion comparisons=%d want=%d", structuredTotal, tier1ConversionStructured)
 		}
@@ -1556,6 +1756,55 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 		t.Logf("Decimal128-source random width exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
 	})
 
+	t.Run("binary_from_decimal32", func(t *testing.T) {
+		operations := tier1BinaryOperations(32)
+		var comparison uint64
+		for i := uint64(0); i < tier1BinaryRandom32; i++ {
+			if shard.owns(comparison) {
+				value := uint32(tier1ArithmeticRandomWord(0xdec75432c0b10001, i, 0))
+				tier1CheckBinary32(t, value, operations[i%uint64(len(operations))])
+			}
+			comparison++
+		}
+		randomTotal += comparison
+		randomExecuted += shard.ownedCount(comparison)
+		randomDomains++
+		t.Logf("Decimal32-source random binary exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
+	})
+	t.Run("binary_from_decimal64", func(t *testing.T) {
+		operations := tier1BinaryOperations(64)
+		var comparison uint64
+		for i := uint64(0); i < tier1BinaryRandom64; i++ {
+			if shard.owns(comparison) {
+				value := tier1ArithmeticRandomWord(0xdec75464c0b10001, i, 0)
+				tier1CheckBinary64(t, value, operations[i%uint64(len(operations))])
+			}
+			comparison++
+		}
+		randomTotal += comparison
+		randomExecuted += shard.ownedCount(comparison)
+		randomDomains++
+		t.Logf("Decimal64-source random binary exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
+	})
+	t.Run("binary_from_decimal128", func(t *testing.T) {
+		operations := tier1BinaryOperations(128)
+		var comparison uint64
+		for i := uint64(0); i < tier1BinaryRandom128; i++ {
+			if shard.owns(comparison) {
+				value := tier1ArithmeticDecimal128(tier1Arithmetic128Words{
+					lo: tier1ArithmeticRandomWord(0xdec754c0c0b10001, i, 0),
+					hi: tier1ArithmeticRandomWord(0xdec754c0c0b10001, i, 1),
+				})
+				tier1CheckBinary128(t, value, operations[i%uint64(len(operations))])
+			}
+			comparison++
+		}
+		randomTotal += comparison
+		randomExecuted += shard.ownedCount(comparison)
+		randomDomains++
+		t.Logf("Decimal128-source random binary exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
+	})
+
 	t.Run("integer_constructors", func(t *testing.T) {
 		var comparison uint64
 		for i := uint64(0); i < tier1ConstructorRandom; i++ {
@@ -1572,7 +1821,7 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 		t.Logf("random integer-constructor exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
 	})
 
-	if randomDomains == 7 {
+	if randomDomains == 10 {
 		if randomTotal != tier1ConversionRandom {
 			t.Fatalf("Tier 1 random conversion comparisons=%d want=%d", randomTotal, tier1ConversionRandom)
 		}
