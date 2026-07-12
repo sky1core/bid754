@@ -13,9 +13,9 @@ import (
 )
 
 var expectedGeneratedFFIFormatCounts = map[string]int{
-	"decimal128": 7504,
-	"decimal32":  7504,
-	"decimal64":  7504,
+	"decimal128": 7600,
+	"decimal32":  7600,
+	"decimal64":  7600,
 }
 
 var expectedGeneratedFFIOperationCounts = map[string]int{
@@ -45,7 +45,9 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"llquantexp":                  144,
 	"logb":                        144,
 	"maxnum":                      144,
+	"maxnum_mag":                  144,
 	"minnum":                      144,
+	"minnum_mag":                  144,
 	"mul":                         324,
 	"negate":                      144,
 	"nextdown":                    144,
@@ -198,7 +200,9 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_llquantexp":                  48,
 	"bid128_logb":                        48,
 	"bid128_maxnum":                      48,
+	"bid128_maxnum_mag":                  48,
 	"bid128_minnum":                      48,
+	"bid128_minnum_mag":                  48,
 	"bid128_mul":                         108,
 	"bid128_negate":                      48,
 	"bid128_nextdown":                    48,
@@ -347,7 +351,9 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid32_llquantexp":                   48,
 	"bid32_logb":                         48,
 	"bid32_maxnum":                       48,
+	"bid32_maxnum_mag":                   48,
 	"bid32_minnum":                       48,
+	"bid32_minnum_mag":                   48,
 	"bid32_mul":                          108,
 	"bid32_negate":                       48,
 	"bid32_nextdown":                     48,
@@ -496,7 +502,9 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid64_llquantexp":                   48,
 	"bid64_logb":                         48,
 	"bid64_maxnum":                       48,
+	"bid64_maxnum_mag":                   48,
 	"bid64_minnum":                       48,
+	"bid64_minnum_mag":                   48,
 	"bid64_mul":                          108,
 	"bid64_negate":                       48,
 	"bid64_nextdown":                     48,
@@ -622,7 +630,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 }
 
 var expectedGeneratedFFIRoundingCounts = map[int]int{
-	0: 19728,
+	0: 20016,
 	1: 720,
 	2: 720,
 	3: 672,
@@ -639,8 +647,8 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 22512 {
-		t.Fatalf("generated ffi case count = %d, want 22512", len(spec.FFICases))
+	if len(spec.FFICases) != 22800 {
+		t.Fatalf("generated ffi case count = %d, want 22800", len(spec.FFICases))
 	}
 	assertGeneratedFFICoverage(t, spec.FFICases)
 

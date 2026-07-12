@@ -26,7 +26,7 @@ const (
 	tier1ConstructorUint64Count             = uint64(@@TIER1_CONSTRUCTOR_UINT64_COUNT@@)
 
 	tier1QuietPredicateCount        = uint64(6)
-	tier1MinMaxOperationCount       = uint64(2)
+	tier1MinMaxOperationCount       = uint64(4)
 	tier1CompareMinMaxOperationCount = tier1QuietPredicateCount + tier1MinMaxOperationCount
 	tier1QuietSemanticRelationCount = uint64(16)
 	tier1CompareProbeCount          = uint64(12)
@@ -140,7 +140,7 @@ var tier1QuietPredicates = [...]string{
 	"quiet_greater_equal",
 }
 
-var tier1MinMaxOperations = [...]string{"minnum", "maxnum"}
+var tier1MinMaxOperations = [...]string{"minnum", "maxnum", "minnum_mag", "maxnum_mag"}
 
 func tier1CheckQuiet32(t *testing.T, operation string, x, y uint32) {
 	t.Helper()
@@ -250,14 +250,21 @@ func tier1CheckMinMax32(t *testing.T, operation string, x, y uint32) {
 	} else if operation == "maxnum" {
 		got, gotFlags = left.MaxNum(right)
 		pureBits = bidgo.Bid32MaxNum(x, y)
+	} else if operation == "minnum_mag" {
+		got, gotFlags = left.MinNumMag(right)
+		pureBits = bidgo.Bid32MinNumMag(x, y)
+	} else if operation == "maxnum_mag" {
+		got, gotFlags = left.MaxNumMag(right)
+		pureBits = bidgo.Bid32MaxNumMag(x, y)
 	} else {
 		t.Fatalf("decimal32 unknown Tier 1 min/max operation %q", operation)
 	}
 	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
 	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicFlags)
-	// The value-only port body (bid32_minnum_pure / bid32_maxnum_pure) is a
-	// separate implementation from the status-aware body, so its result bits
-	// are compared against the native value directly.
+	// The value-only port bodies (bid32_minnum_pure / bid32_maxnum_pure /
+	// bid32_minnum_mag_pure / bid32_maxnum_mag_pure) are separate
+	// implementations from the status-aware bodies, so their result bits are
+	// compared against the native value directly.
 	pure := fmt.Sprintf("%08x", pureBits)
 	if unknownFlags != 0 || native != port || native != public || !strings.HasPrefix(native, pure+"/") {
 		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x C=%s port=%s public=%s pure=%s unknown_public_flags=%s", operation, x, y, native, port, public, pure, unknownFlags)
@@ -274,6 +281,10 @@ func tier1CheckMinMax64(t *testing.T, operation string, x, y uint64) {
 		got, gotFlags = left.MinNum(right)
 	} else if operation == "maxnum" {
 		got, gotFlags = left.MaxNum(right)
+	} else if operation == "minnum_mag" {
+		got, gotFlags = left.MinNumMag(right)
+	} else if operation == "maxnum_mag" {
+		got, gotFlags = left.MaxNumMag(right)
 	} else {
 		t.Fatalf("decimal64 unknown Tier 1 min/max operation %q", operation)
 	}
@@ -293,6 +304,10 @@ func tier1CheckMinMax128(t *testing.T, operation string, x, y Decimal128BID) {
 		got, gotFlags = x.MinNum(y)
 	} else if operation == "maxnum" {
 		got, gotFlags = x.MaxNum(y)
+	} else if operation == "minnum_mag" {
+		got, gotFlags = x.MinNumMag(y)
+	} else if operation == "maxnum_mag" {
+		got, gotFlags = x.MaxNumMag(y)
 	} else {
 		t.Fatalf("decimal128 unknown Tier 1 min/max operation %q", operation)
 	}

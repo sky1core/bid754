@@ -1,6 +1,6 @@
 #![cfg(feature = "tier1-long")]
 
-use bid754::generated::bid32_exports::{bid32_max_num, bid32_min_num};
+use bid754::generated::bid32_exports::{bid32_max_num, bid32_max_num_mag, bid32_min_num, bid32_min_num_mag};
 use bid754::{Decimal128, Decimal32, Decimal64, ExceptionFlags, RoundingMode};
 use libbid_sys::BID_UINT128 as C128;
 
@@ -44,7 +44,7 @@ const CONVERSION_STRUCTURED: u64 = @@TIER1_CONVERSION_STRUCTURED_COUNT@@;
 const CONVERSION_RANDOM: u64 = @@TIER1_CONVERSION_RANDOM_COUNT@@;
 const CONVERSION_TOTAL: u64 = @@TIER1_CONVERSION_TOTAL_COUNT@@;
 const QUIET_PREDICATE_COUNT: u64 = 6;
-const MINMAX_OPERATION_COUNT: u64 = 2;
+const MINMAX_OPERATION_COUNT: u64 = 4;
 const TO_INT_OPERATION_COUNT: u64 = 80;
 const WIDTH_OPERATION_COUNT32: u64 = 2;
 const WIDTH_OPERATION_COUNT64: u64 = 6;
@@ -87,8 +87,8 @@ const QUIET_OPS: [QuietOp; 6] = [
 ];
 
 #[derive(Clone, Copy, Debug)]
-enum MinMaxOp { MinNum, MaxNum }
-const MINMAX_OPS: [MinMaxOp; 2] = [MinMaxOp::MinNum, MinMaxOp::MaxNum];
+enum MinMaxOp { MinNum, MaxNum, MinNumMag, MaxNumMag }
+const MINMAX_OPS: [MinMaxOp; 4] = [MinMaxOp::MinNum, MinMaxOp::MaxNum, MinMaxOp::MinNumMag, MinMaxOp::MaxNumMag];
 
 #[derive(Clone, Copy, Debug)]
 enum IntKind { I8, I16, I32, I64, U8, U16, U32, U64 }
@@ -248,14 +248,23 @@ fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid32_minnum(x, y, &mut native_flags),
         MinMaxOp::MaxNum => libbid_sys::bid32_maxnum(x, y, &mut native_flags),
+        MinMaxOp::MinNumMag => libbid_sys::bid32_minnum_mag(x, y, &mut native_flags),
+        MinMaxOp::MaxNumMag => libbid_sys::bid32_maxnum_mag(x, y, &mut native_flags),
     }};
     let left = Decimal32::from_bits(x); let right = Decimal32::from_bits(y);
-    let (public, flags) = match op { MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right) };
+    let (public, flags) = match op {
+        MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
+        MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
+    };
     assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
-    // The value-only generated body (bid32_minnum_pure / bid32_maxnum_pure) is
-    // a separate implementation from the status-aware body, so it is compared
+    // The value-only generated bodies (bid32_minnum_pure / bid32_maxnum_pure /
+    // bid32_minnum_mag_pure / bid32_maxnum_mag_pure) are separate
+    // implementations from the status-aware bodies, so they are compared
     // against the native value bits directly, mirroring the Go runner.
-    let pure = match op { MinMaxOp::MinNum => bid32_min_num(x, y), MinMaxOp::MaxNum => bid32_max_num(x, y) };
+    let pure = match op {
+        MinMaxOp::MinNum => bid32_min_num(x, y), MinMaxOp::MaxNum => bid32_max_num(x, y),
+        MinMaxOp::MinNumMag => bid32_min_num_mag(x, y), MinMaxOp::MaxNumMag => bid32_max_num_mag(x, y),
+    };
     assert_eq!(pure, native, "Decimal32 pure {op:?} x={x:08x} y={y:08x}");
 }
 
@@ -264,9 +273,14 @@ fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid64_minnum(x, y, &mut native_flags),
         MinMaxOp::MaxNum => libbid_sys::bid64_maxnum(x, y, &mut native_flags),
+        MinMaxOp::MinNumMag => libbid_sys::bid64_minnum_mag(x, y, &mut native_flags),
+        MinMaxOp::MaxNumMag => libbid_sys::bid64_maxnum_mag(x, y, &mut native_flags),
     }};
     let left = Decimal64::from_bits(x); let right = Decimal64::from_bits(y);
-    let (public, flags) = match op { MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right) };
+    let (public, flags) = match op {
+        MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
+        MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
+    };
     assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
 }
 
@@ -275,9 +289,14 @@ fn check_minmax128(op: MinMaxOp, x: Words, y: Words) {
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid128_minnum(c128(x), c128(y), &mut native_flags),
         MinMaxOp::MaxNum => libbid_sys::bid128_maxnum(c128(x), c128(y), &mut native_flags),
+        MinMaxOp::MinNumMag => libbid_sys::bid128_minnum_mag(c128(x), c128(y), &mut native_flags),
+        MinMaxOp::MaxNumMag => libbid_sys::bid128_maxnum_mag(c128(x), c128(y), &mut native_flags),
     }};
     let left = decimal128(x); let right = decimal128(y);
-    let (public, flags) = match op { MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right) };
+    let (public, flags) = match op {
+        MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
+        MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
+    };
     assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
 }
 

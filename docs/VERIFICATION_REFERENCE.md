@@ -105,7 +105,7 @@ one-way BID-to-binary conversions according to the manifest.
 The Tier 1 long Go and Rust runners are generated from shared corpus rules:
 
 - arithmetic, quantize, remainder/fmod, and ScaleB;
-- quiet comparisons and MinNum/MaxNum; and
+- quiet comparisons and MinNum/MaxNum/MinNumMag/MaxNumMag; and
 - integer/BID and BID-width conversions.
 
 Their exact operation census, structured/random counts, finite-transition

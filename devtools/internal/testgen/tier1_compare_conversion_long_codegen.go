@@ -170,8 +170,10 @@ func tier1CompareConversionCountsFor(
 	int32Count, uint32Count, int64Count, uint64Count uint64,
 ) tier1CompareConversionCounts {
 	const (
-		probes            = uint64(12)
-		compareOps        = uint64(8)
+		probes = uint64(12)
+		// 6 quiet predicates + 4 min/max operations (minnum, maxnum,
+		// minnum_mag, maxnum_mag) per visited pair.
+		compareOps = uint64(10)
 		toIntOps          = uint64(80)
 		toIntRandom32     = uint64(1) << 18
 		toIntRandom64     = uint64(1) << 18

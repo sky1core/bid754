@@ -588,8 +588,8 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 22512 {
-		t.Fatalf("generated %d ffi cases, want 22512", len(spec.FFICases))
+	if len(spec.FFICases) != 22800 {
+		t.Fatalf("generated %d ffi cases, want 22800", len(spec.FFICases))
 	}
 	ffiSymbols, err := loadSymbolFile(filepath.Join(repoRoot, "generated", "json", "intel_dfp_symbols.json"))
 	if err != nil {
@@ -650,8 +650,8 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		ffiFormatCaseCounts[tc.Format]++
 		ffiOperationCaseCounts[tc.Operation]++
 	}
-	if len(ffiFunctionCaseCounts) != 447 {
-		t.Fatalf("generated ffi function count = %d, want 447 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
+	if len(ffiFunctionCaseCounts) != 453 {
+		t.Fatalf("generated ffi function count = %d, want 453 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
 	}
 	for function, count := range ffiFunctionCaseCounts {
 		want := 48 + 4*ffiTier1RoundingEdgeCaseCount(ffiFunctionOperations[function], ffiFunctionBits[function])
@@ -660,9 +660,9 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		}
 	}
 	assertCountMap(t, "ffi formats", ffiFormatCaseCounts, map[string]int{
-		"decimal32":  7504,
-		"decimal64":  7504,
-		"decimal128": 7504,
+		"decimal32":  7600,
+		"decimal64":  7600,
+		"decimal128": 7600,
 	})
 	expectedFFIOperations := map[string]int{
 		"abs":                         144,
@@ -691,7 +691,9 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"logb":                        144,
 		"llquantexp":                  144,
 		"maxnum":                      144,
+		"maxnum_mag":                  144,
 		"minnum":                      144,
+		"minnum_mag":                  144,
 		"mul":                         324,
 		"negate":                      144,
 		"nextdown":                    144,

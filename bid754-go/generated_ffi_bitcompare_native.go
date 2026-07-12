@@ -197,7 +197,7 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		}
 		native, exposed := runGeneratedFFICase32Ternary(tc.Function, a, b, c, tc.Rounding)
 		return native, exposed, nil
-	case "bid32_add", "bid32_sub", "bid32_mul", "bid32_div", "bid32_quantize", "bid32_rem", "bid32_fmod", "bid32_minnum", "bid32_maxnum", "bid32_copySign":
+	case "bid32_add", "bid32_sub", "bid32_mul", "bid32_div", "bid32_quantize", "bid32_rem", "bid32_fmod", "bid32_minnum", "bid32_maxnum", "bid32_minnum_mag", "bid32_maxnum_mag", "bid32_copySign":
 		a, b, err := parseFFIUint32BinaryOperands(tc)
 		if err != nil {
 			return "", "", err
@@ -225,7 +225,7 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		}
 		native, exposed := runGeneratedFFICase64Ternary(tc.Function, a, b, c, tc.Rounding)
 		return native, exposed, nil
-	case "bid64_add", "bid64_sub", "bid64_mul", "bid64_div", "bid64_quantize", "bid64_rem", "bid64_fmod", "bid64_minnum", "bid64_maxnum", "bid64_copySign":
+	case "bid64_add", "bid64_sub", "bid64_mul", "bid64_div", "bid64_quantize", "bid64_rem", "bid64_fmod", "bid64_minnum", "bid64_maxnum", "bid64_minnum_mag", "bid64_maxnum_mag", "bid64_copySign":
 		a, b, err := parseFFIUint64BinaryOperands(tc)
 		if err != nil {
 			return "", "", err
@@ -253,7 +253,7 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		}
 		native, exposed := runGeneratedFFICase128Ternary(tc.Function, a, b, c, tc.Rounding)
 		return native, exposed, nil
-	case "bid128_add", "bid128_sub", "bid128_mul", "bid128_div", "bid128_quantize", "bid128_rem", "bid128_fmod", "bid128_minnum", "bid128_maxnum", "bid128_copySign":
+	case "bid128_add", "bid128_sub", "bid128_mul", "bid128_div", "bid128_quantize", "bid128_rem", "bid128_fmod", "bid128_minnum", "bid128_maxnum", "bid128_minnum_mag", "bid128_maxnum_mag", "bid128_copySign":
 		a, b, err := parseFFIUint128BinaryOperands(tc)
 		if err != nil {
 			return "", "", err
@@ -2287,6 +2287,16 @@ func runGeneratedFFICase32Binary(function string, a uint32, b uint32, rounding i
 		native := uint32(C.bid32_maxnum(C.BID_UINT32(a), C.BID_UINT32(b), &flags))
 		exposed, exposedFlags := bidgo.Bid32MaxNumWithFlags(a, b)
 		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_minnum_mag":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_minnum_mag(C.BID_UINT32(a), C.BID_UINT32(b), &flags))
+		exposed, exposedFlags := bidgo.Bid32MinNumMagWithFlags(a, b)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_maxnum_mag":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_maxnum_mag(C.BID_UINT32(a), C.BID_UINT32(b), &flags))
+		exposed, exposedFlags := bidgo.Bid32MaxNumMagWithFlags(a, b)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
 	case "bid32_copySign":
 		return fmt.Sprintf("%08x", uint32(C.bid32_copySign(C.BID_UINT32(a), C.BID_UINT32(b)))), fmt.Sprintf("%08x", bidgo.Bid32CopySign(a, b))
 	case "bid32_rem":
@@ -2402,6 +2412,16 @@ func runGeneratedFFICase64Binary(function string, a uint64, b uint64, rounding i
 		var flags C._IDEC_flags
 		native := uint64(C.bid64_maxnum(C.BID_UINT64(a), C.BID_UINT64(b), &flags))
 		exposed, exposedFlags := bidgo.Bid64MaxNum(a, b)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_minnum_mag":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_minnum_mag(C.BID_UINT64(a), C.BID_UINT64(b), &flags))
+		exposed, exposedFlags := bidgo.Bid64MinNumMag(a, b)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_maxnum_mag":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_maxnum_mag(C.BID_UINT64(a), C.BID_UINT64(b), &flags))
+		exposed, exposedFlags := bidgo.Bid64MaxNumMag(a, b)
 		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
 	case "bid64_copySign":
 		return fmt.Sprintf("%016x", uint64(C.bid64_copySign(C.BID_UINT64(a), C.BID_UINT64(b)))), fmt.Sprintf("%016x", bidgo.Bid64CopySign(a, b))
@@ -2530,6 +2550,18 @@ func runGeneratedFFICase128Binary(function string, a, b Decimal128BID, rounding 
 		native := ffiUint128FromC(C.bid128_maxnum(ca, cb, &flags))
 		var exposedFlags uint32
 		exposed := bidgo.Bid128Maxnum(ga, gb, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_minnum_mag":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_minnum_mag(ca, cb, &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128MinnumMag(ga, gb, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_maxnum_mag":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_maxnum_mag(ca, cb, &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128MaxnumMag(ga, gb, &exposedFlags)
 		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
 	case "bid128_copySign":
 		return formatFFIUint128Bits(ffiUint128FromC(C.bid128_copySign(ca, cb))), formatFFIUint128Bits(decimal128BIDFromBidgo(bidgo.Bid128CopySign(ga, gb)))

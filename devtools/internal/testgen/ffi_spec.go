@@ -419,7 +419,7 @@ func classifyFFIOperation(operation string) (ffiOperationKind, bool) {
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 2, rounding: true, flags: true}, true
 	case "scalbln":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 2, rounding: true, flags: true}, true
-	case "rem", "fmod", "minnum", "maxnum":
+	case "rem", "fmod", "minnum", "maxnum", "minnum_mag", "maxnum_mag":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 2, flags: true}, true
 	case "logb", "nextup", "nextdown", "quantum":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 1, flags: true}, true
