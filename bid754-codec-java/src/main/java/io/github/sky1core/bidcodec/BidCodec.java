@@ -3,6 +3,7 @@ package io.github.sky1core.bidcodec;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Locale;
 
 /**
  * BID (Binary Integer Decimal) encoding/decoding for IEEE 754
@@ -449,7 +450,11 @@ public final class BidCodec {
                 if (c.exponent() == 0) {
                     return prefix + "0";
                 }
-                return String.format("%s0E%+d", prefix, c.exponent());
+                // Locale.ROOT keeps the exponent digits ASCII: Formatter's %d
+                // localizes digits under a non-ASCII default FORMAT locale,
+                // which would break the ASCII output contract and the
+                // fromString round-trip.
+                return String.format(Locale.ROOT, "%s0E%+d", prefix, c.exponent());
             default:
                 break;
         }
@@ -460,9 +465,9 @@ public final class BidCodec {
         // the addition; int arithmetic here would wrap and render a wrong sign.
         long exp = (long) c.exponent() + digits.length() - 1;
         if (digits.length() == 1) {
-            return String.format("%s%sE%+d", prefix, digits, exp);
+            return String.format(Locale.ROOT, "%s%sE%+d", prefix, digits, exp);
         }
-        return String.format("%s%s.%sE%+d", prefix, digits.substring(0, 1), digits.substring(1), exp);
+        return String.format(Locale.ROOT, "%s%s.%sE%+d", prefix, digits.substring(0, 1), digits.substring(1), exp);
     }
 
     /**
@@ -479,7 +484,7 @@ public final class BidCodec {
         for (int i = 0; i < s.length(); i++) {
             char ch = s.charAt(i);
             if (ch > 0x7f) {
-                throw new IllegalArgumentException(String.format(
+                throw new IllegalArgumentException(String.format(Locale.ROOT,
                         "fromString: non-ASCII character U+%04X at index %d", (int) ch, i));
             }
         }

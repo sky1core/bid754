@@ -7,11 +7,12 @@ Intel BID C 원본을 기준으로 하는 BID 중심 IEEE 754 decimal 프로젝�
 ## 현재 상태 요약
 
 - 지금 사용 가능: Go 구현 모듈
-  `github.com/sky1core/bid754/bid754-go`(고정폭 `Decimal32/64/128`, 최신 태그
-  `bid754-go/v0.2.0`)와 standalone Go codec 모듈
-  `github.com/sky1core/bid754/bid754-codec-go`(`bid754-codec-go/v0.2.0` 태그).
-  Swift codec 은 루트 `v0.2.0` 태그로 Swift Package Manager 에서 사용
-  가능합니다.
+  `github.com/sky1core/bid754/bid754-go`(고정폭 `Decimal32/64/128`)와
+  standalone Go codec 모듈 `github.com/sky1core/bid754/bid754-codec-go`.
+  Swift codec 은 Swift Package Manager 로 사용 가능합니다. 릴리스 태그는
+  아직 push 되지 않았습니다: 패키지 manifest 버전은 0.2.0 이며, 첫
+  `bid754-go/v0.2.0` 계열 태그가 발행되기 전까지 Go/SwiftPM 소비자는
+  `main` 브랜치(또는 커밋)로 모듈을 해석합니다.
 - 발행 대기: Rust 구현 `bid754-rs` 는 이제 go2rs `apiemit` 패스로 공개 API
   표면 전체(고정폭 `Decimal32`/`Decimal64`/`Decimal128` 값 타입, parity 검증된
   wrapper 메서드/생성자, 연관 상수, 예외 플래그/라운딩 모드/클래스/

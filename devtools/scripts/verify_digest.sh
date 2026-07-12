@@ -23,7 +23,23 @@ fi
 ref_sum=""
 ref_cases=""
 ref_file=""
+ref_tree=""
 for f in "${files[@]}"; do
+    # Tree binding: digests are only comparable when every file was produced
+    # from the same identified, clean source state. Without this, digest files
+    # generated from different commits (or a dirty tree) could still "agree".
+    tree_line=$(grep '^PLATFORM-DIGEST-TREE ' "$f" | tail -1 || true)
+    if [ -z "$tree_line" ]; then
+        echo "verify-digest: $f has no PLATFORM-DIGEST-TREE line; regenerate it with the current 'make digest' / 'make verify-linux'" >&2
+        exit 1
+    fi
+    tree=${tree_line#PLATFORM-DIGEST-TREE }
+    case "$tree" in
+        ""|unknown|*-dirty)
+            echo "verify-digest: $f was produced from an unidentified, empty, or dirty tree ('$tree'); regenerate from a clean checkout" >&2
+            exit 1
+            ;;
+    esac
     line=$(grep '^PLATFORM-DIGEST ' "$f" | tail -1 || true)
     if [ -z "$line" ]; then
         echo "verify-digest: $f has no PLATFORM-DIGEST line" >&2
@@ -31,10 +47,14 @@ for f in "${files[@]}"; do
     fi
     sum=${line##*sha256=}
     cases=$(printf '%s\n' "$line" | sed -n 's/.*cases=\([0-9]*\).*/\1/p')
-    echo "$f: $line"
+    echo "$f: $line (tree=$tree)"
     if [ -z "$ref_sum" ]; then
-        ref_sum="$sum"; ref_cases="$cases"; ref_file="$f"
+        ref_sum="$sum"; ref_cases="$cases"; ref_file="$f"; ref_tree="$tree"
     else
+        if [ "$tree" != "$ref_tree" ]; then
+            echo "verify-digest: tree mismatch: $ref_file=$ref_tree vs $f=$tree (digests from different source states are not comparable)" >&2
+            exit 1
+        fi
         if [ "$cases" != "$ref_cases" ]; then
             echo "verify-digest: case-count mismatch: $ref_file=$ref_cases vs $f=$cases" >&2
             exit 1
@@ -46,4 +66,4 @@ for f in "${files[@]}"; do
     fi
 done
 
-echo "verify-digest: ${#files[@]} platforms agree (cases=$ref_cases sha256=$ref_sum)"
+echo "verify-digest: ${#files[@]} platforms agree (tree=$ref_tree cases=$ref_cases sha256=$ref_sum)"

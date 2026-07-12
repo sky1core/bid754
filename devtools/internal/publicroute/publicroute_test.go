@@ -1062,7 +1062,6 @@ func TestPublicAPIPortFunctionsAreVerifiedByADomain(t *testing.T) {
 var cgoNativeFiles = map[string]string{
 	"c_bid_benchmark_native.go":             "bid754_native-gated cgo benchmark harness comparing the Go port against native Intel BID; excluded from the public runtime build",
 	"dectest_native.go":                     "generated bid754_native-gated native decTest reference oracle; excluded from the public runtime build",
-	"ffi_native.go":                         "bid754_native-gated native FFI reference oracle backing the FFI bit-compare domain; excluded from the public runtime build",
 	"generated_readtest_dispatch_native.go": "generated bid754_native-gated native readtest dispatch oracle; excluded from the public runtime build",
 	"generated_ffi_bitcompare_native.go":    "generated bid754_native-gated native FFI bit-compare oracle; excluded from the public runtime build",
 }

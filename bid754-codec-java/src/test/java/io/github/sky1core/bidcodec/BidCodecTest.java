@@ -1,11 +1,14 @@
 package io.github.sky1core.bidcodec;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -655,6 +658,38 @@ class BidCodecTest {
                 Components c = BidCodec.fromString(s);
                 String result = BidCodec.toString(c);
                 assertEquals(s, result, "roundtrip failed for: " + s);
+            }
+        }
+    }
+
+    @Nested
+    class LocaleIndependenceTests {
+
+        @Test
+        void toStringStaysAsciiUnderNonAsciiDefaultLocale() {
+            // toString's exponent rendering must not follow the default FORMAT
+            // locale's digit system: a localized digit breaks the ASCII output
+            // contract and gets rejected by fromString, so the round-trip dies.
+            Locale nonAscii = Locale.forLanguageTag("fa-IR");
+            Assumptions.assumeTrue(
+                    DecimalFormatSymbols.getInstance(nonAscii).getZeroDigit() != '0',
+                    "JDK locale data renders fa-IR with ASCII digits; premise unavailable");
+            // Canonical forms covering all three exponent-formatting paths:
+            // zero with non-zero exponent, single-digit, and multi-digit coefficient.
+            String[] canonical = {"+0E+5", "+0E-3", "+5E+3", "-1.2345E+2", "+9E-101"};
+            Locale saved = Locale.getDefault();
+            try {
+                Locale.setDefault(nonAscii);
+                for (String s : canonical) {
+                    String rendered = BidCodec.toString(BidCodec.fromString(s));
+                    for (int i = 0; i < rendered.length(); i++) {
+                        assertTrue(rendered.charAt(i) < 0x80,
+                                "non-ASCII output under " + nonAscii + ": " + rendered);
+                    }
+                    assertEquals(s, rendered, "locale-dependent rendering for: " + s);
+                }
+            } finally {
+                Locale.setDefault(saved);
             }
         }
     }

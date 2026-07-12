@@ -194,28 +194,33 @@ build_intel_dfp() {
 create_env_file() {
     echo -e "${BLUE}환경 설정 파일 생성 중...${NC}"
     
-cat > "$PROJECT_ROOT/.env.sh" << EOF
+cat > "$PROJECT_ROOT/.env.sh" << 'EOF'
 #!/bin/bash
 # bid754 빌드 환경 설정 (자동 생성됨)
+# Intel DFP 경로는 이 파일의 위치에서 매번 계산한다. 생성 시점의 절대 경로를
+# 하드코딩하면 체크아웃 이동/이름 변경 후 다른 트리의 헤더/라이브러리를
+# 조용히 참조하게 되므로 금지.
+
+BID754_ENV_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 # 선택적 IBM decNumber 경로
-if [ -d "\$HOME/local" ]; then
-    export CGO_CFLAGS="-I\$HOME/local/include/libdecnumber -I\$HOME/local/include \$CGO_CFLAGS"
-    export CGO_LDFLAGS="-L\$HOME/local/lib \$CGO_LDFLAGS"
+if [ -d "$HOME/local" ]; then
+    export CGO_CFLAGS="-I$HOME/local/include/libdecnumber -I$HOME/local/include $CGO_CFLAGS"
+    export CGO_LDFLAGS="-L$HOME/local/lib $CGO_LDFLAGS"
 elif [ -d "/usr/local/include/libdecnumber" ]; then
-    export CGO_CFLAGS="-I/usr/local/include/libdecnumber -I/usr/local/include \$CGO_CFLAGS"
-    export CGO_LDFLAGS="-L/usr/local/lib \$CGO_LDFLAGS"
+    export CGO_CFLAGS="-I/usr/local/include/libdecnumber -I/usr/local/include $CGO_CFLAGS"
+    export CGO_LDFLAGS="-L/usr/local/lib $CGO_LDFLAGS"
 fi
 
-# Intel DFP 경로
-export CGO_CFLAGS="-I$PROJECT_ROOT/devtools/third_party/intel_dfp/include \$CGO_CFLAGS"
-export CGO_LDFLAGS="-L$PROJECT_ROOT/devtools/third_party/intel_dfp/lib \$CGO_LDFLAGS"
-export GOFLAGS="-tags=bid754_native \$GOFLAGS"
+# Intel DFP 경로 (이 체크아웃 내부)
+export CGO_CFLAGS="-I$BID754_ENV_ROOT/devtools/third_party/intel_dfp/include $CGO_CFLAGS"
+export CGO_LDFLAGS="-L$BID754_ENV_ROOT/devtools/third_party/intel_dfp/lib $CGO_LDFLAGS"
+export GOFLAGS="-tags=bid754_native $GOFLAGS"
 
 # 플랫폼별 플래그
-case "\$(uname -s)" in
+case "$(uname -s)" in
     Darwin*)
-        export CGO_LDFLAGS="-framework CoreFoundation \$CGO_LDFLAGS"
+        export CGO_LDFLAGS="-framework CoreFoundation $CGO_LDFLAGS"
         ;;
 esac
 

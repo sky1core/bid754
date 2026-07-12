@@ -66,6 +66,10 @@ run_leg() {
 
     mkdir -p test_results
     local log="test_results/latest_linux_${leg_name}_results.txt"
+    # Tree id is computed on the host at (near) tar-snapshot time: the container
+    # index has no commits, so the host stamps the digest file instead.
+    local tree_id
+    tree_id=$(bash devtools/scripts/print_tree_id.sh)
     echo "==> [$leg_name] running gates in $platform container (log: $log)"
     local cargo_registry_cache="$repo_root/.build/docker-cargo-registry"
     local tracked_index_rel=".build/verify-linux-tracked-index-${leg_name}"
@@ -115,7 +119,10 @@ run_leg() {
     # make verify-digest (PLATFORM_SPEC section 4 item 2).
     digest_line=$(grep '^PLATFORM-DIGEST ' "$log" | tail -1 || true)
     if [ -n "$digest_line" ]; then
-        printf '%s\n' "$digest_line" > "test_results/digest_linux_${arch}.txt"
+        {
+            printf 'PLATFORM-DIGEST-TREE %s\n' "$tree_id"
+            printf '%s\n' "$digest_line"
+        } > "test_results/digest_linux_${arch}.txt"
         echo "==> [$leg_name] digest captured: test_results/digest_linux_${arch}.txt"
     fi
     echo "==> [$leg_name] PASS"

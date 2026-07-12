@@ -165,15 +165,15 @@ verify-all:
 	fi
 
 _verify-all:
-	@echo "Full verification: shell script syntax, portable modules, Go dependency hygiene, zero-dependency and portable cgo-purity contracts, generated artifacts, package manifest versions, BID codec packages, vector consumers and Decimal64/128 long verification, Rust package publish-readiness verification, BID string vectors, Rust policy, and available native gates"
+	@echo "Full verification: shell script syntax, generated artifacts (inputs first, so no later gate silently skips on missing pinned inputs), portable modules, Go dependency hygiene, zero-dependency and portable cgo-purity contracts, package manifest versions, BID codec packages, vector consumers and Decimal64/128 long verification, Rust package publish-readiness verification, BID string vectors, Rust policy, and available native gates"
 	@$(MAKE) check-scripts
+	@$(MAKE) verify-generated
 	@$(MAKE) test-go-modules
 	@$(MAKE) vet-go-modules
 	@$(MAKE) verify-go-modules
 	@$(MAKE) verify-zero-deps
 	@$(MAKE) verify-portable-purity
 	@$(MAKE) test-rust
-	@$(MAKE) verify-generated
 	@$(MAKE) verify-cexport-disabled
 	@$(MAKE) verify-package-versions
 	@$(MAKE) verify-bidcodec-packages
@@ -257,7 +257,8 @@ verify-zero-deps:
 	@echo "🧊 bid754-go/bid754-codec-go/devtools zero-dependency 계약 검증..."
 	@bash -o pipefail -c 'set -e; \
 	for module in $(GO_MODULES); do \
-		out=$$(cd "$$module" && $(GOENV) go list -deps -f "{{if not .Standard}}{{.ImportPath}}{{end}}" ./... | grep -v "^github.com/sky1core/bid754/$$module" | grep -v "^$$" || true); \
+		deps=$$(cd "$$module" && $(GOENV) go list -deps -f "{{if not .Standard}}{{.ImportPath}}{{end}}" ./...); \
+		out=$$(printf "%s\n" "$$deps" | grep -v "^github.com/sky1core/bid754/$$module" | grep -v "^$$" || true); \
 		if [ -n "$$out" ]; then \
 			echo "ERROR: $$module imports non-stdlib packages outside its own module:"; \
 			echo "$$out"; \
@@ -272,7 +273,8 @@ verify-portable-purity:
 	@echo "🧊 portable 빌드 cgo 비유입 검증..."
 	@bash -o pipefail -c 'set -e; \
 	for module in $(GO_MODULES); do \
-		out=$$(cd "$$module" && CGO_ENABLED=1 $(GOENV) go list -f "{{if .CgoFiles}}{{.ImportPath}}: {{.CgoFiles}}{{end}}" ./... | grep -v "^$$" || true); \
+		files=$$(cd "$$module" && CGO_ENABLED=1 $(GOENV) go list -f "{{if .CgoFiles}}{{.ImportPath}}: {{.CgoFiles}}{{end}}" ./...); \
+		out=$$(printf "%s\n" "$$files" | grep -v "^$$" || true); \
 		if [ -n "$$out" ]; then \
 			echo "ERROR: cgo files reachable in the default (portable) build of $$module:"; \
 			echo "$$out"; \
@@ -293,7 +295,7 @@ verify-rust-overflow:
 digest:
 	@echo "🔐 플랫폼 digest 산출 (seed-sensitive core ops, generated testspec 입력)..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go run ./internal/cmd/platformdigest) | tee "test_results/digest_$$($(GOENV) go env GOOS)_$$($(GOENV) go env GOARCH).txt"'
+	@bash -o pipefail -c '( echo "PLATFORM-DIGEST-TREE $$(bash ./devtools/scripts/print_tree_id.sh)"; cd bid754-go && $(GOENV) go run ./internal/cmd/platformdigest ) | tee "test_results/digest_$$($(GOENV) go env GOOS)_$$($(GOENV) go env GOARCH).txt"'
 
 verify-digest:
 	@echo "🔐 플랫폼 digest 맞비교..."
@@ -319,6 +321,7 @@ check-scripts:
 		devtools/run_tests_and_benchmarks.sh \
 		devtools/scripts/verify_linux.sh \
 		devtools/scripts/verify_digest.sh \
+		devtools/scripts/print_tree_id.sh \
 		devtools/scripts/setup_c_libs.sh \
 		devtools/scripts/setup_dependencies.sh \
 		devtools/scripts/setup_generation_inputs.sh \
@@ -493,66 +496,77 @@ verify-generated:
 	bash ./devtools/scripts/setup_generation_inputs.sh; \
 	tmpdir=$$(mktemp -d); \
 	trap 'rm -rf "$$tmpdir"' EXIT; \
-	cp bid754-go/generated_types.go $$tmpdir/generated_types.go; \
-	cp devtools/tools/registry/symbols.json $$tmpdir/registry_symbols.json; \
-	cp devtools/tools/registry/readtest_specs.json $$tmpdir/registry_readtest_specs.json; \
-	cp devtools/generated/go/intel_dfp_tables.go $$tmpdir/intel_dfp_tables.go; \
-	cp bid754-rs/src/intel_dfp_tables.rs $$tmpdir/intel_dfp_tables.rs; \
-	cp devtools/generated/json/intel_dfp_symbols.json $$tmpdir/intel_dfp_symbols.json; \
-	mkdir -p $$tmpdir/testspec; \
-	cp -R devtools/generated/testspec/. $$tmpdir/testspec/; \
-	cp bid754-codec-vectors/vectors.json $$tmpdir/bid_codec_vectors.json; \
-	cp bid754-codec-go/vector_test.go $$tmpdir/go_bid_codec_vectors_test.go; \
-	cp bid754-codec-go/testdata/external_vector_test.go $$tmpdir/go_bid_codec_external_vectors_test.go; \
-	cp bid754-codec-go/exhaustive32_long_test.go $$tmpdir/go_bid_codec_exhaustive32_long_test.go; \
-	cp bid754-codec-go/decimal64_128_long_test.go $$tmpdir/go_bid_codec_decimal64_128_long_test.go; \
-	cp bid754-codec-rs/tests/vectors.rs $$tmpdir/standalone_rust_bid_codec_vectors.rs; \
-	cp bid754-rs/tests/bid_codec_vectors.rs $$tmpdir/rust_bid_codec_vectors.rs; \
-	cp bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java $$tmpdir/java_bid_codec_vector_runner.java; \
-	cp bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java $$tmpdir/java_bid_codec_vector_test.java; \
-	cp bid754-codec-py/tests/test_vectors.py $$tmpdir/python_bid_codec_vectors.py; \
-	cp bid754-codec-js/src/vectors.test.ts $$tmpdir/js_bid_codec_vectors.ts; \
-	cp bid754-codec-js/vector_runner.mjs $$tmpdir/js_bid_codec_vector_runner.mjs; \
-	cp bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift $$tmpdir/swift_bid_codec_vector_runner.swift; \
-	cp bid754-go/internal/bidgo/string_vectors_test.go $$tmpdir/bid_go_string_vectors_test.go; \
-	cp bid754-rs/tests/bid_string_vectors.rs $$tmpdir/rust_bid_string_vectors.rs; \
-	cp bid754-rs/tests/public_parity_generated.rs $$tmpdir/rust_public_parity_generated.rs; \
-	cp bid754-rs/ffi-verify/tests/readtest_generated.rs $$tmpdir/rust_readtest_generated.rs; \
-	cp devtools/generated/testspec/rust_readtest_dispatch_inventory.json $$tmpdir/rust_readtest_dispatch_inventory.json; \
-	cp devtools/generated/testspec/public_api_routing_inventory.json $$tmpdir/public_api_routing_inventory.json; \
-	cp bid754-go/generated_readtest_cases_native_test.go $$tmpdir/generated_readtest_cases_native_test.go; \
-	cp bid754-go/generated_readtest_cases_stub_test.go $$tmpdir/generated_readtest_cases_stub_test.go; \
-	cp bid754-go/generated_readtest_dispatch_native.go $$tmpdir/generated_readtest_dispatch_native.go; \
-	cp bid754-go/generated_readtest_dispatch_stub.go $$tmpdir/generated_readtest_dispatch_stub.go; \
-	cp bid754-go/generated_readtest_shared.go $$tmpdir/generated_readtest_shared.go; \
-	cp bid754-go/generated_readtest_goport_dispatch_test.go $$tmpdir/generated_readtest_goport_dispatch_test.go; \
-	cp bid754-go/generated_readtest_goport_cases_test.go $$tmpdir/generated_readtest_goport_cases_test.go; \
-		cp bid754-go/generated_dectest_goport_dispatch_test.go $$tmpdir/generated_dectest_goport_dispatch_test.go; \
-		cp bid754-go/generated_dectest_goport_cases_test.go $$tmpdir/generated_dectest_goport_cases_test.go; \
-	cp bid754-rs/tests/dectest_generated.rs $$tmpdir/rust_dectest_generated.rs; \
-	cp devtools/generated/testspec/dectest_rust_dispatch_inventory.json $$tmpdir/dectest_rust_dispatch_inventory.json; \
-	cp bid754-go/generated_public_parity_dispatch_test.go $$tmpdir/generated_public_parity_dispatch_test.go; \
-	cp bid754-go/generated_public_parity_cases_test.go $$tmpdir/generated_public_parity_cases_test.go; \
-	cp bid754-go/generated_dectest_cases_native_test.go $$tmpdir/generated_dectest_cases_native_test.go; \
-	cp bid754-go/generated_dectest_cases_stub_test.go $$tmpdir/generated_dectest_cases_stub_test.go; \
-	cp bid754-go/generated_dectest_dispatch.go $$tmpdir/generated_dectest_dispatch.go; \
-	for f in $(DECTEST_EXECUTOR_OUTPUTS); do cp bid754-go/$$f $$tmpdir/$$f; done; \
-	cp bid754-go/generated_ffi_bitcompare_native.go $$tmpdir/generated_ffi_bitcompare_native.go; \
-	cp bid754-go/generated_ffi_bitcompare_native_test.go $$tmpdir/generated_ffi_bitcompare_native_test.go; \
-	cp bid754-go/generated_ffi_bitcompare_stub_test.go $$tmpdir/generated_ffi_bitcompare_stub_test.go; \
-	cp bid754-go/generated_ffi_bitcompare_tier1_arithmetic_long_test.go $$tmpdir/generated_ffi_bitcompare_tier1_arithmetic_long_test.go; \
-	cp bid754-go/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go $$tmpdir/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go; \
-	cp bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs $$tmpdir/rust_tier1_arithmetic_long_generated.rs; \
-	cp bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs $$tmpdir/rust_tier1_compare_conversion_long_generated.rs; \
-	mkdir -p $$tmpdir/testspec_pkg; \
-	cp bid754-go/internal/testspec/spec.go $$tmpdir/testspec_pkg/spec.go; \
-	cp bid754-go/internal/testspec/spec_io.go $$tmpdir/testspec_pkg/spec_io.go; \
-	cp bid754-rs/src/tables.rs $$tmpdir/rust_compat_tables.rs; \
-	cp bid754-rs/src/gen_types.rs $$tmpdir/rust_gen_types.rs; \
-	cp bid754-rs/src/gen_constants.rs $$tmpdir/rust_gen_constants.rs; \
-	cp bid754-rs/src/lib.rs $$tmpdir/rust_lib_rs.rs; \
-	mkdir -p $$tmpdir/bid754_rs_generated; \
-	cp -R bid754-rs/src/generated/. $$tmpdir/bid754_rs_generated/; \
+	backup_files="bid754-go/generated_types.go \
+		devtools/tools/registry/symbols.json \
+		devtools/tools/registry/readtest_specs.json \
+		devtools/generated/go/intel_dfp_tables.go \
+		bid754-rs/src/intel_dfp_tables.rs \
+		devtools/generated/json/intel_dfp_symbols.json \
+		bid754-codec-vectors/vectors.json \
+		bid754-codec-go/vector_test.go \
+		bid754-codec-go/testdata/external_vector_test.go \
+		bid754-codec-go/exhaustive32_long_test.go \
+		bid754-codec-go/decimal64_128_long_test.go \
+		bid754-codec-rs/tests/vectors.rs \
+		bid754-rs/tests/bid_codec_vectors.rs \
+		bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java \
+		bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java \
+		bid754-codec-py/tests/test_vectors.py \
+		bid754-codec-js/src/vectors.test.ts \
+		bid754-codec-js/vector_runner.mjs \
+		bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift \
+		bid754-go/internal/bidgo/string_vectors_test.go \
+		bid754-rs/tests/bid_string_vectors.rs \
+		bid754-rs/tests/public_parity_generated.rs \
+		bid754-rs/ffi-verify/tests/readtest_generated.rs \
+		bid754-go/generated_readtest_cases_native_test.go \
+		bid754-go/generated_readtest_cases_stub_test.go \
+		bid754-go/generated_readtest_dispatch_native.go \
+		bid754-go/generated_readtest_dispatch_stub.go \
+		bid754-go/generated_readtest_shared.go \
+		bid754-go/generated_readtest_goport_dispatch_test.go \
+		bid754-go/generated_readtest_goport_cases_test.go \
+		bid754-go/generated_dectest_goport_dispatch_test.go \
+		bid754-go/generated_dectest_goport_cases_test.go \
+		bid754-rs/tests/dectest_generated.rs \
+		bid754-go/generated_public_parity_dispatch_test.go \
+		bid754-go/generated_public_parity_cases_test.go \
+		bid754-go/generated_dectest_cases_native_test.go \
+		bid754-go/generated_dectest_cases_stub_test.go \
+		bid754-go/generated_dectest_dispatch.go \
+		bid754-go/generated_ffi_bitcompare_native.go \
+		bid754-go/generated_ffi_bitcompare_native_test.go \
+		bid754-go/generated_ffi_bitcompare_stub_test.go \
+		bid754-go/generated_ffi_bitcompare_tier1_arithmetic_long_test.go \
+		bid754-go/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go \
+		bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs \
+		bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs \
+		bid754-go/internal/testspec/spec.go \
+		bid754-go/internal/testspec/spec_io.go \
+		bid754-rs/src/tables.rs \
+		bid754-rs/src/gen_types.rs \
+		bid754-rs/src/gen_constants.rs \
+		bid754-rs/src/lib.rs"; \
+	for f in $(DECTEST_EXECUTOR_OUTPUTS); do backup_files="$$backup_files bid754-go/$$f"; done; \
+	backup_dirs="devtools/generated/testspec bid754-rs/src/generated"; \
+	for p in $$backup_files; do \
+		mkdir -p "$$tmpdir/backup/$$(dirname "$$p")"; \
+		cp "$$p" "$$tmpdir/backup/$$p"; \
+	done; \
+	for d in $$backup_dirs; do \
+		mkdir -p "$$tmpdir/backup/$$d"; \
+		cp -R "$$d/." "$$tmpdir/backup/$$d/"; \
+	done; \
+	trap 'st=$$?; \
+		if [ -z "$$vg_ok" ]; then \
+			echo "verify-generated: 중단/실패 — 재생성 이전 아티팩트 상태로 복원 (재실행 시 같은 divergence가 재현됨)"; \
+			for p in $$backup_files; do cp "$$tmpdir/backup/$$p" "$$p" 2>/dev/null || true; done; \
+			for d in $$backup_dirs; do rm -rf "$$d"; mkdir -p "$$d"; cp -R "$$tmpdir/backup/$$d/." "$$d/" 2>/dev/null || true; done; \
+		fi; \
+		rm -rf "$$tmpdir"; \
+		exit $$st' EXIT; \
+	trap 'exit 130' INT; \
+	trap 'exit 143' TERM; \
 	(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./tools/symextract > "$$tmpdir/symbols.json.new"); \
 	cp "$$tmpdir/symbols.json.new" devtools/tools/registry/symbols.json; \
 	(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/go-typegen -manifest typegen_manifest.json); \
@@ -563,63 +577,71 @@ verify-generated:
 	(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./tools/go2rs_tables); \
 	(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./tools/codegen --target=rust); \
 	(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./tools/codegen --target=readtest-rust); \
-	cmp -s bid754-go/generated_types.go $$tmpdir/generated_types.go; \
-	cmp -s devtools/tools/registry/symbols.json $$tmpdir/registry_symbols.json; \
-	cmp -s devtools/tools/registry/readtest_specs.json $$tmpdir/registry_readtest_specs.json; \
-	cmp -s devtools/generated/go/intel_dfp_tables.go $$tmpdir/intel_dfp_tables.go; \
-	cmp -s bid754-rs/src/intel_dfp_tables.rs $$tmpdir/intel_dfp_tables.rs; \
-	cmp -s devtools/generated/json/intel_dfp_symbols.json $$tmpdir/intel_dfp_symbols.json; \
-	diff -r $$tmpdir/testspec devtools/generated/testspec >/dev/null; \
-	cmp -s bid754-codec-vectors/vectors.json $$tmpdir/bid_codec_vectors.json; \
-	cmp -s bid754-codec-go/vector_test.go $$tmpdir/go_bid_codec_vectors_test.go; \
-	cmp -s bid754-codec-go/testdata/external_vector_test.go $$tmpdir/go_bid_codec_external_vectors_test.go; \
-	cmp -s bid754-codec-go/exhaustive32_long_test.go $$tmpdir/go_bid_codec_exhaustive32_long_test.go; \
-	cmp -s bid754-codec-go/decimal64_128_long_test.go $$tmpdir/go_bid_codec_decimal64_128_long_test.go; \
-	cmp -s bid754-codec-rs/tests/vectors.rs $$tmpdir/standalone_rust_bid_codec_vectors.rs; \
-	cmp -s bid754-rs/tests/bid_codec_vectors.rs $$tmpdir/rust_bid_codec_vectors.rs; \
-	cmp -s bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java $$tmpdir/java_bid_codec_vector_runner.java; \
-	cmp -s bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java $$tmpdir/java_bid_codec_vector_test.java; \
-	cmp -s bid754-codec-py/tests/test_vectors.py $$tmpdir/python_bid_codec_vectors.py; \
-	cmp -s bid754-codec-js/src/vectors.test.ts $$tmpdir/js_bid_codec_vectors.ts; \
-	cmp -s bid754-codec-js/vector_runner.mjs $$tmpdir/js_bid_codec_vector_runner.mjs; \
-	cmp -s bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift $$tmpdir/swift_bid_codec_vector_runner.swift; \
-	cmp -s bid754-go/internal/bidgo/string_vectors_test.go $$tmpdir/bid_go_string_vectors_test.go; \
-	cmp -s bid754-rs/tests/bid_string_vectors.rs $$tmpdir/rust_bid_string_vectors.rs; \
-	cmp -s bid754-rs/tests/public_parity_generated.rs $$tmpdir/rust_public_parity_generated.rs; \
-	cmp -s bid754-rs/ffi-verify/tests/readtest_generated.rs $$tmpdir/rust_readtest_generated.rs; \
-	cmp -s devtools/generated/testspec/rust_readtest_dispatch_inventory.json $$tmpdir/rust_readtest_dispatch_inventory.json; \
-	cmp -s devtools/generated/testspec/public_api_routing_inventory.json $$tmpdir/public_api_routing_inventory.json; \
-	cmp -s bid754-go/generated_readtest_cases_native_test.go $$tmpdir/generated_readtest_cases_native_test.go; \
-	cmp -s bid754-go/generated_readtest_cases_stub_test.go $$tmpdir/generated_readtest_cases_stub_test.go; \
-	cmp -s bid754-go/generated_readtest_dispatch_native.go $$tmpdir/generated_readtest_dispatch_native.go; \
-	cmp -s bid754-go/generated_readtest_dispatch_stub.go $$tmpdir/generated_readtest_dispatch_stub.go; \
-	cmp -s bid754-go/generated_readtest_shared.go $$tmpdir/generated_readtest_shared.go; \
-	cmp -s bid754-go/generated_readtest_goport_dispatch_test.go $$tmpdir/generated_readtest_goport_dispatch_test.go; \
-	cmp -s bid754-go/generated_readtest_goport_cases_test.go $$tmpdir/generated_readtest_goport_cases_test.go; \
-		cmp -s bid754-go/generated_dectest_goport_dispatch_test.go $$tmpdir/generated_dectest_goport_dispatch_test.go; \
-		cmp -s bid754-go/generated_dectest_goport_cases_test.go $$tmpdir/generated_dectest_goport_cases_test.go; \
-	cmp -s bid754-rs/tests/dectest_generated.rs $$tmpdir/rust_dectest_generated.rs; \
-	cmp -s devtools/generated/testspec/dectest_rust_dispatch_inventory.json $$tmpdir/dectest_rust_dispatch_inventory.json; \
-	cmp -s bid754-go/generated_public_parity_dispatch_test.go $$tmpdir/generated_public_parity_dispatch_test.go; \
-	cmp -s bid754-go/generated_public_parity_cases_test.go $$tmpdir/generated_public_parity_cases_test.go; \
-	cmp -s bid754-go/generated_dectest_cases_native_test.go $$tmpdir/generated_dectest_cases_native_test.go; \
-	cmp -s bid754-go/generated_dectest_cases_stub_test.go $$tmpdir/generated_dectest_cases_stub_test.go; \
-	cmp -s bid754-go/generated_dectest_dispatch.go $$tmpdir/generated_dectest_dispatch.go; \
-	for f in $(DECTEST_EXECUTOR_OUTPUTS); do cmp -s bid754-go/$$f $$tmpdir/$$f; done; \
-	cmp -s bid754-go/generated_ffi_bitcompare_native.go $$tmpdir/generated_ffi_bitcompare_native.go; \
-	cmp -s bid754-go/generated_ffi_bitcompare_native_test.go $$tmpdir/generated_ffi_bitcompare_native_test.go; \
-	cmp -s bid754-go/generated_ffi_bitcompare_stub_test.go $$tmpdir/generated_ffi_bitcompare_stub_test.go; \
-	cmp -s bid754-go/generated_ffi_bitcompare_tier1_arithmetic_long_test.go $$tmpdir/generated_ffi_bitcompare_tier1_arithmetic_long_test.go; \
-	cmp -s bid754-go/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go $$tmpdir/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go; \
-	cmp -s bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs $$tmpdir/rust_tier1_arithmetic_long_generated.rs; \
-	cmp -s bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs $$tmpdir/rust_tier1_compare_conversion_long_generated.rs; \
-	cmp -s bid754-go/internal/testspec/spec.go $$tmpdir/testspec_pkg/spec.go; \
-	cmp -s bid754-go/internal/testspec/spec_io.go $$tmpdir/testspec_pkg/spec_io.go; \
-	cmp -s bid754-rs/src/tables.rs $$tmpdir/rust_compat_tables.rs; \
-	cmp -s bid754-rs/src/gen_types.rs $$tmpdir/rust_gen_types.rs; \
-	cmp -s bid754-rs/src/gen_constants.rs $$tmpdir/rust_gen_constants.rs; \
-	cmp -s bid754-rs/src/lib.rs $$tmpdir/rust_lib_rs.rs; \
-	diff -ru $$tmpdir/bid754_rs_generated bid754-rs/src/generated >/dev/null
+	failed=""; \
+	cmp -s bid754-go/generated_types.go $$tmpdir/backup/bid754-go/generated_types.go || failed="$$failed bid754-go/generated_types.go"; \
+	cmp -s devtools/tools/registry/symbols.json $$tmpdir/backup/devtools/tools/registry/symbols.json || failed="$$failed devtools/tools/registry/symbols.json"; \
+	cmp -s devtools/tools/registry/readtest_specs.json $$tmpdir/backup/devtools/tools/registry/readtest_specs.json || failed="$$failed devtools/tools/registry/readtest_specs.json"; \
+	cmp -s devtools/generated/go/intel_dfp_tables.go $$tmpdir/backup/devtools/generated/go/intel_dfp_tables.go || failed="$$failed devtools/generated/go/intel_dfp_tables.go"; \
+	cmp -s bid754-rs/src/intel_dfp_tables.rs $$tmpdir/backup/bid754-rs/src/intel_dfp_tables.rs || failed="$$failed bid754-rs/src/intel_dfp_tables.rs"; \
+	cmp -s devtools/generated/json/intel_dfp_symbols.json $$tmpdir/backup/devtools/generated/json/intel_dfp_symbols.json || failed="$$failed devtools/generated/json/intel_dfp_symbols.json"; \
+	cmp -s bid754-codec-vectors/vectors.json $$tmpdir/backup/bid754-codec-vectors/vectors.json || failed="$$failed bid754-codec-vectors/vectors.json"; \
+	cmp -s bid754-codec-go/vector_test.go $$tmpdir/backup/bid754-codec-go/vector_test.go || failed="$$failed bid754-codec-go/vector_test.go"; \
+	cmp -s bid754-codec-go/testdata/external_vector_test.go $$tmpdir/backup/bid754-codec-go/testdata/external_vector_test.go || failed="$$failed bid754-codec-go/testdata/external_vector_test.go"; \
+	cmp -s bid754-codec-go/exhaustive32_long_test.go $$tmpdir/backup/bid754-codec-go/exhaustive32_long_test.go || failed="$$failed bid754-codec-go/exhaustive32_long_test.go"; \
+	cmp -s bid754-codec-go/decimal64_128_long_test.go $$tmpdir/backup/bid754-codec-go/decimal64_128_long_test.go || failed="$$failed bid754-codec-go/decimal64_128_long_test.go"; \
+	cmp -s bid754-codec-rs/tests/vectors.rs $$tmpdir/backup/bid754-codec-rs/tests/vectors.rs || failed="$$failed bid754-codec-rs/tests/vectors.rs"; \
+	cmp -s bid754-rs/tests/bid_codec_vectors.rs $$tmpdir/backup/bid754-rs/tests/bid_codec_vectors.rs || failed="$$failed bid754-rs/tests/bid_codec_vectors.rs"; \
+	cmp -s bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java $$tmpdir/backup/bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java || failed="$$failed bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java"; \
+	cmp -s bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java $$tmpdir/backup/bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java || failed="$$failed bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java"; \
+	cmp -s bid754-codec-py/tests/test_vectors.py $$tmpdir/backup/bid754-codec-py/tests/test_vectors.py || failed="$$failed bid754-codec-py/tests/test_vectors.py"; \
+	cmp -s bid754-codec-js/src/vectors.test.ts $$tmpdir/backup/bid754-codec-js/src/vectors.test.ts || failed="$$failed bid754-codec-js/src/vectors.test.ts"; \
+	cmp -s bid754-codec-js/vector_runner.mjs $$tmpdir/backup/bid754-codec-js/vector_runner.mjs || failed="$$failed bid754-codec-js/vector_runner.mjs"; \
+	cmp -s bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift $$tmpdir/backup/bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift || failed="$$failed bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift"; \
+	cmp -s bid754-go/internal/bidgo/string_vectors_test.go $$tmpdir/backup/bid754-go/internal/bidgo/string_vectors_test.go || failed="$$failed bid754-go/internal/bidgo/string_vectors_test.go"; \
+	cmp -s bid754-rs/tests/bid_string_vectors.rs $$tmpdir/backup/bid754-rs/tests/bid_string_vectors.rs || failed="$$failed bid754-rs/tests/bid_string_vectors.rs"; \
+	cmp -s bid754-rs/tests/public_parity_generated.rs $$tmpdir/backup/bid754-rs/tests/public_parity_generated.rs || failed="$$failed bid754-rs/tests/public_parity_generated.rs"; \
+	cmp -s bid754-rs/ffi-verify/tests/readtest_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/readtest_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/readtest_generated.rs"; \
+	cmp -s bid754-go/generated_readtest_cases_native_test.go $$tmpdir/backup/bid754-go/generated_readtest_cases_native_test.go || failed="$$failed bid754-go/generated_readtest_cases_native_test.go"; \
+	cmp -s bid754-go/generated_readtest_cases_stub_test.go $$tmpdir/backup/bid754-go/generated_readtest_cases_stub_test.go || failed="$$failed bid754-go/generated_readtest_cases_stub_test.go"; \
+	cmp -s bid754-go/generated_readtest_dispatch_native.go $$tmpdir/backup/bid754-go/generated_readtest_dispatch_native.go || failed="$$failed bid754-go/generated_readtest_dispatch_native.go"; \
+	cmp -s bid754-go/generated_readtest_dispatch_stub.go $$tmpdir/backup/bid754-go/generated_readtest_dispatch_stub.go || failed="$$failed bid754-go/generated_readtest_dispatch_stub.go"; \
+	cmp -s bid754-go/generated_readtest_shared.go $$tmpdir/backup/bid754-go/generated_readtest_shared.go || failed="$$failed bid754-go/generated_readtest_shared.go"; \
+	cmp -s bid754-go/generated_readtest_goport_dispatch_test.go $$tmpdir/backup/bid754-go/generated_readtest_goport_dispatch_test.go || failed="$$failed bid754-go/generated_readtest_goport_dispatch_test.go"; \
+	cmp -s bid754-go/generated_readtest_goport_cases_test.go $$tmpdir/backup/bid754-go/generated_readtest_goport_cases_test.go || failed="$$failed bid754-go/generated_readtest_goport_cases_test.go"; \
+	cmp -s bid754-go/generated_dectest_goport_dispatch_test.go $$tmpdir/backup/bid754-go/generated_dectest_goport_dispatch_test.go || failed="$$failed bid754-go/generated_dectest_goport_dispatch_test.go"; \
+	cmp -s bid754-go/generated_dectest_goport_cases_test.go $$tmpdir/backup/bid754-go/generated_dectest_goport_cases_test.go || failed="$$failed bid754-go/generated_dectest_goport_cases_test.go"; \
+	cmp -s bid754-rs/tests/dectest_generated.rs $$tmpdir/backup/bid754-rs/tests/dectest_generated.rs || failed="$$failed bid754-rs/tests/dectest_generated.rs"; \
+	cmp -s bid754-go/generated_public_parity_dispatch_test.go $$tmpdir/backup/bid754-go/generated_public_parity_dispatch_test.go || failed="$$failed bid754-go/generated_public_parity_dispatch_test.go"; \
+	cmp -s bid754-go/generated_public_parity_cases_test.go $$tmpdir/backup/bid754-go/generated_public_parity_cases_test.go || failed="$$failed bid754-go/generated_public_parity_cases_test.go"; \
+	cmp -s bid754-go/generated_dectest_cases_native_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_native_test.go || failed="$$failed bid754-go/generated_dectest_cases_native_test.go"; \
+	cmp -s bid754-go/generated_dectest_cases_stub_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_stub_test.go || failed="$$failed bid754-go/generated_dectest_cases_stub_test.go"; \
+	cmp -s bid754-go/generated_dectest_dispatch.go $$tmpdir/backup/bid754-go/generated_dectest_dispatch.go || failed="$$failed bid754-go/generated_dectest_dispatch.go"; \
+	cmp -s bid754-go/generated_ffi_bitcompare_native.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_native.go || failed="$$failed bid754-go/generated_ffi_bitcompare_native.go"; \
+	cmp -s bid754-go/generated_ffi_bitcompare_native_test.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_native_test.go || failed="$$failed bid754-go/generated_ffi_bitcompare_native_test.go"; \
+	cmp -s bid754-go/generated_ffi_bitcompare_stub_test.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_stub_test.go || failed="$$failed bid754-go/generated_ffi_bitcompare_stub_test.go"; \
+	cmp -s bid754-go/generated_ffi_bitcompare_tier1_arithmetic_long_test.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_tier1_arithmetic_long_test.go || failed="$$failed bid754-go/generated_ffi_bitcompare_tier1_arithmetic_long_test.go"; \
+	cmp -s bid754-go/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go || failed="$$failed bid754-go/generated_ffi_bitcompare_tier1_compare_conversion_long_test.go"; \
+	cmp -s bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs"; \
+	cmp -s bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs"; \
+	cmp -s bid754-go/internal/testspec/spec.go $$tmpdir/backup/bid754-go/internal/testspec/spec.go || failed="$$failed bid754-go/internal/testspec/spec.go"; \
+	cmp -s bid754-go/internal/testspec/spec_io.go $$tmpdir/backup/bid754-go/internal/testspec/spec_io.go || failed="$$failed bid754-go/internal/testspec/spec_io.go"; \
+	cmp -s bid754-rs/src/tables.rs $$tmpdir/backup/bid754-rs/src/tables.rs || failed="$$failed bid754-rs/src/tables.rs"; \
+	cmp -s bid754-rs/src/gen_types.rs $$tmpdir/backup/bid754-rs/src/gen_types.rs || failed="$$failed bid754-rs/src/gen_types.rs"; \
+	cmp -s bid754-rs/src/gen_constants.rs $$tmpdir/backup/bid754-rs/src/gen_constants.rs || failed="$$failed bid754-rs/src/gen_constants.rs"; \
+	cmp -s bid754-rs/src/lib.rs $$tmpdir/backup/bid754-rs/src/lib.rs || failed="$$failed bid754-rs/src/lib.rs"; \
+	cmp -s devtools/generated/testspec/rust_readtest_dispatch_inventory.json $$tmpdir/backup/devtools/generated/testspec/rust_readtest_dispatch_inventory.json || failed="$$failed devtools/generated/testspec/rust_readtest_dispatch_inventory.json"; \
+	cmp -s devtools/generated/testspec/public_api_routing_inventory.json $$tmpdir/backup/devtools/generated/testspec/public_api_routing_inventory.json || failed="$$failed devtools/generated/testspec/public_api_routing_inventory.json"; \
+	cmp -s devtools/generated/testspec/dectest_rust_dispatch_inventory.json $$tmpdir/backup/devtools/generated/testspec/dectest_rust_dispatch_inventory.json || failed="$$failed devtools/generated/testspec/dectest_rust_dispatch_inventory.json"; \
+	for f in $(DECTEST_EXECUTOR_OUTPUTS); do cmp -s bid754-go/$$f $$tmpdir/backup/bid754-go/$$f || failed="$$failed bid754-go/$$f"; done; \
+	diff -r $$tmpdir/backup/devtools/generated/testspec devtools/generated/testspec >/dev/null || failed="$$failed devtools/generated/testspec"; \
+	diff -ru $$tmpdir/backup/bid754-rs/src/generated bid754-rs/src/generated >/dev/null || failed="$$failed bid754-rs/src/generated"; \
+	if [ -n "$$failed" ]; then \
+		echo "❌ verify-generated: 재생성 결과가 체크인 아티팩트와 다른 항목:"; \
+		for p in $$failed; do echo "   $$p"; done; \
+		echo "   (선언된 백업 집합만 복원됨 — 생성기가 목록 밖 경로에 쓴 신규 파일은 git status로 확인)"; \
+		exit 1; \
+	fi; \
+	vg_ok=1
 	@$(MAKE) check-generated-markers
 	@echo "🔎 검증 앵커(카운트+내용 해시) 재검증 실행 (-count=1, 테스트 결과 캐시 사용 안 함)..."
 	@(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go test -count=1 -run '^(TestVerificationAnchorsMatchGeneratedArtifacts|TestVerificationArtifactContentHashes)$$' ./internal/testgen)

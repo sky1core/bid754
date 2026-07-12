@@ -1,7 +1,8 @@
 // Ported from: Intel bid128_fma.c: bid128_ext_fma
 // Mechanical translation - all logic preserved exactly.
 // This is the core FMA engine for Decimal128.
-// Work in progress - NaN/Inf/Zero handling complete, arithmetic body pending.
+// NaN/Inf/Zero handling lives in this file; the full arithmetic body is
+// ported in bid128_fma_body.go (split from the same Intel source file).
 
 package bidgo
 

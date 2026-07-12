@@ -97,13 +97,13 @@ Regression tests were added for both upstream release-note cases.
 - C table generation produced no checked-in table changes.
 - C symbol generation produced no checked-in symbol inventory changes.
 - At the v20U4 upgrade review point, `readtest` generated cases changed from
-  79,056 to 79,060. The current checked-in supported-surface profile has since
-  expanded to 84,566 generated `readtest` cases (84,521 from the Intel readtest
-  profile plus 45 IEEE-deviation regression supplement rows). The current count
-  is carried by the generated testspec inventory (`spec_index.json` plus its
-  referenced `readtest/` shards) and pinned in `devtools/verification_anchors.json`;
-  `TEST_GENERATION_SPEC.md` defines that ownership boundary rather than duplicating
-  the measurement.
+  79,056 to 79,060. The checked-in supported-surface profile has since
+  expanded (Intel readtest profile rows plus the IEEE-deviation regression
+  supplement rows). The current total is carried by the generated testspec
+  inventory (`spec_index.json` plus its referenced `readtest/` shards) and
+  pinned in `devtools/verification_anchors.json`; `TEST_GENERATION_SPEC.md`
+  defines that ownership boundary rather than duplicating the measurement, so
+  this record does not restate the moving total.
 - The added generated readtest coverage exposed the decimal128 long-string bug in generated Rust before the Go port was updated.
 - Native readtest helper parsing was adjusted to match Intel `readtest.c` two-word 128-bit hex parsing for bracketed BID128 literals.
 

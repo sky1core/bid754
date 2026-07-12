@@ -47,10 +47,13 @@ the portable cgo-purity contract, generated Rust tests, generated-artifact
 reproducibility,
 verification that the inactive `bid754-go/internal/bidgo/cexport` module remains outside normal link inputs, the
 package manifest version agreement verification, the six-language standalone BID
-codec package verification and vector consumers, the `bid754-rs` publish-package
+codec package verification and vector consumers, the Decimal64/128 BID codec
+long differential verification, the `bid754-rs` publish-package
 shape verification, BID string vector verification, the
-generated Rust overflow policy verification, and the native smoke/generated
-FFI/generated readtest/generated decTest/Rust native gates. The native gates
+generated Rust overflow policy verification, and the native gates: native
+smoke, generated FFI bit-compare, the Go and Rust Tier 1 arithmetic and
+compare/conversion long differentials, generated readtest, generated decTest,
+Rust native readtest, and the Rust ffi-fuzz auxiliary. The native gates
 are required by default: when `.env.sh`, Intel BID `libbid.a`, or IBM
 decNumber are missing, the target fails; set
 `VERIFY_ALL_ALLOW_MISSING_NATIVE=1` to skip the native gates explicitly.

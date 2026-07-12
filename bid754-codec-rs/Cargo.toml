@@ -10,6 +10,9 @@ documentation = "https://docs.rs/bid754-codec"
 license = "MIT"
 keywords = ["ieee-754", "decimal", "bid", "codec", "floating-point"]
 categories = ["encoding", "no-std", "mathematics"]
+# crates.io publication is a separate user-approved release decision, same as
+# bid754-rs; flip this deliberately at first release (cargo package still works).
+publish = false
 # The integration tests read the repo-level fixture
 # (../bid754-codec-vectors/vectors.json), so they are excluded from the
 # published package; they still run from a repo checkout.
