@@ -1,0 +1,14 @@
+# Exceptions for devtools/scripts/check_generated_marker_coverage.sh.
+#
+# Format: one repo-relative path per line; "#" starts a comment.
+# Every entry must be a tracked file that carries a generated-code marker but
+# is intentionally NOT part of the verify-generated comparison set, and every
+# entry must document why it is excluded.
+
+# Hand-ported table literals from Intel bid_binarydecimal.c. The file header
+# claims generation, but no in-repo generator reproduces it byte-for-byte, so
+# verify-generated cannot compare it. Its values are anchored instead by
+# devtools/internal/tablecrosscheck, which value-compares every
+# tablegen_manifest.json table (these included) against the c-tablegen output
+# generated from the pinned Intel C sources.
+bid754-go/internal/bidgo/tables_binarydecimal.go

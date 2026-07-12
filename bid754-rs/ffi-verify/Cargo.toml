@@ -1,0 +1,23 @@
+[package]
+name = "bid754-ffi-verify"
+version = "0.1.0"
+edition = "2021"
+description = "Repo-internal FFI verification harness: compares the generated Rust bid754 implementation against the Intel BID C oracle"
+license = "MIT AND BSD-3-Clause"
+repository = "https://github.com/sky1core/bid754"
+publish = false
+
+[features]
+# ffi-fuzz additionally enables the randomized Rust-vs-C fuzz harness
+# (tests/fuzz_vs_c.rs) on top of the always-on generated readtest runner.
+ffi-fuzz = []
+# tier1-long enables the generator-owned structured and deterministic raw
+# Rust public API vs Intel BID C exact bit/flag corpus. It stays separate from
+# the regular readtest runner so reduced smoke runs cannot be reported as the
+# long boundary.
+tier1-long = []
+
+[dev-dependencies]
+bid754 = { path = ".." }
+libbid-sys = { path = "../libbid-sys" }
+rand = "=0.8.6"

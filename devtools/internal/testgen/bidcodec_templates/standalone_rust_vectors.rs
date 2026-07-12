@@ -1,0 +1,886 @@
+use bid754_codec::{
+    decode128, decode128_bytes, decode32, decode32_bytes, decode64, decode64_bytes, encode128,
+    encode128_bytes, encode32, encode32_bytes, encode64, encode64_bytes, from_string, to_string,
+    try_decode128_bytes, try_decode32_bytes, try_decode64_bytes, Kind,
+};
+use serde::Deserialize;
+use std::fs;
+use std::path::PathBuf;
+
+#[derive(Deserialize)]
+struct Vector {
+    #[serde(rename = "type")]
+    typ: String,
+    hex: String,
+    #[serde(default)]
+    hex_hi: Option<String>,
+    sign: bool,
+    #[serde(default)]
+    coefficient: String,
+    exponent: i32,
+    kind: String,
+    decimal_string: String,
+    canonical: bool,
+    #[serde(default)]
+    payload: Option<String>,
+    #[serde(default)]
+    encoded_hex: Option<String>,
+    #[serde(default)]
+    encoded_hi: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct VectorFile {
+    format_version: u32,
+    vectors: Vec<Vector>,
+    reject_vectors: Vec<RejectVector>,
+    string_vectors: Vec<StringVector>,
+}
+
+/// One string_vectors success record: from_string(input) must succeed and
+/// to_string of the result must equal expected exactly.
+#[derive(Deserialize)]
+struct StringVector {
+    input: String,
+    expected: String,
+}
+
+#[derive(Deserialize)]
+struct RejectVector {
+    channel: String,
+    #[serde(default, rename = "type")]
+    typ: String,
+    #[serde(default)]
+    input: String,
+    #[serde(default)]
+    sign: bool,
+    #[serde(default)]
+    kind: String,
+    #[serde(default)]
+    coefficient: String,
+    #[serde(default)]
+    exponent: i32,
+    #[serde(default)]
+    payload: String,
+    reason: String,
+    #[serde(default)]
+    requires: Option<String>,
+}
+
+const EXPECTED_FORMAT_VERSION: u32 = {{BID_CODEC_VECTOR_FORMAT_VERSION}};
+const EXPECTED_REJECT_TOTAL: usize = {{BID_CODEC_REJECT_TOTAL}};
+const EXPECTED_REJECT_CONSUMED: usize = {{BID_CODEC_RUST_REJECT_CONSUMED}};
+const EXPECTED_REJECT_SKIPPED: usize = {{BID_CODEC_RUST_REJECT_SKIPPED}};
+const EXPECTED_STRING_TOTAL: usize = {{BID_CODEC_STRING_TOTAL}};
+const EXPECTED_TOTAL: usize = {{BID_CODEC_VECTOR_TOTAL}};
+const EXPECTED_BID32: usize = {{BID_CODEC_BID32_TOTAL}};
+const EXPECTED_BID64: usize = {{BID_CODEC_BID64_TOTAL}};
+const EXPECTED_BID128: usize = {{BID_CODEC_BID128_TOTAL}};
+const EXPECTED_BID32_CANONICAL: usize = {{BID_CODEC_BID32_CANONICAL}};
+const EXPECTED_BID64_CANONICAL: usize = {{BID_CODEC_BID64_CANONICAL}};
+const EXPECTED_BID128_CANONICAL: usize = {{BID_CODEC_BID128_CANONICAL}};
+
+fn assert_vector_profile(vectors: &[Vector]) {
+    let mut bid32 = 0usize;
+    let mut bid64 = 0usize;
+    let mut bid128 = 0usize;
+    let mut bid32_canonical = 0usize;
+    let mut bid64_canonical = 0usize;
+    let mut bid128_canonical = 0usize;
+
+    for v in vectors {
+        match v.typ.as_str() {
+            "bid32" => {
+                bid32 += 1;
+                if v.canonical {
+                    bid32_canonical += 1;
+                }
+            }
+            "bid64" => {
+                bid64 += 1;
+                if v.canonical {
+                    bid64_canonical += 1;
+                }
+            }
+            "bid128" => {
+                bid128 += 1;
+                if v.canonical {
+                    bid128_canonical += 1;
+                }
+            }
+            other => panic!("unknown vector type: {}", other),
+        }
+    }
+
+    assert_eq!(vectors.len(), EXPECTED_TOTAL, "BID codec vector total changed");
+    assert_eq!(bid32, EXPECTED_BID32, "BID32 vector count changed");
+    assert_eq!(bid64, EXPECTED_BID64, "BID64 vector count changed");
+    assert_eq!(bid128, EXPECTED_BID128, "BID128 vector count changed");
+    assert_eq!(bid32_canonical, EXPECTED_BID32_CANONICAL, "BID32 canonical vector count changed");
+    assert_eq!(bid64_canonical, EXPECTED_BID64_CANONICAL, "BID64 canonical vector count changed");
+    assert_eq!(bid128_canonical, EXPECTED_BID128_CANONICAL, "BID128 canonical vector count changed");
+}
+
+#[test]
+fn test_bid_codec_error_semantics() {
+    assert!(try_decode32_bytes(&[0; 3]).is_err());
+    assert!(try_decode32_bytes(&[0; 5]).is_err());
+    assert!(try_decode64_bytes(&[0; 7]).is_err());
+    assert!(try_decode64_bytes(&[0; 9]).is_err());
+    assert!(try_decode128_bytes(&[0; 15]).is_err());
+    assert!(try_decode128_bytes(&[0; 17]).is_err());
+    // Malformed from_string inputs and out-of-range encode Components are the
+    // generated reject_vectors domain (test_reject_vectors), not a hardcoded list.
+}
+
+fn load_reject_vectors() -> Vec<RejectVector> {
+    let path = vectors_path();
+    let data = fs::read_to_string(&path)
+        .unwrap_or_else(|err| panic!("failed to read BID codec vectors {}: {err}", path.display()));
+    let file: VectorFile = serde_json::from_str(&data).expect("failed to parse vectors.json");
+    assert_eq!(
+        file.format_version, EXPECTED_FORMAT_VERSION,
+        "unsupported BID codec vectors format_version"
+    );
+    file.reject_vectors
+}
+
+fn reject_components(r: &RejectVector) -> bid754_codec::Components {
+    bid754_codec::Components {
+        sign: r.sign,
+        coefficient: if r.coefficient.is_empty() {
+            0
+        } else {
+            r.coefficient.parse().expect("reject coefficient parse")
+        },
+        exponent: r.exponent,
+        kind: parse_kind(&r.kind),
+        payload: if r.payload.is_empty() {
+            0
+        } else {
+            r.payload.parse().expect("reject payload parse")
+        },
+    }
+}
+
+#[test]
+fn test_reject_vectors() {
+    // Every reject record must fail through the language error mechanism: a parse
+    // failure for the from_string channel, an encode/to_string rejection for
+    // the corresponding Components channel. Records whose value this crate's fixed-width Components types
+    // cannot construct (a coefficient at/above 2^128, a negative coefficient, a
+    // negative payload) are skipped with a reported reason -- Rust's u128/u64
+    // fields have no such capability, so all `requires`-tagged records are
+    // skipped here.
+    let rejects = load_reject_vectors();
+    assert_eq!(rejects.len(), EXPECTED_REJECT_TOTAL, "reject_vectors total changed");
+    let caps: &[&str] = &[{{BID_CODEC_RUST_REJECT_CAPS}}];
+    let unsupported_caps: &[&str] = &[{{BID_CODEC_RUST_REJECT_UNSUPPORTED}}];
+    let mut consumed = 0usize;
+    let mut skipped = 0usize;
+    let mut skip_reasons: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut failures = Vec::new();
+    for r in &rejects {
+        if let Some(req) = r.requires.as_deref() {
+            if !caps.contains(&req) {
+                assert!(
+                    unsupported_caps.contains(&req),
+                    "reject record requires tag {req:?} outside the declared capability universe"
+                );
+                skipped += 1;
+                *skip_reasons.entry(req.to_string()).or_insert(0) += 1;
+                continue;
+            }
+        }
+        consumed += 1;
+        match r.channel.as_str() {
+            "from_string" => {
+                if from_string(&r.input).is_ok() {
+                    failures.push(format!("from_string {:?} ({}) accepted, want error", r.input, r.reason));
+                }
+            }
+            "encode" => {
+                let c = reject_components(r);
+                let rejected = match r.typ.as_str() {
+                    "bid32" => encode32(&c).is_err(),
+                    "bid64" => encode64(&c).is_err(),
+                    "bid128" => encode128(&c).is_err(),
+                    other => panic!("unknown reject encode type: {other}"),
+                };
+                if !rejected {
+                    failures.push(format!("encode {} {} ({}) accepted, want error", r.typ, r.kind, r.reason));
+                }
+            }
+            "to_string" => {
+                let c = reject_components(r);
+                if to_string(&c).is_ok() {
+                    failures.push(format!("to_string {} ({}) accepted, want error", r.kind, r.reason));
+                }
+            }
+            other => panic!("unknown reject channel: {other}"),
+        }
+    }
+    assert!(failures.is_empty(), "reject_vectors failures:\n{}", failures.join("\n"));
+    assert_eq!(consumed, EXPECTED_REJECT_CONSUMED, "reject consumed count changed");
+    assert_eq!(skipped, EXPECTED_REJECT_SKIPPED, "reject skipped count changed");
+    assert_eq!(consumed + skipped, rejects.len(), "reject consumption does not partition the reject set");
+    eprintln!("reject_vectors: consumed={consumed} skipped={skipped} skip_reasons={skip_reasons:?}");
+}
+
+fn load_string_vectors() -> Vec<StringVector> {
+    let path = vectors_path();
+    let data = fs::read_to_string(&path)
+        .unwrap_or_else(|err| panic!("failed to read BID codec vectors {}: {err}", path.display()));
+    let file: VectorFile = serde_json::from_str(&data).expect("failed to parse vectors.json");
+    assert_eq!(
+        file.format_version, EXPECTED_FORMAT_VERSION,
+        "unsupported BID codec vectors format_version"
+    );
+    file.string_vectors
+}
+
+#[test]
+fn test_string_vectors() {
+    // string_vectors: the generated SUCCESS channel for the string surface.
+    // Each record's input must parse and re-render as the exact expected
+    // string, pinning from_string→to_string agreement across all language
+    // consumers in the encoding-unreachable Components region (above all
+    // int32-extreme exponents whose adjusted exponent exceeds int32) plus the
+    // successful grammar-edge normalizations. The closure leg then re-parses
+    // the expected rendering itself: from_string(expected) must succeed and
+    // to_string must reproduce it exactly (parse(render(x)) is total and
+    // expected is a rendering fixed point), so a parser that rejects its own
+    // renderer's output fails here. The channel is capability-ungated: every
+    // record is consumed.
+    let string_vectors = load_string_vectors();
+    assert_eq!(string_vectors.len(), EXPECTED_STRING_TOTAL, "string_vectors total changed");
+    let mut consumed = 0usize;
+    let mut failures = Vec::new();
+    for sv in &string_vectors {
+        consumed += 1;
+        match from_string(&sv.input) {
+            Ok(c) => {
+                let got = to_string(&c).expect("string_vectors parsed Components must render");
+                if got != sv.expected {
+                    failures.push(format!(
+                        "string_vectors {:?}: to_string got {:?}, want {:?}",
+                        sv.input, got, sv.expected
+                    ));
+                    continue;
+                }
+                match from_string(&sv.expected) {
+                    Ok(reparsed) => {
+                        let again = to_string(&reparsed).expect("string_vectors reparsed Components must render");
+                        if again != sv.expected {
+                            failures.push(format!(
+                                "string_vectors closure {:?}: re-rendered as {:?}, not a fixed point",
+                                sv.expected, again
+                            ));
+                        }
+                    }
+                    Err(err) => {
+                        failures.push(format!(
+                            "string_vectors closure from_string {:?}: rendering not reparseable: {err}",
+                            sv.expected
+                        ));
+                    }
+                }
+            }
+            Err(err) => {
+                failures.push(format!("string_vectors from_string {:?} failed: {err}", sv.input));
+            }
+        }
+    }
+    assert!(failures.is_empty(), "string_vectors failures:\n{}", failures.join("\n"));
+    assert_eq!(consumed, EXPECTED_STRING_TOTAL, "string_vectors consumed count changed");
+    eprintln!("string_vectors: consumed={consumed}");
+}
+
+fn expect_bid32_string_roundtrip(v: &Vector, c: &bid754_codec::Components, failures: &mut Vec<String>) {
+    let got = to_string(c).expect("decoded BID32 Components must render");
+    if got != v.decimal_string {
+        failures.push(format!("hex={} to_string: got {}, want {}", v.hex, got, v.decimal_string));
+        return;
+    }
+    let parsed = from_string(&v.decimal_string)
+        .unwrap_or_else(|e| panic!("from_string({:?}) failed: {}", v.decimal_string, e));
+    let encoded = encode32(&parsed).expect("canonical from_string encode32");
+    let expected = hex_to_u32(v.encoded_hex.as_deref().unwrap_or(&v.hex));
+    if encoded != expected {
+        failures.push(format!(
+            "string={} encode32: got {:08x}, want {:08x}",
+            v.decimal_string, encoded, expected
+        ));
+    }
+}
+
+fn expect_bid64_string_roundtrip(v: &Vector, c: &bid754_codec::Components, failures: &mut Vec<String>) {
+    let got = to_string(c).expect("decoded BID64 Components must render");
+    if got != v.decimal_string {
+        failures.push(format!("hex={} to_string: got {}, want {}", v.hex, got, v.decimal_string));
+        return;
+    }
+    let parsed = from_string(&v.decimal_string)
+        .unwrap_or_else(|e| panic!("from_string({:?}) failed: {}", v.decimal_string, e));
+    let encoded = encode64(&parsed).expect("canonical from_string encode64");
+    let expected = hex_to_u64(v.encoded_hex.as_deref().unwrap_or(&v.hex));
+    if encoded != expected {
+        failures.push(format!(
+            "string={} encode64: got {:016x}, want {:016x}",
+            v.decimal_string, encoded, expected
+        ));
+    }
+}
+
+fn expect_bid128_string_roundtrip(v: &Vector, c: &bid754_codec::Components, failures: &mut Vec<String>) {
+    let got = to_string(c).expect("decoded BID128 Components must render");
+    if got != v.decimal_string {
+        failures.push(format!(
+            "hex={}_{} to_string: got {}, want {}",
+            v.hex_hi.as_deref().unwrap_or(""),
+            v.hex,
+            got,
+            v.decimal_string
+        ));
+        return;
+    }
+    let parsed = from_string(&v.decimal_string)
+        .unwrap_or_else(|e| panic!("from_string({:?}) failed: {}", v.decimal_string, e));
+    let (encoded_lo, encoded_hi) = encode128(&parsed).expect("canonical from_string encode128");
+    let expected_lo = hex_to_u64(v.encoded_hex.as_deref().unwrap_or(&v.hex));
+    let expected_hi = hex_to_u64(v.encoded_hi.as_deref().unwrap_or_else(|| v.hex_hi.as_deref().unwrap()));
+    if encoded_lo != expected_lo || encoded_hi != expected_hi {
+        failures.push(format!(
+            "string={} encode128: got {:016x}_{:016x}, want {:016x}_{:016x}",
+            v.decimal_string, encoded_hi, encoded_lo, expected_hi, expected_lo
+        ));
+    }
+}
+
+fn parse_kind(s: &str) -> Kind {
+    match s {
+        "zero" => Kind::Zero,
+        "normal" => Kind::Normal,
+        "inf" => Kind::Infinity,
+        "qnan" => Kind::QNaN,
+        "snan" => Kind::SNaN,
+        _ => panic!("unknown kind: {}", s),
+    }
+}
+
+fn hex_to_u32(s: &str) -> u32 {
+    u32::from_str_radix(s, 16).unwrap()
+}
+
+fn hex_to_u64(s: &str) -> u64 {
+    u64::from_str_radix(s, 16).unwrap()
+}
+
+fn coeff_u128(s: &str) -> u128 {
+    if s.is_empty() {
+        0
+    } else {
+        s.parse().unwrap()
+    }
+}
+
+fn payload_u128(v: &Vector) -> u128 {
+    v.payload
+        .as_deref()
+        .map(|s| s.parse().unwrap_or(0))
+        .unwrap_or(0)
+}
+
+fn vectors_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../bid754-codec-vectors/vectors.json")
+}
+
+fn load_vectors() -> Vec<Vector> {
+    // This integration test runs from a repo checkout only (the published
+    // package excludes tests/), so a missing fixture is a hard failure, not a
+    // skip.
+    let path = vectors_path();
+    let data = fs::read_to_string(&path)
+        .unwrap_or_else(|err| panic!("failed to read BID codec vectors {}: {err}", path.display()));
+    let file: VectorFile = serde_json::from_str(&data).expect("failed to parse vectors.json");
+    assert_eq!(
+        file.format_version, EXPECTED_FORMAT_VERSION,
+        "unsupported BID codec vectors format_version"
+    );
+    file.vectors
+}
+
+{{BID_CODEC_RUST_ANCHORS}}
+
+#[test]
+fn test_bid_codec_anchor_vectors() {
+    let vectors = anchor_vectors();
+    assert_eq!(vectors.len(), {{BID_CODEC_VECTOR_ANCHOR_COUNT}}, "BID codec anchor count changed");
+    let mut failures = Vec::new();
+    for vector in &vectors {
+        let expected_kind = parse_kind(&vector.kind);
+        match vector.typ.as_str() {
+            "bid32" => {
+                let decoded = decode32(hex_to_u32(&vector.hex));
+                if decoded.kind != expected_kind
+                    || decoded.sign != vector.sign
+                    || decoded.exponent != vector.exponent
+                    || decoded.coefficient != coeff_u128(&vector.coefficient)
+                    || payload_u128(vector) != decoded.payload
+                    || to_string(&decoded).expect("BID32 anchor must render") != vector.decimal_string
+                    || encode32(&decoded).expect("anchor encode32") != hex_to_u32(vector.encoded_hex.as_deref().unwrap())
+                {
+                    failures.push(format!("bid32 anchor {} mismatch: got {:?}", vector.hex, decoded));
+                }
+            }
+            "bid64" => {
+                let decoded = decode64(hex_to_u64(&vector.hex));
+                if decoded.kind != expected_kind
+                    || decoded.sign != vector.sign
+                    || decoded.exponent != vector.exponent
+                    || decoded.coefficient != coeff_u128(&vector.coefficient)
+                    || payload_u128(vector) != decoded.payload
+                    || to_string(&decoded).expect("BID64 anchor must render") != vector.decimal_string
+                    || encode64(&decoded).expect("anchor encode64") != hex_to_u64(vector.encoded_hex.as_deref().unwrap())
+                {
+                    failures.push(format!("bid64 anchor {} mismatch: got {:?}", vector.hex, decoded));
+                }
+            }
+            "bid128" => {
+                let decoded = decode128(hex_to_u64(&vector.hex), hex_to_u64(vector.hex_hi.as_deref().unwrap()));
+                let (encoded_lo, encoded_hi) = encode128(&decoded).expect("anchor encode128");
+                if decoded.kind != expected_kind
+                    || decoded.sign != vector.sign
+                    || decoded.exponent != vector.exponent
+                    || (!matches!(decoded.kind, Kind::QNaN | Kind::SNaN)
+                        && decoded.coefficient != coeff_u128(&vector.coefficient))
+                    || payload_u128(vector) != decoded.payload
+                    || to_string(&decoded).expect("BID128 anchor must render") != vector.decimal_string
+                    || encoded_lo != hex_to_u64(vector.encoded_hex.as_deref().unwrap())
+                    || encoded_hi != hex_to_u64(vector.encoded_hi.as_deref().unwrap())
+                {
+                    failures.push(format!(
+                        "bid128 anchor {}_{} mismatch: got {:?}",
+                        vector.hex_hi.as_deref().unwrap_or(""),
+                        vector.hex,
+                        decoded
+                    ));
+                }
+            }
+            other => failures.push(format!("unknown anchor vector type: {other}")),
+        }
+    }
+    assert!(failures.is_empty(), "BID codec anchor failures:\n{}", failures.join("\n"));
+}
+
+#[test]
+fn test_vectors_decode32() {
+    let vectors = load_vectors();
+    assert_vector_profile(&vectors);
+    let mut count = 0;
+    let mut failures = Vec::new();
+
+    for v in &vectors {
+        if v.typ != "bid32" {
+            continue;
+        }
+        count += 1;
+        let bits = hex_to_u32(&v.hex);
+        let c = decode32(bits);
+        let bytes_c = decode32_bytes(&bits.to_le_bytes());
+        if bytes_c != c {
+            failures.push(format!("hex={} decode32_bytes mismatch: got {:?}, want {:?}", v.hex, bytes_c, c));
+            continue;
+        }
+
+        let expected_kind = parse_kind(&v.kind);
+        if c.kind != expected_kind {
+            failures.push(format!("hex={} kind: got {:?}, want {:?}", v.hex, c.kind, expected_kind));
+            continue;
+        }
+        if c.sign != v.sign {
+            failures.push(format!("hex={} sign: got {}, want {}", v.hex, c.sign, v.sign));
+            continue;
+        }
+        if c.exponent != v.exponent {
+            failures.push(format!("hex={} exponent: got {}, want {}", v.hex, c.exponent, v.exponent));
+            continue;
+        }
+
+        // coefficient: "" means 0
+        let expected_coeff: u128 = if v.coefficient.is_empty() {
+            0
+        } else {
+            v.coefficient.parse().unwrap()
+        };
+        if c.coefficient != expected_coeff {
+            failures.push(format!(
+                "hex={} coefficient: got {}, want {}",
+                v.hex, c.coefficient, expected_coeff
+            ));
+            continue;
+        }
+
+        // payload (NaN only)
+        if c.kind == Kind::QNaN || c.kind == Kind::SNaN {
+            let expected_payload: u128 = v
+                .payload
+                .as_ref()
+                .map(|s| s.parse().unwrap_or(0))
+                .unwrap_or(0);
+            if c.payload != expected_payload {
+                failures.push(format!(
+                    "hex={} payload: got {}, want {}",
+                    v.hex, c.payload, expected_payload
+                ));
+            }
+        }
+        expect_bid32_string_roundtrip(v, &c, &mut failures);
+    }
+
+    if !failures.is_empty() {
+        panic!(
+            "bid32 decode: {} failures out of {} vectors:\n{}",
+            failures.len(),
+            count,
+            failures.join("\n")
+        );
+    }
+    assert_eq!(count, EXPECTED_BID32, "BID32 decode vector count changed");
+    eprintln!("bid32 decode: {} vectors passed", count);
+}
+
+#[test]
+fn test_vectors_decode64() {
+    let vectors = load_vectors();
+    assert_vector_profile(&vectors);
+    let mut count = 0;
+    let mut failures = Vec::new();
+
+    for v in &vectors {
+        if v.typ != "bid64" {
+            continue;
+        }
+        count += 1;
+        let bits = hex_to_u64(&v.hex);
+        let c = decode64(bits);
+        let bytes_c = decode64_bytes(&bits.to_le_bytes());
+        if bytes_c != c {
+            failures.push(format!("hex={} decode64_bytes mismatch: got {:?}, want {:?}", v.hex, bytes_c, c));
+            continue;
+        }
+
+        let expected_kind = parse_kind(&v.kind);
+        if c.kind != expected_kind {
+            failures.push(format!("hex={} kind: got {:?}, want {:?}", v.hex, c.kind, expected_kind));
+            continue;
+        }
+        if c.sign != v.sign {
+            failures.push(format!("hex={} sign: got {}, want {}", v.hex, c.sign, v.sign));
+            continue;
+        }
+        if c.exponent != v.exponent {
+            failures.push(format!("hex={} exponent: got {}, want {}", v.hex, c.exponent, v.exponent));
+            continue;
+        }
+
+        let expected_coeff: u128 = if v.coefficient.is_empty() {
+            0
+        } else {
+            v.coefficient.parse().unwrap()
+        };
+        if c.coefficient != expected_coeff {
+            failures.push(format!(
+                "hex={} coefficient: got {}, want {}",
+                v.hex, c.coefficient, expected_coeff
+            ));
+            continue;
+        }
+
+        if c.kind == Kind::QNaN || c.kind == Kind::SNaN {
+            let expected_payload: u128 = v
+                .payload
+                .as_ref()
+                .map(|s| s.parse().unwrap_or(0))
+                .unwrap_or(0);
+            if c.payload != expected_payload {
+                failures.push(format!(
+                    "hex={} payload: got {}, want {}",
+                    v.hex, c.payload, expected_payload
+                ));
+            }
+        }
+        expect_bid64_string_roundtrip(v, &c, &mut failures);
+    }
+
+    if !failures.is_empty() {
+        panic!(
+            "bid64 decode: {} failures out of {} vectors:\n{}",
+            failures.len(),
+            count,
+            failures.join("\n")
+        );
+    }
+    assert_eq!(count, EXPECTED_BID64, "BID64 decode vector count changed");
+    eprintln!("bid64 decode: {} vectors passed", count);
+}
+
+#[test]
+fn test_vectors_decode128() {
+    let vectors = load_vectors();
+    assert_vector_profile(&vectors);
+    let mut count = 0;
+    let mut failures = Vec::new();
+
+    for v in &vectors {
+        if v.typ != "bid128" {
+            continue;
+        }
+        count += 1;
+        let lo = hex_to_u64(&v.hex);
+        let hi = hex_to_u64(v.hex_hi.as_deref().unwrap());
+        let c = decode128(lo, hi);
+        let mut bytes = [0u8; 16];
+        bytes[..8].copy_from_slice(&lo.to_le_bytes());
+        bytes[8..].copy_from_slice(&hi.to_le_bytes());
+        let bytes_c = decode128_bytes(&bytes);
+        if bytes_c != c {
+            failures.push(format!(
+                "hex={}_{} decode128_bytes mismatch: got {:?}, want {:?}",
+                v.hex_hi.as_deref().unwrap_or(""),
+                v.hex,
+                bytes_c,
+                c
+            ));
+            continue;
+        }
+
+        let expected_kind = parse_kind(&v.kind);
+        if c.kind != expected_kind {
+            failures.push(format!(
+                "hex={}_{} kind: got {:?}, want {:?}",
+                v.hex_hi.as_deref().unwrap_or(""),
+                v.hex,
+                c.kind,
+                expected_kind
+            ));
+            continue;
+        }
+        if c.sign != v.sign {
+            failures.push(format!(
+                "hex={}_{} sign: got {}, want {}",
+                v.hex_hi.as_deref().unwrap_or(""),
+                v.hex,
+                c.sign,
+                v.sign
+            ));
+            continue;
+        }
+        if c.exponent != v.exponent {
+            failures.push(format!(
+                "hex={}_{} exponent: got {}, want {}",
+                v.hex_hi.as_deref().unwrap_or(""),
+                v.hex,
+                c.exponent,
+                v.exponent
+            ));
+            continue;
+        }
+
+        if c.kind == Kind::QNaN || c.kind == Kind::SNaN {
+            // For NaN, vectors.json stores the raw 128-bit payload bits as "coefficient",
+            // which doesn't match our Components model (coefficient=0 for NaN).
+            // We only compare the payload field.
+            let expected_payload: u128 = v
+                .payload
+                .as_ref()
+                .map(|s| s.parse().unwrap_or(0))
+                .unwrap_or(0);
+            if c.payload != expected_payload {
+                failures.push(format!(
+                    "hex={}_{} payload: got {}, want {}",
+                    v.hex_hi.as_deref().unwrap_or(""),
+                    v.hex,
+                    c.payload,
+                    expected_payload
+                ));
+            }
+        } else {
+            let expected_coeff: u128 = if v.coefficient.is_empty() {
+                0
+            } else {
+                v.coefficient.parse().unwrap()
+            };
+            if c.coefficient != expected_coeff {
+                failures.push(format!(
+                    "hex={}_{} coefficient: got {}, want {}",
+                    v.hex_hi.as_deref().unwrap_or(""),
+                    v.hex,
+                    c.coefficient,
+                    expected_coeff
+                ));
+            }
+        }
+        expect_bid128_string_roundtrip(v, &c, &mut failures);
+    }
+
+    if !failures.is_empty() {
+        panic!(
+            "bid128 decode: {} failures out of {} vectors:\n{}",
+            failures.len(),
+            count,
+            failures.join("\n")
+        );
+    }
+    assert_eq!(count, EXPECTED_BID128, "BID128 decode vector count changed");
+    eprintln!("bid128 decode: {} vectors passed", count);
+}
+
+#[test]
+fn test_vectors_roundtrip32() {
+    let vectors = load_vectors();
+    assert_vector_profile(&vectors);
+    let mut count = 0;
+    let mut failures = Vec::new();
+
+    for v in &vectors {
+        if v.typ != "bid32" || !v.canonical {
+            continue;
+        }
+        count += 1;
+        let bits = hex_to_u32(&v.hex);
+        let c = decode32(bits);
+        let encoded = encode32(&c).expect("canonical encode32");
+        let expected = hex_to_u32(v.encoded_hex.as_deref().unwrap());
+
+        if encoded != expected {
+            failures.push(format!(
+                "hex={} roundtrip: encode32 got {:08x}, want {:08x}",
+                v.hex, encoded, expected
+            ));
+        }
+        let encoded_bytes = encode32_bytes(&c).expect("canonical encode32_bytes");
+        if encoded_bytes != expected.to_le_bytes() {
+            failures.push(format!(
+                "hex={} encode32_bytes got {:02x?}, want {:02x?}",
+                v.hex,
+                encoded_bytes,
+                expected.to_le_bytes()
+            ));
+        }
+    }
+
+    if !failures.is_empty() {
+        panic!(
+            "bid32 roundtrip: {} failures out of {} vectors:\n{}",
+            failures.len(),
+            count,
+            failures.join("\n")
+        );
+    }
+    assert_eq!(count, EXPECTED_BID32_CANONICAL, "BID32 canonical vector count changed");
+    eprintln!("bid32 roundtrip: {} canonical vectors passed", count);
+}
+
+#[test]
+fn test_vectors_roundtrip64() {
+    let vectors = load_vectors();
+    assert_vector_profile(&vectors);
+    let mut count = 0;
+    let mut failures = Vec::new();
+
+    for v in &vectors {
+        if v.typ != "bid64" || !v.canonical {
+            continue;
+        }
+        count += 1;
+        let bits = hex_to_u64(&v.hex);
+        let c = decode64(bits);
+        let encoded = encode64(&c).expect("canonical encode64");
+        let expected = hex_to_u64(v.encoded_hex.as_deref().unwrap());
+
+        if encoded != expected {
+            failures.push(format!(
+                "hex={} roundtrip: encode64 got {:016x}, want {:016x}",
+                v.hex, encoded, expected
+            ));
+        }
+        let encoded_bytes = encode64_bytes(&c).expect("canonical encode64_bytes");
+        if encoded_bytes != expected.to_le_bytes() {
+            failures.push(format!(
+                "hex={} encode64_bytes got {:02x?}, want {:02x?}",
+                v.hex,
+                encoded_bytes,
+                expected.to_le_bytes()
+            ));
+        }
+    }
+
+    if !failures.is_empty() {
+        panic!(
+            "bid64 roundtrip: {} failures out of {} vectors:\n{}",
+            failures.len(),
+            count,
+            failures.join("\n")
+        );
+    }
+    assert_eq!(count, EXPECTED_BID64_CANONICAL, "BID64 canonical vector count changed");
+    eprintln!("bid64 roundtrip: {} canonical vectors passed", count);
+}
+
+#[test]
+fn test_vectors_roundtrip128() {
+    let vectors = load_vectors();
+    assert_vector_profile(&vectors);
+    let mut count = 0;
+    let mut failures = Vec::new();
+
+    for v in &vectors {
+        if v.typ != "bid128" || !v.canonical {
+            continue;
+        }
+        count += 1;
+        let lo = hex_to_u64(&v.hex);
+        let hi = hex_to_u64(v.hex_hi.as_deref().unwrap());
+        let c = decode128(lo, hi);
+        let (enc_lo, enc_hi) = encode128(&c).expect("canonical encode128");
+        let exp_lo = hex_to_u64(v.encoded_hex.as_deref().unwrap());
+        let exp_hi = hex_to_u64(v.encoded_hi.as_deref().unwrap());
+
+        if enc_lo != exp_lo || enc_hi != exp_hi {
+            failures.push(format!(
+                "hex={}_{} roundtrip: encode128 got {:016x}_{:016x}, want {:016x}_{:016x}",
+                v.hex_hi.as_deref().unwrap_or(""),
+                v.hex,
+                enc_hi,
+                enc_lo,
+                exp_hi,
+                exp_lo
+            ));
+        }
+        let encoded_bytes = encode128_bytes(&c).expect("canonical encode128_bytes");
+        let mut expected_bytes = [0u8; 16];
+        expected_bytes[..8].copy_from_slice(&exp_lo.to_le_bytes());
+        expected_bytes[8..].copy_from_slice(&exp_hi.to_le_bytes());
+        if encoded_bytes != expected_bytes {
+            failures.push(format!(
+                "hex={}_{} encode128_bytes got {:02x?}, want {:02x?}",
+                v.hex_hi.as_deref().unwrap_or(""),
+                v.hex,
+                encoded_bytes,
+                expected_bytes
+            ));
+        }
+    }
+
+    if !failures.is_empty() {
+        panic!(
+            "bid128 roundtrip: {} failures out of {} vectors:\n{}",
+            failures.len(),
+            count,
+            failures.join("\n")
+        );
+    }
+    assert_eq!(count, EXPECTED_BID128_CANONICAL, "BID128 canonical vector count changed");
+    eprintln!("bid128 roundtrip: {} canonical vectors passed", count);
+}

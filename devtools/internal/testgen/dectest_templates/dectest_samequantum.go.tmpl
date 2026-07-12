@@ -1,0 +1,37 @@
+package bid754
+
+import "fmt"
+
+func executeDecTestSameQuantumOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if len(tc.Operands) != 2 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	rndMode, err := decTestCaseRoundingMode(tc)
+	if err != nil {
+		return decTestExecResult{}, err
+	}
+
+	var same bool
+	var parseFlags ExceptionFlags
+	switch testType {
+	case "decimal32":
+		a, b, flags := parseDecTestDecimal32Pair(tc.Operands, rndMode)
+		parseFlags = flags
+		same = a.SameQuantum(b)
+	case "decimal64":
+		a, b, flags := parseDecTestDecimal64Pair(tc.Operands, rndMode)
+		parseFlags = flags
+		same = a.SameQuantum(b)
+	case "decimal128":
+		a, b, flags := parseDecTestDecimal128Pair(tc.Operands, rndMode)
+		parseFlags = flags
+		same = a.SameQuantum(b)
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+
+	if same {
+		return decTestExecResult{Result: "1", Flags: parseFlags}, nil
+	}
+	return decTestExecResult{Result: "0", Flags: parseFlags}, nil
+}

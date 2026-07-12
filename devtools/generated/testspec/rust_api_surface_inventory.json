@@ -1,0 +1,2807 @@
+{
+  "version": "1.0",
+  "kind": "rust_api_surface_inventory",
+  "source": "devtools/generated/testspec/public_api_routing_inventory.json (mapped + excluded_constant_accessor) + devtools/tools/registry/rust_api_manifest.json + bid754-go module-root signatures/literals",
+  "mapped_total": 337,
+  "emitted": 337,
+  "deferred": 0,
+  "rows": [
+    {
+      "go_symbol": "Add128BIDWithContext",
+      "status": "emitted",
+      "rust_owner": "Context",
+      "rust_surface": "add128",
+      "shape": "context_binary_with_flags",
+      "bidgo_function": "Bid128Add"
+    },
+    {
+      "go_symbol": "Add32BIDWithContext",
+      "status": "emitted",
+      "rust_owner": "Context",
+      "rust_surface": "add32",
+      "shape": "context_binary_with_flags",
+      "bidgo_function": "Bid32AddWithFlags"
+    },
+    {
+      "go_symbol": "Add64BIDWithContext",
+      "status": "emitted",
+      "rust_owner": "Context",
+      "rust_surface": "add64",
+      "shape": "context_binary_with_flags",
+      "bidgo_function": "Bid64AddWithFlags"
+    },
+    {
+      "go_symbol": "Decimal128BID.Abs",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "abs",
+      "shape": "unary",
+      "bidgo_function": "Bid128Abs"
+    },
+    {
+      "go_symbol": "Decimal128BID.Add",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "add",
+      "shape": "binary",
+      "bidgo_function": "Bid128Add"
+    },
+    {
+      "go_symbol": "Decimal128BID.AddWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "add_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Add"
+    },
+    {
+      "go_symbol": "Decimal128BID.AddWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "add_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Add"
+    },
+    {
+      "go_symbol": "Decimal128BID.Class",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "class",
+      "shape": "class",
+      "bidgo_function": "Bid128Class"
+    },
+    {
+      "go_symbol": "Decimal128BID.CompareTotal",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "total_cmp",
+      "shape": "total_cmp",
+      "bidgo_function": "Bid128TotalOrder"
+    },
+    {
+      "go_symbol": "Decimal128BID.CompareTotalMag",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "total_cmp_mag",
+      "shape": "total_cmp_mag",
+      "bidgo_function": "Bid128TotalOrderMag"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt16",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i16",
+      "shape": "to_i16",
+      "bidgo_function": "Bid128ToInt16Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt16Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i16_exact",
+      "shape": "to_i16_exact",
+      "bidgo_function": "Bid128ToInt16Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt32",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i32",
+      "shape": "to_i32",
+      "bidgo_function": "Bid128ToInt32Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt32Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i32_exact",
+      "shape": "to_i32_exact",
+      "bidgo_function": "Bid128ToInt32Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt64",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i64",
+      "shape": "to_i64",
+      "bidgo_function": "Bid128ToInt64Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt64Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i64_exact",
+      "shape": "to_i64_exact",
+      "bidgo_function": "Bid128ToInt64Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt8",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i8",
+      "shape": "to_i8",
+      "bidgo_function": "Bid128ToInt8Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt8Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i8_exact",
+      "shape": "to_i8_exact",
+      "bidgo_function": "Bid128ToInt8Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint16",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u16",
+      "shape": "to_u16",
+      "bidgo_function": "Bid128ToUint16Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint16Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u16_exact",
+      "shape": "to_u16_exact",
+      "bidgo_function": "Bid128ToUint16Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint32",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u32",
+      "shape": "to_u32",
+      "bidgo_function": "Bid128ToUint32Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint32Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u32_exact",
+      "shape": "to_u32_exact",
+      "bidgo_function": "Bid128ToUint32Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint64",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u64",
+      "shape": "to_u64",
+      "bidgo_function": "Bid128ToUint64Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint64Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u64_exact",
+      "shape": "to_u64_exact",
+      "bidgo_function": "Bid128ToUint64Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint8",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u8",
+      "shape": "to_u8",
+      "bidgo_function": "Bid128ToUint8Rnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint8Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u8_exact",
+      "shape": "to_u8_exact",
+      "bidgo_function": "Bid128ToUint8Xrnint"
+    },
+    {
+      "go_symbol": "Decimal128BID.Copy",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "Copy",
+      "shape": "copy_fold",
+      "bidgo_function": "Bid128Copy"
+    },
+    {
+      "go_symbol": "Decimal128BID.CopySign",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "copysign",
+      "shape": "copysign",
+      "bidgo_function": "Bid128CopySign"
+    },
+    {
+      "go_symbol": "Decimal128BID.Div",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "div",
+      "shape": "binary",
+      "bidgo_function": "Bid128Div"
+    },
+    {
+      "go_symbol": "Decimal128BID.DivWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "div_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Div"
+    },
+    {
+      "go_symbol": "Decimal128BID.DivWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "div_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Div"
+    },
+    {
+      "go_symbol": "Decimal128BID.FMA",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma",
+      "shape": "fma",
+      "bidgo_function": "Bid128Fma"
+    },
+    {
+      "go_symbol": "Decimal128BID.FMAWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_with_mode",
+      "shape": "ternary_mode_flags",
+      "bidgo_function": "Bid128Fma"
+    },
+    {
+      "go_symbol": "Decimal128BID.Fmod",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fmod",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Fmod"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsCanonical",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_canonical",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsCanonical"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsFinite",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_finite",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsFinite"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsInf",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_infinite",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsInf"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsNaN",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_nan",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsNaN"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsNormal",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_normal",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsNormal"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsSignMinus",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_sign_negative",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsSigned"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsSignaling",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_signaling",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsSignaling"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsSubnormal",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_subnormal",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsSubnormal"
+    },
+    {
+      "go_symbol": "Decimal128BID.IsZero",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_zero",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsZero"
+    },
+    {
+      "go_symbol": "Decimal128BID.LogB",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "logb",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128Logb"
+    },
+    {
+      "go_symbol": "Decimal128BID.MaxNum",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "max_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Maxnum"
+    },
+    {
+      "go_symbol": "Decimal128BID.MaxNumMag",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "max_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128MaxnumMag"
+    },
+    {
+      "go_symbol": "Decimal128BID.MinNum",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "min_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Minnum"
+    },
+    {
+      "go_symbol": "Decimal128BID.MinNumMag",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "min_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128MinnumMag"
+    },
+    {
+      "go_symbol": "Decimal128BID.Mul",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "mul",
+      "shape": "binary",
+      "bidgo_function": "Bid128Mul"
+    },
+    {
+      "go_symbol": "Decimal128BID.MulWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "mul_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Mul"
+    },
+    {
+      "go_symbol": "Decimal128BID.MulWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "mul_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Mul"
+    },
+    {
+      "go_symbol": "Decimal128BID.Negate",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "neg",
+      "shape": "unary",
+      "bidgo_function": "Bid128Negate"
+    },
+    {
+      "go_symbol": "Decimal128BID.NextMinus",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "next_down",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128NextDown"
+    },
+    {
+      "go_symbol": "Decimal128BID.NextPlus",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "next_up",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128NextUp"
+    },
+    {
+      "go_symbol": "Decimal128BID.NextToward",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "next_toward",
+      "shape": "next_toward",
+      "bidgo_function": "Bid128NextToward"
+    },
+    {
+      "go_symbol": "Decimal128BID.Quantize",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quantize",
+      "shape": "binary_drop_flags",
+      "bidgo_function": "Bid128Quantize"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuantizeWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quantize_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Quantize"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuantizeWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quantize_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Quantize"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_eq",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietGreater"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietGreaterEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietGreaterUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietGreaterUnordered"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietLess",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietLess"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietLessEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietLessEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietLessUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietLessUnordered"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietNotEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_ne",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietNotEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietNotGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietNotGreater"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietNotLess",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietNotLess"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietOrdered",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_ordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietOrdered"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietUnordered"
+    },
+    {
+      "go_symbol": "Decimal128BID.Radix",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "RADIX",
+      "shape": "radix_const",
+      "bidgo_function": "Bid128Radix"
+    },
+    {
+      "go_symbol": "Decimal128BID.Remainder",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "remainder",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Rem"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralExact",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_exact",
+      "shape": "unary_mode_drop_flags",
+      "bidgo_function": "Bid128RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralExactWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_exact_with_flags",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid128RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralNearestAway",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_nearest_away",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralNearestAway"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralNearestEven",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_nearest_even",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralNearestEven"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralNegative",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_negative",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralNegative"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralPositive",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_positive",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralPositive"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralZero",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_zero",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralZero"
+    },
+    {
+      "go_symbol": "Decimal128BID.SameQuantum",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "same_quantum",
+      "shape": "same_quantum",
+      "bidgo_function": "Bid128SameQuantum"
+    },
+    {
+      "go_symbol": "Decimal128BID.ScaleB",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "scaleb",
+      "shape": "scaleb",
+      "bidgo_function": "Bid128Scalbln"
+    },
+    {
+      "go_symbol": "Decimal128BID.ScaleBWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "scaleb_with_mode",
+      "shape": "scaleb_mode",
+      "bidgo_function": "Bid128Scalbln"
+    },
+    {
+      "go_symbol": "Decimal128BID.Sign",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sign",
+      "shape": "sign",
+      "bidgo_function": "Bid128IsSigned"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_eq",
+      "shape": "signaling_eq_compose",
+      "bidgo_function": "Bid128SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingGreater"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingGreaterEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingGreaterUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingGreaterUnordered"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingLess",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingLess"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingLessEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingLessEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingLessUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingLessUnordered"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingNotEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_ne",
+      "shape": "signaling_not_eq_compose",
+      "bidgo_function": "Bid128SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingNotGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingNotGreater"
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingNotLess",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingNotLess"
+    },
+    {
+      "go_symbol": "Decimal128BID.Sqrt",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sqrt",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid128Sqrt"
+    },
+    {
+      "go_symbol": "Decimal128BID.SqrtWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sqrt_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid128Sqrt"
+    },
+    {
+      "go_symbol": "Decimal128BID.String",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "Display",
+      "shape": "display",
+      "bidgo_function": "Bid128ToString"
+    },
+    {
+      "go_symbol": "Decimal128BID.Sub",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sub",
+      "shape": "binary",
+      "bidgo_function": "Bid128Sub"
+    },
+    {
+      "go_symbol": "Decimal128BID.SubWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sub_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Sub"
+    },
+    {
+      "go_symbol": "Decimal128BID.SubWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sub_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Sub"
+    },
+    {
+      "go_symbol": "Decimal128BID.ToBinary128",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_binary128",
+      "shape": "to_binary128",
+      "bidgo_function": "Bid128ToBinary128"
+    },
+    {
+      "go_symbol": "Decimal128BID.ToBinary32",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_f32",
+      "shape": "to_binary32",
+      "bidgo_function": "Bid128ToBinary32"
+    },
+    {
+      "go_symbol": "Decimal128BID.ToBinary64",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_f64",
+      "shape": "to_binary64",
+      "bidgo_function": "Bid128ToBinary64"
+    },
+    {
+      "go_symbol": "Decimal128BID.ToDecimal32",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_decimal32",
+      "shape": "to_decimal32",
+      "bidgo_function": "Bid128ToBid32"
+    },
+    {
+      "go_symbol": "Decimal128BID.ToDecimal64",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_decimal64",
+      "shape": "to_decimal64_mode",
+      "bidgo_function": "Bid128ToBid64"
+    },
+    {
+      "go_symbol": "Decimal32BID.Abs",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "abs",
+      "shape": "unary",
+      "bidgo_function": "Bid32Abs"
+    },
+    {
+      "go_symbol": "Decimal32BID.Add",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "add",
+      "shape": "binary",
+      "bidgo_function": "Bid32Add"
+    },
+    {
+      "go_symbol": "Decimal32BID.AddWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "add_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32AddWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.AddWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "add_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32AddWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.Class",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "class",
+      "shape": "class",
+      "bidgo_function": "Bid32Class"
+    },
+    {
+      "go_symbol": "Decimal32BID.CompareTotal",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "total_cmp",
+      "shape": "total_cmp",
+      "bidgo_function": "Bid32TotalOrder"
+    },
+    {
+      "go_symbol": "Decimal32BID.CompareTotalMag",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "total_cmp_mag",
+      "shape": "total_cmp_mag",
+      "bidgo_function": "Bid32TotalOrderMag"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt16",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i16",
+      "shape": "to_i16",
+      "bidgo_function": "Bid32ToInt16Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt16Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i16_exact",
+      "shape": "to_i16_exact",
+      "bidgo_function": "Bid32ToInt16Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt32",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i32",
+      "shape": "to_i32",
+      "bidgo_function": "Bid32ToInt32Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt32Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i32_exact",
+      "shape": "to_i32_exact",
+      "bidgo_function": "Bid32ToInt32Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt64",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i64",
+      "shape": "to_i64",
+      "bidgo_function": "Bid32ToInt64Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt64Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i64_exact",
+      "shape": "to_i64_exact",
+      "bidgo_function": "Bid32ToInt64Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt8",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i8",
+      "shape": "to_i8",
+      "bidgo_function": "Bid32ToInt8Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt8Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i8_exact",
+      "shape": "to_i8_exact",
+      "bidgo_function": "Bid32ToInt8Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint16",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u16",
+      "shape": "to_u16",
+      "bidgo_function": "Bid32ToUint16Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint16Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u16_exact",
+      "shape": "to_u16_exact",
+      "bidgo_function": "Bid32ToUint16Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint32",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u32",
+      "shape": "to_u32",
+      "bidgo_function": "Bid32ToUint32Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint32Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u32_exact",
+      "shape": "to_u32_exact",
+      "bidgo_function": "Bid32ToUint32Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint64",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u64",
+      "shape": "to_u64",
+      "bidgo_function": "Bid32ToUint64Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint64Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u64_exact",
+      "shape": "to_u64_exact",
+      "bidgo_function": "Bid32ToUint64Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint8",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u8",
+      "shape": "to_u8",
+      "bidgo_function": "Bid32ToUint8Rnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint8Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u8_exact",
+      "shape": "to_u8_exact",
+      "bidgo_function": "Bid32ToUint8Xrnint"
+    },
+    {
+      "go_symbol": "Decimal32BID.Copy",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "Copy",
+      "shape": "copy_fold",
+      "bidgo_function": "Bid32Copy"
+    },
+    {
+      "go_symbol": "Decimal32BID.CopySign",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "copysign",
+      "shape": "copysign",
+      "bidgo_function": "Bid32CopySign"
+    },
+    {
+      "go_symbol": "Decimal32BID.Div",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "div",
+      "shape": "binary",
+      "bidgo_function": "Bid32Div"
+    },
+    {
+      "go_symbol": "Decimal32BID.DivWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "div_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32DivWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.DivWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "div_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32DivWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.FMA",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "fma",
+      "shape": "fma",
+      "bidgo_function": "Bid32Fma"
+    },
+    {
+      "go_symbol": "Decimal32BID.FMAWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "fma_with_mode",
+      "shape": "ternary_mode_flags",
+      "bidgo_function": "Bid32Fma"
+    },
+    {
+      "go_symbol": "Decimal32BID.Fmod",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "fmod",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32Fmod"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsCanonical",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_canonical",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsCanonical"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsFinite",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_finite",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsFinite"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsInf",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_infinite",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsInf"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsNaN",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_nan",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsNaN"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsNormal",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_normal",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsNormal"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsSignMinus",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_sign_negative",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsSigned"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsSignaling",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_signaling",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsSignaling"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsSubnormal",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_subnormal",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsSubnormal"
+    },
+    {
+      "go_symbol": "Decimal32BID.IsZero",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_zero",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsZero"
+    },
+    {
+      "go_symbol": "Decimal32BID.LogB",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "logb",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32Logb"
+    },
+    {
+      "go_symbol": "Decimal32BID.MaxNum",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "max_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MaxNumWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.MaxNumMag",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "max_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MaxNumMagWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.MinNum",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "min_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MinNumWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.MinNumMag",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "min_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MinNumMagWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.Mul",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "mul",
+      "shape": "binary",
+      "bidgo_function": "Bid32Mul"
+    },
+    {
+      "go_symbol": "Decimal32BID.MulWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "mul_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32MulWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.MulWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "mul_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32MulWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.Negate",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "neg",
+      "shape": "unary",
+      "bidgo_function": "Bid32Negate"
+    },
+    {
+      "go_symbol": "Decimal32BID.NextMinus",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "next_down",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32NextDown"
+    },
+    {
+      "go_symbol": "Decimal32BID.NextPlus",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "next_up",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32NextUp"
+    },
+    {
+      "go_symbol": "Decimal32BID.NextToward",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "next_toward",
+      "shape": "next_toward",
+      "bidgo_function": "Bid32NextToward"
+    },
+    {
+      "go_symbol": "Decimal32BID.Quantize",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quantize",
+      "shape": "binary_drop_flags",
+      "bidgo_function": "Bid32Quantize"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuantizeWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quantize_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32Quantize"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuantizeWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quantize_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32Quantize"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_eq",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietGreater"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietGreaterEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietGreaterUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietGreaterUnordered"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietLess",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietLess"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietLessEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietLessEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietLessUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietLessUnordered"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietNotEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_ne",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietNotEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietNotGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietNotGreater"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietNotLess",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietNotLess"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietOrdered",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_ordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietOrdered"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietUnordered"
+    },
+    {
+      "go_symbol": "Decimal32BID.Radix",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "RADIX",
+      "shape": "radix_const",
+      "bidgo_function": "Bid32Radix"
+    },
+    {
+      "go_symbol": "Decimal32BID.Remainder",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "remainder",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32Rem"
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralExact",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_exact",
+      "shape": "unary_mode_drop_flags",
+      "bidgo_function": "Bid32RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralExactWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_exact_with_flags",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid32RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralNearestAway",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_nearest_away",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralNearestAway"
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralNearestEven",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_nearest_even",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralNearestEven"
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralNegative",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_negative",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralNegative"
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralPositive",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_positive",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralPositive"
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralZero",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_zero",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralZero"
+    },
+    {
+      "go_symbol": "Decimal32BID.SameQuantum",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "same_quantum",
+      "shape": "same_quantum",
+      "bidgo_function": "Bid32SameQuantum"
+    },
+    {
+      "go_symbol": "Decimal32BID.ScaleB",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "scaleb",
+      "shape": "scaleb",
+      "bidgo_function": "Bid32ScalblnWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.ScaleBWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "scaleb_with_mode",
+      "shape": "scaleb_mode",
+      "bidgo_function": "Bid32ScalblnWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.Sign",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sign",
+      "shape": "sign",
+      "bidgo_function": "Bid32IsSigned"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_eq",
+      "shape": "signaling_eq_compose",
+      "bidgo_function": "Bid32SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingGreater"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingGreaterEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingGreaterUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingGreaterUnordered"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingLess",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingLess"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingLessEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingLessEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingLessUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingLessUnordered"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingNotEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_ne",
+      "shape": "signaling_not_eq_compose",
+      "bidgo_function": "Bid32SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingNotGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingNotGreater"
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingNotLess",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingNotLess"
+    },
+    {
+      "go_symbol": "Decimal32BID.Sqrt",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sqrt",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid32Sqrt"
+    },
+    {
+      "go_symbol": "Decimal32BID.SqrtWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sqrt_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid32Sqrt"
+    },
+    {
+      "go_symbol": "Decimal32BID.String",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "Display",
+      "shape": "display",
+      "bidgo_function": "Bid32ToString"
+    },
+    {
+      "go_symbol": "Decimal32BID.Sub",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sub",
+      "shape": "binary",
+      "bidgo_function": "Bid32Sub"
+    },
+    {
+      "go_symbol": "Decimal32BID.SubWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sub_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32SubWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.SubWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sub_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32SubWithFlags"
+    },
+    {
+      "go_symbol": "Decimal32BID.ToBinary128",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_binary128",
+      "shape": "to_binary128",
+      "bidgo_function": "Bid32ToBinary128"
+    },
+    {
+      "go_symbol": "Decimal32BID.ToBinary32",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_f32",
+      "shape": "to_binary32",
+      "bidgo_function": "Bid32ToBinary32"
+    },
+    {
+      "go_symbol": "Decimal32BID.ToBinary64",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_f64",
+      "shape": "to_binary64",
+      "bidgo_function": "Bid32ToBinary64"
+    },
+    {
+      "go_symbol": "Decimal32BID.ToDecimal128",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_decimal128",
+      "shape": "to_decimal128",
+      "bidgo_function": "Bid32ToBid128"
+    },
+    {
+      "go_symbol": "Decimal32BID.ToDecimal64",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_decimal64",
+      "shape": "to_decimal64",
+      "bidgo_function": "Bid32ToBid64"
+    },
+    {
+      "go_symbol": "Decimal64BID.Abs",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "abs",
+      "shape": "unary",
+      "bidgo_function": "Bid64Abs"
+    },
+    {
+      "go_symbol": "Decimal64BID.Add",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "add",
+      "shape": "binary",
+      "bidgo_function": "Bid64Add"
+    },
+    {
+      "go_symbol": "Decimal64BID.AddWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "add_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64AddWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.AddWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "add_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64AddWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.Class",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "class",
+      "shape": "class",
+      "bidgo_function": "Bid64Class"
+    },
+    {
+      "go_symbol": "Decimal64BID.CompareTotal",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "total_cmp",
+      "shape": "total_cmp",
+      "bidgo_function": "Bid64TotalOrder"
+    },
+    {
+      "go_symbol": "Decimal64BID.CompareTotalMag",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "total_cmp_mag",
+      "shape": "total_cmp_mag",
+      "bidgo_function": "Bid64TotalOrderMag"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt16",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i16",
+      "shape": "to_i16",
+      "bidgo_function": "Bid64ToInt16Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt16Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i16_exact",
+      "shape": "to_i16_exact",
+      "bidgo_function": "Bid64ToInt16Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt32",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i32",
+      "shape": "to_i32",
+      "bidgo_function": "Bid64ToInt32Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt32Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i32_exact",
+      "shape": "to_i32_exact",
+      "bidgo_function": "Bid64ToInt32Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt64",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i64",
+      "shape": "to_i64",
+      "bidgo_function": "Bid64ToInt64Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt64Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i64_exact",
+      "shape": "to_i64_exact",
+      "bidgo_function": "Bid64ToInt64Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt8",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i8",
+      "shape": "to_i8",
+      "bidgo_function": "Bid64ToInt8Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt8Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i8_exact",
+      "shape": "to_i8_exact",
+      "bidgo_function": "Bid64ToInt8Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint16",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u16",
+      "shape": "to_u16",
+      "bidgo_function": "Bid64ToUint16Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint16Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u16_exact",
+      "shape": "to_u16_exact",
+      "bidgo_function": "Bid64ToUint16Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint32",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u32",
+      "shape": "to_u32",
+      "bidgo_function": "Bid64ToUint32Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint32Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u32_exact",
+      "shape": "to_u32_exact",
+      "bidgo_function": "Bid64ToUint32Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint64",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u64",
+      "shape": "to_u64",
+      "bidgo_function": "Bid64ToUint64Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint64Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u64_exact",
+      "shape": "to_u64_exact",
+      "bidgo_function": "Bid64ToUint64Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint8",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u8",
+      "shape": "to_u8",
+      "bidgo_function": "Bid64ToUint8Rnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint8Exact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u8_exact",
+      "shape": "to_u8_exact",
+      "bidgo_function": "Bid64ToUint8Xrnint"
+    },
+    {
+      "go_symbol": "Decimal64BID.Copy",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "Copy",
+      "shape": "copy_fold",
+      "bidgo_function": "Bid64Copy"
+    },
+    {
+      "go_symbol": "Decimal64BID.CopySign",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "copysign",
+      "shape": "copysign",
+      "bidgo_function": "Bid64CopySign"
+    },
+    {
+      "go_symbol": "Decimal64BID.Div",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "div",
+      "shape": "binary",
+      "bidgo_function": "Bid64Div"
+    },
+    {
+      "go_symbol": "Decimal64BID.DivWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "div_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64DivWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.DivWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "div_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64DivWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.FMA",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma",
+      "shape": "fma",
+      "bidgo_function": "Bid64Fma"
+    },
+    {
+      "go_symbol": "Decimal64BID.FMAWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_with_mode",
+      "shape": "ternary_mode_flags",
+      "bidgo_function": "Bid64Fma"
+    },
+    {
+      "go_symbol": "Decimal64BID.Fmod",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fmod",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64Fmod"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsCanonical",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_canonical",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsCanonical"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsFinite",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_finite",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsFinite"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsInf",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_infinite",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsInf"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsNaN",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_nan",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsNaN"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsNormal",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_normal",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsNormal"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsSignMinus",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_sign_negative",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsSigned"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsSignaling",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_signaling",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsSignaling"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsSubnormal",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_subnormal",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsSubnormal"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsZero",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_zero",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsZero"
+    },
+    {
+      "go_symbol": "Decimal64BID.LogB",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "logb",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64Logb"
+    },
+    {
+      "go_symbol": "Decimal64BID.MaxNum",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "max_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MaxNum"
+    },
+    {
+      "go_symbol": "Decimal64BID.MaxNumMag",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "max_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MaxNumMag"
+    },
+    {
+      "go_symbol": "Decimal64BID.MinNum",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "min_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MinNum"
+    },
+    {
+      "go_symbol": "Decimal64BID.MinNumMag",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "min_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MinNumMag"
+    },
+    {
+      "go_symbol": "Decimal64BID.Mul",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "mul",
+      "shape": "binary",
+      "bidgo_function": "Bid64Mul"
+    },
+    {
+      "go_symbol": "Decimal64BID.MulWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "mul_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64MulWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.MulWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "mul_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64MulWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.Negate",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "neg",
+      "shape": "unary",
+      "bidgo_function": "Bid64Negate"
+    },
+    {
+      "go_symbol": "Decimal64BID.NextMinus",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "next_down",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64NextDown"
+    },
+    {
+      "go_symbol": "Decimal64BID.NextPlus",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "next_up",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64NextUp"
+    },
+    {
+      "go_symbol": "Decimal64BID.NextToward",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "next_toward",
+      "shape": "next_toward",
+      "bidgo_function": "Bid64NextToward"
+    },
+    {
+      "go_symbol": "Decimal64BID.Quantize",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quantize",
+      "shape": "binary_drop_flags",
+      "bidgo_function": "Bid64Quantize"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuantizeWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quantize_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64Quantize"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuantizeWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quantize_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64Quantize"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_eq",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietGreater"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietGreaterEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietGreaterUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietGreaterUnordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietLess",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietLess"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietLessEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietLessEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietLessUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietLessUnordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietNotEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_ne",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietNotEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietNotGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietNotGreater"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietNotLess",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietNotLess"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietOrdered",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_ordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietOrdered"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietUnordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.Radix",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "RADIX",
+      "shape": "radix_const",
+      "bidgo_function": "Bid64Radix"
+    },
+    {
+      "go_symbol": "Decimal64BID.Reduce",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "reduce",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64Reduce"
+    },
+    {
+      "go_symbol": "Decimal64BID.Remainder",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "remainder",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64Rem"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralExact",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_exact",
+      "shape": "unary_mode_drop_flags",
+      "bidgo_function": "Bid64RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralExactWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_exact_with_flags",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid64RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralNearestAway",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_nearest_away",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralNearestAway"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralNearestEven",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_nearest_even",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralNearestEven"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralNegative",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_negative",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralNegative"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralPositive",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_positive",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralPositive"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralZero",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_zero",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralZero"
+    },
+    {
+      "go_symbol": "Decimal64BID.SameQuantum",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "same_quantum",
+      "shape": "same_quantum",
+      "bidgo_function": "Bid64SameQuantum"
+    },
+    {
+      "go_symbol": "Decimal64BID.ScaleB",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "scaleb",
+      "shape": "scaleb",
+      "bidgo_function": "Bid64Scalbln"
+    },
+    {
+      "go_symbol": "Decimal64BID.ScaleBWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "scaleb_with_mode",
+      "shape": "scaleb_mode",
+      "bidgo_function": "Bid64Scalbln"
+    },
+    {
+      "go_symbol": "Decimal64BID.Sign",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sign",
+      "shape": "sign",
+      "bidgo_function": "Bid64IsSigned"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_eq",
+      "shape": "signaling_eq_compose",
+      "bidgo_function": "Bid64SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingGreater"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingGreaterEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingGreaterUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingGreaterUnordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingLess",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingLess"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingLessEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingLessEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingLessUnordered",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingLessUnordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingNotEqual",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_ne",
+      "shape": "signaling_not_eq_compose",
+      "bidgo_function": "Bid64SignalingGreaterEqual"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingNotGreater",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingNotGreater"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingNotLess",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingNotLess"
+    },
+    {
+      "go_symbol": "Decimal64BID.Sqrt",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sqrt",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid64Sqrt"
+    },
+    {
+      "go_symbol": "Decimal64BID.SqrtWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sqrt_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid64Sqrt"
+    },
+    {
+      "go_symbol": "Decimal64BID.String",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "Display",
+      "shape": "display",
+      "bidgo_function": "Bid64ToString"
+    },
+    {
+      "go_symbol": "Decimal64BID.Sub",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sub",
+      "shape": "binary",
+      "bidgo_function": "Bid64Sub"
+    },
+    {
+      "go_symbol": "Decimal64BID.SubWithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sub_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64SubWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.SubWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sub_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64SubWithFlags"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToBinary128",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_binary128",
+      "shape": "to_binary128",
+      "bidgo_function": "Bid64ToBinary128"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToBinary32",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_f32",
+      "shape": "to_binary32",
+      "bidgo_function": "Bid64ToBinary32"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToBinary64",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_f64",
+      "shape": "to_binary64",
+      "bidgo_function": "Bid64ToBinary64"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToDecimal128",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_decimal128",
+      "shape": "to_decimal128",
+      "bidgo_function": "Bid64ToBid128"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToDecimal32",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_decimal32",
+      "shape": "to_decimal32",
+      "bidgo_function": "Bid64ToBid32"
+    },
+    {
+      "go_symbol": "NewDecimal128",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse",
+      "shape": "parse",
+      "bidgo_function": "Bid128FromString"
+    },
+    {
+      "go_symbol": "NewDecimal128BIDDirect",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse",
+      "shape": "parse_fold",
+      "bidgo_function": "Bid128FromString"
+    },
+    {
+      "go_symbol": "NewDecimal128FromInt",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "from_int",
+      "shape": "from_i64_exact_or_error",
+      "bidgo_function": "Bid128FromInt64"
+    },
+    {
+      "go_symbol": "NewDecimal128FromInt32",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From\u003ci32\u003e",
+      "shape": "from_i32_exact",
+      "bidgo_function": "Bid128FromInt32"
+    },
+    {
+      "go_symbol": "NewDecimal128FromInt64",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From\u003ci64\u003e",
+      "shape": "from_i64_exact",
+      "bidgo_function": "Bid128FromInt64"
+    },
+    {
+      "go_symbol": "NewDecimal128FromUint32",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From\u003cu32\u003e",
+      "shape": "from_u32_exact",
+      "bidgo_function": "Bid128FromUint32"
+    },
+    {
+      "go_symbol": "NewDecimal128FromUint64",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From\u003cu64\u003e",
+      "shape": "from_u64_exact",
+      "bidgo_function": "Bid128FromUint64"
+    },
+    {
+      "go_symbol": "NewDecimal128WithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse_with_flags",
+      "shape": "parse_with_flags",
+      "bidgo_function": "Bid128FromString"
+    },
+    {
+      "go_symbol": "NewDecimal128WithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse_with_mode",
+      "shape": "parse_mode",
+      "bidgo_function": "Bid128FromString"
+    },
+    {
+      "go_symbol": "NewDecimal32",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse",
+      "shape": "parse",
+      "bidgo_function": "Bid32FromStringRaw"
+    },
+    {
+      "go_symbol": "NewDecimal32BIDDirect",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse",
+      "shape": "parse_fold",
+      "bidgo_function": "Bid32FromStringRaw"
+    },
+    {
+      "go_symbol": "NewDecimal32FromInt",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_int",
+      "shape": "from_i32_exact_or_error",
+      "bidgo_function": "Bid32FromInt32"
+    },
+    {
+      "go_symbol": "NewDecimal32FromInt32",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_i32",
+      "shape": "from_i32_mode",
+      "bidgo_function": "Bid32FromInt32"
+    },
+    {
+      "go_symbol": "NewDecimal32FromInt64",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_i64",
+      "shape": "from_i64_mode",
+      "bidgo_function": "Bid32FromInt64"
+    },
+    {
+      "go_symbol": "NewDecimal32FromUint32",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_u32",
+      "shape": "from_u32_mode",
+      "bidgo_function": "Bid32FromUint32"
+    },
+    {
+      "go_symbol": "NewDecimal32FromUint64",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_u64",
+      "shape": "from_u64_mode",
+      "bidgo_function": "Bid32FromUint64"
+    },
+    {
+      "go_symbol": "NewDecimal32WithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse_with_flags",
+      "shape": "parse_with_flags",
+      "bidgo_function": "Bid32FromStringRaw"
+    },
+    {
+      "go_symbol": "NewDecimal32WithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse_with_mode",
+      "shape": "parse_mode",
+      "bidgo_function": "Bid32FromStringRaw"
+    },
+    {
+      "go_symbol": "NewDecimal64",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse",
+      "shape": "parse",
+      "bidgo_function": "Bid64FromString"
+    },
+    {
+      "go_symbol": "NewDecimal64BIDDirect",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse",
+      "shape": "parse_fold",
+      "bidgo_function": "Bid64FromString"
+    },
+    {
+      "go_symbol": "NewDecimal64FromInt",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "from_int",
+      "shape": "from_i64_exact_or_error",
+      "bidgo_function": "Bid64FromInt64"
+    },
+    {
+      "go_symbol": "NewDecimal64FromInt32",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "From\u003ci32\u003e",
+      "shape": "from_i32_exact",
+      "bidgo_function": "Bid64FromInt32"
+    },
+    {
+      "go_symbol": "NewDecimal64FromInt64",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "from_i64",
+      "shape": "from_i64_mode",
+      "bidgo_function": "Bid64FromInt64"
+    },
+    {
+      "go_symbol": "NewDecimal64FromUint32",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "From\u003cu32\u003e",
+      "shape": "from_u32_exact",
+      "bidgo_function": "Bid64FromUint32"
+    },
+    {
+      "go_symbol": "NewDecimal64FromUint64",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "from_u64",
+      "shape": "from_u64_mode",
+      "bidgo_function": "Bid64FromUint64"
+    },
+    {
+      "go_symbol": "NewDecimal64WithFlags",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse_with_flags",
+      "shape": "parse_with_flags",
+      "bidgo_function": "Bid64FromString"
+    },
+    {
+      "go_symbol": "NewDecimal64WithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse_with_mode",
+      "shape": "parse_mode",
+      "bidgo_function": "Bid64FromString"
+    },
+    {
+      "go_symbol": "ParseDecimal128BIDRaw",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse_raw",
+      "shape": "parse_raw",
+      "bidgo_function": "Bid128FromString"
+    },
+    {
+      "go_symbol": "ParseDecimal32BIDRaw",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse_raw",
+      "shape": "parse_raw",
+      "bidgo_function": "Bid32FromStringRaw"
+    },
+    {
+      "go_symbol": "ParseDecimal64BIDRaw",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse_raw",
+      "shape": "parse_raw",
+      "bidgo_function": "Bid64FromString"
+    }
+  ],
+  "constants_total": 12,
+  "constants_emitted": 12,
+  "constants_excluded": 0,
+  "constants": [
+    {
+      "go_symbol": "E128BID",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_const": "E",
+      "literal": "2.718281828459045235360287471352662",
+      "bits_hex": "[0x56, 0xbb, 0x6a, 0xb2, 0xcc, 0x6a, 0x90, 0x4e, 0xde, 0xf4, 0x4b, 0x8a, 0x05, 0x86, 0xfe, 0x2f]"
+    },
+    {
+      "go_symbol": "E32BID",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_const": "E",
+      "literal": "2.718282",
+      "bits_hex": "0x2fa97a4a"
+    },
+    {
+      "go_symbol": "E64BID",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_const": "E",
+      "literal": "2.718281828459045",
+      "bits_hex": "0x2fe9a8434ec8e225"
+    },
+    {
+      "go_symbol": "One128BID",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_const": "ONE",
+      "literal": "1",
+      "bits_hex": "[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]"
+    },
+    {
+      "go_symbol": "One32BID",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_const": "ONE",
+      "literal": "1",
+      "bits_hex": "0x32800001"
+    },
+    {
+      "go_symbol": "One64BID",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_const": "ONE",
+      "literal": "1",
+      "bits_hex": "0x31c0000000000001"
+    },
+    {
+      "go_symbol": "Pi128BID",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_const": "PI",
+      "literal": "3.141592653589793238462643383279503",
+      "bits_hex": "[0x8f, 0x9f, 0xf3, 0xe6, 0x64, 0x55, 0xbe, 0xba, 0xa7, 0x96, 0x57, 0x79, 0xe4, 0x9a, 0xfe, 0x2f]"
+    },
+    {
+      "go_symbol": "Pi32BID",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_const": "PI",
+      "literal": "3.141593",
+      "bits_hex": "0x2fafefd9"
+    },
+    {
+      "go_symbol": "Pi64BID",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_const": "PI",
+      "literal": "3.141592653589793",
+      "bits_hex": "0x2feb29430a256d21"
+    },
+    {
+      "go_symbol": "Zero128BID",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_const": "ZERO",
+      "literal": "0",
+      "bits_hex": "[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]"
+    },
+    {
+      "go_symbol": "Zero32BID",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_const": "ZERO",
+      "literal": "0",
+      "bits_hex": "0x32800000"
+    },
+    {
+      "go_symbol": "Zero64BID",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_const": "ZERO",
+      "literal": "0",
+      "bits_hex": "0x31c0000000000000"
+    }
+  ]
+}

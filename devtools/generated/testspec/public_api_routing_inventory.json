@@ -1,0 +1,2476 @@
+{
+  "version": "1.0",
+  "source": "bid754-go module-root package bid754 (all non-test files, generated included) + bid754-go/internal/bidgo + devtools/testgen_manifest.json public_api",
+  "total": 384,
+  "mapped": 337,
+  "excluded": 47,
+  "excluded_by_class": {
+    "composition_plumbing": 6,
+    "constant_accessor": 12,
+    "context_flag_plumbing": 12,
+    "display_plumbing": 7,
+    "layout_plumbing": 4,
+    "string_util_plumbing": 2,
+    "version_const": 4
+  },
+  "symbols": [
+    {
+      "symbol": "Add128BIDWithContext",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128Add",
+      "reason": "context add routes through Bid128Add (pointer-flags form) and accumulates the mapped flags into the context"
+    },
+    {
+      "symbol": "Add32BIDWithContext",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32AddWithFlags",
+      "reason": "context add routes through Bid32AddWithFlags and accumulates the mapped flags into the context"
+    },
+    {
+      "symbol": "Add64BIDWithContext",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64AddWithFlags",
+      "reason": "context add routes through Bid64AddWithFlags and accumulates the mapped flags into the context"
+    },
+    {
+      "symbol": "AddSlice128BID",
+      "kind": "func",
+      "status": "excluded_composition_plumbing",
+      "reason": "left-to-right fold over the Bid128 add wrapper; each step is a parity-covered add"
+    },
+    {
+      "symbol": "AddSlice128BIDWithFlags",
+      "kind": "func",
+      "status": "excluded_composition_plumbing",
+      "reason": "left-to-right fold over the Bid128 add-with-flags wrapper; each step is a parity-covered add"
+    },
+    {
+      "symbol": "AddSlice32BID",
+      "kind": "func",
+      "status": "excluded_composition_plumbing",
+      "reason": "left-to-right fold over the Bid32 add wrapper; each step is a parity-covered add"
+    },
+    {
+      "symbol": "AddSlice32BIDWithFlags",
+      "kind": "func",
+      "status": "excluded_composition_plumbing",
+      "reason": "left-to-right fold over the Bid32 add-with-flags wrapper; each step is a parity-covered add"
+    },
+    {
+      "symbol": "AddSlice64BID",
+      "kind": "func",
+      "status": "excluded_composition_plumbing",
+      "reason": "left-to-right fold over the Bid64 add wrapper; each step is a parity-covered add"
+    },
+    {
+      "symbol": "AddSlice64BIDWithFlags",
+      "kind": "func",
+      "status": "excluded_composition_plumbing",
+      "reason": "left-to-right fold over the Bid64 add-with-flags wrapper; each step is a parity-covered add"
+    },
+    {
+      "symbol": "ArithmeticContext.ClearAllFlags",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "IEEE 754 5.7.4 lowerFlags over the full flag group; no port counterpart"
+    },
+    {
+      "symbol": "ArithmeticContext.ClearFlag",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "IEEE 754 5.7.4 lowerFlags on the context flag word; no port counterpart"
+    },
+    {
+      "symbol": "ArithmeticContext.Clone",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "independent copy of the context; flag/context plumbing with no port counterpart"
+    },
+    {
+      "symbol": "ArithmeticContext.HasFlag",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "IEEE 754 5.7.4 testFlags on the context flag word; no port counterpart"
+    },
+    {
+      "symbol": "ArithmeticContext.RestoreFlags",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "IEEE 754 5.7.4 restoreFlags masked write of the context flag word; no port counterpart"
+    },
+    {
+      "symbol": "ArithmeticContext.SaveAllFlags",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "IEEE 754 5.7.4 saveAllFlags snapshot of the context flag word; no port counterpart"
+    },
+    {
+      "symbol": "ArithmeticContext.SetFlag",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "IEEE 754 5.7.4 raiseFlags on the context flag word; no port counterpart"
+    },
+    {
+      "symbol": "ArithmeticContext.WithRounding",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "copy of the context with a replaced rounding mode; attribute plumbing with no port counterpart"
+    },
+    {
+      "symbol": "Binary128.ToBytes",
+      "kind": "method",
+      "status": "excluded_layout_plumbing",
+      "reason": "fixed-width byte-layout accessor for the binary128 pattern; covered by the layout check and codec vectors, not an arithmetic port operation"
+    },
+    {
+      "symbol": "Decimal128BID.Abs",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Abs"
+    },
+    {
+      "symbol": "Decimal128BID.Add",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Add",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal128BID.AddWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Add"
+    },
+    {
+      "symbol": "Decimal128BID.AddWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Add",
+      "reason": "explicit-rounding-mode add; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eAdd[WithFlags] port entrypoint as AddWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal128BID.Class",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Class"
+    },
+    {
+      "symbol": "Decimal128BID.CompareTotal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128TotalOrder",
+      "reason": "IEEE totalOrder mapped to -1/0/+1 by composing two Bid\u003cw\u003eTotalOrder calls (x\u003c=y and y\u003c=x)"
+    },
+    {
+      "symbol": "Decimal128BID.CompareTotalMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128TotalOrderMag",
+      "reason": "IEEE totalOrderMag mapped to -1/0/+1 by composing two Bid\u003cw\u003eTotalOrderMag calls"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt16",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt16Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int16_* directed converters (mode-dispatched over Bid128ToInt16Rnint, Bid128ToInt16Rninta, Bid128ToInt16Int, Bid128ToInt16Ceil, Bid128ToInt16Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt16Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt16Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int16_x* converters by rounding mode (mode-dispatched over Bid128ToInt16Xrnint, Bid128ToInt16Xrninta, Bid128ToInt16Xint, Bid128ToInt16Xceil, Bid128ToInt16Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt32Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int32_* directed converters (mode-dispatched over Bid128ToInt32Rnint, Bid128ToInt32Rninta, Bid128ToInt32Int, Bid128ToInt32Ceil, Bid128ToInt32Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt32Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt32Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int32_x* converters by rounding mode (mode-dispatched over Bid128ToInt32Xrnint, Bid128ToInt32Xrninta, Bid128ToInt32Xint, Bid128ToInt32Xceil, Bid128ToInt32Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt64Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int64_* directed converters (mode-dispatched over Bid128ToInt64Rnint, Bid128ToInt64Rninta, Bid128ToInt64Int, Bid128ToInt64Ceil, Bid128ToInt64Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt64Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt64Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int64_x* converters by rounding mode (mode-dispatched over Bid128ToInt64Xrnint, Bid128ToInt64Xrninta, Bid128ToInt64Xint, Bid128ToInt64Xceil, Bid128ToInt64Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt8",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt8Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int8_* directed converters (mode-dispatched over Bid128ToInt8Rnint, Bid128ToInt8Rninta, Bid128ToInt8Int, Bid128ToInt8Ceil, Bid128ToInt8Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToInt8Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToInt8Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int8_x* converters by rounding mode (mode-dispatched over Bid128ToInt8Xrnint, Bid128ToInt8Xrninta, Bid128ToInt8Xint, Bid128ToInt8Xceil, Bid128ToInt8Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint16",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint16Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint16_* directed converters (mode-dispatched over Bid128ToUint16Rnint, Bid128ToUint16Rninta, Bid128ToUint16Int, Bid128ToUint16Ceil, Bid128ToUint16Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint16Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint16Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint16_x* converters by rounding mode (mode-dispatched over Bid128ToUint16Xrnint, Bid128ToUint16Xrninta, Bid128ToUint16Xint, Bid128ToUint16Xceil, Bid128ToUint16Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint32Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint32_* directed converters (mode-dispatched over Bid128ToUint32Rnint, Bid128ToUint32Rninta, Bid128ToUint32Int, Bid128ToUint32Ceil, Bid128ToUint32Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint32Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint32Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint32_x* converters by rounding mode (mode-dispatched over Bid128ToUint32Xrnint, Bid128ToUint32Xrninta, Bid128ToUint32Xint, Bid128ToUint32Xceil, Bid128ToUint32Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint64Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint64_* directed converters (mode-dispatched over Bid128ToUint64Rnint, Bid128ToUint64Rninta, Bid128ToUint64Int, Bid128ToUint64Ceil, Bid128ToUint64Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint64Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint64Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint64_x* converters by rounding mode (mode-dispatched over Bid128ToUint64Xrnint, Bid128ToUint64Xrninta, Bid128ToUint64Xint, Bid128ToUint64Xceil, Bid128ToUint64Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint8",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint8Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint8_* directed converters (mode-dispatched over Bid128ToUint8Rnint, Bid128ToUint8Rninta, Bid128ToUint8Int, Bid128ToUint8Ceil, Bid128ToUint8Floor)"
+    },
+    {
+      "symbol": "Decimal128BID.ConvertToUint8Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToUint8Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint8_x* converters by rounding mode (mode-dispatched over Bid128ToUint8Xrnint, Bid128ToUint8Xrninta, Bid128ToUint8Xint, Bid128ToUint8Xceil, Bid128ToUint8Xfloor)"
+    },
+    {
+      "symbol": "Decimal128BID.Copy",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Copy"
+    },
+    {
+      "symbol": "Decimal128BID.CopySign",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128CopySign"
+    },
+    {
+      "symbol": "Decimal128BID.Div",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Div",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal128BID.DivWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Div"
+    },
+    {
+      "symbol": "Decimal128BID.DivWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Div",
+      "reason": "explicit-rounding-mode divide; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eDiv[WithFlags] port entrypoint as DivWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal128BID.FMA",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Fma"
+    },
+    {
+      "symbol": "Decimal128BID.FMAWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Fma",
+      "reason": "explicit-rounding-mode fused multiply-add; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eFma port entrypoint as FMA rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal128BID.Fmod",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Fmod"
+    },
+    {
+      "symbol": "Decimal128BID.IsCanonical",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsCanonical"
+    },
+    {
+      "symbol": "Decimal128BID.IsFinite",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsFinite"
+    },
+    {
+      "symbol": "Decimal128BID.IsInf",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsInf"
+    },
+    {
+      "symbol": "Decimal128BID.IsNaN",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsNaN"
+    },
+    {
+      "symbol": "Decimal128BID.IsNormal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsNormal"
+    },
+    {
+      "symbol": "Decimal128BID.IsSignMinus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsSigned",
+      "reason": "IEEE isSignMinus; the Go port keeps the Intel bid\u003cw\u003e_isSigned name"
+    },
+    {
+      "symbol": "Decimal128BID.IsSignaling",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsSignaling"
+    },
+    {
+      "symbol": "Decimal128BID.IsSubnormal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsSubnormal"
+    },
+    {
+      "symbol": "Decimal128BID.IsZero",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsZero"
+    },
+    {
+      "symbol": "Decimal128BID.LogB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Logb"
+    },
+    {
+      "symbol": "Decimal128BID.MaxNum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Maxnum"
+    },
+    {
+      "symbol": "Decimal128BID.MaxNumMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128MaxnumMag"
+    },
+    {
+      "symbol": "Decimal128BID.MinNum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Minnum"
+    },
+    {
+      "symbol": "Decimal128BID.MinNumMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128MinnumMag"
+    },
+    {
+      "symbol": "Decimal128BID.Mul",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Mul",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal128BID.MulWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Mul"
+    },
+    {
+      "symbol": "Decimal128BID.MulWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Mul",
+      "reason": "explicit-rounding-mode multiply; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eMul[WithFlags] port entrypoint as MulWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal128BID.Negate",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Negate"
+    },
+    {
+      "symbol": "Decimal128BID.NextMinus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128NextDown",
+      "reason": "IEEE nextDown; the Go port keeps the Intel bid\u003cw\u003e_nextdown name"
+    },
+    {
+      "symbol": "Decimal128BID.NextPlus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128NextUp",
+      "reason": "IEEE nextUp; the Go port keeps the Intel bid\u003cw\u003e_nextup name"
+    },
+    {
+      "symbol": "Decimal128BID.NextToward",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128NextToward"
+    },
+    {
+      "symbol": "Decimal128BID.PrettyString",
+      "kind": "method",
+      "status": "excluded_display_plumbing",
+      "reason": "display-oriented reformatting of the port to_string output (trim/format helpers); no IEEE port operation of its own"
+    },
+    {
+      "symbol": "Decimal128BID.Quantize",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Quantize",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal128BID.QuantizeWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Quantize"
+    },
+    {
+      "symbol": "Decimal128BID.QuantizeWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Quantize",
+      "reason": "explicit-rounding-mode quantize; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eQuantize port entrypoint as QuantizeWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal128BID.QuietEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietEqual"
+    },
+    {
+      "symbol": "Decimal128BID.QuietGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietGreater"
+    },
+    {
+      "symbol": "Decimal128BID.QuietGreaterEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietGreaterEqual"
+    },
+    {
+      "symbol": "Decimal128BID.QuietGreaterUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietGreaterUnordered"
+    },
+    {
+      "symbol": "Decimal128BID.QuietLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietLess"
+    },
+    {
+      "symbol": "Decimal128BID.QuietLessEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietLessEqual"
+    },
+    {
+      "symbol": "Decimal128BID.QuietLessUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietLessUnordered"
+    },
+    {
+      "symbol": "Decimal128BID.QuietNotEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietNotEqual"
+    },
+    {
+      "symbol": "Decimal128BID.QuietNotGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietNotGreater"
+    },
+    {
+      "symbol": "Decimal128BID.QuietNotLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietNotLess"
+    },
+    {
+      "symbol": "Decimal128BID.QuietOrdered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietOrdered"
+    },
+    {
+      "symbol": "Decimal128BID.QuietUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128QuietUnordered"
+    },
+    {
+      "symbol": "Decimal128BID.Radix",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Radix"
+    },
+    {
+      "symbol": "Decimal128BID.Remainder",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Rem",
+      "reason": "IEEE remainder; the Go port keeps the Intel bid\u003cw\u003e_rem short name"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralExact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralExact",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralExactWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralExact"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralNearestAway",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralNearestAway"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralNearestEven",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralNearestEven"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralNegative",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralNegative"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralPositive",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralPositive"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralZero",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralZero"
+    },
+    {
+      "symbol": "Decimal128BID.SameQuantum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SameQuantum"
+    },
+    {
+      "symbol": "Decimal128BID.ScaleB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Scalbln",
+      "reason": "scaleB(x, n) routes through the Intel bid\u003cw\u003e_scalbln long-int-exponent scaler, which clamps the Go int64 exponent into the int32 domain inside the port before scaling; prefer_with_flags selects the flags-widening wrapper at bid32 where the base scalb pack omits the Intel overflow/underflow status flags, and the flag-complete base entrypoint at bid64/128"
+    },
+    {
+      "symbol": "Decimal128BID.ScaleBWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Scalbln",
+      "reason": "explicit-rounding-mode scaleB; the RoundingMode argument is carried into the same Intel bid\u003cw\u003e_scalbln long-int-exponent scaler as ScaleB (clamping the Go int64 exponent into the int32 domain inside the port) rather than the default ties-to-even; prefer_with_flags selects the flags-widening wrapper at bid32 where the base scalb pack omits the Intel overflow/underflow status flags, and the flag-complete base entrypoint at bid64/128"
+    },
+    {
+      "symbol": "Decimal128BID.Sign",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128IsSigned",
+      "reason": "composed -1/0/+1 sign classification over Bid\u003cw\u003eIsZero and Bid\u003cw\u003eIsSigned; there is no single Intel sign entrypoint"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingGreaterEqual",
+      "reason": "Intel has no signaling-equal entrypoint; composed from Bid\u003cw\u003eSignalingGreaterEqual and Bid\u003cw\u003eSignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingGreater"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingGreaterEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingGreaterEqual"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingGreaterUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingGreaterUnordered"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingLess"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingLessEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingLessUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingLessUnordered"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingNotEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingGreaterEqual",
+      "reason": "negation of the signaling-equal composition over Bid\u003cw\u003eSignalingGreaterEqual and Bid\u003cw\u003eSignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingNotGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingNotGreater"
+    },
+    {
+      "symbol": "Decimal128BID.SignalingNotLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128SignalingNotLess"
+    },
+    {
+      "symbol": "Decimal128BID.Sqrt",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Sqrt"
+    },
+    {
+      "symbol": "Decimal128BID.SqrtWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Sqrt",
+      "reason": "explicit-rounding-mode square root; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eSqrt port entrypoint as Sqrt rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal128BID.String",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToString",
+      "reason": "non-NaN values route through the Intel bid\u003cw\u003e_to_string converter; the NaN branch is display plumbing covered by the hand-written NaN payload tests"
+    },
+    {
+      "symbol": "Decimal128BID.Sub",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Sub",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal128BID.SubWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Sub"
+    },
+    {
+      "symbol": "Decimal128BID.SubWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Sub",
+      "reason": "explicit-rounding-mode subtract; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eSub[WithFlags] port entrypoint as SubWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal128BID.ToBinary128",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToBinary128"
+    },
+    {
+      "symbol": "Decimal128BID.ToBinary32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToBinary32"
+    },
+    {
+      "symbol": "Decimal128BID.ToBinary64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToBinary64"
+    },
+    {
+      "symbol": "Decimal128BID.ToBytes",
+      "kind": "method",
+      "status": "excluded_layout_plumbing",
+      "reason": "generated fixed-width byte-layout accessor ([16]byte(d)); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation"
+    },
+    {
+      "symbol": "Decimal128BID.ToDecimal32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToBid32",
+      "reason": "cross-width decimal narrowing routes through the Intel bid\u003cw\u003e_to_bid32 converter"
+    },
+    {
+      "symbol": "Decimal128BID.ToDecimal64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128ToBid64",
+      "reason": "cross-width decimal conversion routes through the Intel bid\u003cw\u003e_to_bid64 converter"
+    },
+    {
+      "symbol": "Decimal32BID.Abs",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Abs"
+    },
+    {
+      "symbol": "Decimal32BID.Add",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Add"
+    },
+    {
+      "symbol": "Decimal32BID.AddWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32AddWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.AddWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32AddWithFlags",
+      "reason": "explicit-rounding-mode add; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eAdd[WithFlags] port entrypoint as AddWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal32BID.Class",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Class"
+    },
+    {
+      "symbol": "Decimal32BID.CompareTotal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32TotalOrder",
+      "reason": "IEEE totalOrder mapped to -1/0/+1 by composing two Bid\u003cw\u003eTotalOrder calls (x\u003c=y and y\u003c=x)"
+    },
+    {
+      "symbol": "Decimal32BID.CompareTotalMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32TotalOrderMag",
+      "reason": "IEEE totalOrderMag mapped to -1/0/+1 by composing two Bid\u003cw\u003eTotalOrderMag calls"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt16",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt16Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int16_* directed converters (mode-dispatched over Bid32ToInt16Rnint, Bid32ToInt16Rninta, Bid32ToInt16Int, Bid32ToInt16Ceil, Bid32ToInt16Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt16Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt16Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int16_x* converters by rounding mode (mode-dispatched over Bid32ToInt16Xrnint, Bid32ToInt16Xrninta, Bid32ToInt16Xint, Bid32ToInt16Xceil, Bid32ToInt16Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt32Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int32_* directed converters (mode-dispatched over Bid32ToInt32Rnint, Bid32ToInt32Rninta, Bid32ToInt32Int, Bid32ToInt32Ceil, Bid32ToInt32Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt32Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt32Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int32_x* converters by rounding mode (mode-dispatched over Bid32ToInt32Xrnint, Bid32ToInt32Xrninta, Bid32ToInt32Xint, Bid32ToInt32Xceil, Bid32ToInt32Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt64Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int64_* directed converters (mode-dispatched over Bid32ToInt64Rnint, Bid32ToInt64Rninta, Bid32ToInt64Int, Bid32ToInt64Ceil, Bid32ToInt64Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt64Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt64Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int64_x* converters by rounding mode (mode-dispatched over Bid32ToInt64Xrnint, Bid32ToInt64Xrninta, Bid32ToInt64Xint, Bid32ToInt64Xceil, Bid32ToInt64Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt8",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt8Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int8_* directed converters (mode-dispatched over Bid32ToInt8Rnint, Bid32ToInt8Rninta, Bid32ToInt8Int, Bid32ToInt8Ceil, Bid32ToInt8Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToInt8Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToInt8Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int8_x* converters by rounding mode (mode-dispatched over Bid32ToInt8Xrnint, Bid32ToInt8Xrninta, Bid32ToInt8Xint, Bid32ToInt8Xceil, Bid32ToInt8Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint16",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint16Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint16_* directed converters (mode-dispatched over Bid32ToUint16Rnint, Bid32ToUint16Rninta, Bid32ToUint16Int, Bid32ToUint16Ceil, Bid32ToUint16Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint16Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint16Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint16_x* converters by rounding mode (mode-dispatched over Bid32ToUint16Xrnint, Bid32ToUint16Xrninta, Bid32ToUint16Xint, Bid32ToUint16Xceil, Bid32ToUint16Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint32Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint32_* directed converters (mode-dispatched over Bid32ToUint32Rnint, Bid32ToUint32Rninta, Bid32ToUint32Int, Bid32ToUint32Ceil, Bid32ToUint32Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint32Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint32Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint32_x* converters by rounding mode (mode-dispatched over Bid32ToUint32Xrnint, Bid32ToUint32Xrninta, Bid32ToUint32Xint, Bid32ToUint32Xceil, Bid32ToUint32Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint64Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint64_* directed converters (mode-dispatched over Bid32ToUint64Rnint, Bid32ToUint64Rninta, Bid32ToUint64Int, Bid32ToUint64Ceil, Bid32ToUint64Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint64Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint64Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint64_x* converters by rounding mode (mode-dispatched over Bid32ToUint64Xrnint, Bid32ToUint64Xrninta, Bid32ToUint64Xint, Bid32ToUint64Xceil, Bid32ToUint64Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint8",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint8Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint8_* directed converters (mode-dispatched over Bid32ToUint8Rnint, Bid32ToUint8Rninta, Bid32ToUint8Int, Bid32ToUint8Ceil, Bid32ToUint8Floor)"
+    },
+    {
+      "symbol": "Decimal32BID.ConvertToUint8Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToUint8Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint8_x* converters by rounding mode (mode-dispatched over Bid32ToUint8Xrnint, Bid32ToUint8Xrninta, Bid32ToUint8Xint, Bid32ToUint8Xceil, Bid32ToUint8Xfloor)"
+    },
+    {
+      "symbol": "Decimal32BID.Copy",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Copy"
+    },
+    {
+      "symbol": "Decimal32BID.CopySign",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32CopySign"
+    },
+    {
+      "symbol": "Decimal32BID.Div",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Div"
+    },
+    {
+      "symbol": "Decimal32BID.DivWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32DivWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.DivWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32DivWithFlags",
+      "reason": "explicit-rounding-mode divide; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eDiv[WithFlags] port entrypoint as DivWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal32BID.FMA",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Fma"
+    },
+    {
+      "symbol": "Decimal32BID.FMAWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Fma",
+      "reason": "explicit-rounding-mode fused multiply-add; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eFma port entrypoint as FMA rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal32BID.Fmod",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Fmod"
+    },
+    {
+      "symbol": "Decimal32BID.IsCanonical",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsCanonical"
+    },
+    {
+      "symbol": "Decimal32BID.IsFinite",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsFinite"
+    },
+    {
+      "symbol": "Decimal32BID.IsInf",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsInf"
+    },
+    {
+      "symbol": "Decimal32BID.IsNaN",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsNaN"
+    },
+    {
+      "symbol": "Decimal32BID.IsNormal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsNormal"
+    },
+    {
+      "symbol": "Decimal32BID.IsSignMinus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsSigned",
+      "reason": "IEEE isSignMinus; the Go port keeps the Intel bid\u003cw\u003e_isSigned name"
+    },
+    {
+      "symbol": "Decimal32BID.IsSignaling",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsSignaling"
+    },
+    {
+      "symbol": "Decimal32BID.IsSubnormal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsSubnormal"
+    },
+    {
+      "symbol": "Decimal32BID.IsZero",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsZero"
+    },
+    {
+      "symbol": "Decimal32BID.LogB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Logb"
+    },
+    {
+      "symbol": "Decimal32BID.MaxNum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32MaxNumWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.MaxNumMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32MaxNumMagWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.MinNum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32MinNumWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.MinNumMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32MinNumMagWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.Mul",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Mul"
+    },
+    {
+      "symbol": "Decimal32BID.MulWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32MulWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.MulWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32MulWithFlags",
+      "reason": "explicit-rounding-mode multiply; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eMul[WithFlags] port entrypoint as MulWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal32BID.Negate",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Negate"
+    },
+    {
+      "symbol": "Decimal32BID.NextMinus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32NextDown",
+      "reason": "IEEE nextDown; the Go port keeps the Intel bid\u003cw\u003e_nextdown name"
+    },
+    {
+      "symbol": "Decimal32BID.NextPlus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32NextUp",
+      "reason": "IEEE nextUp; the Go port keeps the Intel bid\u003cw\u003e_nextup name"
+    },
+    {
+      "symbol": "Decimal32BID.NextToward",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32NextToward"
+    },
+    {
+      "symbol": "Decimal32BID.PrettyString",
+      "kind": "method",
+      "status": "excluded_display_plumbing",
+      "reason": "display-oriented reformatting of the port to_string output (trim/format helpers); no IEEE port operation of its own"
+    },
+    {
+      "symbol": "Decimal32BID.Quantize",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Quantize",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal32BID.QuantizeWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Quantize"
+    },
+    {
+      "symbol": "Decimal32BID.QuantizeWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Quantize",
+      "reason": "explicit-rounding-mode quantize; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eQuantize port entrypoint as QuantizeWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal32BID.QuietEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietEqual"
+    },
+    {
+      "symbol": "Decimal32BID.QuietGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietGreater"
+    },
+    {
+      "symbol": "Decimal32BID.QuietGreaterEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietGreaterEqual"
+    },
+    {
+      "symbol": "Decimal32BID.QuietGreaterUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietGreaterUnordered"
+    },
+    {
+      "symbol": "Decimal32BID.QuietLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietLess"
+    },
+    {
+      "symbol": "Decimal32BID.QuietLessEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietLessEqual"
+    },
+    {
+      "symbol": "Decimal32BID.QuietLessUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietLessUnordered"
+    },
+    {
+      "symbol": "Decimal32BID.QuietNotEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietNotEqual"
+    },
+    {
+      "symbol": "Decimal32BID.QuietNotGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietNotGreater"
+    },
+    {
+      "symbol": "Decimal32BID.QuietNotLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietNotLess"
+    },
+    {
+      "symbol": "Decimal32BID.QuietOrdered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietOrdered"
+    },
+    {
+      "symbol": "Decimal32BID.QuietUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32QuietUnordered"
+    },
+    {
+      "symbol": "Decimal32BID.Radix",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Radix"
+    },
+    {
+      "symbol": "Decimal32BID.Remainder",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Rem",
+      "reason": "IEEE remainder; the Go port keeps the Intel bid\u003cw\u003e_rem short name"
+    },
+    {
+      "symbol": "Decimal32BID.RoundIntegralExact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralExact",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal32BID.RoundIntegralExactWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralExact"
+    },
+    {
+      "symbol": "Decimal32BID.RoundIntegralNearestAway",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralNearestAway"
+    },
+    {
+      "symbol": "Decimal32BID.RoundIntegralNearestEven",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralNearestEven"
+    },
+    {
+      "symbol": "Decimal32BID.RoundIntegralNegative",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralNegative"
+    },
+    {
+      "symbol": "Decimal32BID.RoundIntegralPositive",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralPositive"
+    },
+    {
+      "symbol": "Decimal32BID.RoundIntegralZero",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralZero"
+    },
+    {
+      "symbol": "Decimal32BID.SameQuantum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SameQuantum"
+    },
+    {
+      "symbol": "Decimal32BID.ScaleB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ScalblnWithFlags",
+      "reason": "scaleB(x, n) routes through the Intel bid\u003cw\u003e_scalbln long-int-exponent scaler, which clamps the Go int64 exponent into the int32 domain inside the port before scaling; prefer_with_flags selects the flags-widening wrapper at bid32 where the base scalb pack omits the Intel overflow/underflow status flags, and the flag-complete base entrypoint at bid64/128"
+    },
+    {
+      "symbol": "Decimal32BID.ScaleBWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ScalblnWithFlags",
+      "reason": "explicit-rounding-mode scaleB; the RoundingMode argument is carried into the same Intel bid\u003cw\u003e_scalbln long-int-exponent scaler as ScaleB (clamping the Go int64 exponent into the int32 domain inside the port) rather than the default ties-to-even; prefer_with_flags selects the flags-widening wrapper at bid32 where the base scalb pack omits the Intel overflow/underflow status flags, and the flag-complete base entrypoint at bid64/128"
+    },
+    {
+      "symbol": "Decimal32BID.Sign",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32IsSigned",
+      "reason": "composed -1/0/+1 sign classification over Bid\u003cw\u003eIsZero and Bid\u003cw\u003eIsSigned; there is no single Intel sign entrypoint"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingGreaterEqual",
+      "reason": "Intel has no signaling-equal entrypoint; composed from Bid\u003cw\u003eSignalingGreaterEqual and Bid\u003cw\u003eSignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingGreater"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingGreaterEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingGreaterEqual"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingGreaterUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingGreaterUnordered"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingLess"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingLessEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingLessUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingLessUnordered"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingNotEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingGreaterEqual",
+      "reason": "negation of the signaling-equal composition over Bid\u003cw\u003eSignalingGreaterEqual and Bid\u003cw\u003eSignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingNotGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingNotGreater"
+    },
+    {
+      "symbol": "Decimal32BID.SignalingNotLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SignalingNotLess"
+    },
+    {
+      "symbol": "Decimal32BID.Sqrt",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Sqrt"
+    },
+    {
+      "symbol": "Decimal32BID.SqrtWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Sqrt",
+      "reason": "explicit-rounding-mode square root; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eSqrt port entrypoint as Sqrt rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal32BID.String",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToString",
+      "reason": "non-NaN values route through the Intel bid\u003cw\u003e_to_string converter; the NaN branch is display plumbing covered by the hand-written NaN payload tests"
+    },
+    {
+      "symbol": "Decimal32BID.Sub",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32Sub"
+    },
+    {
+      "symbol": "Decimal32BID.SubWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SubWithFlags"
+    },
+    {
+      "symbol": "Decimal32BID.SubWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32SubWithFlags",
+      "reason": "explicit-rounding-mode subtract; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eSub[WithFlags] port entrypoint as SubWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal32BID.ToBinary128",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToBinary128"
+    },
+    {
+      "symbol": "Decimal32BID.ToBinary32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToBinary32"
+    },
+    {
+      "symbol": "Decimal32BID.ToBinary64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToBinary64"
+    },
+    {
+      "symbol": "Decimal32BID.ToDecimal128",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToBid128",
+      "reason": "cross-width decimal widening routes through the Intel bid\u003cw\u003e_to_bid128 converter"
+    },
+    {
+      "symbol": "Decimal32BID.ToDecimal64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ToBid64",
+      "reason": "cross-width decimal conversion routes through the Intel bid\u003cw\u003e_to_bid64 converter"
+    },
+    {
+      "symbol": "Decimal32BID.ToUint32",
+      "kind": "method",
+      "status": "excluded_layout_plumbing",
+      "reason": "generated fixed-width bit-pattern accessor (uint32(d)); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation"
+    },
+    {
+      "symbol": "Decimal64BID.Abs",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Abs"
+    },
+    {
+      "symbol": "Decimal64BID.Add",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Add"
+    },
+    {
+      "symbol": "Decimal64BID.AddWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64AddWithFlags"
+    },
+    {
+      "symbol": "Decimal64BID.AddWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64AddWithFlags",
+      "reason": "explicit-rounding-mode add; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eAdd[WithFlags] port entrypoint as AddWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal64BID.Class",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Class"
+    },
+    {
+      "symbol": "Decimal64BID.CompareTotal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64TotalOrder",
+      "reason": "IEEE totalOrder mapped to -1/0/+1 by composing two Bid\u003cw\u003eTotalOrder calls (x\u003c=y and y\u003c=x)"
+    },
+    {
+      "symbol": "Decimal64BID.CompareTotalMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64TotalOrderMag",
+      "reason": "IEEE totalOrderMag mapped to -1/0/+1 by composing two Bid\u003cw\u003eTotalOrderMag calls"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt16",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt16Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int16_* directed converters (mode-dispatched over Bid64ToInt16Rnint, Bid64ToInt16Rninta, Bid64ToInt16Int, Bid64ToInt16Ceil, Bid64ToInt16Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt16Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt16Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int16_x* converters by rounding mode (mode-dispatched over Bid64ToInt16Xrnint, Bid64ToInt16Xrninta, Bid64ToInt16Xint, Bid64ToInt16Xceil, Bid64ToInt16Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt32Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int32_* directed converters (mode-dispatched over Bid64ToInt32Rnint, Bid64ToInt32Rninta, Bid64ToInt32Int, Bid64ToInt32Ceil, Bid64ToInt32Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt32Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt32Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int32_x* converters by rounding mode (mode-dispatched over Bid64ToInt32Xrnint, Bid64ToInt32Xrninta, Bid64ToInt32Xint, Bid64ToInt32Xceil, Bid64ToInt32Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt64Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int64_* directed converters (mode-dispatched over Bid64ToInt64Rnint, Bid64ToInt64Rninta, Bid64ToInt64Int, Bid64ToInt64Ceil, Bid64ToInt64Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt64Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt64Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int64_x* converters by rounding mode (mode-dispatched over Bid64ToInt64Xrnint, Bid64ToInt64Xrninta, Bid64ToInt64Xint, Bid64ToInt64Xceil, Bid64ToInt64Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt8",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt8Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_int8_* directed converters (mode-dispatched over Bid64ToInt8Rnint, Bid64ToInt8Rninta, Bid64ToInt8Int, Bid64ToInt8Ceil, Bid64ToInt8Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToInt8Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToInt8Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_int8_x* converters by rounding mode (mode-dispatched over Bid64ToInt8Xrnint, Bid64ToInt8Xrninta, Bid64ToInt8Xint, Bid64ToInt8Xceil, Bid64ToInt8Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint16",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint16Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint16_* directed converters (mode-dispatched over Bid64ToUint16Rnint, Bid64ToUint16Rninta, Bid64ToUint16Int, Bid64ToUint16Ceil, Bid64ToUint16Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint16Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint16Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint16_x* converters by rounding mode (mode-dispatched over Bid64ToUint16Xrnint, Bid64ToUint16Xrninta, Bid64ToUint16Xint, Bid64ToUint16Xceil, Bid64ToUint16Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint32Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint32_* directed converters (mode-dispatched over Bid64ToUint32Rnint, Bid64ToUint32Rninta, Bid64ToUint32Int, Bid64ToUint32Ceil, Bid64ToUint32Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint32Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint32Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint32_x* converters by rounding mode (mode-dispatched over Bid64ToUint32Xrnint, Bid64ToUint32Xrninta, Bid64ToUint32Xint, Bid64ToUint32Xceil, Bid64ToUint32Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint64Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint64_* directed converters (mode-dispatched over Bid64ToUint64Rnint, Bid64ToUint64Rninta, Bid64ToUint64Int, Bid64ToUint64Ceil, Bid64ToUint64Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint64Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint64Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint64_x* converters by rounding mode (mode-dispatched over Bid64ToUint64Xrnint, Bid64ToUint64Xrninta, Bid64ToUint64Xint, Bid64ToUint64Xceil, Bid64ToUint64Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint8",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint8Rnint",
+      "reason": "rounding-mode argument selects one of the Intel bid\u003cw\u003e_to_uint8_* directed converters (mode-dispatched over Bid64ToUint8Rnint, Bid64ToUint8Rninta, Bid64ToUint8Int, Bid64ToUint8Ceil, Bid64ToUint8Floor)"
+    },
+    {
+      "symbol": "Decimal64BID.ConvertToUint8Exact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToUint8Xrnint",
+      "reason": "exact variant selects one of the Intel inexact-signaling bid\u003cw\u003e_to_uint8_x* converters by rounding mode (mode-dispatched over Bid64ToUint8Xrnint, Bid64ToUint8Xrninta, Bid64ToUint8Xint, Bid64ToUint8Xceil, Bid64ToUint8Xfloor)"
+    },
+    {
+      "symbol": "Decimal64BID.Copy",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Copy"
+    },
+    {
+      "symbol": "Decimal64BID.CopySign",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64CopySign"
+    },
+    {
+      "symbol": "Decimal64BID.Div",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Div"
+    },
+    {
+      "symbol": "Decimal64BID.DivWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64DivWithFlags"
+    },
+    {
+      "symbol": "Decimal64BID.DivWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64DivWithFlags",
+      "reason": "explicit-rounding-mode divide; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eDiv[WithFlags] port entrypoint as DivWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal64BID.FMA",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Fma"
+    },
+    {
+      "symbol": "Decimal64BID.FMAWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Fma",
+      "reason": "explicit-rounding-mode fused multiply-add; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eFma port entrypoint as FMA rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal64BID.Fmod",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Fmod"
+    },
+    {
+      "symbol": "Decimal64BID.IsCanonical",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsCanonical"
+    },
+    {
+      "symbol": "Decimal64BID.IsFinite",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsFinite"
+    },
+    {
+      "symbol": "Decimal64BID.IsInf",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsInf"
+    },
+    {
+      "symbol": "Decimal64BID.IsNaN",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsNaN"
+    },
+    {
+      "symbol": "Decimal64BID.IsNormal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsNormal"
+    },
+    {
+      "symbol": "Decimal64BID.IsSignMinus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsSigned",
+      "reason": "IEEE isSignMinus; the Go port keeps the Intel bid\u003cw\u003e_isSigned name"
+    },
+    {
+      "symbol": "Decimal64BID.IsSignaling",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsSignaling"
+    },
+    {
+      "symbol": "Decimal64BID.IsSubnormal",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsSubnormal"
+    },
+    {
+      "symbol": "Decimal64BID.IsZero",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsZero"
+    },
+    {
+      "symbol": "Decimal64BID.LogB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Logb"
+    },
+    {
+      "symbol": "Decimal64BID.MaxNum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64MaxNum"
+    },
+    {
+      "symbol": "Decimal64BID.MaxNumMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64MaxNumMag"
+    },
+    {
+      "symbol": "Decimal64BID.MinNum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64MinNum"
+    },
+    {
+      "symbol": "Decimal64BID.MinNumMag",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64MinNumMag"
+    },
+    {
+      "symbol": "Decimal64BID.Mul",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Mul"
+    },
+    {
+      "symbol": "Decimal64BID.MulWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64MulWithFlags"
+    },
+    {
+      "symbol": "Decimal64BID.MulWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64MulWithFlags",
+      "reason": "explicit-rounding-mode multiply; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eMul[WithFlags] port entrypoint as MulWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal64BID.Negate",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Negate"
+    },
+    {
+      "symbol": "Decimal64BID.NextMinus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64NextDown",
+      "reason": "IEEE nextDown; the Go port keeps the Intel bid\u003cw\u003e_nextdown name"
+    },
+    {
+      "symbol": "Decimal64BID.NextPlus",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64NextUp",
+      "reason": "IEEE nextUp; the Go port keeps the Intel bid\u003cw\u003e_nextup name"
+    },
+    {
+      "symbol": "Decimal64BID.NextToward",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64NextToward"
+    },
+    {
+      "symbol": "Decimal64BID.PrettyString",
+      "kind": "method",
+      "status": "excluded_display_plumbing",
+      "reason": "display-oriented reformatting of the port to_string output (trim/format helpers); no IEEE port operation of its own"
+    },
+    {
+      "symbol": "Decimal64BID.Quantize",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Quantize",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal64BID.QuantizeWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Quantize"
+    },
+    {
+      "symbol": "Decimal64BID.QuantizeWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Quantize",
+      "reason": "explicit-rounding-mode quantize; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eQuantize port entrypoint as QuantizeWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal64BID.QuietEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietEqual"
+    },
+    {
+      "symbol": "Decimal64BID.QuietGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietGreater"
+    },
+    {
+      "symbol": "Decimal64BID.QuietGreaterEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietGreaterEqual"
+    },
+    {
+      "symbol": "Decimal64BID.QuietGreaterUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietGreaterUnordered"
+    },
+    {
+      "symbol": "Decimal64BID.QuietLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietLess"
+    },
+    {
+      "symbol": "Decimal64BID.QuietLessEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietLessEqual"
+    },
+    {
+      "symbol": "Decimal64BID.QuietLessUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietLessUnordered"
+    },
+    {
+      "symbol": "Decimal64BID.QuietNotEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietNotEqual"
+    },
+    {
+      "symbol": "Decimal64BID.QuietNotGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietNotGreater"
+    },
+    {
+      "symbol": "Decimal64BID.QuietNotLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietNotLess"
+    },
+    {
+      "symbol": "Decimal64BID.QuietOrdered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietOrdered"
+    },
+    {
+      "symbol": "Decimal64BID.QuietUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64QuietUnordered"
+    },
+    {
+      "symbol": "Decimal64BID.Radix",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Radix"
+    },
+    {
+      "symbol": "Decimal64BID.Reduce",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Reduce"
+    },
+    {
+      "symbol": "Decimal64BID.Remainder",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Rem",
+      "reason": "IEEE remainder; the Go port keeps the Intel bid\u003cw\u003e_rem short name"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralExact",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralExact",
+      "reason": "value-only wrapper over a flags-exposing port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralExactWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralExact"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralNearestAway",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralNearestAway"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralNearestEven",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralNearestEven"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralNegative",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralNegative"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralPositive",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralPositive"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralZero",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralZero"
+    },
+    {
+      "symbol": "Decimal64BID.SameQuantum",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SameQuantum"
+    },
+    {
+      "symbol": "Decimal64BID.ScaleB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Scalbln",
+      "reason": "scaleB(x, n) routes through the Intel bid\u003cw\u003e_scalbln long-int-exponent scaler, which clamps the Go int64 exponent into the int32 domain inside the port before scaling; prefer_with_flags selects the flags-widening wrapper at bid32 where the base scalb pack omits the Intel overflow/underflow status flags, and the flag-complete base entrypoint at bid64/128"
+    },
+    {
+      "symbol": "Decimal64BID.ScaleBWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Scalbln",
+      "reason": "explicit-rounding-mode scaleB; the RoundingMode argument is carried into the same Intel bid\u003cw\u003e_scalbln long-int-exponent scaler as ScaleB (clamping the Go int64 exponent into the int32 domain inside the port) rather than the default ties-to-even; prefer_with_flags selects the flags-widening wrapper at bid32 where the base scalb pack omits the Intel overflow/underflow status flags, and the flag-complete base entrypoint at bid64/128"
+    },
+    {
+      "symbol": "Decimal64BID.Sign",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64IsSigned",
+      "reason": "composed -1/0/+1 sign classification over Bid\u003cw\u003eIsZero and Bid\u003cw\u003eIsSigned; there is no single Intel sign entrypoint"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingGreaterEqual",
+      "reason": "Intel has no signaling-equal entrypoint; composed from Bid\u003cw\u003eSignalingGreaterEqual and Bid\u003cw\u003eSignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingGreater"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingGreaterEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingGreaterEqual"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingGreaterUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingGreaterUnordered"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingLess"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingLessEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingLessUnordered",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingLessUnordered"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingNotEqual",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingGreaterEqual",
+      "reason": "negation of the signaling-equal composition over Bid\u003cw\u003eSignalingGreaterEqual and Bid\u003cw\u003eSignalingLessEqual"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingNotGreater",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingNotGreater"
+    },
+    {
+      "symbol": "Decimal64BID.SignalingNotLess",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SignalingNotLess"
+    },
+    {
+      "symbol": "Decimal64BID.Sqrt",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Sqrt"
+    },
+    {
+      "symbol": "Decimal64BID.SqrtWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Sqrt",
+      "reason": "explicit-rounding-mode square root; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eSqrt port entrypoint as Sqrt rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal64BID.String",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToString",
+      "reason": "non-NaN values route through the Intel bid\u003cw\u003e_to_string converter; the NaN branch is display plumbing covered by the hand-written NaN payload tests"
+    },
+    {
+      "symbol": "Decimal64BID.Sub",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64Sub"
+    },
+    {
+      "symbol": "Decimal64BID.SubWithFlags",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SubWithFlags"
+    },
+    {
+      "symbol": "Decimal64BID.SubWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64SubWithFlags",
+      "reason": "explicit-rounding-mode subtract; the RoundingMode argument is carried into the same flags-exposing Bid\u003cw\u003eSub[WithFlags] port entrypoint as SubWithFlags rather than the default ties-to-even"
+    },
+    {
+      "symbol": "Decimal64BID.ToBinary128",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToBinary128"
+    },
+    {
+      "symbol": "Decimal64BID.ToBinary32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToBinary32"
+    },
+    {
+      "symbol": "Decimal64BID.ToBinary64",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToBinary64"
+    },
+    {
+      "symbol": "Decimal64BID.ToDecimal128",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToBid128",
+      "reason": "cross-width decimal widening routes through the Intel bid\u003cw\u003e_to_bid128 converter"
+    },
+    {
+      "symbol": "Decimal64BID.ToDecimal32",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ToBid32",
+      "reason": "cross-width decimal narrowing routes through the Intel bid\u003cw\u003e_to_bid32 converter"
+    },
+    {
+      "symbol": "Decimal64BID.ToUint64",
+      "kind": "method",
+      "status": "excluded_layout_plumbing",
+      "reason": "generated fixed-width bit-pattern accessor (uint64(d)); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation"
+    },
+    {
+      "symbol": "DecimalClass.String",
+      "kind": "method",
+      "status": "excluded_display_plumbing",
+      "reason": "human-readable IEEE class-name rendering; no port counterpart"
+    },
+    {
+      "symbol": "DefaultArithmeticContext",
+      "kind": "func",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "snapshots the global default rounding into a new context; IEEE 754 5.7.4 flag/context plumbing with no port counterpart"
+    },
+    {
+      "symbol": "E128BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "E32BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "E64BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "EncodingFormat.String",
+      "kind": "method",
+      "status": "excluded_display_plumbing",
+      "reason": "human-readable encoding-format name rendering; no port counterpart"
+    },
+    {
+      "symbol": "ExceptionFlags.HasFlag",
+      "kind": "method",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "IEEE 754 5.7.4 testSavedFlags on a saved flag value; no port counterpart"
+    },
+    {
+      "symbol": "ExceptionFlags.String",
+      "kind": "method",
+      "status": "excluded_display_plumbing",
+      "reason": "human-readable flag-name rendering; no port counterpart"
+    },
+    {
+      "symbol": "GetRequiredPrecision",
+      "kind": "func",
+      "status": "excluded_string_util_plumbing",
+      "reason": "syntax-validating minimal coefficient-precision helper; accepts complete finite literals independently of supported exponent range, rejects malformed input through its Go error result, and is not an IEEE operation"
+    },
+    {
+      "symbol": "Is754Version1985",
+      "kind": "func",
+      "status": "excluded_version_const",
+      "reason": "IEEE 754 version predicate mirroring pinned Intel bid_is754; no arithmetic port operation"
+    },
+    {
+      "symbol": "Is754Version2008",
+      "kind": "func",
+      "status": "excluded_version_const",
+      "reason": "IEEE 754 version predicate mirroring pinned Intel bid_is754R; no arithmetic port operation"
+    },
+    {
+      "symbol": "Is754Version2019",
+      "kind": "func",
+      "status": "excluded_version_const",
+      "reason": "IEEE 754 version predicate for the supported decimal surface; no arithmetic port operation"
+    },
+    {
+      "symbol": "IsValidDecimalString",
+      "kind": "func",
+      "status": "excluded_string_util_plumbing",
+      "reason": "decimal-literal syntax check helper, not an IEEE operation"
+    },
+    {
+      "symbol": "NativeBackendEnabled",
+      "kind": "func",
+      "status": "excluded_version_const",
+      "reason": "build-configuration predicate reporting whether the cgo backend is compiled in; no arithmetic port operation"
+    },
+    {
+      "symbol": "NewArithmeticContext",
+      "kind": "func",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "constructs an ArithmeticContext (rounding + flags carrier); IEEE 754 5.7.4 flag/context plumbing with no port counterpart"
+    },
+    {
+      "symbol": "NewDecimal128",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromString",
+      "reason": "string constructor parses through the Go mechanical port bid128_from_string entrypoint"
+    },
+    {
+      "symbol": "NewDecimal128BIDDirect",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromString",
+      "reason": "direct string constructor parses through the Go mechanical port bid128_from_string entrypoint before mapping port flags to a Go error"
+    },
+    {
+      "symbol": "NewDecimal128FromInt",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromInt64",
+      "reason": "exact int64 constructor routes directly through Bid128FromInt64; every int64 is exactly representable in Decimal128"
+    },
+    {
+      "symbol": "NewDecimal128FromInt32",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromInt32",
+      "reason": "int32 constructor routes through the Go mechanical port bid128_from_int32"
+    },
+    {
+      "symbol": "NewDecimal128FromInt64",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromInt64",
+      "reason": "int64 constructor routes through the Go mechanical port bid128_from_int64"
+    },
+    {
+      "symbol": "NewDecimal128FromUint32",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromUint32",
+      "reason": "uint32 constructor routes through the Go mechanical port bid128_from_uint32"
+    },
+    {
+      "symbol": "NewDecimal128FromUint64",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromUint64",
+      "reason": "uint64 constructor routes through the Go mechanical port bid128_from_uint64"
+    },
+    {
+      "symbol": "NewDecimal128WithFlags",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromString",
+      "reason": "flag-returning string constructor parses through the Go mechanical port bid128_from_string entrypoint"
+    },
+    {
+      "symbol": "NewDecimal128WithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromString",
+      "reason": "explicit-rounding-mode string constructor parses through the same Go mechanical port from-string entrypoint as NewDecimal128WithFlags, carrying the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "symbol": "NewDecimal32",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "string constructor parses through the Go mechanical port bid32_from_string raw entrypoint"
+    },
+    {
+      "symbol": "NewDecimal32BIDDirect",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "direct string constructor parses through the Go mechanical port bid32_from_string raw entrypoint before mapping port flags to a Go error"
+    },
+    {
+      "symbol": "NewDecimal32FromInt",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromInt32",
+      "reason": "exact-or-error int32 constructor routes through Bid32FromInt32 at round-nearest-even, rejects FlagInexact, and returns a quiet NaN on error"
+    },
+    {
+      "symbol": "NewDecimal32FromInt32",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromInt32",
+      "reason": "int32 constructor routes through the Go mechanical port bid32_from_int32"
+    },
+    {
+      "symbol": "NewDecimal32FromInt64",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromInt64",
+      "reason": "int64 constructor routes through the Go mechanical port bid32_from_int64"
+    },
+    {
+      "symbol": "NewDecimal32FromUint32",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromUint32",
+      "reason": "uint32 constructor routes through the Go mechanical port bid32_from_uint32"
+    },
+    {
+      "symbol": "NewDecimal32FromUint64",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromUint64",
+      "reason": "uint64 constructor routes through the Go mechanical port bid32_from_uint64"
+    },
+    {
+      "symbol": "NewDecimal32WithFlags",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "flag-returning string constructor parses through the Go mechanical port bid32_from_string raw entrypoint"
+    },
+    {
+      "symbol": "NewDecimal32WithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "explicit-rounding-mode string constructor parses through the same Go mechanical port from-string entrypoint as NewDecimal32WithFlags, carrying the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "symbol": "NewDecimal64",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromString",
+      "reason": "string constructor parses through the Go mechanical port bid64_from_string entrypoint"
+    },
+    {
+      "symbol": "NewDecimal64BIDDirect",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromString",
+      "reason": "direct string constructor parses through the Go mechanical port bid64_from_string entrypoint before mapping port flags to a Go error"
+    },
+    {
+      "symbol": "NewDecimal64FromInt",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromInt64",
+      "reason": "exact-or-error int64 constructor routes through Bid64FromInt64 at round-nearest-even, rejects FlagInexact, and returns a quiet NaN on error"
+    },
+    {
+      "symbol": "NewDecimal64FromInt32",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromInt32",
+      "reason": "int32 constructor routes through the Go mechanical port bid64_from_int32"
+    },
+    {
+      "symbol": "NewDecimal64FromInt64",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromInt64",
+      "reason": "int64 constructor routes through the Go mechanical port bid64_from_int64"
+    },
+    {
+      "symbol": "NewDecimal64FromUint32",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromUint32",
+      "reason": "uint32 constructor routes through the Go mechanical port bid64_from_uint32"
+    },
+    {
+      "symbol": "NewDecimal64FromUint64",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromUint64",
+      "reason": "uint64 constructor routes through the Go mechanical port bid64_from_uint64"
+    },
+    {
+      "symbol": "NewDecimal64WithFlags",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromString",
+      "reason": "flag-returning string constructor parses through the Go mechanical port bid64_from_string entrypoint"
+    },
+    {
+      "symbol": "NewDecimal64WithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromString",
+      "reason": "explicit-rounding-mode string constructor parses through the same Go mechanical port from-string entrypoint as NewDecimal64WithFlags, carrying the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "symbol": "One128BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "One32BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "One64BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "ParseDecimal128BIDRaw",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128FromString",
+      "reason": "raw string parser routes through the Go mechanical port bid128_from_string entrypoint"
+    },
+    {
+      "symbol": "ParseDecimal32BIDRaw",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "raw string parser routes through the Go mechanical port bid32_from_string raw entrypoint"
+    },
+    {
+      "symbol": "ParseDecimal64BIDRaw",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64FromString",
+      "reason": "raw string parser routes through the Go mechanical port bid64_from_string entrypoint"
+    },
+    {
+      "symbol": "Pi128BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "Pi32BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "Pi64BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "RoundingMode.String",
+      "kind": "method",
+      "status": "excluded_display_plumbing",
+      "reason": "human-readable rounding-mode name rendering; no port counterpart"
+    },
+    {
+      "symbol": "SetDefaultRounding",
+      "kind": "func",
+      "status": "excluded_context_flag_plumbing",
+      "reason": "stores the global default rounding mode; IEEE 754 attribute plumbing with no port counterpart"
+    },
+    {
+      "symbol": "Zero128BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "Zero32BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    },
+    {
+      "symbol": "Zero64BID",
+      "kind": "func",
+      "status": "excluded_constant_accessor",
+      "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation"
+    }
+  ]
+}

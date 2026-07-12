@@ -1,0 +1,2811 @@
+{
+  "version": "1.0",
+  "kind": "rust_api_surface_manifest",
+  "description": [
+    "Hand-written input for devtools/tools/go2rs/apiemit.",
+    "Each mapped Go public symbol names its Rust owner, Rust surface, wrapper shape, and Go mechanical-port function.",
+    "Wrapper bodies remain in apiemit templates; this manifest carries parameters only.",
+    "Every mapped symbol in public_api_routing_inventory.json must appear exactly once in emit or deferred.",
+    "Symbols already classified as excluded by the public routing inventory are outside this mapping."
+  ],
+  "emit": [
+    {
+      "go_symbol": "Add128BIDWithContext",
+      "rust_owner": "Context",
+      "rust_surface": "add128",
+      "shape": "context_binary_with_flags",
+      "bidgo_function": "Bid128Add",
+      "reason": "context add routes through the Bid128Add status-pointer form and accumulates the mapped flags into the context"
+    },
+    {
+      "go_symbol": "Add32BIDWithContext",
+      "rust_owner": "Context",
+      "rust_surface": "add32",
+      "shape": "context_binary_with_flags",
+      "bidgo_function": "Bid32AddWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'context_binary_with_flags' shape template (free constructor); routes through the Go mechanical port bidgo function 'Bid32AddWithFlags'."
+    },
+    {
+      "go_symbol": "Add64BIDWithContext",
+      "rust_owner": "Context",
+      "rust_surface": "add64",
+      "shape": "context_binary_with_flags",
+      "bidgo_function": "Bid64AddWithFlags",
+      "reason": "context add routes through Bid64AddWithFlags at the context's rounding mode and accumulates flags into ctx.flags; Rust has no nil-context default (Go's SetDefaultRounding global is excluded), so the mode is always taken from the Context receiver"
+    },
+    {
+      "go_symbol": "Decimal128BID.Abs",
+      "rust_owner": "Decimal128",
+      "rust_surface": "abs",
+      "shape": "unary",
+      "bidgo_function": "Bid128Abs",
+      "reason": "width-parameterized reuse of the existing 'unary' shape template; routes through the Go mechanical port bidgo function 'Bid128Abs'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Add",
+      "rust_owner": "Decimal128",
+      "rust_surface": "add",
+      "shape": "binary",
+      "bidgo_function": "Bid128Add",
+      "reason": "width-parameterized reuse of the existing 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid128Add'."
+    },
+    {
+      "go_symbol": "Decimal128BID.AddWithFlags",
+      "rust_owner": "Decimal128",
+      "rust_surface": "add_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Add",
+      "reason": "width-parameterized reuse of the existing 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128Add'."
+    },
+    {
+      "go_symbol": "Decimal128BID.AddWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "add_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Add",
+      "reason": "explicit-rounding-mode sum with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid128Add' as add_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.Class",
+      "rust_owner": "Decimal128",
+      "rust_surface": "class",
+      "shape": "class",
+      "bidgo_function": "Bid128Class",
+      "reason": "width-parameterized reuse of the existing 'class' shape template; routes through the Go mechanical port bidgo function 'Bid128Class'."
+    },
+    {
+      "go_symbol": "Decimal128BID.CompareTotal",
+      "rust_owner": "Decimal128",
+      "rust_surface": "total_cmp",
+      "shape": "total_cmp",
+      "bidgo_function": "Bid128TotalOrder",
+      "reason": "width-parameterized reuse of the existing 'total_cmp' shape template; routes through the Go mechanical port bidgo function 'Bid128TotalOrder'."
+    },
+    {
+      "go_symbol": "Decimal128BID.CompareTotalMag",
+      "rust_owner": "Decimal128",
+      "rust_surface": "total_cmp_mag",
+      "shape": "total_cmp_mag",
+      "bidgo_function": "Bid128TotalOrderMag",
+      "reason": "width-parameterized reuse of the existing 'total_cmp_mag' shape template; routes through the Go mechanical port bidgo function 'Bid128TotalOrderMag'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt16",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i16",
+      "shape": "to_i16",
+      "bidgo_function": "Bid128ToInt16Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_i16' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt16Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt16Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i16_exact",
+      "shape": "to_i16_exact",
+      "bidgo_function": "Bid128ToInt16Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_i16_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt16Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt32",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i32",
+      "shape": "to_i32",
+      "bidgo_function": "Bid128ToInt32Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_i32' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt32Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt32Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i32_exact",
+      "shape": "to_i32_exact",
+      "bidgo_function": "Bid128ToInt32Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_i32_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt32Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt64",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i64",
+      "shape": "to_i64",
+      "bidgo_function": "Bid128ToInt64Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_i64' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt64Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt64Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i64_exact",
+      "shape": "to_i64_exact",
+      "bidgo_function": "Bid128ToInt64Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_i64_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt64Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt8",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i8",
+      "shape": "to_i8",
+      "bidgo_function": "Bid128ToInt8Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_i8' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt8Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToInt8Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_i8_exact",
+      "shape": "to_i8_exact",
+      "bidgo_function": "Bid128ToInt8Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_i8_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToInt8Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint16",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u16",
+      "shape": "to_u16",
+      "bidgo_function": "Bid128ToUint16Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_u16' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint16Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint16Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u16_exact",
+      "shape": "to_u16_exact",
+      "bidgo_function": "Bid128ToUint16Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_u16_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint16Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint32",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u32",
+      "shape": "to_u32",
+      "bidgo_function": "Bid128ToUint32Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_u32' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint32Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint32Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u32_exact",
+      "shape": "to_u32_exact",
+      "bidgo_function": "Bid128ToUint32Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_u32_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint32Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint64",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u64",
+      "shape": "to_u64",
+      "bidgo_function": "Bid128ToUint64Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_u64' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint64Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint64Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u64_exact",
+      "shape": "to_u64_exact",
+      "bidgo_function": "Bid128ToUint64Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_u64_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint64Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint8",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u8",
+      "shape": "to_u8",
+      "bidgo_function": "Bid128ToUint8Rnint",
+      "reason": "width-parameterized reuse of the existing 'to_u8' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint8Rnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ConvertToUint8Exact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_u8_exact",
+      "shape": "to_u8_exact",
+      "bidgo_function": "Bid128ToUint8Xrnint",
+      "reason": "width-parameterized reuse of the existing 'to_u8_exact' shape template; routes through the Go mechanical port bidgo function 'Bid128ToUint8Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Copy",
+      "rust_owner": "Decimal128",
+      "rust_surface": "Copy",
+      "shape": "copy_fold",
+      "bidgo_function": "Bid128Copy",
+      "reason": "width-parameterized reuse of the existing 'copy_fold' shape template; routes through the Go mechanical port bidgo function 'Bid128Copy'."
+    },
+    {
+      "go_symbol": "Decimal128BID.CopySign",
+      "rust_owner": "Decimal128",
+      "rust_surface": "copysign",
+      "shape": "copysign",
+      "bidgo_function": "Bid128CopySign",
+      "reason": "width-parameterized reuse of the existing 'copysign' shape template; routes through the Go mechanical port bidgo function 'Bid128CopySign'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Div",
+      "rust_owner": "Decimal128",
+      "rust_surface": "div",
+      "shape": "binary",
+      "bidgo_function": "Bid128Div",
+      "reason": "width-parameterized reuse of the existing 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid128Div'."
+    },
+    {
+      "go_symbol": "Decimal128BID.DivWithFlags",
+      "rust_owner": "Decimal128",
+      "rust_surface": "div_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Div",
+      "reason": "width-parameterized reuse of the existing 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128Div'."
+    },
+    {
+      "go_symbol": "Decimal128BID.DivWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "div_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Div",
+      "reason": "explicit-rounding-mode quotient with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid128Div' as div_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.FMA",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma",
+      "shape": "fma",
+      "bidgo_function": "Bid128Fma",
+      "reason": "width-parameterized reuse of the existing 'fma' shape template; routes through the Go mechanical port bidgo function 'Bid128Fma'."
+    },
+    {
+      "go_symbol": "Decimal128BID.FMAWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_with_mode",
+      "shape": "ternary_mode_flags",
+      "bidgo_function": "Bid128Fma",
+      "reason": "explicit-rounding-mode fused multiply-add with a single rounding; routes through the same flags-exposing Go mechanical port bidgo function 'Bid128Fma' as fma, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.Fmod",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fmod",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Fmod",
+      "reason": "width-parameterized reuse of the existing 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Fmod'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsCanonical",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_canonical",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsCanonical",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsCanonical'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsFinite",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_finite",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsFinite",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsFinite'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsInf",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_infinite",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsInf",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsInf'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsNaN",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_nan",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsNaN",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsNaN'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsNormal",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_normal",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsNormal",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsNormal'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsSignMinus",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_sign_negative",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsSigned",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsSigned'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsSignaling",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_signaling",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsSignaling",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsSignaling'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsSubnormal",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_subnormal",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsSubnormal",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsSubnormal'."
+    },
+    {
+      "go_symbol": "Decimal128BID.IsZero",
+      "rust_owner": "Decimal128",
+      "rust_surface": "is_zero",
+      "shape": "predicate",
+      "bidgo_function": "Bid128IsZero",
+      "reason": "width-parameterized reuse of the existing 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid128IsZero'."
+    },
+    {
+      "go_symbol": "Decimal128BID.LogB",
+      "rust_owner": "Decimal128",
+      "rust_surface": "logb",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128Logb",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Logb'."
+    },
+    {
+      "go_symbol": "Decimal128BID.MaxNum",
+      "rust_owner": "Decimal128",
+      "rust_surface": "max_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Maxnum",
+      "reason": "width-parameterized reuse of the existing 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Maxnum'."
+    },
+    {
+      "go_symbol": "Decimal128BID.MaxNumMag",
+      "rust_owner": "Decimal128",
+      "rust_surface": "max_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128MaxnumMag",
+      "reason": "width-parameterized reuse of the existing 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128MaxnumMag'."
+    },
+    {
+      "go_symbol": "Decimal128BID.MinNum",
+      "rust_owner": "Decimal128",
+      "rust_surface": "min_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Minnum",
+      "reason": "width-parameterized reuse of the existing 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Minnum'."
+    },
+    {
+      "go_symbol": "Decimal128BID.MinNumMag",
+      "rust_owner": "Decimal128",
+      "rust_surface": "min_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128MinnumMag",
+      "reason": "width-parameterized reuse of the existing 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128MinnumMag'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Mul",
+      "rust_owner": "Decimal128",
+      "rust_surface": "mul",
+      "shape": "binary",
+      "bidgo_function": "Bid128Mul",
+      "reason": "width-parameterized reuse of the existing 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid128Mul'."
+    },
+    {
+      "go_symbol": "Decimal128BID.MulWithFlags",
+      "rust_owner": "Decimal128",
+      "rust_surface": "mul_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Mul",
+      "reason": "width-parameterized reuse of the existing 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128Mul'."
+    },
+    {
+      "go_symbol": "Decimal128BID.MulWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "mul_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Mul",
+      "reason": "explicit-rounding-mode product with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid128Mul' as mul_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.Negate",
+      "rust_owner": "Decimal128",
+      "rust_surface": "neg",
+      "shape": "unary",
+      "bidgo_function": "Bid128Negate",
+      "reason": "width-parameterized reuse of the existing 'unary' shape template; routes through the Go mechanical port bidgo function 'Bid128Negate'."
+    },
+    {
+      "go_symbol": "Decimal128BID.NextMinus",
+      "rust_owner": "Decimal128",
+      "rust_surface": "next_down",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128NextDown",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128NextDown'."
+    },
+    {
+      "go_symbol": "Decimal128BID.NextPlus",
+      "rust_owner": "Decimal128",
+      "rust_surface": "next_up",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128NextUp",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128NextUp'."
+    },
+    {
+      "go_symbol": "Decimal128BID.NextToward",
+      "rust_owner": "Decimal128",
+      "rust_surface": "next_toward",
+      "shape": "next_toward",
+      "bidgo_function": "Bid128NextToward",
+      "reason": "width-parameterized reuse of the existing 'next_toward' shape template; routes through the Go mechanical port bidgo function 'Bid128NextToward'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Quantize",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quantize",
+      "shape": "binary_drop_flags",
+      "bidgo_function": "Bid128Quantize",
+      "reason": "width-parameterized reuse of the existing 'binary_drop_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128Quantize'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuantizeWithFlags",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quantize_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Quantize",
+      "reason": "width-parameterized reuse of the existing 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128Quantize'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuantizeWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quantize_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Quantize",
+      "reason": "explicit-rounding-mode quantize with flags; same Go signature form and flags-exposing port entrypoint 'Bid128Quantize' as quantize_with_flags (which already uses the generic binary shape family), so the binary_mode_flags shape template is reused with the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_eq",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietEqual",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietGreater",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietGreater",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietGreater'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietGreaterEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietGreaterEqual",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietGreaterUnordered",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietGreaterUnordered",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietGreaterUnordered'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietLess",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietLess",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietLess'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietLessEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietLessEqual",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietLessEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietLessUnordered",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietLessUnordered",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietLessUnordered'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietNotEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_ne",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietNotEqual",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietNotEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietNotGreater",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietNotGreater",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietNotGreater'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietNotLess",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietNotLess",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietNotLess'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietOrdered",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_ordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietOrdered",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietOrdered'."
+    },
+    {
+      "go_symbol": "Decimal128BID.QuietUnordered",
+      "rust_owner": "Decimal128",
+      "rust_surface": "quiet_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128QuietUnordered",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128QuietUnordered'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Radix",
+      "rust_owner": "Decimal128",
+      "rust_surface": "RADIX",
+      "shape": "radix_const",
+      "bidgo_function": "Bid128Radix",
+      "reason": "width-parameterized reuse of the existing 'radix_const' shape template; routes through the Go mechanical port bidgo function 'Bid128Radix'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Remainder",
+      "rust_owner": "Decimal128",
+      "rust_surface": "remainder",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid128Rem",
+      "reason": "width-parameterized reuse of the existing 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Rem'."
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralExact",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_exact",
+      "shape": "unary_mode_drop_flags",
+      "bidgo_function": "Bid128RoundIntegralExact",
+      "reason": "width-parameterized reuse of the existing 'unary_mode_drop_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralExact'."
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralExactWithFlags",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_exact_with_flags",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid128RoundIntegralExact",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_default_round' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralExact'."
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralNearestAway",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_nearest_away",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralNearestAway",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralNearestAway'."
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralNearestEven",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_nearest_even",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralNearestEven",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralNearestEven'."
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralNegative",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_negative",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralNegative",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralNegative'."
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralPositive",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_positive",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralPositive",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralPositive'."
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralZero",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_zero",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid128RoundIntegralZero",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralZero'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SameQuantum",
+      "rust_owner": "Decimal128",
+      "rust_surface": "same_quantum",
+      "shape": "same_quantum",
+      "bidgo_function": "Bid128SameQuantum",
+      "reason": "width-parameterized reuse of the existing 'same_quantum' shape template; routes through the Go mechanical port bidgo function 'Bid128SameQuantum'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ScaleB",
+      "rust_owner": "Decimal128",
+      "rust_surface": "scaleb",
+      "shape": "scaleb",
+      "bidgo_function": "Bid128Scalbln",
+      "reason": "width-parameterized reuse of the existing 'scaleb' shape template; routes through the Go mechanical port bidgo function 'Bid128Scalbln', the long-int-exponent scaler that clamps the exponent into the int32 domain in the port."
+    },
+    {
+      "go_symbol": "Decimal128BID.ScaleBWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "scaleb_with_mode",
+      "shape": "scaleb_mode",
+      "bidgo_function": "Bid128Scalbln",
+      "reason": "explicit-rounding-mode scaleB; routes through the same flags-exposing Intel bid128_scalbln long-int-exponent scaler port function 'Bid128Scalbln' as scaleb (clamping the exponent into the int32 domain in the port), rounding at the overflow/underflow boundary with the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.Sign",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sign",
+      "shape": "sign",
+      "bidgo_function": "Bid128IsSigned",
+      "reason": "width-parameterized reuse of the existing 'sign' shape template; routes through the Go mechanical port bidgo function 'Bid128IsSigned'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_eq",
+      "shape": "signaling_eq_compose",
+      "bidgo_function": "Bid128SignalingGreaterEqual",
+      "reason": "width-parameterized reuse of the existing 'signaling_eq_compose' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingGreater",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingGreater",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingGreater'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingGreaterEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingGreaterEqual",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingGreaterUnordered",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingGreaterUnordered",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingGreaterUnordered'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingLess",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingLess",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingLess'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingLessEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingLessEqual",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingLessEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingLessUnordered",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingLessUnordered",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingLessUnordered'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingNotEqual",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_ne",
+      "shape": "signaling_not_eq_compose",
+      "bidgo_function": "Bid128SignalingGreaterEqual",
+      "reason": "width-parameterized reuse of the existing 'signaling_not_eq_compose' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingNotGreater",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingNotGreater",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingNotGreater'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SignalingNotLess",
+      "rust_owner": "Decimal128",
+      "rust_surface": "signaling_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid128SignalingNotLess",
+      "reason": "width-parameterized reuse of the existing 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128SignalingNotLess'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Sqrt",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sqrt",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid128Sqrt",
+      "reason": "width-parameterized reuse of the existing 'unary_with_flags_default_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Sqrt'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SqrtWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sqrt_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid128Sqrt",
+      "reason": "explicit-rounding-mode square root; routes through the same flags-exposing Go mechanical port bidgo function 'Bid128Sqrt' as sqrt, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.String",
+      "rust_owner": "Decimal128",
+      "rust_surface": "Display",
+      "shape": "display",
+      "bidgo_function": "Bid128ToString",
+      "reason": "width-parameterized reuse of the existing 'display' shape template; routes through the Go mechanical port bidgo function 'Bid128ToString'."
+    },
+    {
+      "go_symbol": "Decimal128BID.Sub",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sub",
+      "shape": "binary",
+      "bidgo_function": "Bid128Sub",
+      "reason": "width-parameterized reuse of the existing 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid128Sub'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SubWithFlags",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sub_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid128Sub",
+      "reason": "width-parameterized reuse of the existing 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid128Sub'."
+    },
+    {
+      "go_symbol": "Decimal128BID.SubWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sub_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid128Sub",
+      "reason": "explicit-rounding-mode difference with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid128Sub' as sub_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal128BID.ToBinary128",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_binary128",
+      "shape": "to_binary128",
+      "bidgo_function": "Bid128ToBinary128",
+      "reason": "width-parameterized reuse of the existing 'to_binary128' shape template; routes through the Go mechanical port bidgo function 'Bid128ToBinary128'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ToBinary32",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_f32",
+      "shape": "to_binary32",
+      "bidgo_function": "Bid128ToBinary32",
+      "reason": "width-parameterized reuse of the existing 'to_binary32' shape template; routes through the Go mechanical port bidgo function 'Bid128ToBinary32'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ToBinary64",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_f64",
+      "shape": "to_binary64",
+      "bidgo_function": "Bid128ToBinary64",
+      "reason": "width-parameterized reuse of the existing 'to_binary64' shape template; routes through the Go mechanical port bidgo function 'Bid128ToBinary64'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ToDecimal32",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_decimal32",
+      "shape": "to_decimal32",
+      "bidgo_function": "Bid128ToBid32",
+      "reason": "width-parameterized reuse of the existing 'to_decimal32' shape template; routes through the Go mechanical port bidgo function 'Bid128ToBid32'."
+    },
+    {
+      "go_symbol": "Decimal128BID.ToDecimal64",
+      "rust_owner": "Decimal128",
+      "rust_surface": "to_decimal64",
+      "shape": "to_decimal64_mode",
+      "bidgo_function": "Bid128ToBid64",
+      "reason": "width-parameterized reuse of the existing 'to_decimal64_mode' shape template; routes through the Go mechanical port bidgo function 'Bid128ToBid64'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Abs",
+      "rust_owner": "Decimal32",
+      "rust_surface": "abs",
+      "shape": "unary",
+      "bidgo_function": "Bid32Abs",
+      "reason": "width-parameterized reuse of the Decimal64 'unary' shape template; routes through the Go mechanical port bidgo function 'Bid32Abs'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Add",
+      "rust_owner": "Decimal32",
+      "rust_surface": "add",
+      "shape": "binary",
+      "bidgo_function": "Bid32Add",
+      "reason": "width-parameterized reuse of the Decimal64 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid32Add'."
+    },
+    {
+      "go_symbol": "Decimal32BID.AddWithFlags",
+      "rust_owner": "Decimal32",
+      "rust_surface": "add_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32AddWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32AddWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.AddWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "add_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32AddWithFlags",
+      "reason": "explicit-rounding-mode sum with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid32AddWithFlags' as add_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.Class",
+      "rust_owner": "Decimal32",
+      "rust_surface": "class",
+      "shape": "class",
+      "bidgo_function": "Bid32Class",
+      "reason": "width-parameterized reuse of the Decimal64 'class' shape template; routes through the Go mechanical port bidgo function 'Bid32Class'."
+    },
+    {
+      "go_symbol": "Decimal32BID.CompareTotal",
+      "rust_owner": "Decimal32",
+      "rust_surface": "total_cmp",
+      "shape": "total_cmp",
+      "bidgo_function": "Bid32TotalOrder",
+      "reason": "width-parameterized reuse of the Decimal64 'total_cmp' shape template; routes through the Go mechanical port bidgo function 'Bid32TotalOrder'."
+    },
+    {
+      "go_symbol": "Decimal32BID.CompareTotalMag",
+      "rust_owner": "Decimal32",
+      "rust_surface": "total_cmp_mag",
+      "shape": "total_cmp_mag",
+      "bidgo_function": "Bid32TotalOrderMag",
+      "reason": "width-parameterized reuse of the Decimal64 'total_cmp_mag' shape template; routes through the Go mechanical port bidgo function 'Bid32TotalOrderMag'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt16",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i16",
+      "shape": "to_i16",
+      "bidgo_function": "Bid32ToInt16Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i16' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt16Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt16Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i16_exact",
+      "shape": "to_i16_exact",
+      "bidgo_function": "Bid32ToInt16Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i16_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt16Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt32",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i32",
+      "shape": "to_i32",
+      "bidgo_function": "Bid32ToInt32Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i32' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt32Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt32Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i32_exact",
+      "shape": "to_i32_exact",
+      "bidgo_function": "Bid32ToInt32Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i32_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt32Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt64",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i64",
+      "shape": "to_i64",
+      "bidgo_function": "Bid32ToInt64Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i64' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt64Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt64Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i64_exact",
+      "shape": "to_i64_exact",
+      "bidgo_function": "Bid32ToInt64Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i64_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt64Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt8",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i8",
+      "shape": "to_i8",
+      "bidgo_function": "Bid32ToInt8Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i8' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt8Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToInt8Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_i8_exact",
+      "shape": "to_i8_exact",
+      "bidgo_function": "Bid32ToInt8Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_i8_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToInt8Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint16",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u16",
+      "shape": "to_u16",
+      "bidgo_function": "Bid32ToUint16Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u16' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint16Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint16Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u16_exact",
+      "shape": "to_u16_exact",
+      "bidgo_function": "Bid32ToUint16Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u16_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint16Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint32",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u32",
+      "shape": "to_u32",
+      "bidgo_function": "Bid32ToUint32Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u32' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint32Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint32Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u32_exact",
+      "shape": "to_u32_exact",
+      "bidgo_function": "Bid32ToUint32Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u32_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint32Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint64",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u64",
+      "shape": "to_u64",
+      "bidgo_function": "Bid32ToUint64Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u64' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint64Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint64Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u64_exact",
+      "shape": "to_u64_exact",
+      "bidgo_function": "Bid32ToUint64Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u64_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint64Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint8",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u8",
+      "shape": "to_u8",
+      "bidgo_function": "Bid32ToUint8Rnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u8' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint8Rnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ConvertToUint8Exact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_u8_exact",
+      "shape": "to_u8_exact",
+      "bidgo_function": "Bid32ToUint8Xrnint",
+      "reason": "width-parameterized reuse of the Decimal64 'to_u8_exact' shape template; routes through the Go mechanical port bidgo function 'Bid32ToUint8Xrnint'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Copy",
+      "rust_owner": "Decimal32",
+      "rust_surface": "Copy",
+      "shape": "copy_fold",
+      "bidgo_function": "Bid32Copy",
+      "reason": "width-parameterized reuse of the Decimal64 'copy_fold' shape template; routes through the Go mechanical port bidgo function 'Bid32Copy'."
+    },
+    {
+      "go_symbol": "Decimal32BID.CopySign",
+      "rust_owner": "Decimal32",
+      "rust_surface": "copysign",
+      "shape": "copysign",
+      "bidgo_function": "Bid32CopySign",
+      "reason": "width-parameterized reuse of the Decimal64 'copysign' shape template; routes through the Go mechanical port bidgo function 'Bid32CopySign'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Div",
+      "rust_owner": "Decimal32",
+      "rust_surface": "div",
+      "shape": "binary",
+      "bidgo_function": "Bid32Div",
+      "reason": "width-parameterized reuse of the Decimal64 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid32Div'."
+    },
+    {
+      "go_symbol": "Decimal32BID.DivWithFlags",
+      "rust_owner": "Decimal32",
+      "rust_surface": "div_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32DivWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32DivWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.DivWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "div_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32DivWithFlags",
+      "reason": "explicit-rounding-mode quotient with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid32DivWithFlags' as div_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.FMA",
+      "rust_owner": "Decimal32",
+      "rust_surface": "fma",
+      "shape": "fma",
+      "bidgo_function": "Bid32Fma",
+      "reason": "width-parameterized reuse of the Decimal64 'fma' shape template; routes through the Go mechanical port bidgo function 'Bid32Fma'."
+    },
+    {
+      "go_symbol": "Decimal32BID.FMAWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "fma_with_mode",
+      "shape": "ternary_mode_flags",
+      "bidgo_function": "Bid32Fma",
+      "reason": "explicit-rounding-mode fused multiply-add with a single rounding; routes through the same flags-exposing Go mechanical port bidgo function 'Bid32Fma' as fma, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.Fmod",
+      "rust_owner": "Decimal32",
+      "rust_surface": "fmod",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32Fmod",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32Fmod'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsCanonical",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_canonical",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsCanonical",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsCanonical'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsFinite",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_finite",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsFinite",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsFinite'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsInf",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_infinite",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsInf",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsInf'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsNaN",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_nan",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsNaN",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsNaN'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsNormal",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_normal",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsNormal",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsNormal'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsSignMinus",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_sign_negative",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsSigned",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsSigned'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsSignaling",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_signaling",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsSignaling",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsSignaling'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsSubnormal",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_subnormal",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsSubnormal",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsSubnormal'."
+    },
+    {
+      "go_symbol": "Decimal32BID.IsZero",
+      "rust_owner": "Decimal32",
+      "rust_surface": "is_zero",
+      "shape": "predicate",
+      "bidgo_function": "Bid32IsZero",
+      "reason": "width-parameterized reuse of the Decimal64 'predicate' shape template; routes through the Go mechanical port bidgo function 'Bid32IsZero'."
+    },
+    {
+      "go_symbol": "Decimal32BID.LogB",
+      "rust_owner": "Decimal32",
+      "rust_surface": "logb",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32Logb",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32Logb'."
+    },
+    {
+      "go_symbol": "Decimal32BID.MaxNum",
+      "rust_owner": "Decimal32",
+      "rust_surface": "max_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MaxNumWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32MaxNumWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.MaxNumMag",
+      "rust_owner": "Decimal32",
+      "rust_surface": "max_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MaxNumMagWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32MaxNumMagWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.MinNum",
+      "rust_owner": "Decimal32",
+      "rust_surface": "min_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MinNumWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32MinNumWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.MinNumMag",
+      "rust_owner": "Decimal32",
+      "rust_surface": "min_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32MinNumMagWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32MinNumMagWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Mul",
+      "rust_owner": "Decimal32",
+      "rust_surface": "mul",
+      "shape": "binary",
+      "bidgo_function": "Bid32Mul",
+      "reason": "width-parameterized reuse of the Decimal64 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid32Mul'."
+    },
+    {
+      "go_symbol": "Decimal32BID.MulWithFlags",
+      "rust_owner": "Decimal32",
+      "rust_surface": "mul_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32MulWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32MulWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.MulWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "mul_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32MulWithFlags",
+      "reason": "explicit-rounding-mode product with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid32MulWithFlags' as mul_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.Negate",
+      "rust_owner": "Decimal32",
+      "rust_surface": "neg",
+      "shape": "unary",
+      "bidgo_function": "Bid32Negate",
+      "reason": "width-parameterized reuse of the Decimal64 'unary' shape template; routes through the Go mechanical port bidgo function 'Bid32Negate'."
+    },
+    {
+      "go_symbol": "Decimal32BID.NextMinus",
+      "rust_owner": "Decimal32",
+      "rust_surface": "next_down",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32NextDown",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32NextDown'."
+    },
+    {
+      "go_symbol": "Decimal32BID.NextPlus",
+      "rust_owner": "Decimal32",
+      "rust_surface": "next_up",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32NextUp",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32NextUp'."
+    },
+    {
+      "go_symbol": "Decimal32BID.NextToward",
+      "rust_owner": "Decimal32",
+      "rust_surface": "next_toward",
+      "shape": "next_toward",
+      "bidgo_function": "Bid32NextToward",
+      "reason": "width-parameterized reuse of the Decimal64 'next_toward' shape template; routes through the Go mechanical port bidgo function 'Bid32NextToward'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Quantize",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quantize",
+      "shape": "binary_drop_flags",
+      "bidgo_function": "Bid32Quantize",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_drop_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32Quantize'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuantizeWithFlags",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quantize_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32Quantize",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32Quantize'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuantizeWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quantize_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32Quantize",
+      "reason": "explicit-rounding-mode quantize with flags; same Go signature form and flags-exposing port entrypoint 'Bid32Quantize' as quantize_with_flags (which already uses the generic binary shape family), so the binary_mode_flags shape template is reused with the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_eq",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietGreater",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietGreater",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietGreater'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietGreaterEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietGreaterEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietGreaterUnordered",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietGreaterUnordered",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietGreaterUnordered'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietLess",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietLess",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietLess'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietLessEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietLessEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietLessEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietLessUnordered",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietLessUnordered",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietLessUnordered'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietNotEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_ne",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietNotEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietNotEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietNotGreater",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietNotGreater",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietNotGreater'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietNotLess",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietNotLess",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietNotLess'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietOrdered",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_ordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietOrdered",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietOrdered'."
+    },
+    {
+      "go_symbol": "Decimal32BID.QuietUnordered",
+      "rust_owner": "Decimal32",
+      "rust_surface": "quiet_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32QuietUnordered",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32QuietUnordered'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Radix",
+      "rust_owner": "Decimal32",
+      "rust_surface": "RADIX",
+      "shape": "radix_const",
+      "bidgo_function": "Bid32Radix",
+      "reason": "width-parameterized reuse of the Decimal64 'radix_const' shape template; routes through the Go mechanical port bidgo function 'Bid32Radix'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Remainder",
+      "rust_owner": "Decimal32",
+      "rust_surface": "remainder",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid32Rem",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32Rem'."
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralExact",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_exact",
+      "shape": "unary_mode_drop_flags",
+      "bidgo_function": "Bid32RoundIntegralExact",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_mode_drop_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralExact'."
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralExactWithFlags",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_exact_with_flags",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid32RoundIntegralExact",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_default_round' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralExact'."
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralNearestAway",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_nearest_away",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralNearestAway",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralNearestAway'."
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralNearestEven",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_nearest_even",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralNearestEven",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralNearestEven'."
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralNegative",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_negative",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralNegative",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralNegative'."
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralPositive",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_positive",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralPositive",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralPositive'."
+    },
+    {
+      "go_symbol": "Decimal32BID.RoundIntegralZero",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_zero",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid32RoundIntegralZero",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralZero'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SameQuantum",
+      "rust_owner": "Decimal32",
+      "rust_surface": "same_quantum",
+      "shape": "same_quantum",
+      "bidgo_function": "Bid32SameQuantum",
+      "reason": "width-parameterized reuse of the Decimal64 'same_quantum' shape template; routes through the Go mechanical port bidgo function 'Bid32SameQuantum'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ScaleB",
+      "rust_owner": "Decimal32",
+      "rust_surface": "scaleb",
+      "shape": "scaleb",
+      "bidgo_function": "Bid32ScalblnWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'scaleb' shape template; routes through the Go mechanical port bidgo function 'Bid32ScalblnWithFlags', the long-int-exponent scaler (clamping the exponent into the int32 domain in the port) whose widening wrapper recovers the Intel overflow/underflow status flags the base bid32 scalb pack omits."
+    },
+    {
+      "go_symbol": "Decimal32BID.ScaleBWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "scaleb_with_mode",
+      "shape": "scaleb_mode",
+      "bidgo_function": "Bid32ScalblnWithFlags",
+      "reason": "explicit-rounding-mode scaleB; routes through the same Intel bid32_scalbln long-int-exponent scaler port function 'Bid32ScalblnWithFlags' as scaleb (clamping the exponent into the int32 domain in the port, widening wrapper for the omitted bid32 scalb flags), rounding at the overflow/underflow boundary with the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.Sign",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sign",
+      "shape": "sign",
+      "bidgo_function": "Bid32IsSigned",
+      "reason": "width-parameterized reuse of the Decimal64 'sign' shape template; routes through the Go mechanical port bidgo function 'Bid32IsSigned'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_eq",
+      "shape": "signaling_eq_compose",
+      "bidgo_function": "Bid32SignalingGreaterEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'signaling_eq_compose' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingGreater",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingGreater",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingGreater'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingGreaterEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingGreaterEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingGreaterUnordered",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingGreaterUnordered",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingGreaterUnordered'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingLess",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingLess",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingLess'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingLessEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingLessEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingLessEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingLessUnordered",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingLessUnordered",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingLessUnordered'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingNotEqual",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_ne",
+      "shape": "signaling_not_eq_compose",
+      "bidgo_function": "Bid32SignalingGreaterEqual",
+      "reason": "width-parameterized reuse of the Decimal64 'signaling_not_eq_compose' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingGreaterEqual'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingNotGreater",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingNotGreater",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingNotGreater'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SignalingNotLess",
+      "rust_owner": "Decimal32",
+      "rust_surface": "signaling_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid32SignalingNotLess",
+      "reason": "width-parameterized reuse of the Decimal64 'compare_bool_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SignalingNotLess'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Sqrt",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sqrt",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid32Sqrt",
+      "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_default_round' shape template; routes through the Go mechanical port bidgo function 'Bid32Sqrt'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SqrtWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sqrt_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid32Sqrt",
+      "reason": "explicit-rounding-mode square root; routes through the same flags-exposing Go mechanical port bidgo function 'Bid32Sqrt' as sqrt, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.String",
+      "rust_owner": "Decimal32",
+      "rust_surface": "Display",
+      "shape": "display",
+      "bidgo_function": "Bid32ToString",
+      "reason": "width-parameterized reuse of the Decimal64 'display' shape template; routes through the Go mechanical port bidgo function 'Bid32ToString'."
+    },
+    {
+      "go_symbol": "Decimal32BID.Sub",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sub",
+      "shape": "binary",
+      "bidgo_function": "Bid32Sub",
+      "reason": "width-parameterized reuse of the Decimal64 'binary' shape template; routes through the Go mechanical port bidgo function 'Bid32Sub'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SubWithFlags",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sub_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid32SubWithFlags",
+      "reason": "width-parameterized reuse of the Decimal64 'binary_with_flags' shape template; routes through the Go mechanical port bidgo function 'Bid32SubWithFlags'."
+    },
+    {
+      "go_symbol": "Decimal32BID.SubWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "sub_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid32SubWithFlags",
+      "reason": "explicit-rounding-mode difference with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid32SubWithFlags' as sub_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal32BID.ToBinary128",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_binary128",
+      "shape": "to_binary128",
+      "bidgo_function": "Bid32ToBinary128",
+      "reason": "width-parameterized reuse of the Decimal64 'to_binary128' shape template; routes through the Go mechanical port bidgo function 'Bid32ToBinary128'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ToBinary32",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_f32",
+      "shape": "to_binary32",
+      "bidgo_function": "Bid32ToBinary32",
+      "reason": "width-parameterized reuse of the Decimal64 'to_binary32' shape template; routes through the Go mechanical port bidgo function 'Bid32ToBinary32'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ToBinary64",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_f64",
+      "shape": "to_binary64",
+      "bidgo_function": "Bid32ToBinary64",
+      "reason": "width-parameterized reuse of the Decimal64 'to_binary64' shape template; routes through the Go mechanical port bidgo function 'Bid32ToBinary64'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ToDecimal128",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_decimal128",
+      "shape": "to_decimal128",
+      "bidgo_function": "Bid32ToBid128",
+      "reason": "width-parameterized reuse of the Decimal64 'to_decimal128' shape template; routes through the Go mechanical port bidgo function 'Bid32ToBid128'."
+    },
+    {
+      "go_symbol": "Decimal32BID.ToDecimal64",
+      "rust_owner": "Decimal32",
+      "rust_surface": "to_decimal64",
+      "shape": "to_decimal64",
+      "bidgo_function": "Bid32ToBid64",
+      "reason": "new 'to_decimal64' shape (Decimal32 has no Decimal64-shaped counterpart for this signature form; emitter is a width-parameterized generalization of the existing from_i64_mode/from_u64_mode/to_decimal128 templates); routes through the Go mechanical port bidgo function 'Bid32ToBid64'."
+    },
+    {
+      "go_symbol": "Decimal64BID.Abs",
+      "rust_owner": "Decimal64",
+      "rust_surface": "abs",
+      "shape": "unary",
+      "bidgo_function": "Bid64Abs",
+      "reason": "magnitude with positive sign, no flags"
+    },
+    {
+      "go_symbol": "Decimal64BID.Add",
+      "rust_owner": "Decimal64",
+      "rust_surface": "add",
+      "shape": "binary",
+      "bidgo_function": "Bid64Add",
+      "reason": "add(self, rhs)->Self routing through bid64_add with default ties-to-even rounding"
+    },
+    {
+      "go_symbol": "Decimal64BID.AddWithFlags",
+      "rust_owner": "Decimal64",
+      "rust_surface": "add_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64AddWithFlags",
+      "reason": "add_with_flags(self, rhs)->(Self,ExceptionFlags) routing through bid64_add_with_flags with default ties-to-even rounding"
+    },
+    {
+      "go_symbol": "Decimal64BID.AddWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "add_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64AddWithFlags",
+      "reason": "explicit-rounding-mode sum with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid64AddWithFlags' as add_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.Class",
+      "rust_owner": "Decimal64",
+      "rust_surface": "class",
+      "shape": "class",
+      "bidgo_function": "Bid64Class",
+      "reason": "IEEE class(x); maps the port's raw 0-9 index to the public DecimalClass enum"
+    },
+    {
+      "go_symbol": "Decimal64BID.CompareTotal",
+      "rust_owner": "Decimal64",
+      "rust_surface": "total_cmp",
+      "shape": "total_cmp",
+      "bidgo_function": "Bid64TotalOrder",
+      "reason": "IEEE totalOrder, composed from two directional Bid64TotalOrder calls; Rust surface is core::cmp::Ordering (f64::total_cmp idiom)"
+    },
+    {
+      "go_symbol": "Decimal64BID.CompareTotalMag",
+      "rust_owner": "Decimal64",
+      "rust_surface": "total_cmp_mag",
+      "shape": "total_cmp_mag",
+      "bidgo_function": "Bid64TotalOrderMag",
+      "reason": "IEEE totalOrderMag, composed from two directional Bid64TotalOrderMag calls; Rust surface is core::cmp::Ordering"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt16",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i16",
+      "shape": "to_i16",
+      "bidgo_function": "Bid64ToInt16Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_i16_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt16Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i16_exact",
+      "shape": "to_i16_exact",
+      "bidgo_function": "Bid64ToInt16Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_i16_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt32",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i32",
+      "shape": "to_i32",
+      "bidgo_function": "Bid64ToInt32Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_i32_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt32Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i32_exact",
+      "shape": "to_i32_exact",
+      "bidgo_function": "Bid64ToInt32Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_i32_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt64",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i64",
+      "shape": "to_i64",
+      "bidgo_function": "Bid64ToInt64Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_i64_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt64Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i64_exact",
+      "shape": "to_i64_exact",
+      "bidgo_function": "Bid64ToInt64Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_i64_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt8",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i8",
+      "shape": "to_i8",
+      "bidgo_function": "Bid64ToInt8Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_i8_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToInt8Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_i8_exact",
+      "shape": "to_i8_exact",
+      "bidgo_function": "Bid64ToInt8Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_i8_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint16",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u16",
+      "shape": "to_u16",
+      "bidgo_function": "Bid64ToUint16Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_u16_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint16Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u16_exact",
+      "shape": "to_u16_exact",
+      "bidgo_function": "Bid64ToUint16Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_u16_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint32",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u32",
+      "shape": "to_u32",
+      "bidgo_function": "Bid64ToUint32Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_u32_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint32Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u32_exact",
+      "shape": "to_u32_exact",
+      "bidgo_function": "Bid64ToUint32Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_u32_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint64",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u64",
+      "shape": "to_u64",
+      "bidgo_function": "Bid64ToUint64Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_u64_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint64Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u64_exact",
+      "shape": "to_u64_exact",
+      "bidgo_function": "Bid64ToUint64Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_u64_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint8",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u8",
+      "shape": "to_u8",
+      "bidgo_function": "Bid64ToUint8Rnint",
+      "reason": "rounding-mode argument selects one of the 5 Intel bid64_to_u8_* directed converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.ConvertToUint8Exact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_u8_exact",
+      "shape": "to_u8_exact",
+      "bidgo_function": "Bid64ToUint8Xrnint",
+      "reason": "exact variant selects one of the 5 Intel inexact-signaling bid64_to_u8_x* converters"
+    },
+    {
+      "go_symbol": "Decimal64BID.Copy",
+      "rust_owner": "Decimal64",
+      "rust_surface": "Copy",
+      "shape": "copy_fold",
+      "bidgo_function": "Bid64Copy",
+      "reason": "folds into the existing #[derive(Copy)] on Decimal64; emits no wrapper and remains recorded in the inventory"
+    },
+    {
+      "go_symbol": "Decimal64BID.CopySign",
+      "rust_owner": "Decimal64",
+      "rust_surface": "copysign",
+      "shape": "copysign",
+      "bidgo_function": "Bid64CopySign",
+      "reason": "magnitude of self, sign of sign_source; no rounding mode in the port call"
+    },
+    {
+      "go_symbol": "Decimal64BID.Div",
+      "rust_owner": "Decimal64",
+      "rust_surface": "div",
+      "shape": "binary",
+      "bidgo_function": "Bid64Div",
+      "reason": "default round-ties-to-even quotient, matches the existing binary shape (Add/Sub/Mul call pattern)"
+    },
+    {
+      "go_symbol": "Decimal64BID.DivWithFlags",
+      "rust_owner": "Decimal64",
+      "rust_surface": "div_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64DivWithFlags",
+      "reason": "default round-ties-to-even quotient with flags, matches the existing binary_with_flags shape"
+    },
+    {
+      "go_symbol": "Decimal64BID.DivWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "div_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64DivWithFlags",
+      "reason": "explicit-rounding-mode quotient with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid64DivWithFlags' as div_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.FMA",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma",
+      "shape": "fma",
+      "bidgo_function": "Bid64Fma",
+      "reason": "fused multiply-add d*mul + add with default rounding"
+    },
+    {
+      "go_symbol": "Decimal64BID.FMAWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_with_mode",
+      "shape": "ternary_mode_flags",
+      "bidgo_function": "Bid64Fma",
+      "reason": "explicit-rounding-mode fused multiply-add with a single rounding; routes through the same flags-exposing Go mechanical port bidgo function 'Bid64Fma' as fma, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.Fmod",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fmod",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64Fmod",
+      "reason": "truncated-division remainder (GDA decTest remainder op), not the IEEE remainder; no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsCanonical",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_canonical",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsCanonical",
+      "reason": "IEEE isCanonical predicate"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsFinite",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_finite",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsFinite",
+      "reason": "IEEE isFinite predicate; std f64::is_finite idiom"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsInf",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_infinite",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsInf",
+      "reason": "IEEE isInfinite predicate; std f64::is_infinite idiom"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsNaN",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_nan",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsNaN",
+      "reason": "IEEE isNaN predicate; std f64::is_nan idiom"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsNormal",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_normal",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsNormal",
+      "reason": "IEEE isNormal predicate; std f64::is_normal idiom"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsSignMinus",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_sign_negative",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsSigned",
+      "reason": "IEEE isSignMinus; std f64::is_sign_negative idiom (the Go port keeps the Intel bid64_isSigned name)"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsSignaling",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_signaling",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsSignaling",
+      "reason": "IEEE isSignaling predicate"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsSubnormal",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_subnormal",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsSubnormal",
+      "reason": "IEEE isSubnormal predicate"
+    },
+    {
+      "go_symbol": "Decimal64BID.IsZero",
+      "rust_owner": "Decimal64",
+      "rust_surface": "is_zero",
+      "shape": "predicate",
+      "bidgo_function": "Bid64IsZero",
+      "reason": "IEEE isZero predicate"
+    },
+    {
+      "go_symbol": "Decimal64BID.LogB",
+      "rust_owner": "Decimal64",
+      "rust_surface": "logb",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64Logb",
+      "reason": "IEEE logB; no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.MaxNum",
+      "rust_owner": "Decimal64",
+      "rust_surface": "max_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MaxNum",
+      "reason": "IEEE maxNum; no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.MaxNumMag",
+      "rust_owner": "Decimal64",
+      "rust_surface": "max_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MaxNumMag",
+      "reason": "IEEE maxNumMag; no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.MinNum",
+      "rust_owner": "Decimal64",
+      "rust_surface": "min_num",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MinNum",
+      "reason": "IEEE minNum; no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.MinNumMag",
+      "rust_owner": "Decimal64",
+      "rust_surface": "min_num_mag",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64MinNumMag",
+      "reason": "IEEE minNumMag; no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.Mul",
+      "rust_owner": "Decimal64",
+      "rust_surface": "mul",
+      "shape": "binary",
+      "bidgo_function": "Bid64Mul",
+      "reason": "default round-ties-to-even product"
+    },
+    {
+      "go_symbol": "Decimal64BID.MulWithFlags",
+      "rust_owner": "Decimal64",
+      "rust_surface": "mul_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64MulWithFlags",
+      "reason": "default round-ties-to-even product with flags"
+    },
+    {
+      "go_symbol": "Decimal64BID.MulWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "mul_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64MulWithFlags",
+      "reason": "explicit-rounding-mode product with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid64MulWithFlags' as mul_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.Negate",
+      "rust_owner": "Decimal64",
+      "rust_surface": "neg",
+      "shape": "unary",
+      "bidgo_function": "Bid64Negate",
+      "reason": "sign flip through the named neg method; std::ops::Neg is outside the declared public surface"
+    },
+    {
+      "go_symbol": "Decimal64BID.NextMinus",
+      "rust_owner": "Decimal64",
+      "rust_surface": "next_down",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64NextDown",
+      "reason": "IEEE nextDown; std f64::next_down naming idiom (the Go port keeps the Intel bid64_nextdown name)"
+    },
+    {
+      "go_symbol": "Decimal64BID.NextPlus",
+      "rust_owner": "Decimal64",
+      "rust_surface": "next_up",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64NextUp",
+      "reason": "IEEE nextUp; std f64::next_up naming idiom (the Go port keeps the Intel bid64_nextup name)"
+    },
+    {
+      "go_symbol": "Decimal64BID.NextToward",
+      "rust_owner": "Decimal64",
+      "rust_surface": "next_toward",
+      "shape": "next_toward",
+      "bidgo_function": "Bid64NextToward",
+      "reason": "IEEE nextAfter toward a Decimal128-width target (Intel's directed-rounding target is always the widest format)"
+    },
+    {
+      "go_symbol": "Decimal64BID.Quantize",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quantize",
+      "shape": "binary_drop_flags",
+      "bidgo_function": "Bid64Quantize",
+      "reason": "value-only wrapper over the flags-exposing Bid64Quantize port entrypoint (port flags dropped by the public signature)"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuantizeWithFlags",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quantize_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64Quantize",
+      "reason": "quantize to the exponent of rhs with flags; same (x,y,rnd)->(bits,flags) port call pattern as binary_with_flags"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuantizeWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quantize_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64Quantize",
+      "reason": "explicit-rounding-mode quantize with flags; same Go signature form and flags-exposing port entrypoint 'Bid64Quantize' as quantize_with_flags (which already uses the generic binary shape family), so the binary_mode_flags shape template is reused with the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_eq",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietEqual",
+      "reason": "IEEE quiet equality, no invalid for quiet NaNs"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietGreater",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietGreater",
+      "reason": "IEEE quiet greater-than"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietGreaterEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietGreaterEqual",
+      "reason": "IEEE quiet greater-or-equal"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietGreaterUnordered",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietGreaterUnordered",
+      "reason": "IEEE quiet greater-than-or-unordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietLess",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietLess",
+      "reason": "IEEE quiet less-than"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietLessEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietLessEqual",
+      "reason": "IEEE quiet less-or-equal"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietLessUnordered",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietLessUnordered",
+      "reason": "IEEE quiet less-than-or-unordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietNotEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_ne",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietNotEqual",
+      "reason": "IEEE quiet inequality"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietNotGreater",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietNotGreater",
+      "reason": "IEEE quiet not-greater-than"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietNotLess",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietNotLess",
+      "reason": "IEEE quiet not-less-than"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietOrdered",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_ordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietOrdered",
+      "reason": "IEEE quiet ordered predicate"
+    },
+    {
+      "go_symbol": "Decimal64BID.QuietUnordered",
+      "rust_owner": "Decimal64",
+      "rust_surface": "quiet_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64QuietUnordered",
+      "reason": "IEEE quiet unordered predicate"
+    },
+    {
+      "go_symbol": "Decimal64BID.Radix",
+      "rust_owner": "Decimal64",
+      "rust_surface": "RADIX",
+      "shape": "radix_const",
+      "bidgo_function": "Bid64Radix",
+      "reason": "IEEE 754-2019 decimal radix is fixed at 10 for every conforming BID width; emitted as an associated const rather than a runtime port call"
+    },
+    {
+      "go_symbol": "Decimal64BID.Reduce",
+      "rust_owner": "Decimal64",
+      "rust_surface": "reduce",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64Reduce",
+      "reason": "reduced form (Decimal64-only optional-scope operation); no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.Remainder",
+      "rust_owner": "Decimal64",
+      "rust_surface": "remainder",
+      "shape": "binary_flags_no_round",
+      "bidgo_function": "Bid64Rem",
+      "reason": "IEEE 754-2019 5.3.1 remainder (remainder-near); no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralExact",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_exact",
+      "shape": "unary_mode_drop_flags",
+      "bidgo_function": "Bid64RoundIntegralExact",
+      "reason": "value-only wrapper over the flags-exposing Bid64RoundIntegralExact port entrypoint, default rounding"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralExactWithFlags",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_exact_with_flags",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid64RoundIntegralExact",
+      "reason": "round-to-nearest-even to an integral value with flags (does not consult SetDefaultRounding)"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralNearestAway",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_nearest_away",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralNearestAway",
+      "reason": "IEEE roundToIntegralTiesToAway"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralNearestEven",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_nearest_even",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralNearestEven",
+      "reason": "IEEE roundToIntegralTiesToEven"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralNegative",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_negative",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralNegative",
+      "reason": "IEEE roundToIntegralTowardNegative"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralPositive",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_positive",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralPositive",
+      "reason": "IEEE roundToIntegralTowardPositive"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralZero",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_zero",
+      "shape": "unary_with_flags_no_round",
+      "bidgo_function": "Bid64RoundIntegralZero",
+      "reason": "IEEE roundToIntegralTowardZero"
+    },
+    {
+      "go_symbol": "Decimal64BID.SameQuantum",
+      "rust_owner": "Decimal64",
+      "rust_surface": "same_quantum",
+      "shape": "same_quantum",
+      "bidgo_function": "Bid64SameQuantum",
+      "reason": "quantum equality predicate, no flags"
+    },
+    {
+      "go_symbol": "Decimal64BID.ScaleB",
+      "rust_owner": "Decimal64",
+      "rust_surface": "scaleb",
+      "shape": "scaleb",
+      "bidgo_function": "Bid64Scalbln",
+      "reason": "scaleB(x, n) via the Intel bid64_scalbln long-int-exponent scaler, which clamps the exponent into the int32 domain in the port"
+    },
+    {
+      "go_symbol": "Decimal64BID.ScaleBWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "scaleb_with_mode",
+      "shape": "scaleb_mode",
+      "bidgo_function": "Bid64Scalbln",
+      "reason": "explicit-rounding-mode scaleB; routes through the same flags-exposing Intel bid64_scalbln long-int-exponent scaler port function 'Bid64Scalbln' as scaleb (clamping the exponent into the int32 domain in the port), rounding at the overflow/underflow boundary with the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.Sign",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sign",
+      "shape": "sign",
+      "bidgo_function": "Bid64IsSigned",
+      "reason": "composed -1/0/+1 sign classification over Bid64IsZero and Bid64IsSigned; there is no single Intel sign entrypoint"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_eq",
+      "shape": "signaling_eq_compose",
+      "bidgo_function": "Bid64SignalingGreaterEqual",
+      "reason": "Intel has no signaling-equal entrypoint; composed from Bid64SignalingGreaterEqual && Bid64SignalingLessEqual, flags OR'd"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingGreater",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingGreater",
+      "reason": "IEEE signaling greater-than, raises invalid for NaN comparisons"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingGreaterEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_ge",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingGreaterEqual",
+      "reason": "IEEE signaling greater-or-equal"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingGreaterUnordered",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_gt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingGreaterUnordered",
+      "reason": "IEEE signaling greater-than-or-unordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingLess",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingLess",
+      "reason": "IEEE signaling less-than"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingLessEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_le",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingLessEqual",
+      "reason": "IEEE signaling less-or-equal"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingLessUnordered",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_lt_unordered",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingLessUnordered",
+      "reason": "IEEE signaling less-than-or-unordered"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingNotEqual",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_ne",
+      "shape": "signaling_not_eq_compose",
+      "bidgo_function": "Bid64SignalingGreaterEqual",
+      "reason": "negation of signaling_eq's composition, same OR'd flags"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingNotGreater",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_not_gt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingNotGreater",
+      "reason": "IEEE signaling not-greater-than"
+    },
+    {
+      "go_symbol": "Decimal64BID.SignalingNotLess",
+      "rust_owner": "Decimal64",
+      "rust_surface": "signaling_not_lt",
+      "shape": "compare_bool_flags",
+      "bidgo_function": "Bid64SignalingNotLess",
+      "reason": "IEEE signaling not-less-than"
+    },
+    {
+      "go_symbol": "Decimal64BID.Sqrt",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sqrt",
+      "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid64Sqrt",
+      "reason": "default round-ties-to-even square root"
+    },
+    {
+      "go_symbol": "Decimal64BID.SqrtWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sqrt_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid64Sqrt",
+      "reason": "explicit-rounding-mode square root; routes through the same flags-exposing Go mechanical port bidgo function 'Bid64Sqrt' as sqrt, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.String",
+      "rust_owner": "Decimal64",
+      "rust_surface": "Display",
+      "shape": "display",
+      "bidgo_function": "Bid64ToString",
+      "reason": "impl Display routes non-NaN values through the Intel bid64_to_string converter; the NaN display branch is generated API plumbing"
+    },
+    {
+      "go_symbol": "Decimal64BID.Sub",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sub",
+      "shape": "binary",
+      "bidgo_function": "Bid64Sub",
+      "reason": "default round-ties-to-even difference"
+    },
+    {
+      "go_symbol": "Decimal64BID.SubWithFlags",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sub_with_flags",
+      "shape": "binary_with_flags",
+      "bidgo_function": "Bid64SubWithFlags",
+      "reason": "default round-ties-to-even difference with flags"
+    },
+    {
+      "go_symbol": "Decimal64BID.SubWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sub_with_mode",
+      "shape": "binary_mode_flags",
+      "bidgo_function": "Bid64SubWithFlags",
+      "reason": "explicit-rounding-mode difference with flags; routes through the same flags-exposing Go mechanical port bidgo function 'Bid64SubWithFlags' as sub_with_flags, passing the caller's RoundingMode instead of the default ties-to-even"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToBinary128",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_binary128",
+      "shape": "to_binary128",
+      "bidgo_function": "Bid64ToBinary128",
+      "reason": "IEEE convertFormat to binary128 with explicit rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToBinary32",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_f32",
+      "shape": "to_binary32",
+      "bidgo_function": "Bid64ToBinary32",
+      "reason": "IEEE convertFormat to binary32 with explicit rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToBinary64",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_f64",
+      "shape": "to_binary64",
+      "bidgo_function": "Bid64ToBinary64",
+      "reason": "IEEE convertFormat to binary64 with explicit rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToDecimal128",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_decimal128",
+      "shape": "to_decimal128",
+      "bidgo_function": "Bid64ToBid128",
+      "reason": "cross-width decimal widening (exact, IEEE convertFormat); no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.ToDecimal32",
+      "rust_owner": "Decimal64",
+      "rust_surface": "to_decimal32",
+      "shape": "to_decimal32",
+      "bidgo_function": "Bid64ToBid32",
+      "reason": "cross-width decimal narrowing with explicit rounding mode"
+    },
+    {
+      "go_symbol": "NewDecimal128",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse",
+      "shape": "parse",
+      "bidgo_function": "Bid128FromString",
+      "reason": "string constructor; parse(&str)->Result<Self,ParseDecimalError> plus impl FromStr, routing through the Go mechanical port bid128_from_string with default ties-to-even rounding"
+    },
+    {
+      "go_symbol": "NewDecimal128BIDDirect",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse",
+      "shape": "parse_fold",
+      "bidgo_function": "Bid128FromString",
+      "reason": "the Direct convenience twin folds into the single Rust parse surface (recorded in the surface inventory, emits no duplicate wrapper); same bid128_from_string routing"
+    },
+    {
+      "go_symbol": "NewDecimal128FromInt",
+      "rust_owner": "Decimal128",
+      "rust_surface": "from_int",
+      "shape": "from_i64_exact_or_error",
+      "bidgo_function": "Bid128FromInt64",
+      "reason": "exact int64 constructor: route directly through Bid128FromInt64; every int64 is exactly representable in Decimal128, so the Result error branch is structurally unreachable"
+    },
+    {
+      "go_symbol": "NewDecimal128FromInt32",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From<i32>",
+      "shape": "from_i32_exact",
+      "bidgo_function": "Bid128FromInt32",
+      "reason": "exact int32->Decimal128 widening (34 significant digits comfortably holds int32's 10); folds into impl From<i32>"
+    },
+    {
+      "go_symbol": "NewDecimal128FromInt64",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From<i64>",
+      "shape": "from_i64_exact",
+      "bidgo_function": "Bid128FromInt64",
+      "reason": "exact int64->Decimal128 widening (BID128's 34 significant digits represent every int64 exactly, unlike Decimal64/Decimal32); folds into impl From<i64>"
+    },
+    {
+      "go_symbol": "NewDecimal128FromUint32",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From<u32>",
+      "shape": "from_u32_exact",
+      "bidgo_function": "Bid128FromUint32",
+      "reason": "exact uint32->Decimal128 widening; folds into impl From<u32>"
+    },
+    {
+      "go_symbol": "NewDecimal128FromUint64",
+      "rust_owner": "Decimal128",
+      "rust_surface": "From<u64>",
+      "shape": "from_u64_exact",
+      "bidgo_function": "Bid128FromUint64",
+      "reason": "exact uint64->Decimal128 widening (BID128 represents every uint64 exactly); folds into impl From<u64>"
+    },
+    {
+      "go_symbol": "NewDecimal128WithFlags",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse_with_flags",
+      "shape": "parse_with_flags",
+      "bidgo_function": "Bid128FromString",
+      "reason": "flag-returning string constructor; Result<(Self,ExceptionFlags),ParseDecimalError> folds Go's (D,flags,error) triple, flags meaningless on Err matching the Go signature"
+    },
+    {
+      "go_symbol": "NewDecimal128WithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse_with_mode",
+      "shape": "parse_mode",
+      "bidgo_function": "Bid128FromString",
+      "reason": "explicit-rounding-mode string constructor; parses through the same Go mechanical port from-string entrypoint 'Bid128FromString' as parse_with_flags, carrying the caller's RoundingMode instead of the default ties-to-even, with the same Ok/Err fold (error iff the input string is rejected)"
+    },
+    {
+      "go_symbol": "NewDecimal32",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse",
+      "shape": "parse",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "width-parameterized reuse of the Decimal64 'parse' shape template (free constructor); routes through the Go mechanical port bidgo function 'Bid32FromStringRaw'."
+    },
+    {
+      "go_symbol": "NewDecimal32BIDDirect",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse",
+      "shape": "parse_fold",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "width-parameterized reuse of the Decimal64 'parse_fold' shape template (free constructor); routes through the Go mechanical port bidgo function 'Bid32FromStringRaw'."
+    },
+    {
+      "go_symbol": "NewDecimal32FromInt",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_int",
+      "shape": "from_i32_exact_or_error",
+      "bidgo_function": "Bid32FromInt32",
+      "reason": "exact-or-error int32 constructor: route directly through Bid32FromInt32 at round-nearest-even and return InexactIntegerError when the port raises Inexact"
+    },
+    {
+      "go_symbol": "NewDecimal32FromInt32",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_i32",
+      "shape": "from_i32_mode",
+      "bidgo_function": "Bid32FromInt32",
+      "reason": "new 'from_i32_mode' shape (Decimal32 has no Decimal64-shaped counterpart for this signature form; emitter is a width-parameterized generalization of the existing from_i64_mode/from_u64_mode/to_decimal128 templates); routes through the Go mechanical port bidgo function 'Bid32FromInt32'."
+    },
+    {
+      "go_symbol": "NewDecimal32FromInt64",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_i64",
+      "shape": "from_i64_mode",
+      "bidgo_function": "Bid32FromInt64",
+      "reason": "width-parameterized reuse of the Decimal64 'from_i64_mode' shape template (free constructor); routes through the Go mechanical port bidgo function 'Bid32FromInt64'."
+    },
+    {
+      "go_symbol": "NewDecimal32FromUint32",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_u32",
+      "shape": "from_u32_mode",
+      "bidgo_function": "Bid32FromUint32",
+      "reason": "new 'from_u32_mode' shape (Decimal32 has no Decimal64-shaped counterpart for this signature form; emitter is a width-parameterized generalization of the existing from_i64_mode/from_u64_mode/to_decimal128 templates); routes through the Go mechanical port bidgo function 'Bid32FromUint32'."
+    },
+    {
+      "go_symbol": "NewDecimal32FromUint64",
+      "rust_owner": "Decimal32",
+      "rust_surface": "from_u64",
+      "shape": "from_u64_mode",
+      "bidgo_function": "Bid32FromUint64",
+      "reason": "width-parameterized reuse of the Decimal64 'from_u64_mode' shape template (free constructor); routes through the Go mechanical port bidgo function 'Bid32FromUint64'."
+    },
+    {
+      "go_symbol": "NewDecimal32WithFlags",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse_with_flags",
+      "shape": "parse_with_flags",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "width-parameterized reuse of the Decimal64 'parse_with_flags' shape template (free constructor); routes through the Go mechanical port bidgo function 'Bid32FromStringRaw'."
+    },
+    {
+      "go_symbol": "NewDecimal32WithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse_with_mode",
+      "shape": "parse_mode",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "explicit-rounding-mode string constructor; parses through the same Go mechanical port from-string entrypoint 'Bid32FromStringRaw' as parse_with_flags, carrying the caller's RoundingMode instead of the default ties-to-even, with the same Ok/Err fold (error iff the input string is rejected)"
+    },
+    {
+      "go_symbol": "NewDecimal64",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse",
+      "shape": "parse",
+      "bidgo_function": "Bid64FromString",
+      "reason": "string constructor; parse(&str)->Result<Self,ParseDecimalError> plus impl FromStr, routing through the Go mechanical port bid64_from_string with default ties-to-even rounding"
+    },
+    {
+      "go_symbol": "NewDecimal64BIDDirect",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse",
+      "shape": "parse_fold",
+      "bidgo_function": "Bid64FromString",
+      "reason": "the Direct convenience twin folds into the single Rust parse surface (recorded in the surface inventory, emits no duplicate wrapper); same bid64_from_string routing"
+    },
+    {
+      "go_symbol": "NewDecimal64FromInt",
+      "rust_owner": "Decimal64",
+      "rust_surface": "from_int",
+      "shape": "from_i64_exact_or_error",
+      "bidgo_function": "Bid64FromInt64",
+      "reason": "exact-or-error int64 constructor: route directly through Bid64FromInt64 at round-nearest-even and return InexactIntegerError when the port raises Inexact"
+    },
+    {
+      "go_symbol": "NewDecimal64FromInt32",
+      "rust_owner": "Decimal64",
+      "rust_surface": "From<i32>",
+      "shape": "from_i32_exact",
+      "bidgo_function": "Bid64FromInt32",
+      "reason": "exact int32->Decimal64 widening (16 significant digits comfortably holds int32's 10); folds into impl From<i32>"
+    },
+    {
+      "go_symbol": "NewDecimal64FromInt64",
+      "rust_owner": "Decimal64",
+      "rust_surface": "from_i64",
+      "shape": "from_i64_mode",
+      "bidgo_function": "Bid64FromInt64",
+      "reason": "int64->Decimal64 with explicit rounding mode and flags (16 significant digits may not exactly hold all int64 values)"
+    },
+    {
+      "go_symbol": "NewDecimal64FromUint32",
+      "rust_owner": "Decimal64",
+      "rust_surface": "From<u32>",
+      "shape": "from_u32_exact",
+      "bidgo_function": "Bid64FromUint32",
+      "reason": "exact uint32->Decimal64 widening; folds into impl From<u32>"
+    },
+    {
+      "go_symbol": "NewDecimal64FromUint64",
+      "rust_owner": "Decimal64",
+      "rust_surface": "from_u64",
+      "shape": "from_u64_mode",
+      "bidgo_function": "Bid64FromUint64",
+      "reason": "uint64->Decimal64 with explicit rounding mode and flags"
+    },
+    {
+      "go_symbol": "NewDecimal64WithFlags",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse_with_flags",
+      "shape": "parse_with_flags",
+      "bidgo_function": "Bid64FromString",
+      "reason": "flag-returning string constructor; Result<(Self,ExceptionFlags),ParseDecimalError> folds Go's (D,flags,error) triple, flags meaningless on Err matching the Go signature"
+    },
+    {
+      "go_symbol": "NewDecimal64WithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse_with_mode",
+      "shape": "parse_mode",
+      "bidgo_function": "Bid64FromString",
+      "reason": "explicit-rounding-mode string constructor; parses through the same Go mechanical port from-string entrypoint 'Bid64FromString' as parse_with_flags, carrying the caller's RoundingMode instead of the default ties-to-even, with the same Ok/Err fold (error iff the input string is rejected)"
+    },
+    {
+      "go_symbol": "ParseDecimal128BIDRaw",
+      "rust_owner": "Decimal128",
+      "rust_surface": "parse_raw",
+      "shape": "parse_raw",
+      "bidgo_function": "Bid128FromString",
+      "reason": "flag-returning raw parser routes valid finite/infinity input through Bid128FromString; malformed syntax and silent cohort coercion return canonical qNaN + InvalidOperation through the public flag channel"
+    },
+    {
+      "go_symbol": "ParseDecimal32BIDRaw",
+      "rust_owner": "Decimal32",
+      "rust_surface": "parse_raw",
+      "shape": "parse_raw",
+      "bidgo_function": "Bid32FromStringRaw",
+      "reason": "flag-returning raw parser routes valid finite/infinity input through Bid32FromStringRaw; malformed syntax and silent cohort coercion return canonical qNaN + InvalidOperation through the public flag channel"
+    },
+    {
+      "go_symbol": "ParseDecimal64BIDRaw",
+      "rust_owner": "Decimal64",
+      "rust_surface": "parse_raw",
+      "shape": "parse_raw",
+      "bidgo_function": "Bid64FromString",
+      "reason": "flag-returning raw parser routes valid finite/infinity input through Bid64FromString; malformed syntax and silent cohort coercion return canonical qNaN + InvalidOperation through the public flag channel"
+    }
+  ],
+  "deferred": {
+    "category": "deferred",
+    "reason": [
+      "Currently empty because every mapped public symbol is emitted.",
+      "The section remains as the explicit destination for any future mapped symbol that is intentionally deferred."
+    ],
+    "symbols": []
+  },
+  "constants": [
+    {
+      "go_symbol": "Zero32BID",
+      "rust_owner": "Decimal32",
+      "rust_const": "ZERO",
+      "literal": "0",
+      "reason": "bid754-go/api_v2.go immutable constant accessor; folds into a compile-time Decimal32::ZERO associated const via const_bits.go's independent encoder"
+    },
+    {
+      "go_symbol": "One32BID",
+      "rust_owner": "Decimal32",
+      "rust_const": "ONE",
+      "literal": "1",
+      "reason": "bid754-go/api_v2.go immutable constant accessor; folds into a compile-time Decimal32::ONE associated const"
+    },
+    {
+      "go_symbol": "Pi32BID",
+      "rust_owner": "Decimal32",
+      "rust_const": "PI",
+      "literal": "3.141593",
+      "reason": "bid754-go/api_v2.go immutable constant accessor (pi at Decimal32's 7 significant digits); folds into a compile-time Decimal32::PI associated const"
+    },
+    {
+      "go_symbol": "E32BID",
+      "rust_owner": "Decimal32",
+      "rust_const": "E",
+      "literal": "2.718282",
+      "reason": "bid754-go/api_v2.go immutable constant accessor (e at Decimal32's 7 significant digits); folds into a compile-time Decimal32::E associated const"
+    },
+    {
+      "go_symbol": "Zero64BID",
+      "rust_owner": "Decimal64",
+      "rust_const": "ZERO",
+      "literal": "0",
+      "reason": "bid754-go/api_v2.go immutable constant accessor; folds into a compile-time Decimal64::ZERO associated const"
+    },
+    {
+      "go_symbol": "One64BID",
+      "rust_owner": "Decimal64",
+      "rust_const": "ONE",
+      "literal": "1",
+      "reason": "bid754-go/api_v2.go immutable constant accessor; folds into a compile-time Decimal64::ONE associated const"
+    },
+    {
+      "go_symbol": "Pi64BID",
+      "rust_owner": "Decimal64",
+      "rust_const": "PI",
+      "literal": "3.141592653589793",
+      "reason": "bid754-go/api_v2.go immutable constant accessor (pi at Decimal64's 16 significant digits); folds into a compile-time Decimal64::PI associated const"
+    },
+    {
+      "go_symbol": "E64BID",
+      "rust_owner": "Decimal64",
+      "rust_const": "E",
+      "literal": "2.718281828459045",
+      "reason": "bid754-go/api_v2.go immutable constant accessor (e at Decimal64's 16 significant digits); folds into a compile-time Decimal64::E associated const"
+    },
+    {
+      "go_symbol": "Zero128BID",
+      "rust_owner": "Decimal128",
+      "rust_const": "ZERO",
+      "literal": "0",
+      "reason": "bid754-go/api_v2.go immutable constant accessor; folds into a compile-time Decimal128::ZERO associated const"
+    },
+    {
+      "go_symbol": "One128BID",
+      "rust_owner": "Decimal128",
+      "rust_const": "ONE",
+      "literal": "1",
+      "reason": "bid754-go/api_v2.go immutable constant accessor; folds into a compile-time Decimal128::ONE associated const"
+    },
+    {
+      "go_symbol": "Pi128BID",
+      "rust_owner": "Decimal128",
+      "rust_const": "PI",
+      "literal": "3.141592653589793238462643383279503",
+      "reason": "bid754-go/api_v2.go immutable constant accessor (pi at Decimal128's 34 significant digits); folds into a compile-time Decimal128::PI associated const"
+    },
+    {
+      "go_symbol": "E128BID",
+      "rust_owner": "Decimal128",
+      "rust_const": "E",
+      "literal": "2.718281828459045235360287471352662",
+      "reason": "bid754-go/api_v2.go immutable constant accessor (e at Decimal128's 34 significant digits); folds into a compile-time Decimal128::E associated const"
+    }
+  ],
+  "excluded_constants": {
+    "category": "excluded_constants",
+    "reason": [
+      "Currently empty because all mapped constant accessors are emitted as associated constants.",
+      "The section remains as the explicit destination for any future constant accessor that is intentionally excluded."
+    ],
+    "symbols": []
+  }
+}

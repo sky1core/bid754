@@ -1,0 +1,828 @@
+package main
+
+import (
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/sky1core/bid754/devtools/internal/genmarker"
+)
+
+func TestPostProcessRewritesFmaDoneGoto(t *testing.T) {
+	input := `pub(crate) fn bid_fma_delta_ge_zero() {
+    let mut z_exp = (*z_exp_ptr);
+    let mut p_exp = (*p_exp_ptr);
+    if ((p34 <= (delta - 1)) || other_condition) {
+        // goto done; // TODO: convert goto to loop/break
+    }
+    // label: done
+    (*z_exp_ptr) = z_exp;
+    (*p_exp_ptr) = p_exp;
+}
+`
+
+	got := postProcess(input)
+
+	for _, rejected := range []string{"goto done", "TODO: convert goto", "label: done"} {
+		if strings.Contains(got, rejected) {
+			t.Fatalf("postProcess left %q in output:\n%s", rejected, got)
+		}
+	}
+	for _, required := range []string{"    'done: {\n", "        break 'done;\n", "    }\n    (*z_exp_ptr) = z_exp;"} {
+		if !strings.Contains(got, required) {
+			t.Fatalf("postProcess output missing %q:\n%s", required, got)
+		}
+	}
+}
+
+func TestRejectGeneratedFallbacks(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		code string
+	}{
+		{name: "todo macro", code: "pub fn f() { todo!(\"x\"); }"},
+		{name: "todo comment", code: "// TODO: unsupported\n"},
+		{name: "empty body marker", code: "pub fn f() {\n    // empty body\n}\n"},
+		{name: "source read marker", code: "pub fn f() {\n    // error reading source\n}\n"},
+		{name: "closure marker", code: "let f = /* closure TODO */;"},
+		{name: "goto marker", code: "// goto done; // TODO: convert goto to loop/break\n"},
+		{name: "label marker", code: "// label: done\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := rejectGeneratedFallbacks("bad.go", tc.code); err == nil {
+				t.Fatal("expected fallback rejection")
+			}
+		})
+	}
+}
+
+func TestRejectFinalGeneratedFallbacksCatchesExpressionFallback(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "bad.rs"), []byte("pub fn f() { let _x = /* unsupported_call() */ 0; }\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile bad.rs: %v", err)
+	}
+	if err := rejectFinalGeneratedFallbacks(dir); err == nil {
+		t.Fatalf("rejectFinalGeneratedFallbacks accepted expression fallback")
+	}
+}
+
+func TestRejectFinalGeneratedFallbacksCatchesMatchArmBreak(t *testing.T) {
+	dir := t.TempDir()
+	bad := "pub fn f() {\n    loop {\n        match x {\n            1 => {\n                break;\n            }\n            _ => {}\n        }\n    }\n}\n"
+	if err := os.WriteFile(filepath.Join(dir, "bad.rs"), []byte(bad), 0o644); err != nil {
+		t.Fatalf("WriteFile bad.rs: %v", err)
+	}
+	if err := rejectFinalGeneratedFallbacks(dir); err == nil {
+		t.Fatalf("rejectFinalGeneratedFallbacks accepted a residual match-arm break")
+	}
+}
+
+func TestRejectResidualMatchArmBreakAcceptsLegitBreaks(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		code string
+	}{
+		{name: "loop break", code: "pub fn f() {\n    loop {\n        if x {\n            break;\n        }\n    }\n}\n"},
+		{name: "while break", code: "pub fn f() {\n    while (c) {\n        break;\n    }\n}\n"},
+		{name: "for break", code: "pub fn f() {\n    for i in 0..n {\n        break;\n    }\n}\n"},
+		{name: "labeled loop break", code: "pub fn f() {\n    'roundC2: loop {\n        continue 'roundC2;\n        break;\n    }\n}\n"},
+		{name: "labeled block break", code: "pub fn f() {\n    'done: {\n        break 'done;\n    }\n}\n"},
+		{name: "match arm no break", code: "pub fn f() {\n    match x {\n        1 => {\n            y = 1;\n        }\n        _ => {}\n    }\n}\n"},
+		{name: "non-block arms", code: "pub fn f() {\n    let (v, e) = match r {\n        Ok(v) => (v, None),\n        Err(_) => (0, Some(\"atoi\")),\n    };\n}\n"},
+		{name: "loop inside arm break targets inner loop", code: "pub fn f() {\n    loop {\n        match x {\n            1 => {\n                loop {\n                    break;\n                }\n            }\n            _ => {}\n        }\n    }\n}\n"},
+		{name: "format string braces", code: "pub fn f() {\n    loop {\n        let s = format!(\"{}\", x);\n        break;\n    }\n}\n"},
+		{name: "byte literal brace", code: "pub fn f() {\n    while (c == b'{') {\n        break;\n    }\n}\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := rejectResidualMatchArmBreak("ok.rs", tc.code); err != nil {
+				t.Fatalf("unexpected rejection: %v", err)
+			}
+		})
+	}
+}
+
+func TestRejectResidualMatchArmBreakFailsOnArmBreak(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		code string
+	}{
+		{name: "block arm break in loop", code: "pub fn f() {\n    loop {\n        match x {\n            1 => {\n                break;\n            }\n            _ => {}\n        }\n    }\n}\n"},
+		{name: "default arm break in loop", code: "pub fn f() {\n    loop {\n        match x {\n            1 => {}\n            _ => {\n                break;\n            }\n        }\n    }\n}\n"},
+		{name: "nested if arm break in loop", code: "pub fn f() {\n    loop {\n        match x {\n            2 => {\n                if cond {\n                    break;\n                }\n            }\n            _ => {}\n        }\n    }\n}\n"},
+		{name: "bare arm break in loop", code: "pub fn f() {\n    loop {\n        match x {\n            1 => break,\n            _ => {}\n        }\n    }\n}\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := rejectResidualMatchArmBreak("bad.rs", tc.code); err == nil {
+				t.Fatalf("expected match-arm break rejection")
+			}
+		})
+	}
+}
+
+func TestRejectGeneratedFallbacksAllowsConvertedCode(t *testing.T) {
+	code := `pub(crate) fn ok() {
+    let mut x = 1;
+    x = x.wrapping_add(1);
+}
+`
+	if err := rejectGeneratedFallbacks("ok.go", code); err != nil {
+		t.Fatalf("unexpected fallback rejection: %v", err)
+	}
+}
+
+func TestConvertImmediateFuncLiteralCall(t *testing.T) {
+	src := []byte(`func() int32 {
+    if n < 0 {
+        return int32(0x7fffffff)
+    }
+    return n
+}()`)
+	fset := token.NewFileSet()
+	expr, err := parser.ParseExprFrom(fset, "inline.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseExprFrom: %v", err)
+	}
+
+	got := convertExprStr(fset, expr, src)
+
+	for _, rejected := range []string{"closure TODO", "TODO:"} {
+		if strings.Contains(got, rejected) {
+			t.Fatalf("converted closure left fallback marker %q:\n%s", rejected, got)
+		}
+	}
+	for _, required := range []string{"|| -> i32", "return (0x7fffffff as i32);", "return n;"} {
+		if !strings.Contains(got, required) {
+			t.Fatalf("converted closure missing %q:\n%s", required, got)
+		}
+	}
+}
+
+func TestConvertAndNotOperators(t *testing.T) {
+	fset := token.NewFileSet()
+	src := []byte(`x &^ mask`)
+	expr, err := parser.ParseExprFrom(fset, "andnot.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseExprFrom binary: %v", err)
+	}
+	if got := convertExprStr(fset, expr, src); got != "(x & !mask)" {
+		t.Fatalf("AND_NOT expression = %q", got)
+	}
+
+	stmtSrc := []byte(`package p
+func f() {
+    flags &^= BID_UNDERFLOW_EXCEPTION
+}
+`)
+	file, err := parser.ParseFile(fset, "andnot_stmt.go", stmtSrc, 0)
+	if err != nil {
+		t.Fatalf("ParseFile stmt: %v", err)
+	}
+	fn := file.Decls[0].(*ast.FuncDecl)
+	got := convertStmt(fset, fn.Body.List[0], stmtSrc, 1, nil)
+	if want := "    flags &= !BID_UNDERFLOW_EXCEPTION;\n"; got != want {
+		t.Fatalf("AND_NOT assignment = %q, want %q", got, want)
+	}
+}
+
+func TestTypeCheckedIntegerOpsUseGoOverflowAndShiftSemantics(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "ops.go", `package bidgo
+
+func ops(u uint64, i int32, s uint, big uint64, n int32) (uint64, int32) {
+	u = u + 1
+	u -= 2
+	u <<= s
+	u >>= s
+	u = u << big
+	u = u >> big
+	i = i - 1
+	i *= 2
+	i = i >> s
+	i = i >> n
+	i >>= s
+	i = -i
+	return u, i
+}
+`)
+	for _, required := range []string{
+		"u = (u.wrapping_add(1));",
+		"u = u.wrapping_sub(2);",
+		"u = go_checked_shl_u64(u, go_shift_count_u64((s) as u64));",
+		"u = go_checked_shr_u64(u, go_shift_count_u64((s) as u64));",
+		"u = (go_checked_shl_u64(u, go_shift_count_u64((big) as u64)));",
+		"u = (go_checked_shr_u64(u, go_shift_count_u64((big) as u64)));",
+		"i = (i.wrapping_sub(1));",
+		"i = i.wrapping_mul(2);",
+		"i = (go_checked_shr_i32(i, go_shift_count_u64((s) as u64)));",
+		"i = (go_checked_shr_i32(i, go_shift_count_i64((n) as i64)));",
+		"i = go_checked_shr_i32(i, go_shift_count_u64((s) as u64));",
+		"i = (i.wrapping_neg());",
+	} {
+		if !strings.Contains(code, required) {
+			t.Fatalf("converted integer op code missing %q:\n%s", required, code)
+		}
+	}
+}
+
+func TestGoIntUintBuiltinsUseGo64BitSemantics(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "int_width.go", `package bidgo
+
+import (
+	"math/bits"
+	"strconv"
+)
+
+var table = [2]int32{3, 4}
+
+func callee(exp int, raw uint) int {
+	return exp + int(raw)
+}
+
+func width(xs []byte, u uint64, idx int) (int, uint) {
+	n, err := strconv.Atoi("123")
+	if err != nil {
+		return 0, 0
+	}
+	digits := len(xs)
+	bitLen := bits.Len64(u)
+	tableValue := int(table[idx])
+	extra := 16 - digits
+	raw := uint(bitLen)
+	n += tableValue
+	n += extra
+	return callee(n, raw), raw
+}
+`)
+	for _, required := range []string{
+		"pub(crate) fn callee(mut exp: i64, mut raw: u64) -> i64",
+		"pub(crate) fn width(mut xs: &mut [u8], mut u: u64, mut idx: i64) -> (i64, u64)",
+		`let (mut n, mut err) = go_atoi("123");`,
+		"let mut digits = (xs.len() as i64);",
+		"let mut bitLen = (64 - (u).leading_zeros()) as i64;",
+		"let mut tableValue = (table[idx as usize] as i64);",
+		"let mut extra = ((16 as i64).wrapping_sub(digits));",
+		"let mut raw = (bitLen as u64);",
+		"n = n.wrapping_add(tableValue);",
+		"n = n.wrapping_add(extra);",
+		"return (callee(n, raw), raw);",
+	} {
+		if !strings.Contains(code, required) {
+			t.Fatalf("converted Go int/uint width code missing %q:\n%s", required, code)
+		}
+	}
+	for _, rejected := range []string{
+		"mut exp: i32",
+		"mut raw: u32",
+		"-> (i32, u32)",
+		`parse::<i32>`,
+		"xs.len() as i32",
+		"leading_zeros()) as i32",
+		"table[idx as usize] as i32",
+		"(16 as i32).wrapping_sub(digits)",
+		"bitLen as u32",
+	} {
+		if strings.Contains(code, rejected) {
+			t.Fatalf("converted Go int/uint width code contains rejected %q:\n%s", rejected, code)
+		}
+	}
+}
+
+func convertTypeCheckedTestFile(t *testing.T, name, src string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	reg := &Registry{
+		Types:     map[string]TypeDef{},
+		Constants: map[string]ConstDef{},
+		Tables:    map[string]TableDef{},
+		Functions: map[string]FuncDef{},
+	}
+	activeRegistry = reg
+	activeSourceFunctions = collectSourceFunctionNames([]string{path})
+	fset, parsedTargets, info := parseTypeCheckedPackage(dir, []string{path})
+	oldTypeInfo := activeTypeInfo
+	activeTypeInfo = info
+	t.Cleanup(func() {
+		activeTypeInfo = oldTypeInfo
+	})
+	code, err := convertParsedFile(fset, parsedTargets[path], path, reg)
+	if err != nil {
+		t.Fatalf("convertParsedFile: %v", err)
+	}
+	return code
+}
+
+func TestConvertSwitchFallthroughMergesBareCaseIntoNextArm(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "fallthrough_merge.go", `package bidgo
+
+func classify(rmode int, remainder uint64) uint32 {
+	var status uint32 = 32
+	switch rmode {
+	case 0:
+		fallthrough
+	case 4:
+		if remainder == 0x8000000000000000 {
+			status = 0
+		}
+	case 1:
+		fallthrough
+	case 3:
+		if remainder == 0 {
+			status = 0
+		}
+	default:
+		status = 1
+	}
+	return status
+}
+`)
+	for _, required := range []string{
+		"0 | 4 => {",
+		"1 | 3 => {",
+		"_ => {",
+	} {
+		if !strings.Contains(code, required) {
+			t.Fatalf("converted switch missing %q:\n%s", required, code)
+		}
+	}
+	// The bug this checks against: a bare `case 0: fallthrough` becoming an
+	// empty match arm that silently drops the shared body.
+	for _, rejected := range []string{
+		"0 => {\n            }",
+		"1 => {\n            }",
+	} {
+		if strings.Contains(code, rejected) {
+			t.Fatalf("converted switch left empty fallthrough arm %q:\n%s", rejected, code)
+		}
+	}
+	if err := rejectGeneratedFallbacks("fallthrough_merge.go", code); err != nil {
+		t.Fatalf("unexpected fallback rejection: %v", err)
+	}
+}
+
+func TestConvertSwitchFallthroughMergesConsecutiveBareCases(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "fallthrough_consecutive.go", `package bidgo
+
+func widen(rmode int) uint32 {
+	var status uint32
+	switch rmode {
+	case 0:
+		fallthrough
+	case 1:
+		fallthrough
+	case 2:
+		status = 7
+	default:
+		status = 1
+	}
+	return status
+}
+`)
+	// Two consecutive bare fallthroughs must accumulate into one merged
+	// pattern, not leave any empty arm behind.
+	if !strings.Contains(code, "0 | 1 | 2 => {") {
+		t.Fatalf("converted switch missing accumulated pattern %q:\n%s", "0 | 1 | 2 => {", code)
+	}
+	for _, rejected := range []string{
+		"0 => {\n            }",
+		"1 => {\n            }",
+	} {
+		if strings.Contains(code, rejected) {
+			t.Fatalf("converted switch left empty fallthrough arm %q:\n%s", rejected, code)
+		}
+	}
+	if err := rejectGeneratedFallbacks("fallthrough_consecutive.go", code); err != nil {
+		t.Fatalf("unexpected fallback rejection: %v", err)
+	}
+}
+
+func TestConvertSwitchFallthroughChainsNonEmptyBodies(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "fallthrough_chain.go", `package bidgo
+
+func chain(mode int) int {
+	var n int
+	switch mode {
+	case 0:
+		n += 1
+		fallthrough
+	case 1:
+		n += 2
+	case 2:
+		fallthrough
+	default:
+		n += 4
+	}
+	return n
+}
+`)
+	// case 0 keeps its own statement and then executes case 1's body too.
+	arm0 := "0 => {\n            n = n.wrapping_add(1);\n            n = n.wrapping_add(2);\n        }"
+	if !strings.Contains(code, arm0) {
+		t.Fatalf("converted switch missing chained arm %q:\n%s", arm0, code)
+	}
+	// bare fallthrough into default duplicates the default body instead of
+	// merging into the `_` pattern.
+	arm2 := "2 => {\n            n = n.wrapping_add(4);\n        }"
+	if !strings.Contains(code, arm2) {
+		t.Fatalf("converted switch missing fallthrough-into-default arm %q:\n%s", arm2, code)
+	}
+	if err := rejectGeneratedFallbacks("fallthrough_chain.go", code); err != nil {
+		t.Fatalf("unexpected fallback rejection: %v", err)
+	}
+}
+
+func TestConvertExpressionlessSwitchFallthroughIsRejected(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "fallthrough_boolswitch.go", `package bidgo
+
+func boolSwitch(n int) int {
+	switch {
+	case n > 0:
+		fallthrough
+	default:
+		n = 0
+	}
+	return n
+}
+`)
+	if err := rejectGeneratedFallbacks("fallthrough_boolswitch.go", code); err == nil {
+		t.Fatalf("expressionless switch fallthrough was not rejected:\n%s", code)
+	}
+}
+
+func TestConvertSwitchMidDefaultArmEmittedLast(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "mid_default.go", `package bidgo
+
+func pick(x int) int {
+	var n int
+	switch x {
+	case 1:
+		n = 1
+	default:
+		n = 9
+	case 2:
+		n = 2
+	}
+	return n
+}
+`)
+	// Go's default matches only when no case matches, regardless of source
+	// position; a `_` arm emitted at the default's mid-switch position would
+	// shadow the `2 =>` arm in Rust's top-down match (x == 2 would take the
+	// default body).
+	armDefault := strings.Index(code, "_ => {")
+	armTwo := strings.Index(code, "2 => {")
+	if armDefault == -1 || armTwo == -1 {
+		t.Fatalf("converted switch missing `_` or `2 =>` arm:\n%s", code)
+	}
+	if armDefault < armTwo {
+		t.Fatalf("`_` arm emitted before `2 =>` arm; later cases are unreachable:\n%s", code)
+	}
+	// The reordered `_` arm must still carry the default body.
+	if !strings.Contains(code[armDefault:], "n = 9") {
+		t.Fatalf("`_` arm lost the default body:\n%s", code)
+	}
+	if err := rejectGeneratedFallbacks("mid_default.go", code); err != nil {
+		t.Fatalf("unexpected fallback rejection: %v", err)
+	}
+}
+
+func TestConvertSwitchFallthroughIntoMidDefaultIsRejected(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "mid_default_fallthrough_in.go", `package bidgo
+
+func pick(x int) int {
+	var n int
+	switch x {
+	case 1:
+		n = 1
+		fallthrough
+	default:
+		n = 9
+	case 2:
+		n = 2
+	}
+	return n
+}
+`)
+	// A case falling through into a mid-switch default couples the default
+	// body to source order; reordering arms is not obviously safe there, so
+	// the converter must reject instead of emitting silently.
+	if err := rejectGeneratedFallbacks("mid_default_fallthrough_in.go", code); err == nil {
+		t.Fatalf("fallthrough into a mid-switch default was not rejected:\n%s", code)
+	}
+}
+
+func TestConvertSwitchMidDefaultFallingThroughIsRejected(t *testing.T) {
+	code := convertTypeCheckedTestFile(t, "mid_default_fallthrough_out.go", `package bidgo
+
+func pick(x int) int {
+	var n int
+	switch x {
+	default:
+		n = 9
+		fallthrough
+	case 2:
+		n = 2
+	case 3:
+		n = 3
+	}
+	return n
+}
+`)
+	// A mid-switch default that itself falls through into the next case is
+	// likewise rejected instead of being reordered.
+	if err := rejectGeneratedFallbacks("mid_default_fallthrough_out.go", code); err == nil {
+		t.Fatalf("mid-switch default with fallthrough was not rejected:\n%s", code)
+	}
+}
+
+func TestConvertByteCastCharArithmetic(t *testing.T) {
+	fset := token.NewFileSet()
+	src := []byte(`byte('0' + n%10)`)
+	expr, err := parser.ParseExprFrom(fset, "bytecast.go", src, 0)
+	if err != nil {
+		t.Fatalf("ParseExprFrom: %v", err)
+	}
+	got := convertExprStr(fset, expr, src)
+	want := "((b'0' + ((n % 10) as u8)) as u8)"
+	if got != want {
+		t.Fatalf("byte cast conversion = %q, want %q", got, want)
+	}
+}
+
+func TestPostProcessRewritesByteLiteralSubtractions(t *testing.T) {
+	input := `pub(crate) fn f(mut x: u8) -> u8 {
+    if ((x - b'A') <= (b'Z' - b'A')) {
+        return ((ps_at!(0) - b'0') + buffer[0].wrapping_sub(b'0'));
+    }
+    return (buffer[i as usize] - b'0');
+}
+`
+	got := postProcess(input)
+	for _, rejected := range []string{"x - b'A'", "ps_at!(0) - b'0'", "buffer[i as usize] - b'0'"} {
+		if strings.Contains(got, rejected) {
+			t.Fatalf("postProcess left byte subtraction %q:\n%s", rejected, got)
+		}
+	}
+	for _, required := range []string{"x.wrapping_sub(b'A')", "ps_at!(0).wrapping_sub(b'0')", "buffer[i as usize].wrapping_sub(b'0')"} {
+		if !strings.Contains(got, required) {
+			t.Fatalf("postProcess missing %q:\n%s", required, got)
+		}
+	}
+}
+
+func TestConvertNilComparisons(t *testing.T) {
+	fset := token.NewFileSet()
+	for _, tc := range []struct {
+		src  string
+		want string
+	}{
+		{src: `err != nil`, want: "err.is_some()"},
+		{src: `err == nil`, want: "err.is_none()"},
+		{src: `frac != nil`, want: "/* unsupported nil comparison */"},
+		{src: `frac == nil`, want: "/* unsupported nil comparison */"},
+	} {
+		expr, err := parser.ParseExprFrom(fset, "nilcmp.go", []byte(tc.src), 0)
+		if err != nil {
+			t.Fatalf("ParseExprFrom(%q): %v", tc.src, err)
+		}
+		if got := convertExprStr(fset, expr, []byte(tc.src)); got != tc.want {
+			t.Fatalf("convert %q = %q, want %q", tc.src, got, tc.want)
+		}
+	}
+}
+
+func TestConvertMutableStringParam(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "string_param.go")
+	src := []byte(`package bidgo
+
+import "strings"
+
+func parse(s string) string {
+    s = strings.TrimSpace(s)
+    if s[0] == '+' {
+        s = s[1:]
+    }
+    return s
+}
+`)
+	if err := os.WriteFile(path, src, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	activeRegistry = &Registry{
+		Types:     map[string]TypeDef{},
+		Constants: map[string]ConstDef{},
+		Tables:    map[string]TableDef{},
+		Functions: map[string]FuncDef{},
+	}
+	activeSourceFunctions = nil
+	code, err := convertFile(path, activeRegistry)
+	if err != nil {
+		t.Fatalf("convertFile: %v", err)
+	}
+	for _, required := range []string{
+		"let mut s = s.as_ref().to_string();",
+		"s.as_bytes()[0 as usize]",
+		"s = (&s[1 as usize..]).to_string();",
+		"return s;",
+	} {
+		if !strings.Contains(code, required) {
+			t.Fatalf("converted string-param code missing %q:\n%s", required, code)
+		}
+	}
+}
+
+func TestRegistryUnsupportedRustTypeDoesNotOwnGo2rsType(t *testing.T) {
+	if registryTypeOwnsRust(TypeDef{Fields: []FieldDef{{Name: "coeff", Type: "&mut Int"}}}) {
+		t.Fatal("registryTypeOwnsRust accepted unsupported Rust field type")
+	}
+	if !registryTypeOwnsRust(TypeDef{Fields: []FieldDef{{Name: "w", Type: "[u64; 2]"}}}) {
+		t.Fatal("registryTypeOwnsRust rejected supported fixed-width field type")
+	}
+}
+
+func TestShouldConvertFileIncludesFormerAlternateGeneratedFiles(t *testing.T) {
+	for _, name := range []string{"nexttoward64.go", "to_binary64.go"} {
+		if !shouldConvertFile(name) {
+			t.Fatalf("shouldConvertFile(%q) = false, want true for go2rs source conversion", name)
+		}
+	}
+}
+
+func TestCleanGeneratedDirRemovesFormerAlternateGeneratedFiles(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"prelude.rs", "nexttoward64.rs", "to_binary64.rs", "old.rs"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(name), 0o644); err != nil {
+			t.Fatalf("WriteFile(%q): %v", name, err)
+		}
+	}
+
+	cleanGeneratedDir(dir, nil)
+
+	for _, name := range []string{"prelude.rs"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			t.Fatalf("expected %s to be preserved: %v", name, err)
+		}
+	}
+	for _, name := range []string{"nexttoward64.rs", "to_binary64.rs", "old.rs"} {
+		if _, err := os.Stat(filepath.Join(dir, name)); !os.IsNotExist(err) {
+			t.Fatalf("%s stat err = %v, want removed", name, err)
+		}
+	}
+}
+
+func TestRejectStaleGeneratedOwnershipMarkers(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "ok.rs"), []byte(genmarker.Line("go2rs from x.go")+"\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile ok.rs: %v", err)
+	}
+	if err := rejectStaleGeneratedOwnershipMarkers(dir); err != nil {
+		t.Fatalf("rejectStaleGeneratedOwnershipMarkers ok dir: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, "bad.rs"), []byte("// Code generated by tools/codegen rust-optimize; DO NOT EDIT.\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile bad.rs: %v", err)
+	}
+	if err := rejectStaleGeneratedOwnershipMarkers(dir); err == nil {
+		t.Fatalf("rejectStaleGeneratedOwnershipMarkers accepted stale codegen marker")
+	}
+}
+
+func TestFormerAlternateSourcesConvertWithoutFallbacks(t *testing.T) {
+	root := findProjectRoot()
+	reg := loadRegistry(filepath.Join(root, "tools", "registry", "symbols.json"))
+	activeRegistry = reg
+	for _, name := range []string{
+		"to_binary64.go",
+		"nexttoward64.go",
+	} {
+		code, err := convertFile(filepath.Join(root, bidGoDir, name), reg)
+		if err != nil {
+			t.Fatalf("convertFile(%s): %v", name, err)
+		}
+		if strings.Contains(code, "templates/") {
+			t.Fatalf("%s conversion retained template path:\n%s", name, code)
+		}
+		if err := rejectGeneratedFallbacks(name, code); err != nil {
+			t.Fatalf("%s conversion contains fallback: %v", name, err)
+		}
+	}
+}
+
+func TestOptimizeBid32StringParseAvoidsAllocation(t *testing.T) {
+	input := `pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {
+    let ps = ps.as_ref();
+    let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes().to_vec();
+    if ((s.len() as i64) == 0) {
+        return (0x7c000000, 0);
+    }
+    let mut c = s[0];
+    let mut sl = String::from_utf8_lossy(&s).to_ascii_lowercase();
+    if ((((c != b'.') && (c != b'-')) && (c != b'+')) && (((c < b'0') || (c > b'9')))) {
+        if ((sl == "inf") || (sl == "infinity")) {
+            return (0x78000000, 0);
+        }
+        if (sl).starts_with("snan") {
+            return (0x7e000000, 0);
+        }
+        return (0x7c000000, 0);
+    }
+    if ((s.len() as i64) > 1) {
+        let mut sl1 = String::from_utf8_lossy(&s[1 as usize..]).to_ascii_lowercase();
+        if ((sl1 == "inf") || (sl1 == "infinity")) {
+            if (c == b'+') {
+                return (0x78000000, 0);
+            } else if (c == b'-') {
+                return (0xf8000000, 0);
+            }
+            return (0x7c000000, 0);
+        }
+        if (sl1).starts_with("snan") {
+            if (c == b'-') {
+                return (0xfe000000, 0);
+            }
+            return (0x7e000000, 0);
+        }
+        if (sl1 == "nan") {
+            if (c == b'-') {
+                return (0xfc000000, 0);
+            }
+            return (0x7c000000, 0);
+        }
+    }
+    return (0, 0);
+}
+`
+	got, err := optimizeRustStringHotpaths("bid32_string.go", input)
+	if err != nil {
+		t.Fatalf("optimizeRustStringHotpaths: %v", err)
+	}
+
+	for _, rejected := range []string{
+		"as_bytes().to_vec()",
+		"String::from_utf8_lossy",
+		"to_ascii_lowercase",
+	} {
+		if strings.Contains(got, rejected) {
+			t.Fatalf("optimized code still contains %q:\n%s", rejected, got)
+		}
+	}
+	for _, required := range []string{
+		`let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();`,
+		`s.eq_ignore_ascii_case(b"inf")`,
+		`let sl1 = &s[1 as usize..];`,
+		`sl1.eq_ignore_ascii_case(b"nan")`,
+	} {
+		if !strings.Contains(got, required) {
+			t.Fatalf("optimized code missing %q:\n%s", required, got)
+		}
+	}
+}
+
+func TestOptimizeBid128MiscLowersStructuredClosure(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "bid128_misc.rs")
+	input := `pub fn other() {}
+
+pub fn bid128_scalbln(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+    let mut n1 = (n as i32);
+    n1 = (|| -> i32 {
+    if ((n1 as i64) < n) {
+        return (0x7fffffff as i32);
+    }
+    if ((n1 as i64) > n) {
+        return ((-0x80000000) as i32);
+    }
+    return n1;
+})();
+    return bid128_scalbn(x, (n1 as i64), rnd_mode, pfpsf);
+}
+
+pub fn tail() {}
+`
+	if err := os.WriteFile(path, []byte(input), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	optimizeBid128Misc(path)
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	got := string(data)
+	for _, rejected := range []string{"(|| -> i32", "closure TODO", "(n1 as i32), rnd_mode"} {
+		if strings.Contains(got, rejected) {
+			t.Fatalf("optimizeBid128Misc left %q in output:\n%s", rejected, got)
+		}
+	}
+	for _, required := range []string{"i32::MAX", "i32::MIN", "return bid128_scalbn(x, (n1 as i64), rnd_mode, pfpsf);"} {
+		if !strings.Contains(got, required) {
+			t.Fatalf("optimizeBid128Misc output missing %q:\n%s", required, got)
+		}
+	}
+}

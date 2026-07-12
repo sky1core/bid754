@@ -1,0 +1,43 @@
+// Package bid754 provides IEEE 754-2019 decimal floating-point arithmetic
+// over fixed-width BID (Binary Integer Decimal) value types, as a direct
+// mechanical port of the Intel Decimal Floating-Point Math Library.
+//
+// The three value types are:
+//   - Decimal32BID: 32-bit BID decimal (7 significant digits)
+//   - Decimal64BID: 64-bit BID decimal (16 significant digits)
+//   - Decimal128BID: 128-bit BID decimal (34 significant digits)
+//
+// Each type is a fixed-width value with 1:1 byte correspondence to its BID
+// bit pattern and no hidden state. Arithmetic is type-safe (no implicit
+// mixing of widths), and every operation routes through the Go mechanical
+// port of the pinned Intel BID C sources. Results are verified against the
+// Intel C oracle (exact bit-compare and Intel readtest), the IBM decTest
+// suites, cross-language BID codec vectors, and a cross-platform output
+// digest; intentional deviations from the pinned C library are documented
+// in IEEE754_SPEC.md.
+//
+// The arithmetic and conversion runtime currently raises the five IEEE 754
+// exception flags: FlagInvalidOperation, FlagDivisionByZero, FlagOverflow,
+// FlagUnderflow, and FlagInexact. FlagSubnormal, FlagRounded, and
+// FlagClamped are defined for the decTest/status verification surface and
+// are not produced by the public arithmetic runtime today.
+//
+// An operation given a RoundingMode outside the five defined constants rejects
+// the call through its declared failure channel rather than panicking or
+// silently substituting a valid mode: a flag-carrying result raises
+// FlagInvalidOperation and returns the value the operation yields for a NaN
+// input (an integer sentinel, a float NaN, or a canonical quiet NaN), while
+// Add*BIDWithContext accumulates FlagInvalidOperation into the context and
+// returns a canonical quiet NaN.
+//
+// String formatting follows the Intel BID to_string output of each width:
+// Decimal64 and Decimal128 use the coefficient-exponent form, e.g.
+// "+12400E-2", while Decimal32 uses the Intel bid32_to_string format, e.g.
+// "+1.5" or "+9.999999e96". See the package examples for typical usage.
+package bid754
+
+// Version and Name identify this library build.
+const (
+	Version = "0.2.0"
+	Name    = "bid754"
+)

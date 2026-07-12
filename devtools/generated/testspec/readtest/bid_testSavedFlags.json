@@ -1,0 +1,36 @@
+{
+  "suite": "bid_testSavedFlags",
+  "group": "status_control_operations",
+  "format": "status",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid_testSavedFlags",
+  "kind": "status_control",
+  "output_type": "OP_BID_UINT32",
+  "input_types": [
+    "OP_BID_UINT32",
+    "OP_BID_UINT32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid_testSavedFlags_74084","line":91734,"operands":["0","0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74085","line":91735,"operands":["0","1"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74086","line":91736,"operands":["0","2"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74087","line":91737,"operands":["0","3"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74088","line":91738,"operands":["10","13"],"expected":"8","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74089","line":91739,"operands":["12","40"],"expected":"8","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74090","line":91740,"operands":["14","4"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74091","line":91741,"operands":["14","5"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74092","line":91742,"operands":["2","0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74093","line":91743,"operands":["2","1"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74094","line":91744,"operands":["2","2"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74095","line":91745,"operands":["2","3"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74096","line":91746,"operands":["53","20"],"expected":"20","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74097","line":91747,"operands":["53","21"],"expected":"21","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74098","line":91748,"operands":["53","26"],"expected":"16","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74099","line":91749,"operands":["53","27"],"expected":"17","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74100","line":91750,"operands":["8","3"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74101","line":91751,"operands":["8","4"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_testSavedFlags_74102","line":91752,"operands":["8","5"],"expected":"0","status":"00","rounding":0}
+  ]
+}

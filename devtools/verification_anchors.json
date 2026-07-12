@@ -1,0 +1,369 @@
+{
+  "comment": [
+    "External anchors for generated verification outputs.",
+    "This file stays outside every generation path so generated case sets cannot update their own expected counts.",
+    "Change counts only when authoritative inputs, declared public surfaces, or verification corpora intentionally change.",
+    "Regenerate first, update the affected anchors in the same change, and run make verify-generated.",
+    "The public_api and rust_public_api entries are architecture checks, not additional regular verification domains."
+  ],
+  "readtest_cases_total": 84712,
+  "readtest_status_control_cases": 137,
+  "readtest_native_compare_skip_cases": 8,
+  "readtest_profile_rows_accepted": 84667,
+  "readtest_profile_row_skip_reasons": {
+    "longintsize32": 6652
+  },
+  "goport_readtest_executed_cases": 84575,
+  "ffi_bitcompare_cases_total": 22512,
+  "tier1_arithmetic_long_boundary_values_by_width": {
+    "decimal32": 1144,
+    "decimal64": 804,
+    "decimal128": 7722
+  },
+  "tier1_arithmetic_long_semantic_rounded_pairs_by_width": {
+    "decimal32": 22,
+    "decimal64": 20,
+    "decimal128": 20
+  },
+  "tier1_arithmetic_long_semantic_scale_cases_by_width": {
+    "decimal32": 4,
+    "decimal64": 4,
+    "decimal128": 4
+  },
+  "tier1_arithmetic_long_semantic_remainder_pairs_by_width": {
+    "decimal32": 4,
+    "decimal64": 4,
+    "decimal128": 4
+  },
+  "tier1_arithmetic_long_structured_comparisons_by_width": {
+    "decimal32": 888338,
+    "decimal64": 625508,
+    "decimal128": 5973122
+  },
+  "tier1_arithmetic_long_random_cases_per_operation_by_width": {
+    "decimal32": 1048576,
+    "decimal64": 1048576,
+    "decimal128": 524288
+  },
+  "tier1_arithmetic_long_scale_finite_transition_limit_by_width": {
+    "decimal32": 197,
+    "decimal64": 782,
+    "decimal128": 12320
+  },
+  "tier1_arithmetic_long_scale_random_strata": 4,
+  "tier1_arithmetic_long_scale_meaningful_mode_cross": 5,
+  "tier1_arithmetic_long_scale_mode_cross_groups_by_width": {
+    "decimal32": 395,
+    "decimal64": 1565,
+    "decimal128": 24641
+  },
+  "tier1_arithmetic_long_scale_tuple_hash_by_width": {
+    "decimal32": 7400494231484215120,
+    "decimal64": 1340969234595829285,
+    "decimal128": 16300534806315284357
+  },
+  "tier1_arithmetic_long_total_comparisons_by_width": {
+    "decimal32": 9276946,
+    "decimal64": 9014116,
+    "decimal128": 10167426
+  },
+  "tier1_arithmetic_long_consumers": 2,
+  "tier1_compare_conversion_long_boundary_values_by_width": {
+    "decimal32": 1144,
+    "decimal64": 804,
+    "decimal128": 7722
+  },
+  "tier1_compare_conversion_long_semantic_values_by_width": {
+    "decimal32": 42,
+    "decimal64": 70,
+    "decimal128": 87
+  },
+  "tier1_compare_conversion_long_quiet_predicates": 6,
+  "tier1_compare_conversion_long_minmax_operations": 2,
+  "tier1_compare_conversion_long_comparison_structured_by_width": {
+    "decimal32": 220800,
+    "decimal64": 155520,
+    "decimal128": 1483776
+  },
+  "tier1_compare_conversion_long_comparison_random_by_width": {
+    "decimal32": 8388608,
+    "decimal64": 8388608,
+    "decimal128": 4194304
+  },
+  "tier1_compare_conversion_long_comparison_total_by_width": {
+    "decimal32": 8609408,
+    "decimal64": 8544128,
+    "decimal128": 5678080
+  },
+  "tier1_compare_conversion_long_to_integer_operations": 80,
+  "tier1_compare_conversion_long_to_integer_total_by_width": {
+    "decimal32": 357024,
+    "decimal64": 332064,
+    "decimal128": 755792
+  },
+  "tier1_compare_conversion_long_width_operations_by_source": {
+    "decimal32": 2,
+    "decimal64": 6,
+    "decimal128": 10
+  },
+  "tier1_compare_conversion_long_width_total_by_source": {
+    "decimal32": 264516,
+    "decimal64": 267388,
+    "decimal128": 209162
+  },
+  "tier1_compare_conversion_long_constructor_operations": 36,
+  "tier1_compare_conversion_long_constructor_total": 1049181,
+  "tier1_compare_conversion_long_constructor_convenience_checks": 57,
+  "tier1_compare_conversion_long_conversion_structured": 875831,
+  "tier1_compare_conversion_long_conversion_random": 2359296,
+  "tier1_compare_conversion_long_conversion_total": 3235127,
+  "tier1_compare_conversion_long_consumers": 2,
+  "dectest_suite_cases": {
+    "Decimal32": 909,
+    "Decimal64": 12074,
+    "Decimal128": 12313,
+    "General": 7490
+  },
+  "goport_dectest_executed_cases": {
+    "Decimal32": 788,
+    "Decimal64": 5297,
+    "Decimal128": 5308
+  },
+  "goport_dectest_skipped_cases": {
+    "Decimal32": 121,
+    "Decimal64": 6777,
+    "Decimal128": 7005
+  },
+  "goport_dectest_flag_exempt_cases": {
+    "Decimal32": 2,
+    "Decimal64": 2,
+    "Decimal128": 2
+  },
+  "rust_dectest_executed_cases": {
+    "Decimal32": 788,
+    "Decimal64": 5297,
+    "Decimal128": 5308
+  },
+  "rust_dectest_skipped_cases": {
+    "Decimal32": 121,
+    "Decimal64": 6777,
+    "Decimal128": 7005
+  },
+  "rust_dectest_flag_exempt_cases": {
+    "Decimal32": 2,
+    "Decimal64": 2,
+    "Decimal128": 2
+  },
+  "readtest_profile_functions_total": 680,
+  "readtest_profile_functions_selected": 518,
+  "goport_readtest_dispatched_functions": 510,
+  "rust_readtest_dispatched_functions": 521,
+  "rust_readtest_suite_passes": {
+    "decimal64": 20246,
+    "decimal32": 20875,
+    "status-control": 137,
+    "decimal128": 43409
+  },
+  "bid_codec_vectors_total": 23545,
+  "bid_codec_vectors_by_width": {
+    "bid32": 5019,
+    "bid64": 5804,
+    "bid128": 12722
+  },
+  "bid_codec_canonical_vectors_by_width": {
+    "bid32": 4464,
+    "bid64": 4583,
+    "bid128": 6047
+  },
+  "bid_codec_reject_vectors_total": 98,
+  "bid_codec_reject_vectors_channels": {
+    "from_string": 33,
+    "encode": 48,
+    "to_string": 17
+  },
+  "bid_codec_reject_vectors_requires": {
+    "bignum_coefficient": 1,
+    "negative_coefficient": 2,
+    "negative_payload": 2
+  },
+  "bid_codec_reject_vectors_consumed_by_language": {
+    "go": 98,
+    "rust": 93,
+    "rust_full": 93,
+    "java": 98,
+    "python": 98,
+    "js": 98,
+    "swift": 93
+  },
+  "bid_codec_string_vectors_total": 20,
+  "bid_codec_string_vectors_consumed_by_language": {
+    "go": 20,
+    "rust": 20,
+    "rust_full": 20,
+    "java": 20,
+    "python": 20,
+    "js": 20,
+    "swift": 20
+  },
+  "bid_codec_decimal32_exhaustive_raw_patterns": 4294967296,
+  "bid_codec_decimal32_exhaustive_raw_classes": {
+    "normal": 3839999616,
+    "zero": 186532224,
+    "infinity": 134217728,
+    "qnan": 67108864,
+    "snan": 67108864,
+    "canonical": 3844000002,
+    "noncanonical": 450967294
+  },
+  "bid_codec_decimal32_structured_cases": 24006528,
+  "bid_codec_decimal32_structured_classes": {
+    "normal": 20006142,
+    "zero": 384,
+    "infinity": 2,
+    "qnan": 2000000,
+    "snan": 2000000
+  },
+  "bid_codec_decimal64_128_differential_cases_per_width": 67108864,
+  "bid_codec_decimal64_128_differential_classes": {
+    "decimal64": {
+      "negative": 33556442,
+      "normal": 55877944,
+      "zero": 7034254,
+      "infinity": 2098147,
+      "qnan": 1049431,
+      "snan": 1049088,
+      "canonical": 55892439,
+      "noncanonical": 11216425
+    },
+    "decimal128": {
+      "negative": 33553892,
+      "normal": 48465410,
+      "zero": 14446956,
+      "infinity": 2098330,
+      "qnan": 1049521,
+      "snan": 1048647,
+      "canonical": 48466166,
+      "noncanonical": 18642698
+    }
+  },
+  "bid_codec_decimal64_128_boundary_raw_cases": {
+    "decimal64": 804,
+    "decimal128": 7722
+  },
+  "bid_codec_decimal64_128_structured_cases": {
+    "decimal64": 81598,
+    "decimal128": 2703790
+  },
+  "bid_codec_decimal64_128_structured_classes": {
+    "decimal64": {
+      "negative": 40799,
+      "normal": 79872,
+      "zero": 1536,
+      "infinity": 2,
+      "qnan": 94,
+      "snan": 94,
+      "canonical": 81598,
+      "noncanonical": 0
+    },
+    "decimal128": {
+      "negative": 1351895,
+      "normal": 2678784,
+      "zero": 24576,
+      "infinity": 2,
+      "qnan": 214,
+      "snan": 214,
+      "canonical": 2703790,
+      "noncanonical": 0
+    }
+  },
+  "public_api_symbols_total": 384,
+  "public_api_parity_wrappers": 337,
+  "public_api_parity_excluded": 47,
+  "public_api_parity_cases_total": 23695,
+  "rust_public_api_parity_wrappers": 337,
+  "rust_public_api_direct_routing_wrappers": 319,
+  "rust_public_api_delegated_routing_wrappers": 18,
+  "rust_public_api_parity_cases_total": 23431,
+  "rust_public_api_constants_total": 12,
+  "rust_public_api_parity_cases_by_shape": {
+    "binary": 288,
+    "binary_drop_flags": 72,
+    "binary_flags_no_round": 432,
+    "binary_mode_flags": 2100,
+    "binary_with_flags": 360,
+    "class": 72,
+    "compare_bool_flags": 1440,
+    "context_binary_with_flags": 360,
+    "copy_fold": 72,
+    "copysign": 72,
+    "display": 57,
+    "fma": 42,
+    "from_i32_exact": 42,
+    "from_i32_mode": 105,
+    "from_i64_exact": 17,
+    "from_i64_mode": 170,
+    "from_i32_exact_or_error": 21,
+    "from_i64_exact_or_error": 34,
+    "from_u32_exact": 34,
+    "from_u32_mode": 85,
+    "from_u64_exact": 12,
+    "from_u64_mode": 120,
+    "next_toward": 360,
+    "parse": 147,
+    "parse_fold": 147,
+    "parse_raw": 147,
+    "parse_mode": 795,
+    "parse_with_flags": 147,
+    "predicate": 648,
+    "radix_const": 3,
+    "same_quantum": 72,
+    "scaleb": 936,
+    "scaleb_mode": 4740,
+    "sign": 72,
+    "signaling_eq_compose": 72,
+    "signaling_not_eq_compose": 72,
+    "ternary_mode_flags": 270,
+    "to_binary128": 360,
+    "to_binary32": 360,
+    "to_binary64": 360,
+    "to_decimal128": 48,
+    "to_decimal32": 240,
+    "to_decimal64": 24,
+    "to_decimal64_mode": 120,
+    "to_i16": 360,
+    "to_i16_exact": 360,
+    "to_i32": 360,
+    "to_i32_exact": 360,
+    "to_i64": 360,
+    "to_i64_exact": 360,
+    "to_i8": 360,
+    "to_i8_exact": 360,
+    "to_u16": 360,
+    "to_u16_exact": 360,
+    "to_u32": 360,
+    "to_u32_exact": 360,
+    "to_u64": 360,
+    "to_u64_exact": 360,
+    "to_u8": 360,
+    "to_u8_exact": 360,
+    "total_cmp": 72,
+    "total_cmp_mag": 72,
+    "unary": 144,
+    "unary_mode_flags": 420,
+    "unary_mode_drop_flags": 72,
+    "unary_with_flags_default_round": 144,
+    "unary_with_flags_no_round": 600
+  },
+  "verification_artifact_sha256": {
+    "testspec_tree": "e99cbd12e6dcba4f62b4a2334e52b53540a25c1c479f4188b028ff4f1d57e797",
+    "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
+    "bidcodec_harnesses": "690b6b40106da6d26be43794e58c3ab287c79c9cf2ba13418ef1491ccd2fbc3d",
+    "goport_verification_runners": "fae36211b88b079483b89d3793a20725a5453f9c3c2a42a6f1e5254c699253a6",
+    "dectest_executor": "b731b95adf9c7e5e9a386fb4f0e5f5e650d857e67996609d086c65d3a0721509",
+    "spec_loader": "70ee64e2cd159fe5e245415f0d8009789ca1e7254f4f020f730ed551c89dffd9",
+    "rust_readtest_runner": "cbb69d5fad63a20527ac1f3f2f51317ae6c98bac2305fa20f10376e48980e37a",
+    "rust_public_parity_runner": "2c29d58bc4d6c982ed228171da10c8ee828e48e7867f94ec58ea90027d11c156",
+    "rust_dectest_runner": "1250594b0576b54d5deba8f30ffa23143fe18ddced9cf4f7704cce5a6f89c3ae",
+    "rust_tier1_long_runners": "1c88d9391601871a1418e0eb55e77105401b43b9cd269e3faeceb73f591422ca"
+  }
+}

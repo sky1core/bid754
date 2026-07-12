@@ -1,0 +1,57 @@
+//go:build !bid754_native || !cgo
+
+package bid754
+
+import "fmt"
+
+func executeDecTestOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	switch normalizeDecTestOperation(tc.Operation) {
+	case "compare", "comparesig":
+		return executePortableCompareOperation(tc)
+	case "quantize":
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+
+	result, err := executeOperationV2(tc.Operation, tc.Operands[0], tc.Operands[1], tc.Precision)
+	if err != nil {
+		return decTestExecResult{}, err
+	}
+	return decTestExecResult{Result: result}, nil
+}
+
+func executeDecTestReadOperation(tc decTestCase, testType string) (decTestExecResult, error) {
+	if len(tc.Operands) != 1 {
+		return decTestExecResult{}, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+	}
+
+	switch normalizeDecTestOperation(tc.Operation) {
+	case "tointegral", "tointegralx":
+		return executePortableToIntegralOperation(tc)
+	}
+
+	// decTest operands may be quoted ('NaN'); the public constructors do not
+	// accept quoting, so strip it here.
+	operand := decTestOperandString(tc.Operands[0])
+	rndMode, err := decTestCaseRoundingMode(tc)
+	if err != nil {
+		return decTestExecResult{}, err
+	}
+
+	switch testType {
+	case "decimal32":
+		d, flags := parseDecTestDecimal32Operand(operand, rndMode)
+		return decTestExecResult{Result: d.String(), Flags: flags}, nil
+	case "decimal64":
+		d, flags := parseDecTestDecimal64Operand(operand, rndMode)
+		return decTestExecResult{Result: d.String(), Flags: flags}, nil
+	case "decimal128":
+		d, flags := parseDecTestDecimal128Operand(operand, rndMode)
+		return decTestExecResult{Result: d.String(), Flags: flags}, nil
+	default:
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func supportsDecTestFlagVerification() bool {
+	return false
+}

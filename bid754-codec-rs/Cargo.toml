@@ -1,0 +1,26 @@
+[package]
+name = "bid754-codec"
+version = "0.2.0"
+edition = "2021"
+description = "BID (Binary Integer Decimal) IEEE 754 codec for decimal floating-point interchange"
+readme = "README.md"
+homepage = "https://github.com/sky1core/bid754"
+repository = "https://github.com/sky1core/bid754"
+documentation = "https://docs.rs/bid754-codec"
+license = "MIT"
+keywords = ["ieee-754", "decimal", "bid", "codec", "floating-point"]
+categories = ["encoding", "no-std", "mathematics"]
+# The integration tests read the repo-level fixture
+# (../bid754-codec-vectors/vectors.json), so they are excluded from the
+# published package; they still run from a repo checkout.
+exclude = ["tests/"]
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+
+[dev-dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"

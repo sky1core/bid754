@@ -1,0 +1,100 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts
+/.build/
+/devtools/third_party/*/lib/*.a
+/devtools/third_party/*/lib/*.so
+/devtools/third_party/*/lib/*.dylib
+
+# Inactive cexport local build outputs
+/bid754-go/internal/bidgo/cexport/cexport
+/bid754-go/internal/bidgo/cexport/libbidgo.a
+/bid754-go/internal/bidgo/cexport/libbidgo.h
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Test data
+/devtools/testdata/temp/
+/devtools/testdata/output/
+
+# Backup files
+*.bak
+*.backup
+
+# Local configuration
+.env
+.env.sh
+.env.local
+
+# Third-party source files (should be downloaded, not committed)
+/devtools/third_party/intel_dfp/*
+!/devtools/third_party/intel_dfp/.gitkeep
+!/devtools/third_party/intel_dfp/README.md
+!/devtools/third_party/intel_dfp/download.sh
+
+# IBM decNumber source files (if added later)
+/devtools/third_party/ibm_decnumber/*
+!/devtools/third_party/ibm_decnumber/.gitkeep
+!/devtools/third_party/ibm_decnumber/README.md
+
+# Intel DFP build artifacts
+devtools/third_party/intel_dfp/*.o
+
+# Memory profiling files
+*.prof
+mem.prof
+coverage.out
+coverage.html
+
+# Test results and debug files
+/test_results/
+/debug/
+
+# IBM decTest suite (if downloaded)
+/devtools/tests/*
+!/devtools/tests/
+!/devtools/tests/.gitkeep
+!/devtools/tests/README.md
+
+# Local tool build outputs
+/bid754-go/platformdigest
+/devtools/codegen
+
+# native library output dirs (never published)
+/lib/

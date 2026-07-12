@@ -1,0 +1,2601 @@
+{
+  "version": "1.0",
+  "source": "generated/testspec/spec_index.json + generated/json/intel_dfp_symbols.json + bid754-go/internal/bidgo",
+  "dispatched": 510,
+  "excluded_status_control": 8,
+  "functions": [
+    {
+      "function": "bid128_abs",
+      "go_function": "Bid128Abs",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_add",
+      "go_function": "Bid128Add",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_class",
+      "go_function": "Bid128Class",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_copy",
+      "go_function": "Bid128Copy",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_copySign",
+      "go_function": "Bid128CopySign",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_div",
+      "go_function": "Bid128Div",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_fdim",
+      "go_function": "Bid128Fdim",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_fma",
+      "go_function": "Bid128Fma",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_fmod",
+      "go_function": "Bid128Fmod",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_frexp",
+      "go_function": "Bid128Frexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_int32",
+      "go_function": "Bid128FromInt32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_int64",
+      "go_function": "Bid128FromInt64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_string",
+      "go_function": "Bid128FromString",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_uint32",
+      "go_function": "Bid128FromUint32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_from_uint64",
+      "go_function": "Bid128FromUint64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_ilogb",
+      "go_function": "Bid128Ilogb",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_inf",
+      "go_function": "Bid128Inf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isCanonical",
+      "go_function": "Bid128IsCanonical",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isFinite",
+      "go_function": "Bid128IsFinite",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isInf",
+      "go_function": "Bid128IsInf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isNaN",
+      "go_function": "Bid128IsNaN",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isNormal",
+      "go_function": "Bid128IsNormal",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isSignaling",
+      "go_function": "Bid128IsSignaling",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isSigned",
+      "go_function": "Bid128IsSigned",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isSubnormal",
+      "go_function": "Bid128IsSubnormal",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_isZero",
+      "go_function": "Bid128IsZero",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_ldexp",
+      "go_function": "Bid128Ldexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_llquantexp",
+      "go_function": "Bid128Llquantexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_llrint",
+      "go_function": "Bid128Llrint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_llround",
+      "go_function": "Bid128Llround",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_logb",
+      "go_function": "Bid128Logb",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_lrint",
+      "go_function": "Bid128Lrint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_lround",
+      "go_function": "Bid128Lround",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_maxnum",
+      "go_function": "Bid128Maxnum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_maxnum_mag",
+      "go_function": "Bid128MaxnumMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_minnum",
+      "go_function": "Bid128Minnum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_minnum_mag",
+      "go_function": "Bid128MinnumMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_modf",
+      "go_function": "Bid128Modf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_mul",
+      "go_function": "Bid128Mul",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nan",
+      "go_function": "Bid128NaN",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nearbyint",
+      "go_function": "Bid128Nearbyint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_negate",
+      "go_function": "Bid128Negate",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nextafter",
+      "go_function": "Bid128NextAfter",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nextdown",
+      "go_function": "Bid128NextDown",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nexttoward",
+      "go_function": "Bid128NextToward",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_nextup",
+      "go_function": "Bid128NextUp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quantexp",
+      "go_function": "Bid128Quantexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quantize",
+      "go_function": "Bid128Quantize",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quantum",
+      "go_function": "Bid128Quantum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_equal",
+      "go_function": "Bid128QuietEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_greater",
+      "go_function": "Bid128QuietGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_greater_equal",
+      "go_function": "Bid128QuietGreaterEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_greater_unordered",
+      "go_function": "Bid128QuietGreaterUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_less",
+      "go_function": "Bid128QuietLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_less_equal",
+      "go_function": "Bid128QuietLessEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_less_unordered",
+      "go_function": "Bid128QuietLessUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_not_equal",
+      "go_function": "Bid128QuietNotEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_not_greater",
+      "go_function": "Bid128QuietNotGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_not_less",
+      "go_function": "Bid128QuietNotLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_ordered",
+      "go_function": "Bid128QuietOrdered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_quiet_unordered",
+      "go_function": "Bid128QuietUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_radix",
+      "go_function": "Bid128Radix",
+      "status": "dispatched",
+      "reason": "operand 0 dropped: Bid128Radix takes no operand; the Intel C parameter is an unused dummy input"
+    },
+    {
+      "function": "bid128_rem",
+      "go_function": "Bid128Rem",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_exact",
+      "go_function": "Bid128RoundIntegralExact",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_nearest_away",
+      "go_function": "Bid128RoundIntegralNearestAway",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_nearest_even",
+      "go_function": "Bid128RoundIntegralNearestEven",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_negative",
+      "go_function": "Bid128RoundIntegralNegative",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_positive",
+      "go_function": "Bid128RoundIntegralPositive",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_round_integral_zero",
+      "go_function": "Bid128RoundIntegralZero",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_sameQuantum",
+      "go_function": "Bid128SameQuantum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_scalbln",
+      "go_function": "Bid128Scalbln",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_scalbn",
+      "go_function": "Bid128Scalbn",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_greater",
+      "go_function": "Bid128SignalingGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_greater_equal",
+      "go_function": "Bid128SignalingGreaterEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_greater_unordered",
+      "go_function": "Bid128SignalingGreaterUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_less",
+      "go_function": "Bid128SignalingLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_less_equal",
+      "go_function": "Bid128SignalingLessEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_less_unordered",
+      "go_function": "Bid128SignalingLessUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_not_greater",
+      "go_function": "Bid128SignalingNotGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_signaling_not_less",
+      "go_function": "Bid128SignalingNotLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_sqrt",
+      "go_function": "Bid128Sqrt",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_sub",
+      "go_function": "Bid128Sub",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_bid32",
+      "go_function": "Bid128ToBid32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_bid64",
+      "go_function": "Bid128ToBid64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_binary128",
+      "go_function": "Bid128ToBinary128",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_binary32",
+      "go_function": "Bid128ToBinary32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_binary64",
+      "go_function": "Bid128ToBinary64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_ceil",
+      "go_function": "Bid128ToInt16Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_floor",
+      "go_function": "Bid128ToInt16Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_int",
+      "go_function": "Bid128ToInt16Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_rnint",
+      "go_function": "Bid128ToInt16Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_rninta",
+      "go_function": "Bid128ToInt16Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xceil",
+      "go_function": "Bid128ToInt16Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xfloor",
+      "go_function": "Bid128ToInt16Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xint",
+      "go_function": "Bid128ToInt16Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xrnint",
+      "go_function": "Bid128ToInt16Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int16_xrninta",
+      "go_function": "Bid128ToInt16Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_ceil",
+      "go_function": "Bid128ToInt32Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_floor",
+      "go_function": "Bid128ToInt32Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_int",
+      "go_function": "Bid128ToInt32Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_rnint",
+      "go_function": "Bid128ToInt32Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_rninta",
+      "go_function": "Bid128ToInt32Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xceil",
+      "go_function": "Bid128ToInt32Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xfloor",
+      "go_function": "Bid128ToInt32Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xint",
+      "go_function": "Bid128ToInt32Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xrnint",
+      "go_function": "Bid128ToInt32Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int32_xrninta",
+      "go_function": "Bid128ToInt32Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_ceil",
+      "go_function": "Bid128ToInt64Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_floor",
+      "go_function": "Bid128ToInt64Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_int",
+      "go_function": "Bid128ToInt64Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_rnint",
+      "go_function": "Bid128ToInt64Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_rninta",
+      "go_function": "Bid128ToInt64Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xceil",
+      "go_function": "Bid128ToInt64Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xfloor",
+      "go_function": "Bid128ToInt64Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xint",
+      "go_function": "Bid128ToInt64Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xrnint",
+      "go_function": "Bid128ToInt64Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int64_xrninta",
+      "go_function": "Bid128ToInt64Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_ceil",
+      "go_function": "Bid128ToInt8Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_floor",
+      "go_function": "Bid128ToInt8Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_int",
+      "go_function": "Bid128ToInt8Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_rnint",
+      "go_function": "Bid128ToInt8Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_rninta",
+      "go_function": "Bid128ToInt8Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xceil",
+      "go_function": "Bid128ToInt8Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xfloor",
+      "go_function": "Bid128ToInt8Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xint",
+      "go_function": "Bid128ToInt8Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xrnint",
+      "go_function": "Bid128ToInt8Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_int8_xrninta",
+      "go_function": "Bid128ToInt8Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_string",
+      "go_function": "Bid128ToString",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_ceil",
+      "go_function": "Bid128ToUint16Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_floor",
+      "go_function": "Bid128ToUint16Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_int",
+      "go_function": "Bid128ToUint16Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_rnint",
+      "go_function": "Bid128ToUint16Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_rninta",
+      "go_function": "Bid128ToUint16Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xceil",
+      "go_function": "Bid128ToUint16Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xfloor",
+      "go_function": "Bid128ToUint16Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xint",
+      "go_function": "Bid128ToUint16Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xrnint",
+      "go_function": "Bid128ToUint16Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint16_xrninta",
+      "go_function": "Bid128ToUint16Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_ceil",
+      "go_function": "Bid128ToUint32Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_floor",
+      "go_function": "Bid128ToUint32Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_int",
+      "go_function": "Bid128ToUint32Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_rnint",
+      "go_function": "Bid128ToUint32Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_rninta",
+      "go_function": "Bid128ToUint32Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xceil",
+      "go_function": "Bid128ToUint32Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xfloor",
+      "go_function": "Bid128ToUint32Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xint",
+      "go_function": "Bid128ToUint32Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xrnint",
+      "go_function": "Bid128ToUint32Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint32_xrninta",
+      "go_function": "Bid128ToUint32Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_ceil",
+      "go_function": "Bid128ToUint64Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_floor",
+      "go_function": "Bid128ToUint64Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_int",
+      "go_function": "Bid128ToUint64Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_rnint",
+      "go_function": "Bid128ToUint64Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_rninta",
+      "go_function": "Bid128ToUint64Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xceil",
+      "go_function": "Bid128ToUint64Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xfloor",
+      "go_function": "Bid128ToUint64Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xint",
+      "go_function": "Bid128ToUint64Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xrnint",
+      "go_function": "Bid128ToUint64Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint64_xrninta",
+      "go_function": "Bid128ToUint64Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_ceil",
+      "go_function": "Bid128ToUint8Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_floor",
+      "go_function": "Bid128ToUint8Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_int",
+      "go_function": "Bid128ToUint8Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_rnint",
+      "go_function": "Bid128ToUint8Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_rninta",
+      "go_function": "Bid128ToUint8Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xceil",
+      "go_function": "Bid128ToUint8Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xfloor",
+      "go_function": "Bid128ToUint8Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xint",
+      "go_function": "Bid128ToUint8Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xrnint",
+      "go_function": "Bid128ToUint8Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_to_uint8_xrninta",
+      "go_function": "Bid128ToUint8Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_totalOrder",
+      "go_function": "Bid128TotalOrder",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128_totalOrderMag",
+      "go_function": "Bid128TotalOrderMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_abs",
+      "go_function": "Bid32Abs",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_add",
+      "go_function": "Bid32AddWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_class",
+      "go_function": "Bid32Class",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_copy",
+      "go_function": "Bid32Copy",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_copySign",
+      "go_function": "Bid32CopySign",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_div",
+      "go_function": "Bid32DivWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_fdim",
+      "go_function": "Bid32Fdim",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_fma",
+      "go_function": "Bid32Fma",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_fmod",
+      "go_function": "Bid32Fmod",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_frexp",
+      "go_function": "Bid32Frexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_int32",
+      "go_function": "Bid32FromInt32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_int64",
+      "go_function": "Bid32FromInt64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_string",
+      "go_function": "Bid32FromStringRaw",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_uint32",
+      "go_function": "Bid32FromUint32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_from_uint64",
+      "go_function": "Bid32FromUint64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_ilogb",
+      "go_function": "Bid32ILogb",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_inf",
+      "go_function": "Bid32Inf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isCanonical",
+      "go_function": "Bid32IsCanonical",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isFinite",
+      "go_function": "Bid32IsFinite",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isInf",
+      "go_function": "Bid32IsInf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isNaN",
+      "go_function": "Bid32IsNaN",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isNormal",
+      "go_function": "Bid32IsNormal",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isSignaling",
+      "go_function": "Bid32IsSignaling",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isSigned",
+      "go_function": "Bid32IsSigned",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isSubnormal",
+      "go_function": "Bid32IsSubnormal",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_isZero",
+      "go_function": "Bid32IsZero",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_ldexp",
+      "go_function": "Bid32LdexpWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_llquantexp",
+      "go_function": "Bid32LLQuantexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_llrint",
+      "go_function": "Bid32Llrint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_llround",
+      "go_function": "Bid32Llround",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_logb",
+      "go_function": "Bid32Logb",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_lrint",
+      "go_function": "Bid32Lrint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_lround",
+      "go_function": "Bid32Lround",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_maxnum",
+      "go_function": "Bid32MaxNumWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_maxnum_mag",
+      "go_function": "Bid32MaxNumMagWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_minnum",
+      "go_function": "Bid32MinNumWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_minnum_mag",
+      "go_function": "Bid32MinNumMagWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_modf",
+      "go_function": "Bid32Modf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_mul",
+      "go_function": "Bid32MulWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nan",
+      "go_function": "Bid32NaN",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nearbyint",
+      "go_function": "Bid32NearbyInt",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_negate",
+      "go_function": "Bid32Negate",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nextafter",
+      "go_function": "Bid32NextAfter",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nextdown",
+      "go_function": "Bid32NextDown",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nexttoward",
+      "go_function": "Bid32NextToward",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_nextup",
+      "go_function": "Bid32NextUp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quantexp",
+      "go_function": "Bid32Quantexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quantize",
+      "go_function": "Bid32Quantize",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quantum",
+      "go_function": "Bid32Quantum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_equal",
+      "go_function": "Bid32QuietEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_greater",
+      "go_function": "Bid32QuietGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_greater_equal",
+      "go_function": "Bid32QuietGreaterEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_greater_unordered",
+      "go_function": "Bid32QuietGreaterUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_less",
+      "go_function": "Bid32QuietLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_less_equal",
+      "go_function": "Bid32QuietLessEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_less_unordered",
+      "go_function": "Bid32QuietLessUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_not_equal",
+      "go_function": "Bid32QuietNotEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_not_greater",
+      "go_function": "Bid32QuietNotGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_not_less",
+      "go_function": "Bid32QuietNotLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_ordered",
+      "go_function": "Bid32QuietOrdered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_quiet_unordered",
+      "go_function": "Bid32QuietUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_radix",
+      "go_function": "Bid32Radix",
+      "status": "dispatched",
+      "reason": "operand 0 dropped: Bid32Radix takes no operand; the Intel C parameter is an unused dummy input"
+    },
+    {
+      "function": "bid32_rem",
+      "go_function": "Bid32Rem",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_exact",
+      "go_function": "Bid32RoundIntegralExact",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_nearest_away",
+      "go_function": "Bid32RoundIntegralNearestAway",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_nearest_even",
+      "go_function": "Bid32RoundIntegralNearestEven",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_negative",
+      "go_function": "Bid32RoundIntegralNegative",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_positive",
+      "go_function": "Bid32RoundIntegralPositive",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_round_integral_zero",
+      "go_function": "Bid32RoundIntegralZero",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_sameQuantum",
+      "go_function": "Bid32SameQuantum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_scalbln",
+      "go_function": "Bid32ScalblnWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_scalbn",
+      "go_function": "Bid32ScalbnWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_greater",
+      "go_function": "Bid32SignalingGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_greater_equal",
+      "go_function": "Bid32SignalingGreaterEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_greater_unordered",
+      "go_function": "Bid32SignalingGreaterUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_less",
+      "go_function": "Bid32SignalingLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_less_equal",
+      "go_function": "Bid32SignalingLessEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_less_unordered",
+      "go_function": "Bid32SignalingLessUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_not_greater",
+      "go_function": "Bid32SignalingNotGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_signaling_not_less",
+      "go_function": "Bid32SignalingNotLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_sqrt",
+      "go_function": "Bid32Sqrt",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_sub",
+      "go_function": "Bid32SubWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_bid128",
+      "go_function": "Bid32ToBid128",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_bid64",
+      "go_function": "Bid32ToBid64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_binary128",
+      "go_function": "Bid32ToBinary128",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_binary32",
+      "go_function": "Bid32ToBinary32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_binary64",
+      "go_function": "Bid32ToBinary64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_ceil",
+      "go_function": "Bid32ToInt16Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_floor",
+      "go_function": "Bid32ToInt16Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_int",
+      "go_function": "Bid32ToInt16Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_rnint",
+      "go_function": "Bid32ToInt16Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_rninta",
+      "go_function": "Bid32ToInt16Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xceil",
+      "go_function": "Bid32ToInt16Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xfloor",
+      "go_function": "Bid32ToInt16Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xint",
+      "go_function": "Bid32ToInt16Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xrnint",
+      "go_function": "Bid32ToInt16Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int16_xrninta",
+      "go_function": "Bid32ToInt16Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_ceil",
+      "go_function": "Bid32ToInt32Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_floor",
+      "go_function": "Bid32ToInt32Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_int",
+      "go_function": "Bid32ToInt32Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_rnint",
+      "go_function": "Bid32ToInt32Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_rninta",
+      "go_function": "Bid32ToInt32Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xceil",
+      "go_function": "Bid32ToInt32Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xfloor",
+      "go_function": "Bid32ToInt32Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xint",
+      "go_function": "Bid32ToInt32Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xrnint",
+      "go_function": "Bid32ToInt32Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int32_xrninta",
+      "go_function": "Bid32ToInt32Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_ceil",
+      "go_function": "Bid32ToInt64Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_floor",
+      "go_function": "Bid32ToInt64Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_int",
+      "go_function": "Bid32ToInt64Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_rnint",
+      "go_function": "Bid32ToInt64Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_rninta",
+      "go_function": "Bid32ToInt64Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xceil",
+      "go_function": "Bid32ToInt64Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xfloor",
+      "go_function": "Bid32ToInt64Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xint",
+      "go_function": "Bid32ToInt64Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xrnint",
+      "go_function": "Bid32ToInt64Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int64_xrninta",
+      "go_function": "Bid32ToInt64Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_ceil",
+      "go_function": "Bid32ToInt8Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_floor",
+      "go_function": "Bid32ToInt8Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_int",
+      "go_function": "Bid32ToInt8Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_rnint",
+      "go_function": "Bid32ToInt8Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_rninta",
+      "go_function": "Bid32ToInt8Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xceil",
+      "go_function": "Bid32ToInt8Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xfloor",
+      "go_function": "Bid32ToInt8Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xint",
+      "go_function": "Bid32ToInt8Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xrnint",
+      "go_function": "Bid32ToInt8Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_int8_xrninta",
+      "go_function": "Bid32ToInt8Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_string",
+      "go_function": "Bid32ToString",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_ceil",
+      "go_function": "Bid32ToUint16Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_floor",
+      "go_function": "Bid32ToUint16Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_int",
+      "go_function": "Bid32ToUint16Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_rnint",
+      "go_function": "Bid32ToUint16Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_rninta",
+      "go_function": "Bid32ToUint16Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xceil",
+      "go_function": "Bid32ToUint16Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xfloor",
+      "go_function": "Bid32ToUint16Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xint",
+      "go_function": "Bid32ToUint16Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xrnint",
+      "go_function": "Bid32ToUint16Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint16_xrninta",
+      "go_function": "Bid32ToUint16Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_ceil",
+      "go_function": "Bid32ToUint32Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_floor",
+      "go_function": "Bid32ToUint32Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_int",
+      "go_function": "Bid32ToUint32Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_rnint",
+      "go_function": "Bid32ToUint32Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_rninta",
+      "go_function": "Bid32ToUint32Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xceil",
+      "go_function": "Bid32ToUint32Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xfloor",
+      "go_function": "Bid32ToUint32Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xint",
+      "go_function": "Bid32ToUint32Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xrnint",
+      "go_function": "Bid32ToUint32Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint32_xrninta",
+      "go_function": "Bid32ToUint32Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_ceil",
+      "go_function": "Bid32ToUint64Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_floor",
+      "go_function": "Bid32ToUint64Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_int",
+      "go_function": "Bid32ToUint64Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_rnint",
+      "go_function": "Bid32ToUint64Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_rninta",
+      "go_function": "Bid32ToUint64Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xceil",
+      "go_function": "Bid32ToUint64Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xfloor",
+      "go_function": "Bid32ToUint64Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xint",
+      "go_function": "Bid32ToUint64Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xrnint",
+      "go_function": "Bid32ToUint64Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint64_xrninta",
+      "go_function": "Bid32ToUint64Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_ceil",
+      "go_function": "Bid32ToUint8Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_floor",
+      "go_function": "Bid32ToUint8Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_int",
+      "go_function": "Bid32ToUint8Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_rnint",
+      "go_function": "Bid32ToUint8Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_rninta",
+      "go_function": "Bid32ToUint8Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xceil",
+      "go_function": "Bid32ToUint8Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xfloor",
+      "go_function": "Bid32ToUint8Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xint",
+      "go_function": "Bid32ToUint8Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xrnint",
+      "go_function": "Bid32ToUint8Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_to_uint8_xrninta",
+      "go_function": "Bid32ToUint8Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_totalOrder",
+      "go_function": "Bid32TotalOrder",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid32_totalOrderMag",
+      "go_function": "Bid32TotalOrderMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_abs",
+      "go_function": "Bid64Abs",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_add",
+      "go_function": "Bid64AddWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_class",
+      "go_function": "Bid64Class",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_copy",
+      "go_function": "Bid64Copy",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_copySign",
+      "go_function": "Bid64CopySign",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_div",
+      "go_function": "Bid64DivWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_fdim",
+      "go_function": "Bid64Fdim",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_fma",
+      "go_function": "Bid64Fma",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_fmod",
+      "go_function": "Bid64Fmod",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_frexp",
+      "go_function": "Bid64Frexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_int32",
+      "go_function": "Bid64FromInt32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_int64",
+      "go_function": "Bid64FromInt64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_string",
+      "go_function": "Bid64FromString",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_uint32",
+      "go_function": "Bid64FromUint32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_from_uint64",
+      "go_function": "Bid64FromUint64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_ilogb",
+      "go_function": "Bid64ILogb",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_inf",
+      "go_function": "Bid64Inf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isCanonical",
+      "go_function": "Bid64IsCanonical",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isFinite",
+      "go_function": "Bid64IsFinite",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isInf",
+      "go_function": "Bid64IsInf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isNaN",
+      "go_function": "Bid64IsNaN",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isNormal",
+      "go_function": "Bid64IsNormal",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isSignaling",
+      "go_function": "Bid64IsSignaling",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isSigned",
+      "go_function": "Bid64IsSigned",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isSubnormal",
+      "go_function": "Bid64IsSubnormal",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_isZero",
+      "go_function": "Bid64IsZero",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_ldexp",
+      "go_function": "Bid64Ldexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_llquantexp",
+      "go_function": "Bid64LLQuantexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_llrint",
+      "go_function": "Bid64Llrint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_llround",
+      "go_function": "Bid64Llround",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_logb",
+      "go_function": "Bid64Logb",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_lrint",
+      "go_function": "Bid64Lrint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_lround",
+      "go_function": "Bid64Lround",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_maxnum",
+      "go_function": "Bid64MaxNum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_maxnum_mag",
+      "go_function": "Bid64MaxNumMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_minnum",
+      "go_function": "Bid64MinNum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_minnum_mag",
+      "go_function": "Bid64MinNumMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_modf",
+      "go_function": "Bid64Modf",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_mul",
+      "go_function": "Bid64MulWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nan",
+      "go_function": "Bid64NaN",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nearbyint",
+      "go_function": "Bid64NearbyInt",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_negate",
+      "go_function": "Bid64Negate",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nextafter",
+      "go_function": "Bid64NextAfter",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nextdown",
+      "go_function": "Bid64NextDown",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nexttoward",
+      "go_function": "Bid64NextToward",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_nextup",
+      "go_function": "Bid64NextUp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quantexp",
+      "go_function": "Bid64Quantexp",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quantize",
+      "go_function": "Bid64Quantize",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quantum",
+      "go_function": "Bid64Quantum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_equal",
+      "go_function": "Bid64QuietEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_greater",
+      "go_function": "Bid64QuietGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_greater_equal",
+      "go_function": "Bid64QuietGreaterEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_greater_unordered",
+      "go_function": "Bid64QuietGreaterUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_less",
+      "go_function": "Bid64QuietLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_less_equal",
+      "go_function": "Bid64QuietLessEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_less_unordered",
+      "go_function": "Bid64QuietLessUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_not_equal",
+      "go_function": "Bid64QuietNotEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_not_greater",
+      "go_function": "Bid64QuietNotGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_not_less",
+      "go_function": "Bid64QuietNotLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_ordered",
+      "go_function": "Bid64QuietOrdered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_quiet_unordered",
+      "go_function": "Bid64QuietUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_radix",
+      "go_function": "Bid64Radix",
+      "status": "dispatched",
+      "reason": "operand 0 dropped: Bid64Radix takes no operand; the Intel C parameter is an unused dummy input"
+    },
+    {
+      "function": "bid64_rem",
+      "go_function": "Bid64Rem",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_exact",
+      "go_function": "Bid64RoundIntegralExact",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_nearest_away",
+      "go_function": "Bid64RoundIntegralNearestAway",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_nearest_even",
+      "go_function": "Bid64RoundIntegralNearestEven",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_negative",
+      "go_function": "Bid64RoundIntegralNegative",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_positive",
+      "go_function": "Bid64RoundIntegralPositive",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_round_integral_zero",
+      "go_function": "Bid64RoundIntegralZero",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_sameQuantum",
+      "go_function": "Bid64SameQuantum",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_scalbln",
+      "go_function": "Bid64Scalbln",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_scalbn",
+      "go_function": "Bid64Scalbn",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_greater",
+      "go_function": "Bid64SignalingGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_greater_equal",
+      "go_function": "Bid64SignalingGreaterEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_greater_unordered",
+      "go_function": "Bid64SignalingGreaterUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_less",
+      "go_function": "Bid64SignalingLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_less_equal",
+      "go_function": "Bid64SignalingLessEqual",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_less_unordered",
+      "go_function": "Bid64SignalingLessUnordered",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_not_greater",
+      "go_function": "Bid64SignalingNotGreater",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_signaling_not_less",
+      "go_function": "Bid64SignalingNotLess",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_sqrt",
+      "go_function": "Bid64Sqrt",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_sub",
+      "go_function": "Bid64SubWithFlags",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_bid128",
+      "go_function": "Bid64ToBid128",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_bid32",
+      "go_function": "Bid64ToBid32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_binary128",
+      "go_function": "Bid64ToBinary128",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_binary32",
+      "go_function": "Bid64ToBinary32",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_binary64",
+      "go_function": "Bid64ToBinary64",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_ceil",
+      "go_function": "Bid64ToInt16Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_floor",
+      "go_function": "Bid64ToInt16Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_int",
+      "go_function": "Bid64ToInt16Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_rnint",
+      "go_function": "Bid64ToInt16Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_rninta",
+      "go_function": "Bid64ToInt16Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xceil",
+      "go_function": "Bid64ToInt16Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xfloor",
+      "go_function": "Bid64ToInt16Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xint",
+      "go_function": "Bid64ToInt16Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xrnint",
+      "go_function": "Bid64ToInt16Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int16_xrninta",
+      "go_function": "Bid64ToInt16Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_ceil",
+      "go_function": "Bid64ToInt32Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_floor",
+      "go_function": "Bid64ToInt32Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_int",
+      "go_function": "Bid64ToInt32Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_rnint",
+      "go_function": "Bid64ToInt32Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_rninta",
+      "go_function": "Bid64ToInt32Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xceil",
+      "go_function": "Bid64ToInt32Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xfloor",
+      "go_function": "Bid64ToInt32Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xint",
+      "go_function": "Bid64ToInt32Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xrnint",
+      "go_function": "Bid64ToInt32Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int32_xrninta",
+      "go_function": "Bid64ToInt32Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_ceil",
+      "go_function": "Bid64ToInt64Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_floor",
+      "go_function": "Bid64ToInt64Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_int",
+      "go_function": "Bid64ToInt64Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_rnint",
+      "go_function": "Bid64ToInt64Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_rninta",
+      "go_function": "Bid64ToInt64Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xceil",
+      "go_function": "Bid64ToInt64Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xfloor",
+      "go_function": "Bid64ToInt64Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xint",
+      "go_function": "Bid64ToInt64Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xrnint",
+      "go_function": "Bid64ToInt64Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int64_xrninta",
+      "go_function": "Bid64ToInt64Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_ceil",
+      "go_function": "Bid64ToInt8Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_floor",
+      "go_function": "Bid64ToInt8Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_int",
+      "go_function": "Bid64ToInt8Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_rnint",
+      "go_function": "Bid64ToInt8Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_rninta",
+      "go_function": "Bid64ToInt8Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xceil",
+      "go_function": "Bid64ToInt8Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xfloor",
+      "go_function": "Bid64ToInt8Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xint",
+      "go_function": "Bid64ToInt8Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xrnint",
+      "go_function": "Bid64ToInt8Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_int8_xrninta",
+      "go_function": "Bid64ToInt8Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_string",
+      "go_function": "Bid64ToString",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_ceil",
+      "go_function": "Bid64ToUint16Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_floor",
+      "go_function": "Bid64ToUint16Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_int",
+      "go_function": "Bid64ToUint16Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_rnint",
+      "go_function": "Bid64ToUint16Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_rninta",
+      "go_function": "Bid64ToUint16Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xceil",
+      "go_function": "Bid64ToUint16Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xfloor",
+      "go_function": "Bid64ToUint16Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xint",
+      "go_function": "Bid64ToUint16Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xrnint",
+      "go_function": "Bid64ToUint16Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint16_xrninta",
+      "go_function": "Bid64ToUint16Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_ceil",
+      "go_function": "Bid64ToUint32Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_floor",
+      "go_function": "Bid64ToUint32Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_int",
+      "go_function": "Bid64ToUint32Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_rnint",
+      "go_function": "Bid64ToUint32Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_rninta",
+      "go_function": "Bid64ToUint32Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xceil",
+      "go_function": "Bid64ToUint32Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xfloor",
+      "go_function": "Bid64ToUint32Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xint",
+      "go_function": "Bid64ToUint32Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xrnint",
+      "go_function": "Bid64ToUint32Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint32_xrninta",
+      "go_function": "Bid64ToUint32Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_ceil",
+      "go_function": "Bid64ToUint64Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_floor",
+      "go_function": "Bid64ToUint64Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_int",
+      "go_function": "Bid64ToUint64Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_rnint",
+      "go_function": "Bid64ToUint64Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_rninta",
+      "go_function": "Bid64ToUint64Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xceil",
+      "go_function": "Bid64ToUint64Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xfloor",
+      "go_function": "Bid64ToUint64Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xint",
+      "go_function": "Bid64ToUint64Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xrnint",
+      "go_function": "Bid64ToUint64Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint64_xrninta",
+      "go_function": "Bid64ToUint64Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_ceil",
+      "go_function": "Bid64ToUint8Ceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_floor",
+      "go_function": "Bid64ToUint8Floor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_int",
+      "go_function": "Bid64ToUint8Int",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_rnint",
+      "go_function": "Bid64ToUint8Rnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_rninta",
+      "go_function": "Bid64ToUint8Rninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xceil",
+      "go_function": "Bid64ToUint8Xceil",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xfloor",
+      "go_function": "Bid64ToUint8Xfloor",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xint",
+      "go_function": "Bid64ToUint8Xint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xrnint",
+      "go_function": "Bid64ToUint8Xrnint",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_to_uint8_xrninta",
+      "go_function": "Bid64ToUint8Xrninta",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_totalOrder",
+      "go_function": "Bid64TotalOrder",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64_totalOrderMag",
+      "go_function": "Bid64TotalOrderMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid_getDecimalRoundingDirection",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    },
+    {
+      "function": "bid_lowerFlags",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    },
+    {
+      "function": "bid_restoreFlags",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    },
+    {
+      "function": "bid_saveFlags",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    },
+    {
+      "function": "bid_setDecimalRoundingDirection",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    },
+    {
+      "function": "bid_signalException",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    },
+    {
+      "function": "bid_testFlags",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    },
+    {
+      "function": "bid_testSavedFlags",
+      "status": "excluded_status_control",
+      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+    }
+  ]
+}

@@ -1,0 +1,1388 @@
+#![allow(dead_code)]
+
+// This file is the support layer for the Rust generated-engine decTest cross-check
+// (bid754-rs/tests/dectest_generated.rs). It is the Rust counterpart of the Go
+// portable mechanical-port decTest leg's dispatch template
+// (devtools/internal/testgen/dectest_templates/dectest_goport_dispatch.go.tmpl):
+// every oracle-dispatched operation here runs through the Rust generated engine
+// (crate::generated::*, reached via bid754::generated::prelude::*, the flat
+// re-export go2rs emits for every generated submodule) rather than a hand-written
+// implementation, so this leg exercises the SAME generated port that
+// `bid754-rs/src/generated` ships against the IBM decTest expected values. It
+// mirrors the Go leg's Phase 2 comparison strength: exact value, exact quantum
+// (cohort member), and IEEE exception-flag parity on the BID five-flag surface.
+//
+// The skip/flag-exemption classification below is a hand-translated runtime
+// mirror of the language-neutral generator-side classifier
+// (devtools/internal/testgen/dectest_skip_reason.go generatedDectestGoportSkipReason
+// / generatedDectestGoportFlagExemptReason), which the Rust generator
+// (dectest_rust_codegen.go) calls directly (via the shared
+// countDectestGoportSuiteCoverage helper already used for the Go leg) to compute
+// the pinned EXPECTED_COVERAGE this file's cases-and-test-fn tail asserts against.
+// Because both legs' expected counts are derived from that one generator-side
+// function, they must always agree; TestRustDectestGoportMatchesGoLeg in
+// devtools/internal/testgen cross-checks the checked-in artifacts to detect
+// against future drift.
+//
+// Operands are parsed through the generated engine's own from_string entrypoint at
+// the case rounding mode (parse_decimalNN_port_mode below), matching decNumber's
+// decimalNNFromString: it rounds the operand to the format precision at the
+// context rounding and maps malformed input to a NaN rather than an error. The one
+// documented exception is NaN-literal payload preservation: pinned Intel BID C's
+// from_string path (which the generated engine mechanically reproduces) recognizes
+// a NaN/sNaN prefix but discards any payload digits, always returning a canonical
+// bare NaN. The Go public routing layer works around this with a NaN-literal
+// pre-parser (bid754-go/types_bid_nan_payload.go parseBIDNaNLiteral) that is NOT
+// part of the Go mechanical port either -- it is public-routing glue outside
+// internal/bidgo. This file carries the same pre-parser, hand-translated to Rust,
+// for the identical reason: it is verification-dispatch glue that stays outside
+// crate::generated, not a change to the generated engine's own from_string
+// semantics.
+//
+// bid754::bid64_from_string_raw is a documented crate-root exception: go2rs
+// resolves the case-insensitive collision between bidgo's unexported
+// `bid64_from_string` and its exported wrapper `Bid64FromString` onto a single
+// Rust identifier `bid64_from_string`, keeping only the crate-private
+// (`pub(crate)`) definition (bid754-rs/src/generated/bid64_from_string.rs). The
+// existing hand-written crate-root shim in bid754-rs/src/lib.rs
+// (`pub fn bid64_from_string_raw`) is the only external-visibility path to that
+// exact generated function; the shim is a one-line delegation into the
+// generated::bid64_from_string module's function of the same name, not an
+// alternate implementation, so calling it here still exercises the generated
+// engine.
+
+use bid754::bid64_from_string_raw;
+use bid754::gen_types::BID_UINT128;
+use bid754::generated::prelude::*;
+use std::fs;
+use std::path::Path;
+
+// ============================================================================
+// decTest case model and file parser (mirrors bid754-go/dectest_driver.go
+// decTestCase / parseDecTestFile / splitDecTestFields).
+// ============================================================================
+
+#[derive(Debug, Clone)]
+pub(crate) struct DecTestCase {
+    pub(crate) id: String,
+    pub(crate) operation: String,
+    pub(crate) operands: Vec<String>,
+    pub(crate) result: String,
+    pub(crate) flags: Vec<String>,
+    pub(crate) rounding_mode: String,
+}
+
+fn split_dec_test_fields(input: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut quote: Option<char> = None;
+    for c in input.chars() {
+        if let Some(q) = quote {
+            current.push(c);
+            if c == q {
+                quote = None;
+            }
+        } else if c == '\'' || c == '"' {
+            current.push(c);
+            quote = Some(c);
+        } else if c == ' ' || c == '\t' {
+            if !current.is_empty() {
+                fields.push(std::mem::take(&mut current));
+            }
+        } else {
+            current.push(c);
+        }
+    }
+    if !current.is_empty() {
+        fields.push(current);
+    }
+    fields
+}
+
+fn scan_dec_test_line(
+    line: &str,
+) -> Result<(usize, Option<usize>, Option<usize>), String> {
+    let bytes = line.as_bytes();
+    let mut quote: Option<u8> = None;
+    let mut arrow = None;
+    let mut directive_colon = None;
+    let mut index = 0;
+
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if let Some(expected) = quote {
+            if byte == expected {
+                quote = None;
+            }
+            index += 1;
+            continue;
+        }
+        if byte == b'\'' || byte == b'"' {
+            quote = Some(byte);
+            index += 1;
+            continue;
+        }
+        if byte == b':' && directive_colon.is_none() {
+            directive_colon = Some(index);
+            index += 1;
+            continue;
+        }
+        if byte == b'-' && index + 1 < bytes.len() {
+            match bytes[index + 1] {
+                b'-' => return Ok((index, arrow, directive_colon)),
+                b'>' => {
+                    if arrow.is_some() {
+                        return Err("multiple -> separators".to_string());
+                    }
+                    arrow = Some(index);
+                    index += 2;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        index += 1;
+    }
+
+    if quote.is_some() {
+        return Err("unterminated quoted field".to_string());
+    }
+    Ok((line.len(), arrow, directive_colon))
+}
+
+fn parse_dec_test_directive_int(directive: &str, value: &str) -> Result<i64, String> {
+    value
+        .parse::<i64>()
+        .map_err(|_| format!("invalid {directive} value {value:?}"))
+}
+
+fn normalize_dec_test_rounding(value: &str) -> Result<String, String> {
+    let value = value.trim().to_lowercase();
+    match value.as_str() {
+        "05up" | "ceiling" | "down" | "floor" | "half_down" | "half_even" | "half_up"
+        | "up" => Ok(value),
+        _ => Err(format!("invalid rounding value {value:?}")),
+    }
+}
+
+fn parse_dec_test_content(path: &Path, content: &str) -> Vec<DecTestCase> {
+    let mut cases = Vec::new();
+    let mut rounding = "half_even".to_string();
+
+    for (line_index, raw_line) in content.lines().enumerate() {
+        let line_number = line_index + 1;
+        let line = raw_line.trim();
+        if line.is_empty() || line.starts_with("--") {
+            continue;
+        }
+
+        let (content_end, arrow, directive_colon) = scan_dec_test_line(line).unwrap_or_else(|err| {
+            panic!(
+                "parse decTest input {} line {}: {}",
+                path.display(),
+                line_number,
+                err
+            )
+        });
+        if matches!((directive_colon, arrow), (Some(colon), Some(arrow)) if colon < arrow) {
+            panic!(
+                "parse decTest input {} line {}: directive must not contain a -> separator",
+                path.display(),
+                line_number
+            );
+        }
+
+        if let Some(arrow) = arrow {
+            let left_part = split_dec_test_fields(&line[..arrow]);
+            let right_part = split_dec_test_fields(&line[arrow + 2..content_end]);
+            if left_part.len() < 3 || right_part.is_empty() {
+                panic!(
+                    "parse decTest input {} line {}: case requires an id, operation, at least one operand, and result",
+                    path.display(),
+                    line_number
+                );
+            }
+            let flags = if right_part.len() > 1 {
+                right_part[1..].to_vec()
+            } else {
+                Vec::new()
+            };
+            cases.push(DecTestCase {
+                id: left_part[0].clone(),
+                operation: left_part[1].clone(),
+                operands: left_part[2..].to_vec(),
+                result: right_part[0].clone(),
+                flags,
+                rounding_mode: rounding.clone(),
+            });
+            continue;
+        }
+
+        let directive_line = line[..content_end].trim();
+        if directive_line.is_empty() {
+            continue;
+        }
+        let colon = directive_colon.unwrap_or_else(|| {
+            panic!(
+                "parse decTest input {} line {}: unexpected content {:?}",
+                path.display(),
+                line_number,
+                directive_line
+            )
+        });
+        let directive = directive_line[..colon].trim().to_lowercase();
+        let value = directive_line[colon + 1..].trim();
+        let result = match directive.as_str() {
+            "rounding" => normalize_dec_test_rounding(value).map(|parsed| rounding = parsed),
+            "precision" => parse_dec_test_directive_int(&directive, value).and_then(|parsed| {
+                if parsed > 0 {
+                    Ok(())
+                } else {
+                    Err(format!("precision must be positive, got {parsed}"))
+                }
+            }),
+            "maxexponent" | "minexponent" => {
+                parse_dec_test_directive_int(&directive, value).map(|_| ())
+            }
+            "clamp" | "extended" => {
+                parse_dec_test_directive_int(&directive, value).and_then(|parsed| {
+                    if parsed == 0 || parsed == 1 {
+                        Ok(())
+                    } else {
+                        Err(format!("{directive} must be 0 or 1, got {parsed}"))
+                    }
+                })
+            }
+            "version" | "dectest" => {
+                if value.is_empty() {
+                    Err(format!("{directive} value must not be empty"))
+                } else {
+                    Ok(())
+                }
+            }
+            _ => Err(format!("unknown directive {directive:?}")),
+        };
+        if let Err(err) = result {
+            panic!(
+                "parse decTest input {} line {}: {}",
+                path.display(),
+                line_number,
+                err
+            );
+        }
+    }
+    cases
+}
+
+/// parse_dec_test_file mirrors bid754-go/dectest_driver.go parseDecTestFile
+/// and fails the harness on malformed content or an unreadable input file. The
+/// caller (generated_dectest_suites_go_port) probes every referenced input's
+/// existence up front and SKIPS the whole leg when a pinned
+/// devtools/tests/*.decTest input is absent (a gitignored download not present
+/// in a checkout that has not run 'make setup-generation-inputs'), so the read
+/// panic path is reached only on a genuine read error of a file that does exist
+/// -- an altered file or file-access error, not an unset-up checkout. Absence is
+/// handled as a skip by the caller; a present-but-unreadable or malformed file
+/// still fails here (never absorbed into a skip).
+pub(crate) fn parse_dec_test_file(path: &Path) -> Vec<DecTestCase> {
+    let content = fs::read_to_string(path).unwrap_or_else(|err| {
+        panic!(
+            "read pinned decTest input {}: {} (present-but-unreadable file; absence is skipped by the caller)",
+            path.display(),
+            err
+        )
+    });
+    parse_dec_test_content(path, &content)
+}
+
+#[test]
+fn generated_dectest_parser_keeps_colon_comments_and_quoted_comment_markers() {
+    let cases = parse_dec_test_content(
+        Path::new("inline-comment.decTest"),
+        "precision: 16 -- exact value\nrounding: half_up\ncomment001 add '--1' 0 -> NaN -- note: keep the case; ignore -> here\n",
+    );
+    assert_eq!(cases.len(), 1);
+    assert_eq!(cases[0].id, "comment001");
+    assert_eq!(cases[0].operands, ["'--1'", "0"]);
+    assert_eq!(cases[0].result, "NaN");
+    assert_eq!(cases[0].rounding_mode, "half_up");
+    assert!(cases[0].flags.is_empty());
+}
+
+#[test]
+fn generated_dectest_parser_rejects_malformed_directives_and_cases() {
+    let malformed = [
+        "precision: nope\n",
+        "precision: 5junk\n",
+        "rounding: nearestish\n",
+        "clamp: 2\n",
+        "extended: 2\n",
+        "precision: 16 -> 7\n",
+        "mystery: value\n",
+        "orphan text\n",
+        "bad001 add 1 2 ->\n",
+        "bad002 add 1 2 -> 3 -> 4\n",
+        "bad003 add '1 2 -> 3\n",
+        "bad004 add -> 3\n",
+    ];
+    for content in malformed {
+        let result = std::panic::catch_unwind(|| {
+            parse_dec_test_content(Path::new("malformed.decTest"), content)
+        });
+        assert!(result.is_err(), "accepted malformed decTest input {content:?}");
+    }
+}
+
+pub(crate) fn normalize_dec_test_operation(op: &str) -> String {
+    op.trim().to_lowercase().replace('_', "")
+}
+
+pub(crate) fn dec_test_operand_string(input: &str) -> &str {
+    input.trim_matches(|c| c == '\'' || c == '"')
+}
+
+// ============================================================================
+// Rounding mode mapping (mirrors bid754-go/dectest_fma.go decTestBIDRoundingMode
+// and the bidgo-domain constants in bid754-go/types_bidgo_runtime.go). The
+// integer encoding is the raw Intel BID rnd_mode value the generated engine's
+// signatures already take, unchanged across languages.
+// ============================================================================
+
+pub(crate) const RND_NEAREST_EVEN: i64 = 0;
+pub(crate) const RND_TOWARD_NEGATIVE: i64 = 1;
+pub(crate) const RND_TOWARD_POSITIVE: i64 = 2;
+pub(crate) const RND_TOWARD_ZERO: i64 = 3;
+pub(crate) const RND_NEAREST_AWAY: i64 = 4;
+
+pub(crate) fn dec_test_bid_rounding_mode(rounding: &str) -> Option<i64> {
+    match rounding.trim().to_lowercase().as_str() {
+        "" | "half_even" => Some(RND_NEAREST_EVEN),
+        "half_up" => Some(RND_NEAREST_AWAY),
+        "down" => Some(RND_TOWARD_ZERO),
+        "ceiling" => Some(RND_TOWARD_POSITIVE),
+        "floor" => Some(RND_TOWARD_NEGATIVE),
+        _ => None,
+    }
+}
+
+// ============================================================================
+// Five-flag surface (mirrors bid754-go/dectest_driver.go parseDecTestFlags and
+// the dectestGoportBIDFlagMask / dectestGoportExpectedFlags pair in the Go
+// goport dispatch template). BID_INEXACT_EXCEPTION etc. are the exact Intel BID
+// _IDEC_flags bit values (bid754-rs/src/gen_constants.rs, re-exported by
+// generated::prelude), the same values the generated engine's *_with_flags /
+// pfpsf outputs use, so no separate flag-remapping layer is needed the way the
+// Go public-API ExceptionFlags type requires one.
+// ============================================================================
+
+pub(crate) const FLAG_MASK: u32 = (BID_INEXACT_EXCEPTION
+    | BID_UNDERFLOW_EXCEPTION
+    | BID_OVERFLOW_EXCEPTION
+    | BID_ZERO_DIVIDE_EXCEPTION
+    | BID_INVALID_EXCEPTION) as u32;
+
+// Bits for decNumber-only status classes outside the BID five-flag surface.
+// Values only need to be distinct from FLAG_MASK's bits and from each other;
+// they are always discarded by the `& FLAG_MASK` projection before comparison.
+const FLAG_SUBNORMAL: u32 = 1 << 16;
+const FLAG_ROUNDED: u32 = 1 << 17;
+const FLAG_CLAMPED: u32 = 1 << 18;
+
+fn normalize_dec_test_flag(flag: &str) -> String {
+    flag.trim_matches(|c| c == '\'' || c == '"')
+        .to_lowercase()
+        .replace(['_', '-', ' '], "")
+}
+
+pub(crate) fn has_dec_test_flag(flags: &[String], want: &str) -> bool {
+    let normalized_want = normalize_dec_test_flag(want);
+    flags.iter().any(|f| normalize_dec_test_flag(f) == normalized_want)
+}
+
+/// parse_dec_test_flags projects a case's decTest Conditions onto a status
+/// value; the caller masks with FLAG_MASK to get the compared five-flag
+/// surface (mirrors dectestGoportExpectedFlags). Returns None on an
+/// unrecognized condition token, which the caller must treat as a harness
+/// failure, never a skip.
+pub(crate) fn parse_dec_test_flags(flags: &[String]) -> Option<u32> {
+    let mut parsed: u32 = 0;
+    for flag in flags {
+        match normalize_dec_test_flag(flag).as_str() {
+            "" | "none" | "noflags" => continue,
+            "inexact" => parsed |= BID_INEXACT_EXCEPTION as u32,
+            "underflow" => parsed |= BID_UNDERFLOW_EXCEPTION as u32,
+            "overflow" => parsed |= BID_OVERFLOW_EXCEPTION as u32,
+            "divisionbyzero" => parsed |= BID_ZERO_DIVIDE_EXCEPTION as u32,
+            "invalidoperation" | "divisionundefined" | "divisionimpossible"
+            | "insufficientstorage" | "conversionsyntax" => parsed |= BID_INVALID_EXCEPTION as u32,
+            "subnormal" => parsed |= FLAG_SUBNORMAL,
+            "rounded" => parsed |= FLAG_ROUNDED,
+            "clamped" => parsed |= FLAG_CLAMPED,
+            _ => return None,
+        }
+    }
+    Some(parsed)
+}
+
+// ============================================================================
+// NaN literal parse/format (mirrors bid754-go/types_bid_nan_payload.go
+// parseBIDNaNLiteral / parseDecimalNNBIDNaN / formatBIDNaN /
+// formatDecimalNNBIDNaN). This is public-routing glue outside the mechanical
+// port in Go, and stays outside crate::generated here for the identical
+// reason (see the file header note on bid64_from_string_raw).
+// ============================================================================
+
+struct BidNaNLiteral {
+    negative: bool,
+    signaling: bool,
+    payload: String,
+}
+
+fn parse_bid_nan_literal(input: &str) -> Option<BidNaNLiteral> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let mut negative = false;
+    let rest = if let Some(r) = trimmed.strip_prefix('+') {
+        r
+    } else if let Some(r) = trimmed.strip_prefix('-') {
+        negative = true;
+        r
+    } else {
+        trimmed
+    };
+    if rest.is_empty() {
+        return None;
+    }
+    let lower = rest.to_lowercase();
+    let (signaling, payload_str) = if lower.starts_with("snan") {
+        (true, &rest[4..])
+    } else if lower.starts_with("qnan") {
+        (false, &rest[4..])
+    } else if lower.starts_with("nan") {
+        (false, &rest[3..])
+    } else {
+        return None;
+    };
+    if !payload_str.is_empty() && !payload_str.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    Some(BidNaNLiteral {
+        negative,
+        signaling,
+        payload: payload_str.trim_start_matches('0').to_string(),
+    })
+}
+
+fn parse_uint_payload(payload: &str, max: u64) -> Option<u64> {
+    if payload.is_empty() {
+        return Some(0);
+    }
+    match payload.parse::<u64>() {
+        Ok(v) if v <= max => Some(v),
+        _ => None,
+    }
+}
+
+fn decimal128_nan_payload_limit() -> u128 {
+    // 10^33, the widest canonical BID128 NaN payload (schema-wide limit).
+    10u128.pow(33)
+}
+
+fn parse_big_payload(payload: &str, limit: u128) -> Option<u128> {
+    if payload.is_empty() {
+        return Some(0);
+    }
+    match payload.parse::<u128>() {
+        Ok(v) if v < limit => Some(v),
+        _ => None,
+    }
+}
+
+pub(crate) fn parse_decimal32_nan(input: &str) -> Option<u32> {
+    let lit = parse_bid_nan_literal(input)?;
+    let payload = parse_uint_payload(&lit.payload, 999_999)?;
+    let mut bits: u32 = if lit.signaling { 0x7e00_0000 } else { 0x7c00_0000 };
+    if lit.negative {
+        bits |= 0x8000_0000;
+    }
+    bits |= payload as u32;
+    Some(bits)
+}
+
+pub(crate) fn parse_decimal64_nan(input: &str) -> Option<u64> {
+    let lit = parse_bid_nan_literal(input)?;
+    let payload = parse_uint_payload(&lit.payload, 999_999_999_999_999)?;
+    let mut bits: u64 = if lit.signaling {
+        0x7e00_0000_0000_0000
+    } else {
+        0x7c00_0000_0000_0000
+    };
+    if lit.negative {
+        bits |= 0x8000_0000_0000_0000;
+    }
+    bits |= payload;
+    Some(bits)
+}
+
+pub(crate) fn parse_decimal128_nan(input: &str) -> Option<BID_UINT128> {
+    let lit = parse_bid_nan_literal(input)?;
+    let payload = parse_big_payload(&lit.payload, decimal128_nan_payload_limit())?;
+    let lo = (payload & 0xFFFF_FFFF_FFFF_FFFF_u128) as u64;
+    let mut hi: u64 = ((payload >> 64) as u64) | 0x7c00_0000_0000_0000;
+    if lit.signaling {
+        hi = (hi & !0x7c00_0000_0000_0000_u64) | 0x7e00_0000_0000_0000;
+    }
+    if lit.negative {
+        hi |= 0x8000_0000_0000_0000;
+    }
+    Some(BID_UINT128 { w: [lo, hi] })
+}
+
+fn payload_string(payload: u64, canonical_limit: u64) -> String {
+    if payload == 0 || payload >= canonical_limit {
+        String::new()
+    } else {
+        payload.to_string()
+    }
+}
+
+fn format_bid_nan(negative: bool, signaling: bool, payload: &str) -> String {
+    let mut s = String::new();
+    s.push(if negative { '-' } else { '+' });
+    s.push_str(if signaling { "SNaN" } else { "NaN" });
+    s.push_str(payload);
+    s
+}
+
+pub(crate) fn format_decimal32_nan(bits: u32) -> Option<String> {
+    if bits & 0x7c00_0000 != 0x7c00_0000 {
+        return None;
+    }
+    let payload = (bits & 0x000f_ffff) as u64;
+    Some(format_bid_nan(
+        bits & 0x8000_0000 != 0,
+        bits & 0x7e00_0000 == 0x7e00_0000,
+        &payload_string(payload, 1_000_000),
+    ))
+}
+
+pub(crate) fn format_decimal64_nan(bits: u64) -> Option<String> {
+    if bits & 0x7c00_0000_0000_0000 != 0x7c00_0000_0000_0000 {
+        return None;
+    }
+    let payload = bits & 0x0003_ffff_ffff_ffff;
+    Some(format_bid_nan(
+        bits & 0x8000_0000_0000_0000 != 0,
+        bits & 0x7e00_0000_0000_0000 == 0x7e00_0000_0000_0000,
+        &payload_string(payload, 1_000_000_000_000_000),
+    ))
+}
+
+pub(crate) fn format_decimal128_nan(x: BID_UINT128) -> Option<String> {
+    let hi = x.w[1];
+    let lo = x.w[0];
+    if hi & 0x7c00_0000_0000_0000 != 0x7c00_0000_0000_0000 {
+        return None;
+    }
+    let payload: u128 = (((hi & 0x0000_3fff_ffff_ffff) as u128) << 64) | (lo as u128);
+    let payload_text = if payload != 0 && payload < decimal128_nan_payload_limit() {
+        payload.to_string()
+    } else {
+        String::new()
+    };
+    Some(format_bid_nan(
+        hi & 0x8000_0000_0000_0000 != 0,
+        hi & 0x7e00_0000_0000_0000 == 0x7e00_0000_0000_0000,
+        &payload_text,
+    ))
+}
+
+fn is_nan32(x: u32) -> bool {
+    x & 0x7c00_0000 == 0x7c00_0000
+}
+
+fn is_nan64(x: u64) -> bool {
+    x & 0x7c00_0000_0000_0000 == 0x7c00_0000_0000_0000
+}
+
+fn is_nan128(x: BID_UINT128) -> bool {
+    x.w[1] & 0x7c00_0000_0000_0000 == 0x7c00_0000_0000_0000
+}
+
+// ============================================================================
+// Operand parse / result format through the generated engine, with the
+// NaN-literal pre/post-processing layered the same way the Go goport
+// dispatcher's parseDecimalNNBIDPortMode / decimalNNBIDStringPort wrappers do.
+// ============================================================================
+
+pub(crate) fn parse_decimal32_port_mode(s: &str, rnd_mode: i64) -> (u32, u32) {
+    if let Some(v) = parse_decimal32_nan(s) {
+        return (v, 0);
+    }
+    bid32_from_string_raw(s, rnd_mode)
+}
+
+pub(crate) fn parse_decimal64_port_mode(s: &str, rnd_mode: i64) -> (u64, u32) {
+    if let Some(v) = parse_decimal64_nan(s) {
+        return (v, 0);
+    }
+    // See the file header note: bid64_from_string_raw is the crate-root shim
+    // for the generated (but pub(crate)-visible) bid64_from_string.
+    bid64_from_string_raw(s, rnd_mode as i32)
+}
+
+pub(crate) fn parse_decimal128_port_mode(s: &str, rnd_mode: i64) -> (BID_UINT128, u32) {
+    if let Some(v) = parse_decimal128_nan(s) {
+        return (v, 0);
+    }
+    bid128_from_string(s, rnd_mode)
+}
+
+pub(crate) fn decimal32_string_port(x: u32) -> String {
+    format_decimal32_nan(x).unwrap_or_else(|| bid32_to_string(x))
+}
+
+pub(crate) fn decimal64_string_port(x: u64) -> String {
+    format_decimal64_nan(x).unwrap_or_else(|| bid64_to_string(x))
+}
+
+pub(crate) fn decimal128_string_port(x: BID_UINT128) -> String {
+    format_decimal128_nan(x).unwrap_or_else(|| bid128_to_string(x))
+}
+
+// ============================================================================
+// Skip / flag-exemption taxonomy: a runtime mirror of the generator-side
+// generatedDectestGoportSkipReason / generatedDectestGoportFlagExemptReason
+// (devtools/internal/testgen/dectest_skip_reason.go), exactly like the Go
+// goport dispatch template's own dectestGoportSkipReason /
+// dectestGoportFlagExemptReason mirror pair. Both language mirrors must stay
+// in lockstep with the shared generator function so each leg's live recount
+// matches its pinned EXPECTED_COVERAGE.
+// ============================================================================
+
+fn dectest_goport_oracle_operation(op: &str) -> bool {
+    matches!(
+        op,
+        "add" | "subtract" | "multiply" | "divide" | "quantize" | "compare" | "comparesig"
+            | "tosci" | "toeng" | "tointegral" | "tointegralx"
+    )
+}
+
+fn dectest_goport_nan_precedence_op(op: &str) -> bool {
+    matches!(op, "add" | "subtract" | "multiply" | "divide" | "quantize")
+}
+
+fn is_quiet_dec_test_nan(input: &str) -> bool {
+    let trimmed = dec_test_operand_string(input).trim();
+    let trimmed = trimmed.strip_prefix('+').unwrap_or(trimmed);
+    let trimmed = trimmed.strip_prefix('-').unwrap_or(trimmed);
+    let lower = trimmed.to_lowercase();
+    lower.starts_with("nan") || lower.starts_with("qnan")
+}
+
+fn is_signaling_dec_test_nan(input: &str) -> bool {
+    let trimmed = dec_test_operand_string(input).trim();
+    let trimmed = trimmed.strip_prefix('+').unwrap_or(trimmed);
+    let trimmed = trimmed.strip_prefix('-').unwrap_or(trimmed);
+    trimmed.to_lowercase().starts_with("snan")
+}
+
+struct DecTestNaNOperand {
+    is_nan: bool,
+    sign: String,
+    payload: String,
+}
+
+fn parse_dec_test_nan_operand(input: &str) -> DecTestNaNOperand {
+    let trimmed = dec_test_operand_string(input).trim();
+    let (sign, rest): (String, &str) = if let Some(r) = trimmed.strip_prefix('-') {
+        ("-".to_string(), r)
+    } else {
+        ("+".to_string(), trimmed.strip_prefix('+').unwrap_or(trimmed))
+    };
+    let lower = rest.to_lowercase();
+    // snan/qnan share the 4-byte prefix length; only the plain "nan" prefix is
+    // shorter. DecTestNaNOperand does not track signaling/quiet (callers already
+    // classify that separately via is_quiet_dec_test_nan/is_signaling_dec_test_nan
+    // before reaching here), so both prefixes collapse to the same branch.
+    let prefix_len = if lower.starts_with("snan") || lower.starts_with("qnan") {
+        4
+    } else if lower.starts_with("nan") {
+        3
+    } else {
+        return DecTestNaNOperand {
+            is_nan: false,
+            sign: String::new(),
+            payload: String::new(),
+        };
+    };
+    let payload_str = &rest[prefix_len..];
+    DecTestNaNOperand {
+        is_nan: true,
+        sign,
+        payload: payload_str.trim_start_matches('0').to_string(),
+    }
+}
+
+fn dectest_goport_nan_payload_precedence(tc: &DecTestCase) -> bool {
+    if tc.operands.len() != 2 {
+        return false;
+    }
+    if !is_quiet_dec_test_nan(&tc.operands[0]) || !is_signaling_dec_test_nan(&tc.operands[1]) {
+        return false;
+    }
+    let left = parse_dec_test_nan_operand(&tc.operands[0]);
+    let right = parse_dec_test_nan_operand(&tc.operands[1]);
+    left.sign != right.sign || left.payload != right.payload
+}
+
+fn dectest_goport_compare_has_nan_operand(tc: &DecTestCase) -> bool {
+    tc.operands
+        .iter()
+        .any(|op| is_quiet_dec_test_nan(op) || is_signaling_dec_test_nan(op))
+}
+
+pub(crate) fn uses_tagged_dec_test_literal(tc: &DecTestCase) -> bool {
+    tc.operands.iter().any(|op| op.contains('#')) || tc.result.contains('#')
+}
+
+pub(crate) fn should_skip_dectest_ignored_operation(ignored_operations: &[String], operation: &str) -> bool {
+    let normalized = normalize_dec_test_operation(operation);
+    ignored_operations
+        .iter()
+        .any(|op| normalize_dec_test_operation(op) == normalized)
+}
+
+/// dectest_goport_skip_reason is the runtime mirror of the generator-side
+/// generatedDectestGoportSkipReason. See that function's doc comment
+/// (devtools/internal/testgen/dectest_skip_reason.go) for the full rationale
+/// per bucket; the classification here must stay bit-for-bit identical.
+pub(crate) fn dectest_goport_skip_reason(ignored_operations: &[String], tc: &DecTestCase) -> Option<String> {
+    let op = normalize_dec_test_operation(&tc.operation);
+    if should_skip_dectest_ignored_operation(ignored_operations, &tc.operation) {
+        return Some(format!("ignored_operation_{}", op));
+    }
+    if !dectest_goport_oracle_operation(&op) {
+        return Some("adapter_operation_out_of_leg".to_string());
+    }
+    if uses_tagged_dec_test_literal(tc) {
+        return Some("tagged_literal".to_string());
+    }
+    if has_dec_test_flag(&tc.flags, "conversionsyntax") {
+        return Some("conversion_syntax_divergence".to_string());
+    }
+    if dec_test_bid_rounding_mode(&tc.rounding_mode).is_none() {
+        return Some("unsupported_rounding".to_string());
+    }
+    if dectest_goport_nan_precedence_op(&op) && dectest_goport_nan_payload_precedence(tc) {
+        return Some("binary_op_nan_payload_precedence".to_string());
+    }
+    if (op == "compare" || op == "comparesig") && dectest_goport_compare_has_nan_operand(tc) {
+        return Some("compare_nan_operand".to_string());
+    }
+    None
+}
+
+/// dectest_goport_flag_exempt_reason is the runtime mirror of the
+/// generator-side generatedDectestGoportFlagExemptReason. The exact
+/// Clamped-only predicate rejects every other recognized or unrecognized
+/// condition. The caller additionally parses Conditions first for every case
+/// that reaches execution so an unknown token is reported as a harness error.
+pub(crate) fn dectest_goport_flag_exempt_reason(tc: &DecTestCase) -> Option<String> {
+    let op = normalize_dec_test_operation(&tc.operation);
+    if op != "tosci" && op != "toeng" {
+        return None;
+    }
+    if !dectest_goport_has_only_clamped_condition(&tc.flags) {
+        return None;
+    }
+    if let Some(q) = quantum_parse(&tc.result) {
+        if q.coeff == "0" && q.exponent < 0 {
+            return Some("from_string_zero_low_clamp_divergence".to_string());
+        }
+    }
+    None
+}
+
+fn dectest_goport_has_only_clamped_condition(flags: &[String]) -> bool {
+    let mut clamped = false;
+    for flag in flags {
+        match normalize_dec_test_flag(flag).as_str() {
+            "" | "none" | "noflags" => continue,
+            "clamped" => clamped = true,
+            _ => return false,
+        }
+    }
+    clamped
+}
+
+// ============================================================================
+// Value comparator (Phase 1, structural cohort-collapsed equality): mirrors
+// bid754-go/dectest_compare.go parseComparableDecimal / comparableDecimalResultsEqual
+// and bid754-go/dectest_driver.go compareDecimalResults. The Go function also
+// has a redundant string-normalize fast path (normalizeDecimalResult) ahead of
+// this structural comparator; it is a pure performance optimization that never
+// changes the result for a parseable operand (both sides here always parse, by
+// construction of the goport skip taxonomy above), so it is intentionally not
+// ported.
+// ============================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum DecTestSpecialKind {
+    None,
+    Infinity,
+    QuietNaN,
+    SignalingNaN,
+    InvalidSyntax,
+}
+
+#[derive(Debug, Clone)]
+struct ComparableDecimal {
+    sign: i32,
+    digits: String,
+    exponent: i64,
+    is_zero: bool,
+    special: DecTestSpecialKind,
+    nan_sign: String,
+    payload: String,
+}
+
+impl Default for ComparableDecimal {
+    fn default() -> Self {
+        ComparableDecimal {
+            sign: 0,
+            digits: String::new(),
+            exponent: 0,
+            is_zero: false,
+            special: DecTestSpecialKind::None,
+            nan_sign: String::new(),
+            payload: String::new(),
+        }
+    }
+}
+
+fn normalize_nan_payload(payload: &str) -> String {
+    if payload.is_empty() {
+        return String::new();
+    }
+    if payload.parse::<u64>().is_err() {
+        return payload.to_string();
+    }
+    payload.trim_start_matches('0').to_string()
+}
+
+fn parse_comparable_decimal(input: &str) -> Option<ComparableDecimal> {
+    let trimmed = input.trim_matches(|c| c == '\'' || c == '"').trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if trimmed == "#" {
+        return Some(ComparableDecimal {
+            special: DecTestSpecialKind::InvalidSyntax,
+            ..Default::default()
+        });
+    }
+
+    let mut sign = 1i32;
+    let mut nan_sign = String::new();
+    let rest = if let Some(r) = trimmed.strip_prefix('+') {
+        r
+    } else if let Some(r) = trimmed.strip_prefix('-') {
+        sign = -1;
+        nan_sign = "-".to_string();
+        r
+    } else {
+        trimmed
+    };
+    if rest.is_empty() {
+        return None;
+    }
+
+    let lower = rest.to_lowercase();
+    if lower == "inf" || lower == "infinity" {
+        return Some(ComparableDecimal {
+            sign,
+            special: DecTestSpecialKind::Infinity,
+            ..Default::default()
+        });
+    }
+    if lower.starts_with("snan") {
+        return Some(ComparableDecimal {
+            sign,
+            special: DecTestSpecialKind::SignalingNaN,
+            nan_sign,
+            payload: normalize_nan_payload(&rest[4..]),
+            ..Default::default()
+        });
+    }
+    if lower.starts_with("qnan") {
+        return Some(ComparableDecimal {
+            sign,
+            special: DecTestSpecialKind::QuietNaN,
+            nan_sign,
+            payload: normalize_nan_payload(&rest[4..]),
+            ..Default::default()
+        });
+    }
+    if lower.starts_with("nan") {
+        return Some(ComparableDecimal {
+            sign,
+            special: DecTestSpecialKind::QuietNaN,
+            nan_sign,
+            payload: normalize_nan_payload(&rest[3..]),
+            ..Default::default()
+        });
+    }
+
+    let mut mantissa = rest.to_string();
+    let mut exponent: i64 = 0;
+    if let Some(idx) = rest.find(['E', 'e']) {
+        mantissa = rest[..idx].to_string();
+        match rest[idx + 1..].parse::<i64>() {
+            Ok(v) => exponent = v,
+            Err(_) => return None,
+        }
+    }
+    if mantissa.matches('.').count() > 1 {
+        return None;
+    }
+    if let Some(dot) = mantissa.find('.') {
+        exponent -= (mantissa.len() - dot - 1) as i64;
+        mantissa = format!("{}{}", &mantissa[..dot], &mantissa[dot + 1..]);
+    }
+    if mantissa.is_empty() || !mantissa.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+
+    mantissa = mantissa.trim_start_matches('0').to_string();
+    if mantissa.is_empty() {
+        return Some(ComparableDecimal {
+            sign,
+            is_zero: true,
+            ..Default::default()
+        });
+    }
+    while mantissa.ends_with('0') {
+        mantissa.pop();
+        exponent += 1;
+    }
+
+    Some(ComparableDecimal {
+        sign,
+        digits: mantissa,
+        exponent,
+        ..Default::default()
+    })
+}
+
+fn comparable_decimal_results_equal(left: &ComparableDecimal, right: &ComparableDecimal) -> bool {
+    if left.special != right.special {
+        return false;
+    }
+    match left.special {
+        DecTestSpecialKind::None => {
+            if left.is_zero || right.is_zero {
+                left.is_zero && right.is_zero && left.sign == right.sign
+            } else {
+                left.sign == right.sign && left.digits == right.digits && left.exponent == right.exponent
+            }
+        }
+        DecTestSpecialKind::Infinity => left.sign == right.sign,
+        DecTestSpecialKind::QuietNaN | DecTestSpecialKind::SignalingNaN => {
+            left.nan_sign == right.nan_sign && left.payload == right.payload
+        }
+        DecTestSpecialKind::InvalidSyntax => true,
+    }
+}
+
+pub(crate) fn compare_decimal_results(expected: &str, actual: &str) -> bool {
+    match (parse_comparable_decimal(expected), parse_comparable_decimal(actual)) {
+        (Some(l), Some(r)) => comparable_decimal_results_equal(&l, &r),
+        _ => false,
+    }
+}
+
+// ============================================================================
+// Quantum comparator (Phase 2, exact cohort member): mirrors the
+// dectestGoportQuantum / dectestGoportQuantumParse / dectestGoportQuantumEqual
+// / dectestGoportQuantumComparedOperation quartet in the Go goport dispatch
+// template. Unlike parse_comparable_decimal above, trailing zeros are kept
+// (not stripped), because the whole point of this phase is to distinguish
+// same-value-different-quantum results.
+// ============================================================================
+
+#[derive(Debug, Clone, PartialEq)]
+struct Quantum {
+    sign: i32,
+    coeff: String,
+    exponent: i64,
+}
+
+fn quantum_parse(input: &str) -> Option<Quantum> {
+    let trimmed = input.trim_matches(|c| c == '\'' || c == '"').trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let mut sign = 1i32;
+    let rest = if let Some(r) = trimmed.strip_prefix('+') {
+        r
+    } else if let Some(r) = trimmed.strip_prefix('-') {
+        sign = -1;
+        r
+    } else {
+        trimmed
+    };
+    if rest.is_empty() {
+        return None;
+    }
+    let lower = rest.to_lowercase();
+    if lower == "inf" || lower == "infinity" || lower.contains("nan") {
+        return None;
+    }
+
+    let mut mantissa = rest.to_string();
+    let mut exponent: i64 = 0;
+    if let Some(idx) = rest.find(['E', 'e']) {
+        mantissa = rest[..idx].to_string();
+        match rest[idx + 1..].parse::<i64>() {
+            Ok(v) => exponent = v,
+            Err(_) => return None,
+        }
+    }
+    if mantissa.matches('.').count() > 1 {
+        return None;
+    }
+    if let Some(dot) = mantissa.find('.') {
+        exponent -= (mantissa.len() - dot - 1) as i64;
+        mantissa = format!("{}{}", &mantissa[..dot], &mantissa[dot + 1..]);
+    }
+    if mantissa.is_empty() || !mantissa.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    mantissa = mantissa.trim_start_matches('0').to_string();
+    if mantissa.is_empty() {
+        mantissa = "0".to_string();
+    }
+    Some(Quantum {
+        sign,
+        coeff: mantissa,
+        exponent,
+    })
+}
+
+pub(crate) fn quantum_equal(expected: &str, got: &str) -> bool {
+    match (quantum_parse(expected), quantum_parse(got)) {
+        (Some(l), Some(r)) => l == r,
+        _ => true,
+    }
+}
+
+pub(crate) fn quantum_compared_operation(op: &str) -> bool {
+    op != "toeng"
+}
+
+// ============================================================================
+// Oracle-op dispatch through the generated engine. Mirrors runDectestGoportCase
+// / executeDectestGoportArithmetic / applyDectestGoportArithmeticNN /
+// executeDectestGoportCompare / executeDectestGoportToIntegral /
+// roundIntegralDectestGoportNN / executeDectestGoportString in the Go goport
+// dispatch template. Every branch calls a bare generated::* function reached
+// through generated::prelude (or the documented bid64_from_string_raw
+// crate-root shim), never a hand-written re-implementation.
+// ============================================================================
+
+pub(crate) fn run_dectest_goport_case(tc: &DecTestCase, test_type: &str) -> Result<(String, u32), String> {
+    let rnd_mode = dec_test_bid_rounding_mode(&tc.rounding_mode)
+        .ok_or_else(|| format!("{}: rounding {:?}", tc.operation, tc.rounding_mode))?;
+    match normalize_dec_test_operation(&tc.operation).as_str() {
+        "add" | "subtract" | "multiply" | "divide" | "quantize" => {
+            execute_dectest_goport_arithmetic(tc, test_type, rnd_mode)
+        }
+        "compare" | "comparesig" => execute_dectest_goport_compare(tc, test_type, rnd_mode),
+        "tointegral" | "tointegralx" => execute_dectest_goport_to_integral(tc, test_type, rnd_mode),
+        "tosci" | "toeng" => execute_dectest_goport_string(tc, test_type, rnd_mode),
+        _ => Err(format!("unsupported decTest operation: {}", tc.operation)),
+    }
+}
+
+fn execute_dectest_goport_arithmetic(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let op = normalize_dec_test_operation(&tc.operation);
+    match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(dec_test_operand_string(&tc.operands[0]), rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(dec_test_operand_string(&tc.operands[1]), rnd_mode);
+            let (result, op_flags) = apply_dectest_goport_arithmetic32(&op, a, b, rnd_mode)?;
+            Ok((decimal32_string_port(result), a_flags | b_flags | op_flags))
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(dec_test_operand_string(&tc.operands[0]), rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(dec_test_operand_string(&tc.operands[1]), rnd_mode);
+            let (result, op_flags) = apply_dectest_goport_arithmetic64(&op, a, b, rnd_mode)?;
+            Ok((decimal64_string_port(result), a_flags | b_flags | op_flags))
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(dec_test_operand_string(&tc.operands[0]), rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(dec_test_operand_string(&tc.operands[1]), rnd_mode);
+            let (result, op_flags) = apply_dectest_goport_arithmetic128(&op, a, b, rnd_mode)?;
+            Ok((decimal128_string_port(result), a_flags | b_flags | op_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+fn apply_dectest_goport_arithmetic32(op: &str, a: u32, b: u32, rnd_mode: i64) -> Result<(u32, u32), String> {
+    match op {
+        "add" => Ok(bid32_add_with_flags(a, b, rnd_mode)),
+        "subtract" => Ok(bid32_sub_with_flags(a, b, rnd_mode)),
+        "multiply" => Ok(bid32_mul_with_flags(a, b, rnd_mode)),
+        "divide" => Ok(bid32_div_with_flags(a, b, rnd_mode)),
+        "quantize" => Ok(bid32_quantize(a, b, rnd_mode)),
+        _ => Err(format!("unsupported decTest operation: {}", op)),
+    }
+}
+
+fn apply_dectest_goport_arithmetic64(op: &str, a: u64, b: u64, rnd_mode: i64) -> Result<(u64, u32), String> {
+    match op {
+        "add" => Ok(bid64_add_with_flags(a, b, rnd_mode)),
+        "subtract" => Ok(bid64_sub_with_flags(a, b, rnd_mode)),
+        "multiply" => Ok(bid64_mul_with_flags(a, b, rnd_mode)),
+        "divide" => Ok(bid64_div_with_flags(a, b, rnd_mode)),
+        "quantize" => Ok(bid64_quantize(a, b, rnd_mode)),
+        _ => Err(format!("unsupported decTest operation: {}", op)),
+    }
+}
+
+fn apply_dectest_goport_arithmetic128(
+    op: &str,
+    a: BID_UINT128,
+    b: BID_UINT128,
+    rnd_mode: i64,
+) -> Result<(BID_UINT128, u32), String> {
+    match op {
+        "add" => {
+            let mut pfpsf: u32 = 0;
+            let r = bid128_add(a, b, rnd_mode, &mut pfpsf);
+            Ok((r, pfpsf))
+        }
+        "subtract" => {
+            let mut pfpsf: u32 = 0;
+            let r = bid128_sub(a, b, rnd_mode, &mut pfpsf);
+            Ok((r, pfpsf))
+        }
+        "multiply" => Ok(bid128_mul(a, b, rnd_mode)),
+        "divide" => Ok(bid128_div(a, b, rnd_mode)),
+        "quantize" => Ok(bid128_quantize(a, b, rnd_mode)),
+        _ => Err(format!("unsupported decTest operation: {}", op)),
+    }
+}
+
+/// execute_dectest_goport_compare mirrors the Go leg's identical independent
+/// re-check: NaN-operand cases are filtered out by the compare_nan_operand
+/// skip bucket above (the Intel BID boolean compare predicates cannot
+/// reproduce the GDA NaN-identity result), so a NaN operand reaching here
+/// signals a skip-filter divergence, reported as a hard error rather than
+/// silently producing a result.
+fn execute_dectest_goport_compare(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let signaling = normalize_dec_test_operation(&tc.operation) == "comparesig";
+    match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(dec_test_operand_string(&tc.operands[0]), rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(dec_test_operand_string(&tc.operands[1]), rnd_mode);
+            if is_nan32(a) || is_nan32(b) {
+                return Err("compare NaN operand reached goport executor; skip-filter divergence".to_string());
+            }
+            let (less, greater, cmp_flags) = if signaling {
+                let (l, lf) = bid32_signaling_less(a, b);
+                let (g, gf) = bid32_signaling_greater(a, b);
+                (l != 0, g != 0, lf | gf)
+            } else {
+                let (l, lf) = bid32_quiet_less(a, b);
+                let (g, gf) = bid32_quiet_greater(a, b);
+                (l != 0, g != 0, lf | gf)
+            };
+            let result = dectest_goport_compare_result(less, greater)?;
+            Ok((result, a_flags | b_flags | cmp_flags))
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(dec_test_operand_string(&tc.operands[0]), rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(dec_test_operand_string(&tc.operands[1]), rnd_mode);
+            if is_nan64(a) || is_nan64(b) {
+                return Err("compare NaN operand reached goport executor; skip-filter divergence".to_string());
+            }
+            let (less, greater, cmp_flags) = if signaling {
+                let (l, lf) = bid64_signaling_less(a, b);
+                let (g, gf) = bid64_signaling_greater(a, b);
+                (l != 0, g != 0, lf | gf)
+            } else {
+                let (l, lf) = bid64_quiet_less(a, b);
+                let (g, gf) = bid64_quiet_greater(a, b);
+                (l != 0, g != 0, lf | gf)
+            };
+            let result = dectest_goport_compare_result(less, greater)?;
+            Ok((result, a_flags | b_flags | cmp_flags))
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(dec_test_operand_string(&tc.operands[0]), rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(dec_test_operand_string(&tc.operands[1]), rnd_mode);
+            if is_nan128(a) || is_nan128(b) {
+                return Err("compare NaN operand reached goport executor; skip-filter divergence".to_string());
+            }
+            let (less, greater, cmp_flags) = if signaling {
+                let (l, lf) = bid128_signaling_less(a, b);
+                let (g, gf) = bid128_signaling_greater(a, b);
+                (l != 0, g != 0, lf | gf)
+            } else {
+                let (l, lf) = bid128_quiet_less(a, b);
+                let (g, gf) = bid128_quiet_greater(a, b);
+                (l != 0, g != 0, lf | gf)
+            };
+            let result = dectest_goport_compare_result(less, greater)?;
+            Ok((result, a_flags | b_flags | cmp_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+fn dectest_goport_compare_result(less: bool, greater: bool) -> Result<String, String> {
+    match (less, greater) {
+        (true, true) => Err("port compare predicates returned both less and greater".to_string()),
+        (true, false) => Ok("-1".to_string()),
+        (false, true) => Ok("1".to_string()),
+        (false, false) => Ok("0".to_string()),
+    }
+}
+
+fn execute_dectest_goport_to_integral(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 1 {
+        return Err(format!("{} requires 1 operand, got {}", tc.operation, tc.operands.len()));
+    }
+    let exact = normalize_dec_test_operation(&tc.operation) == "tointegralx";
+    let operand = dec_test_operand_string(&tc.operands[0]);
+    match test_type {
+        "decimal32" => {
+            let (d, parse_flags) = parse_decimal32_port_mode(operand, rnd_mode);
+            let (result, op_flags) = if exact {
+                bid32_round_integral_exact(d, rnd_mode)
+            } else {
+                round_integral_dectest_goport32(d, rnd_mode)?
+            };
+            Ok((decimal32_string_port(result), parse_flags | op_flags))
+        }
+        "decimal64" => {
+            let (d, parse_flags) = parse_decimal64_port_mode(operand, rnd_mode);
+            let (result, op_flags) = if exact {
+                bid64_round_integral_exact(d, rnd_mode)
+            } else {
+                round_integral_dectest_goport64(d, rnd_mode)?
+            };
+            Ok((decimal64_string_port(result), parse_flags | op_flags))
+        }
+        "decimal128" => {
+            let (d, parse_flags) = parse_decimal128_port_mode(operand, rnd_mode);
+            let (result, op_flags) = if exact {
+                let mut pfpsf: u32 = 0;
+                let r = bid128_round_integral_exact(d, rnd_mode, &mut pfpsf);
+                (r, pfpsf)
+            } else {
+                round_integral_dectest_goport128(d, rnd_mode)?
+            };
+            Ok((decimal128_string_port(result), parse_flags | op_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+fn round_integral_dectest_goport32(d: u32, rnd_mode: i64) -> Result<(u32, u32), String> {
+    match rnd_mode {
+        RND_NEAREST_EVEN => Ok(bid32_round_integral_nearest_even(d)),
+        RND_NEAREST_AWAY => Ok(bid32_round_integral_nearest_away(d)),
+        RND_TOWARD_ZERO => Ok(bid32_round_integral_zero(d)),
+        RND_TOWARD_POSITIVE => Ok(bid32_round_integral_positive(d)),
+        RND_TOWARD_NEGATIVE => Ok(bid32_round_integral_negative(d)),
+        _ => Err(format!("unsupported tointegral rounding mode {}", rnd_mode)),
+    }
+}
+
+fn round_integral_dectest_goport64(d: u64, rnd_mode: i64) -> Result<(u64, u32), String> {
+    match rnd_mode {
+        RND_NEAREST_EVEN => Ok(bid64_round_integral_nearest_even(d)),
+        RND_NEAREST_AWAY => Ok(bid64_round_integral_nearest_away(d)),
+        RND_TOWARD_ZERO => Ok(bid64_round_integral_zero(d)),
+        RND_TOWARD_POSITIVE => Ok(bid64_round_integral_positive(d)),
+        RND_TOWARD_NEGATIVE => Ok(bid64_round_integral_negative(d)),
+        _ => Err(format!("unsupported tointegral rounding mode {}", rnd_mode)),
+    }
+}
+
+fn round_integral_dectest_goport128(d: BID_UINT128, rnd_mode: i64) -> Result<(BID_UINT128, u32), String> {
+    let mut pfpsf: u32 = 0;
+    let r = match rnd_mode {
+        RND_NEAREST_EVEN => bid128_round_integral_nearest_even(d, &mut pfpsf),
+        RND_NEAREST_AWAY => bid128_round_integral_nearest_away(d, &mut pfpsf),
+        RND_TOWARD_ZERO => bid128_round_integral_zero(d, &mut pfpsf),
+        RND_TOWARD_POSITIVE => bid128_round_integral_positive(d, &mut pfpsf),
+        RND_TOWARD_NEGATIVE => bid128_round_integral_negative(d, &mut pfpsf),
+        _ => return Err(format!("unsupported tointegral rounding mode {}", rnd_mode)),
+    };
+    Ok((r, pfpsf))
+}
+
+/// execute_dectest_goport_string routes tosci/toeng through the generated
+/// engine's own to_string rendering (with the NaN-payload post-processing
+/// layer). Rendering raises no flags, so the case flags are exactly the
+/// operand-parse flags, mirroring the Go leg.
+fn execute_dectest_goport_string(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 1 {
+        return Err(format!("{} requires 1 operand, got {}", tc.operation, tc.operands.len()));
+    }
+    let operand = dec_test_operand_string(&tc.operands[0]);
+    match test_type {
+        "decimal32" => {
+            let (d, flags) = parse_decimal32_port_mode(operand, rnd_mode);
+            Ok((decimal32_string_port(d), flags))
+        }
+        "decimal64" => {
+            let (d, flags) = parse_decimal64_port_mode(operand, rnd_mode);
+            Ok((decimal64_string_port(d), flags))
+        }
+        "decimal128" => {
+            let (d, flags) = parse_decimal128_port_mode(operand, rnd_mode);
+            Ok((decimal128_string_port(d), flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+// ============================================================================
+// spec_index.json suite loader (mirrors the dectest_suites section that
+// bid754-go/internal/testspec.LoadGenerated reads; only the fields the
+// portable leg needs are modeled here, so unrelated spec_index.json sections
+// -- read_cases, ffi_cases, and the other inventory sections -- are ignored by
+// serde rather than re-derived).
+// ============================================================================
+
+#[derive(serde::Deserialize)]
+pub(crate) struct SpecIndex {
+    pub(crate) dectest_suites: Vec<DectestSuiteSpec>,
+}
+
+#[derive(serde::Deserialize)]
+pub(crate) struct DectestSuiteSpec {
+    pub(crate) name: String,
+    pub(crate) test_type: String,
+    pub(crate) files: Vec<String>,
+    #[serde(default)]
+    pub(crate) ignored_operations: Vec<String>,
+}
+
+pub(crate) fn is_goport_dectest_runner_suite(test_type: &str) -> bool {
+    matches!(test_type, "decimal32" | "decimal64" | "decimal128")
+}

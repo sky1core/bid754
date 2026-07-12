@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bid754-codec"
+version = "0.2.0"
+description = "BID (Binary Integer Decimal) encoding/decoding for IEEE 754 decimal floating-point"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["ieee-754", "decimal", "bid", "codec", "floating-point", "decimal32", "decimal64", "decimal128"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/sky1core/bid754"
+Repository = "https://github.com/sky1core/bid754"
+
+[project.optional-dependencies]
+test = ["pytest==9.0.2"]
+
+[tool.setuptools.package-data]
+bid_codec = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

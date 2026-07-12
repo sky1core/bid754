@@ -1,0 +1,50 @@
+[package]
+name = "bid754"
+version = "0.2.0"
+edition = "2021"
+description = "IEEE 754-2019 decimal floating-point (BID encoding) generated from the Go mechanical port"
+license = "MIT AND BSD-3-Clause"
+homepage = "https://github.com/sky1core/bid754"
+repository = "https://github.com/sky1core/bid754"
+documentation = "https://docs.rs/bid754"
+keywords = ["ieee-754", "decimal", "bid", "floating-point", "arithmetic"]
+categories = ["mathematics"]
+publish = false
+readme = "README.md"
+# rust-version (MSRV) is intentionally left unset: CI only pins the "stable"
+# toolchain channel (rustup toolchain install stable in .github/workflows/build.yml),
+# not a fixed numeric floor, and there is no local multi-toolchain setup here
+# to build-verify an older floor. Declare it only once a specific version is
+# actually build-verified (docs/DEPENDENCIES_SPEC.md pinned-verification
+# principle); do not guess a number from edition/dependency floors alone.
+#
+# `include` is the explicit package file set rather than a default-plus-exclude list:
+# only the public API sources, the license/notice pair, and the reader-facing
+# README travel in the published package. The FFI verification harness
+# (repo-internal ffi-verify crate; nested packages are not part of this
+# package), libbid-sys/, tests/, benches/, and examples/ all read repo-level
+# fixtures (devtools/..., bid754-codec-vectors/...) or are repo-internal-only,
+# so they are simply not part of the package file set; they still run from a repo
+# checkout. `devtools/scripts/verify_rust_package.sh` (`make verify-rust-package`)
+# enforces this file set against `cargo package --list`.
+include = ["src/**", "LICENSE", "NOTICE", "README.md", "Cargo.toml"]
+
+[package.metadata.docs.rs]
+# Match PLATFORM_SPEC's guaranteed bit-reproducible platform set exactly, so
+# the published docs target list neither over- nor under-claims platform
+# support (no Windows/x86/big-endian target added here).
+targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "aarch64-apple-darwin"]
+
+[dependencies]
+num-bigint = "=0.4.6"
+num-traits = "=0.2.19"
+
+[dev-dependencies]
+criterion = "=0.5.1"
+rand = "=0.8.6"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+
+[[bench]]
+name = "core"
+harness = false

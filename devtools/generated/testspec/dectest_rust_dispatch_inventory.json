@@ -1,0 +1,361 @@
+{
+  "functions": [
+    {
+      "operation": "add",
+      "width": "decimal32",
+      "go_function": "Bid32AddWithFlags",
+      "rust_function": "bid32_add_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "add",
+      "width": "decimal64",
+      "go_function": "Bid64AddWithFlags",
+      "rust_function": "bid64_add_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "add",
+      "width": "decimal128",
+      "go_function": "Bid128Add",
+      "rust_function": "bid128_add",
+      "status": "dispatched"
+    },
+    {
+      "operation": "subtract",
+      "width": "decimal32",
+      "go_function": "Bid32SubWithFlags",
+      "rust_function": "bid32_sub_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "subtract",
+      "width": "decimal64",
+      "go_function": "Bid64SubWithFlags",
+      "rust_function": "bid64_sub_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "subtract",
+      "width": "decimal128",
+      "go_function": "Bid128Sub",
+      "rust_function": "bid128_sub",
+      "status": "dispatched"
+    },
+    {
+      "operation": "multiply",
+      "width": "decimal32",
+      "go_function": "Bid32MulWithFlags",
+      "rust_function": "bid32_mul_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "multiply",
+      "width": "decimal64",
+      "go_function": "Bid64MulWithFlags",
+      "rust_function": "bid64_mul_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "multiply",
+      "width": "decimal128",
+      "go_function": "Bid128Mul",
+      "rust_function": "bid128_mul",
+      "status": "dispatched"
+    },
+    {
+      "operation": "divide",
+      "width": "decimal32",
+      "go_function": "Bid32DivWithFlags",
+      "rust_function": "bid32_div_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "divide",
+      "width": "decimal64",
+      "go_function": "Bid64DivWithFlags",
+      "rust_function": "bid64_div_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "divide",
+      "width": "decimal128",
+      "go_function": "Bid128Div",
+      "rust_function": "bid128_div",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quantize",
+      "width": "decimal32",
+      "go_function": "Bid32Quantize",
+      "rust_function": "bid32_quantize",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quantize",
+      "width": "decimal64",
+      "go_function": "Bid64Quantize",
+      "rust_function": "bid64_quantize",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quantize",
+      "width": "decimal128",
+      "go_function": "Bid128Quantize",
+      "rust_function": "bid128_quantize",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quiet_less",
+      "width": "decimal32",
+      "go_function": "Bid32QuietLess",
+      "rust_function": "bid32_quiet_less",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quiet_less",
+      "width": "decimal64",
+      "go_function": "Bid64QuietLess",
+      "rust_function": "bid64_quiet_less",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quiet_less",
+      "width": "decimal128",
+      "go_function": "Bid128QuietLess",
+      "rust_function": "bid128_quiet_less",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quiet_greater",
+      "width": "decimal32",
+      "go_function": "Bid32QuietGreater",
+      "rust_function": "bid32_quiet_greater",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quiet_greater",
+      "width": "decimal64",
+      "go_function": "Bid64QuietGreater",
+      "rust_function": "bid64_quiet_greater",
+      "status": "dispatched"
+    },
+    {
+      "operation": "quiet_greater",
+      "width": "decimal128",
+      "go_function": "Bid128QuietGreater",
+      "rust_function": "bid128_quiet_greater",
+      "status": "dispatched"
+    },
+    {
+      "operation": "signaling_less",
+      "width": "decimal32",
+      "go_function": "Bid32SignalingLess",
+      "rust_function": "bid32_signaling_less",
+      "status": "dispatched"
+    },
+    {
+      "operation": "signaling_less",
+      "width": "decimal64",
+      "go_function": "Bid64SignalingLess",
+      "rust_function": "bid64_signaling_less",
+      "status": "dispatched"
+    },
+    {
+      "operation": "signaling_less",
+      "width": "decimal128",
+      "go_function": "Bid128SignalingLess",
+      "rust_function": "bid128_signaling_less",
+      "status": "dispatched"
+    },
+    {
+      "operation": "signaling_greater",
+      "width": "decimal32",
+      "go_function": "Bid32SignalingGreater",
+      "rust_function": "bid32_signaling_greater",
+      "status": "dispatched"
+    },
+    {
+      "operation": "signaling_greater",
+      "width": "decimal64",
+      "go_function": "Bid64SignalingGreater",
+      "rust_function": "bid64_signaling_greater",
+      "status": "dispatched"
+    },
+    {
+      "operation": "signaling_greater",
+      "width": "decimal128",
+      "go_function": "Bid128SignalingGreater",
+      "rust_function": "bid128_signaling_greater",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_exact",
+      "width": "decimal32",
+      "go_function": "Bid32RoundIntegralExact",
+      "rust_function": "bid32_round_integral_exact",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_exact",
+      "width": "decimal64",
+      "go_function": "Bid64RoundIntegralExact",
+      "rust_function": "bid64_round_integral_exact",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_exact",
+      "width": "decimal128",
+      "go_function": "Bid128RoundIntegralExact",
+      "rust_function": "bid128_round_integral_exact",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_nearest_even",
+      "width": "decimal32",
+      "go_function": "Bid32RoundIntegralNearestEven",
+      "rust_function": "bid32_round_integral_nearest_even",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_nearest_even",
+      "width": "decimal64",
+      "go_function": "Bid64RoundIntegralNearestEven",
+      "rust_function": "bid64_round_integral_nearest_even",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_nearest_even",
+      "width": "decimal128",
+      "go_function": "Bid128RoundIntegralNearestEven",
+      "rust_function": "bid128_round_integral_nearest_even",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_nearest_away",
+      "width": "decimal32",
+      "go_function": "Bid32RoundIntegralNearestAway",
+      "rust_function": "bid32_round_integral_nearest_away",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_nearest_away",
+      "width": "decimal64",
+      "go_function": "Bid64RoundIntegralNearestAway",
+      "rust_function": "bid64_round_integral_nearest_away",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_nearest_away",
+      "width": "decimal128",
+      "go_function": "Bid128RoundIntegralNearestAway",
+      "rust_function": "bid128_round_integral_nearest_away",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_zero",
+      "width": "decimal32",
+      "go_function": "Bid32RoundIntegralZero",
+      "rust_function": "bid32_round_integral_zero",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_zero",
+      "width": "decimal64",
+      "go_function": "Bid64RoundIntegralZero",
+      "rust_function": "bid64_round_integral_zero",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_zero",
+      "width": "decimal128",
+      "go_function": "Bid128RoundIntegralZero",
+      "rust_function": "bid128_round_integral_zero",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_positive",
+      "width": "decimal32",
+      "go_function": "Bid32RoundIntegralPositive",
+      "rust_function": "bid32_round_integral_positive",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_positive",
+      "width": "decimal64",
+      "go_function": "Bid64RoundIntegralPositive",
+      "rust_function": "bid64_round_integral_positive",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_positive",
+      "width": "decimal128",
+      "go_function": "Bid128RoundIntegralPositive",
+      "rust_function": "bid128_round_integral_positive",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_negative",
+      "width": "decimal32",
+      "go_function": "Bid32RoundIntegralNegative",
+      "rust_function": "bid32_round_integral_negative",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_negative",
+      "width": "decimal64",
+      "go_function": "Bid64RoundIntegralNegative",
+      "rust_function": "bid64_round_integral_negative",
+      "status": "dispatched"
+    },
+    {
+      "operation": "round_integral_negative",
+      "width": "decimal128",
+      "go_function": "Bid128RoundIntegralNegative",
+      "rust_function": "bid128_round_integral_negative",
+      "status": "dispatched"
+    },
+    {
+      "operation": "from_string",
+      "width": "decimal32",
+      "go_function": "Bid32FromStringRaw",
+      "rust_function": "bid32_from_string_raw",
+      "status": "dispatched"
+    },
+    {
+      "operation": "from_string",
+      "width": "decimal64",
+      "go_function": "Bid64FromString",
+      "rust_function": "bid64_from_string",
+      "status": "dispatched"
+    },
+    {
+      "operation": "from_string",
+      "width": "decimal128",
+      "go_function": "Bid128FromString",
+      "rust_function": "bid128_from_string",
+      "status": "dispatched"
+    },
+    {
+      "operation": "to_string",
+      "width": "decimal32",
+      "go_function": "Bid32ToString",
+      "rust_function": "bid32_to_string",
+      "status": "dispatched"
+    },
+    {
+      "operation": "to_string",
+      "width": "decimal64",
+      "go_function": "Bid64ToString",
+      "rust_function": "bid64_to_string",
+      "status": "dispatched"
+    },
+    {
+      "operation": "to_string",
+      "width": "decimal128",
+      "go_function": "Bid128ToString",
+      "rust_function": "bid128_to_string",
+      "status": "dispatched"
+    }
+  ]
+}

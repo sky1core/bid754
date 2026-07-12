@@ -1,0 +1,561 @@
+//go:build bid754_bidcodec_exhaustive32
+
+package bidcodec
+
+import (
+	"encoding/binary"
+	"fmt"
+	"math/big"
+	"os"
+	"runtime"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"testing"
+)
+
+const exhaustive32Total = uint64(1) << 32
+
+const (
+	exhaustive32CoefficientCases = uint64(19999998)
+	exhaustive32NaNCases         = uint64(4000000)
+	exhaustive32ExponentCases    = uint64(6144)
+	exhaustive32ZeroCases        = uint64(384)
+	exhaustive32InfinityCases    = uint64(2)
+	exhaustive32StructuredTotal  = exhaustive32CoefficientCases + exhaustive32NaNCases +
+		exhaustive32ExponentCases + exhaustive32ZeroCases + exhaustive32InfinityCases
+
+	exhaustive32RawNormal       = uint64(3839999616)
+	exhaustive32RawZero         = uint64(186532224)
+	exhaustive32RawInfinity     = uint64(134217728)
+	exhaustive32RawQNaN         = uint64(67108864)
+	exhaustive32RawSNaN         = uint64(67108864)
+	exhaustive32RawCanonical    = uint64(3844000002)
+	exhaustive32RawNoncanonical = uint64(450967294)
+
+	exhaustive32StructuredNormal   = uint64(20006142)
+	exhaustive32StructuredZero     = uint64(384)
+	exhaustive32StructuredInfinity = uint64(2)
+	exhaustive32StructuredQNaN     = uint64(2000000)
+	exhaustive32StructuredSNaN     = uint64(2000000)
+)
+
+var exhaustive32ExponentCoefficients = [...]uint32{
+	1, 9,
+	10, 99,
+	100, 999,
+	1000, 9999,
+	10000, 99999,
+	100000, 999999,
+	1000000, 8388607, 8388608, 9999999,
+}
+
+type exhaustive32OracleFields struct {
+	sign        bool
+	coefficient uint32
+	exponent    int32
+	kind        Kind
+	payload     uint32
+}
+
+// intelBID32Oracle follows the branch order and field extraction of the pinned
+// Intel BID C unpack_BID32 routine in bid_internal.h. It is deliberately kept
+// separate from decode32Fields: the long test compares the production primitive
+// to this upstream-derived oracle for every raw decimal32 encoding.
+func intelBID32Oracle(raw uint32) exhaustive32OracleFields {
+	sign := raw&0x80000000 != 0
+
+	// Intel enters the steering form first, then distinguishes specials from
+	// large-coefficient finite encodings.
+	if raw&0x60000000 == 0x60000000 {
+		if raw&0x78000000 == 0x78000000 {
+			if raw&0x7c000000 != 0x7c000000 {
+				return exhaustive32OracleFields{sign: sign, kind: Infinity}
+			}
+			kind := QNaN
+			if raw&0x7e000000 == 0x7e000000 {
+				kind = SNaN
+			}
+			payload := raw & 0x000fffff
+			if payload >= 1000000 {
+				payload = 0
+			}
+			return exhaustive32OracleFields{sign: sign, kind: kind, payload: payload}
+		}
+
+		coefficient := (raw & 0x001fffff) | 0x00800000
+		if coefficient >= 10000000 {
+			coefficient = 0
+		}
+		exponent := int32((raw>>21)&0xff) - 101
+		kind := Normal
+		if coefficient == 0 {
+			kind = Zero
+		}
+		return exhaustive32OracleFields{
+			sign: sign, coefficient: coefficient, exponent: exponent, kind: kind,
+		}
+	}
+
+	coefficient := raw & 0x007fffff
+	exponent := int32((raw>>23)&0xff) - 101
+	kind := Normal
+	if coefficient == 0 {
+		kind = Zero
+	}
+	return exhaustive32OracleFields{
+		sign: sign, coefficient: coefficient, exponent: exponent, kind: kind,
+	}
+}
+
+func exhaustive32OraclePack(fields exhaustive32OracleFields) uint32 {
+	var sign uint32
+	if fields.sign {
+		sign = 0x80000000
+	}
+	switch fields.kind {
+	case Infinity:
+		return sign | 0x78000000
+	case QNaN:
+		return sign | 0x7c000000 | fields.payload
+	case SNaN:
+		return sign | 0x7e000000 | fields.payload
+	case Zero:
+		return sign | (uint32(fields.exponent+101) << 23)
+	case Normal:
+		exponent := uint32(fields.exponent + 101)
+		if fields.coefficient < 0x00800000 {
+			return sign | (exponent << 23) | fields.coefficient
+		}
+		return sign | 0x60000000 | (exponent << 21) | (fields.coefficient & 0x001fffff)
+	default:
+		panic("exhaustive32OraclePack: unreachable kind")
+	}
+}
+
+func exhaustive32FieldsMatch(got decoded32Fields, want exhaustive32OracleFields) bool {
+	return got.sign == want.sign &&
+		got.coefficient == want.coefficient &&
+		got.exponent == want.exponent &&
+		got.kind == want.kind &&
+		got.payload == want.payload
+}
+
+type exhaustive32Counts struct {
+	total        uint64
+	negative     uint64
+	normal       uint64
+	zero         uint64
+	infinity     uint64
+	qnan         uint64
+	snan         uint64
+	canonical    uint64
+	noncanonical uint64
+}
+
+func (c *exhaustive32Counts) observe(fields exhaustive32OracleFields, canonical bool) {
+	c.total++
+	if fields.sign {
+		c.negative++
+	}
+	switch fields.kind {
+	case Normal:
+		c.normal++
+	case Zero:
+		c.zero++
+	case Infinity:
+		c.infinity++
+	case QNaN:
+		c.qnan++
+	case SNaN:
+		c.snan++
+	}
+	if canonical {
+		c.canonical++
+	} else {
+		c.noncanonical++
+	}
+}
+
+func (c *exhaustive32Counts) add(other exhaustive32Counts) {
+	c.total += other.total
+	c.negative += other.negative
+	c.normal += other.normal
+	c.zero += other.zero
+	c.infinity += other.infinity
+	c.qnan += other.qnan
+	c.snan += other.snan
+	c.canonical += other.canonical
+	c.noncanonical += other.noncanonical
+}
+
+type exhaustive32Mismatch struct {
+	raw           uint32
+	got           decoded32Fields
+	want          exhaustive32OracleFields
+	gotCanonical  uint32
+	wantCanonical uint32
+}
+
+func exhaustive32Partition(start, size, index, count uint64) (uint64, uint64) {
+	base := size / count
+	remainder := size % count
+	offset := index*base + min(index, remainder)
+	partSize := base
+	if index < remainder {
+		partSize++
+	}
+	return start + offset, start + offset + partSize
+}
+
+func exhaustive32EnvUint64(t *testing.T, name string) (uint64, bool) {
+	t.Helper()
+	raw, ok := os.LookupEnv(name)
+	if !ok {
+		return 0, false
+	}
+	value, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil {
+		t.Fatalf("%s=%q is not an unsigned decimal integer: %v", name, raw, err)
+	}
+	return value, true
+}
+
+func exhaustive32SelectedRange(t *testing.T, total uint64) (start, end uint64, full bool) {
+	t.Helper()
+	count, hasCount := exhaustive32EnvUint64(t, "BID754_CODEC_D32_SHARD_COUNT")
+	index, hasIndex := exhaustive32EnvUint64(t, "BID754_CODEC_D32_SHARD_INDEX")
+	if hasCount != hasIndex {
+		t.Fatal("BID754_CODEC_D32_SHARD_COUNT and BID754_CODEC_D32_SHARD_INDEX must be set together")
+	}
+	if !hasCount {
+		return 0, total, true
+	}
+	if count == 0 || count > exhaustive32Total {
+		t.Fatalf("BID754_CODEC_D32_SHARD_COUNT=%d outside [1,%d]", count, exhaustive32Total)
+	}
+	if index >= count {
+		t.Fatalf("BID754_CODEC_D32_SHARD_INDEX=%d outside [0,%d)", index, count)
+	}
+	start, end = exhaustive32Partition(0, total, index, count)
+	return start, end, false
+}
+
+func exhaustive32WorkerCount(t *testing.T, size uint64) int {
+	t.Helper()
+	workers := uint64(runtime.GOMAXPROCS(0))
+	if value, ok := exhaustive32EnvUint64(t, "BID754_CODEC_D32_WORKERS"); ok {
+		if value == 0 || value > 1024 {
+			t.Fatalf("BID754_CODEC_D32_WORKERS=%d outside [1,1024]", value)
+		}
+		workers = value
+	}
+	if workers > size {
+		workers = size
+	}
+	return int(workers)
+}
+
+func TestDecimal32CodecExhaustiveRawSpace(t *testing.T) {
+	start, end, full := exhaustive32SelectedRange(t, exhaustive32Total)
+	workers := exhaustive32WorkerCount(t, end-start)
+	results := make([]exhaustive32Counts, workers)
+	failures := make(chan exhaustive32Mismatch, 1)
+	var failed atomic.Bool
+	var wg sync.WaitGroup
+
+	for worker := 0; worker < workers; worker++ {
+		workerStart, workerEnd := exhaustive32Partition(start, end-start, uint64(worker), uint64(workers))
+		wg.Add(1)
+		go func(worker int, workerStart, workerEnd uint64) {
+			defer wg.Done()
+			local := &results[worker]
+			for value := workerStart; value < workerEnd; value++ {
+				if value&0x0fff == 0 && failed.Load() {
+					return
+				}
+				raw := uint32(value)
+				want := intelBID32Oracle(raw)
+				got := decode32Fields(raw)
+				gotCanonical := packBID32Fields(got)
+				wantCanonical := exhaustive32OraclePack(want)
+				if !exhaustive32FieldsMatch(got, want) || gotCanonical != wantCanonical {
+					if failed.CompareAndSwap(false, true) {
+						failures <- exhaustive32Mismatch{
+							raw: raw, got: got, want: want,
+							gotCanonical: gotCanonical, wantCanonical: wantCanonical,
+						}
+					}
+					return
+				}
+				local.observe(want, raw == wantCanonical)
+			}
+		}(worker, workerStart, workerEnd)
+	}
+	wg.Wait()
+	close(failures)
+
+	if mismatch, ok := <-failures; ok {
+		t.Fatalf(
+			"raw=%08x production=%+v oracle=%+v productionCanonical=%08x oracleCanonical=%08x",
+			mismatch.raw, mismatch.got, mismatch.want,
+			mismatch.gotCanonical, mismatch.wantCanonical,
+		)
+	}
+
+	var got exhaustive32Counts
+	for _, result := range results {
+		got.add(result)
+	}
+	if got.total != end-start {
+		t.Fatalf("executed %d raw patterns, want exact selected range size %d", got.total, end-start)
+	}
+
+	if full {
+		want := exhaustive32Counts{
+			total:        exhaustive32Total,
+			negative:     exhaustive32Total / 2,
+			normal:       exhaustive32RawNormal,
+			zero:         exhaustive32RawZero,
+			infinity:     exhaustive32RawInfinity,
+			qnan:         exhaustive32RawQNaN,
+			snan:         exhaustive32RawSNaN,
+			canonical:    exhaustive32RawCanonical,
+			noncanonical: exhaustive32RawNoncanonical,
+		}
+		if got != want {
+			t.Fatalf("full-space class counts = %+v, want %+v", got, want)
+		}
+	}
+
+	t.Logf(
+		"verified raw range [%d,%d): total=%d normal=%d zero=%d inf=%d qnan=%d snan=%d canonical=%d noncanonical=%d workers=%d",
+		start, end, got.total, got.normal, got.zero, got.infinity, got.qnan, got.snan,
+		got.canonical, got.noncanonical, workers,
+	)
+}
+
+func exhaustive32StructuredCase(index uint64) exhaustive32OracleFields {
+	if index < exhaustive32CoefficientCases {
+		return exhaustive32OracleFields{
+			sign: index&1 != 0, coefficient: uint32(index/2) + 1, exponent: 0, kind: Normal,
+		}
+	}
+	index -= exhaustive32CoefficientCases
+
+	if index < exhaustive32NaNCases {
+		combination := index / 1000000
+		kind := QNaN
+		if combination >= 2 {
+			kind = SNaN
+		}
+		return exhaustive32OracleFields{
+			sign: combination&1 != 0, kind: kind, payload: uint32(index % 1000000),
+		}
+	}
+	index -= exhaustive32NaNCases
+
+	if index < exhaustive32ExponentCases {
+		perExponent := uint64(len(exhaustive32ExponentCoefficients) * 2)
+		exponentIndex := index / perExponent
+		withinExponent := index % perExponent
+		return exhaustive32OracleFields{
+			sign:        withinExponent&1 != 0,
+			coefficient: exhaustive32ExponentCoefficients[withinExponent/2],
+			exponent:    int32(exponentIndex) - 101,
+			kind:        Normal,
+		}
+	}
+	index -= exhaustive32ExponentCases
+
+	if index < exhaustive32ZeroCases {
+		return exhaustive32OracleFields{
+			sign: index&1 != 0, exponent: int32(index/2) - 101, kind: Zero,
+		}
+	}
+	index -= exhaustive32ZeroCases
+
+	return exhaustive32OracleFields{sign: index == 1, kind: Infinity}
+}
+
+func exhaustive32Components(fields exhaustive32OracleFields) Components {
+	c := Components{Sign: fields.sign, Exponent: fields.exponent, Kind: fields.kind}
+	switch fields.kind {
+	case Normal:
+		c.Coefficient = new(big.Int).SetUint64(uint64(fields.coefficient))
+	case QNaN, SNaN:
+		c.Payload = new(big.Int).SetUint64(uint64(fields.payload))
+	}
+	return c
+}
+
+func exhaustive32BigIntMatches(value *big.Int, want uint32) bool {
+	if value == nil {
+		return want == 0
+	}
+	return value.Sign() >= 0 && value.BitLen() <= 32 && value.Uint64() == uint64(want)
+}
+
+func exhaustive32ComponentsMatch(got Components, want exhaustive32OracleFields) bool {
+	return got.Sign == want.sign &&
+		got.Exponent == want.exponent &&
+		got.Kind == want.kind &&
+		exhaustive32BigIntMatches(got.Coefficient, want.coefficient) &&
+		exhaustive32BigIntMatches(got.Payload, want.payload)
+}
+
+func exhaustive32SignedExponent(exponent int32) string {
+	if exponent >= 0 {
+		return "+" + strconv.FormatInt(int64(exponent), 10)
+	}
+	return strconv.FormatInt(int64(exponent), 10)
+}
+
+func exhaustive32OracleString(fields exhaustive32OracleFields) string {
+	prefix := "+"
+	if fields.sign {
+		prefix = "-"
+	}
+	switch fields.kind {
+	case Infinity:
+		return prefix + "Inf"
+	case QNaN:
+		if fields.payload == 0 {
+			return prefix + "NaN"
+		}
+		return prefix + "NaN" + strconv.FormatUint(uint64(fields.payload), 10)
+	case SNaN:
+		if fields.payload == 0 {
+			return prefix + "SNaN"
+		}
+		return prefix + "SNaN" + strconv.FormatUint(uint64(fields.payload), 10)
+	case Zero:
+		if fields.exponent == 0 {
+			return prefix + "0"
+		}
+		return prefix + "0E" + exhaustive32SignedExponent(fields.exponent)
+	case Normal:
+		digits := strconv.FormatUint(uint64(fields.coefficient), 10)
+		adjustedExponent := fields.exponent + int32(len(digits)-1)
+		if len(digits) == 1 {
+			return prefix + digits + "E" + exhaustive32SignedExponent(adjustedExponent)
+		}
+		return prefix + digits[:1] + "." + digits[1:] + "E" +
+			exhaustive32SignedExponent(adjustedExponent)
+	default:
+		panic("exhaustive32OracleString: unreachable kind")
+	}
+}
+
+func exhaustive32VerifyStructured(fields exhaustive32OracleFields) string {
+	components := exhaustive32Components(fields)
+	wantBits := exhaustive32OraclePack(fields)
+
+	bits, err := Encode32(components)
+	if err != nil || bits != wantBits {
+		return fmt.Sprintf("Encode32 bits=%08x err=%v want=%08x", bits, err, wantBits)
+	}
+	if decoded := Decode32(bits); !exhaustive32ComponentsMatch(decoded, fields) {
+		return fmt.Sprintf("Decode32 components=%+v want=%+v", decoded, fields)
+	}
+
+	encodedBytes, err := Encode32Bytes(components)
+	encodedWord := binary.LittleEndian.Uint32(encodedBytes[:])
+	if err != nil || encodedWord != wantBits {
+		return fmt.Sprintf(
+			"Encode32Bytes bytes=%x littleEndianBits=%08x err=%v wantBits=%08x",
+			encodedBytes, encodedWord, err, wantBits,
+		)
+	}
+	decodedBytes, err := Decode32Bytes(encodedBytes[:])
+	if err != nil || !exhaustive32ComponentsMatch(decodedBytes, fields) {
+		return fmt.Sprintf("Decode32Bytes components=%+v err=%v want=%+v", decodedBytes, err, fields)
+	}
+
+	wantString := exhaustive32OracleString(fields)
+	rendered, err := ToString(components)
+	if err != nil || rendered != wantString {
+		return fmt.Sprintf("ToString=%q err=%v want=%q", rendered, err, wantString)
+	}
+	parsed, err := FromString(rendered)
+	if err != nil || !exhaustive32ComponentsMatch(parsed, fields) {
+		return fmt.Sprintf("FromString(%q)=%+v err=%v want=%+v", rendered, parsed, err, fields)
+	}
+	renderedAgain, err := ToString(parsed)
+	if err != nil || renderedAgain != wantString {
+		return fmt.Sprintf("string closure=%q err=%v want=%q", renderedAgain, err, wantString)
+	}
+	return ""
+}
+
+type exhaustive32StructuredMismatch struct {
+	index  uint64
+	fields exhaustive32OracleFields
+	reason string
+}
+
+func TestDecimal32CodecStructuredComponents(t *testing.T) {
+	start, end, full := exhaustive32SelectedRange(t, exhaustive32StructuredTotal)
+	workers := exhaustive32WorkerCount(t, end-start)
+	results := make([]exhaustive32Counts, workers)
+	failures := make(chan exhaustive32StructuredMismatch, 1)
+	var failed atomic.Bool
+	var wg sync.WaitGroup
+
+	for worker := 0; worker < workers; worker++ {
+		workerStart, workerEnd := exhaustive32Partition(start, end-start, uint64(worker), uint64(workers))
+		wg.Add(1)
+		go func(worker int, workerStart, workerEnd uint64) {
+			defer wg.Done()
+			local := &results[worker]
+			for index := workerStart; index < workerEnd; index++ {
+				if index&0x0fff == 0 && failed.Load() {
+					return
+				}
+				fields := exhaustive32StructuredCase(index)
+				if reason := exhaustive32VerifyStructured(fields); reason != "" {
+					if failed.CompareAndSwap(false, true) {
+						failures <- exhaustive32StructuredMismatch{index: index, fields: fields, reason: reason}
+					}
+					return
+				}
+				local.observe(fields, true)
+			}
+		}(worker, workerStart, workerEnd)
+	}
+	wg.Wait()
+	close(failures)
+
+	if mismatch, ok := <-failures; ok {
+		t.Fatalf("case=%d fields=%+v: %s", mismatch.index, mismatch.fields, mismatch.reason)
+	}
+
+	var got exhaustive32Counts
+	for _, result := range results {
+		got.add(result)
+	}
+	if got.total != end-start {
+		t.Fatalf("executed %d structured cases, want exact selected range size %d", got.total, end-start)
+	}
+
+	if full {
+		want := exhaustive32Counts{
+			total:     exhaustive32StructuredTotal,
+			negative:  exhaustive32StructuredTotal / 2,
+			normal:    exhaustive32StructuredNormal,
+			zero:      exhaustive32StructuredZero,
+			infinity:  exhaustive32StructuredInfinity,
+			qnan:      exhaustive32StructuredQNaN,
+			snan:      exhaustive32StructuredSNaN,
+			canonical: exhaustive32StructuredTotal,
+		}
+		if got != want {
+			t.Fatalf("full structured class counts = %+v, want %+v", got, want)
+		}
+	}
+
+	t.Logf(
+		"verified structured range [%d,%d): total=%d normal=%d zero=%d inf=%d qnan=%d snan=%d workers=%d",
+		start, end, got.total, got.normal, got.zero, got.infinity, got.qnan, got.snan, workers,
+	)
+}
