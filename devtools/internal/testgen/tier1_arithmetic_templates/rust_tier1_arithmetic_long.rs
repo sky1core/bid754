@@ -27,6 +27,13 @@ const SEMANTIC_SCALE128_COUNT: usize = @@TIER1_SEMANTIC_SCALE128_COUNT@@;
 const SEMANTIC_REMAINDER32_COUNT: usize = @@TIER1_SEMANTIC_REMAINDER32_COUNT@@;
 const SEMANTIC_REMAINDER64_COUNT: usize = @@TIER1_SEMANTIC_REMAINDER64_COUNT@@;
 const SEMANTIC_REMAINDER128_COUNT: usize = @@TIER1_SEMANTIC_REMAINDER128_COUNT@@;
+const SEMANTIC_FMA32_COUNT: usize = @@TIER1_SEMANTIC_FMA32_COUNT@@;
+const SEMANTIC_FMA64_COUNT: usize = @@TIER1_SEMANTIC_FMA64_COUNT@@;
+const SEMANTIC_FMA128_COUNT: usize = @@TIER1_SEMANTIC_FMA128_COUNT@@;
+const SEMANTIC_SQRT32_COUNT: usize = @@TIER1_SEMANTIC_SQRT32_COUNT@@;
+const SEMANTIC_SQRT64_COUNT: usize = @@TIER1_SEMANTIC_SQRT64_COUNT@@;
+const SEMANTIC_SQRT128_COUNT: usize = @@TIER1_SEMANTIC_SQRT128_COUNT@@;
+const RANDOM_OPS: u64 = 10;
 const RANDOM_CASES32: u64 = @@TIER1_RANDOM_CASES_PER_OP32@@;
 const RANDOM_CASES64: u64 = @@TIER1_RANDOM_CASES_PER_OP64@@;
 const RANDOM_CASES128: u64 = @@TIER1_RANDOM_CASES_PER_OP128@@;
@@ -97,6 +104,12 @@ struct Pair32 { x: u32, y: u32 }
 struct Pair64 { x: u64, y: u64 }
 #[derive(Clone, Copy)]
 struct Pair128 { x: Words, y: Words }
+#[derive(Clone, Copy)]
+struct Triple32 { x: u32, y: u32, z: u32 }
+#[derive(Clone, Copy)]
+struct Triple64 { x: u64, y: u64, z: u64 }
+#[derive(Clone, Copy)]
+struct Triple128 { x: Words, y: Words, z: Words }
 
 #[derive(Clone, Copy)]
 struct Shard { count: u64, index: u64 }
@@ -262,6 +275,56 @@ fn check_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) {
         "Decimal128 {op:?} mismatch x={x:?} y={y:?} mode={}", mode.name);
 }
 
+fn check_fma32(x: u32, y: u32, z: u32, mode: Mode) {
+    let mut native_flags = 0u32;
+    let native = unsafe { libbid_sys::bid32_fma(x, y, z, mode.native, &mut native_flags) };
+    let (public, flags) = Decimal32::from_bits(x)
+        .fma_with_mode(Decimal32::from_bits(y), Decimal32::from_bits(z), mode.public);
+    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+        "Decimal32 fma mismatch x={x:08x} y={y:08x} z={z:08x} mode={}", mode.name);
+}
+
+fn check_fma64(x: u64, y: u64, z: u64, mode: Mode) {
+    let mut native_flags = 0u32;
+    let native = unsafe { libbid_sys::bid64_fma(x, y, z, mode.native, &mut native_flags) };
+    let (public, flags) = Decimal64::from_bits(x)
+        .fma_with_mode(Decimal64::from_bits(y), Decimal64::from_bits(z), mode.public);
+    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+        "Decimal64 fma mismatch x={x:016x} y={y:016x} z={z:016x} mode={}", mode.name);
+}
+
+fn check_fma128(x: Words, y: Words, z: Words, mode: Mode) {
+    let mut native_flags = 0u32;
+    let native = unsafe { libbid_sys::bid128_fma(c128(x), c128(y), c128(z), mode.native, &mut native_flags) };
+    let (public, flags) = decimal128(x).fma_with_mode(decimal128(y), decimal128(z), mode.public);
+    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+        "Decimal128 fma mismatch x={x:?} y={y:?} z={z:?} mode={}", mode.name);
+}
+
+fn check_sqrt32(x: u32, mode: Mode) {
+    let mut native_flags = 0u32;
+    let native = unsafe { libbid_sys::bid32_sqrt(x, mode.native, &mut native_flags) };
+    let (public, flags) = Decimal32::from_bits(x).sqrt_with_mode(mode.public);
+    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+        "Decimal32 sqrt mismatch x={x:08x} mode={}", mode.name);
+}
+
+fn check_sqrt64(x: u64, mode: Mode) {
+    let mut native_flags = 0u32;
+    let native = unsafe { libbid_sys::bid64_sqrt(x, mode.native, &mut native_flags) };
+    let (public, flags) = Decimal64::from_bits(x).sqrt_with_mode(mode.public);
+    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+        "Decimal64 sqrt mismatch x={x:016x} mode={}", mode.name);
+}
+
+fn check_sqrt128(x: Words, mode: Mode) {
+    let mut native_flags = 0u32;
+    let native = unsafe { libbid_sys::bid128_sqrt(c128(x), mode.native, &mut native_flags) };
+    let (public, flags) = decimal128(x).sqrt_with_mode(mode.public);
+    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+        "Decimal128 sqrt mismatch x={x:?} mode={}", mode.name);
+}
+
 fn check_unrounded32(op: UnroundedOp, x: u32, y: u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
@@ -349,6 +412,42 @@ fn visit_pairs128(mut visit: impl FnMut(Words, Words)) {
     for &x in &PROBES128 { for &y in &PROBES128 { visit(x, y); } }
 }
 
+fn visit_triples32(mut visit: impl FnMut(u32, u32, u32)) {
+    for (i, &x) in BOUNDARY32.iter().enumerate() {
+        for (j, &y) in PROBES32.iter().enumerate() {
+            let z = PROBES32[(i + j) % PROBES32.len()];
+            visit(x, y, z);
+            visit(y, z, x);
+            visit(z, x, y);
+        }
+    }
+    for &x in &PROBES32 { for &y in &PROBES32 { for &z in &PROBES32 { visit(x, y, z); } } }
+}
+
+fn visit_triples64(mut visit: impl FnMut(u64, u64, u64)) {
+    for (i, &x) in BOUNDARY64.iter().enumerate() {
+        for (j, &y) in PROBES64.iter().enumerate() {
+            let z = PROBES64[(i + j) % PROBES64.len()];
+            visit(x, y, z);
+            visit(y, z, x);
+            visit(z, x, y);
+        }
+    }
+    for &x in &PROBES64 { for &y in &PROBES64 { for &z in &PROBES64 { visit(x, y, z); } } }
+}
+
+fn visit_triples128(mut visit: impl FnMut(Words, Words, Words)) {
+    for (i, &x) in BOUNDARY128.iter().enumerate() {
+        for (j, &y) in PROBES128.iter().enumerate() {
+            let z = PROBES128[(i + j) % PROBES128.len()];
+            visit(x, y, z);
+            visit(y, z, x);
+            visit(z, x, y);
+        }
+    }
+    for &x in &PROBES128 { for &y in &PROBES128 { for &z in &PROBES128 { visit(x, y, z); } } }
+}
+
 #[test]
 fn tier1_arithmetic_corpus_contract() {
     assert_eq!(std::mem::size_of::<c_long>(), 8, "Tier 1 native oracle requires LP64");
@@ -365,6 +464,15 @@ fn tier1_arithmetic_corpus_contract() {
     assert_eq!(SEMANTIC_REMAINDER32.len(), SEMANTIC_REMAINDER32_COUNT);
     assert_eq!(SEMANTIC_REMAINDER64.len(), SEMANTIC_REMAINDER64_COUNT);
     assert_eq!(SEMANTIC_REMAINDER128.len(), SEMANTIC_REMAINDER128_COUNT);
+    assert_eq!(SEMANTIC_FMA32.len(), SEMANTIC_FMA32_COUNT);
+    assert_eq!(SEMANTIC_FMA64.len(), SEMANTIC_FMA64_COUNT);
+    assert_eq!(SEMANTIC_FMA128.len(), SEMANTIC_FMA128_COUNT);
+    assert_eq!(SEMANTIC_SQRT32.len(), SEMANTIC_SQRT32_COUNT);
+    assert_eq!(SEMANTIC_SQRT64.len(), SEMANTIC_SQRT64_COUNT);
+    assert_eq!(SEMANTIC_SQRT128.len(), SEMANTIC_SQRT128_COUNT);
+    assert_eq!(RANDOM32_COUNT, RANDOM_CASES32 * RANDOM_OPS);
+    assert_eq!(RANDOM64_COUNT, RANDOM_CASES64 * RANDOM_OPS);
+    assert_eq!(RANDOM128_COUNT, RANDOM_CASES128 * RANDOM_OPS);
     assert_eq!(random_word(0xdec7543200000000, 0, 0), @@TIER1_RANDOM_SAMPLE0@@);
     assert_eq!(random_word(0xdec7546400000004, (1 << 20) - 1, 1), @@TIER1_RANDOM_SAMPLE1@@);
     assert_eq!(random_word(0xdec7541253414c45, (1 << 19) - 1, 2), @@TIER1_RANDOM_SAMPLE2@@);
@@ -384,6 +492,8 @@ fn tier1_arithmetic_structured_native_differential() {
         visit_pairs32(|x, y| { for &mode in &MODES { if shard.owns(count) { check_rounded32(op, x, y, mode); } count += 1; } });
     }
     for &tc in SEMANTIC_ROUNDED32 { for &mode in &MODES { if shard.owns(count) { check_rounded32(tc.op, tc.x, tc.y, mode); } count += 1; } }
+    visit_triples32(|x, y, z| { for &mode in &MODES { if shard.owns(count) { check_fma32(x, y, z, mode); } count += 1; } });
+    for &tc in SEMANTIC_FMA32 { for &mode in &MODES { if shard.owns(count) { check_fma32(tc.x, tc.y, tc.z, mode); } count += 1; } }
     for &op in &UNROUNDED_OPS { visit_pairs32(|x, y| { if shard.owns(count) { check_unrounded32(op, x, y); } count += 1; }); }
     for &tc in SEMANTIC_REMAINDER32 {
         for &op in &UNROUNDED_OPS { if shard.owns(count) { check_unrounded32(op, tc.x, tc.y); } count += 1; }
@@ -392,6 +502,8 @@ fn tier1_arithmetic_structured_native_differential() {
                 Decimal32::from_bits(tc.x).fmod(Decimal32::from_bits(tc.y)).0.to_bits(), "Decimal32 remainder/fmod discriminator collapsed");
         }
     }
+    for &x in BOUNDARY32 { for &mode in &MODES { if shard.owns(count) { check_sqrt32(x, mode); } count += 1; } }
+    for &x in SEMANTIC_SQRT32 { for &mode in &MODES { if shard.owns(count) { check_sqrt32(x, mode); } count += 1; } }
     for &x in BOUNDARY32 { for &exponent in &SCALE_EXPONENTS { for &mode in &MODES { if shard.owns(count) { check_scale32(x, exponent, mode); } count += 1; } } }
     for &tc in SEMANTIC_SCALE32 { for &mode in &MODES { if shard.owns(count) { check_scale32(tc.x, tc.exponent, mode); } count += 1; } }
     assert_eq!(count, STRUCTURED32_COUNT);
@@ -402,6 +514,8 @@ fn tier1_arithmetic_structured_native_differential() {
         visit_pairs64(|x, y| { for &mode in &MODES { if shard.owns(count) { check_rounded64(op, x, y, mode); } count += 1; } });
     }
     for &tc in SEMANTIC_ROUNDED64 { for &mode in &MODES { if shard.owns(count) { check_rounded64(tc.op, tc.x, tc.y, mode); } count += 1; } }
+    visit_triples64(|x, y, z| { for &mode in &MODES { if shard.owns(count) { check_fma64(x, y, z, mode); } count += 1; } });
+    for &tc in SEMANTIC_FMA64 { for &mode in &MODES { if shard.owns(count) { check_fma64(tc.x, tc.y, tc.z, mode); } count += 1; } }
     for &op in &UNROUNDED_OPS { visit_pairs64(|x, y| { if shard.owns(count) { check_unrounded64(op, x, y); } count += 1; }); }
     for &tc in SEMANTIC_REMAINDER64 {
         for &op in &UNROUNDED_OPS { if shard.owns(count) { check_unrounded64(op, tc.x, tc.y); } count += 1; }
@@ -410,6 +524,8 @@ fn tier1_arithmetic_structured_native_differential() {
                 Decimal64::from_bits(tc.x).fmod(Decimal64::from_bits(tc.y)).0.to_bits(), "Decimal64 remainder/fmod discriminator collapsed");
         }
     }
+    for &x in BOUNDARY64 { for &mode in &MODES { if shard.owns(count) { check_sqrt64(x, mode); } count += 1; } }
+    for &x in SEMANTIC_SQRT64 { for &mode in &MODES { if shard.owns(count) { check_sqrt64(x, mode); } count += 1; } }
     for &x in BOUNDARY64 { for &exponent in &SCALE_EXPONENTS { for &mode in &MODES { if shard.owns(count) { check_scale64(x, exponent, mode); } count += 1; } } }
     for &tc in SEMANTIC_SCALE64 { for &mode in &MODES { if shard.owns(count) { check_scale64(tc.x, tc.exponent, mode); } count += 1; } }
     assert_eq!(count, STRUCTURED64_COUNT);
@@ -420,6 +536,8 @@ fn tier1_arithmetic_structured_native_differential() {
         visit_pairs128(|x, y| { for &mode in &MODES { if shard.owns(count) { check_rounded128(op, x, y, mode); } count += 1; } });
     }
     for &tc in SEMANTIC_ROUNDED128 { for &mode in &MODES { if shard.owns(count) { check_rounded128(tc.op, tc.x, tc.y, mode); } count += 1; } }
+    visit_triples128(|x, y, z| { for &mode in &MODES { if shard.owns(count) { check_fma128(x, y, z, mode); } count += 1; } });
+    for &tc in SEMANTIC_FMA128 { for &mode in &MODES { if shard.owns(count) { check_fma128(tc.x, tc.y, tc.z, mode); } count += 1; } }
     for &op in &UNROUNDED_OPS { visit_pairs128(|x, y| { if shard.owns(count) { check_unrounded128(op, x, y); } count += 1; }); }
     for &tc in SEMANTIC_REMAINDER128 {
         for &op in &UNROUNDED_OPS { if shard.owns(count) { check_unrounded128(op, tc.x, tc.y); } count += 1; }
@@ -428,6 +546,8 @@ fn tier1_arithmetic_structured_native_differential() {
                 decimal128_words(decimal128(tc.x).fmod(decimal128(tc.y)).0), "Decimal128 remainder/fmod discriminator collapsed");
         }
     }
+    for &x in BOUNDARY128 { for &mode in &MODES { if shard.owns(count) { check_sqrt128(x, mode); } count += 1; } }
+    for &x in SEMANTIC_SQRT128 { for &mode in &MODES { if shard.owns(count) { check_sqrt128(x, mode); } count += 1; } }
     for &x in BOUNDARY128 { for &exponent in &SCALE_EXPONENTS { for &mode in &MODES { if shard.owns(count) { check_scale128(x, exponent, mode); } count += 1; } } }
     for &tc in SEMANTIC_SCALE128 { for &mode in &MODES { if shard.owns(count) { check_scale128(tc.x, tc.exponent, mode); } count += 1; } }
     assert_eq!(count, STRUCTURED128_COUNT);
@@ -684,6 +804,10 @@ fn tier1_arithmetic_deterministic_random_native_differential() {
     }
     let seed = 0xdec7543253414c45;
     for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_scale32(random_scale_operand32(seed, i, SCALE_FINITE_TRANSITION_LIMIT32 as i64), random_scale_exponent(seed, i, 1, SCALE_FINITE_TRANSITION_LIMIT32 as i64), MODES[i as usize % MODES.len()]); } count += 1; }
+    let seed = 0xdec7543220000000u64;
+    for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_fma32(random_word(seed, i, 0) as u32, random_word(seed, i, 1) as u32, random_word(seed, i, 2) as u32, MODES[i as usize % MODES.len()]); } count += 1; }
+    let seed = 0xdec7543230000000u64;
+    for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_sqrt32(random_word(seed, i, 0) as u32, MODES[i as usize % MODES.len()]); } count += 1; }
     assert_eq!(count, RANDOM32_COUNT);
     eprintln!("Rust Decimal32 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
 
@@ -698,6 +822,10 @@ fn tier1_arithmetic_deterministic_random_native_differential() {
     }
     let seed = 0xdec7546453414c45;
     for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_scale64(random_scale_operand64(seed, i, SCALE_FINITE_TRANSITION_LIMIT64 as i64), random_scale_exponent(seed, i, 1, SCALE_FINITE_TRANSITION_LIMIT64 as i64), MODES[i as usize % MODES.len()]); } count += 1; }
+    let seed = 0xdec7546420000000u64;
+    for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_fma64(random_word(seed, i, 0), random_word(seed, i, 1), random_word(seed, i, 2), MODES[i as usize % MODES.len()]); } count += 1; }
+    let seed = 0xdec7546430000000u64;
+    for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_sqrt64(random_word(seed, i, 0), MODES[i as usize % MODES.len()]); } count += 1; }
     assert_eq!(count, RANDOM64_COUNT);
     eprintln!("Rust Decimal64 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
 
@@ -719,6 +847,16 @@ fn tier1_arithmetic_deterministic_random_native_differential() {
     let seed = 0xdec7541253414c45;
     for i in 0..RANDOM_CASES128 {
         if shard.owns(count) { check_scale128(random_scale_operand128(seed, i, SCALE_FINITE_TRANSITION_LIMIT128 as i64), random_scale_exponent(seed, i, 2, SCALE_FINITE_TRANSITION_LIMIT128 as i64), MODES[i as usize % MODES.len()]); }
+        count += 1;
+    }
+    let seed = 0xdec7541220000000u64;
+    for i in 0..RANDOM_CASES128 {
+        if shard.owns(count) { check_fma128(Words { lo: random_word(seed, i, 0), hi: random_word(seed, i, 1) }, Words { lo: random_word(seed, i, 2), hi: random_word(seed, i, 3) }, Words { lo: random_word(seed, i, 4), hi: random_word(seed, i, 5) }, MODES[i as usize % MODES.len()]); }
+        count += 1;
+    }
+    let seed = 0xdec7541230000000u64;
+    for i in 0..RANDOM_CASES128 {
+        if shard.owns(count) { check_sqrt128(Words { lo: random_word(seed, i, 0), hi: random_word(seed, i, 1) }, MODES[i as usize % MODES.len()]); }
         count += 1;
     }
     assert_eq!(count, RANDOM128_COUNT);
@@ -768,6 +906,24 @@ const SEMANTIC_SCALE64: &[Scale64] = &[
 ];
 const SEMANTIC_SCALE128: &[Scale128] = &[
 @@TIER1_SEMANTIC_SCALE128_VALUES@@
+];
+const SEMANTIC_FMA32: &[Triple32] = &[
+@@TIER1_SEMANTIC_FMA32_VALUES@@
+];
+const SEMANTIC_FMA64: &[Triple64] = &[
+@@TIER1_SEMANTIC_FMA64_VALUES@@
+];
+const SEMANTIC_FMA128: &[Triple128] = &[
+@@TIER1_SEMANTIC_FMA128_VALUES@@
+];
+const SEMANTIC_SQRT32: &[u32] = &[
+@@TIER1_SEMANTIC_SQRT32_VALUES@@
+];
+const SEMANTIC_SQRT64: &[u64] = &[
+@@TIER1_SEMANTIC_SQRT64_VALUES@@
+];
+const SEMANTIC_SQRT128: &[Words] = &[
+@@TIER1_SEMANTIC_SQRT128_VALUES@@
 ];
 const SEMANTIC_REMAINDER32: &[Pair32] = &[
 @@TIER1_SEMANTIC_REMAINDER32_VALUES@@

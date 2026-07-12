@@ -24,11 +24,18 @@ const (
 	tier1ArithmeticSemanticRemainder32Count      = uint64(4)
 	tier1ArithmeticSemanticRemainder64Count      = uint64(4)
 	tier1ArithmeticSemanticRemainder128Count     = uint64(4)
+	tier1ArithmeticSemanticFma32Count            = uint64(4)
+	tier1ArithmeticSemanticFma64Count            = uint64(4)
+	tier1ArithmeticSemanticFma128Count           = uint64(4)
+	tier1ArithmeticSemanticSqrt32Count           = uint64(4)
+	tier1ArithmeticSemanticSqrt64Count           = uint64(4)
+	tier1ArithmeticSemanticSqrt128Count          = uint64(4)
 	tier1ArithmeticProbeCount                    = uint64(12)
 	tier1ArithmeticRoundingModes                 = uint64(5)
 	tier1ArithmeticRoundedOps                    = uint64(5)
 	tier1ArithmeticUnroundedOps                  = uint64(2)
-	tier1ArithmeticRandomOps                     = uint64(8)
+	tier1ArithmeticFmaSlotArrangements           = uint64(3)
+	tier1ArithmeticRandomOps                     = uint64(10)
 	tier1ArithmeticScaleExponents                = uint64(25)
 	tier1ArithmeticScaleFiniteTransitionLimit32  = uint64(197)
 	tier1ArithmeticScaleFiniteTransitionLimit64  = uint64(782)
@@ -51,18 +58,31 @@ const (
 	tier1ArithmeticBoundaryPairs128 = tier1ArithmeticBoundary128Count*tier1ArithmeticProbeCount*2 +
 		tier1ArithmeticProbeCount*tier1ArithmeticProbeCount
 
+	tier1ArithmeticFmaTriples32 = tier1ArithmeticBoundary32Count*tier1ArithmeticProbeCount*tier1ArithmeticFmaSlotArrangements +
+		tier1ArithmeticProbeCount*tier1ArithmeticProbeCount*tier1ArithmeticProbeCount
+	tier1ArithmeticFmaTriples64 = tier1ArithmeticBoundary64Count*tier1ArithmeticProbeCount*tier1ArithmeticFmaSlotArrangements +
+		tier1ArithmeticProbeCount*tier1ArithmeticProbeCount*tier1ArithmeticProbeCount
+	tier1ArithmeticFmaTriples128 = tier1ArithmeticBoundary128Count*tier1ArithmeticProbeCount*tier1ArithmeticFmaSlotArrangements +
+		tier1ArithmeticProbeCount*tier1ArithmeticProbeCount*tier1ArithmeticProbeCount
+
 	tier1ArithmeticStructuredComparisons32 = tier1ArithmeticBoundaryPairs32*
 		(tier1ArithmeticRoundedOps*tier1ArithmeticRoundingModes+tier1ArithmeticUnroundedOps) +
+		(tier1ArithmeticFmaTriples32+tier1ArithmeticSemanticFma32Count)*tier1ArithmeticRoundingModes +
+		(tier1ArithmeticBoundary32Count+tier1ArithmeticSemanticSqrt32Count)*tier1ArithmeticRoundingModes +
 		tier1ArithmeticBoundary32Count*tier1ArithmeticScaleExponents*tier1ArithmeticRoundingModes +
 		(tier1ArithmeticSemanticRounded32Count+tier1ArithmeticSemanticScale32Count)*tier1ArithmeticRoundingModes +
 		tier1ArithmeticSemanticRemainder32Count*tier1ArithmeticUnroundedOps
 	tier1ArithmeticStructuredComparisons64 = tier1ArithmeticBoundaryPairs64*
 		(tier1ArithmeticRoundedOps*tier1ArithmeticRoundingModes+tier1ArithmeticUnroundedOps) +
+		(tier1ArithmeticFmaTriples64+tier1ArithmeticSemanticFma64Count)*tier1ArithmeticRoundingModes +
+		(tier1ArithmeticBoundary64Count+tier1ArithmeticSemanticSqrt64Count)*tier1ArithmeticRoundingModes +
 		tier1ArithmeticBoundary64Count*tier1ArithmeticScaleExponents*tier1ArithmeticRoundingModes +
 		(tier1ArithmeticSemanticRounded64Count+tier1ArithmeticSemanticScale64Count)*tier1ArithmeticRoundingModes +
 		tier1ArithmeticSemanticRemainder64Count*tier1ArithmeticUnroundedOps
 	tier1ArithmeticStructuredComparisons128 = tier1ArithmeticBoundaryPairs128*
 		(tier1ArithmeticRoundedOps*tier1ArithmeticRoundingModes+tier1ArithmeticUnroundedOps) +
+		(tier1ArithmeticFmaTriples128+tier1ArithmeticSemanticFma128Count)*tier1ArithmeticRoundingModes +
+		(tier1ArithmeticBoundary128Count+tier1ArithmeticSemanticSqrt128Count)*tier1ArithmeticRoundingModes +
 		tier1ArithmeticBoundary128Count*tier1ArithmeticScaleExponents*tier1ArithmeticRoundingModes +
 		(tier1ArithmeticSemanticRounded128Count+tier1ArithmeticSemanticScale128Count)*tier1ArithmeticRoundingModes +
 		tier1ArithmeticSemanticRemainder128Count*tier1ArithmeticUnroundedOps
@@ -218,6 +238,24 @@ type tier1ArithmeticPair128 struct {
 	y tier1Arithmetic128Words
 }
 
+type tier1ArithmeticTriple32 struct {
+	x uint32
+	y uint32
+	z uint32
+}
+
+type tier1ArithmeticTriple64 struct {
+	x uint64
+	y uint64
+	z uint64
+}
+
+type tier1ArithmeticTriple128 struct {
+	x tier1Arithmetic128Words
+	y tier1Arithmetic128Words
+	z tier1Arithmetic128Words
+}
+
 func tier1ArithmeticDecimal128(words tier1Arithmetic128Words) Decimal128BID {
 	var value Decimal128BID
 	binary.LittleEndian.PutUint64(value[0:8], words.lo)
@@ -269,6 +307,26 @@ func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, 
 	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, mode.name, native, port, public, unknownPublicFlags)
+	}
+}
+
+func tier1ArithmeticCheckFma32(t *testing.T, x, y, z uint32, mode tier1ArithmeticMode) {
+	native, port := runGeneratedFFICase32Ternary("bid32_fma", x, y, z, mode.native)
+	got, gotFlags := Decimal32BID(x).FMAWithMode(Decimal32BID(y), Decimal32BID(z), mode.public)
+	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
+	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal32 fma mismatch: x=%08x y=%08x z=%08x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, y, z, mode.name, native, port, public, unknownPublicFlags)
+	}
+}
+
+func tier1ArithmeticCheckSqrt32(t *testing.T, x uint32, mode tier1ArithmeticMode) {
+	native, port := runGeneratedFFICase32Unary("bid32_sqrt", x, mode.native)
+	got, gotFlags := Decimal32BID(x).SqrtWithMode(mode.public)
+	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
+	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal32 sqrt mismatch: x=%08x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
@@ -330,6 +388,26 @@ func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, 
 	}
 }
 
+func tier1ArithmeticCheckFma64(t *testing.T, x, y, z uint64, mode tier1ArithmeticMode) {
+	native, port := runGeneratedFFICase64Ternary("bid64_fma", x, y, z, mode.native)
+	got, gotFlags := Decimal64BID(x).FMAWithMode(Decimal64BID(y), Decimal64BID(z), mode.public)
+	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
+	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal64 fma mismatch: x=%016x y=%016x z=%016x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, y, z, mode.name, native, port, public, unknownPublicFlags)
+	}
+}
+
+func tier1ArithmeticCheckSqrt64(t *testing.T, x uint64, mode tier1ArithmeticMode) {
+	native, port := runGeneratedFFICase64Unary("bid64_sqrt", x, mode.native)
+	got, gotFlags := Decimal64BID(x).SqrtWithMode(mode.public)
+	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
+	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal64 sqrt mismatch: x=%016x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, mode.name, native, port, public, unknownPublicFlags)
+	}
+}
+
 func tier1ArithmeticCheckUnrounded64(t *testing.T, operation string, x, y uint64) {
 	function := "bid64_rem"
 	if operation == "fmod" {
@@ -384,6 +462,26 @@ func tier1ArithmeticCheckRounded128(t *testing.T, operation string, x, y Decimal
 	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal128 %s mismatch: x=%x y=%x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, mode.name, native, port, public, unknownPublicFlags)
+	}
+}
+
+func tier1ArithmeticCheckFma128(t *testing.T, x, y, z Decimal128BID, mode tier1ArithmeticMode) {
+	native, port := runGeneratedFFICase128Ternary("bid128_fma", x, y, z, mode.native)
+	got, gotFlags := x.FMAWithMode(y, z, mode.public)
+	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
+	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal128 fma mismatch: x=%x y=%x z=%x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, y, z, mode.name, native, port, public, unknownPublicFlags)
+	}
+}
+
+func tier1ArithmeticCheckSqrt128(t *testing.T, x Decimal128BID, mode tier1ArithmeticMode) {
+	native, port := runGeneratedFFICase128Unary("bid128_sqrt", x, mode.native)
+	got, gotFlags := x.SqrtWithMode(mode.public)
+	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
+	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal128 sqrt mismatch: x=%x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
@@ -460,6 +558,60 @@ func tier1ArithmeticVisitPairs128(visit func(tier1Arithmetic128Words, tier1Arith
 	}
 }
 
+func tier1ArithmeticVisitTriples32(visit func(uint32, uint32, uint32)) {
+	for i, x := range tier1ArithmeticBoundary32 {
+		for j, y := range tier1ArithmeticProbes32 {
+			z := tier1ArithmeticProbes32[(i+j)%len(tier1ArithmeticProbes32)]
+			visit(x, y, z)
+			visit(y, z, x)
+			visit(z, x, y)
+		}
+	}
+	for _, x := range tier1ArithmeticProbes32 {
+		for _, y := range tier1ArithmeticProbes32 {
+			for _, z := range tier1ArithmeticProbes32 {
+				visit(x, y, z)
+			}
+		}
+	}
+}
+
+func tier1ArithmeticVisitTriples64(visit func(uint64, uint64, uint64)) {
+	for i, x := range tier1ArithmeticBoundary64 {
+		for j, y := range tier1ArithmeticProbes64 {
+			z := tier1ArithmeticProbes64[(i+j)%len(tier1ArithmeticProbes64)]
+			visit(x, y, z)
+			visit(y, z, x)
+			visit(z, x, y)
+		}
+	}
+	for _, x := range tier1ArithmeticProbes64 {
+		for _, y := range tier1ArithmeticProbes64 {
+			for _, z := range tier1ArithmeticProbes64 {
+				visit(x, y, z)
+			}
+		}
+	}
+}
+
+func tier1ArithmeticVisitTriples128(visit func(tier1Arithmetic128Words, tier1Arithmetic128Words, tier1Arithmetic128Words)) {
+	for i, x := range tier1ArithmeticBoundary128 {
+		for j, y := range tier1ArithmeticProbes128 {
+			z := tier1ArithmeticProbes128[(i+j)%len(tier1ArithmeticProbes128)]
+			visit(x, y, z)
+			visit(y, z, x)
+			visit(z, x, y)
+		}
+	}
+	for _, x := range tier1ArithmeticProbes128 {
+		for _, y := range tier1ArithmeticProbes128 {
+			for _, z := range tier1ArithmeticProbes128 {
+				visit(x, y, z)
+			}
+		}
+	}
+}
+
 func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 	requireNative(t)
 	if strconv.IntSize != 64 {
@@ -478,7 +630,13 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 		len(tier1ArithmeticSemanticScale128Cases) != int(tier1ArithmeticSemanticScale128Count) ||
 		len(tier1ArithmeticSemanticRemainder32Pairs) != int(tier1ArithmeticSemanticRemainder32Count) ||
 		len(tier1ArithmeticSemanticRemainder64Pairs) != int(tier1ArithmeticSemanticRemainder64Count) ||
-		len(tier1ArithmeticSemanticRemainder128Pairs) != int(tier1ArithmeticSemanticRemainder128Count) {
+		len(tier1ArithmeticSemanticRemainder128Pairs) != int(tier1ArithmeticSemanticRemainder128Count) ||
+		len(tier1ArithmeticSemanticFma32Cases) != int(tier1ArithmeticSemanticFma32Count) ||
+		len(tier1ArithmeticSemanticFma64Cases) != int(tier1ArithmeticSemanticFma64Count) ||
+		len(tier1ArithmeticSemanticFma128Cases) != int(tier1ArithmeticSemanticFma128Count) ||
+		len(tier1ArithmeticSemanticSqrt32Cases) != int(tier1ArithmeticSemanticSqrt32Count) ||
+		len(tier1ArithmeticSemanticSqrt64Cases) != int(tier1ArithmeticSemanticSqrt64Count) ||
+		len(tier1ArithmeticSemanticSqrt128Cases) != int(tier1ArithmeticSemanticSqrt128Count) {
 		t.Fatal("generated Tier 1 semantic rounding-discriminant inventory count mismatch")
 	}
 	if len(tier1ArithmeticProbes32) != int(tier1ArithmeticProbeCount) ||
@@ -509,6 +667,22 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				caseIndex++
 			}
 		}
+		tier1ArithmeticVisitTriples32(func(x, y, z uint32) {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckFma32(t, x, y, z, mode)
+				}
+				caseIndex++
+			}
+		})
+		for _, tc := range tier1ArithmeticSemanticFma32Cases {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckFma32(t, tc.x, tc.y, tc.z, mode)
+				}
+				caseIndex++
+			}
+		}
 		for _, operation := range tier1ArithmeticUnroundedOperations {
 			tier1ArithmeticVisitPairs32(func(x, y uint32) {
 				if shard.owns(caseIndex) {
@@ -530,6 +704,22 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				if remainder == fmod {
 					t.Fatalf("decimal32 remainder/fmod semantic discriminator collapsed: x=%08x y=%08x result=%08x", tc.x, tc.y, remainder.ToUint32())
 				}
+			}
+		}
+		for _, x := range tier1ArithmeticBoundary32 {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckSqrt32(t, x, mode)
+				}
+				caseIndex++
+			}
+		}
+		for _, x := range tier1ArithmeticSemanticSqrt32Cases {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckSqrt32(t, x, mode)
+				}
+				caseIndex++
 			}
 		}
 		for _, x := range tier1ArithmeticBoundary32 {
@@ -576,6 +766,22 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				caseIndex++
 			}
 		}
+		tier1ArithmeticVisitTriples64(func(x, y, z uint64) {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckFma64(t, x, y, z, mode)
+				}
+				caseIndex++
+			}
+		})
+		for _, tc := range tier1ArithmeticSemanticFma64Cases {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckFma64(t, tc.x, tc.y, tc.z, mode)
+				}
+				caseIndex++
+			}
+		}
 		for _, operation := range tier1ArithmeticUnroundedOperations {
 			tier1ArithmeticVisitPairs64(func(x, y uint64) {
 				if shard.owns(caseIndex) {
@@ -597,6 +803,22 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				if remainder == fmod {
 					t.Fatalf("decimal64 remainder/fmod semantic discriminator collapsed: x=%016x y=%016x result=%016x", tc.x, tc.y, remainder.ToUint64())
 				}
+			}
+		}
+		for _, x := range tier1ArithmeticBoundary64 {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckSqrt64(t, x, mode)
+				}
+				caseIndex++
+			}
+		}
+		for _, x := range tier1ArithmeticSemanticSqrt64Cases {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckSqrt64(t, x, mode)
+				}
+				caseIndex++
 			}
 		}
 		for _, x := range tier1ArithmeticBoundary64 {
@@ -643,6 +865,22 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				caseIndex++
 			}
 		}
+		tier1ArithmeticVisitTriples128(func(x, y, z tier1Arithmetic128Words) {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckFma128(t, tier1ArithmeticDecimal128(x), tier1ArithmeticDecimal128(y), tier1ArithmeticDecimal128(z), mode)
+				}
+				caseIndex++
+			}
+		})
+		for _, tc := range tier1ArithmeticSemanticFma128Cases {
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckFma128(t, tier1ArithmeticDecimal128(tc.x), tier1ArithmeticDecimal128(tc.y), tier1ArithmeticDecimal128(tc.z), mode)
+				}
+				caseIndex++
+			}
+		}
 		for _, operation := range tier1ArithmeticUnroundedOperations {
 			tier1ArithmeticVisitPairs128(func(x, y tier1Arithmetic128Words) {
 				if shard.owns(caseIndex) {
@@ -666,6 +904,24 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				if remainder == fmod {
 					t.Fatalf("decimal128 remainder/fmod semantic discriminator collapsed: x=%x y=%x result=%x", x, y, remainder)
 				}
+			}
+		}
+		for _, words := range tier1ArithmeticBoundary128 {
+			x := tier1ArithmeticDecimal128(words)
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckSqrt128(t, x, mode)
+				}
+				caseIndex++
+			}
+		}
+		for _, words := range tier1ArithmeticSemanticSqrt128Cases {
+			x := tier1ArithmeticDecimal128(words)
+			for _, mode := range tier1ArithmeticModes {
+				if shard.owns(caseIndex) {
+					tier1ArithmeticCheckSqrt128(t, x, mode)
+				}
+				caseIndex++
 			}
 		}
 		for _, words := range tier1ArithmeticBoundary128 {
@@ -1022,6 +1278,23 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 			}
 			comparison++
 		}
+		seed = uint64(0xdec7543220000000)
+		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp32; i++ {
+			if shard.owns(comparison) {
+				x := uint32(tier1ArithmeticRandomWord(seed, i, 0))
+				y := uint32(tier1ArithmeticRandomWord(seed, i, 1))
+				z := uint32(tier1ArithmeticRandomWord(seed, i, 2))
+				tier1ArithmeticCheckFma32(t, x, y, z, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+			}
+			comparison++
+		}
+		seed = uint64(0xdec7543230000000)
+		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp32; i++ {
+			if shard.owns(comparison) {
+				tier1ArithmeticCheckSqrt32(t, uint32(tier1ArithmeticRandomWord(seed, i, 0)), tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+			}
+			comparison++
+		}
 		if comparison != tier1ArithmeticRandomComparisons32 {
 			t.Fatalf("decimal32 random comparisons=%d want=%d", comparison, tier1ArithmeticRandomComparisons32)
 		}
@@ -1061,6 +1334,23 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 			}
 			comparison++
 		}
+		seed = uint64(0xdec7546420000000)
+		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp64; i++ {
+			if shard.owns(comparison) {
+				x := tier1ArithmeticRandomWord(seed, i, 0)
+				y := tier1ArithmeticRandomWord(seed, i, 1)
+				z := tier1ArithmeticRandomWord(seed, i, 2)
+				tier1ArithmeticCheckFma64(t, x, y, z, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+			}
+			comparison++
+		}
+		seed = uint64(0xdec7546430000000)
+		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp64; i++ {
+			if shard.owns(comparison) {
+				tier1ArithmeticCheckSqrt64(t, tier1ArithmeticRandomWord(seed, i, 0), tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+			}
+			comparison++
+		}
 		if comparison != tier1ArithmeticRandomComparisons64 {
 			t.Fatalf("decimal64 random comparisons=%d want=%d", comparison, tier1ArithmeticRandomComparisons64)
 		}
@@ -1097,6 +1387,24 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 				x := tier1ArithmeticDecimal128(tier1ArithmeticRandomScaleOperand128(seed, i, int64(tier1ArithmeticScaleFiniteTransitionLimit128)))
 				exponent := tier1ArithmeticRandomScaleExponent(seed, i, 2, int64(tier1ArithmeticScaleFiniteTransitionLimit128))
 				tier1ArithmeticCheckScale128(t, x, exponent, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+			}
+			comparison++
+		}
+		seed = uint64(0xdec7541220000000)
+		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp128; i++ {
+			if shard.owns(comparison) {
+				x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 0), hi: tier1ArithmeticRandomWord(seed, i, 1)})
+				y := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 2), hi: tier1ArithmeticRandomWord(seed, i, 3)})
+				z := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 4), hi: tier1ArithmeticRandomWord(seed, i, 5)})
+				tier1ArithmeticCheckFma128(t, x, y, z, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+			}
+			comparison++
+		}
+		seed = uint64(0xdec7541230000000)
+		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp128; i++ {
+			if shard.owns(comparison) {
+				x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 0), hi: tier1ArithmeticRandomWord(seed, i, 1)})
+				tier1ArithmeticCheckSqrt128(t, x, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 			}
 			comparison++
 		}
@@ -1242,6 +1550,48 @@ var tier1ArithmeticSemanticScale128Cases = []tier1ArithmeticSemanticScale128{
 	{x: tier1Arithmetic128Words{lo: 0x112210f47de98115, hi: 0xb040000000000000}, exponent: 6127},
 	{x: tier1Arithmetic128Words{lo: 0x112210f47de98115, hi: 0x3040000000000000}, exponent: -6195},
 	{x: tier1Arithmetic128Words{lo: 0x0000000000000005, hi: 0x303e000000000000}, exponent: -6176},
+}
+
+var tier1ArithmeticSemanticFma32Cases = []tier1ArithmeticTriple32{
+	{x: 0x32800001, y: 0x32800001, z: 0x2f000005},
+	{x: 0x32b2dcd6, y: 0x32800003, z: 0x32800000},
+	{x: 0x32800001, y: 0x32800001, z: 0x2f000001},
+	{x: 0xb2800001, y: 0x32800001, z: 0xaf000001},
+}
+
+var tier1ArithmeticSemanticFma64Cases = []tier1ArithmeticTriple64{
+	{x: 0x31c0000000000001, y: 0x31c0000000000001, z: 0x2fc0000000000005},
+	{x: 0x31cbd7a625405556, y: 0x31c0000000000003, z: 0x31c0000000000000},
+	{x: 0x31c0000000000001, y: 0x31c0000000000001, z: 0x2fc0000000000001},
+	{x: 0xb1c0000000000001, y: 0x31c0000000000001, z: 0xafc0000000000001},
+}
+
+var tier1ArithmeticSemanticFma128Cases = []tier1ArithmeticTriple128{
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x3040000000000000}, y: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x3040000000000000}, z: tier1Arithmetic128Words{lo: 0x0000000000000005, hi: 0x2ffc000000000000}},
+	{x: tier1Arithmetic128Words{lo: 0x8ac7230489e7ffff, hi: 0x3040000000000000}, y: tier1Arithmetic128Words{lo: 0x8ac7230489e7ffff, hi: 0x3040000000000000}, z: tier1Arithmetic128Words{lo: 0x0000000000000000, hi: 0x3040000000000000}},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x3040000000000000}, y: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x3040000000000000}, z: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x2ffc000000000000}},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0xb040000000000000}, y: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x3040000000000000}, z: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0xaffc000000000000}},
+}
+
+var tier1ArithmeticSemanticSqrt32Cases = []uint32{
+	0x32800002,
+	0x32800003,
+	0x32800005,
+	0x32800007,
+}
+
+var tier1ArithmeticSemanticSqrt64Cases = []uint64{
+	0x31c0000000000002,
+	0x31c0000000000003,
+	0x31c0000000000005,
+	0x31c0000000000007,
+}
+
+var tier1ArithmeticSemanticSqrt128Cases = []tier1Arithmetic128Words{
+	{lo: 0x0000000000000002, hi: 0x3040000000000000},
+	{lo: 0x0000000000000003, hi: 0x3040000000000000},
+	{lo: 0x0000000000000005, hi: 0x3040000000000000},
+	{lo: 0x0000000000000007, hi: 0x3040000000000000},
 }
 
 var tier1ArithmeticSemanticRemainder32Pairs = []tier1ArithmeticPair32{

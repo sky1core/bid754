@@ -66,6 +66,8 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		uint64(len(semantic.rounded32)), uint64(len(semantic.rounded64)), uint64(len(semantic.rounded128)),
 		uint64(len(semantic.scale32)), uint64(len(semantic.scale64)), uint64(len(semantic.scale128)),
 		uint64(len(semantic.remainder32)), uint64(len(semantic.remainder64)), uint64(len(semantic.remainder128)),
+		uint64(len(semantic.fma32)), uint64(len(semantic.fma64)), uint64(len(semantic.fma128)),
+		uint64(len(semantic.sqrt32)), uint64(len(semantic.sqrt64)), uint64(len(semantic.sqrt128)),
 	)
 	replacer := strings.NewReplacer(
 		"@@TIER1_BOUNDARY32_COUNT@@", fmt.Sprint(len(boundary32)),
@@ -83,6 +85,18 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		"@@TIER1_SEMANTIC_REMAINDER32_COUNT@@", fmt.Sprint(len(semantic.remainder32)),
 		"@@TIER1_SEMANTIC_REMAINDER64_COUNT@@", fmt.Sprint(len(semantic.remainder64)),
 		"@@TIER1_SEMANTIC_REMAINDER128_COUNT@@", fmt.Sprint(len(semantic.remainder128)),
+		"@@TIER1_SEMANTIC_FMA32_COUNT@@", fmt.Sprint(len(semantic.fma32)),
+		"@@TIER1_SEMANTIC_FMA64_COUNT@@", fmt.Sprint(len(semantic.fma64)),
+		"@@TIER1_SEMANTIC_FMA128_COUNT@@", fmt.Sprint(len(semantic.fma128)),
+		"@@TIER1_SEMANTIC_SQRT32_COUNT@@", fmt.Sprint(len(semantic.sqrt32)),
+		"@@TIER1_SEMANTIC_SQRT64_COUNT@@", fmt.Sprint(len(semantic.sqrt64)),
+		"@@TIER1_SEMANTIC_SQRT128_COUNT@@", fmt.Sprint(len(semantic.sqrt128)),
+		"@@TIER1_SEMANTIC_FMA32_VALUES@@", tier1ArithmeticTriple32Literals(semantic.fma32),
+		"@@TIER1_SEMANTIC_FMA64_VALUES@@", tier1ArithmeticTriple64Literals(semantic.fma64),
+		"@@TIER1_SEMANTIC_FMA128_VALUES@@", tier1ArithmeticTriple128Literals(semantic.fma128),
+		"@@TIER1_SEMANTIC_SQRT32_VALUES@@", tier1ArithmeticUint32Literals(semantic.sqrt32),
+		"@@TIER1_SEMANTIC_SQRT64_VALUES@@", tier1ArithmeticUint64Literals(semantic.sqrt64),
+		"@@TIER1_SEMANTIC_SQRT128_VALUES@@", tier1ArithmeticUint128Literals(semantic.sqrt128),
 		"@@TIER1_SEMANTIC_ROUNDED32_VALUES@@", tier1ArithmeticRounded32Literals(semantic.rounded32),
 		"@@TIER1_SEMANTIC_ROUNDED64_VALUES@@", tier1ArithmeticRounded64Literals(semantic.rounded64),
 		"@@TIER1_SEMANTIC_ROUNDED128_VALUES@@", tier1ArithmeticRounded128Literals(semantic.rounded128),
@@ -139,6 +153,18 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		"@@TIER1_SEMANTIC_REMAINDER32_COUNT@@", fmt.Sprint(len(semantic.remainder32)),
 		"@@TIER1_SEMANTIC_REMAINDER64_COUNT@@", fmt.Sprint(len(semantic.remainder64)),
 		"@@TIER1_SEMANTIC_REMAINDER128_COUNT@@", fmt.Sprint(len(semantic.remainder128)),
+		"@@TIER1_SEMANTIC_FMA32_COUNT@@", fmt.Sprint(len(semantic.fma32)),
+		"@@TIER1_SEMANTIC_FMA64_COUNT@@", fmt.Sprint(len(semantic.fma64)),
+		"@@TIER1_SEMANTIC_FMA128_COUNT@@", fmt.Sprint(len(semantic.fma128)),
+		"@@TIER1_SEMANTIC_SQRT32_COUNT@@", fmt.Sprint(len(semantic.sqrt32)),
+		"@@TIER1_SEMANTIC_SQRT64_COUNT@@", fmt.Sprint(len(semantic.sqrt64)),
+		"@@TIER1_SEMANTIC_SQRT128_COUNT@@", fmt.Sprint(len(semantic.sqrt128)),
+		"@@TIER1_SEMANTIC_FMA32_VALUES@@", tier1RustTriple32Literals(semantic.fma32),
+		"@@TIER1_SEMANTIC_FMA64_VALUES@@", tier1RustTriple64Literals(semantic.fma64),
+		"@@TIER1_SEMANTIC_FMA128_VALUES@@", tier1RustTriple128Literals(semantic.fma128),
+		"@@TIER1_SEMANTIC_SQRT32_VALUES@@", tier1RustUint32Literals(semantic.sqrt32),
+		"@@TIER1_SEMANTIC_SQRT64_VALUES@@", tier1RustUint64Literals(semantic.sqrt64),
+		"@@TIER1_SEMANTIC_SQRT128_VALUES@@", tier1RustUint128Literals(semantic.sqrt128),
 		"@@TIER1_BOUNDARY32_VALUES@@", tier1RustUint32Literals(boundary32),
 		"@@TIER1_BOUNDARY64_VALUES@@", tier1RustUint64Literals(boundary64),
 		"@@TIER1_BOUNDARY128_VALUES@@", tier1RustUint128Literals(boundary128),
@@ -343,28 +369,34 @@ func tier1ArithmeticCountsFor(
 	rounded32, rounded64, rounded128 uint64,
 	scale32, scale64, scale128 uint64,
 	remainder32, remainder64, remainder128 uint64,
+	fma32, fma64, fma128 uint64,
+	sqrt32, sqrt64, sqrt128 uint64,
 ) tier1ArithmeticCounts {
 	const (
 		probes         = uint64(12)
 		roundingModes  = uint64(5)
 		roundedOps     = uint64(5)
 		unroundedOps   = uint64(2)
+		fmaSlots       = uint64(3)
 		scaleExponents = uint64(25)
-		randomOps      = uint64(8)
+		randomOps      = uint64(10)
 		randomCases32  = uint64(1) << 20
 		randomCases64  = uint64(1) << 20
 		randomCases128 = uint64(1) << 19
 	)
-	structured := func(boundary, rounded, scale, remainder uint64) uint64 {
+	structured := func(boundary, rounded, scale, remainder, fma, sqrt uint64) uint64 {
 		pairs := boundary*probes*2 + probes*probes
+		fmaTriples := boundary*probes*fmaSlots + probes*probes*probes
 		return pairs*(roundedOps*roundingModes+unroundedOps) +
+			(fmaTriples+fma)*roundingModes +
+			(boundary+sqrt)*roundingModes +
 			boundary*scaleExponents*roundingModes +
 			(rounded+scale)*roundingModes + remainder*unroundedOps
 	}
 	result := tier1ArithmeticCounts{
-		structured32:  structured(boundary32, rounded32, scale32, remainder32),
-		structured64:  structured(boundary64, rounded64, scale64, remainder64),
-		structured128: structured(boundary128, rounded128, scale128, remainder128),
+		structured32:  structured(boundary32, rounded32, scale32, remainder32, fma32, sqrt32),
+		structured64:  structured(boundary64, rounded64, scale64, remainder64, fma64, sqrt64),
+		structured128: structured(boundary128, rounded128, scale128, remainder128, fma128, sqrt128),
 		random32:      randomCases32 * randomOps,
 		random64:      randomCases64 * randomOps,
 		random128:     randomCases128 * randomOps,
@@ -423,6 +455,24 @@ type tier1ArithmeticPair128Spec struct {
 	y bid128BidCodecValue
 }
 
+type tier1ArithmeticTriple32Spec struct {
+	x uint32
+	y uint32
+	z uint32
+}
+
+type tier1ArithmeticTriple64Spec struct {
+	x uint64
+	y uint64
+	z uint64
+}
+
+type tier1ArithmeticTriple128Spec struct {
+	x bid128BidCodecValue
+	y bid128BidCodecValue
+	z bid128BidCodecValue
+}
+
 type tier1ArithmeticSemanticSpec struct {
 	rounded32    []tier1ArithmeticRounded32Spec
 	rounded64    []tier1ArithmeticRounded64Spec
@@ -433,6 +483,12 @@ type tier1ArithmeticSemanticSpec struct {
 	remainder32  []tier1ArithmeticPair32Spec
 	remainder64  []tier1ArithmeticPair64Spec
 	remainder128 []tier1ArithmeticPair128Spec
+	fma32        []tier1ArithmeticTriple32Spec
+	fma64        []tier1ArithmeticTriple64Spec
+	fma128       []tier1ArithmeticTriple128Spec
+	sqrt32       []uint32
+	sqrt64       []uint64
+	sqrt128      []bid128BidCodecValue
 }
 
 func tier1ArithmeticSemanticCorpus() (tier1ArithmeticSemanticSpec, error) {
@@ -529,6 +585,93 @@ func tier1ArithmeticSemanticCorpus() (tier1ArithmeticSemanticSpec, error) {
 				result.scale128 = append(result.scale128, tier1ArithmeticScale128Spec{
 					x:        bid128BidCodecValue{lo: binary.LittleEndian.Uint64(x[0:8]), hi: binary.LittleEndian.Uint64(x[8:16])},
 					exponent: tc.Exp,
+				})
+			}
+		}
+	}
+	for _, width := range []int{32, 64, 128} {
+		triples, err := modeTernaryDiscriminantOperands("FMA", width)
+		if err != nil {
+			return result, fmt.Errorf("Tier 1 arithmetic long semantic FMA corpus: %w", err)
+		}
+		for _, triple := range triples {
+			switch width {
+			case 32:
+				x, err := encodeModeDiscOperand32(triple[0])
+				if err != nil {
+					return result, err
+				}
+				y, err := encodeModeDiscOperand32(triple[1])
+				if err != nil {
+					return result, err
+				}
+				z, err := encodeModeDiscOperand32(triple[2])
+				if err != nil {
+					return result, err
+				}
+				result.fma32 = append(result.fma32, tier1ArithmeticTriple32Spec{x: x, y: y, z: z})
+			case 64:
+				x, err := encodeModeDiscOperand64(triple[0])
+				if err != nil {
+					return result, err
+				}
+				y, err := encodeModeDiscOperand64(triple[1])
+				if err != nil {
+					return result, err
+				}
+				z, err := encodeModeDiscOperand64(triple[2])
+				if err != nil {
+					return result, err
+				}
+				result.fma64 = append(result.fma64, tier1ArithmeticTriple64Spec{x: x, y: y, z: z})
+			case 128:
+				x, err := encodeModeDiscOperand128(triple[0])
+				if err != nil {
+					return result, err
+				}
+				y, err := encodeModeDiscOperand128(triple[1])
+				if err != nil {
+					return result, err
+				}
+				z, err := encodeModeDiscOperand128(triple[2])
+				if err != nil {
+					return result, err
+				}
+				result.fma128 = append(result.fma128, tier1ArithmeticTriple128Spec{
+					x: bid128BidCodecValue{lo: binary.LittleEndian.Uint64(x[0:8]), hi: binary.LittleEndian.Uint64(x[8:16])},
+					y: bid128BidCodecValue{lo: binary.LittleEndian.Uint64(y[0:8]), hi: binary.LittleEndian.Uint64(y[8:16])},
+					z: bid128BidCodecValue{lo: binary.LittleEndian.Uint64(z[0:8]), hi: binary.LittleEndian.Uint64(z[8:16])},
+				})
+			}
+		}
+	}
+	for _, width := range []int{32, 64, 128} {
+		operands, err := modeUnaryDiscriminantOperands("Sqrt", width)
+		if err != nil {
+			return result, fmt.Errorf("Tier 1 arithmetic long semantic sqrt corpus: %w", err)
+		}
+		for _, operand := range operands {
+			switch width {
+			case 32:
+				x, err := encodeModeDiscOperand32(operand)
+				if err != nil {
+					return result, err
+				}
+				result.sqrt32 = append(result.sqrt32, x)
+			case 64:
+				x, err := encodeModeDiscOperand64(operand)
+				if err != nil {
+					return result, err
+				}
+				result.sqrt64 = append(result.sqrt64, x)
+			case 128:
+				x, err := encodeModeDiscOperand128(operand)
+				if err != nil {
+					return result, err
+				}
+				result.sqrt128 = append(result.sqrt128, bid128BidCodecValue{
+					lo: binary.LittleEndian.Uint64(x[0:8]),
+					hi: binary.LittleEndian.Uint64(x[8:16]),
 				})
 			}
 		}
@@ -726,6 +869,30 @@ func tier1ArithmeticPair128Literals(values []tier1ArithmeticPair128Spec) string 
 	return out.String()
 }
 
+func tier1ArithmeticTriple32Literals(values []tier1ArithmeticTriple32Spec) string {
+	var out strings.Builder
+	for _, value := range values {
+		fmt.Fprintf(&out, "\t{x: 0x%08x, y: 0x%08x, z: 0x%08x},\n", value.x, value.y, value.z)
+	}
+	return out.String()
+}
+
+func tier1ArithmeticTriple64Literals(values []tier1ArithmeticTriple64Spec) string {
+	var out strings.Builder
+	for _, value := range values {
+		fmt.Fprintf(&out, "\t{x: 0x%016x, y: 0x%016x, z: 0x%016x},\n", value.x, value.y, value.z)
+	}
+	return out.String()
+}
+
+func tier1ArithmeticTriple128Literals(values []tier1ArithmeticTriple128Spec) string {
+	var out strings.Builder
+	for _, value := range values {
+		fmt.Fprintf(&out, "\t{x: tier1Arithmetic128Words{lo: 0x%016x, hi: 0x%016x}, y: tier1Arithmetic128Words{lo: 0x%016x, hi: 0x%016x}, z: tier1Arithmetic128Words{lo: 0x%016x, hi: 0x%016x}},\n", value.x.lo, value.x.hi, value.y.lo, value.y.hi, value.z.lo, value.z.hi)
+	}
+	return out.String()
+}
+
 func tier1RustUint32Literals(values []uint32) string {
 	var out strings.Builder
 	for _, value := range values {
@@ -811,6 +978,30 @@ func tier1RustScale128Literals(values []tier1ArithmeticScale128Spec) string {
 	var out strings.Builder
 	for _, value := range values {
 		fmt.Fprintf(&out, "    Scale128 { x: Words { lo: 0x%016x, hi: 0x%016x }, exponent: %d },\n", value.x.lo, value.x.hi, value.exponent)
+	}
+	return out.String()
+}
+
+func tier1RustTriple32Literals(values []tier1ArithmeticTriple32Spec) string {
+	var out strings.Builder
+	for _, value := range values {
+		fmt.Fprintf(&out, "    Triple32 { x: 0x%08x, y: 0x%08x, z: 0x%08x },\n", value.x, value.y, value.z)
+	}
+	return out.String()
+}
+
+func tier1RustTriple64Literals(values []tier1ArithmeticTriple64Spec) string {
+	var out strings.Builder
+	for _, value := range values {
+		fmt.Fprintf(&out, "    Triple64 { x: 0x%016x, y: 0x%016x, z: 0x%016x },\n", value.x, value.y, value.z)
+	}
+	return out.String()
+}
+
+func tier1RustTriple128Literals(values []tier1ArithmeticTriple128Spec) string {
+	var out strings.Builder
+	for _, value := range values {
+		fmt.Fprintf(&out, "    Triple128 { x: Words { lo: 0x%016x, hi: 0x%016x }, y: Words { lo: 0x%016x, hi: 0x%016x }, z: Words { lo: 0x%016x, hi: 0x%016x } },\n", value.x.lo, value.x.hi, value.y.lo, value.y.hi, value.z.lo, value.z.hi)
 	}
 	return out.String()
 }

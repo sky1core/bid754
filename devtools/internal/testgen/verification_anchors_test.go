@@ -38,7 +38,10 @@ type verificationAnchors struct {
 	Tier1ArithmeticSemanticRounded               map[string]uint64            `json:"tier1_arithmetic_long_semantic_rounded_pairs_by_width"`
 	Tier1ArithmeticSemanticScale                 map[string]uint64            `json:"tier1_arithmetic_long_semantic_scale_cases_by_width"`
 	Tier1ArithmeticSemanticRemainder             map[string]uint64            `json:"tier1_arithmetic_long_semantic_remainder_pairs_by_width"`
+	Tier1ArithmeticSemanticFma                   map[string]uint64            `json:"tier1_arithmetic_long_semantic_fma_triples_by_width"`
+	Tier1ArithmeticSemanticSqrt                  map[string]uint64            `json:"tier1_arithmetic_long_semantic_sqrt_cases_by_width"`
 	Tier1ArithmeticStructuredCases               map[string]uint64            `json:"tier1_arithmetic_long_structured_comparisons_by_width"`
+	Tier1ArithmeticRandomOperations              uint64                       `json:"tier1_arithmetic_long_random_operations"`
 	Tier1ArithmeticRandomCasesPerOp              map[string]uint64            `json:"tier1_arithmetic_long_random_cases_per_operation_by_width"`
 	Tier1ArithmeticScaleFiniteTransitionLimits   map[string]uint64            `json:"tier1_arithmetic_long_scale_finite_transition_limit_by_width"`
 	Tier1ArithmeticScaleRandomStrata             uint64                       `json:"tier1_arithmetic_long_scale_random_strata"`
@@ -204,7 +207,10 @@ type tier1ArithmeticLongInventory struct {
 	SemanticRounded             map[string]uint64
 	SemanticScale               map[string]uint64
 	SemanticRemainder           map[string]uint64
+	SemanticFma                 map[string]uint64
+	SemanticSqrt                map[string]uint64
 	StructuredCases             map[string]uint64
+	RandomOperations            uint64
 	RandomCasesPerOp            map[string]uint64
 	ScaleFiniteTransitionLimits map[string]uint64
 	ScaleRandomStrata           uint64
@@ -280,7 +286,18 @@ func loadTier1ArithmeticLongInventory(t *testing.T) tier1ArithmeticLongInventory
 			"decimal64":  require("tier1ArithmeticSemanticRemainder64Count"),
 			"decimal128": require("tier1ArithmeticSemanticRemainder128Count"),
 		},
+		SemanticFma: map[string]uint64{
+			"decimal32":  require("tier1ArithmeticSemanticFma32Count"),
+			"decimal64":  require("tier1ArithmeticSemanticFma64Count"),
+			"decimal128": require("tier1ArithmeticSemanticFma128Count"),
+		},
+		SemanticSqrt: map[string]uint64{
+			"decimal32":  require("tier1ArithmeticSemanticSqrt32Count"),
+			"decimal64":  require("tier1ArithmeticSemanticSqrt64Count"),
+			"decimal128": require("tier1ArithmeticSemanticSqrt128Count"),
+		},
 		StructuredCases:             byWidth("tier1ArithmeticStructuredComparisons"),
+		RandomOperations:            require("tier1ArithmeticRandomOps"),
 		RandomCasesPerOp:            byWidth("tier1ArithmeticRandomCasesPerOp"),
 		ScaleFiniteTransitionLimits: byWidth("tier1ArithmeticScaleFiniteTransitionLimit"),
 		ScaleRandomStrata:           require("tier1ArithmeticScaleRandomStrata"),
@@ -446,7 +463,10 @@ func loadRustTier1ArithmeticLongInventory(t *testing.T) tier1ArithmeticLongInven
 		SemanticRounded:             byWidth("SEMANTIC_ROUNDED", "_COUNT"),
 		SemanticScale:               byWidth("SEMANTIC_SCALE", "_COUNT"),
 		SemanticRemainder:           byWidth("SEMANTIC_REMAINDER", "_COUNT"),
+		SemanticFma:                 byWidth("SEMANTIC_FMA", "_COUNT"),
+		SemanticSqrt:                byWidth("SEMANTIC_SQRT", "_COUNT"),
 		StructuredCases:             byWidth("STRUCTURED", "_COUNT"),
+		RandomOperations:            require("RANDOM_OPS"),
 		RandomCasesPerOp:            byWidth("RANDOM_CASES", ""),
 		ScaleFiniteTransitionLimits: byWidth("SCALE_FINITE_TRANSITION_LIMIT", ""),
 		ScaleRandomStrata:           require("SCALE_RANDOM_STRATA"),
@@ -695,6 +715,8 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Tier 1 arithmetic semantic rounded pairs", tier1Arithmetic.SemanticRounded, anchors.Tier1ArithmeticSemanticRounded},
 		{"Tier 1 arithmetic semantic scale cases", tier1Arithmetic.SemanticScale, anchors.Tier1ArithmeticSemanticScale},
 		{"Tier 1 arithmetic semantic remainder pairs", tier1Arithmetic.SemanticRemainder, anchors.Tier1ArithmeticSemanticRemainder},
+		{"Tier 1 arithmetic semantic fma triples", tier1Arithmetic.SemanticFma, anchors.Tier1ArithmeticSemanticFma},
+		{"Tier 1 arithmetic semantic sqrt cases", tier1Arithmetic.SemanticSqrt, anchors.Tier1ArithmeticSemanticSqrt},
 		{"Tier 1 arithmetic structured comparisons", tier1Arithmetic.StructuredCases, anchors.Tier1ArithmeticStructuredCases},
 		{"Tier 1 arithmetic random cases per operation", tier1Arithmetic.RandomCasesPerOp, anchors.Tier1ArithmeticRandomCasesPerOp},
 		{"Tier 1 arithmetic ScaleB finite-transition limits", tier1Arithmetic.ScaleFiniteTransitionLimits, anchors.Tier1ArithmeticScaleFiniteTransitionLimits},
@@ -712,6 +734,9 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	if tier1Arithmetic.ScaleModeCross != anchors.Tier1ArithmeticScaleModeCross {
 		t.Errorf("generated Tier 1 arithmetic ScaleB meaningful mode cross = %d, anchor = %d", tier1Arithmetic.ScaleModeCross, anchors.Tier1ArithmeticScaleModeCross)
 	}
+	if tier1Arithmetic.RandomOperations != anchors.Tier1ArithmeticRandomOperations {
+		t.Errorf("generated Tier 1 arithmetic random operations = %d, anchor = %d", tier1Arithmetic.RandomOperations, anchors.Tier1ArithmeticRandomOperations)
+	}
 	rustTier1Arithmetic := loadRustTier1ArithmeticLongInventory(t)
 	for _, check := range []struct {
 		label string
@@ -722,6 +747,8 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Rust Tier 1 arithmetic semantic rounded pairs", rustTier1Arithmetic.SemanticRounded, anchors.Tier1ArithmeticSemanticRounded},
 		{"Rust Tier 1 arithmetic semantic scale cases", rustTier1Arithmetic.SemanticScale, anchors.Tier1ArithmeticSemanticScale},
 		{"Rust Tier 1 arithmetic semantic remainder pairs", rustTier1Arithmetic.SemanticRemainder, anchors.Tier1ArithmeticSemanticRemainder},
+		{"Rust Tier 1 arithmetic semantic fma triples", rustTier1Arithmetic.SemanticFma, anchors.Tier1ArithmeticSemanticFma},
+		{"Rust Tier 1 arithmetic semantic sqrt cases", rustTier1Arithmetic.SemanticSqrt, anchors.Tier1ArithmeticSemanticSqrt},
 		{"Rust Tier 1 arithmetic structured comparisons", rustTier1Arithmetic.StructuredCases, anchors.Tier1ArithmeticStructuredCases},
 		{"Rust Tier 1 arithmetic random cases per operation", rustTier1Arithmetic.RandomCasesPerOp, anchors.Tier1ArithmeticRandomCasesPerOp},
 		{"Rust Tier 1 arithmetic ScaleB finite-transition limits", rustTier1Arithmetic.ScaleFiniteTransitionLimits, anchors.Tier1ArithmeticScaleFiniteTransitionLimits},
@@ -738,6 +765,9 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	}
 	if rustTier1Arithmetic.ScaleModeCross != anchors.Tier1ArithmeticScaleModeCross {
 		t.Errorf("generated Rust Tier 1 arithmetic ScaleB meaningful mode cross = %d, anchor = %d", rustTier1Arithmetic.ScaleModeCross, anchors.Tier1ArithmeticScaleModeCross)
+	}
+	if rustTier1Arithmetic.RandomOperations != anchors.Tier1ArithmeticRandomOperations {
+		t.Errorf("generated Rust Tier 1 arithmetic random operations = %d, anchor = %d", rustTier1Arithmetic.RandomOperations, anchors.Tier1ArithmeticRandomOperations)
 	}
 	tier1CompareConversionOutputs, err := GenerateTier1CompareConversionLongOutputs()
 	if err != nil {
