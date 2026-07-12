@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
+
+	"github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
 
 const (
@@ -26,7 +29,7 @@ const (
 	tier1QuietPredicateCount         = uint64(6)
 	tier1MinMaxOperationCount        = uint64(2)
 	tier1CompareMinMaxOperationCount = tier1QuietPredicateCount + tier1MinMaxOperationCount
-	tier1QuietSemanticRelationCount  = uint64(10)
+	tier1QuietSemanticRelationCount  = uint64(16)
 	tier1CompareProbeCount           = uint64(12)
 	tier1CompareBoundaryPairs32      = tier1CompareConversionBoundary32Count*tier1CompareProbeCount*2 +
 		tier1CompareProbeCount*tier1CompareProbeCount
@@ -241,17 +244,24 @@ func tier1CheckMinMax32(t *testing.T, operation string, x, y uint32) {
 	left, right := Decimal32BID(x), Decimal32BID(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
+	var pureBits uint32
 	if operation == "minnum" {
 		got, gotFlags = left.MinNum(right)
+		pureBits = bidgo.Bid32MinNum(x, y)
 	} else if operation == "maxnum" {
 		got, gotFlags = left.MaxNum(right)
+		pureBits = bidgo.Bid32MaxNum(x, y)
 	} else {
 		t.Fatalf("decimal32 unknown Tier 1 min/max operation %q", operation)
 	}
 	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
 	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicFlags)
-	if unknownFlags != 0 || native != port || native != public {
-		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, native, port, public, unknownFlags)
+	// The value-only port body (bid32_minnum_pure / bid32_maxnum_pure) is a
+	// separate implementation from the status-aware body, so its result bits
+	// are compared against the native value directly.
+	pure := fmt.Sprintf("%08x", pureBits)
+	if unknownFlags != 0 || native != port || native != public || !strings.HasPrefix(native, pure+"/") {
+		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x C=%s port=%s public=%s pure=%s unknown_public_flags=%s", operation, x, y, native, port, public, pure, unknownFlags)
 	}
 }
 
@@ -343,6 +353,12 @@ func TestTier1QuietComparisonSemanticMatrix(t *testing.T) {
 			{name: "quiet NaN right", x: 0x32800001, y: 0x7c000001, relation: 2},
 			{name: "signaling NaN left", x: 0x7e000001, y: 0x32800001, relation: 2, flags: FlagInvalidOperation},
 			{name: "signaling NaN right", x: 0x32800001, y: 0x7e000001, relation: 2, flags: FlagInvalidOperation},
+			{name: "negative infinity below finite", x: 0xf8000000, y: 0x32800001, relation: -1},
+			{name: "finite above negative infinity", x: 0x32800001, y: 0xf8000000, relation: 1},
+			{name: "negative infinity below positive infinity", x: 0xf8000000, y: 0x78000000, relation: -1},
+			{name: "positive infinity above negative infinity", x: 0x78000000, y: 0xf8000000, relation: 1},
+			{name: "positive infinity equal", x: 0x78000000, y: 0x78000000, relation: 0},
+			{name: "negative infinity equal", x: 0xf8000000, y: 0xf8000000, relation: 0},
 		}
 		if len(cases) != int(tier1QuietSemanticRelationCount) {
 			t.Fatalf("decimal32 semantic relation count=%d want=%d", len(cases), tier1QuietSemanticRelationCount)
@@ -387,6 +403,12 @@ func TestTier1QuietComparisonSemanticMatrix(t *testing.T) {
 			{name: "quiet NaN right", x: 0x31c0000000000001, y: 0x7c00000000000001, relation: 2},
 			{name: "signaling NaN left", x: 0x7e00000000000001, y: 0x31c0000000000001, relation: 2, flags: FlagInvalidOperation},
 			{name: "signaling NaN right", x: 0x31c0000000000001, y: 0x7e00000000000001, relation: 2, flags: FlagInvalidOperation},
+			{name: "negative infinity below finite", x: 0xf800000000000000, y: 0x31c0000000000001, relation: -1},
+			{name: "finite above negative infinity", x: 0x31c0000000000001, y: 0xf800000000000000, relation: 1},
+			{name: "negative infinity below positive infinity", x: 0xf800000000000000, y: 0x7800000000000000, relation: -1},
+			{name: "positive infinity above negative infinity", x: 0x7800000000000000, y: 0xf800000000000000, relation: 1},
+			{name: "positive infinity equal", x: 0x7800000000000000, y: 0x7800000000000000, relation: 0},
+			{name: "negative infinity equal", x: 0xf800000000000000, y: 0xf800000000000000, relation: 0},
 		}
 		if len(cases) != int(tier1QuietSemanticRelationCount) {
 			t.Fatalf("decimal64 semantic relation count=%d want=%d", len(cases), tier1QuietSemanticRelationCount)
@@ -434,6 +456,12 @@ func TestTier1QuietComparisonSemanticMatrix(t *testing.T) {
 			{name: "quiet NaN right", x: value(1, 0x3040000000000000), y: value(1, 0x7c00000000000000), relation: 2},
 			{name: "signaling NaN left", x: value(1, 0x7e00000000000000), y: value(1, 0x3040000000000000), relation: 2, flags: FlagInvalidOperation},
 			{name: "signaling NaN right", x: value(1, 0x3040000000000000), y: value(1, 0x7e00000000000000), relation: 2, flags: FlagInvalidOperation},
+			{name: "negative infinity below finite", x: value(0, 0xf800000000000000), y: value(1, 0x3040000000000000), relation: -1},
+			{name: "finite above negative infinity", x: value(1, 0x3040000000000000), y: value(0, 0xf800000000000000), relation: 1},
+			{name: "negative infinity below positive infinity", x: value(0, 0xf800000000000000), y: value(0, 0x7800000000000000), relation: -1},
+			{name: "positive infinity above negative infinity", x: value(0, 0x7800000000000000), y: value(0, 0xf800000000000000), relation: 1},
+			{name: "positive infinity equal", x: value(0, 0x7800000000000000), y: value(0, 0x7800000000000000), relation: 0},
+			{name: "negative infinity equal", x: value(0, 0xf800000000000000), y: value(0, 0xf800000000000000), relation: 0},
 		}
 		if len(cases) != int(tier1QuietSemanticRelationCount) {
 			t.Fatalf("decimal128 semantic relation count=%d want=%d", len(cases), tier1QuietSemanticRelationCount)

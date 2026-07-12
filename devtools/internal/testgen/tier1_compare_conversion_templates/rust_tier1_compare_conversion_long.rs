@@ -1,5 +1,6 @@
 #![cfg(feature = "tier1-long")]
 
+use bid754::generated::bid32_exports::{bid32_max_num, bid32_min_num};
 use bid754::{Decimal128, Decimal32, Decimal64, ExceptionFlags, RoundingMode};
 use libbid_sys::BID_UINT128 as C128;
 
@@ -251,6 +252,11 @@ fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
     let left = Decimal32::from_bits(x); let right = Decimal32::from_bits(y);
     let (public, flags) = match op { MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right) };
     assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
+    // The value-only generated body (bid32_minnum_pure / bid32_maxnum_pure) is
+    // a separate implementation from the status-aware body, so it is compared
+    // against the native value bits directly, mirroring the Go runner.
+    let pure = match op { MinMaxOp::MinNum => bid32_min_num(x, y), MinMaxOp::MaxNum => bid32_max_num(x, y) };
+    assert_eq!(pure, native, "Decimal32 pure {op:?} x={x:08x} y={y:08x}");
 }
 
 fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
@@ -537,6 +543,9 @@ fn tier1_quiet_comparison_semantic_matrix() {
         (0x78000000, 0x32800001, 1, ExceptionFlags::empty()), (0x32800001, 0x78000000, -1, ExceptionFlags::empty()),
         (0x7c000001, 0x32800001, 2, ExceptionFlags::empty()), (0x32800001, 0x7c000001, 2, ExceptionFlags::empty()),
         (0x7e000001, 0x32800001, 2, invalid), (0x32800001, 0x7e000001, 2, invalid),
+        (0xf8000000, 0x32800001, -1, ExceptionFlags::empty()), (0x32800001, 0xf8000000, 1, ExceptionFlags::empty()),
+        (0xf8000000, 0x78000000, -1, ExceptionFlags::empty()), (0x78000000, 0xf8000000, 1, ExceptionFlags::empty()),
+        (0x78000000, 0x78000000, 0, ExceptionFlags::empty()), (0xf8000000, 0xf8000000, 0, ExceptionFlags::empty()),
     ] { check_semantic32(x, y, relation, flags); }
     for (x, y, relation, flags) in [
         (0x31c0000000000001, 0x31c0000000000001, 0, ExceptionFlags::empty()), (0xb1c0000000000001, 0x31c0000000000001, -1, ExceptionFlags::empty()),
@@ -544,6 +553,9 @@ fn tier1_quiet_comparison_semantic_matrix() {
         (0x7800000000000000, 0x31c0000000000001, 1, ExceptionFlags::empty()), (0x31c0000000000001, 0x7800000000000000, -1, ExceptionFlags::empty()),
         (0x7c00000000000001, 0x31c0000000000001, 2, ExceptionFlags::empty()), (0x31c0000000000001, 0x7c00000000000001, 2, ExceptionFlags::empty()),
         (0x7e00000000000001, 0x31c0000000000001, 2, invalid), (0x31c0000000000001, 0x7e00000000000001, 2, invalid),
+        (0xf800000000000000, 0x31c0000000000001, -1, ExceptionFlags::empty()), (0x31c0000000000001, 0xf800000000000000, 1, ExceptionFlags::empty()),
+        (0xf800000000000000, 0x7800000000000000, -1, ExceptionFlags::empty()), (0x7800000000000000, 0xf800000000000000, 1, ExceptionFlags::empty()),
+        (0x7800000000000000, 0x7800000000000000, 0, ExceptionFlags::empty()), (0xf800000000000000, 0xf800000000000000, 0, ExceptionFlags::empty()),
     ] { check_semantic64(x, y, relation, flags); }
     let one = Words { lo: 1, hi: 0x3040000000000000 };
     let neg_one = Words { lo: 1, hi: 0xb040000000000000 };
@@ -553,6 +565,11 @@ fn tier1_quiet_comparison_semantic_matrix() {
         (Words { lo: 0, hi: 0x7800000000000000 }, one, 1, ExceptionFlags::empty()), (one, Words { lo: 0, hi: 0x7800000000000000 }, -1, ExceptionFlags::empty()),
         (Words { lo: 1, hi: 0x7c00000000000000 }, one, 2, ExceptionFlags::empty()), (one, Words { lo: 1, hi: 0x7c00000000000000 }, 2, ExceptionFlags::empty()),
         (Words { lo: 1, hi: 0x7e00000000000000 }, one, 2, invalid), (one, Words { lo: 1, hi: 0x7e00000000000000 }, 2, invalid),
+        (Words { lo: 0, hi: 0xf800000000000000 }, one, -1, ExceptionFlags::empty()), (one, Words { lo: 0, hi: 0xf800000000000000 }, 1, ExceptionFlags::empty()),
+        (Words { lo: 0, hi: 0xf800000000000000 }, Words { lo: 0, hi: 0x7800000000000000 }, -1, ExceptionFlags::empty()),
+        (Words { lo: 0, hi: 0x7800000000000000 }, Words { lo: 0, hi: 0xf800000000000000 }, 1, ExceptionFlags::empty()),
+        (Words { lo: 0, hi: 0x7800000000000000 }, Words { lo: 0, hi: 0x7800000000000000 }, 0, ExceptionFlags::empty()),
+        (Words { lo: 0, hi: 0xf800000000000000 }, Words { lo: 0, hi: 0xf800000000000000 }, 0, ExceptionFlags::empty()),
     ] { check_semantic128(x, y, relation, flags); }
 }
 

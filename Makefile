@@ -1,10 +1,15 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-comparison bench-intel test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
 GOENV = GOCACHE=$${GOCACHE:-/tmp/go-cache}
+# Repetition count for the Go benchmark matrix targets (bench-native,
+# bench-bidgo). Before/after performance claims need repeated samples
+# (AGENTS.md Performance Testing Discipline); Criterion handles its own
+# sampling on the Rust leg.
+BENCH_COUNT ?= 5
 # Active Go modules covered by the per-module test/vet/hygiene/purity loops.
 GO_MODULES = bid754-go bid754-codec-go devtools
 # Modules with a real goroutine-concurrent consumer surface, covered by the Go
@@ -411,11 +416,11 @@ test-quick:
 test:
 	@$(MAKE) test-portable
 
-# 빠른 벤치마크 (핵심 연산만)
+# 빠른 벤치마크 (공개 API 계층만, 1회 샘플 — 스모크용이며 회귀 판정 근거로 쓰지 않는다)
 bench-quick:
-	@echo "⚡ native 빠른 벤치마크 실행..."
+	@echo "⚡ native 빠른 벤치마크 실행 (public API 계층, count=1 스모크)..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="BenchmarkDecimal.*Operations" -benchmem -run=^$$ -timeout 60s) | tee test_results/quick_benchmark_results.txt'
+	@bash -o pipefail -lc '( echo "BENCH-META target=bench-quick count=1 tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="BenchmarkAlignedBID" -benchmem -run=^$$ -timeout 300s ) | tee test_results/quick_benchmark_results.txt'
 
 # 전체 벤치마크: Intel C, root public API, Go mechanical port, and generated Rust.
 bench:
@@ -426,37 +431,34 @@ bench:
 
 # Intel C direct + root public API native-tag 벤치마크
 bench-native:
-	@echo "📊 Intel C direct + root public API native-tag 벤치마크 실행..."
+	@echo "📊 Intel C direct + root public API native-tag 벤치마크 실행 (count=$(BENCH_COUNT))..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench=. -benchmem -run=^$$ -timeout 600s) | tee test_results/latest_benchmark_root_results.txt'
+	@bash -o pipefail -lc '( echo "BENCH-META target=bench-native count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ) | tee test_results/latest_benchmark_root_results.txt'
 	@cp test_results/latest_benchmark_root_results.txt test_results/latest_benchmark_results.txt
 
 # Go mechanical-port direct 벤치마크
 bench-bidgo:
-	@echo "📊 bidgo mechanical-port direct 벤치마크 실행..."
+	@echo "📊 bidgo mechanical-port direct 벤치마크 실행 (count=$(BENCH_COUNT))..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go test -bench=. -benchmem -run=^$$ -timeout 600s ./internal/bidgo) | tee test_results/latest_benchmark_bid_go_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-bidgo count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-go && $(GOENV) go test -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ./internal/bidgo ) | tee test_results/latest_benchmark_bid_go_results.txt'
 
-# generated Rust Criterion 벤치마크
+# generated Rust Criterion 벤치마크. Criterion의 change% 는 명명된 기준점
+# 대비로만 의미가 있으므로 'pinned' 기준점과 비교한다. 기준점이 없으면 이번
+# 실행을 기준점으로 저장만 하고 change% 없이 끝난다. 기준점 갱신은
+# bench-rust-baseline 으로만 한다 (직전 실행 대비 change% 오독 방지).
 bench-rust:
-	@echo "📊 generated Rust Criterion 벤치마크 실행..."
+	@echo "📊 generated Rust Criterion 벤치마크 실행 (기준점: pinned)..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '(cd bid754-rs && cargo bench --locked) | tee test_results/latest_benchmark_rust_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench core -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench core -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_rust_results.txt'
+
+# Criterion 'pinned' 기준점 갱신 (개선을 확정 반영할 때만 명시적으로 실행)
+bench-rust-baseline:
+	@echo "📌 generated Rust Criterion pinned 기준점 저장/갱신..."
+	@mkdir -p test_results
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust-baseline save-baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && cargo bench --locked --bench core -- --save-baseline pinned ) | tee test_results/latest_benchmark_rust_baseline_results.txt'
 
 # generated IBM decTest 스위트만 실행
 test-dectest: test-native-dectest
-
-# 성능 비교 (외부 라이브러리 포함)
-bench-comparison:
-	@echo "🏁 백엔드/float 기준선 벤치마크 실행..."
-	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="BenchmarkBackendFloatBaseline" -benchmem -run=^$$ -timeout 300s) | tee test_results/latest_comparison_results.txt'
-
-# Intel BID 최적화 벤치마크
-bench-intel:
-	@echo "⚡ Intel BID 최적화 벤치마크 실행..."
-	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="BenchmarkIntelBIDOptimizations" -benchmem -run=^$$ -timeout 120s) | tee test_results/latest_intel_results.txt'
 
 # 의존성 설치 확인
 install-deps:
@@ -736,18 +738,27 @@ show-results:
 		echo "❌ 벤치마크 결과 파일 없음"; \
 	fi
 
-# 성능 요약 생성
+# 성능 요약 생성 — 계층별로 라벨링하고, 비어 있는 계층은 명시적으로 표기한다
+# (부분 매트릭스가 전체 비교처럼 읽히는 것을 방지).
 summary:
 	@echo "📈 성능 요약 생성..."
 	@mkdir -p test_results
 	@if [ -f test_results/latest_benchmark_results.txt ]; then \
-		echo "=== bid754 성능 요약 (생성: $$(date)) ===" > test_results/latest_performance_summary.txt; \
-		echo >> test_results/latest_performance_summary.txt; \
-		echo "=== C/Go benchmark matrix ===" >> test_results/latest_performance_summary.txt; \
-		grep -E "Benchmark(IntelCBID|AlignedBID|FairBID).*-([0-9]+|[0-9]+\\s)" test_results/latest_benchmark_results.txt >> test_results/latest_performance_summary.txt || true; \
-		echo >> test_results/latest_performance_summary.txt; \
-		echo "=== Rust Criterion matrix ===" >> test_results/latest_performance_summary.txt; \
-		grep -E "^(bid32|bid64|bid128)/(add|mul|div|parse|to_string)" test_results/latest_benchmark_results.txt >> test_results/latest_performance_summary.txt || true; \
+		out=test_results/latest_performance_summary.txt; \
+		src=test_results/latest_benchmark_results.txt; \
+		echo "=== bid754 성능 요약 (생성: $$(date)) ===" > $$out; \
+		grep -E "^BENCH-META " $$src >> $$out || true; \
+		section() { \
+			echo >> $$out; \
+			echo "=== $$1 ===" >> $$out; \
+			if ! grep -E "$$2" $$src >> $$out; then \
+				echo "(no rows — this layer was not measured in the source file; run make bench)" >> $$out; \
+			fi; \
+		}; \
+		section "Intel C direct (BenchmarkIntelCBID*, cgo-amortized)" "BenchmarkIntelCBID.*-([0-9]+|[0-9]+\\s)"; \
+		section "Public Go API (BenchmarkAlignedBID*)" "BenchmarkAlignedBID.*-([0-9]+|[0-9]+\\s)"; \
+		section "Go mechanical port direct (BenchmarkFairBID*)" "BenchmarkFairBID.*-([0-9]+|[0-9]+\\s)"; \
+		section "generated Rust (Criterion, vs pinned baseline)" "^(bid32|bid64|bid128)/(add|mul|div|parse|to_string)"; \
 		echo "✅ 성능 요약이 test_results/latest_performance_summary.txt에 저장됨"; \
 	else \
 		echo "❌ 벤치마크 결과가 없어 요약을 생성할 수 없음"; \
@@ -812,12 +823,11 @@ help:
 	@echo "  make test-native-dectest generated decTest native non-short 검증"
 	@echo "  make test-rust-native-fuzz Rust ffi-fuzz auxiliary (Rust generated vs Intel BID C oracle, 정규 도메인 아님)"
 	@echo "  make test-native    native 전체 테스트"
-	@echo "  make bench-native   Intel C direct + root public API native-tag 벤치마크 (.env.sh 필요)"
-	@echo "  make bench-bidgo    bidgo mechanical-port direct 벤치마크"
-	@echo "  make bench-rust     generated Rust Criterion 벤치마크"
+	@echo "  make bench-native   Intel C direct + root public API native-tag 벤치마크 (.env.sh 필요, count=$(BENCH_COUNT))"
+	@echo "  make bench-bidgo    bidgo mechanical-port direct 벤치마크 (count=$(BENCH_COUNT))"
+	@echo "  make bench-rust     generated Rust Criterion 벤치마크 (pinned 기준점 대비)"
+	@echo "  make bench-rust-baseline Criterion pinned 기준점 저장/갱신"
 	@echo "  make test-dectest   generated decTest native non-short 검증"
-	@echo "  make bench-comparison  native 백엔드/float 기준선 벤치마크 (.env.sh 필요)"
-	@echo "  make bench-intel    native Intel BID 최적화 벤치마크 (.env.sh 필요)"
 	@echo
 	@echo "결과 관리:"
 	@echo "  make show-results   최신 결과 확인"

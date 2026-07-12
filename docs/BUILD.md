@@ -82,6 +82,32 @@ generated Rust. Public Go API benchmarks are reported as an additional
 wrapper/API surface. `bench-native`, `bench-bidgo`, and `bench-rust` run those
 surfaces individually.
 
+Benchmark name to layer mapping (`make summary` groups by these):
+
+- `BenchmarkIntelCBID*`: Intel C called directly (the `b.N` loop runs inside
+  C, so per-call cgo overhead is amortized)
+- `BenchmarkAlignedBID*`: public Go API. For `bid32` the value-only
+  `add`/`mul`/`div` rows measure the separate pure port bodies and the
+  `*_with_flags` rows measure the status-aware bodies; compare
+  `add_with_flags` with `FairBID32/add` (same implementation), and `add` with
+  `FairBID32/add_pure` — the two bid32 row families are different
+  implementations, not a wrapper-versus-port pair
+- `BenchmarkFairBID*`: Go mechanical port called directly (status-aware
+  bodies; `bid32` also carries `*_pure` rows for the value-only bodies)
+- Criterion `bid32/…`, `bid64/…`, `bid128/…`: generated Rust public API.
+  `make bench-rust` reports change percentages against the saved `pinned`
+  Criterion baseline only (first run creates it); refresh the baseline
+  deliberately with `make bench-rust-baseline` — never read change% from
+  back-to-back unnamed runs
+
+Every benchmark target stamps a `BENCH-META` line (tree id, date, and — on
+the Go targets — the repetition count; the Rust targets record the Criterion
+baseline name instead, since Criterion does its own sampling) into its
+`test_results/` output so a result file is attributable to the exact source
+state that produced it. The Go matrix targets repeat each benchmark
+`BENCH_COUNT` times (default 5) for stable before/after samples;
+`bench-quick` is a single-sample smoke and is not regression evidence.
+
 To verify the generated BID codec vector consumers for the required Go, Rust,
 Java, Python, JavaScript/TypeScript, and Swift targets:
 

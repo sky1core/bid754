@@ -2,6 +2,13 @@ package bidgo
 
 import "testing"
 
+// Layer: Go mechanical port called directly (status-aware *WithFlags bodies),
+// on the shared exact-operand contract (../../testdata/benchmark_inputs.json).
+// The bid32 add_pure/mul_pure/div_pure rows measure the separate value-only
+// port bodies that the value-only public methods route to; 64/128 have no
+// separate pure bodies, so no pure rows exist there. See
+// aligned_benchmark_test.go for the full bench-name -> layer matrix.
+
 var sink64 uint64
 var sink32 uint32
 var sink128 BID_UINT128
@@ -29,6 +36,24 @@ func BenchmarkFairBID32(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			sink32, sinkFlags = Bid32DivWithFlags(x, y, 0)
+		}
+	})
+	b.Run("add_pure", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink32 = Bid32Add(x, y, 0)
+		}
+	})
+	b.Run("mul_pure", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink32 = Bid32Mul(x, y, 0)
+		}
+	})
+	b.Run("div_pure", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink32 = Bid32Div(x, y, 0)
 		}
 	})
 	b.Run("parse", func(b *testing.B) {
