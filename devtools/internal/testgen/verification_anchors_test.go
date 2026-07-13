@@ -60,14 +60,19 @@ type verificationAnchors struct {
 	Tier1CompareConversionMinMaxOperations       uint64                       `json:"tier1_compare_conversion_long_minmax_operations"`
 	Tier1CompareConversionComparisonStructured   map[string]uint64            `json:"tier1_compare_conversion_long_comparison_structured_by_width"`
 	Tier1CompareConversionComparisonRandom       map[string]uint64            `json:"tier1_compare_conversion_long_comparison_random_by_width"`
+	Tier1CompareConversionComparisonRandomHashes map[string]uint64            `json:"tier1_compare_conversion_long_comparison_random_stream_hash_by_width"`
 	Tier1CompareConversionComparisonTotal        map[string]uint64            `json:"tier1_compare_conversion_long_comparison_total_by_width"`
 	Tier1CompareConversionToIntegerOperations    uint64                       `json:"tier1_compare_conversion_long_to_integer_operations"`
 	Tier1CompareConversionToIntegerTotal         map[string]uint64            `json:"tier1_compare_conversion_long_to_integer_total_by_width"`
+	Tier1CompareConversionToIntegerRandomHashes  map[string]uint64            `json:"tier1_compare_conversion_long_to_integer_random_stream_hash_by_width"`
 	Tier1CompareConversionWidthOperations        map[string]uint64            `json:"tier1_compare_conversion_long_width_operations_by_source"`
 	Tier1CompareConversionWidthTotal             map[string]uint64            `json:"tier1_compare_conversion_long_width_total_by_source"`
+	Tier1CompareConversionWidthRandomHashes      map[string]uint64            `json:"tier1_compare_conversion_long_width_random_stream_hash_by_width"`
+	Tier1CompareConversionBinaryRandomHashes     map[string]uint64            `json:"tier1_compare_conversion_long_binary_random_stream_hash_by_width"`
 	Tier1CompareConversionConstructorOperations  uint64                       `json:"tier1_compare_conversion_long_constructor_operations"`
 	Tier1CompareConversionConstructorTotal       uint64                       `json:"tier1_compare_conversion_long_constructor_total"`
 	Tier1CompareConversionConstructorConvenience uint64                       `json:"tier1_compare_conversion_long_constructor_convenience_checks"`
+	Tier1CompareConversionConstructorRandomHash  uint64                       `json:"tier1_compare_conversion_long_constructor_random_stream_hash"`
 	Tier1CompareConversionStructured             uint64                       `json:"tier1_compare_conversion_long_conversion_structured"`
 	Tier1CompareConversionRandom                 uint64                       `json:"tier1_compare_conversion_long_conversion_random"`
 	Tier1CompareConversionTotal                  uint64                       `json:"tier1_compare_conversion_long_conversion_total"`
@@ -329,14 +334,19 @@ type tier1CompareConversionLongInventory struct {
 	MinMaxOperations       uint64
 	ComparisonStructured   map[string]uint64
 	ComparisonRandom       map[string]uint64
+	ComparisonRandomHashes map[string]uint64
 	ComparisonTotal        map[string]uint64
 	ToIntegerOperations    uint64
 	ToIntegerTotal         map[string]uint64
+	ToIntegerRandomHashes  map[string]uint64
 	WidthOperations        map[string]uint64
 	WidthTotal             map[string]uint64
+	WidthRandomHashes      map[string]uint64
+	BinaryRandomHashes     map[string]uint64
 	ConstructorOperations  uint64
 	ConstructorTotal       uint64
 	ConstructorConvenience uint64
+	ConstructorRandomHash  uint64
 	ConversionStructured   uint64
 	ConversionRandom       uint64
 	ConversionTotal        uint64
@@ -413,14 +423,19 @@ func loadTier1CompareConversionLongInventory(t *testing.T) tier1CompareConversio
 		MinMaxOperations:       require("tier1MinMaxOperationCount"),
 		ComparisonStructured:   byWidth("tier1CompareStructured"),
 		ComparisonRandom:       byWidth("tier1CompareRandomComparisons"),
+		ComparisonRandomHashes: byWidth("tier1CompareRandomStreamHash"),
 		ComparisonTotal:        byWidth("tier1CompareTotal"),
 		ToIntegerOperations:    require("tier1ToIntegerOperationCount"),
 		ToIntegerTotal:         byWidth("tier1ToIntegerTotal"),
+		ToIntegerRandomHashes:  byWidth("tier1ToIntegerRandomStreamHash"),
 		WidthOperations:        byWidth("tier1WidthOperationsFrom"),
 		WidthTotal:             byWidth("tier1WidthTotal"),
+		WidthRandomHashes:      byWidth("tier1WidthRandomStreamHash"),
+		BinaryRandomHashes:     byWidth("tier1BinaryRandomStreamHash"),
 		ConstructorOperations:  require("tier1ConstructorOperationCount"),
 		ConstructorTotal:       require("tier1ConstructorTotal"),
 		ConstructorConvenience: require("tier1ConstructorConvenienceChecks"),
+		ConstructorRandomHash:  require("tier1ConstructorRandomStreamHash"),
 		ConversionStructured:   require("tier1ConversionStructured"),
 		ConversionRandom:       require("tier1ConversionRandom"),
 		ConversionTotal:        require("tier1ConversionTotal"),
@@ -519,14 +534,19 @@ func loadRustTier1CompareConversionLongInventory(t *testing.T) tier1CompareConve
 		MinMaxOperations:       require("MINMAX_OPERATION_COUNT"),
 		ComparisonStructured:   byWidth("COMPARE_STRUCTURED", ""),
 		ComparisonRandom:       byWidth("COMPARE_RANDOM", ""),
+		ComparisonRandomHashes: byWidth("COMPARE_RANDOM_STREAM_HASH", ""),
 		ComparisonTotal:        byWidth("COMPARE_TOTAL", ""),
 		ToIntegerOperations:    require("TO_INT_OPERATION_COUNT"),
 		ToIntegerTotal:         byWidth("TO_INT_TOTAL", ""),
+		ToIntegerRandomHashes:  byWidth("TO_INT_RANDOM_STREAM_HASH", ""),
 		WidthOperations:        byWidth("WIDTH_OPERATION_COUNT", ""),
 		WidthTotal:             byWidth("WIDTH_TOTAL", ""),
+		WidthRandomHashes:      byWidth("WIDTH_RANDOM_STREAM_HASH", ""),
+		BinaryRandomHashes:     byWidth("BINARY_RANDOM_STREAM_HASH", ""),
 		ConstructorOperations:  require("CONSTRUCTOR_OPERATION_COUNT"),
 		ConstructorTotal:       require("CONSTRUCTOR_TOTAL"),
 		ConstructorConvenience: require("CONSTRUCTOR_CONVENIENCE"),
+		ConstructorRandomHash:  require("CONSTRUCTOR_RANDOM_STREAM_HASH"),
 		ConversionStructured:   require("CONVERSION_STRUCTURED"),
 		ConversionRandom:       require("CONVERSION_RANDOM"),
 		ConversionTotal:        require("CONVERSION_TOTAL"),
@@ -813,10 +833,14 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Tier 1 compare/conversion semantic values", tier1CompareConversion.SemanticValues, anchors.Tier1CompareConversionSemanticValues},
 		{"Tier 1 compare/minmax structured comparisons", tier1CompareConversion.ComparisonStructured, anchors.Tier1CompareConversionComparisonStructured},
 		{"Tier 1 compare/minmax random comparisons", tier1CompareConversion.ComparisonRandom, anchors.Tier1CompareConversionComparisonRandom},
+		{"Tier 1 compare/minmax random stream hashes", tier1CompareConversion.ComparisonRandomHashes, anchors.Tier1CompareConversionComparisonRandomHashes},
 		{"Tier 1 compare/minmax total comparisons", tier1CompareConversion.ComparisonTotal, anchors.Tier1CompareConversionComparisonTotal},
 		{"Tier 1 BID-to-integer total comparisons", tier1CompareConversion.ToIntegerTotal, anchors.Tier1CompareConversionToIntegerTotal},
+		{"Tier 1 BID-to-integer random stream hashes", tier1CompareConversion.ToIntegerRandomHashes, anchors.Tier1CompareConversionToIntegerRandomHashes},
 		{"Tier 1 BID-width operation counts", tier1CompareConversion.WidthOperations, anchors.Tier1CompareConversionWidthOperations},
 		{"Tier 1 BID-width total comparisons", tier1CompareConversion.WidthTotal, anchors.Tier1CompareConversionWidthTotal},
+		{"Tier 1 BID-width random stream hashes", tier1CompareConversion.WidthRandomHashes, anchors.Tier1CompareConversionWidthRandomHashes},
+		{"Tier 1 BID-to-binary random stream hashes", tier1CompareConversion.BinaryRandomHashes, anchors.Tier1CompareConversionBinaryRandomHashes},
 	} {
 		if !reflect.DeepEqual(check.got, check.want) {
 			t.Errorf("generated %s = %#v, anchor = %#v", check.label, check.got, check.want)
@@ -832,10 +856,14 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Rust Tier 1 compare/conversion semantic values", rustTier1CompareConversion.SemanticValues, anchors.Tier1CompareConversionSemanticValues},
 		{"Rust Tier 1 compare/minmax structured comparisons", rustTier1CompareConversion.ComparisonStructured, anchors.Tier1CompareConversionComparisonStructured},
 		{"Rust Tier 1 compare/minmax random comparisons", rustTier1CompareConversion.ComparisonRandom, anchors.Tier1CompareConversionComparisonRandom},
+		{"Rust Tier 1 compare/minmax random stream hashes", rustTier1CompareConversion.ComparisonRandomHashes, anchors.Tier1CompareConversionComparisonRandomHashes},
 		{"Rust Tier 1 compare/minmax total comparisons", rustTier1CompareConversion.ComparisonTotal, anchors.Tier1CompareConversionComparisonTotal},
 		{"Rust Tier 1 BID-to-integer total comparisons", rustTier1CompareConversion.ToIntegerTotal, anchors.Tier1CompareConversionToIntegerTotal},
+		{"Rust Tier 1 BID-to-integer random stream hashes", rustTier1CompareConversion.ToIntegerRandomHashes, anchors.Tier1CompareConversionToIntegerRandomHashes},
 		{"Rust Tier 1 BID-width operation counts", rustTier1CompareConversion.WidthOperations, anchors.Tier1CompareConversionWidthOperations},
 		{"Rust Tier 1 BID-width total comparisons", rustTier1CompareConversion.WidthTotal, anchors.Tier1CompareConversionWidthTotal},
+		{"Rust Tier 1 BID-width random stream hashes", rustTier1CompareConversion.WidthRandomHashes, anchors.Tier1CompareConversionWidthRandomHashes},
+		{"Rust Tier 1 BID-to-binary random stream hashes", rustTier1CompareConversion.BinaryRandomHashes, anchors.Tier1CompareConversionBinaryRandomHashes},
 	} {
 		if !reflect.DeepEqual(check.got, check.want) {
 			t.Errorf("generated %s = %#v, anchor = %#v", check.label, check.got, check.want)
@@ -852,6 +880,7 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Rust Tier 1 integer-constructor operation count", rustTier1CompareConversion.ConstructorOperations, anchors.Tier1CompareConversionConstructorOperations},
 		{"Rust Tier 1 integer-constructor total comparisons", rustTier1CompareConversion.ConstructorTotal, anchors.Tier1CompareConversionConstructorTotal},
 		{"Rust Tier 1 integer-constructor convenience checks", rustTier1CompareConversion.ConstructorConvenience, anchors.Tier1CompareConversionConstructorConvenience},
+		{"Rust Tier 1 integer-constructor random stream hash", rustTier1CompareConversion.ConstructorRandomHash, anchors.Tier1CompareConversionConstructorRandomHash},
 		{"Rust Tier 1 conversion structured comparisons", rustTier1CompareConversion.ConversionStructured, anchors.Tier1CompareConversionStructured},
 		{"Rust Tier 1 conversion random comparisons", rustTier1CompareConversion.ConversionRandom, anchors.Tier1CompareConversionRandom},
 		{"Rust Tier 1 conversion total comparisons", rustTier1CompareConversion.ConversionTotal, anchors.Tier1CompareConversionTotal},
@@ -871,6 +900,7 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Tier 1 integer-constructor operation count", tier1CompareConversion.ConstructorOperations, anchors.Tier1CompareConversionConstructorOperations},
 		{"Tier 1 integer-constructor total comparisons", tier1CompareConversion.ConstructorTotal, anchors.Tier1CompareConversionConstructorTotal},
 		{"Tier 1 integer-constructor convenience checks", tier1CompareConversion.ConstructorConvenience, anchors.Tier1CompareConversionConstructorConvenience},
+		{"Tier 1 integer-constructor random stream hash", tier1CompareConversion.ConstructorRandomHash, anchors.Tier1CompareConversionConstructorRandomHash},
 		{"Tier 1 conversion structured comparisons", tier1CompareConversion.ConversionStructured, anchors.Tier1CompareConversionStructured},
 		{"Tier 1 conversion random comparisons", tier1CompareConversion.ConversionRandom, anchors.Tier1CompareConversionRandom},
 		{"Tier 1 conversion total comparisons", tier1CompareConversion.ConversionTotal, anchors.Tier1CompareConversionTotal},

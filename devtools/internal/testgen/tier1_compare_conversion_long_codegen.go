@@ -63,6 +63,26 @@ func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
 		uint64(len(semantic32)), uint64(len(semantic64)), uint64(len(semantic128)),
 		uint64(len(int32Inputs)), uint64(len(uint32Inputs)), uint64(len(int64Inputs)), uint64(len(uint64Inputs)),
 	)
+	streamHashes := map[string]string{
+		"@@TIER1_COMPARE_RANDOM_STREAM_HASH32@@":     fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(32, 32, 0xdec75432c04d5001, uint64(1)<<20, 2)),
+		"@@TIER1_COMPARE_RANDOM_STREAM_HASH64@@":     fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(64, 64, 0xdec75464c04d5001, uint64(1)<<20, 2)),
+		"@@TIER1_COMPARE_RANDOM_STREAM_HASH128@@":    fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(128, 128, 0xdec754c0c04d5001, uint64(1)<<19, 2)),
+		"@@TIER1_TO_INTEGER_RANDOM_STREAM_HASH32@@":  fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(32, 32, 0xdec75432c0a70001, uint64(1)<<18, 1)),
+		"@@TIER1_TO_INTEGER_RANDOM_STREAM_HASH64@@":  fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(64, 64, 0xdec75464c0a70001, uint64(1)<<18, 1)),
+		"@@TIER1_TO_INTEGER_RANDOM_STREAM_HASH128@@": fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(128, 128, 0xdec754c0c0a70001, uint64(1)<<17, 1)),
+		"@@TIER1_WIDTH_RANDOM_STREAM_HASH32@@":       fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(32, 32, 0xdec75432c0de0001, uint64(1)<<18, 1)),
+		"@@TIER1_WIDTH_RANDOM_STREAM_HASH64@@":       fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(64, 64, 0xdec75464c0de0001, uint64(1)<<18, 1)),
+		"@@TIER1_WIDTH_RANDOM_STREAM_HASH128@@":      fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(128, 128, 0xdec754c0c0de0001, uint64(1)<<17, 1)),
+		"@@TIER1_BINARY_RANDOM_STREAM_HASH32@@":      fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(32, 32, 0xdec75432c0b10001, uint64(1)<<18, 1)),
+		"@@TIER1_BINARY_RANDOM_STREAM_HASH64@@":      fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(64, 64, 0xdec75464c0b10001, uint64(1)<<18, 1)),
+		"@@TIER1_BINARY_RANDOM_STREAM_HASH128@@":     fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(128, 128, 0xdec754c0c0b10001, uint64(1)<<17, 1)),
+		"@@TIER1_CONSTRUCTOR_RANDOM_STREAM_HASH@@":   fmt.Sprint(tier1CompareConversionRandomStreamHashForGeneration(64, 0, 0xdec754c0c0570001, uint64(1)<<20, 1)),
+	}
+	streamHashReplacements := make([]string, 0, len(streamHashes)*2)
+	for token, value := range streamHashes {
+		streamHashReplacements = append(streamHashReplacements, token, value)
+	}
+	streamHashReplacer := strings.NewReplacer(streamHashReplacements...)
 
 	replacer := strings.NewReplacer(
 		"@@TIER1_BOUNDARY32_COUNT@@", fmt.Sprint(len(tier1ArithmeticBoundary32Values())),
@@ -83,7 +103,7 @@ func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
 		"@@TIER1_CONSTRUCTOR_INT64_VALUES@@", tier1Int64Literals(int64Inputs),
 		"@@TIER1_CONSTRUCTOR_UINT64_VALUES@@", tier1Uint64Literals(uint64Inputs),
 	)
-	source := []byte(genmarker.Line("testgen") + "\n" + replacer.Replace(string(template)))
+	source := []byte(genmarker.Line("testgen") + "\n" + streamHashReplacer.Replace(replacer.Replace(string(template))))
 	goOutputs, err := formatGeneratedGoOutputs(map[string][]byte{
 		tier1CompareConversionLongGeneratedPath: source,
 	})
@@ -144,12 +164,52 @@ func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
 		"@@TIER1_RANDOM_SAMPLE1@@", fmt.Sprintf("0x%016x", tier1ArithmeticRandomWordForGeneration(0xdec75464c0a70001, (uint64(1)<<18)-1, 0)),
 		"@@TIER1_RANDOM_SAMPLE2@@", fmt.Sprintf("0x%016x", tier1ArithmeticRandomWordForGeneration(0xdec754c0c0de0001, (uint64(1)<<17)-1, 1)),
 	)
-	rustSource, err := formatGeneratedRustOutput([]byte(genmarker.Line("testgen") + "\n" + rustReplacer.Replace(string(rustTemplate))))
+	rustSource, err := formatGeneratedRustOutput([]byte(genmarker.Line("testgen") + "\n" + streamHashReplacer.Replace(rustReplacer.Replace(string(rustTemplate)))))
 	if err != nil {
 		return nil, err
 	}
 	goOutputs[tier1CompareConversionRustLongGeneratedPath] = rustSource
 	return goOutputs, nil
+}
+
+// tier1CompareConversionMixOperandForGeneration folds one deterministic-random
+// operand draw into the shared FNV stream digest exactly as both generated
+// runners consume it: 32-bit draws keep the 32-bit truncation and pad with a
+// zero high word, 64-bit draws pad with a zero high word, and 128-bit draws
+// split one logical lane into the word lanes (lane*2, lane*2+1).
+func tier1CompareConversionMixOperandForGeneration(digest uint64, bits int, seed, caseIndex, lane uint64) uint64 {
+	var lo, hi uint64
+	switch bits {
+	case 32:
+		lo = uint64(uint32(tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane)))
+	case 64:
+		lo = tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane)
+	case 128:
+		lo = tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane*2)
+		hi = tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane*2+1)
+	default:
+		panic(fmt.Sprintf("unsupported Tier 1 compare/conversion random stream width %d", bits))
+	}
+	digest = tier1ArithmeticScaleTupleHashMix(digest, lo)
+	return tier1ArithmeticScaleTupleHashMix(digest, hi)
+}
+
+// tier1CompareConversionRandomStreamHashForGeneration replicates one
+// deterministic-random block of both compare/conversion runners: widthTag is
+// mixed first, then operandsPerCase draws per case index in logical-lane order,
+// then the case count. Both generated runners accumulate the same digest at
+// consumption time and assert it against this generator-anchored constant, so a
+// seed, lane, truncation, or draw-order drift in either template fails against
+// the anchor. Mode/operation selection is deliberately not folded in: the
+// operation tables are pinned by their own count anchors.
+func tier1CompareConversionRandomStreamHashForGeneration(bits int, widthTag uint64, seed, cases, operandsPerCase uint64) uint64 {
+	digest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, widthTag)
+	for i := uint64(0); i < cases; i++ {
+		for lane := uint64(0); lane < operandsPerCase; lane++ {
+			digest = tier1CompareConversionMixOperandForGeneration(digest, bits, seed, i, lane)
+		}
+	}
+	return tier1ArithmeticScaleTupleHashMix(digest, cases)
 }
 
 type tier1CompareConversionCounts struct {

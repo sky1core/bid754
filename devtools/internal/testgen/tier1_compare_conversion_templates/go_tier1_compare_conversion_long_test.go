@@ -105,6 +105,37 @@ const (
 		tier1WidthRandom32 + tier1WidthRandom64 + tier1WidthRandom128 +
 		tier1BinaryRandom32 + tier1BinaryRandom64 + tier1BinaryRandom128 + tier1ConstructorRandom
 	tier1ConversionTotal = tier1ConversionStructured + tier1ConversionRandom
+
+	tier1CompareRandomStreamHash32     = uint64(@@TIER1_COMPARE_RANDOM_STREAM_HASH32@@)
+	tier1CompareRandomStreamHash64     = uint64(@@TIER1_COMPARE_RANDOM_STREAM_HASH64@@)
+	tier1CompareRandomStreamHash128    = uint64(@@TIER1_COMPARE_RANDOM_STREAM_HASH128@@)
+	tier1ToIntegerRandomStreamHash32   = uint64(@@TIER1_TO_INTEGER_RANDOM_STREAM_HASH32@@)
+	tier1ToIntegerRandomStreamHash64   = uint64(@@TIER1_TO_INTEGER_RANDOM_STREAM_HASH64@@)
+	tier1ToIntegerRandomStreamHash128  = uint64(@@TIER1_TO_INTEGER_RANDOM_STREAM_HASH128@@)
+	tier1WidthRandomStreamHash32       = uint64(@@TIER1_WIDTH_RANDOM_STREAM_HASH32@@)
+	tier1WidthRandomStreamHash64       = uint64(@@TIER1_WIDTH_RANDOM_STREAM_HASH64@@)
+	tier1WidthRandomStreamHash128      = uint64(@@TIER1_WIDTH_RANDOM_STREAM_HASH128@@)
+	tier1BinaryRandomStreamHash32      = uint64(@@TIER1_BINARY_RANDOM_STREAM_HASH32@@)
+	tier1BinaryRandomStreamHash64      = uint64(@@TIER1_BINARY_RANDOM_STREAM_HASH64@@)
+	tier1BinaryRandomStreamHash128     = uint64(@@TIER1_BINARY_RANDOM_STREAM_HASH128@@)
+	tier1ConstructorRandomStreamHash   = uint64(@@TIER1_CONSTRUCTOR_RANDOM_STREAM_HASH@@)
+
+	// The deterministic-random seeds are shared by every random differential
+	// block and the generator-side stream hashes, so a seed edit that reaches
+	// only one consumer fails the anchored stream-hash contract.
+	tier1CompareRandomSeed32    = uint64(0xdec75432c04d5001)
+	tier1CompareRandomSeed64    = uint64(0xdec75464c04d5001)
+	tier1CompareRandomSeed128   = uint64(0xdec754c0c04d5001)
+	tier1ToIntegerRandomSeed32  = uint64(0xdec75432c0a70001)
+	tier1ToIntegerRandomSeed64  = uint64(0xdec75464c0a70001)
+	tier1ToIntegerRandomSeed128 = uint64(0xdec754c0c0a70001)
+	tier1WidthRandomSeed32      = uint64(0xdec75432c0de0001)
+	tier1WidthRandomSeed64      = uint64(0xdec75464c0de0001)
+	tier1WidthRandomSeed128     = uint64(0xdec754c0c0de0001)
+	tier1BinaryRandomSeed32     = uint64(0xdec75432c0b10001)
+	tier1BinaryRandomSeed64     = uint64(0xdec75464c0b10001)
+	tier1BinaryRandomSeed128    = uint64(0xdec754c0c0b10001)
+	tier1ConstructorRandomSeed  = uint64(0xdec754c0c0570001)
 )
 
 type tier1CompareConversionShard struct {
@@ -599,9 +630,14 @@ func TestTier1ComparisonMinMaxDeterministicRandomNativeDifferential(t *testing.T
 	shard := tier1CompareConversionLoadShard(t)
 	t.Run("decimal32", func(t *testing.T) {
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 32)
 		for i := uint64(0); i < tier1CompareRandomPairs32; i++ {
-			x := uint32(tier1ArithmeticRandomWord(0xdec75432c04d5001, i, 0))
-			y := uint32(tier1ArithmeticRandomWord(0xdec75432c04d5001, i, 1))
+			x := tier1ArithmeticRandomOperand32(tier1CompareRandomSeed32, i, 0)
+			y := tier1ArithmeticRandomOperand32(tier1CompareRandomSeed32, i, 1)
+			randomDigest = tier1ArithmeticMixOperand32(randomDigest, x)
+			randomDigest = tier1ArithmeticMixOperand32(randomDigest, y)
+			randomConsumed++
 			for _, operation := range tier1QuietPredicates {
 				if shard.owns(comparison) {
 					tier1CheckQuiet32(t, operation, x, y)
@@ -615,6 +651,9 @@ func TestTier1ComparisonMinMaxDeterministicRandomNativeDifferential(t *testing.T
 				comparison++
 			}
 		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1CompareRandomStreamHash32 {
+			t.Fatalf("decimal32 random compare/minmax stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1CompareRandomStreamHash32)
+		}
 		if comparison != tier1CompareRandomComparisons32 {
 			t.Fatalf("decimal32 random compare/minmax comparisons=%d want=%d", comparison, tier1CompareRandomComparisons32)
 		}
@@ -622,9 +661,14 @@ func TestTier1ComparisonMinMaxDeterministicRandomNativeDifferential(t *testing.T
 	})
 	t.Run("decimal64", func(t *testing.T) {
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 64)
 		for i := uint64(0); i < tier1CompareRandomPairs64; i++ {
-			x := tier1ArithmeticRandomWord(0xdec75464c04d5001, i, 0)
-			y := tier1ArithmeticRandomWord(0xdec75464c04d5001, i, 1)
+			x := tier1ArithmeticRandomOperand64(tier1CompareRandomSeed64, i, 0)
+			y := tier1ArithmeticRandomOperand64(tier1CompareRandomSeed64, i, 1)
+			randomDigest = tier1ArithmeticMixOperand64(randomDigest, x)
+			randomDigest = tier1ArithmeticMixOperand64(randomDigest, y)
+			randomConsumed++
 			for _, operation := range tier1QuietPredicates {
 				if shard.owns(comparison) {
 					tier1CheckQuiet64(t, operation, x, y)
@@ -638,6 +682,9 @@ func TestTier1ComparisonMinMaxDeterministicRandomNativeDifferential(t *testing.T
 				comparison++
 			}
 		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1CompareRandomStreamHash64 {
+			t.Fatalf("decimal64 random compare/minmax stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1CompareRandomStreamHash64)
+		}
 		if comparison != tier1CompareRandomComparisons64 {
 			t.Fatalf("decimal64 random compare/minmax comparisons=%d want=%d", comparison, tier1CompareRandomComparisons64)
 		}
@@ -645,15 +692,16 @@ func TestTier1ComparisonMinMaxDeterministicRandomNativeDifferential(t *testing.T
 	})
 	t.Run("decimal128", func(t *testing.T) {
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 128)
 		for i := uint64(0); i < tier1CompareRandomPairs128; i++ {
-			x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{
-				lo: tier1ArithmeticRandomWord(0xdec754c0c04d5001, i, 0),
-				hi: tier1ArithmeticRandomWord(0xdec754c0c04d5001, i, 1),
-			})
-			y := tier1ArithmeticDecimal128(tier1Arithmetic128Words{
-				lo: tier1ArithmeticRandomWord(0xdec754c0c04d5001, i, 2),
-				hi: tier1ArithmeticRandomWord(0xdec754c0c04d5001, i, 3),
-			})
+			xWords := tier1ArithmeticRandomOperand128(tier1CompareRandomSeed128, i, 0)
+			yWords := tier1ArithmeticRandomOperand128(tier1CompareRandomSeed128, i, 1)
+			randomDigest = tier1ArithmeticMixOperand128(randomDigest, xWords)
+			randomDigest = tier1ArithmeticMixOperand128(randomDigest, yWords)
+			randomConsumed++
+			x := tier1ArithmeticDecimal128(xWords)
+			y := tier1ArithmeticDecimal128(yWords)
 			for _, operation := range tier1QuietPredicates {
 				if shard.owns(comparison) {
 					tier1CheckQuiet128(t, operation, x, y)
@@ -666,6 +714,9 @@ func TestTier1ComparisonMinMaxDeterministicRandomNativeDifferential(t *testing.T
 				}
 				comparison++
 			}
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1CompareRandomStreamHash128 {
+			t.Fatalf("decimal128 random compare/minmax stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1CompareRandomStreamHash128)
 		}
 		if comparison != tier1CompareRandomComparisons128 {
 			t.Fatalf("decimal128 random compare/minmax comparisons=%d want=%d", comparison, tier1CompareRandomComparisons128)
@@ -1662,12 +1713,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 
 	t.Run("bid_to_integer_decimal32", func(t *testing.T) {
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 32)
 		for i := uint64(0); i < tier1ToIntegerRandom32; i++ {
+			value := tier1ArithmeticRandomOperand32(tier1ToIntegerRandomSeed32, i, 0)
+			randomDigest = tier1ArithmeticMixOperand32(randomDigest, value)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := uint32(tier1ArithmeticRandomWord(0xdec75432c0a70001, i, 0))
 				tier1CheckToInteger32(t, value, toIntegerOperations[i%uint64(len(toIntegerOperations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1ToIntegerRandomStreamHash32 {
+			t.Fatalf("Decimal32 random BID-to-integer stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1ToIntegerRandomStreamHash32)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1676,12 +1734,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	})
 	t.Run("bid_to_integer_decimal64", func(t *testing.T) {
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 64)
 		for i := uint64(0); i < tier1ToIntegerRandom64; i++ {
+			value := tier1ArithmeticRandomOperand64(tier1ToIntegerRandomSeed64, i, 0)
+			randomDigest = tier1ArithmeticMixOperand64(randomDigest, value)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := tier1ArithmeticRandomWord(0xdec75464c0a70001, i, 0)
 				tier1CheckToInteger64(t, value, toIntegerOperations[i%uint64(len(toIntegerOperations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1ToIntegerRandomStreamHash64 {
+			t.Fatalf("Decimal64 random BID-to-integer stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1ToIntegerRandomStreamHash64)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1690,15 +1755,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	})
 	t.Run("bid_to_integer_decimal128", func(t *testing.T) {
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 128)
 		for i := uint64(0); i < tier1ToIntegerRandom128; i++ {
+			words := tier1ArithmeticRandomOperand128(tier1ToIntegerRandomSeed128, i, 0)
+			randomDigest = tier1ArithmeticMixOperand128(randomDigest, words)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := tier1ArithmeticDecimal128(tier1Arithmetic128Words{
-					lo: tier1ArithmeticRandomWord(0xdec754c0c0a70001, i, 0),
-					hi: tier1ArithmeticRandomWord(0xdec754c0c0a70001, i, 1),
-				})
-				tier1CheckToInteger128(t, value, toIntegerOperations[i%uint64(len(toIntegerOperations))])
+				tier1CheckToInteger128(t, tier1ArithmeticDecimal128(words), toIntegerOperations[i%uint64(len(toIntegerOperations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1ToIntegerRandomStreamHash128 {
+			t.Fatalf("Decimal128 random BID-to-integer stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1ToIntegerRandomStreamHash128)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1709,12 +1778,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("width_from_decimal32", func(t *testing.T) {
 		operations := tier1WidthOperations(32)
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 32)
 		for i := uint64(0); i < tier1WidthRandom32; i++ {
+			value := tier1ArithmeticRandomOperand32(tier1WidthRandomSeed32, i, 0)
+			randomDigest = tier1ArithmeticMixOperand32(randomDigest, value)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := uint32(tier1ArithmeticRandomWord(0xdec75432c0de0001, i, 0))
 				tier1CheckWidth32(t, value, operations[i%uint64(len(operations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1WidthRandomStreamHash32 {
+			t.Fatalf("Decimal32-source random width stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1WidthRandomStreamHash32)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1724,12 +1800,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("width_from_decimal64", func(t *testing.T) {
 		operations := tier1WidthOperations(64)
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 64)
 		for i := uint64(0); i < tier1WidthRandom64; i++ {
+			value := tier1ArithmeticRandomOperand64(tier1WidthRandomSeed64, i, 0)
+			randomDigest = tier1ArithmeticMixOperand64(randomDigest, value)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := tier1ArithmeticRandomWord(0xdec75464c0de0001, i, 0)
 				tier1CheckWidth64(t, value, operations[i%uint64(len(operations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1WidthRandomStreamHash64 {
+			t.Fatalf("Decimal64-source random width stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1WidthRandomStreamHash64)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1739,15 +1822,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("width_from_decimal128", func(t *testing.T) {
 		operations := tier1WidthOperations(128)
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 128)
 		for i := uint64(0); i < tier1WidthRandom128; i++ {
+			words := tier1ArithmeticRandomOperand128(tier1WidthRandomSeed128, i, 0)
+			randomDigest = tier1ArithmeticMixOperand128(randomDigest, words)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := tier1ArithmeticDecimal128(tier1Arithmetic128Words{
-					lo: tier1ArithmeticRandomWord(0xdec754c0c0de0001, i, 0),
-					hi: tier1ArithmeticRandomWord(0xdec754c0c0de0001, i, 1),
-				})
-				tier1CheckWidth128(t, value, operations[i%uint64(len(operations))])
+				tier1CheckWidth128(t, tier1ArithmeticDecimal128(words), operations[i%uint64(len(operations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1WidthRandomStreamHash128 {
+			t.Fatalf("Decimal128-source random width stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1WidthRandomStreamHash128)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1758,12 +1845,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("binary_from_decimal32", func(t *testing.T) {
 		operations := tier1BinaryOperations(32)
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 32)
 		for i := uint64(0); i < tier1BinaryRandom32; i++ {
+			value := tier1ArithmeticRandomOperand32(tier1BinaryRandomSeed32, i, 0)
+			randomDigest = tier1ArithmeticMixOperand32(randomDigest, value)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := uint32(tier1ArithmeticRandomWord(0xdec75432c0b10001, i, 0))
 				tier1CheckBinary32(t, value, operations[i%uint64(len(operations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1BinaryRandomStreamHash32 {
+			t.Fatalf("Decimal32-source random binary stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1BinaryRandomStreamHash32)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1773,12 +1867,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("binary_from_decimal64", func(t *testing.T) {
 		operations := tier1BinaryOperations(64)
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 64)
 		for i := uint64(0); i < tier1BinaryRandom64; i++ {
+			value := tier1ArithmeticRandomOperand64(tier1BinaryRandomSeed64, i, 0)
+			randomDigest = tier1ArithmeticMixOperand64(randomDigest, value)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := tier1ArithmeticRandomWord(0xdec75464c0b10001, i, 0)
 				tier1CheckBinary64(t, value, operations[i%uint64(len(operations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1BinaryRandomStreamHash64 {
+			t.Fatalf("Decimal64-source random binary stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1BinaryRandomStreamHash64)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1788,15 +1889,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("binary_from_decimal128", func(t *testing.T) {
 		operations := tier1BinaryOperations(128)
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 128)
 		for i := uint64(0); i < tier1BinaryRandom128; i++ {
+			words := tier1ArithmeticRandomOperand128(tier1BinaryRandomSeed128, i, 0)
+			randomDigest = tier1ArithmeticMixOperand128(randomDigest, words)
+			randomConsumed++
 			if shard.owns(comparison) {
-				value := tier1ArithmeticDecimal128(tier1Arithmetic128Words{
-					lo: tier1ArithmeticRandomWord(0xdec754c0c0b10001, i, 0),
-					hi: tier1ArithmeticRandomWord(0xdec754c0c0b10001, i, 1),
-				})
-				tier1CheckBinary128(t, value, operations[i%uint64(len(operations))])
+				tier1CheckBinary128(t, tier1ArithmeticDecimal128(words), operations[i%uint64(len(operations))])
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1BinaryRandomStreamHash128 {
+			t.Fatalf("Decimal128-source random binary stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1BinaryRandomStreamHash128)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)
@@ -1806,13 +1911,19 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 
 	t.Run("integer_constructors", func(t *testing.T) {
 		var comparison uint64
+		var randomConsumed uint64
+		randomDigest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, 0)
 		for i := uint64(0); i < tier1ConstructorRandom; i++ {
+			raw := tier1ArithmeticRandomOperand64(tier1ConstructorRandomSeed, i, 0)
+			randomDigest = tier1ArithmeticMixOperand64(randomDigest, raw)
+			randomConsumed++
 			if shard.owns(comparison) {
-				operation := constructorOperations[i%uint64(len(constructorOperations))]
-				raw := tier1ArithmeticRandomWord(0xdec754c0c0570001, i, 0)
-				tier1CheckConstructor(t, operation, raw)
+				tier1CheckConstructor(t, constructorOperations[i%uint64(len(constructorOperations))], raw)
 			}
 			comparison++
+		}
+		if got := tier1ArithmeticScaleTupleHashMix(randomDigest, randomConsumed); got != tier1ConstructorRandomStreamHash {
+			t.Fatalf("random integer-constructor stream hash=%d want=%d (consumed operands diverge from the anchored stream)", got, tier1ConstructorRandomStreamHash)
 		}
 		randomTotal += comparison
 		randomExecuted += shard.ownedCount(comparison)

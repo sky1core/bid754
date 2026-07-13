@@ -79,6 +79,9 @@ const RANDOM_ROUNDED_SEED_BASE128: u64 = 0xdec7541200000000;
 const RANDOM_UNROUNDED_SEED_BASE128: u64 = 0xdec7541210000000;
 const RANDOM_FMA_SEED128: u64 = 0xdec7541220000000;
 const RANDOM_SQRT_SEED128: u64 = 0xdec7541230000000;
+const SCALE_SEED32: u64 = 0xdec7543253414c45;
+const SCALE_SEED64: u64 = 0xdec7546453414c45;
+const SCALE_SEED128: u64 = 0xdec7541253414c45;
 
 #[derive(Clone, Copy, Debug)]
 struct Mode {
@@ -565,21 +568,11 @@ fn assert_corpus_stream_contracts() {
 
     let random_stream = |bits: u32, rounded_base: u64, unrounded_base: u64, fma_seed: u64, sqrt_seed: u64, cases: u64| -> u64 {
         let mut digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, bits as u64);
-        let mut mix_operand = |digest: &mut u64, seed: u64, case_index: u64, lane: u64| {
+        let mix_operand = |digest: &mut u64, seed: u64, case_index: u64, lane: u64| {
             match bits {
-                32 => {
-                    *digest = scale_tuple_hash_mix(*digest, random_operand32(seed, case_index, lane) as u64);
-                    *digest = scale_tuple_hash_mix(*digest, 0);
-                }
-                64 => {
-                    *digest = scale_tuple_hash_mix(*digest, random_operand64(seed, case_index, lane));
-                    *digest = scale_tuple_hash_mix(*digest, 0);
-                }
-                _ => {
-                    let words = random_operand128(seed, case_index, lane);
-                    *digest = scale_tuple_hash_mix(*digest, words.lo);
-                    *digest = scale_tuple_hash_mix(*digest, words.hi);
-                }
+                32 => *digest = mix_operand32(*digest, random_operand32(seed, case_index, lane)),
+                64 => *digest = mix_operand64(*digest, random_operand64(seed, case_index, lane)),
+                _ => *digest = mix_operand128(*digest, random_operand128(seed, case_index, lane)),
             }
         };
         let mut total = 0u64;
@@ -647,9 +640,9 @@ fn tier1_arithmetic_corpus_contract() {
     assert_eq!(random_word(0xdec7543200000000, 0, 0), 0xa52376180ff24924);
     assert_eq!(random_word(0xdec7546400000004, (1 << 20) - 1, 1), 0xf8d7a39a00cd53a2);
     assert_eq!(random_word(0xdec7541253414c45, (1 << 19) - 1, 2), 0x4e6f811c0ce3458c);
-    assert_scale_corpus_contract(32, 0xdec7543253414c45, 1, SCALE_FINITE_TRANSITION_LIMIT32 as i64, RANDOM_CASES32, SCALE_MODE_CROSS_GROUPS32, SCALE_TUPLE_HASH32);
-    assert_scale_corpus_contract(64, 0xdec7546453414c45, 1, SCALE_FINITE_TRANSITION_LIMIT64 as i64, RANDOM_CASES64, SCALE_MODE_CROSS_GROUPS64, SCALE_TUPLE_HASH64);
-    assert_scale_corpus_contract(128, 0xdec7541253414c45, 2, SCALE_FINITE_TRANSITION_LIMIT128 as i64, RANDOM_CASES128, SCALE_MODE_CROSS_GROUPS128, SCALE_TUPLE_HASH128);
+    assert_scale_corpus_contract(32, SCALE_SEED32, 1, SCALE_FINITE_TRANSITION_LIMIT32 as i64, RANDOM_CASES32, SCALE_MODE_CROSS_GROUPS32, SCALE_TUPLE_HASH32);
+    assert_scale_corpus_contract(64, SCALE_SEED64, 1, SCALE_FINITE_TRANSITION_LIMIT64 as i64, RANDOM_CASES64, SCALE_MODE_CROSS_GROUPS64, SCALE_TUPLE_HASH64);
+    assert_scale_corpus_contract(128, SCALE_SEED128, 2, SCALE_FINITE_TRANSITION_LIMIT128 as i64, RANDOM_CASES128, SCALE_MODE_CROSS_GROUPS128, SCALE_TUPLE_HASH128);
     assert_corpus_stream_contracts();
     assert_eq!(TOTAL32_COUNT, STRUCTURED32_COUNT + RANDOM32_COUNT);
     assert_eq!(TOTAL64_COUNT, STRUCTURED64_COUNT + RANDOM64_COUNT);
@@ -735,6 +728,21 @@ fn splitmix64(mut value: u64) -> u64 {
 
 fn random_word(seed: u64, case_index: u64, lane: u64) -> u64 {
     splitmix64(seed ^ case_index.wrapping_mul(0xd1342543de82ef95) ^ lane.wrapping_mul(0x9e3779b97f4a7c15))
+}
+
+// mix_operand* fold one drawn operand into a stream digest. The corpus
+// stream contract and the deterministic-random differentials share these
+// mixers, so the digest always reflects the operands as consumed.
+fn mix_operand32(digest: u64, value: u32) -> u64 {
+    scale_tuple_hash_mix(scale_tuple_hash_mix(digest, value as u64), 0)
+}
+
+fn mix_operand64(digest: u64, value: u64) -> u64 {
+    scale_tuple_hash_mix(scale_tuple_hash_mix(digest, value), 0)
+}
+
+fn mix_operand128(digest: u64, words: Words) -> u64 {
+    scale_tuple_hash_mix(scale_tuple_hash_mix(digest, words.lo), words.hi)
 }
 
 // random_operand* derive the deterministic-random operands for one logical
@@ -985,65 +993,176 @@ fn assert_scale_corpus_contract(bits: u32, seed: u64, lane: u64, transition_limi
 fn tier1_arithmetic_deterministic_random_native_differential() {
     let shard = Shard::load();
     let mut count = 0u64;
+    let mut consumed = 0u64;
+    let mut digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 32);
     for (op_index, &op) in ROUNDED_OPS.iter().enumerate() {
         let seed = RANDOM_ROUNDED_SEED_BASE32 ^ op_index as u64;
-        for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_rounded32(op, random_operand32(seed, i, 0), random_operand32(seed, i, 1), MODES[i as usize % MODES.len()]); } count += 1; }
+        for i in 0..RANDOM_CASES32 {
+            let x = random_operand32(seed, i, 0);
+            let y = random_operand32(seed, i, 1);
+            let mode = MODES[i as usize % MODES.len()];
+            digest = mix_operand32(digest, x);
+            digest = mix_operand32(digest, y);
+            digest = scale_tuple_hash_mix(digest, mode.native as u64);
+            consumed += 1;
+            if shard.owns(count) { check_rounded32(op, x, y, mode); }
+            count += 1;
+        }
     }
     for (op_index, &op) in UNROUNDED_OPS.iter().enumerate() {
         let seed = RANDOM_UNROUNDED_SEED_BASE32 ^ op_index as u64;
-        for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_unrounded32(op, random_operand32(seed, i, 0), random_operand32(seed, i, 1)); } count += 1; }
+        for i in 0..RANDOM_CASES32 {
+            let x = random_operand32(seed, i, 0);
+            let y = random_operand32(seed, i, 1);
+            digest = mix_operand32(digest, x);
+            digest = mix_operand32(digest, y);
+            consumed += 1;
+            if shard.owns(count) { check_unrounded32(op, x, y); }
+            count += 1;
+        }
     }
-    let seed = 0xdec7543253414c45;
+    let seed = SCALE_SEED32;
     for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_scale32(random_scale_operand32(seed, i, SCALE_FINITE_TRANSITION_LIMIT32 as i64), random_scale_exponent(seed, i, 1, SCALE_FINITE_TRANSITION_LIMIT32 as i64), MODES[i as usize % MODES.len()]); } count += 1; }
-    for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_fma32(random_operand32(RANDOM_FMA_SEED32, i, 0), random_operand32(RANDOM_FMA_SEED32, i, 1), random_operand32(RANDOM_FMA_SEED32, i, 2), MODES[i as usize % MODES.len()]); } count += 1; }
-    for i in 0..RANDOM_CASES32 { if shard.owns(count) { check_sqrt32(random_operand32(RANDOM_SQRT_SEED32, i, 0), MODES[i as usize % MODES.len()]); } count += 1; }
+    for i in 0..RANDOM_CASES32 {
+        let x = random_operand32(RANDOM_FMA_SEED32, i, 0);
+        let y = random_operand32(RANDOM_FMA_SEED32, i, 1);
+        let z = random_operand32(RANDOM_FMA_SEED32, i, 2);
+        let mode = MODES[i as usize % MODES.len()];
+        digest = mix_operand32(digest, x);
+        digest = mix_operand32(digest, y);
+        digest = mix_operand32(digest, z);
+        digest = scale_tuple_hash_mix(digest, mode.native as u64);
+        consumed += 1;
+        if shard.owns(count) { check_fma32(x, y, z, mode); }
+        count += 1;
+    }
+    for i in 0..RANDOM_CASES32 {
+        let x = random_operand32(RANDOM_SQRT_SEED32, i, 0);
+        let mode = MODES[i as usize % MODES.len()];
+        digest = mix_operand32(digest, x);
+        digest = scale_tuple_hash_mix(digest, mode.native as u64);
+        consumed += 1;
+        if shard.owns(count) { check_sqrt32(x, mode); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), RANDOM_STREAM_HASH32, "Decimal32 random differential consumed-stream hash drift");
     assert_eq!(count, RANDOM32_COUNT);
     eprintln!("Rust Decimal32 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
 
     count = 0;
+    let mut consumed = 0u64;
+    let mut digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 64);
     for (op_index, &op) in ROUNDED_OPS.iter().enumerate() {
         let seed = RANDOM_ROUNDED_SEED_BASE64 ^ op_index as u64;
-        for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_rounded64(op, random_operand64(seed, i, 0), random_operand64(seed, i, 1), MODES[i as usize % MODES.len()]); } count += 1; }
+        for i in 0..RANDOM_CASES64 {
+            let x = random_operand64(seed, i, 0);
+            let y = random_operand64(seed, i, 1);
+            let mode = MODES[i as usize % MODES.len()];
+            digest = mix_operand64(digest, x);
+            digest = mix_operand64(digest, y);
+            digest = scale_tuple_hash_mix(digest, mode.native as u64);
+            consumed += 1;
+            if shard.owns(count) { check_rounded64(op, x, y, mode); }
+            count += 1;
+        }
     }
     for (op_index, &op) in UNROUNDED_OPS.iter().enumerate() {
         let seed = RANDOM_UNROUNDED_SEED_BASE64 ^ op_index as u64;
-        for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_unrounded64(op, random_operand64(seed, i, 0), random_operand64(seed, i, 1)); } count += 1; }
+        for i in 0..RANDOM_CASES64 {
+            let x = random_operand64(seed, i, 0);
+            let y = random_operand64(seed, i, 1);
+            digest = mix_operand64(digest, x);
+            digest = mix_operand64(digest, y);
+            consumed += 1;
+            if shard.owns(count) { check_unrounded64(op, x, y); }
+            count += 1;
+        }
     }
-    let seed = 0xdec7546453414c45;
+    let seed = SCALE_SEED64;
     for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_scale64(random_scale_operand64(seed, i, SCALE_FINITE_TRANSITION_LIMIT64 as i64), random_scale_exponent(seed, i, 1, SCALE_FINITE_TRANSITION_LIMIT64 as i64), MODES[i as usize % MODES.len()]); } count += 1; }
-    for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_fma64(random_operand64(RANDOM_FMA_SEED64, i, 0), random_operand64(RANDOM_FMA_SEED64, i, 1), random_operand64(RANDOM_FMA_SEED64, i, 2), MODES[i as usize % MODES.len()]); } count += 1; }
-    for i in 0..RANDOM_CASES64 { if shard.owns(count) { check_sqrt64(random_operand64(RANDOM_SQRT_SEED64, i, 0), MODES[i as usize % MODES.len()]); } count += 1; }
+    for i in 0..RANDOM_CASES64 {
+        let x = random_operand64(RANDOM_FMA_SEED64, i, 0);
+        let y = random_operand64(RANDOM_FMA_SEED64, i, 1);
+        let z = random_operand64(RANDOM_FMA_SEED64, i, 2);
+        let mode = MODES[i as usize % MODES.len()];
+        digest = mix_operand64(digest, x);
+        digest = mix_operand64(digest, y);
+        digest = mix_operand64(digest, z);
+        digest = scale_tuple_hash_mix(digest, mode.native as u64);
+        consumed += 1;
+        if shard.owns(count) { check_fma64(x, y, z, mode); }
+        count += 1;
+    }
+    for i in 0..RANDOM_CASES64 {
+        let x = random_operand64(RANDOM_SQRT_SEED64, i, 0);
+        let mode = MODES[i as usize % MODES.len()];
+        digest = mix_operand64(digest, x);
+        digest = scale_tuple_hash_mix(digest, mode.native as u64);
+        consumed += 1;
+        if shard.owns(count) { check_sqrt64(x, mode); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), RANDOM_STREAM_HASH64, "Decimal64 random differential consumed-stream hash drift");
     assert_eq!(count, RANDOM64_COUNT);
     eprintln!("Rust Decimal64 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
 
     count = 0;
+    let mut consumed = 0u64;
+    let mut digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 128);
     for (op_index, &op) in ROUNDED_OPS.iter().enumerate() {
         let seed = RANDOM_ROUNDED_SEED_BASE128 ^ op_index as u64;
         for i in 0..RANDOM_CASES128 {
-            if shard.owns(count) { check_rounded128(op, random_operand128(seed, i, 0), random_operand128(seed, i, 1), MODES[i as usize % MODES.len()]); }
+            let x = random_operand128(seed, i, 0);
+            let y = random_operand128(seed, i, 1);
+            let mode = MODES[i as usize % MODES.len()];
+            digest = mix_operand128(digest, x);
+            digest = mix_operand128(digest, y);
+            digest = scale_tuple_hash_mix(digest, mode.native as u64);
+            consumed += 1;
+            if shard.owns(count) { check_rounded128(op, x, y, mode); }
             count += 1;
         }
     }
     for (op_index, &op) in UNROUNDED_OPS.iter().enumerate() {
         let seed = RANDOM_UNROUNDED_SEED_BASE128 ^ op_index as u64;
         for i in 0..RANDOM_CASES128 {
-            if shard.owns(count) { check_unrounded128(op, random_operand128(seed, i, 0), random_operand128(seed, i, 1)); }
+            let x = random_operand128(seed, i, 0);
+            let y = random_operand128(seed, i, 1);
+            digest = mix_operand128(digest, x);
+            digest = mix_operand128(digest, y);
+            consumed += 1;
+            if shard.owns(count) { check_unrounded128(op, x, y); }
             count += 1;
         }
     }
-    let seed = 0xdec7541253414c45;
+    let seed = SCALE_SEED128;
     for i in 0..RANDOM_CASES128 {
         if shard.owns(count) { check_scale128(random_scale_operand128(seed, i, SCALE_FINITE_TRANSITION_LIMIT128 as i64), random_scale_exponent(seed, i, 2, SCALE_FINITE_TRANSITION_LIMIT128 as i64), MODES[i as usize % MODES.len()]); }
         count += 1;
     }
     for i in 0..RANDOM_CASES128 {
-        if shard.owns(count) { check_fma128(random_operand128(RANDOM_FMA_SEED128, i, 0), random_operand128(RANDOM_FMA_SEED128, i, 1), random_operand128(RANDOM_FMA_SEED128, i, 2), MODES[i as usize % MODES.len()]); }
+        let x = random_operand128(RANDOM_FMA_SEED128, i, 0);
+        let y = random_operand128(RANDOM_FMA_SEED128, i, 1);
+        let z = random_operand128(RANDOM_FMA_SEED128, i, 2);
+        let mode = MODES[i as usize % MODES.len()];
+        digest = mix_operand128(digest, x);
+        digest = mix_operand128(digest, y);
+        digest = mix_operand128(digest, z);
+        digest = scale_tuple_hash_mix(digest, mode.native as u64);
+        consumed += 1;
+        if shard.owns(count) { check_fma128(x, y, z, mode); }
         count += 1;
     }
     for i in 0..RANDOM_CASES128 {
-        if shard.owns(count) { check_sqrt128(random_operand128(RANDOM_SQRT_SEED128, i, 0), MODES[i as usize % MODES.len()]); }
+        let x = random_operand128(RANDOM_SQRT_SEED128, i, 0);
+        let mode = MODES[i as usize % MODES.len()];
+        digest = mix_operand128(digest, x);
+        digest = scale_tuple_hash_mix(digest, mode.native as u64);
+        consumed += 1;
+        if shard.owns(count) { check_sqrt128(x, mode); }
         count += 1;
     }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), RANDOM_STREAM_HASH128, "Decimal128 random differential consumed-stream hash drift");
     assert_eq!(count, RANDOM128_COUNT);
     eprintln!("Rust Decimal128 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
 }

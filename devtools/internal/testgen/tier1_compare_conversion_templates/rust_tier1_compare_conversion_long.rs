@@ -67,6 +67,39 @@ const BINARY_RANDOM64: u64 = 1 << 18;
 const BINARY_RANDOM128: u64 = 1 << 17;
 const CONSTRUCTOR_RANDOM: u64 = 1 << 20;
 
+const COMPARE_RANDOM_STREAM_HASH32: u64 = @@TIER1_COMPARE_RANDOM_STREAM_HASH32@@;
+const COMPARE_RANDOM_STREAM_HASH64: u64 = @@TIER1_COMPARE_RANDOM_STREAM_HASH64@@;
+const COMPARE_RANDOM_STREAM_HASH128: u64 = @@TIER1_COMPARE_RANDOM_STREAM_HASH128@@;
+const TO_INT_RANDOM_STREAM_HASH32: u64 = @@TIER1_TO_INTEGER_RANDOM_STREAM_HASH32@@;
+const TO_INT_RANDOM_STREAM_HASH64: u64 = @@TIER1_TO_INTEGER_RANDOM_STREAM_HASH64@@;
+const TO_INT_RANDOM_STREAM_HASH128: u64 = @@TIER1_TO_INTEGER_RANDOM_STREAM_HASH128@@;
+const WIDTH_RANDOM_STREAM_HASH32: u64 = @@TIER1_WIDTH_RANDOM_STREAM_HASH32@@;
+const WIDTH_RANDOM_STREAM_HASH64: u64 = @@TIER1_WIDTH_RANDOM_STREAM_HASH64@@;
+const WIDTH_RANDOM_STREAM_HASH128: u64 = @@TIER1_WIDTH_RANDOM_STREAM_HASH128@@;
+const BINARY_RANDOM_STREAM_HASH32: u64 = @@TIER1_BINARY_RANDOM_STREAM_HASH32@@;
+const BINARY_RANDOM_STREAM_HASH64: u64 = @@TIER1_BINARY_RANDOM_STREAM_HASH64@@;
+const BINARY_RANDOM_STREAM_HASH128: u64 = @@TIER1_BINARY_RANDOM_STREAM_HASH128@@;
+const CONSTRUCTOR_RANDOM_STREAM_HASH: u64 = @@TIER1_CONSTRUCTOR_RANDOM_STREAM_HASH@@;
+const SCALE_TUPLE_HASH_OFFSET: u64 = 14695981039346656037;
+const SCALE_TUPLE_HASH_PRIME: u64 = 1099511628211;
+
+// The deterministic-random seeds are shared by every random differential
+// block and the generator-side stream hashes, so a seed edit that reaches
+// only one consumer fails the anchored stream-hash contract.
+const COMPARE_RANDOM_SEED32: u64 = 0xdec75432c04d5001;
+const COMPARE_RANDOM_SEED64: u64 = 0xdec75464c04d5001;
+const COMPARE_RANDOM_SEED128: u64 = 0xdec754c0c04d5001;
+const TO_INT_RANDOM_SEED32: u64 = 0xdec75432c0a70001;
+const TO_INT_RANDOM_SEED64: u64 = 0xdec75464c0a70001;
+const TO_INT_RANDOM_SEED128: u64 = 0xdec754c0c0a70001;
+const WIDTH_RANDOM_SEED32: u64 = 0xdec75432c0de0001;
+const WIDTH_RANDOM_SEED64: u64 = 0xdec75464c0de0001;
+const WIDTH_RANDOM_SEED128: u64 = 0xdec754c0c0de0001;
+const BINARY_RANDOM_SEED32: u64 = 0xdec75432c0b10001;
+const BINARY_RANDOM_SEED64: u64 = 0xdec75464c0b10001;
+const BINARY_RANDOM_SEED128: u64 = 0xdec754c0c0b10001;
+const CONSTRUCTOR_RANDOM_SEED: u64 = 0xdec754c0c0570001;
+
 #[derive(Clone, Copy, Debug)]
 struct Mode { public: RoundingMode, native: u32 }
 
@@ -189,6 +222,43 @@ fn splitmix64(mut value: u64) -> u64 {
 
 fn random_word(seed: u64, case_index: u64, lane: u64) -> u64 {
     splitmix64(seed ^ case_index.wrapping_mul(0xd1342543de82ef95) ^ lane.wrapping_mul(0x9e3779b97f4a7c15))
+}
+
+fn scale_tuple_hash_mix(digest: u64, word: u64) -> u64 {
+    (digest ^ word).wrapping_mul(SCALE_TUPLE_HASH_PRIME)
+}
+
+// mix_operand* fold one drawn operand into a stream digest. The deterministic-
+// random differentials hash every draw at consumption time, so the digest
+// always reflects the operands as consumed.
+fn mix_operand32(digest: u64, value: u32) -> u64 {
+    scale_tuple_hash_mix(scale_tuple_hash_mix(digest, value as u64), 0)
+}
+
+fn mix_operand64(digest: u64, value: u64) -> u64 {
+    scale_tuple_hash_mix(scale_tuple_hash_mix(digest, value), 0)
+}
+
+fn mix_operand128(digest: u64, words: Words) -> u64 {
+    scale_tuple_hash_mix(scale_tuple_hash_mix(digest, words.lo), words.hi)
+}
+
+// random_operand* derive the deterministic-random operands for one logical
+// operand slot. The differential blocks draw through these helpers, so a lane
+// or truncation drift cannot bypass the anchored stream-hash contract.
+fn random_operand32(seed: u64, case_index: u64, lane: u64) -> u32 {
+    random_word(seed, case_index, lane) as u32
+}
+
+fn random_operand64(seed: u64, case_index: u64, lane: u64) -> u64 {
+    random_word(seed, case_index, lane)
+}
+
+fn random_operand128(seed: u64, case_index: u64, lane: u64) -> Words {
+    Words {
+        lo: random_word(seed, case_index, lane * 2),
+        hi: random_word(seed, case_index, lane * 2 + 1),
+    }
 }
 
 fn check_quiet32(op: QuietOp, x: u32, y: u32) {
@@ -674,13 +744,46 @@ fn tier1_comparison_minmax_structured_native_differential() {
 fn tier1_comparison_minmax_deterministic_random_native_differential() {
     let shard = Shard::load();
     let mut count = 0u64;
-    for i in 0..COMPARE_RANDOM_PAIRS32 { let x = random_word(0xdec75432c04d5001, i, 0) as u32; let y = random_word(0xdec75432c04d5001, i, 1) as u32; for &op in &QUIET_OPS { if shard.owns(count) { check_quiet32(op, x, y); } count += 1; } for &op in &MINMAX_OPS { if shard.owns(count) { check_minmax32(op, x, y); } count += 1; } }
+    let mut consumed = 0u64;
+    let mut digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 32);
+    for i in 0..COMPARE_RANDOM_PAIRS32 {
+        let x = random_operand32(COMPARE_RANDOM_SEED32, i, 0);
+        let y = random_operand32(COMPARE_RANDOM_SEED32, i, 1);
+        digest = mix_operand32(digest, x);
+        digest = mix_operand32(digest, y);
+        consumed += 1;
+        for &op in &QUIET_OPS { if shard.owns(count) { check_quiet32(op, x, y); } count += 1; }
+        for &op in &MINMAX_OPS { if shard.owns(count) { check_minmax32(op, x, y); } count += 1; }
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), COMPARE_RANDOM_STREAM_HASH32, "Decimal32 random compare/minmax consumed-stream hash drift");
     assert_eq!(count, COMPARE_RANDOM32); eprintln!("Rust Decimal32 random compare/minmax: {}/{}", shard.owned_count(count), count);
     count = 0;
-    for i in 0..COMPARE_RANDOM_PAIRS64 { let x = random_word(0xdec75464c04d5001, i, 0); let y = random_word(0xdec75464c04d5001, i, 1); for &op in &QUIET_OPS { if shard.owns(count) { check_quiet64(op, x, y); } count += 1; } for &op in &MINMAX_OPS { if shard.owns(count) { check_minmax64(op, x, y); } count += 1; } }
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 64);
+    for i in 0..COMPARE_RANDOM_PAIRS64 {
+        let x = random_operand64(COMPARE_RANDOM_SEED64, i, 0);
+        let y = random_operand64(COMPARE_RANDOM_SEED64, i, 1);
+        digest = mix_operand64(digest, x);
+        digest = mix_operand64(digest, y);
+        consumed += 1;
+        for &op in &QUIET_OPS { if shard.owns(count) { check_quiet64(op, x, y); } count += 1; }
+        for &op in &MINMAX_OPS { if shard.owns(count) { check_minmax64(op, x, y); } count += 1; }
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), COMPARE_RANDOM_STREAM_HASH64, "Decimal64 random compare/minmax consumed-stream hash drift");
     assert_eq!(count, COMPARE_RANDOM64); eprintln!("Rust Decimal64 random compare/minmax: {}/{}", shard.owned_count(count), count);
     count = 0;
-    for i in 0..COMPARE_RANDOM_PAIRS128 { let x = Words { lo: random_word(0xdec754c0c04d5001, i, 0), hi: random_word(0xdec754c0c04d5001, i, 1) }; let y = Words { lo: random_word(0xdec754c0c04d5001, i, 2), hi: random_word(0xdec754c0c04d5001, i, 3) }; for &op in &QUIET_OPS { if shard.owns(count) { check_quiet128(op, x, y); } count += 1; } for &op in &MINMAX_OPS { if shard.owns(count) { check_minmax128(op, x, y); } count += 1; } }
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 128);
+    for i in 0..COMPARE_RANDOM_PAIRS128 {
+        let x = random_operand128(COMPARE_RANDOM_SEED128, i, 0);
+        let y = random_operand128(COMPARE_RANDOM_SEED128, i, 1);
+        digest = mix_operand128(digest, x);
+        digest = mix_operand128(digest, y);
+        consumed += 1;
+        for &op in &QUIET_OPS { if shard.owns(count) { check_quiet128(op, x, y); } count += 1; }
+        for &op in &MINMAX_OPS { if shard.owns(count) { check_minmax128(op, x, y); } count += 1; }
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), COMPARE_RANDOM_STREAM_HASH128, "Decimal128 random compare/minmax consumed-stream hash drift");
     assert_eq!(count, COMPARE_RANDOM128); eprintln!("Rust Decimal128 random compare/minmax: {}/{}", shard.owned_count(count), count);
 }
 
@@ -749,25 +852,130 @@ fn tier1_conversion_structured_native_differential() {
 #[test]
 fn tier1_conversion_deterministic_random_native_differential() {
     let shard = Shard::load(); let int_ops = to_int_ops(); let ctor_ops = constructor_ops(); let mut total = 0u64; let mut executed = 0u64; let mut count = 0u64;
-    for i in 0..TO_INT_RANDOM32 { if shard.owns(count) { check_to_int(RawDecimal::D32(random_word(0xdec75432c0a70001, i, 0) as u32), int_ops[i as usize % int_ops.len()]); } count += 1; }
+    let mut consumed = 0u64;
+    let mut digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 32);
+    for i in 0..TO_INT_RANDOM32 {
+        let value = random_operand32(TO_INT_RANDOM_SEED32, i, 0);
+        digest = mix_operand32(digest, value);
+        consumed += 1;
+        if shard.owns(count) { check_to_int(RawDecimal::D32(value), int_ops[i as usize % int_ops.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), TO_INT_RANDOM_STREAM_HASH32, "Decimal32 random BID-to-integer consumed-stream hash drift");
     assert_eq!(count + TO_INT_STRUCTURED32, TO_INT_TOTAL32); total += count; executed += shard.owned_count(count);
-    count = 0; for i in 0..TO_INT_RANDOM64 { if shard.owns(count) { check_to_int(RawDecimal::D64(random_word(0xdec75464c0a70001, i, 0)), int_ops[i as usize % int_ops.len()]); } count += 1; }
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 64);
+    for i in 0..TO_INT_RANDOM64 {
+        let value = random_operand64(TO_INT_RANDOM_SEED64, i, 0);
+        digest = mix_operand64(digest, value);
+        consumed += 1;
+        if shard.owns(count) { check_to_int(RawDecimal::D64(value), int_ops[i as usize % int_ops.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), TO_INT_RANDOM_STREAM_HASH64, "Decimal64 random BID-to-integer consumed-stream hash drift");
     assert_eq!(count + TO_INT_STRUCTURED64, TO_INT_TOTAL64); total += count; executed += shard.owned_count(count);
-    count = 0; for i in 0..TO_INT_RANDOM128 { if shard.owns(count) { check_to_int(RawDecimal::D128(Words { lo: random_word(0xdec754c0c0a70001, i, 0), hi: random_word(0xdec754c0c0a70001, i, 1) }), int_ops[i as usize % int_ops.len()]); } count += 1; }
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 128);
+    for i in 0..TO_INT_RANDOM128 {
+        let words = random_operand128(TO_INT_RANDOM_SEED128, i, 0);
+        digest = mix_operand128(digest, words);
+        consumed += 1;
+        if shard.owns(count) { check_to_int(RawDecimal::D128(words), int_ops[i as usize % int_ops.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), TO_INT_RANDOM_STREAM_HASH128, "Decimal128 random BID-to-integer consumed-stream hash drift");
     assert_eq!(count + TO_INT_STRUCTURED128, TO_INT_TOTAL128); total += count; executed += shard.owned_count(count);
-    let width32 = width_ops(32); count = 0; for i in 0..WIDTH_RANDOM32 { if shard.owns(count) { check_width(RawDecimal::D32(random_word(0xdec75432c0de0001, i, 0) as u32), width32[i as usize % width32.len()]); } count += 1; }
+    let width32 = width_ops(32);
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 32);
+    for i in 0..WIDTH_RANDOM32 {
+        let value = random_operand32(WIDTH_RANDOM_SEED32, i, 0);
+        digest = mix_operand32(digest, value);
+        consumed += 1;
+        if shard.owns(count) { check_width(RawDecimal::D32(value), width32[i as usize % width32.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), WIDTH_RANDOM_STREAM_HASH32, "Decimal32-source random width consumed-stream hash drift");
     assert_eq!(count + WIDTH_STRUCTURED32, WIDTH_TOTAL32); total += count; executed += shard.owned_count(count);
-    let width64 = width_ops(64); count = 0; for i in 0..WIDTH_RANDOM64 { if shard.owns(count) { check_width(RawDecimal::D64(random_word(0xdec75464c0de0001, i, 0)), width64[i as usize % width64.len()]); } count += 1; }
+    let width64 = width_ops(64);
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 64);
+    for i in 0..WIDTH_RANDOM64 {
+        let value = random_operand64(WIDTH_RANDOM_SEED64, i, 0);
+        digest = mix_operand64(digest, value);
+        consumed += 1;
+        if shard.owns(count) { check_width(RawDecimal::D64(value), width64[i as usize % width64.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), WIDTH_RANDOM_STREAM_HASH64, "Decimal64-source random width consumed-stream hash drift");
     assert_eq!(count + WIDTH_STRUCTURED64, WIDTH_TOTAL64); total += count; executed += shard.owned_count(count);
-    let width128 = width_ops(128); count = 0; for i in 0..WIDTH_RANDOM128 { if shard.owns(count) { check_width(RawDecimal::D128(Words { lo: random_word(0xdec754c0c0de0001, i, 0), hi: random_word(0xdec754c0c0de0001, i, 1) }), width128[i as usize % width128.len()]); } count += 1; }
+    let width128 = width_ops(128);
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 128);
+    for i in 0..WIDTH_RANDOM128 {
+        let words = random_operand128(WIDTH_RANDOM_SEED128, i, 0);
+        digest = mix_operand128(digest, words);
+        consumed += 1;
+        if shard.owns(count) { check_width(RawDecimal::D128(words), width128[i as usize % width128.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), WIDTH_RANDOM_STREAM_HASH128, "Decimal128-source random width consumed-stream hash drift");
     assert_eq!(count + WIDTH_STRUCTURED128, WIDTH_TOTAL128); total += count; executed += shard.owned_count(count);
-    let binary32 = binary_ops(32); count = 0; for i in 0..BINARY_RANDOM32 { if shard.owns(count) { check_binary(RawDecimal::D32(random_word(0xdec75432c0b10001, i, 0) as u32), binary32[i as usize % binary32.len()]); } count += 1; }
+    let binary32 = binary_ops(32);
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 32);
+    for i in 0..BINARY_RANDOM32 {
+        let value = random_operand32(BINARY_RANDOM_SEED32, i, 0);
+        digest = mix_operand32(digest, value);
+        consumed += 1;
+        if shard.owns(count) { check_binary(RawDecimal::D32(value), binary32[i as usize % binary32.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), BINARY_RANDOM_STREAM_HASH32, "Decimal32-source random binary consumed-stream hash drift");
     assert_eq!(count, BINARY_RANDOM32); total += count; executed += shard.owned_count(count);
-    let binary64 = binary_ops(64); count = 0; for i in 0..BINARY_RANDOM64 { if shard.owns(count) { check_binary(RawDecimal::D64(random_word(0xdec75464c0b10001, i, 0)), binary64[i as usize % binary64.len()]); } count += 1; }
+    let binary64 = binary_ops(64);
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 64);
+    for i in 0..BINARY_RANDOM64 {
+        let value = random_operand64(BINARY_RANDOM_SEED64, i, 0);
+        digest = mix_operand64(digest, value);
+        consumed += 1;
+        if shard.owns(count) { check_binary(RawDecimal::D64(value), binary64[i as usize % binary64.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), BINARY_RANDOM_STREAM_HASH64, "Decimal64-source random binary consumed-stream hash drift");
     assert_eq!(count, BINARY_RANDOM64); total += count; executed += shard.owned_count(count);
-    let binary128 = binary_ops(128); count = 0; for i in 0..BINARY_RANDOM128 { if shard.owns(count) { check_binary(RawDecimal::D128(Words { lo: random_word(0xdec754c0c0b10001, i, 0), hi: random_word(0xdec754c0c0b10001, i, 1) }), binary128[i as usize % binary128.len()]); } count += 1; }
+    let binary128 = binary_ops(128);
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 128);
+    for i in 0..BINARY_RANDOM128 {
+        let words = random_operand128(BINARY_RANDOM_SEED128, i, 0);
+        digest = mix_operand128(digest, words);
+        consumed += 1;
+        if shard.owns(count) { check_binary(RawDecimal::D128(words), binary128[i as usize % binary128.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), BINARY_RANDOM_STREAM_HASH128, "Decimal128-source random binary consumed-stream hash drift");
     assert_eq!(count, BINARY_RANDOM128); total += count; executed += shard.owned_count(count);
-    count = 0; for i in 0..CONSTRUCTOR_RANDOM { if shard.owns(count) { check_constructor(random_word(0xdec754c0c0570001, i, 0), ctor_ops[i as usize % ctor_ops.len()]); } count += 1; }
+    count = 0;
+    consumed = 0;
+    digest = scale_tuple_hash_mix(SCALE_TUPLE_HASH_OFFSET, 0);
+    for i in 0..CONSTRUCTOR_RANDOM {
+        let raw = random_operand64(CONSTRUCTOR_RANDOM_SEED, i, 0);
+        digest = mix_operand64(digest, raw);
+        consumed += 1;
+        if shard.owns(count) { check_constructor(raw, ctor_ops[i as usize % ctor_ops.len()]); }
+        count += 1;
+    }
+    assert_eq!(scale_tuple_hash_mix(digest, consumed), CONSTRUCTOR_RANDOM_STREAM_HASH, "random integer-constructor consumed-stream hash drift");
     assert_eq!(count + CONSTRUCTOR_STRUCTURED, CONSTRUCTOR_TOTAL); total += count; executed += shard.owned_count(count);
     assert_eq!(total, CONVERSION_RANDOM); assert_eq!(CONVERSION_STRUCTURED + total, CONVERSION_TOTAL);
     eprintln!("Rust deterministic random Tier 1 conversion exact comparisons: {executed}/{total}");
