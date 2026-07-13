@@ -30,12 +30,8 @@ package testgen
 // `cmd/testgen -print-sentinel-anchors` stdout only.
 
 import (
-	"encoding/binary"
 	"fmt"
-	"math"
 	"strings"
-
-	bid754 "github.com/sky1core/bid754/bid754-go"
 )
 
 // Per-family adopted-tuple caps: the row budget that keeps the pinned set
@@ -379,19 +375,71 @@ var tier1SentinelCCExceptions = []tier1SentinelCCException{
 
 type tier1SentinelCCExceptionUse map[int]bool
 
-func tier1SentinelCCApplyExceptions(family, scope, op string, reqs *tier1SentinelRequirements) []int {
+// tier1SentinelCCValidateExceptions structurally validates the cc waiver
+// table at generation time, before any selection runs: every entry needs a
+// non-empty written reason, a family and width scope from the closed
+// compare/conversion universe, a named operation, and a requirement key of a
+// waivable kind (operand-slot or dispatch-sibling — the only requirement
+// kinds the cc domain defines). Whether the waived key exists for the named
+// dispatch row is enforced when the entry is applied, and whether it is
+// genuinely unsatisfiable is verified against the full candidate pool per
+// selection run.
+func tier1SentinelCCValidateExceptions(entries []tier1SentinelCCException) error {
+	families := map[string]bool{
+		"quiet": true, "minmax": true, "to-int": true,
+		"width": true, "binary": true, "constructor": true,
+	}
+	scopes := map[string]bool{}
+	for _, width := range tier1SentinelWidths {
+		scopes[tier1SentinelWidthLabel(width)] = true
+	}
+	for i, exception := range entries {
+		if strings.TrimSpace(exception.reason) == "" {
+			return fmt.Errorf("tier1 sentinel cc exception %d (%s %s %s waives %s) has no written reason",
+				i, exception.family, exception.scope, exception.op, exception.key)
+		}
+		if !families[exception.family] {
+			return fmt.Errorf("tier1 sentinel cc exception %d waives %s for unknown family %q",
+				i, exception.key, exception.family)
+		}
+		if !scopes[exception.scope] {
+			return fmt.Errorf("tier1 sentinel cc exception %d (%s %s) has unknown width scope %q",
+				i, exception.family, exception.op, exception.scope)
+		}
+		if exception.op == "" {
+			return fmt.Errorf("tier1 sentinel cc exception %d (%s %s waives %s) names no operation",
+				i, exception.family, exception.scope, exception.key)
+		}
+		if !strings.HasPrefix(exception.key, "slot:") && !strings.HasPrefix(exception.key, "dispatch:") {
+			return fmt.Errorf("tier1 sentinel cc exception %d (%s %s %s): key %q is not a waivable requirement kind (slot:/dispatch:)",
+				i, exception.family, exception.scope, exception.op, exception.key)
+		}
+	}
+	return nil
+}
+
+// tier1SentinelCCApplyExceptions removes waived requirement keys for one
+// dispatch row before selection. A matched entry whose key is not a live
+// requirement of that row fails generation immediately (mis-keyed or
+// duplicate waiver).
+func tier1SentinelCCApplyExceptions(family, scope, op string, reqs *tier1SentinelRequirements) ([]int, error) {
+	return tier1SentinelCCApplyExceptionEntries(tier1SentinelCCExceptions, family, scope, op, reqs)
+}
+
+func tier1SentinelCCApplyExceptionEntries(entries []tier1SentinelCCException, family, scope, op string, reqs *tier1SentinelRequirements) ([]int, error) {
 	applied := []int{}
-	for i, exception := range tier1SentinelCCExceptions {
+	for i, exception := range entries {
 		if exception.family != family || exception.scope != scope || exception.op != op {
 			continue
 		}
 		if !reqs.unmet[exception.key] {
-			continue
+			return nil, fmt.Errorf("tier1 sentinel cc exception (%s %s %s waives %s): the waived key is not a live requirement of that dispatch row",
+				exception.family, exception.scope, exception.op, exception.key)
 		}
 		reqs.drop(exception.key)
 		applied = append(applied, i)
 	}
-	return applied
+	return applied, nil
 }
 
 // tier1SentinelCCVerifyWaivers re-checks each applied waiver against the full
@@ -424,435 +472,62 @@ func (u tier1SentinelCCExceptionUse) requireAllUsed() error {
 }
 
 // ---------------------------------------------------------------------------
-// Oracle (public bid754-go API -> canonical result strings)
+// Oracle (pin-time oracle subprocess -> canonical result strings)
 // ---------------------------------------------------------------------------
 
-func tier1SentinelCCBool(value bool) string {
-	if value {
-		return "01"
-	}
-	return "00"
-}
-
 func tier1SentinelCCEvalQuiet(width int, op string, x, y bid128BidCodecValue) (string, error) {
-	var got bool
-	var flags bid754.ExceptionFlags
-	switch width {
-	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
-		switch op {
-		case "quiet_equal":
-			got, flags = left.QuietEqual(right)
-		case "quiet_not_equal":
-			got, flags = left.QuietNotEqual(right)
-		case "quiet_less":
-			got, flags = left.QuietLess(right)
-		case "quiet_less_equal":
-			got, flags = left.QuietLessEqual(right)
-		case "quiet_greater":
-			got, flags = left.QuietGreater(right)
-		case "quiet_greater_equal":
-			got, flags = left.QuietGreaterEqual(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel quiet predicate %q", op)
-		}
-	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
-		switch op {
-		case "quiet_equal":
-			got, flags = left.QuietEqual(right)
-		case "quiet_not_equal":
-			got, flags = left.QuietNotEqual(right)
-		case "quiet_less":
-			got, flags = left.QuietLess(right)
-		case "quiet_less_equal":
-			got, flags = left.QuietLessEqual(right)
-		case "quiet_greater":
-			got, flags = left.QuietGreater(right)
-		case "quiet_greater_equal":
-			got, flags = left.QuietGreaterEqual(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel quiet predicate %q", op)
-		}
-	case 128:
-		left, right := tier1SentinelDecimal128(x), tier1SentinelDecimal128(y)
-		switch op {
-		case "quiet_equal":
-			got, flags = left.QuietEqual(right)
-		case "quiet_not_equal":
-			got, flags = left.QuietNotEqual(right)
-		case "quiet_less":
-			got, flags = left.QuietLess(right)
-		case "quiet_less_equal":
-			got, flags = left.QuietLessEqual(right)
-		case "quiet_greater":
-			got, flags = left.QuietGreater(right)
-		case "quiet_greater_equal":
-			got, flags = left.QuietGreaterEqual(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel quiet predicate %q", op)
-		}
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
-	}
-	raw, err := tier1SentinelRawFlags(flags)
+	xText, err := tier1SentinelWidthValueText(width, x)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/%08x", tier1SentinelCCBool(got), raw), nil
+	yText, err := tier1SentinelWidthValueText(width, y)
+	if err != nil {
+		return "", err
+	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("quiet %d %s %s %s", width, op, xText, yText))
 }
 
 func tier1SentinelCCEvalMinMax(width int, op string, x, y bid128BidCodecValue) (string, error) {
-	switch width {
-	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
-		var value bid754.Decimal32BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "minnum":
-			value, flags = left.MinNum(right)
-		case "maxnum":
-			value, flags = left.MaxNum(right)
-		case "minnum_mag":
-			value, flags = left.MinNumMag(right)
-		case "maxnum_mag":
-			value, flags = left.MaxNumMag(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel min/max operation %q", op)
-		}
-		return tier1SentinelResult32(value, flags)
-	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
-		var value bid754.Decimal64BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "minnum":
-			value, flags = left.MinNum(right)
-		case "maxnum":
-			value, flags = left.MaxNum(right)
-		case "minnum_mag":
-			value, flags = left.MinNumMag(right)
-		case "maxnum_mag":
-			value, flags = left.MaxNumMag(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel min/max operation %q", op)
-		}
-		return tier1SentinelResult64(value, flags)
-	case 128:
-		left, right := tier1SentinelDecimal128(x), tier1SentinelDecimal128(y)
-		var value bid754.Decimal128BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "minnum":
-			value, flags = left.MinNum(right)
-		case "maxnum":
-			value, flags = left.MaxNum(right)
-		case "minnum_mag":
-			value, flags = left.MinNumMag(right)
-		case "maxnum_mag":
-			value, flags = left.MaxNumMag(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel min/max operation %q", op)
-		}
-		return tier1SentinelResult128(value, flags)
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	xText, err := tier1SentinelWidthValueText(width, x)
+	if err != nil {
+		return "", err
 	}
+	yText, err := tier1SentinelWidthValueText(width, y)
+	if err != nil {
+		return "", err
+	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("minmax %d %s %s %s", width, op, xText, yText))
 }
 
 // tier1SentinelCCEvalToInt normalizes every integer conversion to the
 // cross-language canonical form: the result as a 64-bit two's-complement
 // register (Rust's `as i64 as u64` convention) plus the raw flag word.
 func tier1SentinelCCEvalToInt(width int, op tier1SentinelCCToIntOp, x bid128BidCodecValue) (string, error) {
-	var register uint64
-	var flags bid754.ExceptionFlags
-	eval32 := func(value bid754.Decimal32BID) error {
-		switch {
-		case op.kind == "int8" && !op.exact:
-			r, f := value.ConvertToInt8(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int8":
-			r, f := value.ConvertToInt8Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int16" && !op.exact:
-			r, f := value.ConvertToInt16(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int16":
-			r, f := value.ConvertToInt16Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int32" && !op.exact:
-			r, f := value.ConvertToInt32(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int32":
-			r, f := value.ConvertToInt32Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int64" && !op.exact:
-			r, f := value.ConvertToInt64(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "int64":
-			r, f := value.ConvertToInt64Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint8" && !op.exact:
-			r, f := value.ConvertToUint8(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint8":
-			r, f := value.ConvertToUint8Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint16" && !op.exact:
-			r, f := value.ConvertToUint16(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint16":
-			r, f := value.ConvertToUint16Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint32" && !op.exact:
-			r, f := value.ConvertToUint32(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint32":
-			r, f := value.ConvertToUint32Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint64" && !op.exact:
-			r, f := value.ConvertToUint64(op.mode.public)
-			register, flags = r, f
-		case op.kind == "uint64":
-			r, f := value.ConvertToUint64Exact(op.mode.public)
-			register, flags = r, f
-		default:
-			return fmt.Errorf("unknown tier1 sentinel to-int kind %q", op.kind)
-		}
-		return nil
-	}
-	eval64 := func(value bid754.Decimal64BID) error {
-		switch {
-		case op.kind == "int8" && !op.exact:
-			r, f := value.ConvertToInt8(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int8":
-			r, f := value.ConvertToInt8Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int16" && !op.exact:
-			r, f := value.ConvertToInt16(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int16":
-			r, f := value.ConvertToInt16Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int32" && !op.exact:
-			r, f := value.ConvertToInt32(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int32":
-			r, f := value.ConvertToInt32Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int64" && !op.exact:
-			r, f := value.ConvertToInt64(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "int64":
-			r, f := value.ConvertToInt64Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint8" && !op.exact:
-			r, f := value.ConvertToUint8(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint8":
-			r, f := value.ConvertToUint8Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint16" && !op.exact:
-			r, f := value.ConvertToUint16(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint16":
-			r, f := value.ConvertToUint16Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint32" && !op.exact:
-			r, f := value.ConvertToUint32(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint32":
-			r, f := value.ConvertToUint32Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint64" && !op.exact:
-			r, f := value.ConvertToUint64(op.mode.public)
-			register, flags = r, f
-		case op.kind == "uint64":
-			r, f := value.ConvertToUint64Exact(op.mode.public)
-			register, flags = r, f
-		default:
-			return fmt.Errorf("unknown tier1 sentinel to-int kind %q", op.kind)
-		}
-		return nil
-	}
-	eval128 := func(value bid754.Decimal128BID) error {
-		switch {
-		case op.kind == "int8" && !op.exact:
-			r, f := value.ConvertToInt8(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int8":
-			r, f := value.ConvertToInt8Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int16" && !op.exact:
-			r, f := value.ConvertToInt16(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int16":
-			r, f := value.ConvertToInt16Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int32" && !op.exact:
-			r, f := value.ConvertToInt32(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int32":
-			r, f := value.ConvertToInt32Exact(op.mode.public)
-			register, flags = uint64(int64(r)), f
-		case op.kind == "int64" && !op.exact:
-			r, f := value.ConvertToInt64(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "int64":
-			r, f := value.ConvertToInt64Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint8" && !op.exact:
-			r, f := value.ConvertToUint8(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint8":
-			r, f := value.ConvertToUint8Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint16" && !op.exact:
-			r, f := value.ConvertToUint16(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint16":
-			r, f := value.ConvertToUint16Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint32" && !op.exact:
-			r, f := value.ConvertToUint32(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint32":
-			r, f := value.ConvertToUint32Exact(op.mode.public)
-			register, flags = uint64(r), f
-		case op.kind == "uint64" && !op.exact:
-			r, f := value.ConvertToUint64(op.mode.public)
-			register, flags = r, f
-		case op.kind == "uint64":
-			r, f := value.ConvertToUint64Exact(op.mode.public)
-			register, flags = r, f
-		default:
-			return fmt.Errorf("unknown tier1 sentinel to-int kind %q", op.kind)
-		}
-		return nil
-	}
-	var err error
-	switch width {
-	case 32:
-		err = eval32(bid754.Decimal32BID(uint32(x.lo)))
-	case 64:
-		err = eval64(bid754.Decimal64BID(x.lo))
-	case 128:
-		err = eval128(tier1SentinelDecimal128(x))
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
-	}
+	xText, err := tier1SentinelWidthValueText(width, x)
 	if err != nil {
 		return "", err
 	}
-	raw, err := tier1SentinelRawFlags(flags)
-	if err != nil {
-		return "", err
+	exact := 0
+	if op.exact {
+		exact = 1
 	}
-	return fmt.Sprintf("%016x/%08x", register, raw), nil
+	return tier1SentinelOracleQuery(fmt.Sprintf("toint %d %s %d %d %s", width, op.kind, exact, op.mode.native, xText))
 }
 
 func tier1SentinelCCEvalWidth(source int, op tier1SentinelCCWidthOp, x bid128BidCodecValue) (string, error) {
-	switch source {
-	case 32:
-		value := bid754.Decimal32BID(uint32(x.lo))
-		switch op.dest {
-		case 64:
-			result, flags := value.ToDecimal64()
-			return tier1SentinelResult64(result, flags)
-		case 128:
-			result, flags := value.ToDecimal128()
-			return tier1SentinelResult128(result, flags)
-		}
-	case 64:
-		value := bid754.Decimal64BID(x.lo)
-		switch op.dest {
-		case 32:
-			result, flags := value.ToDecimal32(op.mode.public)
-			return tier1SentinelResult32(result, flags)
-		case 128:
-			result, flags := value.ToDecimal128()
-			return tier1SentinelResult128(result, flags)
-		}
-	case 128:
-		value := tier1SentinelDecimal128(x)
-		switch op.dest {
-		case 32:
-			result, flags := value.ToDecimal32(op.mode.public)
-			return tier1SentinelResult32(result, flags)
-		case 64:
-			result, flags := value.ToDecimal64(op.mode.public)
-			return tier1SentinelResult64(result, flags)
-		}
+	xText, err := tier1SentinelWidthValueText(source, x)
+	if err != nil {
+		return "", err
 	}
-	return "", fmt.Errorf("unknown tier1 sentinel width conversion source %d dest %d", source, op.dest)
-}
-
-func tier1SentinelCCBinary128Text(value bid754.Binary128, raw uint32) string {
-	valueBytes := value.ToBytes()
-	lo := binary.LittleEndian.Uint64(valueBytes[0:8])
-	hi := binary.LittleEndian.Uint64(valueBytes[8:16])
-	return fmt.Sprintf("%016x:%016x/%08x", hi, lo, raw)
+	return tier1SentinelOracleQuery(fmt.Sprintf("widthconv %d %d %d %s", source, op.dest, op.mode.native, xText))
 }
 
 func tier1SentinelCCEvalBinary(source int, op tier1SentinelCCBinaryOp, x bid128BidCodecValue) (string, error) {
-	format := func(dest int, f32 float32, f64 float64, f128 bid754.Binary128, flags bid754.ExceptionFlags) (string, error) {
-		raw, err := tier1SentinelRawFlags(flags)
-		if err != nil {
-			return "", err
-		}
-		switch dest {
-		case 32:
-			return fmt.Sprintf("%08x/%08x", math.Float32bits(f32), raw), nil
-		case 64:
-			return fmt.Sprintf("%016x/%08x", math.Float64bits(f64), raw), nil
-		case 128:
-			return tier1SentinelCCBinary128Text(f128, raw), nil
-		}
-		return "", fmt.Errorf("unknown tier1 sentinel binary destination %d", dest)
+	xText, err := tier1SentinelWidthValueText(source, x)
+	if err != nil {
+		return "", err
 	}
-	switch source {
-	case 32:
-		value := bid754.Decimal32BID(uint32(x.lo))
-		switch op.dest {
-		case 32:
-			result, flags := value.ToBinary32(op.mode.public)
-			return format(32, result, 0, bid754.Binary128{}, flags)
-		case 64:
-			result, flags := value.ToBinary64(op.mode.public)
-			return format(64, 0, result, bid754.Binary128{}, flags)
-		case 128:
-			result, flags := value.ToBinary128(op.mode.public)
-			return format(128, 0, 0, result, flags)
-		}
-	case 64:
-		value := bid754.Decimal64BID(x.lo)
-		switch op.dest {
-		case 32:
-			result, flags := value.ToBinary32(op.mode.public)
-			return format(32, result, 0, bid754.Binary128{}, flags)
-		case 64:
-			result, flags := value.ToBinary64(op.mode.public)
-			return format(64, 0, result, bid754.Binary128{}, flags)
-		case 128:
-			result, flags := value.ToBinary128(op.mode.public)
-			return format(128, 0, 0, result, flags)
-		}
-	case 128:
-		value := tier1SentinelDecimal128(x)
-		switch op.dest {
-		case 32:
-			result, flags := value.ToBinary32(op.mode.public)
-			return format(32, result, 0, bid754.Binary128{}, flags)
-		case 64:
-			result, flags := value.ToBinary64(op.mode.public)
-			return format(64, 0, result, bid754.Binary128{}, flags)
-		case 128:
-			result, flags := value.ToBinary128(op.mode.public)
-			return format(128, 0, 0, result, flags)
-		}
-	}
-	return "", fmt.Errorf("unknown tier1 sentinel binary conversion source %d dest %d", source, op.dest)
+	return tier1SentinelOracleQuery(fmt.Sprintf("binaryconv %d %d %d %s", source, op.dest, op.mode.native, xText))
 }
 
 // tier1SentinelCCConstructorInput renders the register through the
@@ -874,57 +549,7 @@ func tier1SentinelCCConstructorInput(op tier1SentinelCCConstructorOp, raw uint64
 }
 
 func tier1SentinelCCEvalConstructor(op tier1SentinelCCConstructorOp, raw uint64) (string, error) {
-	switch op.dest {
-	case 32:
-		var value bid754.Decimal32BID
-		var flags bid754.ExceptionFlags
-		switch op.kind {
-		case "int32":
-			value, flags = bid754.NewDecimal32FromInt32(int32(uint32(raw)), op.mode.public)
-		case "uint32":
-			value, flags = bid754.NewDecimal32FromUint32(uint32(raw), op.mode.public)
-		case "int64":
-			value, flags = bid754.NewDecimal32FromInt64(int64(raw), op.mode.public)
-		case "uint64":
-			value, flags = bid754.NewDecimal32FromUint64(raw, op.mode.public)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel constructor kind %q", op.kind)
-		}
-		return tier1SentinelResult32(value, flags)
-	case 64:
-		switch op.kind {
-		case "int32":
-			return fmt.Sprintf("%016x", bid754.NewDecimal64FromInt32(int32(uint32(raw))).ToUint64()), nil
-		case "uint32":
-			return fmt.Sprintf("%016x", bid754.NewDecimal64FromUint32(uint32(raw)).ToUint64()), nil
-		case "int64":
-			value, flags := bid754.NewDecimal64FromInt64(int64(raw), op.mode.public)
-			return tier1SentinelResult64(value, flags)
-		case "uint64":
-			value, flags := bid754.NewDecimal64FromUint64(raw, op.mode.public)
-			return tier1SentinelResult64(value, flags)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel constructor kind %q", op.kind)
-		}
-	case 128:
-		var value bid754.Decimal128BID
-		switch op.kind {
-		case "int32":
-			value = bid754.NewDecimal128FromInt32(int32(uint32(raw)))
-		case "uint32":
-			value = bid754.NewDecimal128FromUint32(uint32(raw))
-		case "int64":
-			value = bid754.NewDecimal128FromInt64(int64(raw))
-		case "uint64":
-			value = bid754.NewDecimal128FromUint64(raw)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel constructor kind %q", op.kind)
-		}
-		valueBytes := value.ToBytes()
-		return fmt.Sprintf("%016x:%016x", binary.LittleEndian.Uint64(valueBytes[8:16]), binary.LittleEndian.Uint64(valueBytes[0:8])), nil
-	default:
-		return "", fmt.Errorf("unknown tier1 sentinel constructor destination %d", op.dest)
-	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("constructor %d %s %d %d", op.dest, op.kind, op.mode.native, raw))
 }
 
 // ---------------------------------------------------------------------------
@@ -981,7 +606,10 @@ func tier1SentinelCCSelectBinaryFamily(family, scope string, width int, ops []st
 		}
 	}
 	reqs := newTier1SentinelRequirements(keys)
-	applied := tier1SentinelCCApplyExceptions(family, scope, op, reqs)
+	applied, err := tier1SentinelCCApplyExceptions(family, scope, op, reqs)
+	if err != nil {
+		return nil, err
+	}
 
 	coverage := make([]map[string]bool, 0, len(pool))
 	for _, cand := range pool {
@@ -1056,7 +684,10 @@ func tier1SentinelCCSelectUnaryFamily(family, scope string, width int, opKeys []
 		}
 	}
 	reqs := newTier1SentinelRequirements(keys)
-	applied := tier1SentinelCCApplyExceptions(family, scope, opKeys[opIndex], reqs)
+	applied, err := tier1SentinelCCApplyExceptions(family, scope, opKeys[opIndex], reqs)
+	if err != nil {
+		return nil, err
+	}
 
 	coverage := make([]map[string]bool, 0, len(pool))
 	for _, cand := range pool {
@@ -1120,7 +751,10 @@ func tier1SentinelCCSelectConstructor(scope string, ops []tier1SentinelCCConstru
 		}
 	}
 	reqs := newTier1SentinelRequirements(keys)
-	applied := tier1SentinelCCApplyExceptions("constructor", scope, op.key(), reqs)
+	applied, err := tier1SentinelCCApplyExceptions("constructor", scope, op.key(), reqs)
+	if err != nil {
+		return nil, err
+	}
 
 	pool := tier1SentinelCCConstructorPool(op)
 	coverage := make([]map[string]bool, 0, len(pool))
@@ -1178,6 +812,9 @@ func tier1SentinelCCSelectConstructor(scope string, ops []tier1SentinelCCConstru
 // conversion, binary conversion, constructor by destination), then operation
 // declaration order, then tuple adoption order.
 func GenerateTier1CompareConversionSentinelRows() ([]tier1SentinelRow, error) {
+	if err := tier1SentinelCCValidateExceptions(tier1SentinelCCExceptions); err != nil {
+		return nil, err
+	}
 	exceptionUse := tier1SentinelCCExceptionUse{}
 	rows := []tier1SentinelRow{}
 	var err error
@@ -1410,6 +1047,9 @@ func GenerateTier1CompareConversionSentinelRows() ([]tier1SentinelRow, error) {
 			return nil, fmt.Errorf("tier1 sentinel cc selection produced duplicate row %q", row.text)
 		}
 		seen[row.text] = true
+	}
+	if err := tier1SentinelOracleErr(); err != nil {
+		return nil, err
 	}
 	return rows, nil
 }

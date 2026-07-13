@@ -270,8 +270,13 @@ The Tier 1 routing sentinels add a third hand-maintained pin:
 `devtools/verification_sentinels.json` carries the known-answer rows that
 bind the Tier 1 long runners' glue (operand slots, rounding-mode wiring,
 dispatch-row labels) to expected results computed at generation time through
-the public `bid754-go` API. No generator reads or writes that file. Updating
-the pins is a deliberate manual step:
+the public `bid754-go` API. `devtools` requires no public module, so the
+sentinel codegen reaches that API through the pin-time oracle subprocess: it
+runs `go run ./internal/cmd/sentineloracle` inside the sibling `bid754-go`
+module directory (a filesystem relationship, not a module dependency) and
+receives each expected result over a line protocol. Generation fails
+explicitly when the oracle is unavailable. No generator reads or writes the
+pin file. Updating the pins is a deliberate manual step:
 
 1. `make generate-testspec` — the sentinel codegen re-selects the rows and
    self-asserts its sensitivity requirements (a selection that cannot

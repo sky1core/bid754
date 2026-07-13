@@ -38,7 +38,7 @@ func WriteTier1CompareConversionLongOutputs(repoRoot string) error {
 }
 
 func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
-	template, err := tier1CompareConversionTemplates.ReadFile("tier1_compare_conversion_templates/go_tier1_compare_conversion_long_test.go")
+	template, err := tier1CompareConversionTemplates.ReadFile("tier1_compare_conversion_templates/go_tier1_compare_conversion_long_test.go.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("read Tier 1 compare/conversion long template: %w", err)
 	}

@@ -92,19 +92,18 @@ func TestBenchmarkInputsAreFiniteAndExact(t *testing.T) {
 
 // requireNonNegativeSqrtOperands pins the sqrt-benchmark precondition: the
 // sqrt rows reuse the X operands, so a negative X would silently turn every
-// sqrt benchmark into a NaN/invalid path instead of a real square root.
+// sqrt benchmark into a NaN/invalid path instead of a real square root. The
+// check inspects the parsed value's sign and NaN class, not the raw text, so
+// a disguised spelling (e.g. " -1") cannot slip past it.
 func requireNonNegativeSqrtOperands(t *testing.T, inputs benchmarkInputs) {
 	t.Helper()
-	for _, item := range []struct {
-		name string
-		x    string
-	}{
-		{"decimal32", inputs.Decimal32.X},
-		{"decimal64", inputs.Decimal64.X},
-		{"decimal128", inputs.Decimal128.X},
-	} {
-		if len(item.x) > 0 && item.x[0] == '-' {
-			t.Fatalf("benchmark input %s x = %q is negative; sqrt benchmarks reuse x and require a non-negative operand", item.name, item.x)
-		}
+	if x := exactBenchmarkDecimal32(t, inputs.Decimal32.X); x.IsNaN() || x.IsSignMinus() {
+		t.Fatalf("benchmark input decimal32 x = %q parses negative or NaN; sqrt benchmarks reuse x and require a non-negative operand", inputs.Decimal32.X)
+	}
+	if x := exactBenchmarkDecimal64(t, inputs.Decimal64.X); x.IsNaN() || x.IsSignMinus() {
+		t.Fatalf("benchmark input decimal64 x = %q parses negative or NaN; sqrt benchmarks reuse x and require a non-negative operand", inputs.Decimal64.X)
+	}
+	if x := exactBenchmarkDecimal128(t, inputs.Decimal128.X); x.IsNaN() || x.IsSignMinus() {
+		t.Fatalf("benchmark input decimal128 x = %q parses negative or NaN; sqrt benchmarks reuse x and require a non-negative operand", inputs.Decimal128.X)
 	}
 }

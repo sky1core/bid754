@@ -75,7 +75,7 @@ func WriteTier1ArithmeticLongOutputs(repoRoot string) error {
 }
 
 func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
-	template, err := tier1ArithmeticTemplates.ReadFile("tier1_arithmetic_templates/go_tier1_arithmetic_long_test.go")
+	template, err := tier1ArithmeticTemplates.ReadFile("tier1_arithmetic_templates/go_tier1_arithmetic_long_test.go.tmpl")
 	if err != nil {
 		return nil, fmt.Errorf("read Tier 1 arithmetic long template: %w", err)
 	}

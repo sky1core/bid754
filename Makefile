@@ -259,28 +259,24 @@ verify-cexport-disabled:
 		}; \
 		echo "cexport disabled check passed"'
 
-# 공개 Go 모듈과 devtools는 외부(리포 밖) 의존이 0이어야 한다 (포트 순수성/이식성 계약).
-# devtools만 예외적으로 리포 내부 bid754-go 모듈을 추가로 허용한다: Tier 1 라우팅
-# 센티널 코드젠이 핀 시점 오라클로 공개 bid754-go API(기계 포트 경유, cgo-free)를
-# 호출하기 때문이며, 외부 의존은 여전히 금지다.
+# 공개 Go 모듈과 devtools는 외부 의존이 0이어야 하고, 서로 다른 모듈을 require하지
+# 않는다 (포트 순수성/이식성 계약 + docs/SPEC.md inter-component dependency rules).
+# Tier 1 라우팅 센티널 코드젠의 핀 시점 오라클은 모듈 의존이 아니라 bid754-go 모듈
+# 디렉터리에서 `go run ./internal/cmd/sentineloracle` 서브프로세스로 실행된다
+# (filesystem 관계만 허용).
 verify-zero-deps:
 	@echo "🧊 bid754-go/bid754-codec-go/devtools zero-dependency 계약 검증..."
 	@bash -o pipefail -c 'set -e; \
 	for module in $(GO_MODULES); do \
 		allowed="^github.com/sky1core/bid754/$$module"; \
-		label="stdlib-only"; \
-		if [ "$$module" = "devtools" ]; then \
-			allowed="$$allowed|^github.com/sky1core/bid754/bid754-go"; \
-			label="stdlib + in-repo bid754-go (sentinel pin-time oracle)"; \
-		fi; \
 		deps=$$(cd "$$module" && $(GOENV) go list -deps -f "{{if not .Standard}}{{.ImportPath}}{{end}}" ./...); \
 		out=$$(printf "%s\n" "$$deps" | grep -Ev "$$allowed" | grep -v "^$$" || true); \
 		if [ -n "$$out" ]; then \
-			echo "ERROR: $$module imports non-stdlib packages outside its allowed set:"; \
+			echo "ERROR: $$module imports non-stdlib packages outside its own module:"; \
 			echo "$$out"; \
 			exit 1; \
 		fi; \
-		echo "✅ $$module: $$label"; \
+		echo "✅ $$module: stdlib-only"; \
 	done'
 
 # 기본(태그 없는) 빌드 그래프에 cgo 파일이 유입되면 안 된다.

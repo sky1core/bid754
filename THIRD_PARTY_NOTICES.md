@@ -30,11 +30,13 @@ with redistributions of the derived artifacts.
   `bid754-rs/src/intel_dfp_tables.rs`), generated readtest case data under
   `devtools/generated/testspec/`, the `devtools/tools/registry/*.json` extraction
   registries (the symbol inventory via the Go mechanical port, and the
-  readtest-surface registries via the Intel readtest headers), and the
+  readtest-surface registries via the Intel readtest headers), the
   generated root-package
   verification dispatch/runner files (the `generated_readtest_*` files embedding
   readtest-derived cases, and the `generated_ffi_*` files exercising the
-  Intel symbol inventory).
+  Intel symbol inventory), and `devtools/verification_sentinels.json`
+  (hand-pinned Tier 1 routing-sentinel rows whose expected values are
+  computed through the Go mechanical port of the C sources).
 - Local setup: `make setup-generation-inputs`.
 - Upgrade verification: `docs/INTEL_BID_V20U4_VERIFICATION.md` and
   `make verify-intel-bid-v20u4`.

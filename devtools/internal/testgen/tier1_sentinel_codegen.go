@@ -10,10 +10,14 @@ package testgen
 // sentinel rows per (operation, width): each row pins the expected
 // (result bits, raw flags) computed at generation time through the public
 // bid754-go API (publicroute proves that surface routes through the Go
-// mechanical port; the build is cgo-free). At runtime both generated runners
-// require pinned == Intel C == port/public for every row, so a routing bug
-// on any leg — including one introduced at pin time — diverges from live
-// Intel C on the first full run instead of passing silently.
+// mechanical port; the build is cgo-free). devtools requires no public
+// module, so the codegen reaches that API through the sentinel pin-time
+// oracle subprocess (`go run ./internal/cmd/sentineloracle` in the sibling
+// bid754-go module directory — see tier1_sentinel_oracle.go). At runtime
+// both generated runners require pinned == Intel C == port/public for every
+// row, so a routing bug on any leg — including one introduced at pin time —
+// diverges from live Intel C on the first full run instead of passing
+// silently.
 //
 // Selection is a deterministic greedy walk over hand-declared candidate
 // tables (fixed declaration order, pure oracle), so regeneration is
@@ -54,8 +58,6 @@ import (
 	"fmt"
 	"math/bits"
 	"strings"
-
-	bid754 "github.com/sky1core/bid754/bid754-go"
 )
 
 // tier1SentinelWidths is the canonical width iteration order (row order:
@@ -67,24 +69,24 @@ func tier1SentinelWidthLabel(width int) string {
 	return fmt.Sprintf("d%d", width)
 }
 
-// tier1SentinelMode pairs one native Intel rounding-mode integer with its
-// public bid754-go RoundingMode and the runner mode-table name. This table is
-// the codegen-owned truth for the native<->public correspondence; the
-// generated runners carry the same pairing, and any divergence between the
-// two glues fails the runtime pinned==C==port/public comparison (false-fail
-// direction, never false-pass).
+// tier1SentinelMode pairs one native Intel rounding-mode integer with the
+// runner mode-table name. The pin-time oracle subprocess maps the native
+// integer onto the public bid754-go RoundingMode (the other half of the
+// native<->public correspondence); the generated runners carry the same
+// pairing, and any divergence between the glues fails the runtime
+// pinned==C==port/public comparison (false-fail direction, never
+// false-pass).
 type tier1SentinelMode struct {
 	name   string
 	native int
-	public bid754.RoundingMode
 }
 
 var tier1SentinelModes = [...]tier1SentinelMode{
-	{name: "nearest_even", native: 0, public: bid754.RoundNearestEven},
-	{name: "nearest_away", native: 4, public: bid754.RoundNearestAway},
-	{name: "toward_zero", native: 3, public: bid754.RoundTowardZero},
-	{name: "toward_positive", native: 2, public: bid754.RoundTowardPositive},
-	{name: "toward_negative", native: 1, public: bid754.RoundTowardNegative},
+	{name: "nearest_even", native: 0},
+	{name: "nearest_away", native: 4},
+	{name: "toward_zero", native: 3},
+	{name: "toward_positive", native: 2},
+	{name: "toward_negative", native: 1},
 }
 
 // tier1SentinelModeResults carries one candidate's oracle result per mode in
@@ -397,43 +399,8 @@ var tier1SentinelExceptions = []tier1SentinelException{
 }
 
 // ---------------------------------------------------------------------------
-// Oracle (public bid754-go API → canonical "<bits>/<rawflags>" strings)
+// Oracle (pin-time oracle subprocess → canonical "<bits>/<rawflags>" strings)
 // ---------------------------------------------------------------------------
-
-// tier1SentinelRawFlags mirrors the runners' tier1ArithmeticPublicRawFlags /
-// public_raw_flags mapping onto the Intel raw flag bits. Any public flag
-// outside the five Intel-visible bits fails generation.
-func tier1SentinelRawFlags(flags bid754.ExceptionFlags) (uint32, error) {
-	var raw uint32
-	if flags&bid754.FlagInvalidOperation != 0 {
-		raw |= 0x01
-	}
-	if flags&bid754.FlagDivisionByZero != 0 {
-		raw |= 0x04
-	}
-	if flags&bid754.FlagOverflow != 0 {
-		raw |= 0x08
-	}
-	if flags&bid754.FlagUnderflow != 0 {
-		raw |= 0x10
-	}
-	if flags&bid754.FlagInexact != 0 {
-		raw |= 0x20
-	}
-	known := bid754.FlagInvalidOperation | bid754.FlagDivisionByZero |
-		bid754.FlagOverflow | bid754.FlagUnderflow | bid754.FlagInexact
-	if unknown := flags &^ known; unknown != 0 {
-		return 0, fmt.Errorf("tier1 sentinel oracle produced flags outside the Intel raw set: %s", unknown)
-	}
-	return raw, nil
-}
-
-func tier1SentinelDecimal128(v bid128BidCodecValue) bid754.Decimal128BID {
-	var out bid754.Decimal128BID
-	binary.LittleEndian.PutUint64(out[0:8], v.lo)
-	binary.LittleEndian.PutUint64(out[8:16], v.hi)
-	return out
-}
 
 func tier1SentinelValueText(width int, v bid128BidCodecValue) string {
 	switch width {
@@ -448,189 +415,72 @@ func tier1SentinelValueText(width int, v bid128BidCodecValue) string {
 	}
 }
 
-func tier1SentinelResult32(value bid754.Decimal32BID, flags bid754.ExceptionFlags) (string, error) {
-	raw, err := tier1SentinelRawFlags(flags)
-	if err != nil {
-		return "", err
+// tier1SentinelWidthValueText is the error-returning form for oracle request
+// builders (the panicking form stays reserved for row emission, where widths
+// come from the fixed width table).
+func tier1SentinelWidthValueText(width int, v bid128BidCodecValue) (string, error) {
+	switch width {
+	case 32, 64, 128:
+		return tier1SentinelValueText(width, v), nil
+	default:
+		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
 	}
-	return fmt.Sprintf("%08x/%08x", value.ToUint32(), raw), nil
-}
-
-func tier1SentinelResult64(value bid754.Decimal64BID, flags bid754.ExceptionFlags) (string, error) {
-	raw, err := tier1SentinelRawFlags(flags)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%016x/%08x", value.ToUint64(), raw), nil
-}
-
-func tier1SentinelResult128(value bid754.Decimal128BID, flags bid754.ExceptionFlags) (string, error) {
-	raw, err := tier1SentinelRawFlags(flags)
-	if err != nil {
-		return "", err
-	}
-	valueBytes := value.ToBytes()
-	lo := binary.LittleEndian.Uint64(valueBytes[0:8])
-	hi := binary.LittleEndian.Uint64(valueBytes[8:16])
-	return fmt.Sprintf("%016x:%016x/%08x", hi, lo, raw), nil
 }
 
 func tier1SentinelEvalRounded(width int, op string, x, y bid128BidCodecValue, mode tier1SentinelMode) (string, error) {
-	switch width {
-	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
-		var value bid754.Decimal32BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "add":
-			value, flags = left.AddWithMode(right, mode.public)
-		case "sub":
-			value, flags = left.SubWithMode(right, mode.public)
-		case "mul":
-			value, flags = left.MulWithMode(right, mode.public)
-		case "div":
-			value, flags = left.DivWithMode(right, mode.public)
-		case "quantize":
-			value, flags = left.QuantizeWithMode(right, mode.public)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel rounded operation %q", op)
-		}
-		return tier1SentinelResult32(value, flags)
-	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
-		var value bid754.Decimal64BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "add":
-			value, flags = left.AddWithMode(right, mode.public)
-		case "sub":
-			value, flags = left.SubWithMode(right, mode.public)
-		case "mul":
-			value, flags = left.MulWithMode(right, mode.public)
-		case "div":
-			value, flags = left.DivWithMode(right, mode.public)
-		case "quantize":
-			value, flags = left.QuantizeWithMode(right, mode.public)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel rounded operation %q", op)
-		}
-		return tier1SentinelResult64(value, flags)
-	case 128:
-		left, right := tier1SentinelDecimal128(x), tier1SentinelDecimal128(y)
-		var value bid754.Decimal128BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "add":
-			value, flags = left.AddWithMode(right, mode.public)
-		case "sub":
-			value, flags = left.SubWithMode(right, mode.public)
-		case "mul":
-			value, flags = left.MulWithMode(right, mode.public)
-		case "div":
-			value, flags = left.DivWithMode(right, mode.public)
-		case "quantize":
-			value, flags = left.QuantizeWithMode(right, mode.public)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel rounded operation %q", op)
-		}
-		return tier1SentinelResult128(value, flags)
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	xText, err := tier1SentinelWidthValueText(width, x)
+	if err != nil {
+		return "", err
 	}
+	yText, err := tier1SentinelWidthValueText(width, y)
+	if err != nil {
+		return "", err
+	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("rounded %d %s %d %s %s", width, op, mode.native, xText, yText))
 }
 
 func tier1SentinelEvalUnrounded(width int, op string, x, y bid128BidCodecValue) (string, error) {
-	switch width {
-	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
-		var value bid754.Decimal32BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "remainder":
-			value, flags = left.Remainder(right)
-		case "fmod":
-			value, flags = left.Fmod(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel unrounded operation %q", op)
-		}
-		return tier1SentinelResult32(value, flags)
-	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
-		var value bid754.Decimal64BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "remainder":
-			value, flags = left.Remainder(right)
-		case "fmod":
-			value, flags = left.Fmod(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel unrounded operation %q", op)
-		}
-		return tier1SentinelResult64(value, flags)
-	case 128:
-		left, right := tier1SentinelDecimal128(x), tier1SentinelDecimal128(y)
-		var value bid754.Decimal128BID
-		var flags bid754.ExceptionFlags
-		switch op {
-		case "remainder":
-			value, flags = left.Remainder(right)
-		case "fmod":
-			value, flags = left.Fmod(right)
-		default:
-			return "", fmt.Errorf("unknown tier1 sentinel unrounded operation %q", op)
-		}
-		return tier1SentinelResult128(value, flags)
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	xText, err := tier1SentinelWidthValueText(width, x)
+	if err != nil {
+		return "", err
 	}
+	yText, err := tier1SentinelWidthValueText(width, y)
+	if err != nil {
+		return "", err
+	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("unrounded %d %s %s %s", width, op, xText, yText))
 }
 
 func tier1SentinelEvalFma(width int, x, y, z bid128BidCodecValue, mode tier1SentinelMode) (string, error) {
-	switch width {
-	case 32:
-		value, flags := bid754.Decimal32BID(uint32(x.lo)).FMAWithMode(bid754.Decimal32BID(uint32(y.lo)), bid754.Decimal32BID(uint32(z.lo)), mode.public)
-		return tier1SentinelResult32(value, flags)
-	case 64:
-		value, flags := bid754.Decimal64BID(x.lo).FMAWithMode(bid754.Decimal64BID(y.lo), bid754.Decimal64BID(z.lo), mode.public)
-		return tier1SentinelResult64(value, flags)
-	case 128:
-		value, flags := tier1SentinelDecimal128(x).FMAWithMode(tier1SentinelDecimal128(y), tier1SentinelDecimal128(z), mode.public)
-		return tier1SentinelResult128(value, flags)
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	xText, err := tier1SentinelWidthValueText(width, x)
+	if err != nil {
+		return "", err
 	}
+	yText, err := tier1SentinelWidthValueText(width, y)
+	if err != nil {
+		return "", err
+	}
+	zText, err := tier1SentinelWidthValueText(width, z)
+	if err != nil {
+		return "", err
+	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("fma %d %d %s %s %s", width, mode.native, xText, yText, zText))
 }
 
 func tier1SentinelEvalSqrt(width int, x bid128BidCodecValue, mode tier1SentinelMode) (string, error) {
-	switch width {
-	case 32:
-		value, flags := bid754.Decimal32BID(uint32(x.lo)).SqrtWithMode(mode.public)
-		return tier1SentinelResult32(value, flags)
-	case 64:
-		value, flags := bid754.Decimal64BID(x.lo).SqrtWithMode(mode.public)
-		return tier1SentinelResult64(value, flags)
-	case 128:
-		value, flags := tier1SentinelDecimal128(x).SqrtWithMode(mode.public)
-		return tier1SentinelResult128(value, flags)
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	xText, err := tier1SentinelWidthValueText(width, x)
+	if err != nil {
+		return "", err
 	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("sqrt %d %d %s", width, mode.native, xText))
 }
 
 func tier1SentinelEvalScale(width int, x bid128BidCodecValue, n int64, mode tier1SentinelMode) (string, error) {
-	switch width {
-	case 32:
-		value, flags := bid754.Decimal32BID(uint32(x.lo)).ScaleBWithMode(int(n), mode.public)
-		return tier1SentinelResult32(value, flags)
-	case 64:
-		value, flags := bid754.Decimal64BID(x.lo).ScaleBWithMode(int(n), mode.public)
-		return tier1SentinelResult64(value, flags)
-	case 128:
-		value, flags := tier1SentinelDecimal128(x).ScaleBWithMode(int(n), mode.public)
-		return tier1SentinelResult128(value, flags)
-	default:
-		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	xText, err := tier1SentinelWidthValueText(width, x)
+	if err != nil {
+		return "", err
 	}
+	return tier1SentinelOracleQuery(fmt.Sprintf("scaleb %d %d %d %s", width, mode.native, n, xText))
 }
 
 // ---------------------------------------------------------------------------
@@ -717,13 +567,59 @@ func tier1SentinelSatisfyModePairs(reqs *tier1SentinelRequirements, results tier
 	return gain
 }
 
+// tier1SentinelKnownOps returns the closed operation universe of the
+// arithmetic sentinel domain in declaration order.
+func tier1SentinelKnownOps() []string {
+	ops := []string{}
+	ops = append(ops, tier1SentinelRoundedOps[:]...)
+	ops = append(ops, tier1SentinelUnroundedOps[:]...)
+	ops = append(ops, "fma", "sqrt", "scaleb")
+	return ops
+}
+
+// tier1SentinelValidateExceptions structurally validates a waiver table at
+// generation time, before any selection runs: every entry needs a non-empty
+// written reason, an operation from the closed arithmetic operation
+// universe, and a requirement key from the waivable mode-pair whitelist.
+// Whether the key is live for the named operation is enforced when the entry
+// is applied, and whether it is genuinely unsatisfiable is verified against
+// the full candidate pool per selection run.
+func tier1SentinelValidateExceptions(entries []tier1SentinelException) error {
+	ops := map[string]bool{}
+	for _, op := range tier1SentinelKnownOps() {
+		ops[op] = true
+	}
+	modePairs := map[string]bool{}
+	for _, key := range tier1SentinelModePairKeys() {
+		modePairs[key] = true
+	}
+	for i, exception := range entries {
+		if strings.TrimSpace(exception.reason) == "" {
+			return fmt.Errorf("tier1 sentinel exception %d (op %q, %s) has no written reason", i, exception.op, exception.key)
+		}
+		if !ops[exception.op] {
+			return fmt.Errorf("tier1 sentinel exception %d waives %s for unknown operation %q", i, exception.key, exception.op)
+		}
+		if !modePairs[exception.key] {
+			return fmt.Errorf("tier1 sentinel exception %d (op %q): key %q is not in the waivable mode-pair whitelist", i, exception.op, exception.key)
+		}
+	}
+	return nil
+}
+
 // tier1SentinelApplyExceptions removes waived requirement keys for the
 // operation before selection and returns the removed keys so the caller can
 // verify (against the full candidate pool) that every waiver was genuinely
-// unsatisfiable. Only mode-pair requirements are waivable.
+// unsatisfiable. Only mode-pair requirements are waivable, and a matched
+// entry whose key is not a live requirement of the operation fails
+// generation immediately (mis-keyed or duplicate waiver).
 func tier1SentinelApplyExceptions(op string, reqs *tier1SentinelRequirements) ([]string, error) {
+	return tier1SentinelApplyExceptionEntries(tier1SentinelExceptions, op, reqs)
+}
+
+func tier1SentinelApplyExceptionEntries(entries []tier1SentinelException, op string, reqs *tier1SentinelRequirements) ([]string, error) {
 	removed := []string{}
-	for _, exception := range tier1SentinelExceptions {
+	for _, exception := range entries {
 		if exception.op != op {
 			continue
 		}
@@ -731,7 +627,7 @@ func tier1SentinelApplyExceptions(op string, reqs *tier1SentinelRequirements) ([
 			return nil, fmt.Errorf("tier1 sentinel exception (op %q, %s): only mode-pair requirements are waivable", exception.op, exception.key)
 		}
 		if !reqs.unmet[exception.key] {
-			continue
+			return nil, fmt.Errorf("tier1 sentinel exception (op %q, %s): the waived key is not a live requirement of that operation", exception.op, exception.key)
 		}
 		reqs.drop(exception.key)
 		removed = append(removed, exception.key)
@@ -1281,17 +1177,20 @@ func tier1SentinelFlagsComment(result string) string {
 	return strings.Join(names, "|")
 }
 
+// tier1SentinelDecimalComment renders the audit-comment decimal string for a
+// value through the oracle. A transport failure degrades to "?" here but is
+// latched and re-raised by tier1SentinelOracleErr before rows are returned.
 func tier1SentinelDecimalComment(width int, v bid128BidCodecValue) string {
 	switch width {
-	case 32:
-		return bid754.Decimal32BID(uint32(v.lo)).String()
-	case 64:
-		return bid754.Decimal64BID(v.lo).String()
-	case 128:
-		return tier1SentinelDecimal128(v).String()
+	case 32, 64, 128:
 	default:
 		return "?"
 	}
+	text, err := tier1SentinelOracleQuery(fmt.Sprintf("str %d %s", width, tier1SentinelValueText(width, v)))
+	if err != nil {
+		return "?"
+	}
+	return text
 }
 
 func tier1SentinelResultComment(width int, result string) string {
@@ -1306,19 +1205,19 @@ func tier1SentinelResultComment(width int, result string) string {
 		if _, err := fmt.Sscanf(bitsText, "%08x", &value); err != nil {
 			return "?"
 		}
-		return bid754.Decimal32BID(value).String()
+		return tier1SentinelDecimalComment(width, bid128BidCodecValue{lo: uint64(value)})
 	case 64:
 		var value uint64
 		if _, err := fmt.Sscanf(bitsText, "%016x", &value); err != nil {
 			return "?"
 		}
-		return bid754.Decimal64BID(value).String()
+		return tier1SentinelDecimalComment(width, bid128BidCodecValue{lo: value})
 	case 128:
 		var hi, lo uint64
 		if _, err := fmt.Sscanf(bitsText, "%016x:%016x", &hi, &lo); err != nil {
 			return "?"
 		}
-		return tier1SentinelDecimal128(bid128BidCodecValue{lo: lo, hi: hi}).String()
+		return tier1SentinelDecimalComment(width, bid128BidCodecValue{lo: lo, hi: hi})
 	default:
 		return "?"
 	}
@@ -1336,6 +1235,9 @@ func tier1SentinelAppendRow(rows []tier1SentinelRow, text, comment string) ([]ti
 // declaration order (rounded, unrounded, fma, sqrt, scaleb) → operation
 // declaration order → tuple adoption order → native mode table order.
 func GenerateTier1ArithmeticSentinelRows() ([]tier1SentinelRow, error) {
+	if err := tier1SentinelValidateExceptions(tier1SentinelExceptions); err != nil {
+		return nil, err
+	}
 	exceptionUse := tier1SentinelExceptionUse{}
 	rows := []tier1SentinelRow{}
 	var err error
@@ -1492,6 +1394,9 @@ func GenerateTier1ArithmeticSentinelRows() ([]tier1SentinelRow, error) {
 			return nil, fmt.Errorf("tier1 sentinel selection produced duplicate row %q", row.text)
 		}
 		seen[row.text] = true
+	}
+	if err := tier1SentinelOracleErr(); err != nil {
+		return nil, err
 	}
 	return rows, nil
 }

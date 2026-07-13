@@ -48,14 +48,24 @@ fn benchmark_inputs_are_shared_finite_and_exact() {
 
     // The sqrt benchmark rows reuse the x operands; a negative x would
     // silently turn them into NaN/invalid paths instead of square roots.
-    for (name, x) in [
-        ("decimal32", &inputs.decimal32.x),
-        ("decimal64", &inputs.decimal64.x),
-        ("decimal128", &inputs.decimal128.x),
-    ] {
-        assert!(
-            !x.starts_with('-'),
-            "benchmark input {name} x = {x:?} is negative; sqrt benchmarks reuse x"
-        );
-    }
+    // Check the parsed value's sign and NaN class, not the raw text, so a
+    // disguised spelling (e.g. " -1") cannot slip past the guard.
+    let x32 = Decimal32::parse(&inputs.decimal32.x).expect("parse decimal32 x");
+    assert!(
+        !x32.is_nan() && !x32.is_sign_negative(),
+        "benchmark input decimal32 x = {:?} parses negative or NaN; sqrt benchmarks reuse x",
+        inputs.decimal32.x
+    );
+    let x64 = Decimal64::parse(&inputs.decimal64.x).expect("parse decimal64 x");
+    assert!(
+        !x64.is_nan() && !x64.is_sign_negative(),
+        "benchmark input decimal64 x = {:?} parses negative or NaN; sqrt benchmarks reuse x",
+        inputs.decimal64.x
+    );
+    let x128 = Decimal128::parse(&inputs.decimal128.x).expect("parse decimal128 x");
+    assert!(
+        !x128.is_nan() && !x128.is_sign_negative(),
+        "benchmark input decimal128 x = {:?} parses negative or NaN; sqrt benchmarks reuse x",
+        inputs.decimal128.x
+    );
 }
