@@ -173,15 +173,15 @@ func Bid64Mul(x, y uint64, rndMode int) uint64 {
 				// get sticky bits
 				amount2 := 64 - amount
 				remainder_h = (^uint64(0)) >> uint(amount2)
-				remainder_h = remainder_h & Q_high.w[0]
+				remainder_h = remainder_h & Q_high.lo
 
 				extra_digits -= 16
-				if remainder_h != 0 || (Q_low.w[1] > bid_reciprocals10_128[16].w[1] ||
-					(Q_low.w[1] == bid_reciprocals10_128[16].w[1] &&
-						Q_low.w[0] >= bid_reciprocals10_128[16].w[0])) {
+				if remainder_h != 0 || (Q_low.hi > bid_reciprocals10_128[16].hi ||
+					(Q_low.hi == bid_reciprocals10_128[16].hi &&
+						Q_low.lo >= bid_reciprocals10_128[16].lo)) {
 					round_up = 1
-					P.w[0] = (P.w[0] << 3) + (P.w[0] << 1)
-					P.w[0] |= 1
+					P.lo = (P.lo << 3) + (P.lo << 1)
+					P.lo |= 1
 					extra_digits++
 				}
 			}
@@ -206,7 +206,7 @@ func Bid64Mul(x, y uint64, rndMode int) uint64 {
 		amount = bid_recip_scale[extra_digits]
 		C128 = __shr_128(Q_high, uint(amount))
 
-		C64 = C128.w[0]
+		C64 = C128.lo
 
 		if rmode == 0 { // BID_ROUNDING_TO_NEAREST
 			if (C64&1) != 0 && round_up == 0 {
@@ -214,13 +214,13 @@ func Bid64Mul(x, y uint64, rndMode int) uint64 {
 				// is exactly .5
 
 				// get remainder
-				remainder_h = Q_high.w[0] << (64 - uint(amount))
+				remainder_h = Q_high.lo << (64 - uint(amount))
 
 				// test whether fractional part is 0
 				if remainder_h == 0 &&
-					(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+					(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					C64--
 				}
 			}
@@ -232,7 +232,7 @@ func Bid64Mul(x, y uint64, rndMode int) uint64 {
 	}
 
 	// go to convert_format and exit
-	C64 = P.w[0]
+	C64 = P.lo
 	res = get_BID64(sign_x^sign_y,
 		exponent_x+exponent_y-DECIMAL_EXPONENT_BIAS, C64, rndMode)
 	return res
@@ -395,16 +395,16 @@ func Bid64MulWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 
 				amount2 := 64 - amount
 				remainder_h = (^uint64(0)) >> uint(amount2)
-				remainder_h = remainder_h & Q_high.w[0]
+				remainder_h = remainder_h & Q_high.lo
 
 				extra_digits -= 16
-				if remainder_h != 0 || (Q_low.w[1] > bid_reciprocals10_128[16].w[1] ||
-					(Q_low.w[1] == bid_reciprocals10_128[16].w[1] &&
-						Q_low.w[0] >= bid_reciprocals10_128[16].w[0])) {
+				if remainder_h != 0 || (Q_low.hi > bid_reciprocals10_128[16].hi ||
+					(Q_low.hi == bid_reciprocals10_128[16].hi &&
+						Q_low.lo >= bid_reciprocals10_128[16].lo)) {
 					round_up = 1
 					pfpsf |= BID_UNDERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
-					P.w[0] = (P.w[0] << 3) + (P.w[0] << 1)
-					P.w[0] |= 1
+					P.lo = (P.lo << 3) + (P.lo << 1)
+					P.lo |= 1
 					extra_digits++
 				}
 			}
@@ -422,15 +422,15 @@ func Bid64MulWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 		Q_high, Q_low = __mul_128x128_full(P, bid_reciprocals10_128[extra_digits])
 		amount = bid_recip_scale[extra_digits]
 		C128 = __shr_128(Q_high, uint(amount))
-		C64 = C128.w[0]
+		C64 = C128.lo
 
 		if rmode == 0 { // BID_ROUNDING_TO_NEAREST
 			if (C64&1) != 0 && round_up == 0 {
-				remainder_h = Q_high.w[0] << (64 - uint(amount))
+				remainder_h = Q_high.lo << (64 - uint(amount))
 				if remainder_h == 0 &&
-					(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+					(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					C64--
 				}
 			}
@@ -439,30 +439,30 @@ func Bid64MulWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 		// Intel status flag logic (bid64_mul.c lines 312-349)
 		// Start with INEXACT, then check if actually exact
 		status := uint32(BID_INEXACT_EXCEPTION) | uf_status
-		remainder_h = Q_high.w[0] << (64 - uint(amount))
+		remainder_h = Q_high.lo << (64 - uint(amount))
 
 		switch rmode {
 		case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 			// test whether fractional part is exactly 0.5 (which rounds to even)
 			if remainder_h == 0x8000000000000000 &&
-				(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-					(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-						Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+					(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+						Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 				status = 0 // BID_EXACT_STATUS
 			}
 		case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
 			// test whether fractional part is 0
 			if remainder_h == 0 &&
-				(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-					(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-						Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+					(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+						Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 				status = 0 // BID_EXACT_STATUS
 			}
 		default:
 			// BID_ROUNDING_UP: check if adding reciprocal causes overflow
 			var CY, carry uint64
-			Stemp_w0, CY := bits.Add64(Q_low.w[0], bid_reciprocals10_128[extra_digits].w[0], 0)
-			_, carry = bits.Add64(Q_low.w[1], bid_reciprocals10_128[extra_digits].w[1], CY)
+			Stemp_w0, CY := bits.Add64(Q_low.lo, bid_reciprocals10_128[extra_digits].lo, 0)
+			_, carry = bits.Add64(Q_low.hi, bid_reciprocals10_128[extra_digits].hi, CY)
 			_ = Stemp_w0
 			if (remainder_h>>(64-uint(amount)))+carry >= (uint64(1) << uint(amount)) {
 				status = 0 // BID_EXACT_STATUS
@@ -476,7 +476,7 @@ func Bid64MulWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 	}
 
 	// go to convert_format and exit
-	C64 = P.w[0]
+	C64 = P.lo
 	res = get_BID64(sign_x^sign_y,
 		exponent_x+exponent_y-DECIMAL_EXPONENT_BIAS, C64, rndMode)
 	return res, pfpsf

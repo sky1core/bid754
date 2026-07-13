@@ -175,8 +175,8 @@ func Bid64Fma(x, y, z uint64, rndMode int) (uint64, uint32) {
 				final_exponent, C64, sign_z, exponent_z, coefficient_z, rndMode, &pfpsf)
 			return res, pfpsf
 		}
-		P.w[0] = C64
-		P.w[1] = 0
+		P.lo = C64
+		P.hi = 0
 		extra_digits = 0
 	} else {
 		if coefficient_z == 0 {
@@ -208,7 +208,7 @@ func Bid64Fma(x, y, z uint64, rndMode int) (uint64, uint32) {
 			tempx = math.Float64bits(float64(coefficient_z))
 			bin_expon_cx = int((tempx&MASK_BINARY_EXPONENT)>>52) - 0x3ff
 			digits_z = bid_estimate_decimal_digits[bin_expon_cx]
-			if coefficient_z >= bid_power10_table_128[digits_z].w[0] {
+			if coefficient_z >= bid_power10_table_128[digits_z].lo {
 				digits_z++
 			}
 			// underflow
@@ -223,27 +223,27 @@ func Bid64Fma(x, y, z uint64, rndMode int) (uint64, uint32) {
 				ez = 0
 			}
 			scale_z = exponent_z - ez
-			coefficient_z *= bid_power10_table_128[scale_z].w[0]
+			coefficient_z *= bid_power10_table_128[scale_z].lo
 			ey = final_exponent - extra_digits
 			extra_digits = ez - ey
 
 			if extra_digits > 17 {
 				CYh = __truncate(P, 16)
 				// get remainder
-				T = bid_power10_table_128[16].w[0]
+				T = bid_power10_table_128[16].lo
 				CY0L = __mul_64x64_to_64(CYh, T)
-				remainder_y = P.w[0] - CY0L
+				remainder_y = P.lo - CY0L
 
 				extra_digits -= 16
-				P.w[0] = CYh
-				P.w[1] = 0
+				P.lo = CYh
+				P.hi = 0
 			} else {
 				remainder_y = 0
 			}
 
 			// align coeff_x, CYh
 			CZ = __mul_64x64_to_128(coefficient_z,
-				bid_power10_table_128[extra_digits].w[0])
+				bid_power10_table_128[extra_digits].lo)
 
 			if sign_z == (sign_y ^ sign_x) {
 				CT = __add_128_128(CZ, P)
@@ -253,20 +253,20 @@ func Bid64Fma(x, y, z uint64, rndMode int) (uint64, uint32) {
 				}
 			} else {
 				if remainder_y != 0 && (__unsigned_compare_ge_128(CZ, P)) {
-					P.w[0]++
-					if P.w[0] == 0 {
-						P.w[1]++
+					P.lo++
+					if P.lo == 0 {
+						P.hi++
 					}
 				}
 				CT = __sub_128_128(CZ, P)
-				if int64(CT.w[1]) < 0 {
+				if int64(CT.hi) < 0 {
 					sign_z = sign_y ^ sign_x
-					CT.w[0] = 0 - CT.w[0]
-					CT.w[1] = 0 - CT.w[1]
-					if CT.w[0] != 0 {
-						CT.w[1]--
+					CT.lo = 0 - CT.lo
+					CT.hi = 0 - CT.hi
+					if CT.lo != 0 {
+						CT.hi--
 					}
-				} else if (CT.w[1] | CT.w[0]) == 0 {
+				} else if (CT.hi | CT.lo) == 0 {
 					if rndMode != BID_ROUNDING_DOWN {
 						sign_z = 0
 					} else {

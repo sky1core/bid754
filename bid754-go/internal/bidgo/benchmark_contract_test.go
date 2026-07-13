@@ -71,7 +71,7 @@ func exactBenchmarkDecimal128(tb testing.TB, input string) BID_UINT128 {
 	tb.Helper()
 	value, flags := Bid128FromString(input, 0)
 	if flags != 0 || Bid128IsFinite(value) == 0 {
-		tb.Fatalf("Decimal128 benchmark input %q is not finite and exact: flags=%#x bits=%#x/%#x", input, flags, value.w[1], value.w[0])
+		tb.Fatalf("Decimal128 benchmark input %q is not finite and exact: flags=%#x bits=%#x/%#x", input, flags, value.hi, value.lo)
 	}
 	return value
 }

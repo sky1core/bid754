@@ -278,12 +278,12 @@ func Bid64QuietGreater(x, y uint64) (int, uint32) {
 		// otherwise adjust the x significand upwards
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 		// if postitive, return whichever significand is larger (converse if neg.)
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
-		if ((sig_n_prime.w[1] > 0) || sig_n_prime.w[0] > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi > 0) || sig_n_prime.lo > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -292,12 +292,12 @@ func Bid64QuietGreater(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 	// if postitive, return whichever significand is larger
 	//     (converse if negative)
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
-	if ((sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -457,14 +457,14 @@ func Bid64QuietGreaterEqual(x, y uint64) (int, uint32) {
 		// otherwise adjust the x significand upwards
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 		// return 1 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		// (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -472,14 +472,14 @@ func Bid64QuietGreaterEqual(x, y uint64) (int, uint32) {
 	// adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	// (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -641,12 +641,12 @@ func Bid64QuietGreaterUnordered(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 		// if postitive, return whichever significand is larger
 		// (converse if negative)
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
-		if ((sig_n_prime.w[1] > 0) || sig_n_prime.w[0] > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi > 0) || sig_n_prime.lo > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -654,12 +654,12 @@ func Bid64QuietGreaterUnordered(x, y uint64) (int, uint32) {
 	// adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 	// if postitive, return whichever significand is larger (converse if negative)
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
-	if ((sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -821,14 +821,14 @@ func Bid64QuietLess(x, y uint64) (int, uint32) {
 		// otherwise adjust the x significand upwards
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 		// return 0 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		// (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -836,14 +836,14 @@ func Bid64QuietLess(x, y uint64) (int, uint32) {
 	// adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	// (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1004,14 +1004,14 @@ func Bid64QuietLessEqual(x, y uint64) (int, uint32) {
 		// otherwise adjust the x significand upwards
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 		// return 1 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1019,14 +1019,14 @@ func Bid64QuietLessEqual(x, y uint64) (int, uint32) {
 	// adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 	// return 1 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1187,14 +1187,14 @@ func Bid64QuietLessUnordered(x, y uint64) (int, uint32) {
 		// otherwise adjust the x significand upwards
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 		// return 0 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1202,14 +1202,14 @@ func Bid64QuietLessUnordered(x, y uint64) (int, uint32) {
 	// adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1501,14 +1501,14 @@ func Bid64QuietNotGreater(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 1 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1517,14 +1517,14 @@ func Bid64QuietNotGreater(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 1 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1692,14 +1692,14 @@ func Bid64QuietNotLess(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 0 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1708,14 +1708,14 @@ func Bid64QuietNotLess(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1919,13 +1919,13 @@ func Bid64SignalingGreater(x, y uint64) (int, uint32) {
 
 		// if postitive, return whichever significand is larger
 		//     (converse if negative)
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 
 		res = 0
-		if ((sig_n_prime.w[1] > 0) || sig_n_prime.w[0] > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi > 0) || sig_n_prime.lo > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1935,12 +1935,12 @@ func Bid64SignalingGreater(x, y uint64) (int, uint32) {
 
 	// if postitive, return whichever significand is larger
 	//     (converse if negative)
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
-	if ((sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2105,14 +2105,14 @@ func Bid64SignalingGreaterEqual(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 1 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2121,14 +2121,14 @@ func Bid64SignalingGreaterEqual(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2295,13 +2295,13 @@ func Bid64SignalingGreaterUnordered(x, y uint64) (int, uint32) {
 
 		// if postitive, return whichever significand is larger
 		//     (converse if negative)
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 
 		res = 0
-		if ((sig_n_prime.w[1] > 0) || sig_n_prime.w[0] > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi > 0) || sig_n_prime.lo > sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2311,12 +2311,12 @@ func Bid64SignalingGreaterUnordered(x, y uint64) (int, uint32) {
 
 	// if postitive, return whichever significand is larger
 	//     (converse if negative)
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
-	if ((sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2481,14 +2481,14 @@ func Bid64SignalingLessEqual(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 1 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2497,14 +2497,14 @@ func Bid64SignalingLessEqual(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 1 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2669,14 +2669,14 @@ func Bid64SignalingLessUnordered(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 0 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2685,14 +2685,14 @@ func Bid64SignalingLessUnordered(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2857,14 +2857,14 @@ func Bid64SignalingNotGreater(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 1 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2873,14 +2873,14 @@ func Bid64SignalingNotGreater(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 1 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -3045,14 +3045,14 @@ func Bid64SignalingNotLess(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 0 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 1
 			return res, pfpsf
 		}
 		// if postitive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -3061,14 +3061,14 @@ func Bid64SignalingNotLess(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1
 		return res, pfpsf
 	}
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) != MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) != MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf

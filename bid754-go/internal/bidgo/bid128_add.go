@@ -8,8 +8,8 @@ import "math"
 // Bid128Add is ported mechanically from bid128_add.c: bid128_add (= bid128qq_add).
 func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 	var res BID_UINT128
-	res.w[0] = 0xbaddbaddbaddbadd
-	res.w[1] = 0xbaddbaddbaddbadd
+	res.lo = 0xbaddbaddbaddbadd
+	res.hi = 0xbaddbaddbaddbadd
 	var x_sign, y_sign, tmp_sign uint64
 	var x_exp, y_exp, tmp_exp uint64 // e1 = x_exp, e2 = y_exp
 	var C1_hi, C2_hi, tmp_signif_hi uint64
@@ -34,86 +34,86 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 	var second_pass int = 0
 
 	// BID_SWAP128 is no-op on little-endian
-	x_sign = x.w[1] & MASK_SIGN64 // 0 for positive, MASK_SIGN64 for negative
-	y_sign = y.w[1] & MASK_SIGN64 // 0 for positive, MASK_SIGN64 for negative
+	x_sign = x.hi & MASK_SIGN64 // 0 for positive, MASK_SIGN64 for negative
+	y_sign = y.hi & MASK_SIGN64 // 0 for positive, MASK_SIGN64 for negative
 
 	// check for NaN or Infinity
-	if ((x.w[1] & MASK_SPECIAL128) == MASK_SPECIAL128) ||
-		((y.w[1] & MASK_SPECIAL128) == MASK_SPECIAL128) {
+	if ((x.hi & MASK_SPECIAL128) == MASK_SPECIAL128) ||
+		((y.hi & MASK_SPECIAL128) == MASK_SPECIAL128) {
 		// x is special or y is special
-		if (x.w[1] & NAN_MASK64) == NAN_MASK64 { // x is NAN
+		if (x.hi & NAN_MASK64) == NAN_MASK64 { // x is NAN
 			// check first for non-canonical NaN payload
-			if ((x.w[1] & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
-				(((x.w[1] & 0x00003fffffffffff) == 0x0000314dc6448d93) &&
-					(x.w[0] > 0x38c15b09ffffffff)) {
-				x.w[1] = x.w[1] & 0xffffc00000000000
-				x.w[0] = 0x0
+			if ((x.hi & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
+				(((x.hi & 0x00003fffffffffff) == 0x0000314dc6448d93) &&
+					(x.lo > 0x38c15b09ffffffff)) {
+				x.hi = x.hi & 0xffffc00000000000
+				x.lo = 0x0
 			}
-			if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 { // x is SNAN
+			if (x.hi & SNAN_MASK64) == SNAN_MASK64 { // x is SNAN
 				// set invalid flag
 				*pfpsf |= BID_INVALID_EXCEPTION
 				// return quiet (x)
-				res.w[1] = x.w[1] & 0xfc003fffffffffff
+				res.hi = x.hi & 0xfc003fffffffffff
 				// clear out also G[6]-G[16]
-				res.w[0] = x.w[0]
+				res.lo = x.lo
 			} else { // x is QNaN
 				// return x
-				res.w[1] = x.w[1] & 0xfc003fffffffffff
+				res.hi = x.hi & 0xfc003fffffffffff
 				// clear out G[6]-G[16]
-				res.w[0] = x.w[0]
+				res.lo = x.lo
 				// if y = SNaN signal invalid exception
-				if (y.w[1] & SNAN_MASK64) == SNAN_MASK64 {
+				if (y.hi & SNAN_MASK64) == SNAN_MASK64 {
 					// set invalid flag
 					*pfpsf |= BID_INVALID_EXCEPTION
 				}
 			}
 			// BID_SWAP128 (res) - no-op
 			return res
-		} else if (y.w[1] & NAN_MASK64) == NAN_MASK64 { // y is NAN
+		} else if (y.hi & NAN_MASK64) == NAN_MASK64 { // y is NAN
 			// check first for non-canonical NaN payload
-			if ((y.w[1] & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
-				(((y.w[1] & 0x00003fffffffffff) == 0x0000314dc6448d93) &&
-					(y.w[0] > 0x38c15b09ffffffff)) {
-				y.w[1] = y.w[1] & 0xffffc00000000000
-				y.w[0] = 0x0
+			if ((y.hi & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
+				(((y.hi & 0x00003fffffffffff) == 0x0000314dc6448d93) &&
+					(y.lo > 0x38c15b09ffffffff)) {
+				y.hi = y.hi & 0xffffc00000000000
+				y.lo = 0x0
 			}
-			if (y.w[1] & SNAN_MASK64) == SNAN_MASK64 { // y is SNAN
+			if (y.hi & SNAN_MASK64) == SNAN_MASK64 { // y is SNAN
 				// set invalid flag
 				*pfpsf |= BID_INVALID_EXCEPTION
 				// return quiet (y)
-				res.w[1] = y.w[1] & 0xfc003fffffffffff
+				res.hi = y.hi & 0xfc003fffffffffff
 				// clear out also G[6]-G[16]
-				res.w[0] = y.w[0]
+				res.lo = y.lo
 			} else { // y is QNaN
 				// return y
-				res.w[1] = y.w[1] & 0xfc003fffffffffff
+				res.hi = y.hi & 0xfc003fffffffffff
 				// clear out G[6]-G[16]
-				res.w[0] = y.w[0]
+				res.lo = y.lo
 			}
 			// BID_SWAP128 (res) - no-op
 			return res
 		} else { // neither x not y is NaN; at least one is infinity
-			if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 { // x is infinity
-				if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 { // y is infinity
+			if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 { // x is infinity
+				if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 { // y is infinity
 					// if same sign, return either of them
-					if (x.w[1] & MASK_SIGN64) == (y.w[1] & MASK_SIGN64) {
-						res.w[1] = x_sign | INFINITY_MASK64
-						res.w[0] = 0x0
+					if (x.hi & MASK_SIGN64) == (y.hi & MASK_SIGN64) {
+						res.hi = x_sign | INFINITY_MASK64
+						res.lo = 0x0
 					} else { // x and y are infinities of opposite signs
 						// set invalid flag
 						*pfpsf |= BID_INVALID_EXCEPTION
 						// return QNaN Indefinite
-						res.w[1] = 0x7c00000000000000
-						res.w[0] = 0x0000000000000000
+						res.hi = 0x7c00000000000000
+						res.lo = 0x0000000000000000
 					}
 				} else { // y is 0 or finite
 					// return x
-					res.w[1] = x_sign | INFINITY_MASK64
-					res.w[0] = 0x0
+					res.hi = x_sign | INFINITY_MASK64
+					res.lo = 0x0
 				}
 			} else { // x is not NaN or infinity, so y must be infinity
-				res.w[1] = y_sign | INFINITY_MASK64
-				res.w[0] = 0x0
+				res.hi = y_sign | INFINITY_MASK64
+				res.lo = 0x0
 			}
 			// BID_SWAP128 (res) - no-op
 			return res
@@ -122,17 +122,17 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 	// unpack the arguments
 
 	// unpack x
-	C1_hi = x.w[1] & MASK_COEFF128
-	C1_lo = x.w[0]
+	C1_hi = x.hi & MASK_COEFF128
+	C1_lo = x.lo
 
 	// x is not infinity; check for non-canonical values - treated as zero
-	if (x.w[1] & 0x6000000000000000) == 0x6000000000000000 {
+	if (x.hi & 0x6000000000000000) == 0x6000000000000000 {
 		// G0_G1=11; non-canonical
-		x_exp = (x.w[1] << 2) & MASK_EXP128 // biased and shifted left 49 bits
-		C1_hi = 0                           // significand high
-		C1_lo = 0                           // significand low
+		x_exp = (x.hi << 2) & MASK_EXP128 // biased and shifted left 49 bits
+		C1_hi = 0                         // significand high
+		C1_lo = 0                         // significand low
 	} else { // G0_G1 != 11
-		x_exp = x.w[1] & MASK_EXP128 // biased and shifted left 49 bits
+		x_exp = x.hi & MASK_EXP128 // biased and shifted left 49 bits
 		if C1_hi > 0x0001ed09bead87c0 ||
 			(C1_hi == 0x0001ed09bead87c0 &&
 				C1_lo > 0x378d8e63ffffffff) {
@@ -145,16 +145,16 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 	}
 
 	// unpack y
-	C2_hi = y.w[1] & MASK_COEFF128
-	C2_lo = y.w[0]
+	C2_hi = y.hi & MASK_COEFF128
+	C2_lo = y.lo
 	// y is not infinity; check for non-canonical values - treated as zero
-	if (y.w[1] & 0x6000000000000000) == 0x6000000000000000 {
+	if (y.hi & 0x6000000000000000) == 0x6000000000000000 {
 		// G0_G1=11; non-canonical
-		y_exp = (y.w[1] << 2) & MASK_EXP128 // biased and shifted left 49 bits
-		C2_hi = 0                           // significand high
-		C2_lo = 0                           // significand low
+		y_exp = (y.hi << 2) & MASK_EXP128 // biased and shifted left 49 bits
+		C2_hi = 0                         // significand high
+		C2_lo = 0                         // significand low
 	} else { // G0_G1 != 11
-		y_exp = y.w[1] & MASK_EXP128 // biased and shifted left 49 bits
+		y_exp = y.hi & MASK_EXP128 // biased and shifted left 49 bits
 		if C2_hi > 0x0001ed09bead87c0 ||
 			(C2_hi == 0x0001ed09bead87c0 &&
 				C2_lo > 0x378d8e63ffffffff) {
@@ -171,22 +171,22 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 		// if y is 0 return 0 with the smaller exponent
 		if (C2_hi == 0x0) && (C2_lo == 0x0) {
 			if x_exp < y_exp {
-				res.w[1] = x_exp
+				res.hi = x_exp
 			} else {
-				res.w[1] = y_exp
+				res.hi = y_exp
 			}
 			if x_sign != 0 && y_sign != 0 {
-				res.w[1] = res.w[1] | x_sign // both negative
+				res.hi = res.hi | x_sign // both negative
 			} else if rnd_mode == BID_ROUNDING_DOWN && x_sign != y_sign {
-				res.w[1] = res.w[1] | 0x8000000000000000 // -0
+				res.hi = res.hi | 0x8000000000000000 // -0
 			}
 			// else; // res = +0
-			res.w[0] = 0
+			res.lo = 0
 		} else {
 			// for 0 + y return y, with the preferred exponent
 			if y_exp <= x_exp {
-				res.w[1] = y.w[1]
-				res.w[0] = y.w[0]
+				res.hi = y.hi
+				res.lo = y.lo
 			} else { // if y_exp > x_exp
 				// return (C2 * 10^scale) * 10^(y_exp - scale)
 				// where scale = min (P34-q2, y_exp-x_exp)
@@ -227,8 +227,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					scale = ind
 				}
 				if scale == 0 {
-					res.w[1] = y.w[1]
-					res.w[0] = y.w[0]
+					res.hi = y.hi
+					res.lo = y.lo
 				} else if q2 <= 19 { // y fits in 64 bits
 					if scale <= 19 { // 10^scale fits in 64 bits
 						// 64 x 64 C2_lo * bid_ten2k64[scale]
@@ -239,13 +239,13 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					}
 				} else { // y fits in 128 bits, but 10^scale must fit in 64 bits
 					// 64 x 128 bid_ten2k64[scale] * C2
-					C2.w[1] = C2_hi
-					C2.w[0] = C2_lo
+					C2.hi = C2_hi
+					C2.lo = C2_lo
 					res = __mul_128x64_to_128(bid_ten2k64[scale], C2)
 				}
 				// subtract scale from the exponent
 				y_exp = y_exp - (uint64(scale) << 49)
-				res.w[1] = res.w[1] | y_sign | y_exp
+				res.hi = res.hi | y_sign | y_exp
 			}
 		}
 		// BID_SWAP128 (res) - no-op
@@ -254,8 +254,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 		// y is 0 and x is not special, and not zero
 		// for x + 0 return x, with the preferred exponent
 		if x_exp <= y_exp {
-			res.w[1] = x.w[1]
-			res.w[0] = x.w[0]
+			res.hi = x.hi
+			res.lo = x.lo
 		} else { // if x_exp > y_exp
 			// return (C1 * 10^scale) * 10^(x_exp - scale)
 			// where scale = min (P34-q1, x_exp-y_exp)
@@ -295,8 +295,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 				scale = ind
 			}
 			if scale == 0 {
-				res.w[1] = x.w[1]
-				res.w[0] = x.w[0]
+				res.hi = x.hi
+				res.lo = x.lo
 			} else if q1 <= 19 { // x fits in 64 bits
 				if scale <= 19 { // 10^scale fits in 64 bits
 					// 64 x 64 C1_lo * bid_ten2k64[scale]
@@ -307,13 +307,13 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 				}
 			} else { // x fits in 128 bits, but 10^scale must fit in 64 bits
 				// 64 x 128 bid_ten2k64[scale] * C1
-				C1.w[1] = C1_hi
-				C1.w[0] = C1_lo
+				C1.hi = C1_hi
+				C1.lo = C1_lo
 				res = __mul_128x64_to_128(bid_ten2k64[scale], C1)
 			}
 			// subtract scale from the exponent
 			x_exp = x_exp - (uint64(scale) << 49)
-			res.w[1] = res.w[1] | x_sign | x_exp
+			res.hi = res.hi | x_sign | x_exp
 		}
 		// BID_SWAP128 (res) - no-op
 		return res
@@ -418,14 +418,14 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						}
 					} else { //if 20 <= q1 <= 33=P34-1 then C1 fits only in 128 bits
 						// => 1 <= P34 - q1 <= 14 so 10^(P34-q1) fits in 64 bits
-						C1.w[1] = C1_hi
-						C1.w[0] = C1_lo
+						C1.hi = C1_hi
+						C1.lo = C1_lo
 						// C1 = bid_ten2k64[P34 - q1] * C1
 						C1 = __mul_128x64_to_128(bid_ten2k64[34-q1], C1)
 					}
 					x_exp = x_exp - (uint64(scale) << 49)
-					C1_hi = C1.w[1]
-					C1_lo = C1.w[0]
+					C1_hi = C1.hi
+					C1_lo = C1.lo
 				}
 				// some special cases arise: if delta = P34 + 1 and C1 = 10^(P34-1)
 				// (after scaling) and x_sign != y_sign and C2 > 5*10^(q2-1) =>
@@ -436,9 +436,9 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					rnd_mode == BID_ROUNDING_TIES_AWAY) && delta == (34+1) &&
 					C1_hi == 0x0000314dc6448d93 && C1_lo == 0x38c15b0a00000000 &&
 					x_sign != y_sign && ((q2 <= 19 && C2_lo > bid_midpoint64[q2-1]) ||
-					(q2 >= 20 && (C2_hi > bid_midpoint128[q2-20].w[1] ||
-						(C2_hi == bid_midpoint128[q2-20].w[1] &&
-							C2_lo > bid_midpoint128[q2-20].w[0])))) {
+					(q2 >= 20 && (C2_hi > bid_midpoint128[q2-20].hi ||
+						(C2_hi == bid_midpoint128[q2-20].hi &&
+							C2_lo > bid_midpoint128[q2-20].lo)))) {
 					// C1 = 10^34 - 1 and decrement x_exp by 1 (no underflow possible)
 					C1_hi = 0x0001ed09bead87c0
 					C1_lo = 0x378d8e63ffffffff
@@ -495,8 +495,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 				// set the inexact flag
 				*pfpsf |= BID_INEXACT_EXCEPTION
 				// assemble the result
-				res.w[1] = x_sign | x_exp | C1_hi
-				res.w[0] = C1_lo
+				res.hi = x_sign | x_exp | C1_hi
+				res.lo = C1_lo
 			} else { // delta = P34
 				// in most cases, the smaller operand may be < or = or > 1/2 ulp of the
 				// larger operand
@@ -505,8 +505,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 				if x_sign == y_sign || (q1 <= 20 &&
 					(C1_hi != 0 ||
 						C1_lo != bid_ten2k64[q1-1])) ||
-					(q1 >= 21 && (C1_hi != bid_ten2k128[q1-21].w[1] ||
-						C1_lo != bid_ten2k128[q1-21].w[0])) {
+					(q1 >= 21 && (C1_hi != bid_ten2k128[q1-21].hi ||
+						C1_lo != bid_ten2k128[q1-21].lo)) {
 					// if x_sign == y_sign or C1 != 10^(q1-1)
 					// compare C2 with 1/2 ulp = 5 * 10^(q2-1), the latter read from table
 					// Note: cases q1<=19 and q1>=20 can be coalesced at some latency cost
@@ -532,14 +532,14 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									}
 								} else { //if 20 <= q1 <= 33=P34-1 then C1 fits only in 128 bits
 									// => 1 <= P34 - q1 <= 14 so 10^(P34-q1) fits in 64 bits
-									C1.w[1] = C1_hi
-									C1.w[0] = C1_lo
+									C1.hi = C1_hi
+									C1.lo = C1_lo
 									// C1 = bid_ten2k64[P34 - q1] * C1
 									C1 = __mul_128x64_to_128(bid_ten2k64[34-q1], C1)
 								}
 								x_exp = x_exp - (uint64(scale) << 49)
-								C1_hi = C1.w[1]
-								C1_lo = C1.w[0]
+								C1_hi = C1.hi
+								C1_lo = C1.lo
 							}
 							if rnd_mode != BID_ROUNDING_TO_NEAREST {
 								if (rnd_mode == BID_ROUNDING_DOWN && x_sign != 0 && y_sign != 0) ||
@@ -592,8 +592,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							// set the inexact flag
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							// assemble the result
-							res.w[1] = x_sign | x_exp | C1_hi
-							res.w[0] = C1_lo
+							res.hi = x_sign | x_exp | C1_hi
+							res.lo = C1_lo
 						} else if (C2_lo == halfulp64) &&
 							(q1 < 34 || ((C1_lo & 0x1) == 0)) {
 							// n2 = 1/2 ulp (n1) and q1 < P34 or C1 is even
@@ -616,14 +616,14 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									}
 								} else { //if 20 <= q1 <= 33=P34-1 then C1 fits only in 128 bits
 									// => 1 <= P34 - q1 <= 14 so 10^(P34-q1) fits in 64 bits
-									C1.w[1] = C1_hi
-									C1.w[0] = C1_lo
+									C1.hi = C1_hi
+									C1.lo = C1_lo
 									// C1 = bid_ten2k64[P34 - q1] * C1
 									C1 = __mul_128x64_to_128(bid_ten2k64[34-q1], C1)
 								}
 								x_exp = x_exp - (uint64(scale) << 49)
-								C1_hi = C1.w[1]
-								C1_lo = C1.w[0]
+								C1_hi = C1.hi
+								C1_lo = C1.lo
 							}
 							if (rnd_mode == BID_ROUNDING_TO_NEAREST && x_sign == y_sign &&
 								(C1_lo&0x01) != 0) || (rnd_mode == BID_ROUNDING_TIES_AWAY &&
@@ -678,8 +678,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							// set the inexact flag
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							// assemble the result
-							res.w[1] = x_sign | x_exp | C1_hi
-							res.w[0] = C1_lo
+							res.hi = x_sign | x_exp | C1_hi
+							res.lo = C1_lo
 						} else { // if C2_lo > halfulp64 ||
 							// (C2_lo == halfulp64 && q1 == P34 && ((C1_lo & 0x1) == 1)), i.e.
 							// 1/2 ulp(n1) < n2 < 1 ulp(n1) or n2 = 1/2 ulp(n1) and C1 odd
@@ -702,14 +702,14 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									}
 								} else { //if 20 <= q1 <= 33=P34-1 then C1 fits only in 128 bits
 									// => 1 <= P34 - q1 <= 14 so 10^(P34-q1) fits in 64 bits
-									C1.w[1] = C1_hi
-									C1.w[0] = C1_lo
+									C1.hi = C1_hi
+									C1.lo = C1_lo
 									// C1 = bid_ten2k64[P34 - q1] * C1
 									C1 = __mul_128x64_to_128(bid_ten2k64[34-q1], C1)
 								}
 								x_exp = x_exp - (uint64(scale) << 49)
-								C1_hi = C1.w[1]
-								C1_lo = C1.w[0]
+								C1_hi = C1.hi
+								C1_lo = C1.lo
 								// check for rounding overflow
 								if C1_hi == 0x0001ed09bead87c0 &&
 									C1_lo == 0x378d8e6400000000 {
@@ -771,15 +771,15 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							// set the inexact flag
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							// assemble the result
-							res.w[1] = x_sign | x_exp | C1_hi
-							res.w[0] = C1_lo
+							res.hi = x_sign | x_exp | C1_hi
+							res.lo = C1_lo
 						}
 					} else { // if q2 >= 20 then 5*10^(q2-1) and C2 (the latter in
 						// most cases) fit only in more than 64 bits
 						halfulp128 = bid_midpoint128[q2-20] // 5 * 10^(q2-1)
-						if (C2_hi < halfulp128.w[1]) ||
-							(C2_hi == halfulp128.w[1] &&
-								C2_lo < halfulp128.w[0]) {
+						if (C2_hi < halfulp128.hi) ||
+							(C2_hi == halfulp128.hi &&
+								C2_lo < halfulp128.lo) {
 							// n2 < 1/2 ulp (n1)
 							// the result is the operand with the larger magnitude,
 							// possibly scaled up by 10^(P34-q1)
@@ -800,13 +800,13 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									}
 								} else { //if 20 <= q1 <= 33=P34-1 then C1 fits only in 128 bits
 									// => 1 <= P34 - q1 <= 14 so 10^(P34-q1) fits in 64 bits
-									C1.w[1] = C1_hi
-									C1.w[0] = C1_lo
+									C1.hi = C1_hi
+									C1.lo = C1_lo
 									// C1 = bid_ten2k64[P34 - q1] * C1
 									C1 = __mul_128x64_to_128(bid_ten2k64[34-q1], C1)
 								}
-								C1_hi = C1.w[1]
-								C1_lo = C1.w[0]
+								C1_hi = C1.hi
+								C1_lo = C1.lo
 								x_exp = x_exp - (uint64(scale) << 49)
 							}
 							if rnd_mode != BID_ROUNDING_TO_NEAREST {
@@ -860,10 +860,10 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							// set the inexact flag
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							// assemble the result
-							res.w[1] = x_sign | x_exp | C1_hi
-							res.w[0] = C1_lo
-						} else if (C2_hi == halfulp128.w[1] &&
-							C2_lo == halfulp128.w[0]) &&
+							res.hi = x_sign | x_exp | C1_hi
+							res.lo = C1_lo
+						} else if (C2_hi == halfulp128.hi &&
+							C2_lo == halfulp128.lo) &&
 							(q1 < 34 || ((C1_lo & 0x1) == 0)) {
 							// set the inexact flag
 							// midpoint & lsb in C1 is 0
@@ -887,14 +887,14 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									}
 								} else { //if 20 <= q1 <= 33=P34-1 then C1 fits only in 128 bits
 									// => 1 <= P34 - q1 <= 14 so 10^(P34-q1) fits in 64 bits
-									C1.w[1] = C1_hi
-									C1.w[0] = C1_lo
+									C1.hi = C1_hi
+									C1.lo = C1_lo
 									// C1 = bid_ten2k64[P34 - q1] * C1
 									C1 = __mul_128x64_to_128(bid_ten2k64[34-q1], C1)
 								}
 								x_exp = x_exp - (uint64(scale) << 49)
-								C1_hi = C1.w[1]
-								C1_lo = C1.w[0]
+								C1_hi = C1.hi
+								C1_lo = C1.lo
 							}
 							if rnd_mode != BID_ROUNDING_TO_NEAREST {
 								if (rnd_mode == BID_ROUNDING_TIES_AWAY && x_sign == y_sign) ||
@@ -947,8 +947,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							// set the inexact flag
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							// assemble the result
-							res.w[1] = x_sign | x_exp | C1_hi
-							res.w[0] = C1_lo
+							res.hi = x_sign | x_exp | C1_hi
+							res.lo = C1_lo
 						} else { // if C2 > halfulp128 ||
 							// (C2 == halfulp128 && q1 == P34 && ((C1 & 0x1) == 1)), i.e.
 							// 1/2 ulp(n1) < n2 < 1 ulp(n1) or n2 = 1/2 ulp(n1) and C1 odd
@@ -971,19 +971,19 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									}
 								} else { //if 20 <= q1 <= 33=P34-1 then C1 fits only in 128 bits
 									// => 1 <= P34 - q1 <= 14 so 10^(P34-q1) fits in 64 bits
-									C1.w[1] = C1_hi
-									C1.w[0] = C1_lo
+									C1.hi = C1_hi
+									C1.lo = C1_lo
 									// C1 = bid_ten2k64[P34 - q1] * C1
 									C1 = __mul_128x64_to_128(bid_ten2k64[34-q1], C1)
 								}
-								C1_hi = C1.w[1]
-								C1_lo = C1.w[0]
+								C1_hi = C1.hi
+								C1_lo = C1.lo
 								x_exp = x_exp - (uint64(scale) << 49)
 							}
 							if (rnd_mode == BID_ROUNDING_TO_NEAREST && x_sign != y_sign) ||
 								(rnd_mode == BID_ROUNDING_TIES_AWAY && x_sign != y_sign &&
-									(C2_hi != halfulp128.w[1] ||
-										C2_lo != halfulp128.w[0])) ||
+									(C2_hi != halfulp128.hi ||
+										C2_lo != halfulp128.lo)) ||
 								(rnd_mode == BID_ROUNDING_DOWN && x_sign == 0 && y_sign != 0) ||
 								(rnd_mode == BID_ROUNDING_UP && x_sign != 0 && y_sign == 0) ||
 								(rnd_mode == BID_ROUNDING_TO_ZERO &&
@@ -1032,8 +1032,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							// set the inexact flag
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							// assemble the result
-							res.w[1] = x_sign | x_exp | C1_hi
-							res.w[0] = C1_lo
+							res.hi = x_sign | x_exp | C1_hi
+							res.lo = C1_lo
 						}
 					} // end q1 >= 20
 					// end case where C1 != 10^(q1-1)
@@ -1059,29 +1059,29 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						if q1 <= 19 { // C1 fits in 64 bits
 							C1 = __mul_64x64_to_128(C1_lo, bid_ten2k64[scale])
 						} else { // q1 >= 20
-							C1.w[1] = C1_hi
-							C1.w[0] = C1_lo
+							C1.hi = C1_hi
+							C1.lo = C1_lo
 							C1 = __mul_128x64_to_128(bid_ten2k64[scale], C1)
 						}
 					}
-					tmp64 = C1.w[0] // C1.w[1], C1.w[0] contains C1 * 10^(e1-e2-x1)
+					tmp64 = C1.lo // C1.w[1], C1.w[0] contains C1 * 10^(e1-e2-x1)
 
 					// now round C2 to q2-x1 = 1 decimal digit
 					// C2' = C2 + 1/2 * 10^x1 = C2 + 5 * 10^(x1-1)
 					ind = x1 - 1  // -1 <= ind <= P34 - 2
 					if ind >= 0 { // if (x1 >= 1)
-						C2.w[0] = C2_lo
-						C2.w[1] = C2_hi
+						C2.lo = C2_lo
+						C2.hi = C2_hi
 						if ind <= 18 {
-							C2.w[0] = C2.w[0] + bid_midpoint64[ind]
-							if C2.w[0] < C2_lo {
-								C2.w[1]++
+							C2.lo = C2.lo + bid_midpoint64[ind]
+							if C2.lo < C2_lo {
+								C2.hi++
 							}
 						} else { // 19 <= ind <= 32
-							C2.w[0] = C2.w[0] + bid_midpoint128[ind-19].w[0]
-							C2.w[1] = C2.w[1] + bid_midpoint128[ind-19].w[1]
-							if C2.w[0] < C2_lo {
-								C2.w[1]++
+							C2.lo = C2.lo + bid_midpoint128[ind-19].lo
+							C2.hi = C2.hi + bid_midpoint128[ind-19].hi
+							if C2.lo < C2_lo {
+								C2.hi++
 							}
 						}
 						// the approximation of 10^(-x1) was rounded up to 118 bits
@@ -1092,14 +1092,14 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						// bid_shiftright128[] and bid_maskhigh128[]
 
 						if ind <= 2 {
-							highf2star.w[1] = 0x0
-							highf2star.w[0] = 0x0 // low f2* ok
+							highf2star.hi = 0x0
+							highf2star.lo = 0x0 // low f2* ok
 						} else if ind <= 21 {
-							highf2star.w[1] = 0x0
-							highf2star.w[0] = R256.w[2] & bid_maskhigh128[ind] // low f2* ok
+							highf2star.hi = 0x0
+							highf2star.lo = R256.w[2] & bid_maskhigh128[ind] // low f2* ok
 						} else {
-							highf2star.w[1] = R256.w[3] & bid_maskhigh128[ind]
-							highf2star.w[0] = R256.w[2] // low f2* is ok
+							highf2star.hi = R256.w[3] & bid_maskhigh128[ind]
+							highf2star.lo = R256.w[2] // low f2* is ok
 						}
 						// shift right C2* by Ex-128 = bid_shiftright128[ind]
 						if ind >= 3 {
@@ -1125,9 +1125,9 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									R256.w[0] > 0x0) {
 								// f2* > 1/2 and the result may be exact
 								tmp64A = R256.w[1] - 0x8000000000000000 // f* - 1/2
-								if tmp64A > bid_ten2mk128trunc[ind].w[1] ||
-									(tmp64A == bid_ten2mk128trunc[ind].w[1] &&
-										R256.w[0] >= bid_ten2mk128trunc[ind].w[0]) {
+								if tmp64A > bid_ten2mk128trunc[ind].hi ||
+									(tmp64A == bid_ten2mk128trunc[ind].hi &&
+										R256.w[0] >= bid_ten2mk128trunc[ind].lo) {
 									// set the inexact flag
 									*pfpsf |= BID_INEXACT_EXCEPTION
 									// this rounding is applied to C2 only!
@@ -1143,23 +1143,23 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 								is_inexact_lt_midpoint = 1
 							}
 						} else if ind <= 21 { // if 3 <= ind <= 21
-							if highf2star.w[1] > 0x0 || (highf2star.w[1] == 0x0 &&
-								highf2star.w[0] >
+							if highf2star.hi > 0x0 || (highf2star.hi == 0x0 &&
+								highf2star.lo >
 									bid_onehalf128[ind]) ||
-								(highf2star.w[1] == 0x0 &&
-									highf2star.w[0] == bid_onehalf128[ind] &&
+								(highf2star.hi == 0x0 &&
+									highf2star.lo == bid_onehalf128[ind] &&
 									(R256.w[1] != 0 || R256.w[0] != 0)) {
 								// f2* > 1/2 and the result may be exact
 								// Calculate f2* - 1/2
-								tmp64A = highf2star.w[0] - bid_onehalf128[ind]
-								tmp64B = highf2star.w[1]
-								if tmp64A > highf2star.w[0] {
+								tmp64A = highf2star.lo - bid_onehalf128[ind]
+								tmp64B = highf2star.hi
+								if tmp64A > highf2star.lo {
 									tmp64B--
 								}
 								if tmp64B != 0 || tmp64A != 0 ||
-									R256.w[1] > bid_ten2mk128trunc[ind].w[1] ||
-									(R256.w[1] == bid_ten2mk128trunc[ind].w[1] &&
-										R256.w[0] > bid_ten2mk128trunc[ind].w[0]) {
+									R256.w[1] > bid_ten2mk128trunc[ind].hi ||
+									(R256.w[1] == bid_ten2mk128trunc[ind].hi &&
+										R256.w[0] > bid_ten2mk128trunc[ind].lo) {
 									// set the inexact flag
 									*pfpsf |= BID_INEXACT_EXCEPTION
 									// this rounding is applied to C2 only!
@@ -1174,18 +1174,18 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 								is_inexact_lt_midpoint = 1
 							}
 						} else { // if 22 <= ind <= 33
-							if highf2star.w[1] > bid_onehalf128[ind] ||
-								(highf2star.w[1] == bid_onehalf128[ind] &&
-									(highf2star.w[0] != 0 || R256.w[1] != 0 ||
+							if highf2star.hi > bid_onehalf128[ind] ||
+								(highf2star.hi == bid_onehalf128[ind] &&
+									(highf2star.lo != 0 || R256.w[1] != 0 ||
 										R256.w[0] != 0)) {
 								// f2* > 1/2 and the result may be exact
 								// Calculate f2* - 1/2
 								// tmp64A = highf2star.w[0];
-								tmp64B = highf2star.w[1] - bid_onehalf128[ind]
-								if tmp64B != 0 || highf2star.w[0] != 0 ||
-									R256.w[1] > bid_ten2mk128trunc[ind].w[1] ||
-									(R256.w[1] == bid_ten2mk128trunc[ind].w[1] &&
-										R256.w[0] > bid_ten2mk128trunc[ind].w[0]) {
+								tmp64B = highf2star.hi - bid_onehalf128[ind]
+								if tmp64B != 0 || highf2star.lo != 0 ||
+									R256.w[1] > bid_ten2mk128trunc[ind].hi ||
+									(R256.w[1] == bid_ten2mk128trunc[ind].hi &&
+										R256.w[0] > bid_ten2mk128trunc[ind].lo) {
 									// set the inexact flag
 									*pfpsf |= BID_INEXACT_EXCEPTION
 									// this rounding is applied to C2 only!
@@ -1201,11 +1201,11 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							}
 						}
 						// check for midpoints after determining inexactness
-						if (R256.w[1] != 0 || R256.w[0] != 0) && (highf2star.w[1] == 0) &&
-							(highf2star.w[0] == 0) &&
-							(R256.w[1] < bid_ten2mk128trunc[ind].w[1] ||
-								(R256.w[1] == bid_ten2mk128trunc[ind].w[1] &&
-									R256.w[0] <= bid_ten2mk128trunc[ind].w[0])) {
+						if (R256.w[1] != 0 || R256.w[0] != 0) && (highf2star.hi == 0) &&
+							(highf2star.lo == 0) &&
+							(R256.w[1] < bid_ten2mk128trunc[ind].hi ||
+								(R256.w[1] == bid_ten2mk128trunc[ind].hi &&
+									R256.w[0] <= bid_ten2mk128trunc[ind].lo)) {
 							// the result is a midpoint
 							if (tmp64+R256.w[2])&0x01 != 0 { // MP in [EVEN, ODD]
 								// if floor(C2*) is odd C = floor(C2*) - 1; the result may be 0
@@ -1237,17 +1237,17 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					}
 					// and now subtract C1 * 10^(e1-e2-x1) - (C2 * 10^(-x1))rnd,P34
 					// because x_sign != y_sign this last operation is exact
-					C1.w[0] = C1.w[0] - R256.w[2]
-					C1.w[1] = C1.w[1] - R256.w[3]
-					if C1.w[0] > tmp64 {
-						C1.w[1]-- // borrow
+					C1.lo = C1.lo - R256.w[2]
+					C1.hi = C1.hi - R256.w[3]
+					if C1.lo > tmp64 {
+						C1.hi-- // borrow
 					}
-					if C1.w[1] >= 0x8000000000000000 { // negative coefficient!
-						C1.w[0] = ^C1.w[0]
-						C1.w[0]++
-						C1.w[1] = ^C1.w[1]
-						if C1.w[0] == 0x0 {
-							C1.w[1]++
+					if C1.hi >= 0x8000000000000000 { // negative coefficient!
+						C1.lo = ^C1.lo
+						C1.lo++
+						C1.hi = ^C1.hi
+						if C1.lo == 0x0 {
+							C1.hi++
 						}
 						tmp_sign = y_sign // the result will have the sign of y
 					} else {
@@ -1258,8 +1258,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					if x1 >= 1 {
 						y_exp = y_exp + (uint64(x1) << 49)
 					}
-					C1_hi = C1.w[1]
-					C1_lo = C1.w[0]
+					C1_hi = C1.hi
+					C1_lo = C1.lo
 					// general correction from RN to RA, RM, RP, RZ; result uses y_exp
 					if rnd_mode != BID_ROUNDING_TO_NEAREST {
 						if (x_sign == 0 &&
@@ -1308,8 +1308,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						}
 					}
 					// assemble the result
-					res.w[1] = x_sign | y_exp | C1_hi
-					res.w[0] = C1_lo
+					res.hi = x_sign | y_exp | C1_hi
+					res.lo = C1_lo
 				}
 			} // end delta = P34
 		} else { // if (|delta| <= P34 - 1)
@@ -1320,47 +1320,47 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 
 					if scale >= 20 { // 10^(e1-e2) does not fit in 64 bits, but C1 does
 						C1 = __mul_128x64_to_128(C1_lo, bid_ten2k128[scale-20])
-						C1_hi = C1.w[1]
-						C1_lo = C1.w[0]
+						C1_hi = C1.hi
+						C1_lo = C1.lo
 					} else if scale >= 1 {
 						// if 1 <= scale <= 19 then 10^(e1-e2) fits in 64 bits
 						if q1 <= 19 { // C1 fits in 64 bits
 							C1 = __mul_64x64_to_128(C1_lo, bid_ten2k64[scale])
 						} else { // q1 >= 20
-							C1.w[1] = C1_hi
-							C1.w[0] = C1_lo
+							C1.hi = C1_hi
+							C1.lo = C1_lo
 							C1 = __mul_128x64_to_128(bid_ten2k64[scale], C1)
 						}
-						C1_hi = C1.w[1]
-						C1_lo = C1.w[0]
+						C1_hi = C1.hi
+						C1_lo = C1.lo
 					} else { // if (scale == 0) C1 is unchanged
-						C1.w[0] = C1_lo // C1.w[1] = C1_hi;
+						C1.lo = C1_lo // C1.w[1] = C1_hi;
 					}
 					// now add C2
 					if x_sign == y_sign {
 						// the result cannot overflow
 						C1_lo = C1_lo + C2_lo
 						C1_hi = C1_hi + C2_hi
-						if C1_lo < C1.w[0] {
+						if C1_lo < C1.lo {
 							C1_hi++
 						}
 					} else { // if x_sign != y_sign
 						C1_lo = C1_lo - C2_lo
 						C1_hi = C1_hi - C2_hi
-						if C1_lo > C1.w[0] {
+						if C1_lo > C1.lo {
 							C1_hi--
 						}
 						// the result can be zero, but it cannot overflow
 						if C1_lo == 0 && C1_hi == 0 {
 							// assemble the result
 							if x_exp < y_exp {
-								res.w[1] = x_exp
+								res.hi = x_exp
 							} else {
-								res.w[1] = y_exp
+								res.hi = y_exp
 							}
-							res.w[0] = 0
+							res.lo = 0
 							if rnd_mode == BID_ROUNDING_DOWN {
-								res.w[1] |= 0x8000000000000000
+								res.hi |= 0x8000000000000000
 							}
 							// BID_SWAP128 (res) - no-op
 							return res
@@ -1376,8 +1376,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						}
 					}
 					// assemble the result
-					res.w[1] = x_sign | y_exp | C1_hi
-					res.w[0] = C1_lo
+					res.hi = x_sign | y_exp | C1_hi
+					res.lo = C1_lo
 				} else if delta == 34-q2 {
 					// calculate C' directly; the result may be inexact if it requires
 					// P34+1 decimal digits
@@ -1389,22 +1389,22 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						if q1 <= 19 { // C1 fits in 64 bits
 							C1 = __mul_64x64_to_128(C1_lo, bid_ten2k64[scale])
 						} else { // q1 >= 20
-							C1.w[1] = C1_hi
-							C1.w[0] = C1_lo
+							C1.hi = C1_hi
+							C1.lo = C1_lo
 							C1 = __mul_128x64_to_128(bid_ten2k64[scale], C1)
 						}
 					} else { // if (scale == 0) C1 is unchanged
-						C1.w[1] = C1_hi
-						C1.w[0] = C1_lo // only the low part is necessary
+						C1.hi = C1_hi
+						C1.lo = C1_lo // only the low part is necessary
 					}
-					C1_hi = C1.w[1]
-					C1_lo = C1.w[0]
+					C1_hi = C1.hi
+					C1_lo = C1.lo
 					// now add C2
 					if x_sign == y_sign {
 						// the result can overflow!
 						C1_lo = C1_lo + C2_lo
 						C1_hi = C1_hi + C2_hi
-						if C1_lo < C1.w[0] {
+						if C1_lo < C1.lo {
 							C1_hi++
 						}
 						// test for overflow, possible only when C1 >= 10^34
@@ -1420,10 +1420,10 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 								C1_lo = C1_lo + 5
 							}
 							// the approximation of 10^(-1) was rounded up to 118 bits
-							C1.w[1] = C1_hi
-							C1.w[0] = C1_lo // C''
-							ten2m1.w[1] = 0x1999999999999999
-							ten2m1.w[0] = 0x9999999999999a00
+							C1.hi = C1_hi
+							C1.lo = C1_lo // C''
+							ten2m1.hi = 0x1999999999999999
+							ten2m1.lo = 0x9999999999999a00
 							P256 = __mul_128x128_to_256(C1, ten2m1) // P256 = C*, f*
 							if (P256.w[1] != 0 || P256.w[0] != 0) &&
 								(P256.w[1] < 0x1999999999999999 ||
@@ -1449,8 +1449,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 								(rnd_mode == BID_ROUNDING_TO_NEAREST ||
 									rnd_mode == BID_ROUNDING_TIES_AWAY) {
 								// overflow for RN
-								res.w[1] = x_sign | 0x7800000000000000 // +/-inf
-								res.w[0] = 0x0
+								res.hi = x_sign | 0x7800000000000000 // +/-inf
+								res.lo = 0x0
 								// set the inexact flag
 								*pfpsf |= BID_INEXACT_EXCEPTION
 								// set the overflow flag
@@ -1553,20 +1553,20 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					} else { // if x_sign != y_sign the result is exact
 						C1_lo = C1_lo - C2_lo
 						C1_hi = C1_hi - C2_hi
-						if C1_lo > C1.w[0] {
+						if C1_lo > C1.lo {
 							C1_hi--
 						}
 						// the result can be zero, but it cannot overflow
 						if C1_lo == 0 && C1_hi == 0 {
 							// assemble the result
 							if x_exp < y_exp {
-								res.w[1] = x_exp
+								res.hi = x_exp
 							} else {
-								res.w[1] = y_exp
+								res.hi = y_exp
 							}
-							res.w[0] = 0
+							res.lo = 0
 							if rnd_mode == BID_ROUNDING_DOWN {
-								res.w[1] |= 0x8000000000000000
+								res.hi |= 0x8000000000000000
 							}
 							// BID_SWAP128 (res) - no-op
 							return res
@@ -1582,8 +1582,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						}
 					}
 					// assemble the result
-					res.w[1] = x_sign | y_exp | C1_hi
-					res.w[0] = C1_lo
+					res.hi = x_sign | y_exp | C1_hi
+					res.lo = C1_lo
 				} else { // if (delta >= P34 + 1 - q2)
 					// instead of C' = (C1 * 10^(e1-e2) + C2)rnd,P34
 					// calculate C' = C1 * 10^(e1-e2-x1) + (C2 * 10^(-x1))rnd,P34
@@ -1599,46 +1599,46 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						if q1 <= 19 { // C1 fits in 64 bits
 							C1 = __mul_64x64_to_128(C1_lo, bid_ten2k64[scale])
 						} else { // q1 >= 20
-							C1.w[1] = C1_hi
-							C1.w[0] = C1_lo
+							C1.hi = C1_hi
+							C1.lo = C1_lo
 							C1 = __mul_128x64_to_128(bid_ten2k64[scale], C1)
 						}
 					} else { // if (scale == 0) C1 is unchanged
-						C1.w[1] = C1_hi
-						C1.w[0] = C1_lo
+						C1.hi = C1_hi
+						C1.lo = C1_lo
 					}
-					tmp64 = C1.w[0] // C1.w[1], C1.w[0] contains C1 * 10^(e1-e2-x1)
+					tmp64 = C1.lo // C1.w[1], C1.w[0] contains C1 * 10^(e1-e2-x1)
 
 					// now round C2 to q2-x1 decimal digits
 					ind = x1 - 1 // 0 <= ind <= q2-2<=P34-2=32; but note that if x1 = 0
 					// during a second pass, then ind = -1
 					if ind >= 0 { // if (x1 >= 1)
-						C2.w[0] = C2_lo
-						C2.w[1] = C2_hi
+						C2.lo = C2_lo
+						C2.hi = C2_hi
 						if ind <= 18 {
-							C2.w[0] = C2.w[0] + bid_midpoint64[ind]
-							if C2.w[0] < C2_lo {
-								C2.w[1]++
+							C2.lo = C2.lo + bid_midpoint64[ind]
+							if C2.lo < C2_lo {
+								C2.hi++
 							}
 						} else { // 19 <= ind <= 32
-							C2.w[0] = C2.w[0] + bid_midpoint128[ind-19].w[0]
-							C2.w[1] = C2.w[1] + bid_midpoint128[ind-19].w[1]
-							if C2.w[0] < C2_lo {
-								C2.w[1]++
+							C2.lo = C2.lo + bid_midpoint128[ind-19].lo
+							C2.hi = C2.hi + bid_midpoint128[ind-19].hi
+							if C2.lo < C2_lo {
+								C2.hi++
 							}
 						}
 						// the approximation of 10^(-x1) was rounded up to 118 bits
 						R256 = __mul_128x128_to_256(C2, bid_ten2mk128[ind]) // R256 = C2*, f2*
 
 						if ind <= 2 {
-							highf2star.w[1] = 0x0
-							highf2star.w[0] = 0x0 // low f2* ok
+							highf2star.hi = 0x0
+							highf2star.lo = 0x0 // low f2* ok
 						} else if ind <= 21 {
-							highf2star.w[1] = 0x0
-							highf2star.w[0] = R256.w[2] & bid_maskhigh128[ind] // low f2* ok
+							highf2star.hi = 0x0
+							highf2star.lo = R256.w[2] & bid_maskhigh128[ind] // low f2* ok
 						} else {
-							highf2star.w[1] = R256.w[3] & bid_maskhigh128[ind]
-							highf2star.w[0] = R256.w[2] // low f2* is ok
+							highf2star.hi = R256.w[3] & bid_maskhigh128[ind]
+							highf2star.lo = R256.w[2] // low f2* is ok
 						}
 						// shift right C2* by Ex-128 = bid_shiftright128[ind]
 						if ind >= 3 {
@@ -1665,9 +1665,9 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 									R256.w[0] > 0x0) {
 								// f2* > 1/2 and the result may be exact
 								tmp64A = R256.w[1] - 0x8000000000000000 // f* - 1/2
-								if tmp64A > bid_ten2mk128trunc[ind].w[1] ||
-									(tmp64A == bid_ten2mk128trunc[ind].w[1] &&
-										R256.w[0] >= bid_ten2mk128trunc[ind].w[0]) {
+								if tmp64A > bid_ten2mk128trunc[ind].hi ||
+									(tmp64A == bid_ten2mk128trunc[ind].hi &&
+										R256.w[0] >= bid_ten2mk128trunc[ind].lo) {
 									// set the inexact flag
 									// *pfpsf |= BID_INEXACT_EXCEPTION;
 									tmp_inexact = 1 // may be set again during a second pass
@@ -1692,23 +1692,23 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 								}
 							}
 						} else if ind <= 21 { // if 3 <= ind <= 21
-							if highf2star.w[1] > 0x0 || (highf2star.w[1] == 0x0 &&
-								highf2star.w[0] >
+							if highf2star.hi > 0x0 || (highf2star.hi == 0x0 &&
+								highf2star.lo >
 									bid_onehalf128[ind]) ||
-								(highf2star.w[1] == 0x0 &&
-									highf2star.w[0] == bid_onehalf128[ind] &&
+								(highf2star.hi == 0x0 &&
+									highf2star.lo == bid_onehalf128[ind] &&
 									(R256.w[1] != 0 || R256.w[0] != 0)) {
 								// f2* > 1/2 and the result may be exact
 								// Calculate f2* - 1/2
-								tmp64A = highf2star.w[0] - bid_onehalf128[ind]
-								tmp64B = highf2star.w[1]
-								if tmp64A > highf2star.w[0] {
+								tmp64A = highf2star.lo - bid_onehalf128[ind]
+								tmp64B = highf2star.hi
+								if tmp64A > highf2star.lo {
 									tmp64B--
 								}
 								if tmp64B != 0 || tmp64A != 0 ||
-									R256.w[1] > bid_ten2mk128trunc[ind].w[1] ||
-									(R256.w[1] == bid_ten2mk128trunc[ind].w[1] &&
-										R256.w[0] > bid_ten2mk128trunc[ind].w[0]) {
+									R256.w[1] > bid_ten2mk128trunc[ind].hi ||
+									(R256.w[1] == bid_ten2mk128trunc[ind].hi &&
+										R256.w[0] > bid_ten2mk128trunc[ind].lo) {
 									tmp_inexact = 1
 									if x_sign == y_sign {
 										is_inexact_lt_midpoint = 1
@@ -1725,16 +1725,16 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 								}
 							}
 						} else { // if 22 <= ind <= 33
-							if highf2star.w[1] > bid_onehalf128[ind] ||
-								(highf2star.w[1] == bid_onehalf128[ind] &&
-									(highf2star.w[0] != 0 || R256.w[1] != 0 ||
+							if highf2star.hi > bid_onehalf128[ind] ||
+								(highf2star.hi == bid_onehalf128[ind] &&
+									(highf2star.lo != 0 || R256.w[1] != 0 ||
 										R256.w[0] != 0)) {
 								// f2* > 1/2 and the result may be exact
-								tmp64B = highf2star.w[1] - bid_onehalf128[ind]
-								if tmp64B != 0 || highf2star.w[0] != 0 ||
-									R256.w[1] > bid_ten2mk128trunc[ind].w[1] ||
-									(R256.w[1] == bid_ten2mk128trunc[ind].w[1] &&
-										R256.w[0] > bid_ten2mk128trunc[ind].w[0]) {
+								tmp64B = highf2star.hi - bid_onehalf128[ind]
+								if tmp64B != 0 || highf2star.lo != 0 ||
+									R256.w[1] > bid_ten2mk128trunc[ind].hi ||
+									(R256.w[1] == bid_ten2mk128trunc[ind].hi &&
+										R256.w[0] > bid_ten2mk128trunc[ind].lo) {
 									tmp_inexact = 1
 									if x_sign == y_sign {
 										is_inexact_lt_midpoint = 1
@@ -1752,11 +1752,11 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							}
 						}
 						// check for midpoints
-						if (R256.w[1] != 0 || R256.w[0] != 0) && (highf2star.w[1] == 0) &&
-							(highf2star.w[0] == 0) &&
-							(R256.w[1] < bid_ten2mk128trunc[ind].w[1] ||
-								(R256.w[1] == bid_ten2mk128trunc[ind].w[1] &&
-									R256.w[0] <= bid_ten2mk128trunc[ind].w[0])) {
+						if (R256.w[1] != 0 || R256.w[0] != 0) && (highf2star.hi == 0) &&
+							(highf2star.lo == 0) &&
+							(R256.w[1] < bid_ten2mk128trunc[ind].hi ||
+								(R256.w[1] == bid_ten2mk128trunc[ind].hi &&
+									R256.w[0] <= bid_ten2mk128trunc[ind].lo)) {
 							// the result is a midpoint
 							if (tmp64+R256.w[2])&0x01 != 0 { // MP in [EVEN, ODD]
 								// if floor(C2*) is odd C = floor(C2*) - 1; the result may be 0
@@ -1800,30 +1800,30 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					// and now add/subtract C1 * 10^(e1-e2-x1) +/- (C2 * 10^(-x1))rnd,P34
 					if x_sign == y_sign { // addition; could overflow
 						// no second pass is possible this way (only for x_sign != y_sign)
-						C1.w[0] = C1.w[0] + R256.w[2]
-						C1.w[1] = C1.w[1] + R256.w[3]
-						if C1.w[0] < tmp64 {
-							C1.w[1]++ // carry
+						C1.lo = C1.lo + R256.w[2]
+						C1.hi = C1.hi + R256.w[3]
+						if C1.lo < tmp64 {
+							C1.hi++ // carry
 						}
 						// if the sum has P34+1 digits, i.e. C1>=10^34 redo the calculation
 						// with x1=x1+1
-						if C1.w[1] > 0x0001ed09bead87c0 || (C1.w[1] == 0x0001ed09bead87c0 && C1.w[0] >= 0x378d8e6400000000) { // C1 >= 10^34
+						if C1.hi > 0x0001ed09bead87c0 || (C1.hi == 0x0001ed09bead87c0 && C1.lo >= 0x378d8e6400000000) { // C1 >= 10^34
 							// chop off one more digit from the sum, but make sure there is
 							// no double-rounding error (see table - double rounding logic)
 							// now round C1 from P34+1 to P34 decimal digits
 							// C1' = C1 + 1/2 * 10 = C1 + 5
-							if C1.w[0] >= 0xfffffffffffffffb { // low half add has carry
-								C1.w[0] = C1.w[0] + 5
-								C1.w[1] = C1.w[1] + 1
+							if C1.lo >= 0xfffffffffffffffb { // low half add has carry
+								C1.lo = C1.lo + 5
+								C1.hi = C1.hi + 1
 							} else {
-								C1.w[0] = C1.w[0] + 5
+								C1.lo = C1.lo + 5
 							}
 							// the approximation of 10^(-1) was rounded up to 118 bits
 							Q256 = __mul_128x128_to_256(C1, bid_ten2mk128[0]) // Q256 = C1*, f1*
 							if (Q256.w[1] != 0 || Q256.w[0] != 0) &&
-								(Q256.w[1] < bid_ten2mk128trunc[0].w[1] ||
-									(Q256.w[1] == bid_ten2mk128trunc[0].w[1] &&
-										Q256.w[0] <= bid_ten2mk128trunc[0].w[0])) {
+								(Q256.w[1] < bid_ten2mk128trunc[0].hi ||
+									(Q256.w[1] == bid_ten2mk128trunc[0].hi &&
+										Q256.w[0] <= bid_ten2mk128trunc[0].lo)) {
 								// the result is a midpoint
 								if is_inexact_lt_midpoint != 0 { // for the 1st rounding
 									is_inexact_gt_midpoint = 1
@@ -1871,9 +1871,9 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 										Q256.w[0] > 0x0) {
 									// f1* > 1/2 and the result may be exact
 									Q256.w[1] = Q256.w[1] - 0x8000000000000000 // f1* - 1/2
-									if Q256.w[1] > bid_ten2mk128trunc[0].w[1] ||
-										(Q256.w[1] == bid_ten2mk128trunc[0].w[1] &&
-											Q256.w[0] > bid_ten2mk128trunc[0].w[0]) {
+									if Q256.w[1] > bid_ten2mk128trunc[0].hi ||
+										(Q256.w[1] == bid_ten2mk128trunc[0].hi &&
+											Q256.w[0] > bid_ten2mk128trunc[0].lo) {
 										is_inexact_gt_midpoint = 0
 										is_inexact_lt_midpoint = 1
 										is_midpoint_gt_even = 0
@@ -1904,8 +1904,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 								}
 							} // end 'the result is not a midpoint'
 							// n = C1 * 10^(e2+x1)
-							C1.w[1] = Q256.w[3]
-							C1.w[0] = Q256.w[2]
+							C1.hi = Q256.w[3]
+							C1.lo = Q256.w[2]
 							y_exp = y_exp + (uint64(x1+1) << 49)
 						} else { // C1 < 10^34
 							// C1.w[1] and C1.w[0] already set
@@ -1916,8 +1916,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						if y_exp == EXP_MAX_P1 &&
 							(rnd_mode == BID_ROUNDING_TO_NEAREST ||
 								rnd_mode == BID_ROUNDING_TIES_AWAY) {
-							res.w[1] = 0x7800000000000000 | x_sign // +/-inf
-							res.w[0] = 0x0
+							res.hi = 0x7800000000000000 | x_sign // +/-inf
+							res.lo = 0x0
 							// set the inexact flag
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							// set the overflow flag
@@ -1926,17 +1926,17 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							return res
 						} // else no overflow
 					} else { // if x_sign != y_sign the result of this subtract. is exact
-						C1.w[0] = C1.w[0] - R256.w[2]
-						C1.w[1] = C1.w[1] - R256.w[3]
-						if C1.w[0] > tmp64 {
-							C1.w[1]-- // borrow
+						C1.lo = C1.lo - R256.w[2]
+						C1.hi = C1.hi - R256.w[3]
+						if C1.lo > tmp64 {
+							C1.hi-- // borrow
 						}
-						if C1.w[1] >= 0x8000000000000000 { // negative coefficient!
-							C1.w[0] = ^C1.w[0]
-							C1.w[0]++
-							C1.w[1] = ^C1.w[1]
-							if C1.w[0] == 0x0 {
-								C1.w[1]++
+						if C1.hi >= 0x8000000000000000 { // negative coefficient!
+							C1.lo = ^C1.lo
+							C1.lo++
+							C1.hi = ^C1.hi
+							if C1.lo == 0x0 {
+								C1.hi++
 							}
 							tmp_sign = y_sign
 							// the result will have the sign of y if last rnd
@@ -1948,7 +1948,7 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						// redo the calculation also if C1 = 10^33 and
 						//   (is_inexact_gt_midpoint or is_midpoint_lt_even);
 						// 10^33 = 0x0000314dc6448d93 0x38c15b0a00000000
-						if (C1.w[1] < 0x0000314dc6448d93 || (C1.w[1] == 0x0000314dc6448d93 && C1.w[0] < 0x38c15b0a00000000)) || (C1.w[1] == 0x0000314dc6448d93 && C1.w[0] == 0x38c15b0a00000000 && (is_inexact_gt_midpoint != 0 || is_midpoint_lt_even != 0)) { // C1=10^33
+						if (C1.hi < 0x0000314dc6448d93 || (C1.hi == 0x0000314dc6448d93 && C1.lo < 0x38c15b0a00000000)) || (C1.hi == 0x0000314dc6448d93 && C1.lo == 0x38c15b0a00000000 && (is_inexact_gt_midpoint != 0 || is_midpoint_lt_even != 0)) { // C1=10^33
 							x1 = x1 - 1 // x1 >= 0
 							if x1 >= 0 {
 								// clear position flags and tmp_inexact
@@ -1963,9 +1963,9 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						}
 						// if the coefficient of the result is 10^34 it means that this
 						// must be the second pass, and we are done
-						if C1.w[1] == 0x0001ed09bead87c0 && C1.w[0] == 0x378d8e6400000000 { // if  C1 = 10^34
-							C1.w[1] = 0x0000314dc6448d93 // C1 = 10^33
-							C1.w[0] = 0x38c15b0a00000000
+						if C1.hi == 0x0001ed09bead87c0 && C1.lo == 0x378d8e6400000000 { // if  C1 = 10^34
+							C1.hi = 0x0000314dc6448d93 // C1 = 10^33
+							C1.lo = 0x38c15b0a00000000
 							y_exp = y_exp + (uint64(1) << 49)
 						}
 						x_sign = tmp_sign
@@ -1975,8 +1975,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						// x1 = -1 is possible at the end of a second pass when the
 						// first pass started with x1 = 1
 					}
-					C1_hi = C1.w[1]
-					C1_lo = C1.w[0]
+					C1_hi = C1.hi
+					C1_lo = C1.lo
 					// general correction from RN to RA, RM, RP, RZ; result uses y_exp
 					if rnd_mode != BID_ROUNDING_TO_NEAREST {
 						if (x_sign == 0 &&
@@ -2041,8 +2041,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						}
 					}
 					// assemble the result
-					res.w[1] = x_sign | y_exp | C1_hi
-					res.w[0] = C1_lo
+					res.hi = x_sign | y_exp | C1_hi
+					res.lo = C1_lo
 					if tmp_inexact != 0 {
 						*pfpsf |= BID_INEXACT_EXCEPTION
 					}
@@ -2060,22 +2060,22 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					if q1 <= 19 { // C1 fits in 64 bits
 						C1 = __mul_64x64_to_128(C1_lo, bid_ten2k64[scale])
 					} else { // q1 >= 20
-						C1.w[1] = C1_hi
-						C1.w[0] = C1_lo
+						C1.hi = C1_hi
+						C1.lo = C1_lo
 						C1 = __mul_128x64_to_128(bid_ten2k64[scale], C1)
 					}
 				} else { // if (scale == 0) C1 is unchanged
-					C1.w[1] = C1_hi
-					C1.w[0] = C1_lo // only the low part is necessary
+					C1.hi = C1_hi
+					C1.lo = C1_lo // only the low part is necessary
 				}
-				C1_hi = C1.w[1]
-				C1_lo = C1.w[0]
+				C1_hi = C1.hi
+				C1_lo = C1.lo
 				// now add C2
 				if x_sign == y_sign {
 					// the result can overflow!
 					C1_lo = C1_lo + C2_lo
 					C1_hi = C1_hi + C2_hi
-					if C1_lo < C1.w[0] {
+					if C1_lo < C1.lo {
 						C1_hi++
 					}
 					// test for overflow, possible only when C1 >= 10^34
@@ -2088,10 +2088,10 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						} else {
 							C1_lo = C1_lo + 5
 						}
-						C1.w[1] = C1_hi
-						C1.w[0] = C1_lo // C''
-						ten2m1.w[1] = 0x1999999999999999
-						ten2m1.w[0] = 0x9999999999999a00
+						C1.hi = C1_hi
+						C1.lo = C1_lo // C''
+						ten2m1.hi = 0x1999999999999999
+						ten2m1.lo = 0x9999999999999a00
 						P256 = __mul_128x128_to_256(C1, ten2m1) // P256 = C*, f*
 						if (P256.w[1] != 0 || P256.w[0] != 0) &&
 							(P256.w[1] < 0x1999999999999999 ||
@@ -2115,8 +2115,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 							(rnd_mode == BID_ROUNDING_TO_NEAREST ||
 								rnd_mode == BID_ROUNDING_TIES_AWAY) {
 							// overflow for RN
-							res.w[1] = x_sign | 0x7800000000000000 // +/-inf
-							res.w[0] = 0x0
+							res.hi = x_sign | 0x7800000000000000 // +/-inf
+							res.lo = 0x0
 							*pfpsf |= BID_INEXACT_EXCEPTION
 							*pfpsf |= BID_OVERFLOW_EXCEPTION
 							// BID_SWAP128 (res) - no-op
@@ -2201,8 +2201,8 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 						}
 					} // else if (C1 < 10^34) then C1 is the coeff.; the result is exact
 					// assemble the result
-					res.w[1] = x_sign | y_exp | C1_hi
-					res.w[0] = C1_lo
+					res.hi = x_sign | y_exp | C1_hi
+					res.lo = C1_lo
 				} else { // if x_sign != y_sign the result is exact
 					C1_lo = C2_lo - C1_lo
 					C1_hi = C2_hi - C1_hi
@@ -2222,20 +2222,20 @@ func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 					if C1_lo == 0 && C1_hi == 0 {
 						// assemble the result
 						if x_exp < y_exp {
-							res.w[1] = x_exp
+							res.hi = x_exp
 						} else {
-							res.w[1] = y_exp
+							res.hi = y_exp
 						}
-						res.w[0] = 0
+						res.lo = 0
 						if rnd_mode == BID_ROUNDING_DOWN {
-							res.w[1] |= 0x8000000000000000
+							res.hi |= 0x8000000000000000
 						}
 						// BID_SWAP128 (res) - no-op
 						return res
 					}
 					// assemble the result
-					res.w[1] = y_sign | y_exp | C1_hi
-					res.w[0] = C1_lo
+					res.hi = y_sign | y_exp | C1_hi
+					res.lo = C1_lo
 				}
 			}
 		}
@@ -2256,13 +2256,13 @@ func boolToInt(b bool) int {
 func Bid128Sub(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 	var y_sign uint64
 
-	if (y.w[1] & NAN_MASK64) != NAN_MASK64 { // y is not NAN
+	if (y.hi & NAN_MASK64) != NAN_MASK64 { // y is not NAN
 		// change its sign
-		y_sign = y.w[1] & MASK_SIGN64 // 0 for positive, MASK_SIGN64 for negative
+		y_sign = y.hi & MASK_SIGN64 // 0 for positive, MASK_SIGN64 for negative
 		if y_sign != 0 {
-			y.w[1] = y.w[1] & 0x7fffffffffffffff
+			y.hi = y.hi & 0x7fffffffffffffff
 		} else {
-			y.w[1] = y.w[1] | 0x8000000000000000
+			y.hi = y.hi | 0x8000000000000000
 		}
 	}
 	return Bid128Add(x, y, rnd_mode, pfpsf)

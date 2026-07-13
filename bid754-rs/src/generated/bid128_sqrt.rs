@@ -37,7 +37,7 @@ pub(crate) fn short_sqrt128(mut A10: BID_UINT128) -> u64 {
     let mut ES: u64 = 0;
     let mut CY: u64 = 0;
     let mut l64 = f64::from_bits(0x43f0000000000000);
-    let mut lx = no_fma_mul_add_f64((A10.w[1] as f64), l64, (A10.w[0] as f64));
+    let mut lx = no_fma_mul_add_f64((A10.hi as f64), l64, (A10.lo as f64));
     let mut ly_d = (1.0 / (lx).sqrt());
     let mut ly_i = (ly_d).to_bits();
     MY = ((ly_i & 0x000fffffffffffff) | 0x0010000000000000);
@@ -58,9 +58,9 @@ pub(crate) fn short_sqrt128(mut A10: BID_UINT128) -> u64 {
             k = k.wrapping_sub(64);
         }
         if (k != 0) {
-            let mut ARS_128 = __shr_128(BID_UINT128 { w: [ARS.w[0], ARS.w[1]], ..Default::default() }, (k as u64));
-            ARS.w[0] = ARS_128.w[0];
-            ARS.w[1] = ARS_128.w[1];
+            let mut ARS_128 = __shr_128(BID_UINT128 { lo: ARS.w[0], hi: ARS.w[1], ..Default::default() }, (k as u64));
+            ARS.w[0] = ARS_128.lo;
+            ARS.w[1] = ARS_128.hi;
         }
         ES = ARS.w[0];
     }
@@ -96,18 +96,18 @@ pub(crate) fn short_sqrt128(mut A10: BID_UINT128) -> u64 {
         k = k.wrapping_sub(64);
     }
     if (k != 0) {
-        let mut S_128 = __shr_128(BID_UINT128 { w: [S.w[0], S.w[1]], ..Default::default() }, (k as u64));
-        S.w[0] = S_128.w[0];
-        S.w[1] = S_128.w[1];
+        let mut S_128 = __shr_128(BID_UINT128 { lo: S.w[0], hi: S.w[1], ..Default::default() }, (k as u64));
+        S.w[0] = S_128.lo;
+        S.w[1] = S_128.hi;
     }
     return (go_checked_shr_u64(((S.w[0].wrapping_add(1))), go_shift_count_u64((1) as u64)));
 }
 
 pub(crate) fn bid_long_sqrt128(mut C256: BID_UINT256) -> BID_UINT128 {
     let mut S: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut ES: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut ARS1: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut ES2: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut ES: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut ARS1: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut ES2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut ARS00: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut AE: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut AE2: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
@@ -131,20 +131,20 @@ pub(crate) fn bid_long_sqrt128(mut C256: BID_UINT256) -> BID_UINT128 {
     let mut ARS = __mul_64x320_to_384(MY, ARS0);
     let mut k = (((((go_checked_shl_i64(ey, go_shift_count_u64((1) as u64)))).wrapping_add(104)).wrapping_sub(128)).wrapping_sub(192));
     let mut k2 = ((64 as i64).wrapping_sub(k));
-    ES.w[0] = (((go_checked_shr_u64(ARS.w[3], go_shift_count_u64((((k.wrapping_add(1)) as u64)) as u64)))) | ((go_checked_shl_u64(ARS.w[4], go_shift_count_u64((((k2.wrapping_sub(1)) as u64)) as u64)))));
-    ES.w[1] = (((go_checked_shr_u64(ARS.w[4], go_shift_count_u64((k as u64) as u64)))) | ((go_checked_shl_u64(ARS.w[5], go_shift_count_u64((k2 as u64) as u64)))));
-    ES.w[1] = ((go_checked_shr_i64((ES.w[1] as i64), go_shift_count_u64((1) as u64))) as u64);
-    ARS1.w[0] = ARS0.w[3];
-    ARS1.w[1] = ARS0.w[4];
+    ES.lo = (((go_checked_shr_u64(ARS.w[3], go_shift_count_u64((((k.wrapping_add(1)) as u64)) as u64)))) | ((go_checked_shl_u64(ARS.w[4], go_shift_count_u64((((k2.wrapping_sub(1)) as u64)) as u64)))));
+    ES.hi = (((go_checked_shr_u64(ARS.w[4], go_shift_count_u64((k as u64) as u64)))) | ((go_checked_shl_u64(ARS.w[5], go_shift_count_u64((k2 as u64) as u64)))));
+    ES.hi = ((go_checked_shr_i64((ES.hi as i64), go_shift_count_u64((1) as u64))) as u64);
+    ARS1.lo = ARS0.w[3];
+    ARS1.hi = ARS0.w[4];
     ARS00.w[0] = ARS0.w[1];
     ARS00.w[1] = ARS0.w[2];
     ARS00.w[2] = ARS0.w[3];
     ARS00.w[3] = ARS0.w[4];
-    if ((ES.w[1] as i64) < 0) {
-        ES.w[0] = (ES.w[0].wrapping_neg());
-        ES.w[1] = (ES.w[1].wrapping_neg());
-        if (ES.w[0] != 0) {
-            ES.w[1] = ES.w[1].wrapping_sub(1);
+    if ((ES.hi as i64) < 0) {
+        ES.lo = (ES.lo.wrapping_neg());
+        ES.hi = (ES.hi.wrapping_neg());
+        if (ES.lo != 0) {
+            ES.hi = ES.hi.wrapping_sub(1);
         }
         AE = __mul_128x128_to_256(ES, ARS1);
         (S.w[0], CY) = __add_carry_out(ARS00.w[0], AE.w[0]);
@@ -158,8 +158,8 @@ pub(crate) fn bid_long_sqrt128(mut C256: BID_UINT256) -> BID_UINT128 {
         (S.w[2], CY) = __sub_borrow_in_out(ARS00.w[2], AE.w[2], CY);
         S.w[3] = ((ARS00.w[3].wrapping_sub(AE.w[3])).wrapping_sub(CY));
     }
-    ES32 = (ES.w[1].wrapping_add(((go_checked_shr_u64(ES.w[1], go_shift_count_u64((1) as u64))))));
-    ES2 = __mul_64x64_to_128(ES32, ES.w[1]);
+    ES32 = (ES.hi.wrapping_add(((go_checked_shr_u64(ES.hi, go_shift_count_u64((1) as u64))))));
+    ES2 = __mul_64x64_to_128(ES32, ES.hi);
     AE2 = __mul_128x128_to_256(ES2, ARS1);
     (S.w[0], CY) = __add_carry_out(S.w[0], AE2.w[0]);
     (S.w[1], CY) = __add_carry_in_out(S.w[1], AE2.w[1], CY);
@@ -173,9 +173,9 @@ pub(crate) fn bid_long_sqrt128(mut C256: BID_UINT256) -> BID_UINT128 {
     if (S.w[0] == 0) {
         S.w[1] = S.w[1].wrapping_add(1);
     }
-    let mut CS: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    CS.w[0] = (((go_checked_shl_u64(S.w[1], go_shift_count_u64((63) as u64)))) | ((go_checked_shr_u64(S.w[0], go_shift_count_u64((1) as u64)))));
-    CS.w[1] = (go_checked_shr_u64(S.w[1], go_shift_count_u64((1) as u64)));
+    let mut CS: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    CS.lo = (((go_checked_shl_u64(S.w[1], go_shift_count_u64((63) as u64)))) | ((go_checked_shr_u64(S.w[0], go_shift_count_u64((1) as u64)))));
+    CS.hi = (go_checked_shr_u64(S.w[1], go_shift_count_u64((1) as u64)));
     return CS;
 }
 
@@ -184,16 +184,16 @@ pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) 
     let mut C256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut C4: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut C8: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut CX: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CX1: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CX2: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut A10: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut S2: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut T128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut TP128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CS: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CSM: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut res: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX1: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut A10: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut S2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut T128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut TP128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CS: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CSM: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut Carry: u64 = 0;
     let mut D: i64 = 0;
@@ -205,58 +205,58 @@ pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) 
     let mut pfpsf: u32 = 0;
     let (mut sign_x, mut exponent_x, mut CX, mut validBool) = unpack_bid128_value(x);
     if (!validBool) {
-        res.w[1] = CX.w[1];
-        res.w[0] = CX.w[0];
-        if ((x.w[1] & 0x7c00000000000000) == 0x7c00000000000000) {
-            if ((x.w[1] & 0x7e00000000000000) == 0x7e00000000000000) {
+        res.hi = CX.hi;
+        res.lo = CX.lo;
+        if ((x.hi & 0x7c00000000000000) == 0x7c00000000000000) {
+            if ((x.hi & 0x7e00000000000000) == 0x7e00000000000000) {
                 pfpsf |= 1;
             }
-            res.w[1] = (CX.w[1] & 0xfdffffffffffffff);
+            res.hi = (CX.hi & 0xfdffffffffffffff);
             return (res, pfpsf);
         }
-        if ((x.w[1] & 0x7800000000000000) == 0x7800000000000000) {
-            res.w[1] = CX.w[1];
+        if ((x.hi & 0x7800000000000000) == 0x7800000000000000) {
+            res.hi = CX.hi;
             if (sign_x != 0) {
-                res.w[1] = 0x7c00000000000000;
+                res.hi = 0x7c00000000000000;
                 pfpsf |= 1;
             }
             return (res, pfpsf);
         }
-        res.w[1] = (sign_x | ((go_checked_shl_u64(((go_checked_shr_u64(((exponent_x.wrapping_add(0x1820)) as u64), go_shift_count_u64((1) as u64)))), go_shift_count_u64((49) as u64)))));
-        res.w[0] = 0;
+        res.hi = (sign_x | ((go_checked_shl_u64(((go_checked_shr_u64(((exponent_x.wrapping_add(0x1820)) as u64), go_shift_count_u64((1) as u64)))), go_shift_count_u64((49) as u64)))));
+        res.lo = 0;
         return (res, pfpsf);
     }
     if (sign_x != 0) {
-        res.w[1] = 0x7c00000000000000;
-        res.w[0] = 0;
+        res.hi = 0x7c00000000000000;
+        res.lo = 0;
         pfpsf |= 1;
         return (res, pfpsf);
     }
     let mut f64_i: u32 = (0x5f800000 as u32);
     let mut f64_d = f32::from_bits(f64_i);
-    let mut fx_d = no_fma_mul_add_f32((CX.w[1] as f32), f64_d, (CX.w[0] as f32));
+    let mut fx_d = no_fma_mul_add_f32((CX.hi as f32), f64_d, (CX.lo as f32));
     let mut fx_i = (fx_d as f32).to_bits();
     bin_expon_cx = (((((go_checked_shr_u32(fx_i, go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(0x7f));
     digits = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
     A10 = CX;
     if ((exponent_x & 1) != 0) {
-        A10.w[1] = (((go_checked_shl_u64(CX.w[1], go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CX.w[0], go_shift_count_u64((61) as u64)))));
-        A10.w[0] = (go_checked_shl_u64(CX.w[0], go_shift_count_u64((3) as u64)));
-        CX2.w[1] = (((go_checked_shl_u64(CX.w[1], go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CX.w[0], go_shift_count_u64((63) as u64)))));
-        CX2.w[0] = (go_checked_shl_u64(CX.w[0], go_shift_count_u64((1) as u64)));
+        A10.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((61) as u64)))));
+        A10.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((3) as u64)));
+        CX2.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((63) as u64)))));
+        CX2.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((1) as u64)));
         A10 = __add_128_128(A10, CX2);
     }
-    CS.w[0] = short_sqrt128(A10);
-    CS.w[1] = 0;
-    if ((CS.w[0].wrapping_mul(CS.w[0])) == A10.w[0]) {
-        S2 = __mul_64x64_to_128_fast(CS.w[0], CS.w[0]);
-        if (S2.w[1] == A10.w[1]) {
+    CS.lo = short_sqrt128(A10);
+    CS.hi = 0;
+    if ((CS.lo.wrapping_mul(CS.lo)) == A10.lo) {
+        S2 = __mul_64x64_to_128_fast(CS.lo, CS.lo);
+        if (S2.hi == A10.hi) {
             res = very_fast_get_bid128(0, (go_checked_shr_i64(((exponent_x.wrapping_add(0x1820))), go_shift_count_u64((1) as u64))), CS);
             return (res, pfpsf);
         }
     }
-    D = ((CX.w[1] as i64).wrapping_sub(bid_power10_index_binexp_128[bin_expon_cx as usize].w[1] as i64));
-    if ((D > 0) || (((D == 0) && (CX.w[0] >= bid_power10_index_binexp_128[bin_expon_cx as usize].w[0])))) {
+    D = ((CX.hi as i64).wrapping_sub(bid_power10_index_binexp_128[bin_expon_cx as usize].hi as i64));
+    if ((D > 0) || (((D == 0) && (CX.lo >= bid_power10_index_binexp_128[bin_expon_cx as usize].lo)))) {
         digits = digits.wrapping_add(1);
     }
     scale = ((67 as i64).wrapping_sub(digits));
@@ -277,32 +277,32 @@ pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) 
     C4.w[0] = (go_checked_shl_u64(C256.w[0], go_shift_count_u64((2) as u64)));
     CS = bid_long_sqrt128(C256);
     if ((rnd_mode & 3) == 0) {
-        CSM.w[1] = (((go_checked_shl_u64(CS.w[1], go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CS.w[0], go_shift_count_u64((63) as u64)))));
-        CSM.w[0] = (((CS.w[0].wrapping_add(CS.w[0]))) | 1);
+        CSM.hi = (((go_checked_shl_u64(CS.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CS.lo, go_shift_count_u64((63) as u64)))));
+        CSM.lo = (((CS.lo.wrapping_add(CS.lo))) | 1);
         M256 = __sqr128_to_256(CSM);
         if ((C4.w[3] > M256.w[3]) || (((C4.w[3] == M256.w[3]) && (((C4.w[2] > M256.w[2]) || (((C4.w[2] == M256.w[2]) && (((C4.w[1] > M256.w[1]) || (((C4.w[1] == M256.w[1]) && (C4.w[0] > M256.w[0])))))))))))) {
-            CS.w[0] = CS.w[0].wrapping_add(1);
-            if (CS.w[0] == 0) {
-                CS.w[1] = CS.w[1].wrapping_add(1);
+            CS.lo = CS.lo.wrapping_add(1);
+            if (CS.lo == 0) {
+                CS.hi = CS.hi.wrapping_add(1);
             }
         } else {
-            C8.w[1] = (((go_checked_shl_u64(CS.w[1], go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CS.w[0], go_shift_count_u64((61) as u64)))));
-            C8.w[0] = (go_checked_shl_u64(CS.w[0], go_shift_count_u64((3) as u64)));
+            C8.w[1] = (((go_checked_shl_u64(CS.hi, go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CS.lo, go_shift_count_u64((61) as u64)))));
+            C8.w[0] = (go_checked_shl_u64(CS.lo, go_shift_count_u64((3) as u64)));
             (M256.w[0], Carry) = __sub_borrow_out(M256.w[0], C8.w[0]);
             (M256.w[1], Carry) = __sub_borrow_in_out(M256.w[1], C8.w[1], Carry);
             (M256.w[2], Carry) = __sub_borrow_in_out(M256.w[2], 0, Carry);
             M256.w[3] = (M256.w[3].wrapping_sub(Carry));
             if ((M256.w[3] > C4.w[3]) || (((M256.w[3] == C4.w[3]) && (((M256.w[2] > C4.w[2]) || (((M256.w[2] == C4.w[2]) && (((M256.w[1] > C4.w[1]) || (((M256.w[1] == C4.w[1]) && (M256.w[0] > C4.w[0])))))))))))) {
-                if (CS.w[0] == 0) {
-                    CS.w[1] = CS.w[1].wrapping_sub(1);
+                if (CS.lo == 0) {
+                    CS.hi = CS.hi.wrapping_sub(1);
                 }
-                CS.w[0] = CS.w[0].wrapping_sub(1);
+                CS.lo = CS.lo.wrapping_sub(1);
             }
         }
     } else {
         M256 = __sqr128_to_256(CS);
-        C8.w[1] = (((go_checked_shl_u64(CS.w[1], go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CS.w[0], go_shift_count_u64((63) as u64)))));
-        C8.w[0] = (go_checked_shl_u64(CS.w[0], go_shift_count_u64((1) as u64)));
+        C8.w[1] = (((go_checked_shl_u64(CS.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CS.lo, go_shift_count_u64((63) as u64)))));
+        C8.w[0] = (go_checked_shl_u64(CS.lo, go_shift_count_u64((1) as u64)));
         if ((M256.w[3] > C256.w[3]) || (((M256.w[3] == C256.w[3]) && (((M256.w[2] > C256.w[2]) || (((M256.w[2] == C256.w[2]) && (((M256.w[1] > C256.w[1]) || (((M256.w[1] == C256.w[1]) && (M256.w[0] > C256.w[0])))))))))))) {
             (M256.w[0], Carry) = __sub_borrow_out(M256.w[0], C8.w[0]);
             (M256.w[1], Carry) = __sub_borrow_in_out(M256.w[1], C8.w[1], Carry);
@@ -318,15 +318,15 @@ pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) 
                     }
                 }
             }
-            if (CS.w[0] == 0) {
-                CS.w[1] = CS.w[1].wrapping_sub(1);
+            if (CS.lo == 0) {
+                CS.hi = CS.hi.wrapping_sub(1);
             }
-            CS.w[0] = CS.w[0].wrapping_sub(1);
+            CS.lo = CS.lo.wrapping_sub(1);
             if ((M256.w[3] > C256.w[3]) || (((M256.w[3] == C256.w[3]) && (((M256.w[2] > C256.w[2]) || (((M256.w[2] == C256.w[2]) && (((M256.w[1] > C256.w[1]) || (((M256.w[1] == C256.w[1]) && (M256.w[0] > C256.w[0])))))))))))) {
-                if (CS.w[0] == 0) {
-                    CS.w[1] = CS.w[1].wrapping_sub(1);
+                if (CS.lo == 0) {
+                    CS.hi = CS.hi.wrapping_sub(1);
                 }
-                CS.w[0] = CS.w[0].wrapping_sub(1);
+                CS.lo = CS.lo.wrapping_sub(1);
             }
         } else {
             (M256.w[0], Carry) = __add_carry_out(M256.w[0], C8.w[0]);
@@ -344,16 +344,16 @@ pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) 
                 }
             }
             if ((M256.w[3] < C256.w[3]) || (((M256.w[3] == C256.w[3]) && (((M256.w[2] < C256.w[2]) || (((M256.w[2] == C256.w[2]) && (((M256.w[1] < C256.w[1]) || (((M256.w[1] == C256.w[1]) && (M256.w[0] <= C256.w[0])))))))))))) {
-                CS.w[0] = CS.w[0].wrapping_add(1);
-                if (CS.w[0] == 0) {
-                    CS.w[1] = CS.w[1].wrapping_add(1);
+                CS.lo = CS.lo.wrapping_add(1);
+                if (CS.lo == 0) {
+                    CS.hi = CS.hi.wrapping_add(1);
                 }
             }
         }
         if (rnd_mode == 2) {
-            CS.w[0] = CS.w[0].wrapping_add(1);
-            if (CS.w[0] == 0) {
-                CS.w[1] = CS.w[1].wrapping_add(1);
+            CS.lo = CS.lo.wrapping_add(1);
+            if (CS.lo == 0) {
+                CS.hi = CS.hi.wrapping_add(1);
             }
         }
     }

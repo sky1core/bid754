@@ -29,7 +29,7 @@
 use super::prelude::*;
 
 pub fn bid64_quantize(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
-    let mut CT: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut sign_y: u64 = 0;
     let mut coefficient_x: u64 = 0;
@@ -97,14 +97,14 @@ pub fn bid64_quantize(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     let mut tempx = ((coefficient_x as f32) as f32).to_bits();
     bin_expon_cx = (((((go_checked_shr_u32(tempx, go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(0x7f));
     digits_x = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
-    if (coefficient_x >= bid_power10_table_128[digits_x as usize].w[0]) {
+    if (coefficient_x >= bid_power10_table_128[digits_x as usize].lo) {
         digits_x = digits_x.wrapping_add(1);
     }
     expon_diff = (exponent_x.wrapping_sub(exponent_y));
     total_digits = (digits_x.wrapping_add(expon_diff));
     if (((total_digits.wrapping_add(1)) as u32) <= 17) {
         if (expon_diff >= 0) {
-            coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[expon_diff as usize].w[0]);
+            coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[expon_diff as usize].lo);
             res = very_fast_get_bid64(sign_x, exponent_y, coefficient_x);
             return (res, pfpsf);
         }
@@ -116,34 +116,34 @@ pub fn bid64_quantize(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
         coefficient_x = coefficient_x.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
         CT = __mul_64x64_to_128(coefficient_x, bid_reciprocals10_64[extra_digits as usize]);
         amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-        C64 = (go_checked_shr_u64(CT.w[1], go_shift_count_u64((amount as u64) as u64)));
+        C64 = (go_checked_shr_u64(CT.hi, go_shift_count_u64((amount as u64) as u64)));
         if (rndMode == 0) {
             if ((C64 & 1) != 0) {
                 amount2 = ((64 as i64).wrapping_sub(amount));
                 remainder_h = 0;
                 remainder_h = remainder_h.wrapping_sub(1);
                 remainder_h = go_checked_shr_u64(remainder_h, go_shift_count_u64((amount2 as u64) as u64));
-                remainder_h = (remainder_h & CT.w[1]);
-                if ((remainder_h == 0) && (CT.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                remainder_h = (remainder_h & CT.hi);
+                if ((remainder_h == 0) && (CT.lo < bid_reciprocals10_64[extra_digits as usize])) {
                     C64 = C64.wrapping_sub(1);
                 }
             }
         }
         status = 32;
-        remainder_h = (go_checked_shl_u64(CT.w[1], go_shift_count_u64(((((64 as u64).wrapping_sub(amount as u64)))) as u64)));
+        remainder_h = (go_checked_shl_u64(CT.hi, go_shift_count_u64(((((64 as u64).wrapping_sub(amount as u64)))) as u64)));
         match rmode {
             0 | 4 => {
-                if ((remainder_h == 0x8000000000000000) && (CT.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                if ((remainder_h == 0x8000000000000000) && (CT.lo < bid_reciprocals10_64[extra_digits as usize])) {
                     status = 0;
                 }
             }
             1 | 3 => {
-                if ((remainder_h == 0) && (CT.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                if ((remainder_h == 0) && (CT.lo < bid_reciprocals10_64[extra_digits as usize])) {
                     status = 0;
                 }
             }
             _ => {
-                (tmp, carry) = __add_carry_out(CT.w[0], bid_reciprocals10_64[extra_digits as usize]);
+                (tmp, carry) = __add_carry_out(CT.lo, bid_reciprocals10_64[extra_digits as usize]);
                 _ = tmp;
                 if ((((go_checked_shr_u64(remainder_h, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)))).wrapping_add(carry)) >= ((go_checked_shl_u64((1 as u64), go_shift_count_u64((amount as u64) as u64))))) {
                     status = 0;

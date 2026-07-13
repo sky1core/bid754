@@ -788,14 +788,15 @@ fn to_port128(bytes: [u8; 16]) -> bid754::gen_types::BID_UINT128 {
     lo.copy_from_slice(&bytes[0..8]);
     hi.copy_from_slice(&bytes[8..16]);
     bid754::gen_types::BID_UINT128 {
-        w: [u64::from_le_bytes(lo), u64::from_le_bytes(hi)],
+        lo: u64::from_le_bytes(lo),
+        hi: u64::from_le_bytes(hi),
     }
 }
 
 fn from_port128(v: bid754::gen_types::BID_UINT128) -> [u8; 16] {
     let mut bytes = [0u8; 16];
-    bytes[0..8].copy_from_slice(&v.w[0].to_le_bytes());
-    bytes[8..16].copy_from_slice(&v.w[1].to_le_bytes());
+    bytes[0..8].copy_from_slice(&v.lo.to_le_bytes());
+    bytes[8..16].copy_from_slice(&v.hi.to_le_bytes());
     bytes
 }
 

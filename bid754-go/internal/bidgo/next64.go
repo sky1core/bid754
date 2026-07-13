@@ -64,8 +64,8 @@ func Bid64NextUp(x uint64) (uint64, uint32) {
 		} else { // -MAXFP <= x <= -MINFP - 1 ulp OR MINFP <= x <= MAXFP - 1 ulp
 			// can add/subtract 1 ulp to the significand
 
-			C.w[0] = C1
-			C.w[1] = 0
+			C.lo = C1
+			C.hi = 0
 			q1 = __get_dec_digits64(C)
 			// if q1 < P16 then pad the significand with zeros
 			if q1 < 16 {
@@ -171,8 +171,8 @@ func Bid64NextDown(x uint64) (uint64, uint32) {
 		} else { // -MAXFP + 1ulp <= x <= -MINFP OR MINFP + 1 ulp <= x <= MAXFP
 			// can add/subtract 1 ulp to the significand
 
-			C.w[0] = C1
-			C.w[1] = 0
+			C.lo = C1
+			C.hi = 0
 			q1 = __get_dec_digits64(C)
 			// if q1 < P16 then pad the significand with zeros
 			if q1 < 16 {

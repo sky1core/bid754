@@ -1924,6 +1924,9 @@ var implementationExclusionRules = []struct {
 	match func(rel string) bool
 }{
 	{"bid754-go/generated_types.go", func(r string) bool { return r == "bid754-go/generated_types.go" }},
+	{"bid754-go/internal/bidgo/tables_binarydecimal.go", func(r string) bool {
+		return r == "bid754-go/internal/bidgo/tables_binarydecimal.go"
+	}},
 	{"devtools/generated/go/intel_dfp_tables.go", func(r string) bool { return r == "devtools/generated/go/intel_dfp_tables.go" }},
 	{"bid754-rs/src/gen_types.rs", func(r string) bool { return r == "bid754-rs/src/gen_types.rs" }},
 	{"bid754-rs/src/gen_constants.rs", func(r string) bool { return r == "bid754-rs/src/gen_constants.rs" }},

@@ -16,7 +16,7 @@ func add_zero32(exponent_y int, sign_z uint32, exponent_z int,
 	tempx := math.Float64bits(float64(coefficient_z))
 	bin_expon = int(((tempx & MASK_BINARY_EXPONENT) >> 52)) - 0x3ff
 	scale_cz = bid_estimate_decimal_digits[bin_expon]
-	if uint64(coefficient_z) >= bid_power10_table_128[scale_cz].w[0] {
+	if uint64(coefficient_z) >= bid_power10_table_128[scale_cz].lo {
 		scale_cz++
 	}
 
@@ -24,7 +24,7 @@ func add_zero32(exponent_y int, sign_z uint32, exponent_z int,
 	if diff_expon < scale_k {
 		scale_k = diff_expon
 	}
-	coefficient_z *= uint32(bid_power10_table_128[scale_k].w[0])
+	coefficient_z *= uint32(bid_power10_table_128[scale_k].lo)
 
 	return get_BID32(sign_z, exponent_z-scale_k, uint64(coefficient_z), *prounding_mode)
 }
@@ -198,33 +198,33 @@ func Bid32Fma(x, y, z uint32, rnd_mode int) (uint32, uint32) {
 
 	sign_ab = uint64(int64(int32(sign_a^sign_b)) << 32)
 	sign_ab = uint64(int64(sign_ab) >> 63)
-	CB.w[0] = (coefficient_b + sign_ab) ^ sign_ab
-	CB.w[1] = uint64(int64(CB.w[0]) >> 63)
+	CB.lo = (coefficient_b + sign_ab) ^ sign_ab
+	CB.hi = uint64(int64(CB.lo) >> 63)
 
 	_, Tmp = __mul_64x128_full(coefficient_a, bid_power10_table_128[diff_dec_expon])
 	P = __add_128_128(Tmp, CB)
-	if int64(P.w[1]) < 0 {
+	if int64(P.hi) < 0 {
 		sign_a ^= 0x80000000
-		P.w[1] = 0 - P.w[1]
-		if P.w[0] != 0 {
-			P.w[1]--
+		P.hi = 0 - P.hi
+		if P.lo != 0 {
+			P.hi--
 		}
-		P.w[0] = 0 - P.w[0]
+		P.lo = 0 - P.lo
 	}
 
-	if P.w[1] != 0 {
-		tempx := math.Float64bits(float64(P.w[1]))
+	if P.hi != 0 {
+		tempx := math.Float64bits(float64(P.hi))
 		bin_expon = int(((tempx & MASK_BINARY_EXPONENT) >> 52)) - 0x3ff + 64
 		n_digits = bid_estimate_decimal_digits[bin_expon]
 		if __unsigned_compare_ge_128(P, bid_power10_table_128[n_digits]) {
 			n_digits++
 		}
 	} else {
-		if P.w[0] != 0 {
-			tempx := math.Float64bits(float64(P.w[0]))
+		if P.lo != 0 {
+			tempx := math.Float64bits(float64(P.lo))
 			bin_expon = int(((tempx & MASK_BINARY_EXPONENT) >> 52)) - 0x3ff
 			n_digits = bid_estimate_decimal_digits[bin_expon]
-			if P.w[0] >= bid_power10_table_128[n_digits].w[0] {
+			if P.lo >= bid_power10_table_128[n_digits].lo {
 				n_digits++
 			}
 		} else {
@@ -240,7 +240,7 @@ func Bid32Fma(x, y, z uint32, rnd_mode int) (uint32, uint32) {
 	}
 
 	if n_digits <= MAX_FORMAT_DIGITS_32 {
-		res = get_BID32_UF(sign_a, exponent_b, uint64(uint32(P.w[0])), 0, rnd_mode, &pfpsf)
+		res = get_BID32_UF(sign_a, exponent_b, uint64(uint32(P.lo)), 0, rnd_mode, &pfpsf)
 		return res, pfpsf
 	}
 
@@ -258,7 +258,7 @@ func Bid32Fma(x, y, z uint32, rnd_mode int) (uint32, uint32) {
 	if extra_digits <= 18 {
 		P = __add_128_64(P, bid_round_const_table[rmode][extra_digits])
 	} else {
-		Stemp = __mul_64x64_to_128(bid_round_const_table[rmode][18], bid_power10_table_128[extra_digits-18].w[0])
+		Stemp = __mul_64x64_to_128(bid_round_const_table[rmode][18], bid_power10_table_128[extra_digits-18].lo)
 		P = __add_128_128(P, Stemp)
 		if rmode == BID_ROUNDING_UP {
 			P = __add_128_64(P, bid_round_const_table[rmode][extra_digits-18])
@@ -273,18 +273,18 @@ func Bid32Fma(x, y, z uint32, rnd_mode int) (uint32, uint32) {
 
 	if rmode == 0 {
 		if (C64 & 1) != 0 {
-			rem_l = Q_high.w[0]
+			rem_l = Q_high.lo
 			if amount < 64 {
-				remainder_h = Q_high.w[0] << uint(64-amount)
+				remainder_h = Q_high.lo << uint(64-amount)
 				rem_l = 0
 			} else {
-				remainder_h = Q_high.w[1] << uint(128-amount)
+				remainder_h = Q_high.hi << uint(128-amount)
 			}
 
 			if (remainder_h|rem_l) == 0 &&
-				(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-					(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-						Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+					(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+						Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 				C64--
 			}
 		}
@@ -292,32 +292,32 @@ func Bid32Fma(x, y, z uint32, rnd_mode int) (uint32, uint32) {
 
 	status = BID_INEXACT_EXCEPTION
 
-	rem_l = Q_high.w[0]
+	rem_l = Q_high.lo
 	if amount < 64 {
-		remainder_h = Q_high.w[0] << uint(64-amount)
+		remainder_h = Q_high.lo << uint(64-amount)
 		rem_l = 0
 	} else {
-		remainder_h = Q_high.w[1] << uint(128-amount)
+		remainder_h = Q_high.hi << uint(128-amount)
 	}
 
 	switch rmode {
 	case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 		if (remainder_h == 0x8000000000000000 && rem_l == 0) &&
-			(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-				(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-					Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+			(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+				(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+					Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 			status = BID_EXACT_STATUS
 		}
 	case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
 		if (remainder_h|rem_l) == 0 &&
-			(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-				(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-					Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+			(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+				(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+					Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 			status = BID_EXACT_STATUS
 		}
 	default:
-		Stemp.w[0], CY = __add_carry_out(Q_low.w[0], bid_reciprocals10_128[extra_digits].w[0])
-		Stemp.w[1], carry = __add_carry_in_out(Q_low.w[1], bid_reciprocals10_128[extra_digits].w[1], CY)
+		Stemp.lo, CY = __add_carry_out(Q_low.lo, bid_reciprocals10_128[extra_digits].lo)
+		Stemp.hi, carry = __add_carry_in_out(Q_low.hi, bid_reciprocals10_128[extra_digits].hi, CY)
 		_ = Stemp
 		if amount < 64 {
 			if (remainder_h>>uint(64-amount))+carry >= (uint64(1) << uint(amount)) {

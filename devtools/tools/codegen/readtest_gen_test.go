@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -70,5 +71,15 @@ func TestRustRoundingParamAcceptsGeneratedIntWidth(t *testing.T) {
 	}
 	if !rustSigHasRounding(sig) {
 		t.Fatalf("generated Rust signature should expose rounding parameter: %+v", sig.Params)
+	}
+}
+
+func TestRustReadtestBid128EqualityUsesNamedLimbs(t *testing.T) {
+	generated := readtestCompareFuncs()
+	if strings.Contains(generated, "got.w") || strings.Contains(generated, "expected.w") {
+		t.Fatal("generated Rust readtest compares BID_UINT128 through removed array field")
+	}
+	if !strings.Contains(generated, "CmpMode::CmpFuzzy => got == expected") {
+		t.Fatal("generated Rust readtest lacks whole-value BID_UINT128 equality")
 	}
 }

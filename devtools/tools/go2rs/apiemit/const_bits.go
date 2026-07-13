@@ -164,7 +164,7 @@ func encodeBID64(coeff *big.Int, exponent int) (uint64, error) {
 
 // encodeBID128 packs coeff/exponent into the BID128 interchange bit pattern's
 // (lo, hi) 64-bit words, in the same word convention as
-// crate::gen_types::BID_UINT128{w:[lo,hi]} and, via bid_uint128_to_le_bytes,
+// crate::gen_types::BID_UINT128{lo,hi} and, via bid_uint128_to_le_bytes,
 // Decimal128's public little-endian byte contract.
 func encodeBID128(coeff *big.Int, exponent int) (lo, hi uint64, err error) {
 	if coeff.Sign() < 0 {

@@ -4,7 +4,8 @@
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct BID_UINT128 {
-    pub w: [u64; 2],
+    pub lo: u64,
+    pub hi: u64,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]

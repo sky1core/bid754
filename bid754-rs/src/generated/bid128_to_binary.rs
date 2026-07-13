@@ -81,8 +81,8 @@ pub(crate) fn le128(mut x_hi: u64, mut x_lo: u64, mut y_hi: u64, mut y_lo: u64) 
 pub(crate) fn __mul_128x256_to_384(mut A: BID_UINT128, mut B: BID_UINT256) -> BID_UINT384 {
     let mut P: BID_UINT384 = BID_UINT384 { w: [0, 0, 0, 0, 0, 0] };
     let mut CY: u64 = 0;
-    let mut P0 = __mul_64x256_to_320(A.w[0], B);
-    let mut P1 = __mul_64x256_to_320(A.w[1], B);
+    let mut P0 = __mul_64x256_to_320(A.lo, B);
+    let mut P1 = __mul_64x256_to_320(A.hi, B);
     P.w[0] = P0.w[0];
     (P.w[1], CY) = __add_carry_out(P1.w[0], P0.w[1]);
     (P.w[2], CY) = __add_carry_in_out(P1.w[1], P0.w[2], CY);
@@ -96,49 +96,49 @@ pub(crate) fn unpack_bid128_binarydecimal(mut x: BID_UINT128) -> (i64, i64, i64,
     let mut s: i64 = 0;
     let mut e: i64 = 0;
     let mut k: i64 = 0;
-    let mut c: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut c: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut isZero: bool = false;
     let mut isInf: bool = false;
     let mut isNaN: bool = false;
     let mut nanPayloadHi: u64 = 0;
     let mut nanPayloadLo: u64 = 0;
     let mut isSNaN: bool = false;
-    s = ((go_checked_shr_u64(x.w[1], go_shift_count_u64((63) as u64))) as i64);
-    if (((x.w[1] & (3 << 61))) == (3 << 61)) {
-        if (((x.w[1] & (0xF << 59))) == (0xF << 59)) {
-            if (((x.w[1] & (0x1F << 58))) != (0x1F << 58)) {
+    s = ((go_checked_shr_u64(x.hi, go_shift_count_u64((63) as u64))) as i64);
+    if (((x.hi & (3 << 61))) == (3 << 61)) {
+        if (((x.hi & (0xF << 59))) == (0xF << 59)) {
+            if (((x.hi & (0x1F << 58))) != (0x1F << 58)) {
                 isInf = true;
                 return (s, e, k, c, isZero, isInf, isNaN, nanPayloadHi, nanPayloadLo, isSNaN);
             }
-            if (((x.w[1] & (1 << 57))) != 0) {
+            if (((x.hi & (1 << 57))) != 0) {
                 isSNaN = true;
             }
             isNaN = true;
-            if lt128(54210108624275, 4089650035136921599, (x.w[1] & 0x3FFFFFFFFFFF), x.w[0]) {
+            if lt128(54210108624275, 4089650035136921599, (x.hi & 0x3FFFFFFFFFFF), x.lo) {
                 nanPayloadHi = 0;
                 nanPayloadLo = 0;
             } else {
-                nanPayloadHi = (((go_checked_shl_u64(x.w[1], go_shift_count_u64((18) as u64)))).wrapping_add(((go_checked_shr_u64(x.w[0], go_shift_count_u64((46) as u64))))));
-                nanPayloadLo = (go_checked_shl_u64(x.w[0], go_shift_count_u64((18) as u64)));
+                nanPayloadHi = (((go_checked_shl_u64(x.hi, go_shift_count_u64((18) as u64)))).wrapping_add(((go_checked_shr_u64(x.lo, go_shift_count_u64((46) as u64))))));
+                nanPayloadLo = (go_checked_shl_u64(x.lo, go_shift_count_u64((18) as u64)));
             }
             return (s, e, k, c, isZero, isInf, isNaN, nanPayloadHi, nanPayloadLo, isSNaN);
         }
         isZero = true;
         return (s, e, k, c, isZero, isInf, isNaN, nanPayloadHi, nanPayloadLo, isSNaN);
     }
-    e = (((((go_checked_shr_u64(x.w[1], go_shift_count_u64((49) as u64)))) & (((1 << 14) - 1))) as i64).wrapping_sub(6176));
-    c.w[1] = (x.w[1] & (((1 << 49) - 1)));
-    c.w[0] = x.w[0];
-    if lt128(542101086242752, 4003012203950112767, c.w[1], c.w[0]) {
-        c.w[1] = 0;
-        c.w[0] = 0;
+    e = (((((go_checked_shr_u64(x.hi, go_shift_count_u64((49) as u64)))) & (((1 << 14) - 1))) as i64).wrapping_sub(6176));
+    c.hi = (x.hi & (((1 << 49) - 1)));
+    c.lo = x.lo;
+    if lt128(542101086242752, 4003012203950112767, c.hi, c.lo) {
+        c.hi = 0;
+        c.lo = 0;
     }
-    if ((c.w[1] == 0) && (c.w[0] == 0)) {
+    if ((c.hi == 0) && (c.lo == 0)) {
         isZero = true;
         return (s, e, k, c, isZero, isInf, isNaN, nanPayloadHi, nanPayloadLo, isSNaN);
     }
-    k = (clz128_nz(c.w[1], c.w[0]).wrapping_sub(15));
-    (c.w[1], c.w[0]) = sll128(c.w[1], c.w[0], (k as u64));
+    k = (clz128_nz(c.hi, c.lo).wrapping_sub(15));
+    (c.hi, c.lo) = sll128(c.hi, c.lo, (k as u64));
     return (s, e, k, c, isZero, isInf, isNaN, nanPayloadHi, nanPayloadLo, isSNaN);
 }
 
@@ -154,8 +154,8 @@ pub(crate) fn return_binary64_pack(mut s: i64, mut e: i64, mut c: u64) -> f64 {
 
 pub fn bid128_to_binary32(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> f32 {
     let mut c_prov: u64 = 0;
-    let mut c: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut m_min: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut c: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut m_min: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut e_out: i64 = 0;
     let mut r: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut z: BID_UINT384 = BID_UINT384 { w: [0, 0, 0, 0, 0, 0] };
@@ -185,7 +185,7 @@ pub fn bid128_to_binary32(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32
     }
     m_min = bid_breakpoints_binary32[(e.wrapping_add(80)) as usize];
     e_out = ((bid_exponents_binary32[(e.wrapping_add(80)) as usize] as i64).wrapping_sub(k));
-    if le128(c.w[1], c.w[0], m_min.w[1], m_min.w[0]) {
+    if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
         r = bid_multipliers1_binary32[(e.wrapping_add(80)) as usize];
     } else {
         r = bid_multipliers2_binary32[(e.wrapping_add(80)) as usize];
@@ -202,7 +202,7 @@ pub fn bid128_to_binary32(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32
     }
     c_prov = z.w[5];
     let mut rbIdx = ((((go_checked_shl_i64(rnd_mode, go_shift_count_u64((2) as u64)))).wrapping_add(((go_checked_shl_i64((s & 1), go_shift_count_u64((1) as u64)))))).wrapping_add(((c_prov & 1) as i64)));
-    if lt128(bid_roundbound_128[rbIdx as usize].w[1], bid_roundbound_128[rbIdx as usize].w[0], z.w[4], z.w[3]) {
+    if lt128(bid_roundbound_128[rbIdx as usize].hi, bid_roundbound_128[rbIdx as usize].lo, z.w[4], z.w[3]) {
         c_prov = (c_prov.wrapping_add(1));
         if (c_prov == (1 << 24)) {
             c_prov = (1 << 23);
@@ -236,8 +236,8 @@ pub fn bid128_to_binary32(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32
 
 pub fn bid128_to_binary64(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> f64 {
     let mut c_prov: u64 = 0;
-    let mut c: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut m_min: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut c: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut m_min: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut e_out: i64 = 0;
     let mut r: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut z: BID_UINT384 = BID_UINT384 { w: [0, 0, 0, 0, 0, 0] };
@@ -255,7 +255,7 @@ pub fn bid128_to_binary64(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32
         _ = nanPayloadLo;
         return return_binary64_pack(s, 2047, (((go_checked_shr_u64(nanPayloadHi, go_shift_count_u64((13) as u64)))).wrapping_add(1 << 51)));
     }
-    (c.w[1], c.w[0]) = sll128_short(c.w[1], c.w[0], 6);
+    (c.hi, c.lo) = sll128_short(c.hi, c.lo, 6);
     if (e >= 309) {
         (*pfpsf) |= (8 | 32);
         if ((rnd_mode == 3) || ((rnd_mode == bool_to_rnd_mode(s != 0)))) {
@@ -268,7 +268,7 @@ pub fn bid128_to_binary64(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32
     }
     m_min = bid_breakpoints_binary64[(e.wrapping_add(358)) as usize];
     e_out = ((bid_exponents_binary64[(e.wrapping_add(358)) as usize] as i64).wrapping_sub(k));
-    if le128(c.w[1], c.w[0], m_min.w[1], m_min.w[0]) {
+    if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
         r = bid_multipliers1_binary64[(e.wrapping_add(358)) as usize];
     } else {
         r = bid_multipliers2_binary64[(e.wrapping_add(358)) as usize];
@@ -285,7 +285,7 @@ pub fn bid128_to_binary64(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32
     }
     c_prov = z.w[5];
     let mut rbIdx = ((((go_checked_shl_i64(rnd_mode, go_shift_count_u64((2) as u64)))).wrapping_add(((go_checked_shl_i64((s & 1), go_shift_count_u64((1) as u64)))))).wrapping_add(((c_prov & 1) as i64)));
-    if lt128(bid_roundbound_128[rbIdx as usize].w[1], bid_roundbound_128[rbIdx as usize].w[0], z.w[4], z.w[3]) {
+    if lt128(bid_roundbound_128[rbIdx as usize].hi, bid_roundbound_128[rbIdx as usize].lo, z.w[4], z.w[3]) {
         c_prov = (c_prov.wrapping_add(1));
         if (c_prov == (1 << 53)) {
             c_prov = (1 << 52);

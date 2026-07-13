@@ -223,12 +223,12 @@ func Bid64MinNum(x, y uint64) (uint64, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor_minmax[exp_x-exp_y])
 		// if positive, return whichever significand is larger
 		// (converse if negative)
-		if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_y {
+		if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_y {
 			res = y
 			return res, flags
 		}
 
-		cond := (sig_n_prime.w[1] > 0) || (sig_n_prime.w[0] > sig_y)
+		cond := (sig_n_prime.hi > 0) || (sig_n_prime.lo > sig_y)
 		sign := (x & MASK_SIGN64) == MASK_SIGN64
 		if cond != sign {
 			res = y
@@ -242,12 +242,12 @@ func Bid64MinNum(x, y uint64) (uint64, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor_minmax[exp_y-exp_x])
 
 	// if positive, return whichever significand is larger (converse if negative)
-	if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_x {
+	if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_x {
 		res = y
 		return res, flags
 	}
 
-	cond := (sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0])
+	cond := (sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo)
 	sign := (x & MASK_SIGN64) == MASK_SIGN64
 	if cond != sign {
 		res = y
@@ -403,7 +403,7 @@ func Bid64MinNumMag(x, y uint64) (uint64, uint32) {
 	// if |exp_x - exp_y| < 15, it comes down to the compensated significand
 	if exp_x > exp_y {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor_minmax[exp_x-exp_y])
-		if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_y {
+		if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_y {
 			// two numbers are equal, return minNum(x,y)
 			if (y & MASK_SIGN64) == MASK_SIGN64 {
 				res = y
@@ -413,7 +413,7 @@ func Bid64MinNumMag(x, y uint64) (uint64, uint32) {
 			return res, flags
 		}
 		// if compensated_x is greater than y, return y, otherwise return x
-		if (sig_n_prime.w[1] != 0) || sig_n_prime.w[0] > sig_y {
+		if (sig_n_prime.hi != 0) || sig_n_prime.lo > sig_y {
 			res = y
 		} else {
 			res = x
@@ -424,7 +424,7 @@ func Bid64MinNumMag(x, y uint64) (uint64, uint32) {
 	// exp_y must be greater than exp_x, thus adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor_minmax[exp_y-exp_x])
 
-	if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_x {
+	if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_x {
 		if (y & MASK_SIGN64) == MASK_SIGN64 {
 			res = y
 		} else {
@@ -433,7 +433,7 @@ func Bid64MinNumMag(x, y uint64) (uint64, uint32) {
 		return res, flags
 	}
 
-	if (sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0]) {
+	if (sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo) {
 		res = y
 	} else {
 		res = x
@@ -630,12 +630,12 @@ func Bid64MaxNum(x, y uint64) (uint64, uint32) {
 	// if |exp_x - exp_y| < 15, it comes down to the compensated significand
 	if exp_x > exp_y {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor_minmax[exp_x-exp_y])
-		if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_y {
+		if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_y {
 			res = y
 			return res, flags
 		}
 
-		cond := (sig_n_prime.w[1] > 0) || (sig_n_prime.w[0] > sig_y)
+		cond := (sig_n_prime.hi > 0) || (sig_n_prime.lo > sig_y)
 		sign := (x & MASK_SIGN64) == MASK_SIGN64
 		if cond != sign {
 			res = x
@@ -648,12 +648,12 @@ func Bid64MaxNum(x, y uint64) (uint64, uint32) {
 	// adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor_minmax[exp_y-exp_x])
 
-	if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_x {
+	if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_x {
 		res = y
 		return res, flags
 	}
 
-	cond := (sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0])
+	cond := (sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo)
 	sign := (x & MASK_SIGN64) == MASK_SIGN64
 	if cond != sign {
 		res = x
@@ -807,7 +807,7 @@ func Bid64MaxNumMag(x, y uint64) (uint64, uint32) {
 	// if |exp_x - exp_y| < 15, it comes down to the compensated significand
 	if exp_x > exp_y {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor_minmax[exp_x-exp_y])
-		if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_y {
+		if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_y {
 			// two numbers are equal, return maxNum(x,y)
 			if (y & MASK_SIGN64) == MASK_SIGN64 {
 				res = x
@@ -817,7 +817,7 @@ func Bid64MaxNumMag(x, y uint64) (uint64, uint32) {
 			return res, flags
 		}
 		// if compensated_x is greater than y return x, otherwise return y
-		if (sig_n_prime.w[1] != 0) || sig_n_prime.w[0] > sig_y {
+		if (sig_n_prime.hi != 0) || sig_n_prime.lo > sig_y {
 			res = x
 		} else {
 			res = y
@@ -828,7 +828,7 @@ func Bid64MaxNumMag(x, y uint64) (uint64, uint32) {
 	// exp_y must be greater than exp_x, thus adjust the y significand upwards
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor_minmax[exp_y-exp_x])
 
-	if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_x {
+	if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_x {
 		if (y & MASK_SIGN64) == MASK_SIGN64 {
 			res = x
 		} else {
@@ -837,7 +837,7 @@ func Bid64MaxNumMag(x, y uint64) (uint64, uint32) {
 		return res, flags
 	}
 
-	if (sig_n_prime.w[1] == 0) && (sig_x > sig_n_prime.w[0]) {
+	if (sig_n_prime.hi == 0) && (sig_x > sig_n_prime.lo) {
 		res = x
 	} else {
 		res = y

@@ -18,52 +18,52 @@ import "math"
 // Returns (x_sign, x_exp, C1, pfpsf, special).
 // If special is true, pfpsf and returned int indicate the result should be returned immediately.
 func bid128_unpack_for_int(x BID_UINT128) (x_sign uint64, x_exp uint64, C1 BID_UINT128, is_special bool) {
-	x_sign = x.w[1] & MASK_SIGN64
-	x_exp = x.w[1] & MASK_EXP128
-	C1.w[1] = x.w[1] & MASK_COEFF128
-	C1.w[0] = x.w[0]
-	is_special = (x.w[1] & MASK_SPECIAL128) == MASK_SPECIAL128
+	x_sign = x.hi & MASK_SIGN64
+	x_exp = x.hi & MASK_EXP128
+	C1.hi = x.hi & MASK_COEFF128
+	C1.lo = x.lo
+	is_special = (x.hi & MASK_SPECIAL128) == MASK_SPECIAL128
 	return
 }
 
 // bid128_is_nan_for_int checks if x is NaN for integer conversion purposes.
 func bid128_is_nan_for_int(x BID_UINT128) bool {
-	return (x.w[1] & NAN_MASK64) == NAN_MASK64
+	return (x.hi & NAN_MASK64) == NAN_MASK64
 }
 
 // bid128_is_snan_for_int checks if x is SNaN for integer conversion purposes.
 func bid128_is_snan_for_int(x BID_UINT128) bool {
-	return (x.w[1] & SNAN_MASK64) == SNAN_MASK64
+	return (x.hi & SNAN_MASK64) == SNAN_MASK64
 }
 
 // bid128_is_noncanonical checks for non-canonical values.
 func bid128_is_noncanonical(C1 BID_UINT128, x BID_UINT128) bool {
-	return (C1.w[1] > 0x0001ed09bead87c0) ||
-		(C1.w[1] == 0x0001ed09bead87c0 && C1.w[0] > 0x378d8e63ffffffff) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000)
+	return (C1.hi > 0x0001ed09bead87c0) ||
+		(C1.hi == 0x0001ed09bead87c0 && C1.lo > 0x378d8e63ffffffff) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000)
 }
 
 // bid128_nr_digits computes q = nr. of decimal digits in 128-bit coefficient C1.
 func bid128_nr_digits(C1 BID_UINT128) (q int, x_nr_bits uint) {
 	var tmp1 uint64
-	if C1.w[1] == 0 {
-		if C1.w[0] >= 0x0020000000000000 { // x >= 2^53
-			tmp1 = math.Float64bits(float64(C1.w[0] >> 32))
+	if C1.hi == 0 {
+		if C1.lo >= 0x0020000000000000 { // x >= 2^53
+			tmp1 = math.Float64bits(float64(C1.lo >> 32))
 			x_nr_bits = 33 + uint((uint32(tmp1>>52)&0x7ff)-0x3ff)
 		} else {
-			tmp1 = math.Float64bits(float64(C1.w[0]))
+			tmp1 = math.Float64bits(float64(C1.lo))
 			x_nr_bits = 1 + uint((uint32(tmp1>>52)&0x7ff)-0x3ff)
 		}
 	} else {
-		tmp1 = math.Float64bits(float64(C1.w[1]))
+		tmp1 = math.Float64bits(float64(C1.hi))
 		x_nr_bits = 65 + uint((uint32(tmp1>>52)&0x7ff)-0x3ff)
 	}
 	q = int(bid_nr_digits[x_nr_bits-1].digits)
 	if q == 0 {
 		q = int(bid_nr_digits[x_nr_bits-1].digits1)
-		if C1.w[1] > bid_nr_digits[x_nr_bits-1].threshold_hi ||
-			(C1.w[1] == bid_nr_digits[x_nr_bits-1].threshold_hi &&
-				C1.w[0] >= bid_nr_digits[x_nr_bits-1].threshold_lo) {
+		if C1.hi > bid_nr_digits[x_nr_bits-1].threshold_hi ||
+			(C1.hi == bid_nr_digits[x_nr_bits-1].threshold_hi &&
+				C1.lo >= bid_nr_digits[x_nr_bits-1].threshold_lo) {
 			q++
 		}
 	}
@@ -83,7 +83,7 @@ func bid128_check_overflow_10(C1 BID_UINT128, x_sign uint64, q int,
 
 	if x_sign != 0 { // if n < 0 and q + exp = 10
 		if q <= 11 {
-			tmp64 = C1.w[0] * bid_ten2k64[11-q]
+			tmp64 = C1.lo * bid_ten2k64[11-q]
 			if neg_cmp_ge {
 				if tmp64 >= neg_limit {
 					pfpsf |= BID_INVALID_EXCEPTION
@@ -103,12 +103,12 @@ func bid128_check_overflow_10(C1 BID_UINT128, x_sign uint64, q int,
 				C = __mul_128x64_to_128(tmp64, bid_ten2k128[q-31])
 			}
 			if neg_cmp_ge {
-				if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] >= C.w[0]) {
+				if C1.hi > C.hi || (C1.hi == C.hi && C1.lo >= C.lo) {
 					pfpsf |= BID_INVALID_EXCEPTION
 					return true, pfpsf
 				}
 			} else {
-				if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] > C.w[0]) {
+				if C1.hi > C.hi || (C1.hi == C.hi && C1.lo > C.lo) {
 					pfpsf |= BID_INVALID_EXCEPTION
 					return true, pfpsf
 				}
@@ -116,7 +116,7 @@ func bid128_check_overflow_10(C1 BID_UINT128, x_sign uint64, q int,
 		}
 	} else { // if n > 0
 		if q <= 11 {
-			tmp64 = C1.w[0] * bid_ten2k64[11-q]
+			tmp64 = C1.lo * bid_ten2k64[11-q]
 			if pos_cmp_ge {
 				if tmp64 >= pos_limit {
 					pfpsf |= BID_INVALID_EXCEPTION
@@ -136,12 +136,12 @@ func bid128_check_overflow_10(C1 BID_UINT128, x_sign uint64, q int,
 				C = __mul_128x64_to_128(tmp64, bid_ten2k128[q-31])
 			}
 			if pos_cmp_ge {
-				if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] >= C.w[0]) {
+				if C1.hi > C.hi || (C1.hi == C.hi && C1.lo >= C.lo) {
 					pfpsf |= BID_INVALID_EXCEPTION
 					return true, pfpsf
 				}
 			} else {
-				if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] > C.w[0]) {
+				if C1.hi > C.hi || (C1.hi == C.hi && C1.lo > C.lo) {
 					pfpsf |= BID_INVALID_EXCEPTION
 					return true, pfpsf
 				}
@@ -160,28 +160,28 @@ func bid128_round_rnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64) {
 
 	// chop off ind digits from the lower part of C1
 	// C1 = C1 + 1/2 * 10^ind where the result C1 fits in 127 bits
-	tmp64 := C1.w[0]
+	tmp64 := C1.lo
 	if ind <= 19 {
-		C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+		C1.lo = C1.lo + bid_midpoint64[ind-1]
 	} else {
-		C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-		C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+		C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+		C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 	}
-	if C1.w[0] < tmp64 {
-		C1.w[1]++
+	if C1.lo < tmp64 {
+		C1.hi++
 	}
 	// calculate C* and f*
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.w[1] = P256.w[3]
-		Cstar.w[0] = P256.w[2]
+		Cstar.hi = P256.w[3]
+		Cstar.lo = P256.w[2]
 		fstar.w[3] = 0
 		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 		fstar.w[1] = P256.w[1]
 		fstar.w[0] = P256.w[0]
 	} else {
-		Cstar.w[1] = 0
-		Cstar.w[0] = P256.w[3]
+		Cstar.hi = 0
+		Cstar.lo = P256.w[3]
 		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 		fstar.w[2] = P256.w[2]
 		fstar.w[1] = P256.w[1]
@@ -191,22 +191,22 @@ func bid128_round_rnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64) {
 	// shift right C* by Ex-128 = bid_shiftright128[ind]
 	shift := bid_shiftright128[ind-1]
 	if ind-1 <= 21 {
-		Cstar.w[0] = (Cstar.w[0] >> uint(shift)) | (Cstar.w[1] << uint(64-shift))
+		Cstar.lo = (Cstar.lo >> uint(shift)) | (Cstar.hi << uint(64-shift))
 	} else {
-		Cstar.w[0] = Cstar.w[0] >> uint(shift-64)
+		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 	// check for midpoints
 	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
 		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].w[1] ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].w[0])) {
+		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
 		// the result is a midpoint; round to nearest
-		if Cstar.w[0]&0x01 != 0 {
-			Cstar.w[0]--
+		if Cstar.lo&0x01 != 0 {
+			Cstar.lo--
 		}
 	}
-	return Cstar.w[0]
+	return Cstar.lo
 }
 
 // bid128_round_floor_ceil_int_common rounds C1 with direction-aware rounding.
@@ -222,27 +222,27 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 	_ = is_midpoint_gt_even
 
 	// chop off ind digits from the lower part of C1
-	tmp64 := C1.w[0]
+	tmp64 := C1.lo
 	if ind <= 19 {
-		C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+		C1.lo = C1.lo + bid_midpoint64[ind-1]
 	} else {
-		C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-		C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+		C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+		C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 	}
-	if C1.w[0] < tmp64 {
-		C1.w[1]++
+	if C1.lo < tmp64 {
+		C1.hi++
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.w[1] = P256.w[3]
-		Cstar.w[0] = P256.w[2]
+		Cstar.hi = P256.w[3]
+		Cstar.lo = P256.w[2]
 		fstar.w[3] = 0
 		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 		fstar.w[1] = P256.w[1]
 		fstar.w[0] = P256.w[0]
 	} else {
-		Cstar.w[1] = 0
-		Cstar.w[0] = P256.w[3]
+		Cstar.hi = 0
+		Cstar.lo = P256.w[3]
 		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 		fstar.w[2] = P256.w[2]
 		fstar.w[1] = P256.w[1]
@@ -251,9 +251,9 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 
 	shift := bid_shiftright128[ind-1]
 	if ind-1 <= 21 {
-		Cstar.w[0] = (Cstar.w[0] >> uint(shift)) | (Cstar.w[1] << uint(64-shift))
+		Cstar.lo = (Cstar.lo >> uint(shift)) | (Cstar.hi << uint(64-shift))
 	} else {
-		Cstar.w[0] = Cstar.w[0] >> uint(shift-64)
+		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 
 	// determine inexactness
@@ -261,9 +261,9 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 	if ind-1 <= 2 {
 		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
 			tmp64 = fstar.w[1] - 0x8000000000000000
-			if tmp64 > bid_ten2mk128trunc[ind-1].w[1] ||
-				(tmp64 == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].w[0]) {
+			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
+				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -280,9 +280,9 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -294,9 +294,9 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
 			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
 			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -307,11 +307,11 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 	// check for midpoints
 	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
 		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].w[1] ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].w[0])) {
-		if Cstar.w[0]&0x01 != 0 {
-			Cstar.w[0]--
+		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
+		if Cstar.lo&0x01 != 0 {
+			Cstar.lo--
 			is_midpoint_gt_even = 1
 			is_inexact_lt_midpoint = 0
 			is_inexact_gt_midpoint = 0
@@ -325,22 +325,22 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 	switch mode {
 	case 0: // floor (RM)
 		if x_sign != 0 && (is_midpoint_gt_even != 0 || is_inexact_lt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] + 1
+			Cstar.lo = Cstar.lo + 1
 		} else if x_sign == 0 && (is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] - 1
+			Cstar.lo = Cstar.lo - 1
 		}
 	case 1: // ceil (RP)
 		if x_sign != 0 && (is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] - 1
+			Cstar.lo = Cstar.lo - 1
 		} else if x_sign == 0 && (is_midpoint_gt_even != 0 || is_inexact_lt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] + 1
+			Cstar.lo = Cstar.lo + 1
 		}
 	case 2: // int/truncate (RZ)
 		if is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0 {
-			Cstar.w[0] = Cstar.w[0] - 1
+			Cstar.lo = Cstar.lo - 1
 		}
 	}
-	return Cstar.w[0]
+	return Cstar.lo
 }
 
 func bid128_trunc_inexact_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, inexact bool) {
@@ -350,15 +350,15 @@ func bid128_trunc_inexact_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, inex
 
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.w[1] = P256.w[3]
-		Cstar.w[0] = P256.w[2]
+		Cstar.hi = P256.w[3]
+		Cstar.lo = P256.w[2]
 		fstar.w[3] = 0
 		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 		fstar.w[1] = P256.w[1]
 		fstar.w[0] = P256.w[0]
 	} else {
-		Cstar.w[1] = 0
-		Cstar.w[0] = P256.w[3]
+		Cstar.hi = 0
+		Cstar.lo = P256.w[3]
 		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 		fstar.w[2] = P256.w[2]
 		fstar.w[1] = P256.w[1]
@@ -367,28 +367,28 @@ func bid128_trunc_inexact_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, inex
 
 	shift := bid_shiftright128[ind-1]
 	if ind-1 <= 21 {
-		Cstar.w[0] = (Cstar.w[0] >> uint(shift)) | (Cstar.w[1] << uint(64-shift))
+		Cstar.lo = (Cstar.lo >> uint(shift)) | (Cstar.hi << uint(64-shift))
 	} else {
-		Cstar.w[0] = Cstar.w[0] >> uint(shift-64)
+		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 
 	if ind-1 <= 2 {
-		inexact = fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-				fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0])
+		inexact = fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w[0] > bid_ten2mk128trunc[ind-1].lo)
 	} else if ind-1 <= 21 {
 		inexact = fstar.w[2] != 0 ||
-			fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-				fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0])
+			fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w[0] > bid_ten2mk128trunc[ind-1].lo)
 	} else {
 		inexact = fstar.w[3] != 0 || fstar.w[2] != 0 ||
-			fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-				fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0])
+			fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w[0] > bid_ten2mk128trunc[ind-1].lo)
 	}
 
-	return Cstar.w[0], inexact
+	return Cstar.lo, inexact
 }
 
 func bid128_round_trunc_mode_common(C1 BID_UINT128, ind int, x_sign uint64, mode int, setInexact bool) (Cstar_w0 uint64, pfpsf uint32) {
@@ -416,27 +416,27 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 	var fstar BID_UINT256
 	var P256 BID_UINT256
 
-	tmp64 := C1.w[0]
+	tmp64 := C1.lo
 	if ind <= 19 {
-		C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+		C1.lo = C1.lo + bid_midpoint64[ind-1]
 	} else {
-		C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-		C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+		C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+		C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 	}
-	if C1.w[0] < tmp64 {
-		C1.w[1]++
+	if C1.lo < tmp64 {
+		C1.hi++
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.w[1] = P256.w[3]
-		Cstar.w[0] = P256.w[2]
+		Cstar.hi = P256.w[3]
+		Cstar.lo = P256.w[2]
 		fstar.w[3] = 0
 		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 		fstar.w[1] = P256.w[1]
 		fstar.w[0] = P256.w[0]
 	} else {
-		Cstar.w[1] = 0
-		Cstar.w[0] = P256.w[3]
+		Cstar.hi = 0
+		Cstar.lo = P256.w[3]
 		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 		fstar.w[2] = P256.w[2]
 		fstar.w[1] = P256.w[1]
@@ -445,9 +445,9 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 
 	shift := bid_shiftright128[ind-1]
 	if ind-1 <= 21 {
-		Cstar.w[0] = (Cstar.w[0] >> uint(shift)) | (Cstar.w[1] << uint(64-shift))
+		Cstar.lo = (Cstar.lo >> uint(shift)) | (Cstar.hi << uint(64-shift))
 	} else {
-		Cstar.w[0] = Cstar.w[0] >> uint(shift-64)
+		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 
 	// determine inexactness
@@ -455,9 +455,9 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 	if ind-1 <= 2 {
 		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
 			tmp64 = fstar.w[1] - 0x8000000000000000
-			if tmp64 > bid_ten2mk128trunc[ind-1].w[1] ||
-				(tmp64 == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].w[0]) {
+			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
+				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
@@ -474,9 +474,9 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
@@ -488,9 +488,9 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
 			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
 			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
@@ -501,14 +501,14 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 	// check for midpoints
 	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
 		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].w[1] ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].w[0])) {
-		if Cstar.w[0]&0x01 != 0 {
-			Cstar.w[0]--
+		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
+		if Cstar.lo&0x01 != 0 {
+			Cstar.lo--
 		}
 	}
-	return Cstar.w[0], pfpsf
+	return Cstar.lo, pfpsf
 }
 
 // bid128_round_xfloor_xceil_xint_common rounds with INEXACT flag for xfloor/xceil/xint.
@@ -523,27 +523,27 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 	var is_midpoint_gt_even int
 	_ = is_midpoint_gt_even
 
-	tmp64 := C1.w[0]
+	tmp64 := C1.lo
 	if ind <= 19 {
-		C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+		C1.lo = C1.lo + bid_midpoint64[ind-1]
 	} else {
-		C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-		C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+		C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+		C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 	}
-	if C1.w[0] < tmp64 {
-		C1.w[1]++
+	if C1.lo < tmp64 {
+		C1.hi++
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.w[1] = P256.w[3]
-		Cstar.w[0] = P256.w[2]
+		Cstar.hi = P256.w[3]
+		Cstar.lo = P256.w[2]
 		fstar.w[3] = 0
 		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 		fstar.w[1] = P256.w[1]
 		fstar.w[0] = P256.w[0]
 	} else {
-		Cstar.w[1] = 0
-		Cstar.w[0] = P256.w[3]
+		Cstar.hi = 0
+		Cstar.lo = P256.w[3]
 		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 		fstar.w[2] = P256.w[2]
 		fstar.w[1] = P256.w[1]
@@ -552,9 +552,9 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 
 	shift := bid_shiftright128[ind-1]
 	if ind-1 <= 21 {
-		Cstar.w[0] = (Cstar.w[0] >> uint(shift)) | (Cstar.w[1] << uint(64-shift))
+		Cstar.lo = (Cstar.lo >> uint(shift)) | (Cstar.hi << uint(64-shift))
 	} else {
-		Cstar.w[0] = Cstar.w[0] >> uint(shift-64)
+		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 
 	// determine inexactness
@@ -562,9 +562,9 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 	if ind-1 <= 2 {
 		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
 			tmp64 = fstar.w[1] - 0x8000000000000000
-			if tmp64 > bid_ten2mk128trunc[ind-1].w[1] ||
-				(tmp64 == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].w[0]) {
+			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
+				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -581,9 +581,9 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -595,9 +595,9 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
 			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
 			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -608,11 +608,11 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 	// check for midpoints
 	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
 		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].w[1] ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].w[0])) {
-		if Cstar.w[0]&0x01 != 0 {
-			Cstar.w[0]--
+		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
+		if Cstar.lo&0x01 != 0 {
+			Cstar.lo--
 			is_midpoint_gt_even = 1
 			is_inexact_lt_midpoint = 0
 			is_inexact_gt_midpoint = 0
@@ -631,22 +631,22 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 	switch mode {
 	case 0: // xfloor (RM)
 		if x_sign != 0 && (is_midpoint_gt_even != 0 || is_inexact_lt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] + 1
+			Cstar.lo = Cstar.lo + 1
 		} else if x_sign == 0 && (is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] - 1
+			Cstar.lo = Cstar.lo - 1
 		}
 	case 1: // xceil (RP)
 		if x_sign != 0 && (is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] - 1
+			Cstar.lo = Cstar.lo - 1
 		} else if x_sign == 0 && (is_midpoint_gt_even != 0 || is_inexact_lt_midpoint != 0) {
-			Cstar.w[0] = Cstar.w[0] + 1
+			Cstar.lo = Cstar.lo + 1
 		}
 	case 2: // xint (RZ)
 		if is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0 {
-			Cstar.w[0] = Cstar.w[0] - 1
+			Cstar.lo = Cstar.lo - 1
 		}
 	}
-	return Cstar.w[0], pfpsf
+	return Cstar.lo, pfpsf
 }
 
 // bid128_round_rninta_common rounds C1 to integer using round-to-nearest-away.
@@ -654,33 +654,33 @@ func bid128_round_rninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64) {
 	var Cstar BID_UINT128
 	var P256 BID_UINT256
 
-	tmp64 := C1.w[0]
+	tmp64 := C1.lo
 	if ind <= 19 {
-		C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+		C1.lo = C1.lo + bid_midpoint64[ind-1]
 	} else {
-		C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-		C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+		C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+		C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 	}
-	if C1.w[0] < tmp64 {
-		C1.w[1]++
+	if C1.lo < tmp64 {
+		C1.hi++
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.w[1] = P256.w[3]
-		Cstar.w[0] = P256.w[2]
+		Cstar.hi = P256.w[3]
+		Cstar.lo = P256.w[2]
 	} else {
-		Cstar.w[1] = 0
-		Cstar.w[0] = P256.w[3]
+		Cstar.hi = 0
+		Cstar.lo = P256.w[3]
 	}
 
 	shift := bid_shiftright128[ind-1]
 	if ind-1 <= 21 {
-		Cstar.w[0] = (Cstar.w[0] >> uint(shift)) | (Cstar.w[1] << uint(64-shift))
+		Cstar.lo = (Cstar.lo >> uint(shift)) | (Cstar.hi << uint(64-shift))
 	} else {
-		Cstar.w[0] = Cstar.w[0] >> uint(shift-64)
+		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 	// no midpoint correction needed for rninta (ties round away from zero)
-	return Cstar.w[0]
+	return Cstar.lo
 }
 
 // bid128_round_xrninta_common rounds C1 with INEXACT flag detection for xrninta.
@@ -689,27 +689,27 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 	var fstar BID_UINT256
 	var P256 BID_UINT256
 
-	tmp64 := C1.w[0]
+	tmp64 := C1.lo
 	if ind <= 19 {
-		C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+		C1.lo = C1.lo + bid_midpoint64[ind-1]
 	} else {
-		C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-		C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+		C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+		C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 	}
-	if C1.w[0] < tmp64 {
-		C1.w[1]++
+	if C1.lo < tmp64 {
+		C1.hi++
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.w[1] = P256.w[3]
-		Cstar.w[0] = P256.w[2]
+		Cstar.hi = P256.w[3]
+		Cstar.lo = P256.w[2]
 		fstar.w[3] = 0
 		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 		fstar.w[1] = P256.w[1]
 		fstar.w[0] = P256.w[0]
 	} else {
-		Cstar.w[1] = 0
-		Cstar.w[0] = P256.w[3]
+		Cstar.hi = 0
+		Cstar.lo = P256.w[3]
 		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 		fstar.w[2] = P256.w[2]
 		fstar.w[1] = P256.w[1]
@@ -718,9 +718,9 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 
 	shift := bid_shiftright128[ind-1]
 	if ind-1 <= 21 {
-		Cstar.w[0] = (Cstar.w[0] >> uint(shift)) | (Cstar.w[1] << uint(64-shift))
+		Cstar.lo = (Cstar.lo >> uint(shift)) | (Cstar.hi << uint(64-shift))
 	} else {
-		Cstar.w[0] = Cstar.w[0] >> uint(shift-64)
+		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 
 	// determine inexactness for xrninta
@@ -728,9 +728,9 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 	if ind-1 <= 2 {
 		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
 			tmp64 = fstar.w[1] - 0x8000000000000000
-			if tmp64 > bid_ten2mk128trunc[ind-1].w[1] ||
-				(tmp64 == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].w[0]) {
+			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
+				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
@@ -747,9 +747,9 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
@@ -761,9 +761,9 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
 			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
 			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].w[1] ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].w[1] &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].w[0]) {
+				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
@@ -772,7 +772,7 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 	}
 
 	// no midpoint correction for rninta
-	return Cstar.w[0], pfpsf
+	return Cstar.lo, pfpsf
 }
 
 // ============================================================================
@@ -793,7 +793,7 @@ func Bid128ToInt32Rnint(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -817,7 +817,7 @@ func Bid128ToInt32Rnint(x BID_UINT128) (int32, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] <= bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo <= bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -825,9 +825,9 @@ func Bid128ToInt32Rnint(x BID_UINT128) (int32, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] <= bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo <= bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -846,15 +846,15 @@ func Bid128ToInt32Rnint(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -875,7 +875,7 @@ func Bid128ToInt32Xrnint(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -899,7 +899,7 @@ func Bid128ToInt32Xrnint(x BID_UINT128) (int32, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] <= bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo <= bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -907,9 +907,9 @@ func Bid128ToInt32Xrnint(x BID_UINT128) (int32, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] <= bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo <= bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -930,15 +930,15 @@ func Bid128ToInt32Xrnint(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -959,7 +959,7 @@ func Bid128ToInt32Floor(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -994,15 +994,15 @@ func Bid128ToInt32Floor(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1023,7 +1023,7 @@ func Bid128ToInt32Xfloor(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1060,15 +1060,15 @@ func Bid128ToInt32Xfloor(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1089,7 +1089,7 @@ func Bid128ToInt32Ceil(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1124,15 +1124,15 @@ func Bid128ToInt32Ceil(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1153,7 +1153,7 @@ func Bid128ToInt32Xceil(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1190,15 +1190,15 @@ func Bid128ToInt32Xceil(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1219,7 +1219,7 @@ func Bid128ToInt32Int(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1251,15 +1251,15 @@ func Bid128ToInt32Int(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1280,7 +1280,7 @@ func Bid128ToInt32Xint(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1313,15 +1313,15 @@ func Bid128ToInt32Xint(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1342,7 +1342,7 @@ func Bid128ToInt32Rninta(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1366,7 +1366,7 @@ func Bid128ToInt32Rninta(x BID_UINT128) (int32, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] < bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo < bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1374,9 +1374,9 @@ func Bid128ToInt32Rninta(x BID_UINT128) (int32, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] < bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo < bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1395,15 +1395,15 @@ func Bid128ToInt32Rninta(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1424,7 +1424,7 @@ func Bid128ToInt32Xrninta(x BID_UINT128) (int32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1448,7 +1448,7 @@ func Bid128ToInt32Xrninta(x BID_UINT128) (int32, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] < bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo < bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1456,9 +1456,9 @@ func Bid128ToInt32Xrninta(x BID_UINT128) (int32, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] < bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo < bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1479,15 +1479,15 @@ func Bid128ToInt32Xrninta(x BID_UINT128) (int32, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int32(C1.w[0])
+				res = -int32(C1.lo)
 			} else {
-				res = int32(C1.w[0])
+				res = int32(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int32(C1.w[0] * bid_ten2k64[exp])
+				res = -int32(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int32(C1.w[0] * bid_ten2k64[exp])
+				res = int32(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1506,43 +1506,43 @@ func bid128_check_overflow_19(x BID_UINT128, x_sign uint64, C1 BID_UINT128, q in
 	var pfpsf uint32
 
 	if x_sign != 0 {
-		C.w[1] = neg_hi
-		C.w[0] = neg_lo
+		C.hi = neg_hi
+		C.lo = neg_lo
 		if q <= 19 {
-			C1 = __mul_64x64_to_128(C1.w[0], bid_ten2k64[20-q])
+			C1 = __mul_64x64_to_128(C1.lo, bid_ten2k64[20-q])
 		} else if q == 20 {
 			// C1 * 10^0 = C1
 		} else {
 			C = __mul_128x64_to_128(bid_ten2k64[q-20], C)
 		}
 		if neg_cmp_ge {
-			if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] >= C.w[0]) {
+			if C1.hi > C.hi || (C1.hi == C.hi && C1.lo >= C.lo) {
 				pfpsf |= BID_INVALID_EXCEPTION
 				return true, pfpsf, C1
 			}
 		} else {
-			if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] > C.w[0]) {
+			if C1.hi > C.hi || (C1.hi == C.hi && C1.lo > C.lo) {
 				pfpsf |= BID_INVALID_EXCEPTION
 				return true, pfpsf, C1
 			}
 		}
 	} else {
-		C.w[1] = pos_hi
-		C.w[0] = pos_lo
+		C.hi = pos_hi
+		C.lo = pos_lo
 		if q <= 19 {
-			C1 = __mul_64x64_to_128(C1.w[0], bid_ten2k64[20-q])
+			C1 = __mul_64x64_to_128(C1.lo, bid_ten2k64[20-q])
 		} else if q == 20 {
 			// C1 * 10^0 = C1
 		} else {
 			C = __mul_128x64_to_128(bid_ten2k64[q-20], C)
 		}
 		if pos_cmp_ge {
-			if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] >= C.w[0]) {
+			if C1.hi > C.hi || (C1.hi == C.hi && C1.lo >= C.lo) {
 				pfpsf |= BID_INVALID_EXCEPTION
 				return true, pfpsf, C1
 			}
 		} else {
-			if C1.w[1] > C.w[1] || (C1.w[1] == C.w[1] && C1.w[0] > C.w[0]) {
+			if C1.hi > C.hi || (C1.hi == C.hi && C1.lo > C.lo) {
 				pfpsf |= BID_INVALID_EXCEPTION
 				return true, pfpsf, C1
 			}
@@ -1552,16 +1552,16 @@ func bid128_check_overflow_19(x BID_UINT128, x_sign uint64, C1 BID_UINT128, q in
 }
 
 func bid128_cmp_128(a, b BID_UINT128) int {
-	if a.w[1] < b.w[1] {
+	if a.hi < b.hi {
 		return -1
 	}
-	if a.w[1] > b.w[1] {
+	if a.hi > b.hi {
 		return 1
 	}
-	if a.w[0] < b.w[0] {
+	if a.lo < b.lo {
 		return -1
 	}
-	if a.w[0] > b.w[0] {
+	if a.lo > b.lo {
 		return 1
 	}
 	return 0
@@ -1575,18 +1575,18 @@ func bid128_check_overflow_20(C1 BID_UINT128, x_sign uint64, q int,
 	var cmp int
 	var pfpsf uint32
 
-	limit.w[1] = pos_hi
-	limit.w[0] = pos_lo
+	limit.hi = pos_hi
+	limit.lo = pos_lo
 	if x_sign != 0 {
-		limit.w[1] = neg_hi
-		limit.w[0] = neg_lo
+		limit.hi = neg_hi
+		limit.lo = neg_lo
 	}
 
 	if q < 21 {
 		if q == 1 {
-			scaled = __mul_128x64_to_128(C1.w[0], bid_ten2k128[0])
+			scaled = __mul_128x64_to_128(C1.lo, bid_ten2k128[0])
 		} else if q <= 19 {
-			scaled = __mul_64x64_to_128(C1.w[0], bid_ten2k64[21-q])
+			scaled = __mul_64x64_to_128(C1.lo, bid_ten2k64[21-q])
 		} else {
 			scaled = __mul_128x64_to_128(bid_ten2k64[1], C1)
 		}
@@ -1630,7 +1630,7 @@ func bid128_int64_core(x BID_UINT128, roundMode int, setInexact bool,
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1649,8 +1649,8 @@ func bid128_int64_core(x BID_UINT128, roundMode int, setInexact bool,
 		}
 		C1 = newC1
 		// Restore C1 which may have been modified above
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	return qpExpLeqHandler(x_sign, C1, q, exp)
@@ -1670,7 +1670,7 @@ func Bid128ToInt64Rnint(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1688,8 +1688,8 @@ func Bid128ToInt64Rnint(x BID_UINT128) (int64, uint32) {
 			return -0x8000000000000000, f
 		}
 		// Restore C1
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp < 0 {
@@ -1697,7 +1697,7 @@ func Bid128ToInt64Rnint(x BID_UINT128) (int64, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] <= bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo <= bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1705,9 +1705,9 @@ func Bid128ToInt64Rnint(x BID_UINT128) (int64, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] <= bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo <= bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1726,15 +1726,15 @@ func Bid128ToInt64Rnint(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1755,7 +1755,7 @@ func Bid128ToInt64Xrnint(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1772,8 +1772,8 @@ func Bid128ToInt64Xrnint(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp < 0 {
@@ -1782,7 +1782,7 @@ func Bid128ToInt64Xrnint(x BID_UINT128) (int64, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] <= bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo <= bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1790,9 +1790,9 @@ func Bid128ToInt64Xrnint(x BID_UINT128) (int64, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] <= bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo <= bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -1813,15 +1813,15 @@ func Bid128ToInt64Xrnint(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1842,7 +1842,7 @@ func Bid128ToInt64Floor(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1860,8 +1860,8 @@ func Bid128ToInt64Floor(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp <= 0 {
@@ -1880,15 +1880,15 @@ func Bid128ToInt64Floor(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1909,7 +1909,7 @@ func Bid128ToInt64Xfloor(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1926,8 +1926,8 @@ func Bid128ToInt64Xfloor(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp <= 0 {
@@ -1948,15 +1948,15 @@ func Bid128ToInt64Xfloor(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -1976,7 +1976,7 @@ func Bid128ToInt64Ceil(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -1994,8 +1994,8 @@ func Bid128ToInt64Ceil(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp <= 0 {
@@ -2014,15 +2014,15 @@ func Bid128ToInt64Ceil(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -2042,7 +2042,7 @@ func Bid128ToInt64Xceil(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2059,8 +2059,8 @@ func Bid128ToInt64Xceil(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp <= 0 {
@@ -2081,15 +2081,15 @@ func Bid128ToInt64Xceil(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -2109,7 +2109,7 @@ func Bid128ToInt64Int(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2127,8 +2127,8 @@ func Bid128ToInt64Int(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp <= 0 {
@@ -2144,15 +2144,15 @@ func Bid128ToInt64Int(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -2172,7 +2172,7 @@ func Bid128ToInt64Xint(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2189,8 +2189,8 @@ func Bid128ToInt64Xint(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp <= 0 {
@@ -2208,15 +2208,15 @@ func Bid128ToInt64Xint(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -2236,7 +2236,7 @@ func Bid128ToInt64Rninta(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2253,8 +2253,8 @@ func Bid128ToInt64Rninta(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp < 0 {
@@ -2262,7 +2262,7 @@ func Bid128ToInt64Rninta(x BID_UINT128) (int64, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] < bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo < bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -2270,9 +2270,9 @@ func Bid128ToInt64Rninta(x BID_UINT128) (int64, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] < bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo < bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -2291,15 +2291,15 @@ func Bid128ToInt64Rninta(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -2319,7 +2319,7 @@ func Bid128ToInt64Xrninta(x BID_UINT128) (int64, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2336,8 +2336,8 @@ func Bid128ToInt64Xrninta(x BID_UINT128) (int64, uint32) {
 		if invalid {
 			return -0x8000000000000000, f
 		}
-		C1.w[1] = x.w[1] & MASK_COEFF128
-		C1.w[0] = x.w[0]
+		C1.hi = x.hi & MASK_COEFF128
+		C1.lo = x.lo
 	}
 
 	if q+exp < 0 {
@@ -2346,7 +2346,7 @@ func Bid128ToInt64Xrninta(x BID_UINT128) (int64, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] < bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo < bid_midpoint64[ind] {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -2354,9 +2354,9 @@ func Bid128ToInt64Xrninta(x BID_UINT128) (int64, uint32) {
 				res = 1
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] < bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo < bid_midpoint128[ind-19].lo) {
 				res = 0
 			} else if x_sign != 0 {
 				res = -1
@@ -2377,15 +2377,15 @@ func Bid128ToInt64Xrninta(x BID_UINT128) (int64, uint32) {
 			}
 		} else if exp == 0 {
 			if x_sign != 0 {
-				res = -int64(C1.w[0])
+				res = -int64(C1.lo)
 			} else {
-				res = int64(C1.w[0])
+				res = int64(C1.lo)
 			}
 		} else {
 			if x_sign != 0 {
-				res = -int64(C1.w[0] * bid_ten2k64[exp])
+				res = -int64(C1.lo * bid_ten2k64[exp])
 			} else {
-				res = int64(C1.w[0] * bid_ten2k64[exp])
+				res = int64(C1.lo * bid_ten2k64[exp])
 			}
 		}
 	}
@@ -2400,7 +2400,7 @@ func Bid128ToInt64Xrninta(x BID_UINT128) (int64, uint32) {
 func bid128_uint_rnint_qpexp0(C1 BID_UINT128, x_sign uint64, q int) (uint32, uint32) {
 	ind := q - 1
 	if ind <= 18 {
-		if C1.w[1] == 0 && C1.w[0] <= bid_midpoint64[ind] {
+		if C1.hi == 0 && C1.lo <= bid_midpoint64[ind] {
 			return 0, 0
 		} else if x_sign == 0 {
 			return 1, 0
@@ -2408,9 +2408,9 @@ func bid128_uint_rnint_qpexp0(C1 BID_UINT128, x_sign uint64, q int) (uint32, uin
 			return 0x80000000, BID_INVALID_EXCEPTION
 		}
 	} else {
-		if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-			(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-				C1.w[0] <= bid_midpoint128[ind-19].w[0]) {
+		if C1.hi < bid_midpoint128[ind-19].hi ||
+			(C1.hi == bid_midpoint128[ind-19].hi &&
+				C1.lo <= bid_midpoint128[ind-19].lo) {
 			return 0, 0
 		} else if x_sign == 0 {
 			return 1, 0
@@ -2432,7 +2432,7 @@ func Bid128ToUint32Rnint(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2465,9 +2465,9 @@ func Bid128ToUint32Rnint(x BID_UINT128) (uint32, uint32) {
 			Cstar_w0 := bid128_round_rnint_common(C1, ind)
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2484,7 +2484,7 @@ func Bid128ToUint32Xrnint(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2522,9 +2522,9 @@ func Bid128ToUint32Xrnint(x BID_UINT128) (uint32, uint32) {
 			pfpsf |= f
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2541,7 +2541,7 @@ func Bid128ToUint32Floor(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2576,9 +2576,9 @@ func Bid128ToUint32Floor(x BID_UINT128) (uint32, uint32) {
 			Cstar_w0 := bid128_round_floor_ceil_int_common(C1, ind, x_sign, 0)
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2595,7 +2595,7 @@ func Bid128ToUint32Xfloor(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2631,9 +2631,9 @@ func Bid128ToUint32Xfloor(x BID_UINT128) (uint32, uint32) {
 			pfpsf |= f
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2650,7 +2650,7 @@ func Bid128ToUint32Ceil(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2684,9 +2684,9 @@ func Bid128ToUint32Ceil(x BID_UINT128) (uint32, uint32) {
 			Cstar_w0 := bid128_round_floor_ceil_int_common(C1, ind, x_sign, 1)
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2703,7 +2703,7 @@ func Bid128ToUint32Xceil(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2739,9 +2739,9 @@ func Bid128ToUint32Xceil(x BID_UINT128) (uint32, uint32) {
 			pfpsf |= f
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2758,7 +2758,7 @@ func Bid128ToUint32Int(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2791,9 +2791,9 @@ func Bid128ToUint32Int(x BID_UINT128) (uint32, uint32) {
 			Cstar_w0 := bid128_round_floor_ceil_int_common(C1, ind, x_sign, 2)
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2810,7 +2810,7 @@ func Bid128ToUint32Xint(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2846,9 +2846,9 @@ func Bid128ToUint32Xint(x BID_UINT128) (uint32, uint32) {
 			pfpsf |= f
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2865,7 +2865,7 @@ func Bid128ToUint32Rninta(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2888,7 +2888,7 @@ func Bid128ToUint32Rninta(x BID_UINT128) (uint32, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] < bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo < bid_midpoint64[ind] {
 				return 0, 0
 			} else if x_sign == 0 {
 				return 1, 0
@@ -2896,9 +2896,9 @@ func Bid128ToUint32Rninta(x BID_UINT128) (uint32, uint32) {
 				return 0x80000000, BID_INVALID_EXCEPTION
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] < bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo < bid_midpoint128[ind-19].lo) {
 				return 0, 0
 			} else if x_sign == 0 {
 				return 1, 0
@@ -2916,9 +2916,9 @@ func Bid128ToUint32Rninta(x BID_UINT128) (uint32, uint32) {
 			Cstar_w0 := bid128_round_rninta_common(C1, ind)
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -2935,7 +2935,7 @@ func Bid128ToUint32Xrninta(x BID_UINT128) (uint32, uint32) {
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -2959,7 +2959,7 @@ func Bid128ToUint32Xrninta(x BID_UINT128) (uint32, uint32) {
 	} else if q+exp == 0 {
 		ind := q - 1
 		if ind <= 18 {
-			if C1.w[1] == 0 && C1.w[0] < bid_midpoint64[ind] {
+			if C1.hi == 0 && C1.lo < bid_midpoint64[ind] {
 				return 0, BID_INEXACT_EXCEPTION
 			} else if x_sign == 0 {
 				return 1, BID_INEXACT_EXCEPTION
@@ -2967,9 +2967,9 @@ func Bid128ToUint32Xrninta(x BID_UINT128) (uint32, uint32) {
 				return 0x80000000, BID_INVALID_EXCEPTION
 			}
 		} else {
-			if C1.w[1] < bid_midpoint128[ind-19].w[1] ||
-				(C1.w[1] == bid_midpoint128[ind-19].w[1] &&
-					C1.w[0] < bid_midpoint128[ind-19].w[0]) {
+			if C1.hi < bid_midpoint128[ind-19].hi ||
+				(C1.hi == bid_midpoint128[ind-19].hi &&
+					C1.lo < bid_midpoint128[ind-19].lo) {
 				return 0, BID_INEXACT_EXCEPTION
 			} else if x_sign == 0 {
 				return 1, BID_INEXACT_EXCEPTION
@@ -2988,9 +2988,9 @@ func Bid128ToUint32Xrninta(x BID_UINT128) (uint32, uint32) {
 			pfpsf |= f
 			return uint32(Cstar_w0), pfpsf
 		} else if exp == 0 {
-			return uint32(C1.w[0]), 0
+			return uint32(C1.lo), 0
 		} else {
-			return uint32(C1.w[0] * bid_ten2k64[exp]), 0
+			return uint32(C1.lo * bid_ten2k64[exp]), 0
 		}
 	}
 }
@@ -3045,27 +3045,27 @@ func Bid128ToUint64Xrninta(x BID_UINT128) (uint64, uint32) {
 func bid128_uint_midpoint_cmp(C1 BID_UINT128, q int) int {
 	ind := q - 1
 	if ind <= 18 {
-		if C1.w[1] == 0 {
-			if C1.w[0] < bid_midpoint64[ind] {
+		if C1.hi == 0 {
+			if C1.lo < bid_midpoint64[ind] {
 				return -1
 			}
-			if C1.w[0] > bid_midpoint64[ind] {
+			if C1.lo > bid_midpoint64[ind] {
 				return 1
 			}
 			return 0
 		}
 		return 1
 	}
-	if C1.w[1] < bid_midpoint128[ind-19].w[1] {
+	if C1.hi < bid_midpoint128[ind-19].hi {
 		return -1
 	}
-	if C1.w[1] > bid_midpoint128[ind-19].w[1] {
+	if C1.hi > bid_midpoint128[ind-19].hi {
 		return 1
 	}
-	if C1.w[0] < bid_midpoint128[ind-19].w[0] {
+	if C1.lo < bid_midpoint128[ind-19].lo {
 		return -1
 	}
-	if C1.w[0] > bid_midpoint128[ind-19].w[0] {
+	if C1.lo > bid_midpoint128[ind-19].lo {
 		return 1
 	}
 	return 0
@@ -3083,7 +3083,7 @@ func bid128_to_uint64_core(x BID_UINT128, mode int, setInexact bool) (uint64, ui
 	if bid128_is_noncanonical(C1, x) {
 		return 0, 0
 	}
-	if C1.w[1] == 0 && C1.w[0] == 0 {
+	if C1.hi == 0 && C1.lo == 0 {
 		return 0, 0
 	}
 
@@ -3249,9 +3249,9 @@ func bid128_to_uint64_core(x BID_UINT128, mode int, setInexact bool) (uint64, ui
 			return bid128_round_rninta_common(C1, ind), 0
 		}
 	} else if exp == 0 {
-		return C1.w[0], 0
+		return C1.lo, 0
 	}
-	return C1.w[0] * bid_ten2k64[exp], 0
+	return C1.lo * bid_ten2k64[exp], 0
 }
 
 // ============================================================================

@@ -71,8 +71,8 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     let mut gt_half_ulp: i64 = 0;
     let mut is_tiny: i64 = 0;
     let mut R64: u64 = 0;
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut R128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
@@ -98,8 +98,8 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     if ((p34 <= (delta.wrapping_sub(1))) || (((p34 == delta) && ((e3.wrapping_add(6176)) < (p34.wrapping_sub(q3)))))) {
         if ((((q3.wrapping_add(e3))) > ((p34.wrapping_add(0x17df)))) && (p34 <= (delta.wrapping_sub(1)))) {
             if (rnd_mode == 0) {
-                res.w[1] = (z_sign | 0x7800000000000000);
-                res.w[0] = 0x0000000000000000;
+                res.hi = (z_sign | 0x7800000000000000);
+                res.lo = 0x0000000000000000;
                 (*pfpsf) |= (32 | 8);
             } else {
                 if (p_sign == z_sign) {
@@ -109,21 +109,21 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
                 }
                 scale = (p34.wrapping_sub(q3));
                 if (scale == 0) {
-                    res.w[1] = (z_sign | C3.w[1]);
-                    res.w[0] = C3.w[0];
+                    res.hi = (z_sign | C3.hi);
+                    res.lo = C3.lo;
                 } else {
                     if (q3 <= 19) {
                         if (scale <= 19) {
-                            (*res) = __mul_64x64_to_128(C3.w[0], bid_ten2k64[scale as usize]);
+                            (*res) = __mul_64x64_to_128(C3.lo, bid_ten2k64[scale as usize]);
                         } else {
-                            (*res) = __mul_64x128_to_128(C3.w[0], bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
+                            (*res) = __mul_64x128_to_128(C3.lo, bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
                         }
                     } else {
                         (*res) = __mul_64x128_to_128(bid_ten2k64[scale as usize], (*C3));
                     }
                 }
                 e3 = (e3.wrapping_sub(scale));
-                res.w[1] = (z_sign | res.w[1]);
+                res.hi = (z_sign | res.hi);
                 bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
             }
             (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
@@ -139,30 +139,30 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
                 scale = ind;
             }
             if (scale == 0) {
-                res.w[1] = C3.w[1];
-                res.w[0] = C3.w[0];
+                res.hi = C3.hi;
+                res.lo = C3.lo;
             } else if (q3 <= 19) {
                 if (scale <= 19) {
-                    (*res) = __mul_64x64_to_128(C3.w[0], bid_ten2k64[scale as usize]);
+                    (*res) = __mul_64x64_to_128(C3.lo, bid_ten2k64[scale as usize]);
                 } else {
-                    (*res) = __mul_64x128_to_128(C3.w[0], bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
+                    (*res) = __mul_64x128_to_128(C3.lo, bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
                 }
             } else {
                 (*res) = __mul_64x128_to_128(bid_ten2k64[scale as usize], (*C3));
             }
             z_exp = (z_exp.wrapping_sub(((go_checked_shl_u64((scale as u64), go_shift_count_u64((49) as u64))))));
             e3 = (e3.wrapping_sub(scale));
-            res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+            res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
             if ((scale.wrapping_add(q3)) < p34) {
                 (*pfpsf) |= 16;
             }
         } else {
             scale = 0;
-            res.w[1] = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | C3.w[1]);
-            res.w[0] = C3.w[0];
+            res.hi = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | C3.hi);
+            res.lo = C3.lo;
         }
         if ((p_sign != z_sign) && ((delta == (((q3.wrapping_add(scale)).wrapping_add(1)))))) {
-            if (((((q3 <= 19) && (C3.w[0] != bid_ten2k64[(q3.wrapping_sub(1)) as usize]))) || (((q3 == 20) && (((C3.w[1] != 0) || (C3.w[0] != bid_ten2k64[19])))))) || (((q3 >= 21) && (((C3.w[1] != bid_ten2k128[(q3.wrapping_sub(21)) as usize].w[1]) || (C3.w[0] != bid_ten2k128[(q3.wrapping_sub(21)) as usize].w[0])))))) {
+            if (((((q3 <= 19) && (C3.lo != bid_ten2k64[(q3.wrapping_sub(1)) as usize]))) || (((q3 == 20) && (((C3.hi != 0) || (C3.lo != bid_ten2k64[19])))))) || (((q3 >= 21) && (((C3.hi != bid_ten2k128[(q3.wrapping_sub(21)) as usize].hi) || (C3.lo != bid_ten2k128[(q3.wrapping_sub(21)) as usize].lo)))))) {
                 is_inexact_gt_midpoint = 1;
             } else {
                 if (q4 == 1) {
@@ -171,10 +171,10 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
                     if (q4 <= 18) {
                         R64 = bid_round64_2_18(q4, (q4.wrapping_sub(1)), C4.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
                     } else if (q4 <= 38) {
-                        P128.w[1] = C4.w[1];
-                        P128.w[0] = C4.w[0];
+                        P128.hi = C4.w[1];
+                        P128.lo = C4.w[0];
                         (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, (q4.wrapping_sub(1)), P128);
-                        R64 = R128.w[0];
+                        R64 = R128.lo;
                     } else if (q4 <= 57) {
                         P192.w[2] = C4.w[2];
                         P192.w[1] = C4.w[1];
@@ -205,16 +205,16 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
                     is_midpoint_lt_even = 0;
                     is_midpoint_gt_even = 0;
                     if (((q3.wrapping_add(scale))) <= 19) {
-                        res.w[1] = 0;
-                        res.w[0] = bid_ten2k64[(q3.wrapping_add(scale)) as usize];
+                        res.hi = 0;
+                        res.lo = bid_ten2k64[(q3.wrapping_add(scale)) as usize];
                     } else {
-                        res.w[1] = bid_ten2k128[((q3.wrapping_add(scale)).wrapping_sub(20)) as usize].w[1];
-                        res.w[0] = bid_ten2k128[((q3.wrapping_add(scale)).wrapping_sub(20)) as usize].w[0];
+                        res.hi = bid_ten2k128[((q3.wrapping_add(scale)).wrapping_sub(20)) as usize].hi;
+                        res.lo = bid_ten2k128[((q3.wrapping_add(scale)).wrapping_sub(20)) as usize].lo;
                     }
-                    res.w[0] = (res.w[0].wrapping_sub(1));
+                    res.lo = (res.lo.wrapping_sub(1));
                     z_exp = (z_exp.wrapping_sub(0x2000000000000));
                     e3 = (e3.wrapping_sub(1));
-                    res.w[1] = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.w[1]);
+                    res.hi = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.hi);
                 }
                 if (e3 == -6176) {
                     (*pfpsf) |= 16;
@@ -229,7 +229,7 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
             }
             (*pfpsf) |= 32;
         }
-        if ((((e3 == -6176) && (((q3.wrapping_add(scale))) < p34))) || ((((((e3 == -6176) && (((q3.wrapping_add(scale))) == p34)) && ((res.w[1] & 0x1ffffffffffff) == 0x0000314dc6448d93)) && (res.w[0] == 0x38c15b0a00000000)) && (z_sign != p_sign)))) {
+        if ((((e3 == -6176) && (((q3.wrapping_add(scale))) < p34))) || ((((((e3 == -6176) && (((q3.wrapping_add(scale))) == p34)) && ((res.hi & 0x1ffffffffffff) == 0x0000314dc6448d93)) && (res.lo == 0x38c15b0a00000000)) && (z_sign != p_sign)))) {
             (*pfpsf) |= 16;
         }
         if (rnd_mode != 0) {
@@ -243,13 +243,13 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     } else if (p34 == delta) {
         scale = (p34.wrapping_sub(q3));
         if (scale == 0) {
-            res.w[1] = C3.w[1];
-            res.w[0] = C3.w[0];
+            res.hi = C3.hi;
+            res.lo = C3.lo;
         } else if (q3 <= 19) {
             if (scale <= 19) {
-                (*res) = __mul_64x64_to_128(C3.w[0], bid_ten2k64[scale as usize]);
+                (*res) = __mul_64x64_to_128(C3.lo, bid_ten2k64[scale as usize]);
             } else {
-                (*res) = __mul_64x128_to_128(C3.w[0], bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
+                (*res) = __mul_64x128_to_128(C3.lo, bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
             }
         } else {
             (*res) = __mul_64x128_to_128(bid_ten2k64[scale as usize], (*C3));
@@ -268,9 +268,9 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
                 gt_half_ulp = 1;
             }
         } else if (q4 <= 38) {
-            if ((C4.w[2] == 0) && (((C4.w[1] < bid_midpoint128[(q4.wrapping_sub(20)) as usize].w[1]) || (((C4.w[1] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].w[1]) && (C4.w[0] < bid_midpoint128[(q4.wrapping_sub(20)) as usize].w[0])))))) {
+            if ((C4.w[2] == 0) && (((C4.w[1] < bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi) || (((C4.w[1] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi) && (C4.w[0] < bid_midpoint128[(q4.wrapping_sub(20)) as usize].lo)))))) {
                 lt_half_ulp = 1;
-            } else if (((C4.w[2] == 0) && (C4.w[1] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].w[1])) && (C4.w[0] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].w[0])) {
+            } else if (((C4.w[2] == 0) && (C4.w[1] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi)) && (C4.w[0] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].lo)) {
                 eq_half_ulp = 1;
             } else {
                 gt_half_ulp = 1;
@@ -294,33 +294,33 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
         }
         if (p_sign == z_sign) {
             if (lt_half_ulp != 0) {
-                res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+                res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
                 is_inexact_lt_midpoint = 1;
-            } else if ((((eq_half_ulp != 0) && ((res.w[0] & 0x01) != 0))) || (gt_half_ulp != 0)) {
-                res.w[0] = res.w[0].wrapping_add(1);
-                if (res.w[0] == 0x0) {
-                    res.w[1] = res.w[1].wrapping_add(1);
+            } else if ((((eq_half_ulp != 0) && ((res.lo & 0x01) != 0))) || (gt_half_ulp != 0)) {
+                res.lo = res.lo.wrapping_add(1);
+                if (res.lo == 0x0) {
+                    res.hi = res.hi.wrapping_add(1);
                 }
-                if (((res.w[1] & 0x1ffffffffffff) == 0x0001ed09bead87c0) && (res.w[0] == 0x378d8e6400000000)) {
+                if (((res.hi & 0x1ffffffffffff) == 0x0001ed09bead87c0) && (res.lo == 0x378d8e6400000000)) {
                     e3 = (e3.wrapping_add(1));
                     z_exp = (((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64)))) & 0x7ffe000000000000);
-                    res.w[1] = 0x0000314dc6448d93;
-                    res.w[0] = 0x38c15b0a00000000;
+                    res.hi = 0x0000314dc6448d93;
+                    res.lo = 0x38c15b0a00000000;
                 }
-                res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+                res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
                 if (eq_half_ulp != 0) {
                     is_midpoint_lt_even = 1;
                 } else {
                     is_inexact_gt_midpoint = 1;
                 }
             } else {
-                res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+                res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
                 is_midpoint_gt_even = 1;
             }
             (*pfpsf) |= 32;
             if ((e3 > 0x17df) && (rnd_mode == 0)) {
-                res.w[1] = (z_sign | 0x7800000000000000);
-                res.w[0] = 0x0000000000000000;
+                res.hi = (z_sign | 0x7800000000000000);
+                res.lo = 0x0000000000000000;
                 (*pfpsf) |= (32 | 8);
                 (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
                 (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
@@ -330,12 +330,12 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
             }
             if (rnd_mode != 0) {
                 bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
-                z_exp = (res.w[1] & 0x7ffe000000000000);
+                z_exp = (res.hi & 0x7ffe000000000000);
             }
         } else {
             bid_fma_case1pp_b_psign_ne_zsign(p34, res, (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint), p_sign, z_sign, (&mut z_exp), q3, q4, (&mut e3), scale, C3, C4, lt_half_ulp, eq_half_ulp, gt_half_ulp, rnd_mode, pfpsf);
         }
-        res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | (res.w[1] & 0x1ffffffffffff));
+        res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | (res.hi & 0x1ffffffffffff));
         (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
         (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
         (*ptr_is_inexact_lt_midpoint) = is_inexact_lt_midpoint;
@@ -350,12 +350,12 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
         break 'done;
     } else {
         if ((delta.wrapping_add(q4)) < q3) {
-            P128.w[1] = C3.w[1];
-            P128.w[0] = C3.w[0];
-            C3.w[1] = C4.w[1];
-            C3.w[0] = C4.w[0];
-            C4.w[1] = P128.w[1];
-            C4.w[0] = P128.w[0];
+            P128.hi = C3.hi;
+            P128.lo = C3.lo;
+            C3.hi = C4.w[1];
+            C3.lo = C4.w[0];
+            C4.w[1] = P128.hi;
+            C4.w[0] = P128.lo;
             ind = q3;
             q3 = q4;
             q4 = ind;
@@ -401,8 +401,8 @@ pub(crate) fn bid_fma_delta_lt_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     let mut eq_half_ulp: i64 = 0;
     let mut is_tiny: i64 = 0;
     let mut R64: u64 = 0;
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut R128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
@@ -414,12 +414,12 @@ pub(crate) fn bid_fma_delta_lt_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     if ((p34 < q4) && (q4 <= delta)) {
         bid_fma_case7(p34, res, (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint), p_sign, z_sign, q3, q4, (&mut e4), delta, C3, C4, rnd_mode, pfpsf);
     } else if ((((((((q4 <= p34) && (p34 <= delta))) || ((((q4 <= delta) && (delta < p34)) && (p34 < (delta.wrapping_add(q3)))))) || (((q4 <= delta) && ((delta.wrapping_add(q3)) <= p34)))) || ((((delta < q4) && (q4 <= p34)) && (p34 < (delta.wrapping_add(q3)))))) || ((((delta < q4) && (q4 <= (delta.wrapping_add(q3)))) && ((delta.wrapping_add(q3)) <= p34)))) || ((((delta.wrapping_add(q3)) < q4) && (q4 <= p34)))) {
-        P128.w[1] = C3.w[1];
-        P128.w[0] = C3.w[0];
-        C3.w[1] = C4.w[1];
-        C3.w[0] = C4.w[0];
-        C4.w[1] = P128.w[1];
-        C4.w[0] = P128.w[0];
+        P128.hi = C3.hi;
+        P128.lo = C3.lo;
+        C3.hi = C4.w[1];
+        C3.lo = C4.w[0];
+        C4.w[1] = P128.hi;
+        C4.w[0] = P128.lo;
         ind = q3;
         q3 = q4;
         q4 = ind;
@@ -478,34 +478,34 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
     let mut is_inexact_gt_midpoint: i64 = 0;
     let mut incr_exp: i64 = 0;
     let mut R64: u64 = 0;
-    let mut R128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    if ((res.w[1] != 0x0000314dc6448d93) || (res.w[0] != 0x38c15b0a00000000)) {
+    if ((res.hi != 0x0000314dc6448d93) || (res.lo != 0x38c15b0a00000000)) {
         if (lt_half_ulp != 0) {
-            res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+            res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
             is_inexact_gt_midpoint = 1;
-        } else if ((((eq_half_ulp != 0) && ((res.w[0] & 0x01) != 0))) || (gt_half_ulp != 0)) {
-            res.w[0] = res.w[0].wrapping_sub(1);
-            if (res.w[0] == 0xffffffffffffffff) {
-                res.w[1] = res.w[1].wrapping_sub(1);
+        } else if ((((eq_half_ulp != 0) && ((res.lo & 0x01) != 0))) || (gt_half_ulp != 0)) {
+            res.lo = res.lo.wrapping_sub(1);
+            if (res.lo == 0xffffffffffffffff) {
+                res.hi = res.hi.wrapping_sub(1);
             }
-            res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+            res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
             if (eq_half_ulp != 0) {
                 is_midpoint_gt_even = 1;
             } else {
                 is_inexact_lt_midpoint = 1;
             }
         } else {
-            res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+            res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
             is_midpoint_lt_even = 1;
         }
         if (e3 > 0x17df) {
             if (rnd_mode == 0) {
-                res.w[1] = (z_sign | 0x7800000000000000);
-                res.w[0] = 0x0000000000000000;
+                res.hi = (z_sign | 0x7800000000000000);
+                res.lo = 0x0000000000000000;
                 (*pfpsf) |= (32 | 8);
             } else {
                 bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
@@ -522,24 +522,24 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
         if (rnd_mode != 0) {
             bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
         }
-        z_exp = (res.w[1] & 0x7ffe000000000000);
+        z_exp = (res.hi & 0x7ffe000000000000);
     } else {
         e3 = (((go_checked_shr_u64(z_exp, go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
         if (e3 > -6176) {
             if (q4 == 1) {
-                res.w[1] = 0x0001ed09bead87c0;
-                res.w[0] = ((0x378d8e6400000000 as u64).wrapping_sub(C4.w[0]));
+                res.hi = 0x0001ed09bead87c0;
+                res.lo = ((0x378d8e6400000000 as u64).wrapping_sub(C4.w[0]));
                 z_exp = (z_exp.wrapping_sub(0x2000000000000));
                 e3 = (e3.wrapping_sub(1));
-                res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+                res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
             } else {
                 if (q4 <= 18) {
                     R64 = bid_round64_2_18(q4, (q4.wrapping_sub(1)), C4.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
                 } else if (q4 <= 38) {
-                    P128.w[1] = C4.w[1];
-                    P128.w[0] = C4.w[0];
+                    P128.hi = C4.w[1];
+                    P128.lo = C4.w[0];
                     (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, (q4.wrapping_sub(1)), P128);
-                    R64 = R128.w[0];
+                    R64 = R128.lo;
                 } else if (q4 <= 57) {
                     P192.w[2] = C4.w[2];
                     P192.w[1] = C4.w[1];
@@ -553,14 +553,14 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
                 if ((((is_midpoint_lt_even == 0) && (is_midpoint_gt_even == 0)) && (is_inexact_lt_midpoint == 0)) && (is_inexact_gt_midpoint == 0)) {
                     z_exp = (z_exp.wrapping_sub(0x2000000000000));
                     e3 = (e3.wrapping_sub(1));
-                    res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | 0x0001ed09bead87c0);
-                    res.w[0] = ((0x378d8e6400000000 as u64).wrapping_sub(R64));
+                    res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | 0x0001ed09bead87c0);
+                    res.lo = ((0x378d8e6400000000 as u64).wrapping_sub(R64));
                 } else {
                     if (incr_exp != 0) {
                         R64 = 10;
                     }
-                    res.w[1] = 0x0001ed09bead87c0;
-                    res.w[0] = ((0x378d8e6400000000 as u64).wrapping_sub(R64));
+                    res.hi = 0x0001ed09bead87c0;
+                    res.lo = ((0x378d8e6400000000 as u64).wrapping_sub(R64));
                     z_exp = (z_exp.wrapping_sub(0x2000000000000));
                     e3 = (e3.wrapping_sub(1));
                     if (is_inexact_lt_midpoint != 0) {
@@ -578,8 +578,8 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
                     }
                     if (e3 > 0x17df) {
                         if (rnd_mode == 0) {
-                            res.w[1] = (z_sign | 0x7800000000000000);
-                            res.w[0] = 0x0000000000000000;
+                            res.hi = (z_sign | 0x7800000000000000);
+                            res.lo = 0x0000000000000000;
                             (*pfpsf) |= (32 | 8);
                         } else {
                             bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
@@ -593,22 +593,22 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
                         return;
                     }
                     (*pfpsf) |= 32;
-                    res.w[1] = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.w[1]);
+                    res.hi = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.hi);
                     if (rnd_mode != 0) {
                         bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
                     }
-                    z_exp = (res.w[1] & 0x7ffe000000000000);
+                    z_exp = (res.hi & 0x7ffe000000000000);
                 }
             }
         } else {
             if (gt_half_ulp != 0) {
-                res.w[1] = 0x0000314dc6448d93;
-                res.w[0] = 0x38c15b09ffffffff;
+                res.hi = 0x0000314dc6448d93;
+                res.lo = 0x38c15b09ffffffff;
             } else {
-                res.w[1] = 0x0000314dc6448d93;
-                res.w[0] = 0x38c15b0a00000000;
+                res.hi = 0x0000314dc6448d93;
+                res.lo = 0x38c15b0a00000000;
             }
-            res.w[1] = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.w[1]);
+            res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
             (*pfpsf) |= 16;
             if (eq_half_ulp != 0) {
                 is_midpoint_lt_even = 1;
@@ -619,7 +619,7 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
             }
             if (rnd_mode != 0) {
                 bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
-                z_exp = (res.w[1] & 0x7ffe000000000000);
+                z_exp = (res.hi & 0x7ffe000000000000);
             }
         }
         if ((((is_inexact_lt_midpoint != 0) || (is_inexact_gt_midpoint != 0)) || (is_midpoint_lt_even != 0)) || (is_midpoint_gt_even != 0)) {
@@ -648,8 +648,8 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
     let mut is_inexact_gt_midpoint0: i64 = 0;
     let mut incr_exp: i64 = 0;
     let mut is_tiny: i64 = 0;
-    let mut R128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut R64: u64 = 0;
     let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
@@ -669,13 +669,13 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 P128 = __mul_128x64_to_128(C4.w[0], bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
             }
         } else {
-            let mut C4_128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-            C4_128.w[0] = C4.w[0];
-            C4_128.w[1] = C4.w[1];
+            let mut C4_128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+            C4_128.lo = C4.w[0];
+            C4_128.hi = C4.w[1];
             P128 = __mul_128x64_to_128(bid_ten2k64[scale as usize], C4_128);
         }
-        C4.w[0] = P128.w[0];
-        C4.w[1] = P128.w[1];
+        C4.w[0] = P128.lo;
+        C4.w[1] = P128.hi;
         scale = 0;
         x0 = 0;
     } else {
@@ -684,38 +684,38 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
     }
     loop {
         if (scale == 0) {
-            res.w[1] = C3.w[1];
-            res.w[0] = C3.w[0];
+            res.hi = C3.hi;
+            res.lo = C3.lo;
         } else if (q3 <= 19) {
             if (scale <= 19) {
-                (*res) = __mul_64x64_to_128(C3.w[0], bid_ten2k64[scale as usize]);
+                (*res) = __mul_64x64_to_128(C3.lo, bid_ten2k64[scale as usize]);
             } else {
-                (*res) = __mul_128x64_to_128(C3.w[0], bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
+                (*res) = __mul_128x64_to_128(C3.lo, bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
             }
         } else {
             (*res) = __mul_128x64_to_128(bid_ten2k64[scale as usize], (*C3));
         }
         e3 = (e3.wrapping_sub(scale));
         if (x0 == 0) {
-            R128.w[1] = C4.w[1];
-            R128.w[0] = C4.w[0];
+            R128.hi = C4.w[1];
+            R128.lo = C4.w[0];
         } else if (q4 <= 18) {
             R64 = bid_round64_2_18(q4, x0, C4.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
             if (incr_exp != 0) {
                 R64 = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
             }
-            R128.w[1] = 0;
-            R128.w[0] = R64;
+            R128.hi = 0;
+            R128.lo = R64;
         } else if (q4 <= 38) {
-            P128.w[1] = C4.w[1];
-            P128.w[0] = C4.w[0];
+            P128.hi = C4.w[1];
+            P128.lo = C4.w[0];
             (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, x0, P128);
             if (incr_exp != 0) {
                 if ((q4.wrapping_sub(x0)) <= 19) {
-                    R128.w[0] = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
+                    R128.lo = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
                 } else {
-                    R128.w[0] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[0];
-                    R128.w[1] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[1];
+                    R128.lo = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
+                    R128.hi = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
                 }
             }
         } else if (q4 <= 57) {
@@ -727,33 +727,33 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 if ((q4.wrapping_sub(x0)) <= 19) {
                     R192.w[0] = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
                 } else {
-                    R192.w[0] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[0];
-                    R192.w[1] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[1];
+                    R192.w[0] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
+                    R192.w[1] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
                 }
             }
-            R128.w[1] = R192.w[1];
-            R128.w[0] = R192.w[0];
+            R128.hi = R192.w[1];
+            R128.lo = R192.w[0];
         } else {
             (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(q4, x0, C4);
             if (incr_exp != 0) {
                 if ((q4.wrapping_sub(x0)) <= 19) {
                     R256.w[0] = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
                 } else {
-                    R256.w[0] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[0];
-                    R256.w[1] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[1];
+                    R256.w[0] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
+                    R256.w[1] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
                 }
             }
-            R128.w[1] = R256.w[1];
-            R128.w[0] = R256.w[0];
+            R128.hi = R256.w[1];
+            R128.lo = R256.w[0];
         }
         if (z_sign == p_sign) {
-            lsb = (res.w[0] & 0x01);
-            res.w[0] = (res.w[0].wrapping_add(R128.w[0]));
-            res.w[1] = (res.w[1].wrapping_add(R128.w[1]));
-            if (res.w[0] < R128.w[0]) {
-                res.w[1] = res.w[1].wrapping_add(1);
+            lsb = (res.lo & 0x01);
+            res.lo = (res.lo.wrapping_add(R128.lo));
+            res.hi = (res.hi.wrapping_add(R128.hi));
+            if (res.lo < R128.lo) {
+                res.hi = res.hi.wrapping_add(1);
             }
-            if ((res.w[1] > 0x0001ed09bead87c0) || (((res.w[1] == 0x0001ed09bead87c0) && (res.w[0] > 0x378d8e63ffffffff)))) {
+            if ((res.hi > 0x0001ed09bead87c0) || (((res.hi == 0x0001ed09bead87c0) && (res.lo > 0x378d8e63ffffffff)))) {
                 is_inexact_lt_midpoint0 = is_inexact_lt_midpoint;
                 is_inexact_gt_midpoint0 = is_inexact_gt_midpoint;
                 is_midpoint_lt_even0 = is_midpoint_lt_even;
@@ -762,21 +762,21 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 is_inexact_gt_midpoint = 0;
                 is_midpoint_lt_even = 0;
                 is_midpoint_gt_even = 0;
-                P128.w[1] = res.w[1];
-                P128.w[0] = res.w[0];
+                P128.hi = res.hi;
+                P128.lo = res.lo;
                 ((*res), incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(35, 1, P128);
                 _ = incr_exp;
                 if ((((is_inexact_gt_midpoint0 != 0) || (is_midpoint_lt_even0 != 0))) && (is_midpoint_lt_even != 0)) {
-                    res.w[0] = res.w[0].wrapping_sub(1);
-                    if (res.w[0] == 0xffffffffffffffff) {
-                        res.w[1] = res.w[1].wrapping_sub(1);
+                    res.lo = res.lo.wrapping_sub(1);
+                    if (res.lo == 0xffffffffffffffff) {
+                        res.hi = res.hi.wrapping_sub(1);
                     }
                     is_midpoint_lt_even = 0;
                     is_inexact_lt_midpoint = 1;
                 } else if ((((is_inexact_lt_midpoint0 != 0) || (is_midpoint_gt_even0 != 0))) && (is_midpoint_gt_even != 0)) {
-                    res.w[0] = res.w[0].wrapping_add(1);
-                    if (res.w[0] == 0) {
-                        res.w[1] = res.w[1].wrapping_add(1);
+                    res.lo = res.lo.wrapping_add(1);
+                    if (res.lo == 0) {
+                        res.hi = res.hi.wrapping_add(1);
                     }
                     is_midpoint_gt_even = 0;
                     is_inexact_gt_midpoint = 1;
@@ -806,35 +806,35 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                     }
                 }
             } else {
-                res.w[1] = (res.w[1] & 0x1ffffffffffff);
+                res.hi = (res.hi & 0x1ffffffffffff);
                 if (lsb == 1) {
                     if (is_midpoint_gt_even != 0) {
                         is_midpoint_gt_even = 0;
                         is_midpoint_lt_even = 1;
-                        res.w[0] = res.w[0].wrapping_add(1);
-                        if (res.w[0] == 0x0) {
-                            res.w[1] = res.w[1].wrapping_add(1);
+                        res.lo = res.lo.wrapping_add(1);
+                        if (res.lo == 0x0) {
+                            res.hi = res.hi.wrapping_add(1);
                         }
-                        if ((res.w[1] == 0x0001ed09bead87c0) && (res.w[0] == 0x378d8e6400000000)) {
-                            res.w[1] = 0x0000314dc6448d93;
-                            res.w[0] = 0x38c15b0a00000000;
+                        if ((res.hi == 0x0001ed09bead87c0) && (res.lo == 0x378d8e6400000000)) {
+                            res.hi = 0x0000314dc6448d93;
+                            res.lo = 0x38c15b0a00000000;
                             e3 = e3.wrapping_add(1);
                         }
                     } else if (is_midpoint_lt_even != 0) {
                         is_midpoint_lt_even = 0;
                         is_midpoint_gt_even = 1;
-                        res.w[0] = res.w[0].wrapping_sub(1);
-                        if (res.w[0] == 0xffffffffffffffff) {
-                            res.w[1] = res.w[1].wrapping_sub(1);
+                        res.lo = res.lo.wrapping_sub(1);
+                        if (res.lo == 0xffffffffffffffff) {
+                            res.hi = res.hi.wrapping_sub(1);
                         }
-                        if ((res.w[1] == 0x0) && (res.w[0] == 0x0)) {
+                        if ((res.hi == 0x0) && (res.lo == 0x0)) {
                             if (rnd_mode != 1) {
                                 z_sign = 0x0000000000000000;
                             } else {
                                 z_sign = 0x8000000000000000;
                             }
-                            res.w[1] = 0x0;
-                            res.w[0] = 0x0;
+                            res.hi = 0x0;
+                            res.lo = 0x0;
                             (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
                             (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
                             (*ptr_is_inexact_lt_midpoint) = is_inexact_lt_midpoint;
@@ -847,14 +847,14 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 }
             }
         } else {
-            lsb = (res.w[0] & 0x01);
-            tmp64 = res.w[0];
-            res.w[0] = (res.w[0].wrapping_sub(R128.w[0]));
-            res.w[1] = (res.w[1].wrapping_sub(R128.w[1]));
-            if (res.w[0] > tmp64) {
-                res.w[1] = res.w[1].wrapping_sub(1);
+            lsb = (res.lo & 0x01);
+            tmp64 = res.lo;
+            res.lo = (res.lo.wrapping_sub(R128.lo));
+            res.hi = (res.hi.wrapping_sub(R128.hi));
+            if (res.lo > tmp64) {
+                res.hi = res.hi.wrapping_sub(1);
             }
-            if (((e3 > -6176) && (((((res.w[1] < 0x0000314dc6448d93) || (((res.w[1] == 0x0000314dc6448d93) && (res.w[0] < 0x38c15b0a00000000))))) || (((((is_inexact_lt_midpoint | is_midpoint_gt_even) != 0) && (res.w[1] == 0x0000314dc6448d93)) && (res.w[0] == 0x38c15b0a00000000)))))) && (x0 >= 1)) {
+            if (((e3 > -6176) && (((((res.hi < 0x0000314dc6448d93) || (((res.hi == 0x0000314dc6448d93) && (res.lo < 0x38c15b0a00000000))))) || (((((is_inexact_lt_midpoint | is_midpoint_gt_even) != 0) && (res.hi == 0x0000314dc6448d93)) && (res.lo == 0x38c15b0a00000000)))))) && (x0 >= 1)) {
                 x0 = (x0.wrapping_sub(1));
                 e3 = (e3.wrapping_add(scale));
                 scale = (scale.wrapping_add(1));
@@ -882,28 +882,28 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 }
             } else if (lsb == 1) {
                 if (is_midpoint_lt_even != 0) {
-                    res.w[0] = res.w[0].wrapping_add(1);
-                    if (res.w[0] == 0x0) {
-                        res.w[1] = res.w[1].wrapping_add(1);
+                    res.lo = res.lo.wrapping_add(1);
+                    if (res.lo == 0x0) {
+                        res.hi = res.hi.wrapping_add(1);
                     }
-                    if ((res.w[1] == 0x0001ed09bead87c0) && (res.w[0] == 0x378d8e6400000000)) {
-                        res.w[1] = 0x0000314dc6448d93;
-                        res.w[0] = 0x38c15b0a00000000;
+                    if ((res.hi == 0x0001ed09bead87c0) && (res.lo == 0x378d8e6400000000)) {
+                        res.hi = 0x0000314dc6448d93;
+                        res.lo = 0x38c15b0a00000000;
                         e3 = e3.wrapping_add(1);
                     }
                 } else if (is_midpoint_gt_even != 0) {
-                    res.w[0] = res.w[0].wrapping_sub(1);
-                    if (res.w[0] == 0xffffffffffffffff) {
-                        res.w[1] = res.w[1].wrapping_sub(1);
+                    res.lo = res.lo.wrapping_sub(1);
+                    if (res.lo == 0xffffffffffffffff) {
+                        res.hi = res.hi.wrapping_sub(1);
                     }
-                    if ((res.w[1] == 0x0) && (res.w[0] == 0x0)) {
+                    if ((res.hi == 0x0) && (res.lo == 0x0)) {
                         if (rnd_mode != 1) {
                             z_sign = 0x0000000000000000;
                         } else {
                             z_sign = 0x8000000000000000;
                         }
-                        res.w[1] = 0x0;
-                        res.w[0] = 0x0;
+                        res.hi = 0x0;
+                        res.lo = 0x0;
                         (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
                         (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
                         (*ptr_is_inexact_lt_midpoint) = is_inexact_lt_midpoint;
@@ -917,10 +917,10 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
             }
         }
         if (e3 == -6176) {
-            if (((res.w[1] & 0x1ffffffffffff) < 0x0000314dc6448d93) || ((((res.w[1] & 0x1ffffffffffff) == 0x0000314dc6448d93) && (res.w[0] < 0x38c15b0a00000000)))) {
+            if (((res.hi & 0x1ffffffffffff) < 0x0000314dc6448d93) || ((((res.hi & 0x1ffffffffffff) == 0x0000314dc6448d93) && (res.lo < 0x38c15b0a00000000)))) {
                 is_tiny = 1;
             }
-            if (((((res.w[1] & 0x7fffffffffffffff) == 0x0000314dc6448d93)) && (res.w[0] == 0x38c15b0a00000000)) && (z_sign != p_sign)) {
+            if (((((res.hi & 0x7fffffffffffffff) == 0x0000314dc6448d93)) && (res.lo == 0x38c15b0a00000000)) && (z_sign != p_sign)) {
                 is_tiny = 1;
             }
         } else if (e3 < -6176) {
@@ -934,20 +934,20 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
             is_inexact_gt_midpoint = 0;
             is_midpoint_lt_even = 0;
             is_midpoint_gt_even = 0;
-            if (res.w[1] == 0x0) {
+            if (res.hi == 0x0) {
                 ind = 1;
                 while (ind <= 19) {
-                    if (res.w[0] < bid_ten2k64[ind as usize]) {
+                    if (res.lo < bid_ten2k64[ind as usize]) {
                         break;
                     }
                     ind = ind.wrapping_add(1);
                 }
-            } else if ((res.w[1] < bid_ten2k128[0].w[1]) || (((res.w[1] == bid_ten2k128[0].w[1]) && (res.w[0] < bid_ten2k128[0].w[0])))) {
+            } else if ((res.hi < bid_ten2k128[0].hi) || (((res.hi == bid_ten2k128[0].hi) && (res.lo < bid_ten2k128[0].lo)))) {
                 ind = 20;
             } else {
                 ind = 1;
                 while (ind <= 18) {
-                    if ((res.w[1] < bid_ten2k128[ind as usize].w[1]) || (((res.w[1] == bid_ten2k128[ind as usize].w[1]) && (res.w[0] < bid_ten2k128[ind as usize].w[0])))) {
+                    if ((res.hi < bid_ten2k128[ind as usize].hi) || (((res.hi == bid_ten2k128[ind as usize].hi) && (res.lo < bid_ten2k128[ind as usize].lo)))) {
                         break;
                     }
                     ind = ind.wrapping_add(1);
@@ -955,40 +955,40 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 ind = (ind.wrapping_add(20));
             }
             if (x0 == ind) {
-                res.w[1] = 0x0;
-                res.w[0] = 0x1;
+                res.hi = 0x0;
+                res.lo = 0x1;
                 is_inexact_gt_midpoint = 1;
             } else if (ind <= 18) {
-                R64 = bid_round64_2_18(ind, x0, res.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+                R64 = bid_round64_2_18(ind, x0, res.lo, (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
                 if (incr_exp != 0) {
                     R64 = bid_ten2k64[(ind.wrapping_sub(x0)) as usize];
                 }
-                res.w[1] = 0;
-                res.w[0] = R64;
+                res.hi = 0;
+                res.lo = R64;
             } else if (ind <= 38) {
-                P128.w[1] = res.w[1];
-                P128.w[0] = res.w[0];
+                P128.hi = res.hi;
+                P128.lo = res.lo;
                 ((*res), incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(ind, x0, P128);
                 if (incr_exp != 0) {
                     if ((ind.wrapping_sub(x0)) <= 19) {
-                        res.w[0] = bid_ten2k64[(ind.wrapping_sub(x0)) as usize];
+                        res.lo = bid_ten2k64[(ind.wrapping_sub(x0)) as usize];
                     } else {
-                        res.w[0] = bid_ten2k128[((ind.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[0];
-                        res.w[1] = bid_ten2k128[((ind.wrapping_sub(x0)).wrapping_sub(20)) as usize].w[1];
+                        res.lo = bid_ten2k128[((ind.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
+                        res.hi = bid_ten2k128[((ind.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
                     }
                 }
             }
             if ((((is_inexact_gt_midpoint0 != 0) || (is_midpoint_lt_even0 != 0))) && (is_midpoint_lt_even != 0)) {
-                res.w[0] = res.w[0].wrapping_sub(1);
-                if (res.w[0] == 0xffffffffffffffff) {
-                    res.w[1] = res.w[1].wrapping_sub(1);
+                res.lo = res.lo.wrapping_sub(1);
+                if (res.lo == 0xffffffffffffffff) {
+                    res.hi = res.hi.wrapping_sub(1);
                 }
                 is_midpoint_lt_even = 0;
                 is_inexact_lt_midpoint = 1;
             } else if ((((is_inexact_lt_midpoint0 != 0) || (is_midpoint_gt_even0 != 0))) && (is_midpoint_gt_even != 0)) {
-                res.w[0] = res.w[0].wrapping_add(1);
-                if (res.w[0] == 0) {
-                    res.w[1] = res.w[1].wrapping_add(1);
+                res.lo = res.lo.wrapping_add(1);
+                if (res.lo == 0) {
+                    res.hi = res.hi.wrapping_add(1);
                 }
                 is_midpoint_gt_even = 0;
                 is_inexact_gt_midpoint = 1;
@@ -1025,15 +1025,15 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 (*pfpsf) |= 16;
             }
         }
-        if ((res.w[1] == 0x0001ed09bead87c0) && (res.w[0] == 0x378d8e6400000000)) {
-            res.w[1] = 0x0000314dc6448d93;
-            res.w[0] = 0x38c15b0a00000000;
+        if ((res.hi == 0x0001ed09bead87c0) && (res.lo == 0x378d8e6400000000)) {
+            res.hi = 0x0000314dc6448d93;
+            res.lo = 0x38c15b0a00000000;
             e3 = (e3.wrapping_add(1));
         }
-        res.w[1] = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.w[1]);
+        res.hi = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.hi);
         if ((rnd_mode == 0) && (e3 > 0x17df)) {
-            res.w[1] = (z_sign | 0x7800000000000000);
-            res.w[0] = 0x0000000000000000;
+            res.hi = (z_sign | 0x7800000000000000);
+            res.lo = 0x0000000000000000;
             (*pfpsf) |= (32 | 8);
         }
         if (rnd_mode != 0) {
@@ -1055,27 +1055,27 @@ pub(crate) fn bid_fma_case7(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint
     let mut is_inexact_lt_midpoint: i64 = 0;
     let mut is_inexact_gt_midpoint: i64 = 0;
     let mut incr_exp: i64 = 0;
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut x0: i64 = 0;
     x0 = (q4.wrapping_sub(p34));
     if (q4 <= 38) {
-        P128.w[1] = C4.w[1];
-        P128.w[0] = C4.w[0];
+        P128.hi = C4.w[1];
+        P128.lo = C4.w[0];
         ((*res), incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, x0, P128);
     } else if (q4 <= 57) {
         P192.w[2] = C4.w[2];
         P192.w[1] = C4.w[1];
         P192.w[0] = C4.w[0];
         (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(q4, x0, P192);
-        res.w[0] = R192.w[0];
-        res.w[1] = R192.w[1];
+        res.lo = R192.w[0];
+        res.hi = R192.w[1];
     } else {
         (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(q4, x0, C4);
-        res.w[0] = R256.w[0];
-        res.w[1] = R256.w[1];
+        res.lo = R256.w[0];
+        res.hi = R256.w[1];
     }
     e4 = (e4.wrapping_add(x0));
     if (incr_exp != 0) {
@@ -1085,31 +1085,31 @@ pub(crate) fn bid_fma_case7(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint
         if (p_sign == z_sign) {
             is_inexact_lt_midpoint = 1;
         } else {
-            if ((res.w[1] != 0x0000314dc6448d93) || (res.w[0] != 0x38c15b0a00000000)) {
+            if ((res.hi != 0x0000314dc6448d93) || (res.lo != 0x38c15b0a00000000)) {
                 is_inexact_gt_midpoint = 1;
             } else {
                 if (delta > (p34.wrapping_add(1))) {
                     is_inexact_gt_midpoint = 1;
                 } else {
                     if (q3 <= 19) {
-                        if (C3.w[0] < bid_midpoint64[(q3.wrapping_sub(1)) as usize]) {
+                        if (C3.lo < bid_midpoint64[(q3.wrapping_sub(1)) as usize]) {
                             is_inexact_gt_midpoint = 1;
-                        } else if (C3.w[0] == bid_midpoint64[(q3.wrapping_sub(1)) as usize]) {
+                        } else if (C3.lo == bid_midpoint64[(q3.wrapping_sub(1)) as usize]) {
                             is_midpoint_lt_even = 1;
                         } else {
-                            res.w[1] = 0x0001ed09bead87c0;
-                            res.w[0] = 0x378d8e63ffffffff;
+                            res.hi = 0x0001ed09bead87c0;
+                            res.lo = 0x378d8e63ffffffff;
                             e4 = (e4.wrapping_sub(1));
                             is_inexact_lt_midpoint = 1;
                         }
                     } else {
-                        if ((C3.w[1] < bid_midpoint128[(q3.wrapping_sub(20)) as usize].w[1]) || (((C3.w[1] == bid_midpoint128[(q3.wrapping_sub(20)) as usize].w[1]) && (C3.w[0] < bid_midpoint128[(q3.wrapping_sub(20)) as usize].w[0])))) {
+                        if ((C3.hi < bid_midpoint128[(q3.wrapping_sub(20)) as usize].hi) || (((C3.hi == bid_midpoint128[(q3.wrapping_sub(20)) as usize].hi) && (C3.lo < bid_midpoint128[(q3.wrapping_sub(20)) as usize].lo)))) {
                             is_inexact_gt_midpoint = 1;
-                        } else if ((C3.w[1] == bid_midpoint128[(q3.wrapping_sub(20)) as usize].w[1]) && (C3.w[0] == bid_midpoint128[(q3.wrapping_sub(20)) as usize].w[0])) {
+                        } else if ((C3.hi == bid_midpoint128[(q3.wrapping_sub(20)) as usize].hi) && (C3.lo == bid_midpoint128[(q3.wrapping_sub(20)) as usize].lo)) {
                             is_midpoint_lt_even = 1;
                         } else {
-                            res.w[1] = 0x0001ed09bead87c0;
-                            res.w[0] = 0x378d8e63ffffffff;
+                            res.hi = 0x0001ed09bead87c0;
+                            res.lo = 0x378d8e63ffffffff;
                             e4 = (e4.wrapping_sub(1));
                             is_inexact_lt_midpoint = 1;
                         }
@@ -1119,13 +1119,13 @@ pub(crate) fn bid_fma_case7(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint
         }
     } else if (is_midpoint_lt_even != 0) {
         if (z_sign != p_sign) {
-            res.w[0] = (res.w[0].wrapping_sub(1));
-            if (res.w[0] == 0xffffffffffffffff) {
-                res.w[1] = res.w[1].wrapping_sub(1);
+            res.lo = (res.lo.wrapping_sub(1));
+            if (res.lo == 0xffffffffffffffff) {
+                res.hi = res.hi.wrapping_sub(1);
             }
-            if ((res.w[1] == 0x0000314dc6448d93) && (res.w[0] == 0x38c15b09ffffffff)) {
-                res.w[1] = 0x0001ed09bead87c0;
-                res.w[0] = 0x378d8e63ffffffff;
+            if ((res.hi == 0x0000314dc6448d93) && (res.lo == 0x38c15b09ffffffff)) {
+                res.hi = 0x0001ed09bead87c0;
+                res.lo = 0x378d8e63ffffffff;
                 e4 = (e4.wrapping_sub(1));
             }
             is_midpoint_lt_even = 0;
@@ -1136,9 +1136,9 @@ pub(crate) fn bid_fma_case7(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint
         }
     } else if (is_midpoint_gt_even != 0) {
         if (z_sign == p_sign) {
-            res.w[0] = (res.w[0].wrapping_add(1));
-            if (res.w[0] == 0x0000000000000000) {
-                res.w[1] = res.w[1].wrapping_add(1);
+            res.lo = (res.lo.wrapping_add(1));
+            if (res.lo == 0x0000000000000000) {
+                res.hi = res.hi.wrapping_add(1);
             }
             is_midpoint_gt_even = 0;
             is_inexact_gt_midpoint = 1;
@@ -1148,12 +1148,12 @@ pub(crate) fn bid_fma_case7(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint
         }
     }
     if ((rnd_mode == 0) && (e4 > 0x17df)) {
-        res.w[1] = (p_sign | 0x7800000000000000);
-        res.w[0] = 0x0000000000000000;
+        res.hi = (p_sign | 0x7800000000000000);
+        res.lo = 0x0000000000000000;
         (*pfpsf) |= (8 | 32);
     } else {
         let mut p_exp = (go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64)));
-        res.w[1] = ((p_sign | (p_exp & 0x7ffe000000000000)) | res.w[1]);
+        res.hi = ((p_sign | (p_exp & 0x7ffe000000000000)) | res.hi);
     }
     if (rnd_mode != 0) {
         bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e4, res, pfpsf);
@@ -1180,9 +1180,9 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
     let mut is_midpoint_lt_even0: i64 = 0;
     let mut is_midpoint_gt_even0: i64 = 0;
     let mut R64: u64 = 0;
-    let mut R128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P192_128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P192_128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut incr_exp: i64 = 0;
@@ -1195,23 +1195,23 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
     let mut gt_half_ulp: i64 = 0;
     x0 = (e4.wrapping_sub(e3));
     if (q3 <= 18) {
-        R64 = bid_round64_2_18(q3, x0, C3.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
-        C3.w[0] = R64;
+        R64 = bid_round64_2_18(q3, x0, C3.lo, (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+        C3.lo = R64;
     } else if (q3 <= 38) {
         (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q3, x0, (*C3));
-        C3.w[1] = R128.w[1];
-        C3.w[0] = R128.w[0];
+        C3.hi = R128.hi;
+        C3.lo = R128.lo;
     }
     if (incr_exp != 0) {
-        P128.w[1] = C3.w[1];
-        P128.w[0] = C3.w[0];
+        P128.hi = C3.hi;
+        P128.lo = C3.lo;
         (*C3) = __mul_64x128_to_128(bid_ten2k64[1], P128);
     }
     e3 = (e3.wrapping_add(x0));
     R256.w[3] = 0;
     R256.w[2] = 0;
-    R256.w[1] = C3.w[1];
-    R256.w[0] = C3.w[0];
+    R256.w[1] = C3.hi;
+    R256.w[0] = C3.lo;
     if (p_sign == z_sign) {
         R256 = bid_add256(C4, R256);
     } else {
@@ -1260,8 +1260,8 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
     ind = bid_bid_nr_digits256(R256);
     if (ind < p34) {
     } else if (ind == p34) {
-        res.w[1] = R256.w[1];
-        res.w[0] = R256.w[0];
+        res.hi = R256.w[1];
+        res.lo = R256.w[0];
     } else {
         x0 = (ind.wrapping_sub(p34));
         is_inexact_lt_midpoint0 = is_inexact_lt_midpoint;
@@ -1273,8 +1273,8 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
         is_midpoint_lt_even = 0;
         is_midpoint_gt_even = 0;
         if (ind <= 38) {
-            P128.w[1] = R256.w[1];
-            P128.w[0] = R256.w[0];
+            P128.hi = R256.w[1];
+            P128.lo = R256.w[0];
             (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(ind, x0, P128);
         } else if (ind <= 57) {
             let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
@@ -1282,32 +1282,32 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
             P192.w[1] = R256.w[1];
             P192.w[0] = R256.w[0];
             (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(ind, x0, P192);
-            R128.w[1] = R192.w[1];
-            R128.w[0] = R192.w[0];
+            R128.hi = R192.w[1];
+            R128.lo = R192.w[0];
         } else {
             (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(ind, x0, R256);
-            R128.w[1] = R256.w[1];
-            R128.w[0] = R256.w[0];
+            R128.hi = R256.w[1];
+            R128.lo = R256.w[0];
         }
         e4 = ((e4.wrapping_add(x0)).wrapping_add(incr_exp));
-        res.w[1] = R128.w[1];
-        res.w[0] = R128.w[0];
+        res.hi = R128.hi;
+        res.lo = R128.lo;
         if ((((is_inexact_gt_midpoint0 != 0) || (is_midpoint_lt_even0 != 0))) && (is_midpoint_lt_even != 0)) {
-            res.w[0] = res.w[0].wrapping_sub(1);
-            if (res.w[0] == 0xffffffffffffffff) {
-                res.w[1] = res.w[1].wrapping_sub(1);
+            res.lo = res.lo.wrapping_sub(1);
+            if (res.lo == 0xffffffffffffffff) {
+                res.hi = res.hi.wrapping_sub(1);
             }
             is_midpoint_lt_even = 0;
             is_inexact_lt_midpoint = 1;
-            if ((res.w[1] == 0x0000314dc6448d93) && (res.w[0] == 0x38c15b09ffffffff)) {
-                res.w[1] = 0x0001ed09bead87c0;
-                res.w[0] = 0x378d8e63ffffffff;
+            if ((res.hi == 0x0000314dc6448d93) && (res.lo == 0x38c15b09ffffffff)) {
+                res.hi = 0x0001ed09bead87c0;
+                res.lo = 0x378d8e63ffffffff;
                 e4 = e4.wrapping_sub(1);
             }
         } else if ((((is_inexact_lt_midpoint0 != 0) || (is_midpoint_gt_even0 != 0))) && (is_midpoint_gt_even != 0)) {
-            res.w[0] = res.w[0].wrapping_add(1);
-            if (res.w[0] == 0) {
-                res.w[1] = res.w[1].wrapping_add(1);
+            res.lo = res.lo.wrapping_add(1);
+            if (res.lo == 0) {
+                res.hi = res.hi.wrapping_add(1);
             }
             is_midpoint_gt_even = 0;
             is_inexact_gt_midpoint = 1;
@@ -1335,19 +1335,19 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
             is_tiny = 1;
         }
     } else {
-        P128.w[1] = ((p_sign | 0x3040000000000000) | res.w[1]);
-        P128.w[0] = res.w[0];
+        P128.hi = ((p_sign | 0x3040000000000000) | res.hi);
+        P128.lo = res.lo;
         bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, 0, (&mut P128), pfpsf);
-        let mut scale = (((go_checked_shr_u64((P128.w[1] & 0x7ffe000000000000), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
+        let mut scale = (((go_checked_shr_u64((P128.hi & 0x7ffe000000000000), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
         if ((e4.wrapping_add(scale)) < -6176) {
             is_tiny = 1;
         }
     }
-    res.w[1] = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.w[1]);
+    res.hi = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.hi);
     ind = p34;
     if ((rnd_mode == 0) && (((ind.wrapping_add(e4))) > ((p34.wrapping_add(0x17df))))) {
-        res.w[1] = (p_sign | 0x7800000000000000);
-        res.w[0] = 0x0000000000000000;
+        res.hi = (p_sign | 0x7800000000000000);
+        res.lo = 0x0000000000000000;
         (*pfpsf) |= (32 | 8);
         (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
         (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
@@ -1367,17 +1367,17 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
         is_midpoint_gt_even = 0;
         if (x0 > ind) {
             is_inexact_lt_midpoint = 1;
-            res.w[1] = (p_sign | 0x0000000000000000);
-            res.w[0] = 0x0000000000000000;
+            res.hi = (p_sign | 0x0000000000000000);
+            res.lo = 0x0000000000000000;
             e4 = -6176;
         } else if (x0 == ind) {
-            R128.w[1] = (res.w[1] & 0x1ffffffffffff);
-            R128.w[0] = res.w[0];
+            R128.hi = (res.hi & 0x1ffffffffffff);
+            R128.lo = res.lo;
             if (ind <= 19) {
-                if (R128.w[0] < bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
+                if (R128.lo < bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
                     lt_half_ulp = 1;
                     is_inexact_lt_midpoint = 1;
-                } else if (R128.w[0] == bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
+                } else if (R128.lo == bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
                     eq_half_ulp = 1;
                     is_midpoint_gt_even = 1;
                 } else {
@@ -1385,10 +1385,10 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
                     is_inexact_gt_midpoint = 1;
                 }
             } else {
-                if ((R128.w[1] < bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]) || (((R128.w[1] == bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]) && (R128.w[0] < bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0])))) {
+                if ((R128.hi < bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi) || (((R128.hi == bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi) && (R128.lo < bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo)))) {
                     lt_half_ulp = 1;
                     is_inexact_lt_midpoint = 1;
-                } else if ((R128.w[1] == bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]) && (R128.w[0] == bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0])) {
+                } else if ((R128.hi == bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi) && (R128.lo == bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo)) {
                     eq_half_ulp = 1;
                     is_midpoint_gt_even = 1;
                 } else {
@@ -1399,45 +1399,45 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
             _ = lt_half_ulp;
             _ = eq_half_ulp;
             if ((lt_half_ulp != 0) || (eq_half_ulp != 0)) {
-                res.w[1] = 0x0000000000000000;
-                res.w[0] = 0x0000000000000000;
+                res.hi = 0x0000000000000000;
+                res.lo = 0x0000000000000000;
             } else {
-                res.w[1] = 0x0000000000000000;
-                res.w[0] = 0x0000000000000001;
+                res.hi = 0x0000000000000000;
+                res.lo = 0x0000000000000001;
             }
             _ = gt_half_ulp;
-            res.w[1] = (p_sign | res.w[1]);
+            res.hi = (p_sign | res.hi);
             e4 = -6176;
         } else {
             if (ind <= 18) {
-                R64 = bid_round64_2_18(ind, x0, res.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
-                res.w[1] = 0x0;
-                res.w[0] = R64;
+                R64 = bid_round64_2_18(ind, x0, res.lo, (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+                res.hi = 0x0;
+                res.lo = R64;
             } else if (ind <= 38) {
-                P128.w[1] = (res.w[1] & 0x1ffffffffffff);
-                P128.w[0] = res.w[0];
+                P128.hi = (res.hi & 0x1ffffffffffff);
+                P128.lo = res.lo;
                 (P192_128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(ind, x0, P128);
-                res.w[1] = P192_128.w[1];
-                res.w[0] = P192_128.w[0];
+                res.hi = P192_128.hi;
+                res.lo = P192_128.lo;
             }
             e4 = (e4.wrapping_add(x0));
             if (incr_exp != 0) {
-                P128.w[1] = (res.w[1] & 0x1ffffffffffff);
-                P128.w[0] = res.w[0];
+                P128.hi = (res.hi & 0x1ffffffffffff);
+                P128.lo = res.lo;
                 (*res) = __mul_64x128_to_128(bid_ten2k64[1], P128);
             }
-            res.w[1] = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | (res.w[1] & 0x1ffffffffffff));
+            res.hi = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | (res.hi & 0x1ffffffffffff));
             if ((((is_inexact_gt_midpoint0 != 0) || (is_midpoint_lt_even0 != 0))) && (is_midpoint_lt_even != 0)) {
-                res.w[0] = res.w[0].wrapping_sub(1);
-                if (res.w[0] == 0xffffffffffffffff) {
-                    res.w[1] = res.w[1].wrapping_sub(1);
+                res.lo = res.lo.wrapping_sub(1);
+                if (res.lo == 0xffffffffffffffff) {
+                    res.hi = res.hi.wrapping_sub(1);
                 }
                 is_midpoint_lt_even = 0;
                 is_inexact_lt_midpoint = 1;
             } else if ((((is_inexact_lt_midpoint0 != 0) || (is_midpoint_gt_even0 != 0))) && (is_midpoint_gt_even != 0)) {
-                res.w[0] = res.w[0].wrapping_add(1);
-                if (res.w[0] == 0) {
-                    res.w[1] = res.w[1].wrapping_add(1);
+                res.lo = res.lo.wrapping_add(1);
+                if (res.lo == 0) {
+                    res.hi = res.hi.wrapping_add(1);
                 }
                 is_midpoint_gt_even = 0;
                 is_inexact_gt_midpoint = 1;
@@ -1464,7 +1464,7 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
     if (rnd_mode != 0) {
         bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e4, res, pfpsf);
     }
-    if (((((res.w[1] & 0x7fffffffffffffff) == 0x0000314dc6448d93) && (res.w[0] == 0x38c15b0a00000000))) && (((((((rnd_mode == 0) || (rnd_mode == 4))) && (((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0))))) || (((((((rnd_mode == 2) && (((res.w[1] & 0x8000000000000000) == 0)))) || (((rnd_mode == 1) && (((res.w[1] & 0x8000000000000000) != 0)))))) && (((((is_midpoint_lt_even != 0) || (is_midpoint_gt_even != 0)) || (is_inexact_lt_midpoint != 0)) || (is_inexact_gt_midpoint != 0)))))))) {
+    if (((((res.hi & 0x7fffffffffffffff) == 0x0000314dc6448d93) && (res.lo == 0x38c15b0a00000000))) && (((((((rnd_mode == 0) || (rnd_mode == 4))) && (((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0))))) || (((((((rnd_mode == 2) && (((res.hi & 0x8000000000000000) == 0)))) || (((rnd_mode == 1) && (((res.hi & 0x8000000000000000) != 0)))))) && (((((is_midpoint_lt_even != 0) || (is_midpoint_gt_even != 0)) || (is_inexact_lt_midpoint != 0)) || (is_inexact_gt_midpoint != 0)))))))) {
         is_tiny = 1;
     }
     if ((((is_midpoint_lt_even != 0) || (is_midpoint_gt_even != 0)) || (is_inexact_lt_midpoint != 0)) || (is_inexact_gt_midpoint != 0)) {
@@ -1485,8 +1485,8 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
     let mut x0: i64 = 0;
     let mut ind: i64 = 0;
     let mut R64: u64 = 0;
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut R128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
     let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
@@ -1507,11 +1507,11 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
     if (scale == 0) {
         R256.w[3] = 0x0;
         R256.w[2] = 0x0;
-        R256.w[1] = C3.w[1];
-        R256.w[0] = C3.w[0];
+        R256.w[1] = C3.hi;
+        R256.w[0] = C3.lo;
     } else if (scale <= 19) {
-        P128.w[1] = 0;
-        P128.w[0] = bid_ten2k64[scale as usize];
+        P128.hi = 0;
+        P128.lo = bid_ten2k64[scale as usize];
         R256 = __mul_128x128_to_256(P128, C3);
     } else if (scale <= 38) {
         R256 = __mul_128x128_to_256(bid_ten2k128[(scale.wrapping_sub(20)) as usize], C3);
@@ -1519,7 +1519,7 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
         R128 = __mul_64x128_to_128(bid_ten2k64[(scale.wrapping_sub(38)) as usize], C3);
         R256 = __mul_128x128_to_256(R128, bid_ten2k128[18]);
     } else {
-        R128 = __mul_64x128_to_128(C3.w[0], bid_ten2k128[(scale.wrapping_sub(58)) as usize]);
+        R128 = __mul_64x128_to_128(C3.lo, bid_ten2k128[(scale.wrapping_sub(58)) as usize]);
         R256 = __mul_128x128_to_256(R128, bid_ten2k128[18]);
     }
     if (p_sign == z_sign) {
@@ -1540,8 +1540,8 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
             if (e4 < (-6176)) {
                 e4 = -6176;
             }
-            res.w[1] = (p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64)))));
-            res.w[0] = 0x0;
+            res.hi = (p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64)))));
+            res.lo = 0x0;
             (*ptrres) = res;
             return;
         }
@@ -1551,25 +1551,25 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
         if ((ind.wrapping_add(e4)) < (p34.wrapping_add(-6176))) {
             is_tiny = 1;
         }
-        res.w[1] = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | R256.w[1]);
-        res.w[0] = R256.w[0];
+        res.hi = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | R256.w[1]);
+        res.lo = R256.w[0];
     } else {
         x0 = (ind.wrapping_sub(p34));
         if (ind <= 38) {
-            P128.w[1] = R256.w[1];
-            P128.w[0] = R256.w[0];
+            P128.hi = R256.w[1];
+            P128.lo = R256.w[0];
             (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(ind, x0, P128);
         } else if (ind <= 57) {
             P192.w[2] = R256.w[2];
             P192.w[1] = R256.w[1];
             P192.w[0] = R256.w[0];
             (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(ind, x0, P192);
-            R128.w[1] = R192.w[1];
-            R128.w[0] = R192.w[0];
+            R128.hi = R192.w[1];
+            R128.lo = R192.w[0];
         } else {
             (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(ind, x0, R256);
-            R128.w[1] = R256.w[1];
-            R128.w[0] = R256.w[0];
+            R128.hi = R256.w[1];
+            R128.lo = R256.w[0];
         }
         if ((e4.wrapping_add(x0)) < -6176) {
             is_tiny = 1;
@@ -1577,18 +1577,18 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
         e4 = ((e4.wrapping_add(x0)).wrapping_add(incr_exp));
         if (rnd_mode == 0) {
         } else {
-            P128.w[1] = ((p_sign | 0x3040000000000000) | R128.w[1]);
-            P128.w[0] = R128.w[0];
+            P128.hi = ((p_sign | 0x3040000000000000) | R128.hi);
+            P128.lo = R128.lo;
             bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, 0, (&mut P128), ptrfpsf);
-            scale = (((go_checked_shr_u64((P128.w[1] & 0x7ffe000000000000), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
+            scale = (((go_checked_shr_u64((P128.hi & 0x7ffe000000000000), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
         }
         ind = p34;
-        res.w[1] = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | R128.w[1]);
-        res.w[0] = R128.w[0];
+        res.hi = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | R128.hi);
+        res.lo = R128.lo;
     }
     if ((rnd_mode == 0) && (((ind.wrapping_add(e4))) > ((p34.wrapping_add(0x17df))))) {
-        res.w[1] = (p_sign | 0x7800000000000000);
-        res.w[0] = 0x0000000000000000;
+        res.hi = (p_sign | 0x7800000000000000);
+        res.lo = 0x0000000000000000;
         (*ptrres) = res;
         (*ptrfpsf) |= (32 | 8);
         return;
@@ -1605,27 +1605,27 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
         is_midpoint_gt_even = 0;
         if (x0 > ind) {
             is_inexact_lt_midpoint = 1;
-            res.w[1] = (p_sign | 0x0000000000000000);
-            res.w[0] = 0x0000000000000000;
+            res.hi = (p_sign | 0x0000000000000000);
+            res.lo = 0x0000000000000000;
             e4 = -6176;
         } else if (x0 == ind) {
-            R128.w[1] = (res.w[1] & 0x1ffffffffffff);
-            R128.w[0] = res.w[0];
+            R128.hi = (res.hi & 0x1ffffffffffff);
+            R128.lo = res.lo;
             if (ind <= 19) {
-                if (R128.w[0] < bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
+                if (R128.lo < bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
                     lt_half_ulp = 1;
                     is_inexact_lt_midpoint = 1;
-                } else if (R128.w[0] == bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
+                } else if (R128.lo == bid_midpoint64[(ind.wrapping_sub(1)) as usize]) {
                     eq_half_ulp = 1;
                     is_midpoint_gt_even = 1;
                 } else {
                     is_inexact_gt_midpoint = 1;
                 }
             } else {
-                if ((R128.w[1] < bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]) || (((R128.w[1] == bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]) && (R128.w[0] < bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0])))) {
+                if ((R128.hi < bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi) || (((R128.hi == bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi) && (R128.lo < bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo)))) {
                     lt_half_ulp = 1;
                     is_inexact_lt_midpoint = 1;
-                } else if ((R128.w[1] == bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]) && (R128.w[0] == bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0])) {
+                } else if ((R128.hi == bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi) && (R128.lo == bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo)) {
                     eq_half_ulp = 1;
                     is_midpoint_gt_even = 1;
                 } else {
@@ -1633,42 +1633,42 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
                 }
             }
             if ((lt_half_ulp != 0) || (eq_half_ulp != 0)) {
-                res.w[1] = 0x0000000000000000;
-                res.w[0] = 0x0000000000000000;
+                res.hi = 0x0000000000000000;
+                res.lo = 0x0000000000000000;
             } else {
-                res.w[1] = 0x0000000000000000;
-                res.w[0] = 0x0000000000000001;
+                res.hi = 0x0000000000000000;
+                res.lo = 0x0000000000000001;
             }
-            res.w[1] = (p_sign | res.w[1]);
+            res.hi = (p_sign | res.hi);
             e4 = -6176;
         } else {
             if (ind <= 18) {
-                R64 = bid_round64_2_18(ind, x0, res.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
-                res.w[1] = 0x0;
-                res.w[0] = R64;
+                R64 = bid_round64_2_18(ind, x0, res.lo, (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+                res.hi = 0x0;
+                res.lo = R64;
             } else if (ind <= 38) {
-                P128.w[1] = (res.w[1] & 0x1ffffffffffff);
-                P128.w[0] = res.w[0];
+                P128.hi = (res.hi & 0x1ffffffffffff);
+                P128.lo = res.lo;
                 (res, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(ind, x0, P128);
             }
             e4 = (e4.wrapping_add(x0));
             if (incr_exp != 0) {
-                P128.w[1] = (res.w[1] & 0x1ffffffffffff);
-                P128.w[0] = res.w[0];
+                P128.hi = (res.hi & 0x1ffffffffffff);
+                P128.lo = res.lo;
                 res = __mul_64x128_to_128(bid_ten2k64[1], P128);
             }
-            res.w[1] = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | (res.w[1] & 0x1ffffffffffff));
+            res.hi = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | (res.hi & 0x1ffffffffffff));
             if ((((is_inexact_gt_midpoint0 != 0) || (is_midpoint_lt_even0 != 0))) && (is_midpoint_lt_even != 0)) {
-                res.w[0] = res.w[0].wrapping_sub(1);
-                if (res.w[0] == 0xffffffffffffffff) {
-                    res.w[1] = res.w[1].wrapping_sub(1);
+                res.lo = res.lo.wrapping_sub(1);
+                if (res.lo == 0xffffffffffffffff) {
+                    res.hi = res.hi.wrapping_sub(1);
                 }
                 is_midpoint_lt_even = 0;
                 is_inexact_lt_midpoint = 1;
             } else if ((((is_inexact_lt_midpoint0 != 0) || (is_midpoint_gt_even0 != 0))) && (is_midpoint_gt_even != 0)) {
-                res.w[0] = res.w[0].wrapping_add(1);
-                if (res.w[0] == 0) {
-                    res.w[1] = res.w[1].wrapping_add(1);
+                res.lo = res.lo.wrapping_add(1);
+                if (res.lo == 0) {
+                    res.hi = res.hi.wrapping_add(1);
                 }
                 is_midpoint_gt_even = 0;
                 is_inexact_gt_midpoint = 1;
@@ -1718,12 +1718,12 @@ pub(crate) fn bid_bid_nr_digits256(mut R256: BID_UINT256) -> i64 {
             }
             ind = ind.wrapping_add(1);
         }
-    } else if (((R256.w[3] == 0x0) && (R256.w[2] == 0x0)) && (((R256.w[1] < bid_ten2k128[0].w[1]) || (((R256.w[1] == bid_ten2k128[0].w[1]) && (R256.w[0] < bid_ten2k128[0].w[0])))))) {
+    } else if (((R256.w[3] == 0x0) && (R256.w[2] == 0x0)) && (((R256.w[1] < bid_ten2k128[0].hi) || (((R256.w[1] == bid_ten2k128[0].hi) && (R256.w[0] < bid_ten2k128[0].lo)))))) {
         ind = 20;
     } else if ((R256.w[3] == 0x0) && (R256.w[2] == 0x0)) {
         ind = 1;
         while (ind <= 18) {
-            if ((R256.w[1] < bid_ten2k128[ind as usize].w[1]) || (((R256.w[1] == bid_ten2k128[ind as usize].w[1]) && (R256.w[0] < bid_ten2k128[ind as usize].w[0])))) {
+            if ((R256.w[1] < bid_ten2k128[ind as usize].hi) || (((R256.w[1] == bid_ten2k128[ind as usize].hi) && (R256.w[0] < bid_ten2k128[ind as usize].lo)))) {
                 break;
             }
             ind = ind.wrapping_add(1);

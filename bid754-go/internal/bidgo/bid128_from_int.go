@@ -10,11 +10,11 @@ func Bid128FromInt32(x int32) BID_UINT128 {
 
 	// if integer is negative, use the absolute value
 	if (uint32(x) & SIGNMASK32) == SIGNMASK32 {
-		res.w[1] = 0xb040000000000000
-		res.w[0] = uint64(^uint32(x) + 1) // 2's complement of x
+		res.hi = 0xb040000000000000
+		res.lo = uint64(^uint32(x) + 1) // 2's complement of x
 	} else {
-		res.w[1] = 0x3040000000000000
-		res.w[0] = uint64(uint32(x))
+		res.hi = 0x3040000000000000
+		res.lo = uint64(uint32(x))
 	}
 	return res
 }
@@ -24,8 +24,8 @@ func Bid128FromInt32(x int32) BID_UINT128 {
 func Bid128FromUint32(x uint32) BID_UINT128 {
 	var res BID_UINT128
 
-	res.w[1] = 0x3040000000000000
-	res.w[0] = uint64(x)
+	res.hi = 0x3040000000000000
+	res.lo = uint64(x)
 	return res
 }
 
@@ -36,11 +36,11 @@ func Bid128FromInt64(x int64) BID_UINT128 {
 
 	// if integer is negative, use the absolute value
 	if (uint64(x) & SIGNMASK64) == SIGNMASK64 {
-		res.w[1] = 0xb040000000000000
-		res.w[0] = ^uint64(x) + 1 // 2's complement of x
+		res.hi = 0xb040000000000000
+		res.lo = ^uint64(x) + 1 // 2's complement of x
 	} else {
-		res.w[1] = 0x3040000000000000
-		res.w[0] = uint64(x)
+		res.hi = 0x3040000000000000
+		res.lo = uint64(x)
 	}
 	return res
 }
@@ -50,7 +50,7 @@ func Bid128FromInt64(x int64) BID_UINT128 {
 func Bid128FromUint64(x uint64) BID_UINT128 {
 	var res BID_UINT128
 
-	res.w[1] = 0x3040000000000000
-	res.w[0] = x
+	res.hi = 0x3040000000000000
+	res.lo = x
 	return res
 }

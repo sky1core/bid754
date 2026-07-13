@@ -29,7 +29,7 @@ func Bid32ILogb(x uint32) (int, uint32) {
 		dx := math.Float32bits(float32(coefficient_x))
 		bin_expon_cx = int(dx>>23) - 127
 		digits = bid_estimate_decimal_digits[bin_expon_cx]
-		if uint64(coefficient_x) >= bid_power10_table_128[digits].w[0] {
+		if uint64(coefficient_x) >= bid_power10_table_128[digits].lo {
 			digits++
 		}
 	}

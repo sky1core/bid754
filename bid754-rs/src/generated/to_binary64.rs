@@ -373,41 +373,41 @@ pub fn bid64_to_binary64(mut x: u64, mut rndMode: i64) -> (u64, u32) {
 pub fn bid64_to_binary128(mut x: u64, mut rndMode: i64) -> (BID_UINT128, u32) {
     let (mut signX, mut exponentX, mut coefficientX, mut valid) = unpack_bid64(x);
     let mut flags: u32 = (0 as u32);
-    let mut res: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     if (!valid) {
         if (((go_checked_shl_u64(x, go_shift_count_u64((1) as u64)))) >= 0xf000000000000000) {
             if ((x & 0x7e00000000000000) == 0x7e00000000000000) {
                 flags |= 1;
             }
             if (((x & 0x7800000000000000) == 0x7800000000000000) && ((x & 0x7c00000000000000) != 0x7c00000000000000)) {
-                res.w[1] = (signX | 0x7fff000000000000);
+                res.hi = (signX | 0x7fff000000000000);
             } else {
                 let mut payload = (coefficientX & 0x0003ffffffffffff);
                 let mut frac = BigUint::from(payload);
                 frac <<= (61 as usize);
                 frac |= (BigUint::from(1 as u64).clone() << (111 as usize)).clone();
-                res.w[0] = go_big_to_u64(&frac);
-                res.w[1] = ((signX | 0x7fff000000000000) | go_big_to_u64(&(frac.clone() >> (64 as usize))));
+                res.lo = go_big_to_u64(&frac);
+                res.hi = ((signX | 0x7fff000000000000) | go_big_to_u64(&(frac.clone() >> (64 as usize))));
             }
         } else {
-            res.w[1] = signX;
+            res.hi = signX;
         }
     } else {
-        (res.w[1], res.w[0], flags) = bid64_finite_to_binary128_bits((go_checked_shr_u64(signX, go_shift_count_u64((63) as u64))), (exponentX.wrapping_sub(398)), coefficientX, bid_clamp_mode(rndMode));
+        (res.hi, res.lo, flags) = bid64_finite_to_binary128_bits((go_checked_shr_u64(signX, go_shift_count_u64((63) as u64))), (exponentX.wrapping_sub(398)), coefficientX, bid_clamp_mode(rndMode));
     }
     return (res, flags);
 }
 
 pub fn bid128_to_binary128(mut x: BID_UINT128, mut rndMode: i64) -> (BID_UINT128, u32) {
-    let mut d = bid128_decode(x.w[1], x.w[0]);
+    let mut d = bid128_decode(x.hi, x.lo);
     let mut flags: u32 = (0 as u32);
-    let mut res: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     if d.isNaN {
         if d.isSNaN {
             flags |= 1;
         }
-        let mut payloadHi = (x.w[1] & 0x00003fffffffffff);
-        let mut payloadLo = x.w[0];
+        let mut payloadHi = (x.hi & 0x00003fffffffffff);
+        let mut payloadLo = x.lo;
         if (go_big_sign(&d.coeff) == 0) {
             payloadHi = 0;
             payloadLo = 0;
@@ -416,18 +416,18 @@ pub fn bid128_to_binary128(mut x: BID_UINT128, mut rndMode: i64) -> (BID_UINT128
         let mut cLo = (go_checked_shl_u64(payloadLo, go_shift_count_u64((18) as u64)));
         let mut fracHi = (((go_checked_shr_u64(cHi, go_shift_count_u64((17) as u64)))).wrapping_add(1 << 47));
         let mut fracLo = (((go_checked_shr_u64(cLo, go_shift_count_u64((17) as u64)))).wrapping_add(((go_checked_shl_u64(cHi, go_shift_count_u64((47) as u64))))));
-        res.w[0] = fracLo;
-        res.w[1] = ((d.sign | 0x7fff000000000000) | fracHi);
+        res.lo = fracLo;
+        res.hi = ((d.sign | 0x7fff000000000000) | fracHi);
         return (res, flags);
     }
     if d.isInf {
-        res.w[1] = (d.sign | 0x7fff000000000000);
+        res.hi = (d.sign | 0x7fff000000000000);
         return (res, flags);
     }
     if d.isZero {
-        res.w[1] = d.sign;
+        res.hi = d.sign;
         return (res, flags);
     }
-    (res.w[1], res.w[0], flags) = bid128_finite_to_binary128_bits((go_checked_shr_u64(d.sign, go_shift_count_u64((63) as u64))), d.exp, &d.coeff, bid_clamp_mode(rndMode));
+    (res.hi, res.lo, flags) = bid128_finite_to_binary128_bits((go_checked_shr_u64(d.sign, go_shift_count_u64((63) as u64))), d.exp, &d.coeff, bid_clamp_mode(rndMode));
     return (res, flags);
 }

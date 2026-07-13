@@ -138,7 +138,7 @@ func get_BID32(sgn uint32, expon int, coeff uint64, rmode int) uint32 {
 			// now get P/10^extra_digits: shift Q_high right by M[extra_digits]-64
 			amount = bid_short_recip_scale[extra_digits]
 
-			_C64 = Q.w[1] >> uint(amount)
+			_C64 = Q.hi >> uint(amount)
 
 			if rmode == 0 { // BID_ROUNDING_TO_NEAREST
 				if _C64&1 != 0 {
@@ -147,9 +147,9 @@ func get_BID32(sgn uint32, expon int, coeff uint64, rmode int) uint32 {
 					// get remainder
 					amount2 = 64 - amount
 					remainder_h = (^uint64(0)) >> uint(amount2)
-					remainder_h = remainder_h & Q.w[1]
+					remainder_h = remainder_h & Q.hi
 
-					if remainder_h == 0 && Q.w[0] < bid_reciprocals10_64[extra_digits] {
+					if remainder_h == 0 && Q.lo < bid_reciprocals10_64[extra_digits] {
 						_C64--
 					}
 				}
@@ -243,15 +243,15 @@ func get_BID32_flags(sgn uint32, expon int, coeff uint64, rmode int, pfpsf *uint
 			coeff += bid_round_const_table[rmode][extra_digits]
 			Q = __mul_64x64_to_128(coeff, bid_reciprocals10_64[extra_digits])
 			amount = bid_short_recip_scale[extra_digits]
-			_C64 = Q.w[1] >> uint(amount)
+			_C64 = Q.hi >> uint(amount)
 
 			if rmode == BID_ROUNDING_TO_NEAREST && (_C64&1) != 0 {
 				amount2 = 64 - amount
 				remainder_h = ^uint64(0)
 				remainder_h >>= uint(amount2)
-				remainder_h &= Q.w[1]
+				remainder_h &= Q.hi
 
-				if remainder_h == 0 && Q.w[0] < bid_reciprocals10_64[extra_digits] {
+				if remainder_h == 0 && Q.lo < bid_reciprocals10_64[extra_digits] {
 					_C64--
 				}
 			}
@@ -260,21 +260,21 @@ func get_BID32_flags(sgn uint32, expon int, coeff uint64, rmode int, pfpsf *uint
 				*pfpsf |= BID_UNDERFLOW_EXCEPTION
 			} else {
 				status = BID_INEXACT_EXCEPTION
-				remainder_h = Q.w[1] << uint(64-amount)
+				remainder_h = Q.hi << uint(64-amount)
 
 				switch rmode {
 				case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 					if remainder_h == 0x8000000000000000 &&
-						Q.w[0] < bid_reciprocals10_64[extra_digits] {
+						Q.lo < bid_reciprocals10_64[extra_digits] {
 						status = 0
 					}
 				case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
 					if remainder_h == 0 &&
-						Q.w[0] < bid_reciprocals10_64[extra_digits] {
+						Q.lo < bid_reciprocals10_64[extra_digits] {
 						status = 0
 					}
 				default:
-					Stemp, carry = bits.Add64(Q.w[0], bid_reciprocals10_64[extra_digits], 0)
+					Stemp, carry = bits.Add64(Q.lo, bid_reciprocals10_64[extra_digits], 0)
 					_ = Stemp
 					if (remainder_h>>uint(64-amount))+carry >= (uint64(1) << uint(amount)) {
 						status = 0
@@ -379,7 +379,7 @@ func get_BID32_UF(sgn uint32, expon int, coeff uint64, R uint32, rmode int, pfps
 			// now get P/10^extra_digits: shift Q_high right by M[extra_digits]-64
 			amount = bid_short_recip_scale[extra_digits]
 
-			_C64 = Q.w[1] >> uint(amount)
+			_C64 = Q.hi >> uint(amount)
 
 			if rmode == 0 { // BID_ROUNDING_TO_NEAREST
 				if _C64&1 != 0 {
@@ -388,9 +388,9 @@ func get_BID32_UF(sgn uint32, expon int, coeff uint64, R uint32, rmode int, pfps
 					// get remainder
 					amount2 = 64 - amount
 					remainder_h = (^uint64(0)) >> uint(amount2)
-					remainder_h = remainder_h & Q.w[1]
+					remainder_h = remainder_h & Q.hi
 
-					if remainder_h == 0 && Q.w[0] < bid_reciprocals10_64[extra_digits] {
+					if remainder_h == 0 && Q.lo < bid_reciprocals10_64[extra_digits] {
 						_C64--
 					}
 				}
@@ -401,20 +401,20 @@ func get_BID32_UF(sgn uint32, expon int, coeff uint64, R uint32, rmode int, pfps
 				*pfpsf |= BID_UNDERFLOW_EXCEPTION
 			} else {
 				status := uint32(BID_INEXACT_EXCEPTION)
-				remainder_h = Q.w[1] << uint(64-amount)
+				remainder_h = Q.hi << uint(64-amount)
 				switch rmode {
 				case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 					if remainder_h == 0x8000000000000000 &&
-						Q.w[0] < bid_reciprocals10_64[extra_digits] {
+						Q.lo < bid_reciprocals10_64[extra_digits] {
 						status = BID_EXACT_STATUS
 					}
 				case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
-					if remainder_h == 0 && Q.w[0] < bid_reciprocals10_64[extra_digits] {
+					if remainder_h == 0 && Q.lo < bid_reciprocals10_64[extra_digits] {
 						status = BID_EXACT_STATUS
 					}
 				default:
 					var carry uint64
-					_, carry = __add_carry_out(Q.w[0], bid_reciprocals10_64[extra_digits])
+					_, carry = __add_carry_out(Q.lo, bid_reciprocals10_64[extra_digits])
 					if (remainder_h>>uint(64-amount))+carry >= (uint64(1) << uint(amount)) {
 						status = BID_EXACT_STATUS
 					}

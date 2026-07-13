@@ -29,9 +29,9 @@
 use super::prelude::*;
 
 pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficient_x: u64, mut sign_y: u64, mut exponent_y: i64, mut coefficient_y: u64, mut rounding_mode: i64, fpsc: &mut u32) -> u64 {
-    let mut CA: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CT: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CT_new: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CA: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CT_new: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_a: u64 = 0;
     let mut sign_b: u64 = 0;
     let mut coefficient_a: u64 = 0;
@@ -81,11 +81,11 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
     }
     if (diff_dec_expon > 16) {
         scale_ca = (bid_estimate_decimal_digits[bin_expon_ca as usize] as i64);
-        if (coefficient_a >= bid_power10_table_128[scale_ca as usize].w[0]) {
+        if (coefficient_a >= bid_power10_table_128[scale_ca as usize].lo) {
             scale_ca = scale_ca.wrapping_add(1);
         }
         scale_k = ((16 as i64).wrapping_sub(scale_ca));
-        coefficient_a = coefficient_a.wrapping_mul(bid_power10_table_128[scale_k as usize].w[0]);
+        coefficient_a = coefficient_a.wrapping_mul(bid_power10_table_128[scale_k as usize].lo);
         diff_dec_expon = diff_dec_expon.wrapping_sub(scale_k);
         exponent_a = exponent_a.wrapping_sub(scale_k);
         tempx = (coefficient_a as f64).to_bits();
@@ -138,7 +138,7 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
         }
     }
     if ((bin_expon_ca.wrapping_add(bid_estimate_bin_expon[diff_dec_expon as usize] as i64)) < 60) {
-        coefficient_a = coefficient_a.wrapping_mul(bid_power10_table_128[diff_dec_expon as usize].w[0]);
+        coefficient_a = coefficient_a.wrapping_mul(bid_power10_table_128[diff_dec_expon as usize].lo);
         sign_b = ((go_checked_shr_i64((sign_b as i64), go_shift_count_u64((63) as u64))) as u64);
         coefficient_b = (((coefficient_b.wrapping_add(sign_b))) ^ sign_b);
         sign_a = ((go_checked_shr_i64((sign_a as i64), go_shift_count_u64((63) as u64))) as u64);
@@ -147,15 +147,15 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
         sign_s = ((go_checked_shr_i64((coefficient_a as i64), go_shift_count_u64((63) as u64))) as u64);
         coefficient_a = (((coefficient_a.wrapping_add(sign_s))) ^ sign_s);
         sign_s &= 0x8000000000000000;
-        if (coefficient_a < bid_power10_table_128[16].w[0]) {
+        if (coefficient_a < bid_power10_table_128[16].lo) {
             if (((rounding_mode == 1) && (coefficient_a == 0)) && (sign_a != sign_b)) {
                 sign_s = 0x8000000000000000;
             }
             return get_bid64_with_flags(sign_s, exponent_b, coefficient_a, rounding_mode, fpsc);
         }
-        if (coefficient_a < bid_power10_table_128[17].w[0]) {
+        if (coefficient_a < bid_power10_table_128[17].lo) {
             extra_digits = 1;
-        } else if (coefficient_a < bid_power10_table_128[18].w[0]) {
+        } else if (coefficient_a < bid_power10_table_128[18].lo) {
             extra_digits = 2;
         } else {
             extra_digits = 3;
@@ -167,7 +167,7 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
         coefficient_a = coefficient_a.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
         CT = __mul_64x64_to_128(coefficient_a, bid_reciprocals10_64[extra_digits as usize]);
         amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-        C64 = (go_checked_shr_u64(CT.w[1], go_shift_count_u64((amount as u64) as u64)));
+        C64 = (go_checked_shr_u64(CT.hi, go_shift_count_u64((amount as u64) as u64)));
     } else {
         sign_s = sign_a;
         rmode = rounding_mode;
@@ -177,45 +177,45 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
         scale_ca = (bid_estimate_decimal_digits[bin_expon_ca as usize] as i64);
         sign_ab = (sign_a ^ sign_b);
         sign_ab = ((go_checked_shr_i64((sign_ab as i64), go_shift_count_u64((63) as u64))) as u64);
-        T1 = bid_power10_table_128[((16 as i64).wrapping_sub(diff_dec_expon)) as usize].w[0];
-        if (coefficient_a >= bid_power10_table_128[scale_ca as usize].w[0]) {
+        T1 = bid_power10_table_128[((16 as i64).wrapping_sub(diff_dec_expon)) as usize].lo;
+        if (coefficient_a >= bid_power10_table_128[scale_ca as usize].lo) {
             scale_ca = scale_ca.wrapping_add(1);
         }
         scale_k = ((16 as i64).wrapping_sub(scale_ca));
         saved_ca = (coefficient_a.wrapping_sub(T1));
-        coefficient_a = (((saved_ca as i64).wrapping_mul(bid_power10_table_128[scale_k as usize].w[0] as i64)) as u64);
+        coefficient_a = (((saved_ca as i64).wrapping_mul(bid_power10_table_128[scale_k as usize].lo as i64)) as u64);
         extra_digits = (diff_dec_expon.wrapping_sub(scale_k));
         saved_cb = (((coefficient_b.wrapping_add(sign_ab))) ^ sign_ab);
         coefficient_b = ((saved_cb.wrapping_add(10000000000000000)).wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]));
         CT = __mul_64x64_to_128(coefficient_b, bid_reciprocals10_64[extra_digits as usize]);
         amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-        C0_64 = (go_checked_shr_u64(CT.w[1], go_shift_count_u64((amount as u64) as u64)));
+        C0_64 = (go_checked_shr_u64(CT.hi, go_shift_count_u64((amount as u64) as u64)));
         C64 = (C0_64.wrapping_add(coefficient_a));
         if ((((C64.wrapping_sub(1000000000000000)).wrapping_sub(1)) as u64) > (9000000000000000 - 2)) {
             if (C64 >= 10000000000000000) {
                 if (scale_k == 0) {
                     saved_ca = (saved_ca.wrapping_add(T1));
                     CA = __mul_64x64_to_128(saved_ca, 0x3333333333333334);
-                    coefficient_a = (go_checked_shr_u64(CA.w[1], go_shift_count_u64((1) as u64)));
+                    coefficient_a = (go_checked_shr_u64(CA.hi, go_shift_count_u64((1) as u64)));
                     rem_a = ((saved_ca.wrapping_sub(((go_checked_shl_u64(coefficient_a, go_shift_count_u64((3) as u64)))))).wrapping_sub(((go_checked_shl_u64(coefficient_a, go_shift_count_u64((1) as u64))))));
                     coefficient_a = (coefficient_a.wrapping_sub(T1));
-                    saved_cb = saved_cb.wrapping_add((rem_a.wrapping_mul(bid_power10_table_128[diff_dec_expon as usize].w[0])));
+                    saved_cb = saved_cb.wrapping_add((rem_a.wrapping_mul(bid_power10_table_128[diff_dec_expon as usize].lo)));
                 } else {
-                    coefficient_a = (((((saved_ca.wrapping_sub(T1)).wrapping_sub(((go_checked_shl_u64(T1, go_shift_count_u64((3) as u64)))))) as i64).wrapping_mul((bid_power10_table_128[(scale_k.wrapping_sub(1)) as usize].w[0] as i64))) as u64);
+                    coefficient_a = (((((saved_ca.wrapping_sub(T1)).wrapping_sub(((go_checked_shl_u64(T1, go_shift_count_u64((3) as u64)))))) as i64).wrapping_mul((bid_power10_table_128[(scale_k.wrapping_sub(1)) as usize].lo as i64))) as u64);
                 }
                 extra_digits = extra_digits.wrapping_add(1);
                 coefficient_b = ((saved_cb.wrapping_add(100000000000000000)).wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]));
                 CT = __mul_64x64_to_128(coefficient_b, bid_reciprocals10_64[extra_digits as usize]);
                 amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-                C0_64 = (go_checked_shr_u64(CT.w[1], go_shift_count_u64((amount as u64) as u64)));
+                C0_64 = (go_checked_shr_u64(CT.hi, go_shift_count_u64((amount as u64) as u64)));
                 C64 = (C0_64.wrapping_add(coefficient_a));
             } else if (C64 <= 1000000000000000) {
-                coefficient_a = (((saved_ca as i64).wrapping_mul((bid_power10_table_128[(scale_k.wrapping_add(1)) as usize].w[0] as i64))) as u64);
+                coefficient_a = (((saved_ca as i64).wrapping_mul((bid_power10_table_128[(scale_k.wrapping_add(1)) as usize].lo as i64))) as u64);
                 exponent_b = exponent_b.wrapping_sub(1);
                 coefficient_b = (((((go_checked_shl_u64(saved_cb, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(saved_cb, go_shift_count_u64((1) as u64)))))).wrapping_add(100000000000000000)).wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]));
                 CT_new = __mul_64x64_to_128(coefficient_b, bid_reciprocals10_64[extra_digits as usize]);
                 amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-                C0_64 = (go_checked_shr_u64(CT_new.w[1], go_shift_count_u64((amount as u64) as u64)));
+                C0_64 = (go_checked_shr_u64(CT_new.hi, go_shift_count_u64((amount as u64) as u64)));
                 C64_new = (C0_64.wrapping_add(coefficient_a));
                 if (C64_new < 10000000000000000) {
                     C64 = C64_new;
@@ -228,27 +228,27 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
     }
     if (rmode == 0) {
         if ((C64 & 1) != 0) {
-            remainder_h = (go_checked_shl_u64(CT.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
-            if ((remainder_h == 0) && (CT.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+            remainder_h = (go_checked_shl_u64(CT.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
+            if ((remainder_h == 0) && (CT.lo < bid_reciprocals10_64[extra_digits as usize])) {
                 C64 = C64.wrapping_sub(1);
             }
         }
     }
     status = 32;
-    remainder_h = (go_checked_shl_u64(CT.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
+    remainder_h = (go_checked_shl_u64(CT.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
     match rmode {
         0 | 4 => {
-            if ((remainder_h == 0x8000000000000000) && (CT.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+            if ((remainder_h == 0x8000000000000000) && (CT.lo < bid_reciprocals10_64[extra_digits as usize])) {
                 status = 0;
             }
         }
         1 | 3 => {
-            if ((remainder_h == 0) && (CT.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+            if ((remainder_h == 0) && (CT.lo < bid_reciprocals10_64[extra_digits as usize])) {
                 status = 0;
             }
         }
         _ => {
-            (tmp, carry) = __add_carry_out(CT.w[0], bid_reciprocals10_64[extra_digits as usize]);
+            (tmp, carry) = __add_carry_out(CT.lo, bid_reciprocals10_64[extra_digits as usize]);
             _ = tmp;
             if ((((go_checked_shr_u64(remainder_h, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)))).wrapping_add(carry)) >= ((go_checked_shl_u64((1 as u64), go_shift_count_u64((amount as u64) as u64))))) {
                 status = 0;

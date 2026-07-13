@@ -32,7 +32,7 @@ pub fn bid64_frexp(mut x: u64) -> (u64, i64) {
     let mut res: u64 = 0;
     let mut sig_x: u64 = 0;
     let mut exp_x: u64 = 0;
-    let mut C: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut C: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut q: i64 = 0;
     if (((x & 0x7c00000000000000) == 0x7c00000000000000) || ((x & 0x7800000000000000) == 0x7800000000000000)) {
         res = x;
@@ -59,8 +59,8 @@ pub fn bid64_frexp(mut x: u64) -> (u64, i64) {
         if (sig_x >= 0x0020000000000000) {
             q = 16;
         } else {
-            C.w[0] = sig_x;
-            C.w[1] = 0;
+            C.lo = sig_x;
+            C.hi = 0;
             q = __get_dec_digits64(C);
         }
         if (sig_x < 0x0020000000000000) {

@@ -72,7 +72,7 @@ pub(crate) fn bid64_decode_for_compare(mut x: u64) -> (u64, i64, BigUint, bool) 
 pub(crate) fn bid64_compare_to_bid128(mut x: u64, mut y: BID_UINT128) -> i64 {
     x = bid64_canonicalize_non_canonical_finite(x);
     let (mut xSign, mut xExp, mut xCoeff, mut xZero) = bid64_decode_for_compare(x);
-    let mut yd = bid128_decode(y.w[1], y.w[0]);
+    let mut yd = bid128_decode(y.hi, y.lo);
     if (bid64_is_inf(x) != 0) {
         if yd.isInf {
             if (xSign == yd.sign) {
@@ -127,7 +127,7 @@ pub fn bid64_next_toward(mut x: u64, mut y: BID_UINT128) -> (u64, u32) {
     let mut pfpsf: u32 = 0;
     let mut res1: i64 = 0;
     let mut res2: i64 = 0;
-    let mut yd = bid128_decode(y.w[1], y.w[0]);
+    let mut yd = bid128_decode(y.hi, y.lo);
     if ((x & 0x7c00000000000000) == 0x7c00000000000000) {
         if ((x & 0x0003ffffffffffff) > 999999999999999) {
             x = (x & 0xfe00000000000000);
@@ -145,7 +145,7 @@ pub fn bid64_next_toward(mut x: u64, mut y: BID_UINT128) -> (u64, u32) {
         }
         return (res, pfpsf);
     } else if yd.isNaN {
-        (res, pfpsf) = bid128_na_n_to_bid64(y.w[1], y.w[0]);
+        (res, pfpsf) = bid128_na_n_to_bid64(y.hi, y.lo);
         return (res, pfpsf);
     } else {
         if ((x & 0x7800000000000000) == 0x7800000000000000) {
@@ -157,7 +157,7 @@ pub fn bid64_next_toward(mut x: u64, mut y: BID_UINT128) -> (u64, u32) {
     }
     res2 = bid64_compare_to_bid128(x, y);
     if (res2 == 0) {
-        res = ((y.w[1] & 0x8000000000000000) | (x & 0x7fffffffffffffff));
+        res = ((y.hi & 0x8000000000000000) | (x & 0x7fffffffffffffff));
     } else if (res2 > 0) {
         (res, _) = bid64_next_down(x);
     } else {

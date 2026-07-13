@@ -43,7 +43,7 @@ fn parse_bid128(s: &str) -> Option<BID_UINT128> {
         if let Some((hi, lo)) = inner.split_once(',') {
             let hi = u64::from_str_radix(hi.trim(), 16).ok()?;
             let lo = u64::from_str_radix(lo.trim(), 16).ok()?;
-            return Some(BID_UINT128 { w: [lo, hi] });
+            return Some(BID_UINT128 { lo, hi });
         }
 
         // Intel getop128 (readtest.c:139-142) reads a no-comma bracketed hex
@@ -58,7 +58,7 @@ fn parse_bid128(s: &str) -> Option<BID_UINT128> {
         }
         let hi = u64::from_str_radix(&inner[..16], 16).ok()?;
         let lo = u64::from_str_radix(&inner[16..], 16).ok()?;
-        return Some(BID_UINT128 { w: [lo, hi] });
+        return Some(BID_UINT128 { lo, hi });
     }
 
     parse_bid128_small_decimal(s).or_else(|| Some(bid128_from_string_via_c_readtest(s, 0).0))
@@ -95,7 +95,7 @@ fn parse_bid128_expected(s: &str, rm: i64) -> Option<BID_UINT128> {
         if let Some((hi, lo)) = inner.split_once(',') {
             let hi = u64::from_str_radix(hi.trim(), 16).ok()?;
             let lo = u64::from_str_radix(lo.trim(), 16).ok()?;
-            return Some(BID_UINT128 { w: [lo, hi] });
+            return Some(BID_UINT128 { lo, hi });
         }
 
         // Intel getop128 (readtest.c:139-142) reads a no-comma bracketed hex
@@ -110,7 +110,7 @@ fn parse_bid128_expected(s: &str, rm: i64) -> Option<BID_UINT128> {
         }
         let hi = u64::from_str_radix(&inner[..16], 16).ok()?;
         let lo = u64::from_str_radix(&inner[16..], 16).ok()?;
-        return Some(BID_UINT128 { w: [lo, hi] });
+        return Some(BID_UINT128 { lo, hi });
     }
 
     parse_bid128_small_decimal(s).or_else(|| Some(bid128_from_string_via_c_readtest(s, rm).0))
@@ -118,7 +118,7 @@ fn parse_bid128_expected(s: &str, rm: i64) -> Option<BID_UINT128> {
 
 
 fn bid128_from_parts(lo: u64, hi: u64) -> BID_UINT128 {
-    BID_UINT128 { w: [lo, hi] }
+    BID_UINT128 { lo, hi }
 }
 
 fn encode_bid128_coeff_readtest(negative: bool, exponent: i32, coeff: u128) -> Option<BID_UINT128> {
@@ -400,7 +400,7 @@ fn parse_bid128_special(s: &str) -> Option<BID_UINT128> {
         "-snan" => 0xfe00_0000_0000_0000,
         _ => return None,
     };
-    Some(BID_UINT128 { w: [0, hi] })
+    Some(BID_UINT128 { lo: 0, hi })
 }
 
 fn parse_bid64_decimal_exact(s: &str) -> Option<u64> {
@@ -572,7 +572,7 @@ fn bid64_readtest_mant(x: u64) -> u64 {
 }
 
 fn bid128_readtest_exp(x: BID_UINT128) -> u64 {
-    let hi = x.w[1];
+    let hi = x.hi;
     if (hi & 0x6000_0000_0000_0000) == 0x6000_0000_0000_0000 {
         (hi & 0x1fff_8000_0000_0000) >> 15
     } else {
@@ -581,11 +581,11 @@ fn bid128_readtest_exp(x: BID_UINT128) -> u64 {
 }
 
 fn bid128_readtest_mant(x: BID_UINT128) -> BID_UINT128 {
-    let hi = x.w[1];
+    let hi = x.hi;
     if (hi & 0x6000_0000_0000_0000) == 0x6000_0000_0000_0000 {
-        BID_UINT128 { w: [x.w[0], (hi & 0x0000_7fff_ffff_ffff) | 0x0002_0000_0000_0000] }
+        BID_UINT128 { lo: x.lo, hi: (hi & 0x0000_7fff_ffff_ffff) | 0x0002_0000_0000_0000 }
     } else {
-        BID_UINT128 { w: [x.w[0], hi & 0x0001_ffff_ffff_ffff] }
+        BID_UINT128 { lo: x.lo, hi: hi & 0x0001_ffff_ffff_ffff }
     }
 }
 
@@ -665,20 +665,20 @@ fn bid128_relative_err_ok(mut got: BID_UINT128, mut expected: BID_UINT128, rm: i
     let got_inf = bid128_is_inf(got) != 0;
     let expected_inf = bid128_is_inf(expected) != 0;
     if got_nan || expected_nan || got_inf || expected_inf {
-        if got.w == expected.w {
+        if got == expected {
             return true;
         }
         if got_inf {
-            got.w[1] = (got.w[1] & 0x8000_0000_0000_0000) | 0x5fff_ed09_bead_87c0;
-            got.w[0] = 0x378d_8e63_ffff_ffff;
+            got.hi = (got.hi & 0x8000_0000_0000_0000) | 0x5fff_ed09_bead_87c0;
+            got.lo = 0x378d_8e63_ffff_ffff;
         } else if expected_inf {
-            expected.w[1] = (expected.w[1] & 0x8000_0000_0000_0000) | 0x5fff_ed09_bead_87c0;
-            expected.w[0] = 0x378d_8e63_ffff_ffff;
+            expected.hi = (expected.hi & 0x8000_0000_0000_0000) | 0x5fff_ed09_bead_87c0;
+            expected.lo = 0x378d_8e63_ffff_ffff;
         } else {
             return false;
         }
     }
-    if (got.w[1] & 0x8000_0000_0000_0000) != (expected.w[1] & 0x8000_0000_0000_0000) {
+    if (got.hi & 0x8000_0000_0000_0000) != (expected.hi & 0x8000_0000_0000_0000) {
         return false;
     }
 
@@ -701,10 +701,10 @@ fn bid128_relative_err_ok(mut got: BID_UINT128, mut expected: BID_UINT128, rm: i
 
     let m1 = bid128_readtest_mant(r1);
     let m2 = bid128_readtest_mant(r2);
-    let mut ulp = if m1.w[0] > m2.w[0] {
-        (m1.w[0] - m2.w[0]) as f64
+    let mut ulp = if m1.lo > m2.lo {
+        (m1.lo - m2.lo) as f64
     } else {
-        (m2.w[0] - m1.w[0]) as f64
+        (m2.lo - m1.lo) as f64
     };
     let (less, _) = bid128_quiet_less(got, expected);
     if less != 0 {
@@ -741,15 +741,15 @@ fn compare_u32(got: u32, expected: u32, got_flags: u32, exp_flags: u32, mode: Cm
 
 fn compare_bid128(got: BID_UINT128, expected: BID_UINT128, got_flags: u32, exp_flags: u32, mode: CmpMode, rm: i64, ulp_add: f64) -> DispatchResult {
     let value_ok = match mode {
-        CmpMode::CmpFuzzy => got.w == expected.w,
-        CmpMode::CmpEqual => got.w == expected.w || bid128_numerically_equal(got, expected),
+        CmpMode::CmpFuzzy => got == expected,
+        CmpMode::CmpEqual => got == expected || bid128_numerically_equal(got, expected),
         CmpMode::CmpRelativeErr => bid128_relative_err_ok(got, expected, rm, ulp_add),
     };
     if value_ok && readtest_flags_ok(exp_flags, got_flags, mode) {
         DispatchResult::Pass
     } else {
         DispatchResult::Fail(format!("mode={:?} got=[{:016x}{:016x}]/{:02x} want=[{:016x}{:016x}]/{:02x}",
-            mode, got.w[1], got.w[0], got_flags, expected.w[1], expected.w[0], exp_flags))
+            mode, got.hi, got.lo, got_flags, expected.hi, expected.lo, exp_flags))
     }
 }
 
@@ -861,7 +861,7 @@ fn bid128_from_string_via_c_readtest(s: &str, rm: i64) -> (BID_UINT128, u32) {
     let value = unsafe {
         libbid_sys::bid128_from_string(cstr.as_ptr(), rm as u32, &mut flags)
     };
-    (BID_UINT128 { w: value.w }, flags)
+    (BID_UINT128 { lo: value.w[0], hi: value.w[1] }, flags)
 }
 
 fn bid128_binop_flags_param_readtest(
@@ -1058,7 +1058,7 @@ fn bid128_special_from_string_readtest(s: &str) -> Option<BID_UINT128> {
         return None;
     };
 
-    Some(BID_UINT128 { w: [0, sign | hi] })
+    Some(BID_UINT128 { lo: 0, hi: sign | hi })
 }
 
 fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchResult {

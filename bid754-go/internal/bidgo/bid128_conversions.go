@@ -23,15 +23,15 @@ func Bid128ToBid64(x BID_UINT128, rnd_mode int) (uint64, uint32) {
 	// unpack arguments, check for NaN or Infinity or 0
 	sign_x, exponent_x, CX, valid := unpack_BID128_value(x)
 	if !valid {
-		if (x.w[1] << 1) >= 0xf000000000000000 {
-			Tmp.w[1] = CX.w[1] & 0x00003fffffffffff
-			Tmp.w[0] = CX.w[0]
+		if (x.hi << 1) >= 0xf000000000000000 {
+			Tmp.hi = CX.hi & 0x00003fffffffffff
+			Tmp.lo = CX.lo
 			TP128 = bid_reciprocals10_128[18]
 			Qh, Ql = __mul_128x128_full(Tmp, TP128)
 			amount = bid_recip_scale[18]
 			Tmp = __shr_128(Qh, uint(amount))
-			res = (CX.w[1] & 0xfc00000000000000) | Tmp.w[0]
-			if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 { // sNaN
+			res = (CX.hi & 0xfc00000000000000) | Tmp.lo
+			if (x.hi & SNAN_MASK64) == SNAN_MASK64 { // sNaN
 				pfpsf |= BID_INVALID_EXCEPTION
 			}
 			return res, pfpsf
@@ -49,20 +49,20 @@ func Bid128ToBid64(x BID_UINT128, rnd_mode int) (uint64, uint32) {
 		return res, pfpsf
 	}
 
-	if CX.w[1] != 0 || (CX.w[0] >= 10000000000000000) {
+	if CX.hi != 0 || (CX.lo >= 10000000000000000) {
 		// find number of digits in coefficient
 		// 2^64
 		f64_i := uint32(0x5f800000)
 		// fx ~ CX
-		fx_d := noFmaMulAddF32(float32(CX.w[1]), math.Float32frombits(f64_i), float32(CX.w[0]))
+		fx_d := noFmaMulAddF32(float32(CX.hi), math.Float32frombits(f64_i), float32(CX.lo))
 		fx_i := math.Float32bits(fx_d)
 		bin_expon_cx = int((fx_i>>23)&0xff) - 0x7f
 		extra_digits = bid_estimate_decimal_digits[bin_expon_cx] - 16
 		// scale = 38-estimate_decimal_digits[bin_expon_cx];
-		D = int64(CX.w[1]) - int64(bid_power10_index_binexp_128[bin_expon_cx].w[1])
+		D = int64(CX.hi) - int64(bid_power10_index_binexp_128[bin_expon_cx].hi)
 		if D > 0 ||
 			(D == 0 &&
-				CX.w[0] >= bid_power10_index_binexp_128[bin_expon_cx].w[0]) {
+				CX.lo >= bid_power10_index_binexp_128[bin_expon_cx].lo) {
 			extra_digits++
 		}
 
@@ -80,8 +80,8 @@ func Bid128ToBid64(x BID_UINT128, rnd_mode int) (uint64, uint32) {
 				if exponent_x ==
 					DECIMAL_EXPONENT_BIAS_128-DECIMAL_EXPONENT_BIAS-1 {
 					T128 = bid_round_const_table_128[rmode][extra_digits]
-					CX1.w[0], carry = __add_carry_out(T128.w[0], CX.w[0])
-					CX1.w[1] = CX.w[1] + T128.w[1] + carry
+					CX1.lo, carry = __add_carry_out(T128.lo, CX.lo)
+					CX1.hi = CX.hi + T128.hi + carry
 					// DECIMAL_TINY_DETECTION_AFTER_ROUNDING is 0, skip
 				}
 				extra_digits =
@@ -94,32 +94,32 @@ func Bid128ToBid64(x BID_UINT128, rnd_mode int) (uint64, uint32) {
 		}
 
 		T128 = bid_round_const_table_128[rmode][extra_digits]
-		CX.w[0], carry = __add_carry_out(T128.w[0], CX.w[0])
-		CX.w[1] = CX.w[1] + T128.w[1] + carry
+		CX.lo, carry = __add_carry_out(T128.lo, CX.lo)
+		CX.hi = CX.hi + T128.hi + carry
 
 		TP128 = bid_reciprocals10_128[extra_digits]
 		Qh, Ql = __mul_128x128_full(CX, TP128)
 		amount = bid_recip_scale[extra_digits]
 
 		if amount >= 64 {
-			CX.w[0] = Qh.w[1] >> uint(amount-64)
-			CX.w[1] = 0
+			CX.lo = Qh.hi >> uint(amount-64)
+			CX.hi = 0
 		} else {
 			CX = __shr_128(Qh, uint(amount))
 		}
 
 		if rnd_mode == BID_ROUNDING_TO_NEAREST {
-			if CX.w[0]&1 != 0 {
+			if CX.lo&1 != 0 {
 				// check whether fractional part of initial_P/10^ed1 is exactly .5
 
 				// get remainder
 				Qh1 = __shl_128_long(Qh, uint(128-amount))
 
-				if Qh1.w[1] == 0 && Qh1.w[0] == 0 &&
-					(Ql.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Ql.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Ql.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
-					CX.w[0]--
+				if Qh1.hi == 0 && Qh1.lo == 0 &&
+					(Ql.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Ql.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Ql.lo < bid_reciprocals10_128[extra_digits].lo)) {
+					CX.lo--
 				}
 			}
 		}
@@ -132,32 +132,32 @@ func Bid128ToBid64(x BID_UINT128, rnd_mode int) (uint64, uint32) {
 			switch rmode {
 			case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 				// test whether fractional part is 0
-				if Qh1.w[1] == 0x8000000000000000 && Qh1.w[0] == 0 &&
-					(Ql.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Ql.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Ql.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				if Qh1.hi == 0x8000000000000000 && Qh1.lo == 0 &&
+					(Ql.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Ql.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Ql.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					status = BID_EXACT_STATUS
 				}
 			case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
-				if Qh1.w[1] == 0 && Qh1.w[0] == 0 &&
-					(Ql.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Ql.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Ql.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				if Qh1.hi == 0 && Qh1.lo == 0 &&
+					(Ql.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Ql.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Ql.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					status = BID_EXACT_STATUS
 				}
 			default:
 				// round up
-				Stemp.w[0], cy = __add_carry_out(Ql.w[0],
-					bid_reciprocals10_128[extra_digits].w[0])
-				Stemp.w[1], carry = __add_carry_in_out(Ql.w[1],
-					bid_reciprocals10_128[extra_digits].w[1], cy)
+				Stemp.lo, cy = __add_carry_out(Ql.lo,
+					bid_reciprocals10_128[extra_digits].lo)
+				Stemp.hi, carry = __add_carry_in_out(Ql.hi,
+					bid_reciprocals10_128[extra_digits].hi, cy)
 				Qh = __shr_128_long(Qh1, uint(128-amount))
-				Tmp.w[0] = 1
-				Tmp.w[1] = 0
+				Tmp.lo = 1
+				Tmp.hi = 0
 				Tmp1 = __shl_128_long(Tmp, uint(amount))
-				Qh.w[0] += carry
-				if Qh.w[0] < carry {
-					Qh.w[1]++
+				Qh.lo += carry
+				if Qh.lo < carry {
+					Qh.hi++
 				}
 				if __unsigned_compare_ge_128(Qh, Tmp1) {
 					status = BID_EXACT_STATUS
@@ -178,7 +178,7 @@ func Bid128ToBid64(x BID_UINT128, rnd_mode int) (uint64, uint32) {
 
 	res, flags := get_BID64_flags(sign_x,
 		exponent_x-DECIMAL_EXPONENT_BIAS_128+DECIMAL_EXPONENT_BIAS,
-		CX.w[0], rnd_mode)
+		CX.lo, rnd_mode)
 	pfpsf |= flags
 	return res, pfpsf
 }
@@ -199,14 +199,14 @@ func Bid128ToBid32(x BID_UINT128, rnd_mode int) (uint32, uint32) {
 	// unpack arguments, check for NaN or Infinity or 0
 	sign_x, exponent_x, CX, valid := unpack_BID128_value(x)
 	if !valid {
-		if (x.w[1] & 0x7800000000000000) == 0x7800000000000000 {
-			Tmp.w[1] = CX.w[1] & 0x00003fffffffffff
-			Tmp.w[0] = CX.w[0]
+		if (x.hi & 0x7800000000000000) == 0x7800000000000000 {
+			Tmp.hi = CX.hi & 0x00003fffffffffff
+			Tmp.lo = CX.lo
 			TP128 = bid_reciprocals10_128[27]
 			Qh, Ql = __mul_128x128_full(Tmp, TP128)
 			amount = bid_recip_scale[27] - 64
-			res = uint32((CX.w[1]>>32)&0xfc000000) | uint32(Qh.w[1]>>uint(amount))
-			if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 { // sNaN
+			res = uint32((CX.hi>>32)&0xfc000000) | uint32(Qh.hi>>uint(amount))
+			if (x.hi & SNAN_MASK64) == SNAN_MASK64 { // sNaN
 				pfpsf |= BID_INVALID_EXCEPTION
 			}
 			_ = Ql
@@ -225,20 +225,20 @@ func Bid128ToBid32(x BID_UINT128, rnd_mode int) (uint32, uint32) {
 		return res, pfpsf
 	}
 
-	if CX.w[1] != 0 || (CX.w[0] >= 10000000) {
+	if CX.hi != 0 || (CX.lo >= 10000000) {
 		// find number of digits in coefficient
 		// 2^64
 		f64_i := uint32(0x5f800000)
 		// fx ~ CX
-		fx_d := noFmaMulAddF32(float32(CX.w[1]), math.Float32frombits(f64_i), float32(CX.w[0]))
+		fx_d := noFmaMulAddF32(float32(CX.hi), math.Float32frombits(f64_i), float32(CX.lo))
 		fx_i := math.Float32bits(fx_d)
 		bin_expon_cx = int((fx_i>>23)&0xff) - 0x7f
 		extra_digits = bid_estimate_decimal_digits[bin_expon_cx] - 7
 		// scale = 38-estimate_decimal_digits[bin_expon_cx];
-		D = int64(CX.w[1]) - int64(bid_power10_index_binexp_128[bin_expon_cx].w[1])
+		D = int64(CX.hi) - int64(bid_power10_index_binexp_128[bin_expon_cx].hi)
 		if D > 0 ||
 			(D == 0 &&
-				CX.w[0] >= bid_power10_index_binexp_128[bin_expon_cx].w[0]) {
+				CX.lo >= bid_power10_index_binexp_128[bin_expon_cx].lo) {
 			extra_digits++
 		}
 
@@ -257,8 +257,8 @@ func Bid128ToBid32(x BID_UINT128, rnd_mode int) (uint32, uint32) {
 				if exponent_x ==
 					DECIMAL_EXPONENT_BIAS_128-DECIMAL_EXPONENT_BIAS_32-1 {
 					T128 = bid_round_const_table_128[rmode][extra_digits]
-					CX1.w[0], carry = __add_carry_out(T128.w[0], CX.w[0])
-					CX1.w[1] = CX.w[1] + T128.w[1] + carry
+					CX1.lo, carry = __add_carry_out(T128.lo, CX.lo)
+					CX1.hi = CX.hi + T128.hi + carry
 					// DECIMAL_TINY_DETECTION_AFTER_ROUNDING is 0, skip
 				}
 				extra_digits =
@@ -272,32 +272,32 @@ func Bid128ToBid32(x BID_UINT128, rnd_mode int) (uint32, uint32) {
 		}
 
 		T128 = bid_round_const_table_128[rmode][extra_digits]
-		CX.w[0], carry = __add_carry_out(T128.w[0], CX.w[0])
-		CX.w[1] = CX.w[1] + T128.w[1] + carry
+		CX.lo, carry = __add_carry_out(T128.lo, CX.lo)
+		CX.hi = CX.hi + T128.hi + carry
 
 		TP128 = bid_reciprocals10_128[extra_digits]
 		Qh, Ql = __mul_128x128_full(CX, TP128)
 		amount = bid_recip_scale[extra_digits]
 
 		if amount >= 64 {
-			CX.w[0] = Qh.w[1] >> uint(amount-64)
-			CX.w[1] = 0
+			CX.lo = Qh.hi >> uint(amount-64)
+			CX.hi = 0
 		} else {
 			CX = __shr_128(Qh, uint(amount))
 		}
 
 		if rnd_mode == BID_ROUNDING_TO_NEAREST {
-			if CX.w[0]&1 != 0 {
+			if CX.lo&1 != 0 {
 				// check whether fractional part of initial_P/10^ed1 is exactly .5
 
 				// get remainder
 				Qh1 = __shl_128_long(Qh, uint(128-amount))
 
-				if Qh1.w[1] == 0 && Qh1.w[0] == 0 &&
-					(Ql.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Ql.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Ql.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
-					CX.w[0]--
+				if Qh1.hi == 0 && Qh1.lo == 0 &&
+					(Ql.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Ql.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Ql.lo < bid_reciprocals10_128[extra_digits].lo)) {
+					CX.lo--
 				}
 			}
 		}
@@ -310,32 +310,32 @@ func Bid128ToBid32(x BID_UINT128, rnd_mode int) (uint32, uint32) {
 			switch rmode {
 			case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 				// test whether fractional part is 0
-				if Qh1.w[1] == 0x8000000000000000 && Qh1.w[0] == 0 &&
-					(Ql.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Ql.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Ql.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				if Qh1.hi == 0x8000000000000000 && Qh1.lo == 0 &&
+					(Ql.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Ql.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Ql.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					status = BID_EXACT_STATUS
 				}
 			case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
-				if Qh1.w[1] == 0 && Qh1.w[0] == 0 &&
-					(Ql.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Ql.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Ql.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				if Qh1.hi == 0 && Qh1.lo == 0 &&
+					(Ql.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Ql.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Ql.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					status = BID_EXACT_STATUS
 				}
 			default:
 				// round up
-				Stemp.w[0], cy = __add_carry_out(Ql.w[0],
-					bid_reciprocals10_128[extra_digits].w[0])
-				Stemp.w[1], carry = __add_carry_in_out(Ql.w[1],
-					bid_reciprocals10_128[extra_digits].w[1], cy)
+				Stemp.lo, cy = __add_carry_out(Ql.lo,
+					bid_reciprocals10_128[extra_digits].lo)
+				Stemp.hi, carry = __add_carry_in_out(Ql.hi,
+					bid_reciprocals10_128[extra_digits].hi, cy)
 				Qh = __shr_128_long(Qh1, uint(128-amount))
-				Tmp.w[0] = 1
-				Tmp.w[1] = 0
+				Tmp.lo = 1
+				Tmp.hi = 0
 				Tmp1 = __shl_128_long(Tmp, uint(amount))
-				Qh.w[0] += carry
-				if Qh.w[0] < carry {
-					Qh.w[1]++
+				Qh.lo += carry
+				if Qh.lo < carry {
+					Qh.hi++
 				}
 				if __unsigned_compare_ge_128(Qh, Tmp1) {
 					status = BID_EXACT_STATUS
@@ -356,6 +356,6 @@ func Bid128ToBid32(x BID_UINT128, rnd_mode int) (uint32, uint32) {
 
 	res = get_BID32_flags(uint32(sign_x>>32),
 		exponent_x-DECIMAL_EXPONENT_BIAS_128+
-			DECIMAL_EXPONENT_BIAS_32, CX.w[0], rnd_mode, &pfpsf)
+			DECIMAL_EXPONENT_BIAS_32, CX.lo, rnd_mode, &pfpsf)
 	return res, pfpsf
 }

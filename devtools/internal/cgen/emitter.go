@@ -13,8 +13,9 @@ import (
 )
 
 type Generated struct {
-	Go   []byte
-	Rust []byte
+	Go    []byte
+	Rust  []byte
+	Bidgo []byte
 }
 
 func Generate(repoRoot string, manifest Manifest) (Generated, error) {
@@ -31,8 +32,21 @@ func Generate(repoRoot string, manifest Manifest) (Generated, error) {
 	if err != nil {
 		return Generated{}, err
 	}
+	var bidgoTables []Table
+	for _, table := range tables {
+		if table.Spec.Source == manifest.BidgoSource {
+			bidgoTables = append(bidgoTables, table)
+		}
+	}
+	if len(bidgoTables) == 0 {
+		return Generated{}, fmt.Errorf("bidgo_source %q matched no manifest tables", manifest.BidgoSource)
+	}
+	bidgoData, err := renderBidgo(bidgoTables)
+	if err != nil {
+		return Generated{}, err
+	}
 
-	return Generated{Go: goData, Rust: rustData}, nil
+	return Generated{Go: goData, Rust: rustData, Bidgo: bidgoData}, nil
 }
 
 func WriteOutputs(repoRoot string, manifest Manifest, generated Generated) error {
@@ -40,6 +54,9 @@ func WriteOutputs(repoRoot string, manifest Manifest, generated Generated) error
 		return err
 	}
 	if err := writeFile(filepath.Join(repoRoot, manifest.RustOutput), generated.Rust); err != nil {
+		return err
+	}
+	if err := writeFile(filepath.Join(repoRoot, manifest.BidgoOutput), generated.Bidgo); err != nil {
 		return err
 	}
 	return nil
@@ -112,6 +129,90 @@ func renderRust(tables []Table) ([]byte, error) {
 	}
 
 	return b.Bytes(), nil
+}
+
+func renderBidgo(tables []Table) ([]byte, error) {
+	var b bytes.Buffer
+	b.WriteString(genmarker.Line("c-tablegen") + "\n")
+	b.WriteString("// Source tables come from pinned Intel DFP C files.\n\n")
+	b.WriteString("package bidgo\n\n")
+
+	for _, table := range tables {
+		b.WriteString(fmt.Sprintf("// %s comes from %s:%s.\n", table.Spec.Name, table.SourceRel, table.Spec.Name))
+		b.WriteString(fmt.Sprintf("var %s = %s%s\n\n", table.Spec.Name, bidgoTypeFor(table), renderBidgoValue(table, table.Value, 0, 0)))
+	}
+
+	formatted, err := format.Source(b.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("format generated bidgo tables: %w", err)
+	}
+	return formatted, nil
+}
+
+func bidgoTypeFor(table Table) string {
+	base := bidgoScalarFor(table.CType)
+	for i := len(table.Dims) - 1; i >= 0; i-- {
+		base = fmt.Sprintf("[%d]%s", table.Dims[i], base)
+	}
+	return base
+}
+
+func bidgoScalarFor(cType string) string {
+	switch cType {
+	case "BID_UINT8":
+		return "uint8"
+	case "BID_UINT32":
+		return "uint32"
+	case "BID_UINT64":
+		return "uint64"
+	case "BID_UINT128", "BID_UINT192", "BID_UINT256":
+		return cType
+	case "BID_SINT8":
+		return "int8"
+	case "char":
+		return "uint8"
+	case "unsigned int":
+		return "uint32"
+	case "int":
+		return "int"
+	default:
+		panic("unsupported C type for bidgo: " + cType)
+	}
+}
+
+func renderBidgoValue(table Table, v Value, indent int, depth int) string {
+	if depth == len(table.Dims) {
+		switch table.CType {
+		case "BID_UINT128":
+			if len(v.Elements) != 2 || !allScalar(v.Elements) {
+				panic("BID_UINT128 value does not have two scalar limbs")
+			}
+			return fmt.Sprintf("{lo: %s, hi: %s}", v.Elements[0].Number.String(), v.Elements[1].Number.String())
+		case "BID_UINT192", "BID_UINT256":
+			arity := fixedWordArity(table.CType)
+			if len(v.Elements) != arity || !allScalar(v.Elements) {
+				panic(fmt.Sprintf("%s value does not have %d scalar limbs", table.CType, arity))
+			}
+			words := make([]string, len(v.Elements))
+			for i, elem := range v.Elements {
+				words[i] = elem.Number.String()
+			}
+			return fmt.Sprintf("{w: [%d]uint64{%s}}", arity, strings.Join(words, ", "))
+		}
+	}
+	if v.IsScalar() {
+		return v.Number.String()
+	}
+	if len(v.Elements) == 0 {
+		return "{}"
+	}
+	prefix := strings.Repeat("\t", indent)
+	childPrefix := strings.Repeat("\t", indent+1)
+	parts := make([]string, 0, len(v.Elements))
+	for _, elem := range v.Elements {
+		parts = append(parts, childPrefix+renderBidgoValue(table, elem, indent+1, depth+1)+",")
+	}
+	return "{\n" + strings.Join(parts, "\n") + "\n" + prefix + "}"
 }
 
 func goTypeFor(table Table) string {

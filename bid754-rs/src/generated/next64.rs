@@ -36,7 +36,7 @@ pub fn bid64_next_up(mut x: u64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut C1: u64 = 0;
     let mut pfpsf: u32 = 0;
-    let mut C: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut C: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     if ((x & 0x7c00000000000000) == 0x7c00000000000000) {
         if ((x & 0x0003ffffffffffff) > 999999999999999) {
             x = (x & 0xfe00000000000000);
@@ -78,8 +78,8 @@ pub fn bid64_next_up(mut x: u64) -> (u64, u32) {
         } else if (x == 0x8000000000000001) {
             res = 0x8000000000000000;
         } else {
-            C.w[0] = C1;
-            C.w[1] = 0;
+            C.lo = C1;
+            C.hi = 0;
             q1 = __get_dec_digits64(C);
             if (q1 < 16) {
                 if (x_exp > (((16 as i64).wrapping_sub(q1)) as u64)) {
@@ -123,7 +123,7 @@ pub fn bid64_next_down(mut x: u64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut C1: u64 = 0;
     let mut pfpsf: u32 = 0;
-    let mut C: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut C: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     if ((x & 0x7c00000000000000) == 0x7c00000000000000) {
         if ((x & 0x0003ffffffffffff) > 999999999999999) {
             x = (x & 0xfe00000000000000);
@@ -165,8 +165,8 @@ pub fn bid64_next_down(mut x: u64) -> (u64, u32) {
         } else if (x == 0x0000000000000001) {
             res = 0x0000000000000000;
         } else {
-            C.w[0] = C1;
-            C.w[1] = 0;
+            C.lo = C1;
+            C.hi = 0;
             q1 = __get_dec_digits64(C);
             if (q1 < 16) {
                 if (x_exp > (((16 as i64).wrapping_sub(q1)) as u64)) {

@@ -1,14 +1,14 @@
 // Package tablecrosscheck cross-checks the c-tablegen output package
 // (devtools/generated/go, generated from pinned Intel BID C) against the
-// hand-ported table literals inside bid754-go/internal/bidgo.
+// corresponding table literals inside bid754-go/internal/bidgo.
 //
 // bid754-go is zero-dependency and bidgo is an internal package, so the bidgo
 // values cannot be imported here. Instead this test type-checks the bidgo
 // package from source with go/types and evaluates the table initializer
-// literals as exact constants. The orphaned c-tablegen Go output thereby
-// becomes the verification anchor for the hand-ported tables (including
-// tables_binarydecimal.go, which carries a generated-code marker but has no
-// in-repo generator).
+// literals as exact constants. The c-tablegen Go output thereby remains an
+// independent value anchor for hand-ported bidgo tables. For the c-tablegen-
+// generated tables_binarydecimal.go output, this check supplies the closed-
+// world value census; make verify-generated supplies byte reproducibility.
 //
 // The check is exhaustive in both directions:
 //   - every tablegen_manifest.json table must be anchored by at least one
@@ -17,7 +17,7 @@
 //     have a mapping entry (a value comparison or a documented exclusion).
 //     No size threshold is applied: the smallest real Intel table in the
 //     package has 7 scalar leaves, so any threshold would create a coverage gap
-//     for hand-ported copies of small Intel tables.
+//     for bidgo copies of small Intel tables.
 package tablecrosscheck
 
 import (
@@ -51,7 +51,7 @@ const (
 type tableMapping struct {
 	// goName is the tablegen_manifest.json go_name whose generated value
 	// anchors this bidgo var. Several bidgo vars may share one go_name when
-	// bidgo carries multiple hand-ported copies of the same Intel table.
+	// bidgo carries multiple copies of the same Intel table.
 	// The manifest completeness check trusts this string as-is: a mapping
 	// entry whose goName names table X while generated holds table Y's value
 	// is only caught when the value comparison fails (leaf count or values
@@ -260,7 +260,7 @@ func TestCTablegenOutputMatchesBidgoPortedTables(t *testing.T) {
 	pkg := bidgoPkg(t)
 
 	// Exhaustive set over bidgo: every package-level composite-literal var is a
-	// potential hand-ported table and must be mapped or excluded; every
+	// potential bidgo table and must be mapped or excluded; every
 	// mapping key must still exist as a bidgo package-level var.
 	for _, varName := range pkg.compositeLitVarNames() {
 		if _, ok := mappings[varName]; !ok {
@@ -433,7 +433,7 @@ func loadBidgoPackage() (*bidgoPackage, error) {
 
 // compositeLitVarNames returns the sorted names of all package-level vars
 // whose initializer is a composite literal — the exhaustive enumeration of
-// potential hand-ported tables.
+// potential bidgo tables.
 func (p *bidgoPackage) compositeLitVarNames() []string {
 	var names []string
 	for name, expr := range p.decls {

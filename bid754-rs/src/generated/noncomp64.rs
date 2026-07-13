@@ -105,7 +105,7 @@ pub fn bid64_is_zero(mut x: u64) -> i64 {
 }
 
 pub fn bid64_is_normal(mut x: u64) -> i64 {
-    let mut sig_x_prime: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut sig_x_prime: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sig_x: u64 = 0;
     let mut exp_x: u32 = 0;
     if ((x & 0x7800000000000000) == 0x7800000000000000) {
@@ -126,7 +126,7 @@ pub fn bid64_is_normal(mut x: u64) -> i64 {
     }
     if (exp_x < 15) {
         sig_x_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x as usize]);
-        if ((sig_x_prime.w[1] == 0) && (sig_x_prime.w[0] < 1000000000000000)) {
+        if ((sig_x_prime.hi == 0) && (sig_x_prime.lo < 1000000000000000)) {
             return 0;
         }
         return 1;
@@ -135,7 +135,7 @@ pub fn bid64_is_normal(mut x: u64) -> i64 {
 }
 
 pub fn bid64_is_subnormal(mut x: u64) -> i64 {
-    let mut sig_x_prime: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut sig_x_prime: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sig_x: u64 = 0;
     let mut exp_x: u32 = 0;
     if ((x & 0x7800000000000000) == 0x7800000000000000) {
@@ -156,7 +156,7 @@ pub fn bid64_is_subnormal(mut x: u64) -> i64 {
     }
     if (exp_x < 15) {
         sig_x_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x as usize]);
-        if ((sig_x_prime.w[1] == 0) && (sig_x_prime.w[0] < 1000000000000000)) {
+        if ((sig_x_prime.hi == 0) && (sig_x_prime.lo < 1000000000000000)) {
             return 1;
         }
         return 0;
@@ -216,7 +216,7 @@ pub fn bid64_radix() -> i64 {
 }
 
 pub fn bid64_class(mut x: u64) -> i64 {
-    let mut sig_x_prime: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut sig_x_prime: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sig_x: u64 = 0;
     let mut exp_x: i64 = 0;
     if ((x & 0x7c00000000000000) == 0x7c00000000000000) {
@@ -250,7 +250,7 @@ pub fn bid64_class(mut x: u64) -> i64 {
     }
     if (exp_x < 15) {
         sig_x_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x as usize]);
-        if ((sig_x_prime.w[1] == 0) && (sig_x_prime.w[0] < 1000000000000000)) {
+        if ((sig_x_prime.hi == 0) && (sig_x_prime.lo < 1000000000000000)) {
             if ((x & 0x8000000000000000) == 0x8000000000000000) {
                 return 4;
             }
@@ -287,7 +287,7 @@ pub fn bid64_total_order(mut x: u64, mut y: u64) -> i64 {
     let mut sig_y: u64 = 0;
     let mut pyld_y: u64 = 0;
     let mut pyld_x: u64 = 0;
-    let mut sig_n_prime: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut sig_n_prime: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut x_is_zero: i64 = 0;
     let mut y_is_zero: i64 = 0;
     if ((x & 0x7c00000000000000) == 0x7c00000000000000) {
@@ -488,7 +488,7 @@ pub fn bid64_total_order(mut x: u64, mut y: u64) -> i64 {
     }
     if (exp_x > exp_y) {
         sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[(exp_x.wrapping_sub(exp_y)) as usize]);
-        if ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] == sig_y)) {
+        if ((sig_n_prime.hi == 0) && (sig_n_prime.lo == sig_y)) {
             if ((exp_x <= exp_y) != (((x & 0x8000000000000000) == 0x8000000000000000))) {
                 res = 1;
             } else {
@@ -496,7 +496,7 @@ pub fn bid64_total_order(mut x: u64, mut y: u64) -> i64 {
             }
             return res;
         }
-        let mut cond = ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] < sig_y));
+        let mut cond = ((sig_n_prime.hi == 0) && (sig_n_prime.lo < sig_y));
         let mut sign = ((x & 0x8000000000000000) == 0x8000000000000000);
         if (cond != sign) {
             res = 1;
@@ -506,7 +506,7 @@ pub fn bid64_total_order(mut x: u64, mut y: u64) -> i64 {
         return res;
     }
     sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[(exp_y.wrapping_sub(exp_x)) as usize]);
-    if ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] == sig_x)) {
+    if ((sig_n_prime.hi == 0) && (sig_n_prime.lo == sig_x)) {
         if ((exp_x <= exp_y) != (((x & 0x8000000000000000) == 0x8000000000000000))) {
             res = 1;
         } else {
@@ -514,7 +514,7 @@ pub fn bid64_total_order(mut x: u64, mut y: u64) -> i64 {
         }
         return res;
     }
-    let mut cond = ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0]));
+    let mut cond = ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo));
     let mut sign = ((x & 0x8000000000000000) == 0x8000000000000000);
     if (cond != sign) {
         res = 1;
@@ -532,7 +532,7 @@ pub fn bid64_total_order_mag(mut x: u64, mut y: u64) -> i64 {
     let mut sig_y: u64 = 0;
     let mut pyld_y: u64 = 0;
     let mut pyld_x: u64 = 0;
-    let mut sig_n_prime: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut sig_n_prime: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut x_is_zero: i64 = 0;
     let mut y_is_zero: i64 = 0;
     if ((x & 0x7c00000000000000) == 0x7c00000000000000) {
@@ -645,11 +645,11 @@ pub fn bid64_total_order_mag(mut x: u64, mut y: u64) -> i64 {
     }
     if (exp_x > exp_y) {
         sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[(exp_x.wrapping_sub(exp_y)) as usize]);
-        if ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] == sig_y)) {
+        if ((sig_n_prime.hi == 0) && (sig_n_prime.lo == sig_y)) {
             res = 0;
             return res;
         }
-        if ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] < sig_y)) {
+        if ((sig_n_prime.hi == 0) && (sig_n_prime.lo < sig_y)) {
             res = 1;
         } else {
             res = 0;
@@ -657,11 +657,11 @@ pub fn bid64_total_order_mag(mut x: u64, mut y: u64) -> i64 {
         return res;
     }
     sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[(exp_y.wrapping_sub(exp_x)) as usize]);
-    if ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] == sig_x)) {
+    if ((sig_n_prime.hi == 0) && (sig_n_prime.lo == sig_x)) {
         res = 1;
         return res;
     }
-    if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) {
+    if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) {
         res = 1;
     } else {
         res = 0;
@@ -711,7 +711,7 @@ pub fn bid64_signaling_less(mut x: u64, mut y: u64) -> (i64, u32) {
     let mut exp_y: i64 = 0;
     let mut sig_x: u64 = 0;
     let mut sig_y: u64 = 0;
-    let mut sig_n_prime: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut sig_n_prime: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut x_is_zero: i64 = 0;
     let mut y_is_zero: i64 = 0;
@@ -828,23 +828,23 @@ pub fn bid64_signaling_less(mut x: u64, mut y: u64) -> (i64, u32) {
     }
     if (exp_x > exp_y) {
         sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[(exp_x.wrapping_sub(exp_y)) as usize]);
-        if ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] == sig_y)) {
+        if ((sig_n_prime.hi == 0) && (sig_n_prime.lo == sig_y)) {
             res = 0;
             return (res, pfpsf);
         }
         res = 0;
-        if ((((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] < sig_y))) != (((x & 0x8000000000000000) == 0x8000000000000000))) {
+        if ((((sig_n_prime.hi == 0) && (sig_n_prime.lo < sig_y))) != (((x & 0x8000000000000000) == 0x8000000000000000))) {
             res = 1;
         }
         return (res, pfpsf);
     }
     sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[(exp_y.wrapping_sub(exp_x)) as usize]);
-    if ((sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] == sig_x)) {
+    if ((sig_n_prime.hi == 0) && (sig_n_prime.lo == sig_x)) {
         res = 0;
         return (res, pfpsf);
     }
     res = 0;
-    if ((((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0]))) != (((x & 0x8000000000000000) == 0x8000000000000000))) {
+    if ((((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo))) != (((x & 0x8000000000000000) == 0x8000000000000000))) {
         res = 1;
     }
     return (res, pfpsf);

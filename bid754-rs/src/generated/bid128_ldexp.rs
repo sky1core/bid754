@@ -29,22 +29,22 @@
 use super::prelude::*;
 
 pub fn bid128_ldexp(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
-    let mut CX: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CX2: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CBID_X8: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut res: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CBID_X8: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut exp64: i64 = 0;
     let mut sign_x: u64 = 0;
     let mut exponent_x: i64 = 0;
     let mut pfpsf: u32 = 0;
     let (mut sign_x, mut exponent_x, mut CX, mut valid) = unpack_bid128_value(x);
     if (!valid) {
-        if ((x.w[1] & 0x7e00000000000000) == 0x7e00000000000000) {
+        if ((x.hi & 0x7e00000000000000) == 0x7e00000000000000) {
             pfpsf |= 1;
         }
-        res.w[1] = (CX.w[1] & 0xfdffffffffffffff);
-        res.w[0] = CX.w[0];
-        if (CX.w[1] == 0) {
+        res.hi = (CX.hi & 0xfdffffffffffffff);
+        res.lo = CX.lo;
+        if (CX.hi == 0) {
             exp64 = ((exponent_x as i64).wrapping_add(n as i64));
             if (exp64 < 0) {
                 exp64 = 0;
@@ -64,16 +64,16 @@ pub fn bid128_ldexp(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64) -> (BID_U
         return (res, pfpsf);
     }
     if (exp64 > 0x2fff) {
-        if (CX.w[1] < 0x314dc6448d93) {
+        if (CX.hi < 0x314dc6448d93) {
             loop {
-                CBID_X8.w[1] = (((go_checked_shl_u64(CX.w[1], go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CX.w[0], go_shift_count_u64((61) as u64)))));
-                CBID_X8.w[0] = (go_checked_shl_u64(CX.w[0], go_shift_count_u64((3) as u64)));
-                CX2.w[1] = (((go_checked_shl_u64(CX.w[1], go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CX.w[0], go_shift_count_u64((63) as u64)))));
-                CX2.w[0] = (go_checked_shl_u64(CX.w[0], go_shift_count_u64((1) as u64)));
+                CBID_X8.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((61) as u64)))));
+                CBID_X8.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((3) as u64)));
+                CX2.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((63) as u64)))));
+                CX2.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((1) as u64)));
                 CX = __add_128_128(CX2, CBID_X8);
                 exponent_x = exponent_x.wrapping_sub(1);
                 exp64 = exp64.wrapping_sub(1);
-                if (!(((CX.w[1] < 0x314dc6448d93) && (exp64 > 0x2fff)))) {
+                if (!(((CX.hi < 0x314dc6448d93) && (exp64 > 0x2fff)))) {
                     break;
                 }
             }

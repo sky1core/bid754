@@ -29,13 +29,13 @@
 use super::prelude::*;
 
 pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficient_x: u64, mut sign_y: u64, mut final_exponent_y: i64, mut CY: BID_UINT128, mut extra_digits: i64, mut rounding_mode: i64, fpsc: &mut u32) -> u64 {
-    let mut CY_L: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CX: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut FS: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut F: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CT: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut ST: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut T2: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CY_L: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut FS: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut F: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut ST: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut T2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CYh: u64 = 0;
     let mut CY0L: u64 = 0;
     let mut T: u64 = 0;
@@ -58,11 +58,11 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
         let mut tempx = (coefficient_x as f64).to_bits();
         bin_expon_cx = (((go_checked_shr_u64((tempx & 0x7ff0000000000000), go_shift_count_u64((52) as u64))) as i64).wrapping_sub(0x3ff));
         digits_x = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
-        if (coefficient_x >= bid_power10_table_128[digits_x as usize].w[0]) {
+        if (coefficient_x >= bid_power10_table_128[digits_x as usize].lo) {
             digits_x = digits_x.wrapping_add(1);
         }
         extra_dx = ((16 as i64).wrapping_sub(digits_x));
-        coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[extra_dx as usize].w[0]);
+        coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[extra_dx as usize].lo);
         if (((sign_x ^ sign_y) != 0) && (coefficient_x == 1000000000000000)) {
             extra_dx = extra_dx.wrapping_add(1);
             coefficient_x = 10000000000000000;
@@ -71,7 +71,7 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
         if (exponent_x > exponent_y) {
             diff_dec_expon = (exponent_x.wrapping_sub(exponent_y));
             if (exponent_x <= (final_exponent_y.wrapping_add(1))) {
-                CX = __mul_64x64_to_128(coefficient_x, bid_power10_table_128[diff_dec_expon as usize].w[0]);
+                CX = __mul_64x64_to_128(coefficient_x, bid_power10_table_128[diff_dec_expon as usize].lo);
                 if (sign_x == sign_y) {
                     CT = __add_128_128(CY, CX);
                     if (exponent_x > final_exponent_y) {
@@ -82,14 +82,14 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
                     }
                 } else {
                     CT = __sub_128_128(CY, CX);
-                    if ((CT.w[1] as i64) < 0) {
-                        CT.w[0] = ((0 as u64).wrapping_sub(CT.w[0]));
-                        CT.w[1] = ((0 as u64).wrapping_sub(CT.w[1]));
-                        if (CT.w[0] != 0) {
-                            CT.w[1] = CT.w[1].wrapping_sub(1);
+                    if ((CT.hi as i64) < 0) {
+                        CT.lo = ((0 as u64).wrapping_sub(CT.lo));
+                        CT.hi = ((0 as u64).wrapping_sub(CT.hi));
+                        if (CT.lo != 0) {
+                            CT.hi = CT.hi.wrapping_sub(1);
                         }
                         sign_y = sign_x;
-                    } else if ((CT.w[1] | CT.w[0]) == 0) {
+                    } else if ((CT.hi | CT.lo) == 0) {
                         if (rounding_mode != 1) {
                             sign_y = 0;
                         } else {
@@ -99,10 +99,10 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
                     if ((exponent_x.wrapping_add(1)) >= final_exponent_y) {
                         extra_digits = (__get_dec_digits64(CT).wrapping_sub(16));
                         if (extra_digits <= 0) {
-                            if ((CT.w[0] == 0) && (rounding_mode == 1)) {
+                            if ((CT.lo == 0) && (rounding_mode == 1)) {
                                 sign_y = 0x8000000000000000;
                             }
-                            return get_bid64_with_flags(sign_y, exponent_y, CT.w[0], rounding_mode, fpsc);
+                            return get_bid64_with_flags(sign_y, exponent_y, CT.lo, rounding_mode, fpsc);
                         }
                     } else if __unsigned_compare_gt_128(bid_power10_table_128[((15 as i64).wrapping_add(extra_digits)) as usize], CT) {
                         extra_digits = extra_digits.wrapping_sub(1);
@@ -145,16 +145,16 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
                         exponent_x = exponent_x.wrapping_sub(1);
                     }
                 }
-                if ((CY.w[1] | CY.w[0]) != 0) {
+                if ((CY.hi | CY.lo) != 0) {
                     (*fpsc) |= 32;
                 }
                 return get_bid64_with_flags(sign_x, exponent_x, coefficient_x, rounding_mode, fpsc);
             }
             CYh = __truncate(CY, extra_digits);
-            T = bid_power10_table_128[extra_digits as usize].w[0];
+            T = bid_power10_table_128[extra_digits as usize].lo;
             CY0L = __mul_64x64_to_64(CYh, T);
-            remainder_y = (CY.w[0].wrapping_sub(CY0L));
-            CX = __mul_64x64_to_128(coefficient_x, bid_power10_table_128[diff_dec2 as usize].w[0]);
+            remainder_y = (CY.lo.wrapping_sub(CY0L));
+            CX = __mul_64x64_to_128(coefficient_x, bid_power10_table_128[diff_dec2 as usize].lo);
             if (sign_x == sign_y) {
                 CT = __add_128_64(CX, CYh);
                 if __unsigned_compare_ge_128(CT, bid_power10_table_128[((16 as i64).wrapping_add(diff_dec2)) as usize]) {
@@ -176,42 +176,42 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
     if (diff_dec_expon > 16) {
         rmode = rounding_mode;
         if ((sign_x ^ sign_y) != 0) {
-            if (CY.w[0] == 0) {
-                CY.w[1] = CY.w[1].wrapping_sub(1);
+            if (CY.lo == 0) {
+                CY.hi = CY.hi.wrapping_sub(1);
             }
-            CY.w[0] = CY.w[0].wrapping_sub(1);
+            CY.lo = CY.lo.wrapping_sub(1);
             if __unsigned_compare_gt_128(bid_power10_table_128[((15 as i64).wrapping_add(extra_digits)) as usize], CY) {
                 if ((rmode & 3) != 0) {
                     extra_digits = extra_digits.wrapping_sub(1);
                     final_exponent_y = final_exponent_y.wrapping_sub(1);
                 } else {
-                    CY.w[0] = 1000000000000000;
-                    CY.w[1] = 0;
+                    CY.lo = 1000000000000000;
+                    CY.hi = 0;
                     extra_digits = 0;
                 }
             }
         }
         CY = __scale128_10(CY);
         extra_digits = extra_digits.wrapping_add(1);
-        CY.w[0] |= 1;
+        CY.lo |= 1;
         return __bid_simple_round64_sticky(sign_y, final_exponent_y, CY, extra_digits, rmode, fpsc);
     }
     sign_x ^= sign_y;
     sign_x = ((go_checked_shr_i64((sign_x as i64), go_shift_count_u64((63) as u64))) as u64);
-    CX.w[0] = (((coefficient_x.wrapping_add(sign_x))) ^ sign_x);
-    CX.w[1] = sign_x;
+    CX.lo = (((coefficient_x.wrapping_add(sign_x))) ^ sign_x);
+    CX.hi = sign_x;
     diff_dec2 = (final_exponent_y.wrapping_sub(exponent_x));
     if (diff_dec2 <= 17) {
-        S = bid_power10_table_128[diff_dec_expon as usize].w[0];
+        S = bid_power10_table_128[diff_dec_expon as usize].lo;
         CY_L = __mul_64x128_short(S, CY);
         ST = __add_128_128(CY_L, CX);
         extra_digits2 = (__get_dec_digits64(ST).wrapping_sub(16));
         return __bid_full_round64(sign_y, exponent_x, ST, extra_digits2, rounding_mode, fpsc);
     }
     CYh = __truncate(CY, extra_digits);
-    T = bid_power10_table_128[extra_digits as usize].w[0];
+    T = bid_power10_table_128[extra_digits as usize].lo;
     CY0L = __mul_64x64_to_64(CYh, T);
-    coefficient_y = (CY.w[0].wrapping_sub(CY0L));
+    coefficient_y = (CY.lo.wrapping_sub(CY0L));
     rmode = rounding_mode;
     if ((sign_y != 0) && (((rmode.wrapping_sub(1)) as u64) < 2)) {
         rmode = ((3 as i64).wrapping_sub(rmode));
@@ -219,7 +219,7 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
     if ((rmode & 3) == 0) {
         coefficient_y = coefficient_y.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
     }
-    S = bid_power10_table_128[diff_dec_expon as usize].w[0];
+    S = bid_power10_table_128[diff_dec_expon as usize].lo;
     F = __mul_64x64_to_128(coefficient_y, S);
     FS = __add_128_128(F, CX);
     if (rmode == 0) {
@@ -238,7 +238,7 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
     }
     match rmode {
         1 | 3 => {
-            if ((FS.w[1] as i64) < 0) {
+            if ((FS.hi as i64) < 0) {
                 CYh = CYh.wrapping_sub(1);
                 if (CYh < 1000000000000000) {
                     CYh = 9999999999999999;
@@ -253,16 +253,16 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
             }
         }
         2 => {
-            if !((FS.w[1] as i64) < 0) {
+            if !((FS.hi as i64) < 0) {
                 T2 = bid_power10_table_128[(diff_dec_expon.wrapping_add(extra_digits)) as usize];
                 if __unsigned_compare_gt_128(FS, T2) {
                     CYh = CYh.wrapping_add(2);
                     FS = __sub_128_128(FS, T2);
-                } else if ((FS.w[1] == T2.w[1]) && (FS.w[0] == T2.w[0])) {
+                } else if ((FS.hi == T2.hi) && (FS.lo == T2.lo)) {
                     CYh = CYh.wrapping_add(1);
-                    FS.w[1] = 0;
-                    FS.w[0] = 0;
-                } else if ((FS.w[1] | FS.w[0]) != 0) {
+                    FS.hi = 0;
+                    FS.lo = 0;
+                } else if ((FS.hi | FS.lo) != 0) {
                     CYh = CYh.wrapping_add(1);
                 }
             }
@@ -272,10 +272,10 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
     }
     status = 32;
     if ((rmode & 3) == 0) {
-        if (((FS.w[1] == bid_round_const_table_128[0][(diff_dec_expon.wrapping_add(extra_digits)) as usize].w[1])) && ((FS.w[0] == bid_round_const_table_128[0][(diff_dec_expon.wrapping_add(extra_digits)) as usize].w[0]))) {
+        if (((FS.hi == bid_round_const_table_128[0][(diff_dec_expon.wrapping_add(extra_digits)) as usize].hi)) && ((FS.lo == bid_round_const_table_128[0][(diff_dec_expon.wrapping_add(extra_digits)) as usize].lo))) {
             status = 0;
         }
-    } else if ((FS.w[1] == 0) && (FS.w[0] == 0)) {
+    } else if ((FS.hi == 0) && (FS.lo == 0)) {
         status = 0;
     }
     (*fpsc) |= status;

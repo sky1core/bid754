@@ -54,7 +54,7 @@ func TestBid64ToBid128IntelReadtest(t *testing.T) {
 			failed++
 			if failed <= 10 {
 				t.Errorf("%s -> got=[%016x%016x]/%02x want=[%016x%016x]/%02x",
-					line, result.w[1], result.w[0], actualFlags, expected.w[1], expected.w[0], expectedFlags)
+					line, result.hi, result.lo, actualFlags, expected.hi, expected.lo, expectedFlags)
 			}
 		}
 	}
@@ -123,10 +123,10 @@ func parseBid128HexLocal(s string, hexPattern *regexp.Regexp) (BID_UINT128, bool
 	}
 
 	for _, b := range bytes[:8] {
-		val.w[1] = (val.w[1] << 8) | uint64(b)
+		val.hi = (val.hi << 8) | uint64(b)
 	}
 	for _, b := range bytes[8:] {
-		val.w[0] = (val.w[0] << 8) | uint64(b)
+		val.lo = (val.lo << 8) | uint64(b)
 	}
 	return val, true
 }

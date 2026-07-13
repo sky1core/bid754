@@ -18,12 +18,12 @@ func Bid128Ldexp(x BID_UINT128, n int, rnd_mode int) (BID_UINT128, uint32) {
 	sign_x, exponent_x, CX, valid := unpack_BID128_value(x)
 	if !valid {
 		// x is Inf. or NaN or 0
-		if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 { // y is sNaN
+		if (x.hi & SNAN_MASK64) == SNAN_MASK64 { // y is sNaN
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
-		res.w[1] = CX.w[1] & QUIET_MASK64
-		res.w[0] = CX.w[0]
-		if CX.w[1] == 0 {
+		res.hi = CX.hi & QUIET_MASK64
+		res.lo = CX.lo
+		if CX.hi == 0 {
 			exp64 = int64(exponent_x) + int64(n)
 			if exp64 < 0 {
 				exp64 = 0
@@ -46,19 +46,19 @@ func Bid128Ldexp(x BID_UINT128, n int, rnd_mode int) (BID_UINT128, uint32) {
 	}
 	// check for overflow
 	if exp64 > DECIMAL_MAX_EXPON_128 {
-		if CX.w[1] < 0x314dc6448d93 {
+		if CX.hi < 0x314dc6448d93 {
 			// try to normalize coefficient
 			for {
-				CBID_X8.w[1] = (CX.w[1] << 3) | (CX.w[0] >> 61)
-				CBID_X8.w[0] = CX.w[0] << 3
-				CX2.w[1] = (CX.w[1] << 1) | (CX.w[0] >> 63)
-				CX2.w[0] = CX.w[0] << 1
+				CBID_X8.hi = (CX.hi << 3) | (CX.lo >> 61)
+				CBID_X8.lo = CX.lo << 3
+				CX2.hi = (CX.hi << 1) | (CX.lo >> 63)
+				CX2.lo = CX.lo << 1
 				CX = __add_128_128(CX2, CBID_X8)
 
 				exponent_x--
 				exp64--
 
-				if !(CX.w[1] < 0x314dc6448d93 && exp64 > DECIMAL_MAX_EXPON_128) {
+				if !(CX.hi < 0x314dc6448d93 && exp64 > DECIMAL_MAX_EXPON_128) {
 					break
 				}
 			}

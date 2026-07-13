@@ -90,7 +90,7 @@ func Bid64ToInt64Ceil(x uint64) (int64, uint32) {
 			// 1 <= q <= 16 => 4 <= 20-q <= 19 => 10^(20-q) is 64-bit, and so is C1
 			C = __mul_64x64_to_128(C1, bid_ten2k64[20-q])
 			// Note: C1 * 10^(11-q) has 19 or 20 digits; 0x5000000000000000a, has 20
-			if C.w[1] > 0x05 || (C.w[1] == 0x05 && C.w[0] >= 0x0a) {
+			if C.hi > 0x05 || (C.hi == 0x05 && C.lo >= 0x0a) {
 				// set invalid flag
 				pfpsf |= BID_INVALID_EXCEPTION
 				// return Integer Indefinite
@@ -103,11 +103,11 @@ func Bid64ToInt64Ceil(x uint64) (int64, uint32) {
 			// <=> if 0.c(0)c(1)...c(q-1) * 10^20 > 5*(2^64-2), 1<=q<=16
 			// <=> if 0.c(0)c(1)...c(q-1) * 10^20 > 0x4fffffffffffffff6, 1<=q<=16
 			// <=> if C * 10^(20-q) > 0x4fffffffffffffff6, 1<=q<=16
-			C.w[1] = 0x0000000000000004
-			C.w[0] = 0xfffffffffffffff6
+			C.hi = 0x0000000000000004
+			C.lo = 0xfffffffffffffff6
 			// 1 <= q <= 16 => 4 <= 20-q <= 19 => 10^(20-q) is 64-bit, and so is C1
 			C = __mul_64x64_to_128(C1, bid_ten2k64[20-q])
-			if C.w[1] > 0x04 || (C.w[1] == 0x04 && C.w[0] > 0xfffffffffffffff6) {
+			if C.hi > 0x04 || (C.hi == 0x04 && C.lo > 0xfffffffffffffff6) {
 				// set invalid flag
 				pfpsf |= BID_INVALID_EXCEPTION
 				// return Integer Indefinite
@@ -143,9 +143,9 @@ func Bid64ToInt64Ceil(x uint64) (int64, uint32) {
 			// C* = C1 * 10^(-x)
 			// the approximation of 10^(-x) was rounded up to 54 bits
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64[ind-1])
-			Cstar = P128.w[1]
-			fstar.w[1] = P128.w[1] & bid_maskhigh128[ind-1]
-			fstar.w[0] = P128.w[0]
+			Cstar = P128.hi
+			fstar.hi = P128.hi & bid_maskhigh128[ind-1]
+			fstar.lo = P128.lo
 			// the top Ex bits of 10^(-x) are T* = bid_ten2mk128trunc[ind].w[0], e.g.
 			// if x=1, T*=bid_ten2mk128trunc[0].w[0]=0x1999999999999999
 			// C* = floor(C*) (logical right shift; C has p decimal digits,
@@ -161,7 +161,7 @@ func Bid64ToInt64Ceil(x uint64) (int64, uint32) {
 			// else // if (f* > T*) then
 			//   the result is inexact
 			if (ind - 1) <= 2 { // fstar.w[1] is 0
-				if fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					if x_sign == 0 { // positive and inexact
@@ -169,7 +169,7 @@ func Bid64ToInt64Ceil(x uint64) (int64, uint32) {
 					}
 				}
 			} else { // if 3 <= ind - 1 <= 14
-				if fstar.w[1] != 0 || fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.hi != 0 || fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					if x_sign == 0 { // positive and inexact
@@ -293,7 +293,7 @@ func Bid64ToInt64Xceil(x uint64) (int64, uint32) {
 			// 1 <= q <= 16 => 4 <= 20-q <= 19 => 10^(20-q) is 64-bit, and so is C1
 			C = __mul_64x64_to_128(C1, bid_ten2k64[20-q])
 			// Note: C1 * 10^(11-q) has 19 or 20 digits; 0x5000000000000000a, has 20
-			if C.w[1] > 0x05 || (C.w[1] == 0x05 && C.w[0] >= 0x0a) {
+			if C.hi > 0x05 || (C.hi == 0x05 && C.lo >= 0x0a) {
 				// set invalid flag
 				pfpsf |= BID_INVALID_EXCEPTION
 				// return Integer Indefinite
@@ -306,11 +306,11 @@ func Bid64ToInt64Xceil(x uint64) (int64, uint32) {
 			// <=> if 0.c(0)c(1)...c(q-1) * 10^20 > 5*(2^64-2), 1<=q<=16
 			// <=> if 0.c(0)c(1)...c(q-1) * 10^20 > 0x4fffffffffffffff6, 1<=q<=16
 			// <=> if C * 10^(20-q) > 0x4fffffffffffffff6, 1<=q<=16
-			C.w[1] = 0x0000000000000004
-			C.w[0] = 0xfffffffffffffff6
+			C.hi = 0x0000000000000004
+			C.lo = 0xfffffffffffffff6
 			// 1 <= q <= 16 => 4 <= 20-q <= 19 => 10^(20-q) is 64-bit, and so is C1
 			C = __mul_64x64_to_128(C1, bid_ten2k64[20-q])
-			if C.w[1] > 0x04 || (C.w[1] == 0x04 && C.w[0] > 0xfffffffffffffff6) {
+			if C.hi > 0x04 || (C.hi == 0x04 && C.lo > 0xfffffffffffffff6) {
 				// set invalid flag
 				pfpsf |= BID_INVALID_EXCEPTION
 				// return Integer Indefinite
@@ -348,9 +348,9 @@ func Bid64ToInt64Xceil(x uint64) (int64, uint32) {
 			// C* = C1 * 10^(-x)
 			// the approximation of 10^(-x) was rounded up to 54 bits
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64[ind-1])
-			Cstar = P128.w[1]
-			fstar.w[1] = P128.w[1] & bid_maskhigh128[ind-1]
-			fstar.w[0] = P128.w[0]
+			Cstar = P128.hi
+			fstar.hi = P128.hi & bid_maskhigh128[ind-1]
+			fstar.lo = P128.lo
 			// the top Ex bits of 10^(-x) are T* = bid_ten2mk128trunc[ind].w[0], e.g.
 			// if x=1, T*=bid_ten2mk128trunc[0].w[0]=0x1999999999999999
 			// C* = floor(C*) (logical right shift; C has p decimal digits,
@@ -366,7 +366,7 @@ func Bid64ToInt64Xceil(x uint64) (int64, uint32) {
 			// else // if (f* > T*) then
 			//   the result is inexact
 			if (ind - 1) <= 2 { // fstar.w[1] is 0
-				if fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					if x_sign == 0 { // positive and inexact
@@ -376,7 +376,7 @@ func Bid64ToInt64Xceil(x uint64) (int64, uint32) {
 					pfpsf |= BID_INEXACT_EXCEPTION
 				}
 			} else { // if 3 <= ind - 1 <= 14
-				if fstar.w[1] != 0 || fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.hi != 0 || fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					if x_sign == 0 { // positive and inexact

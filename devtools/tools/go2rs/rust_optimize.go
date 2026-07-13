@@ -283,8 +283,8 @@ func optimizeBid128Sqrt(path string) {
 	}
 	src := string(data)
 
-	if (strings.Contains(src, "wrapping_sub(ES)") && strings.Contains(src, "wrapping_sub(ES.w[0])")) ||
-		(strings.Contains(src, "ES.wrapping_neg()") && strings.Contains(src, "ES.w[0].wrapping_neg()")) {
+	if (strings.Contains(src, "wrapping_sub(ES)") && strings.Contains(src, "wrapping_sub(ES.lo)")) ||
+		(strings.Contains(src, "ES.wrapping_neg()") && strings.Contains(src, "ES.lo.wrapping_neg()")) {
 		fmt.Printf("  optimized %s: unsigned negation lowering already applied\n", filepath.Base(path))
 		return
 	}
@@ -292,11 +292,11 @@ func optimizeBid128Sqrt(path string) {
 	src = mustReplaceString(src, `        ES = (-ES);
 `, `        ES = (0u64).wrapping_sub(ES);
 `, path)
-	src = mustReplaceString(src, `        ES.w[0] = (-ES.w[0]);
-`, `        ES.w[0] = (0u64).wrapping_sub(ES.w[0]);
+	src = mustReplaceString(src, `        ES.lo = (-ES.lo);
+`, `        ES.lo = (0u64).wrapping_sub(ES.lo);
 `, path)
-	src = mustReplaceString(src, `        ES.w[1] = (-ES.w[1]);
-`, `        ES.w[1] = (0u64).wrapping_sub(ES.w[1]);
+	src = mustReplaceString(src, `        ES.hi = (-ES.hi);
+`, `        ES.hi = (0u64).wrapping_sub(ES.hi);
 `, path)
 
 	writeFile(path, src)

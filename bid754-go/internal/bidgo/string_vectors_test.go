@@ -307,13 +307,13 @@ func parseGeneratedBIDStringBits128(input string) (BID_UINT128, error) {
 	if err != nil {
 		return raw, err
 	}
-	raw.w[0] = lo
-	raw.w[1] = hi
+	raw.lo = lo
+	raw.hi = hi
 	return raw, nil
 }
 
 func formatGeneratedBIDStringBits128(raw BID_UINT128) string {
-	return fmt.Sprintf("[%016x%016x]", raw.w[1], raw.w[0])
+	return fmt.Sprintf("[%016x%016x]", raw.hi, raw.lo)
 }
 
 func normalizeGeneratedBIDStringBits(input string) string {

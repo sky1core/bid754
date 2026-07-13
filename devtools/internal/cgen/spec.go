@@ -7,10 +7,12 @@ import (
 )
 
 type Manifest struct {
-	GoPackage  string      `json:"go_package"`
-	GoOutput   string      `json:"go_output"`
-	RustOutput string      `json:"rust_output"`
-	Tables     []TableSpec `json:"tables"`
+	GoPackage   string      `json:"go_package"`
+	GoOutput    string      `json:"go_output"`
+	RustOutput  string      `json:"rust_output"`
+	BidgoOutput string      `json:"bidgo_output"`
+	BidgoSource string      `json:"bidgo_source"`
+	Tables      []TableSpec `json:"tables"`
 }
 
 type TableSpec struct {
@@ -45,6 +47,12 @@ func LoadManifest(path string) (Manifest, error) {
 	}
 	if manifest.RustOutput == "" {
 		return manifest, fmt.Errorf("manifest %q: rust_output is required", path)
+	}
+	if manifest.BidgoOutput == "" {
+		return manifest, fmt.Errorf("manifest %q: bidgo_output is required", path)
+	}
+	if manifest.BidgoSource == "" {
+		return manifest, fmt.Errorf("manifest %q: bidgo_source is required", path)
 	}
 	if len(manifest.Tables) == 0 {
 		return manifest, fmt.Errorf("manifest %q: tables must not be empty", path)

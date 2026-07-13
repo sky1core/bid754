@@ -23,38 +23,38 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	_, exponent_y, CY, valid_y := unpack_BID128_value(y)
 	if !valid_y {
 		// y is Inf. or NaN
-		if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 { // y is sNaN
+		if (x.hi & SNAN_MASK64) == SNAN_MASK64 { // y is sNaN
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 
 		// test if y is NaN
-		if (y.w[1] & 0x7c00000000000000) == 0x7c00000000000000 {
-			if (y.w[1] & 0x7e00000000000000) == 0x7e00000000000000 {
+		if (y.hi & 0x7c00000000000000) == 0x7c00000000000000 {
+			if (y.hi & 0x7e00000000000000) == 0x7e00000000000000 {
 				// set status flags
 				pfpsf |= BID_INVALID_EXCEPTION
 			}
-			if (x.w[1] & 0x7c00000000000000) != 0x7c00000000000000 {
-				res.w[1] = CY.w[1] & QUIET_MASK64
-				res.w[0] = CY.w[0]
+			if (x.hi & 0x7c00000000000000) != 0x7c00000000000000 {
+				res.hi = CY.hi & QUIET_MASK64
+				res.lo = CY.lo
 			} else {
-				res.w[1] = CX.w[1] & QUIET_MASK64
-				res.w[0] = CX.w[0]
+				res.hi = CX.hi & QUIET_MASK64
+				res.lo = CX.lo
 			}
 			return res, pfpsf
 		}
 		// y is Infinity?
-		if (y.w[1] & 0x7800000000000000) == 0x7800000000000000 {
+		if (y.hi & 0x7800000000000000) == 0x7800000000000000 {
 			// check if x is not Inf.
-			if (x.w[1] & 0x7c00000000000000) < 0x7800000000000000 {
+			if (x.hi & 0x7c00000000000000) < 0x7800000000000000 {
 				// return NaN
 				// set status flags
 				pfpsf |= BID_INVALID_EXCEPTION
-				res.w[1] = 0x7c00000000000000
-				res.w[0] = 0
+				res.hi = 0x7c00000000000000
+				res.lo = 0
 				return res, pfpsf
-			} else if (x.w[1] & 0x7c00000000000000) <= 0x7800000000000000 {
-				res.w[1] = CX.w[1] & QUIET_MASK64
-				res.w[0] = CX.w[0]
+			} else if (x.hi & 0x7c00000000000000) <= 0x7800000000000000 {
+				res.hi = CX.hi & QUIET_MASK64
+				res.lo = CX.lo
 				return res, pfpsf
 			}
 		}
@@ -63,39 +63,39 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 	if !valid_x {
 		// test if x is NaN or Inf
-		if (x.w[1] & 0x7c00000000000000) == 0x7800000000000000 {
+		if (x.hi & 0x7c00000000000000) == 0x7800000000000000 {
 			// set status flags
 			pfpsf |= BID_INVALID_EXCEPTION
-			res.w[1] = 0x7c00000000000000
-			res.w[0] = 0
+			res.hi = 0x7c00000000000000
+			res.lo = 0
 			return res, pfpsf
-		} else if (x.w[1] & 0x7c00000000000000) == 0x7c00000000000000 {
-			if (x.w[1] & 0x7e00000000000000) == 0x7e00000000000000 {
+		} else if (x.hi & 0x7c00000000000000) == 0x7c00000000000000 {
+			if (x.hi & 0x7e00000000000000) == 0x7e00000000000000 {
 				// set status flags
 				pfpsf |= BID_INVALID_EXCEPTION
 			}
-			res.w[1] = CX.w[1] & QUIET_MASK64
-			res.w[0] = CX.w[0]
+			res.hi = CX.hi & QUIET_MASK64
+			res.lo = CX.lo
 			return res, pfpsf
 		}
-		if CX.w[1] == 0 && CX.w[0] == 0 {
+		if CX.hi == 0 && CX.lo == 0 {
 			res = very_fast_get_BID128(sign_x, exponent_y, CX)
 			return res, pfpsf
 		}
 	}
 	// get number of decimal digits in coefficient_x
-	if CX.w[1] != 0 {
-		tempx := math.Float32bits(float32(CX.w[1]))
+	if CX.hi != 0 {
+		tempx := math.Float32bits(float32(CX.hi))
 		bin_expon_cx = int((tempx>>23)&0xff) - 0x7f + 64
 	} else {
-		tempx := math.Float32bits(float32(CX.w[0]))
+		tempx := math.Float32bits(float32(CX.lo))
 		bin_expon_cx = int((tempx>>23)&0xff) - 0x7f
 	}
 
 	digits_x = int(bid_estimate_decimal_digits[bin_expon_cx])
-	if CX.w[1] > bid_power10_table_128[digits_x].w[1] ||
-		(CX.w[1] == bid_power10_table_128[digits_x].w[1] &&
-			CX.w[0] >= bid_power10_table_128[digits_x].w[0]) {
+	if CX.hi > bid_power10_table_128[digits_x].hi ||
+		(CX.hi == bid_power10_table_128[digits_x].hi &&
+			CX.lo >= bid_power10_table_128[digits_x].lo) {
 		digits_x++
 	}
 
@@ -122,34 +122,34 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 		// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 		amount = int(bid_recip_scale[extra_digits])
-		CX2.w[0] = CT.w[2]
-		CX2.w[1] = CT.w[3]
+		CX2.lo = CT.w[2]
+		CX2.hi = CT.w[3]
 		if amount >= 64 {
-			CR.w[1] = 0
-			CR.w[0] = CX2.w[1] >> uint(amount-64)
+			CR.hi = 0
+			CR.lo = CX2.hi >> uint(amount-64)
 		} else {
 			CR = __shr_128(CX2, uint(amount))
 		}
 
 		if rnd_mode == 0 {
-			if CR.w[0]&1 != 0 {
+			if CR.lo&1 != 0 {
 				// check whether fractional part of initial_P/10^extra_digits is
 				// exactly .5 this is the same as fractional part of
 				// (initial_P + 0.5*10^extra_digits)/10^extra_digits is exactly zero
 
 				// get remainder
 				if amount >= 64 {
-					remainder_h = CX2.w[0] | (CX2.w[1] << uint(128-amount))
+					remainder_h = CX2.lo | (CX2.hi << uint(128-amount))
 				} else {
-					remainder_h = CX2.w[0] << uint(64-amount)
+					remainder_h = CX2.lo << uint(64-amount)
 				}
 
 				// test whether fractional part is 0
 				if remainder_h == 0 &&
-					(CT.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(CT.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							CT.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
-					CR.w[0]--
+					(CT.w[1] < bid_reciprocals10_128[extra_digits].hi ||
+						(CT.w[1] == bid_reciprocals10_128[extra_digits].hi &&
+							CT.w[0] < bid_reciprocals10_128[extra_digits].lo)) {
+					CR.lo--
 				}
 			}
 		}
@@ -158,48 +158,48 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 		// get remainder
 		if amount >= 64 {
-			REM_H.w[1] = CX2.w[1] << uint(128-amount)
-			REM_H.w[0] = CX2.w[0]
+			REM_H.hi = CX2.hi << uint(128-amount)
+			REM_H.lo = CX2.lo
 		} else {
-			REM_H.w[1] = CX2.w[0] << uint(64-amount)
-			REM_H.w[0] = 0
+			REM_H.hi = CX2.lo << uint(64-amount)
+			REM_H.lo = 0
 		}
 
 		switch rmode {
 		case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 			// test whether fractional part is 0
-			if REM_H.w[1] == 0x8000000000000000 && REM_H.w[0] == 0 &&
-				(CT.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-					(CT.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-						CT.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+			if REM_H.hi == 0x8000000000000000 && REM_H.lo == 0 &&
+				(CT.w[1] < bid_reciprocals10_128[extra_digits].hi ||
+					(CT.w[1] == bid_reciprocals10_128[extra_digits].hi &&
+						CT.w[0] < bid_reciprocals10_128[extra_digits].lo)) {
 				status = int(BID_EXACT_STATUS)
 			}
 		case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
-			if (REM_H.w[1]|REM_H.w[0]) == 0 &&
-				(CT.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-					(CT.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-						CT.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+			if (REM_H.hi|REM_H.lo) == 0 &&
+				(CT.w[1] < bid_reciprocals10_128[extra_digits].hi ||
+					(CT.w[1] == bid_reciprocals10_128[extra_digits].hi &&
+						CT.w[0] < bid_reciprocals10_128[extra_digits].lo)) {
 				status = int(BID_EXACT_STATUS)
 			}
 		default:
 			// round up
-			Stemp.w[0], CY64 = __add_carry_out(CT.w[0],
-				bid_reciprocals10_128[extra_digits].w[0])
-			Stemp.w[1], carry = __add_carry_in_out(CT.w[1],
-				bid_reciprocals10_128[extra_digits].w[1], CY64)
+			Stemp.lo, CY64 = __add_carry_out(CT.w[0],
+				bid_reciprocals10_128[extra_digits].lo)
+			Stemp.hi, carry = __add_carry_in_out(CT.w[1],
+				bid_reciprocals10_128[extra_digits].hi, CY64)
 			if amount < 64 {
-				C2N.w[1] = 0
-				C2N.w[0] = uint64(1) << uint(amount)
-				REM_H.w[0] = REM_H.w[1] >> uint(64-amount)
-				REM_H.w[1] = 0
+				C2N.hi = 0
+				C2N.lo = uint64(1) << uint(amount)
+				REM_H.lo = REM_H.hi >> uint(64-amount)
+				REM_H.hi = 0
 			} else {
-				C2N.w[1] = uint64(1) << uint(amount-64)
-				C2N.w[0] = 0
-				REM_H.w[1] >>= uint(128 - amount)
+				C2N.hi = uint64(1) << uint(amount-64)
+				C2N.lo = 0
+				REM_H.hi >>= uint(128 - amount)
 			}
-			REM_H.w[0] += carry
-			if REM_H.w[0] < carry {
-				REM_H.w[1]++
+			REM_H.lo += carry
+			if REM_H.lo < carry {
+				REM_H.hi++
 			}
 			if __unsigned_compare_ge_128(REM_H, C2N) {
 				status = int(BID_EXACT_STATUS)
@@ -212,14 +212,14 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 		return res, pfpsf
 	}
 	if total_digits < 0 {
-		CR.w[1] = 0
-		CR.w[0] = 0
+		CR.hi = 0
+		CR.lo = 0
 		rmode = rnd_mode
 		if sign_x != 0 && uint(rmode-1) < 2 {
 			rmode = 3 - rmode
 		}
 		if rmode == BID_ROUNDING_UP {
-			CR.w[0] = 1
+			CR.lo = 1
 		}
 		pfpsf |= BID_INEXACT_EXCEPTION
 		res = very_fast_get_BID128(sign_x, exponent_y, CR)
@@ -227,7 +227,7 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	}
 	// else  more than 34 digits in coefficient
 	pfpsf |= BID_INVALID_EXCEPTION
-	res.w[1] = 0x7c00000000000000
-	res.w[0] = 0
+	res.hi = 0x7c00000000000000
+	res.lo = 0
 	return res, pfpsf
 }

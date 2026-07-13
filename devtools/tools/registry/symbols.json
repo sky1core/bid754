@@ -5,8 +5,12 @@
     "BID_UINT128": {
       "fields": [
         {
-          "name": "w",
-          "type": "[u64; 2]"
+          "name": "lo",
+          "type": "u64"
+        },
+        {
+          "name": "hi",
+          "type": "u64"
         }
       ],
       "go_file": "internal.go",

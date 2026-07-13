@@ -239,9 +239,9 @@ func bid_round64_2_18(q, x int, C uint64, incr_exp *int,
 	// Cstar = P128 >> Ex
 	// fstar = low Ex bits of P128
 	shift = int(bid_Ex64m64[ind]) // in [3, 56]
-	Cstar = P128.w[1] >> shift
-	fstar.w[1] = P128.w[1] & bid_mask64[ind]
-	fstar.w[0] = P128.w[0]
+	Cstar = P128.hi >> shift
+	fstar.hi = P128.hi & bid_mask64[ind]
+	fstar.lo = P128.lo
 	// the top Ex bits of 10^(-x) are T* = bid_ten2mxtrunc64[ind], e.g.
 	// if x=1, T*=bid_ten2mxtrunc64[0]=0xcccccccccccccccc
 	// if (0 < f* < 10^(-x)) then the result is a midpoint
@@ -259,19 +259,19 @@ func bid_round64_2_18(q, x int, C uint64, incr_exp *int,
 	//   the result is exact
 	// else // if (f* - 1/2 > T*) then
 	//   the result is inexact
-	if fstar.w[1] > bid_half64[ind] ||
-		(fstar.w[1] == bid_half64[ind] && fstar.w[0] != 0) {
+	if fstar.hi > bid_half64[ind] ||
+		(fstar.hi == bid_half64[ind] && fstar.lo != 0) {
 		// f* > 1/2 and the result may be exact
 		// Calculate f* - 1/2
-		tmp64 = fstar.w[1] - bid_half64[ind]
-		if tmp64 != 0 || fstar.w[0] > bid_ten2mxtrunc64[ind] { // f* - 1/2 > 10^(-x)
+		tmp64 = fstar.hi - bid_half64[ind]
+		if tmp64 != 0 || fstar.lo > bid_ten2mxtrunc64[ind] { // f* - 1/2 > 10^(-x)
 			*is_inexact_lt_midpoint = 1
 		} // else the result is exact
 	} else { // the result is inexact; f2* <= 1/2
 		*is_inexact_gt_midpoint = 1
 	}
 	// check for midpoints (could do this before determining inexactness)
-	if fstar.w[1] == 0 && fstar.w[0] <= bid_ten2mxtrunc64[ind] {
+	if fstar.hi == 0 && fstar.lo <= bid_ten2mxtrunc64[ind] {
 		// the result is a midpoint
 		if Cstar&0x01 != 0 { // Cstar is odd; MP in [EVEN, ODD]
 			// if floor(C*) is odd C = floor(C*) - 1; the result may be 0
@@ -300,25 +300,25 @@ func bid_round64_2_18(q, x int, C uint64, incr_exp *int,
 // Intel bid_round128_19_38의 uint64 입력 경로(1 <= x <= 19) 기계적 포팅
 // Source: IntelRDFPMathLib20U4/LIBRARY/src/bid_round.c
 var bid_Kx128_for64 = [19]BID_UINT128{
-	{w: [2]uint64{0xcccccccccccccccd, 0xcccccccccccccccc}},
-	{w: [2]uint64{0x3d70a3d70a3d70a4, 0xa3d70a3d70a3d70a}},
-	{w: [2]uint64{0x645a1cac083126ea, 0x83126e978d4fdf3b}},
-	{w: [2]uint64{0xd3c36113404ea4a9, 0xd1b71758e219652b}},
-	{w: [2]uint64{0x0fcf80dc33721d54, 0xa7c5ac471b478423}},
-	{w: [2]uint64{0xa63f9a49c2c1b110, 0x8637bd05af6c69b5}},
-	{w: [2]uint64{0x3d32907604691b4d, 0xd6bf94d5e57a42bc}},
-	{w: [2]uint64{0xfdc20d2b36ba7c3e, 0xabcc77118461cefc}},
-	{w: [2]uint64{0x31680a88f8953031, 0x89705f4136b4a597}},
-	{w: [2]uint64{0xb573440e5a884d1c, 0xdbe6fecebdedd5be}},
-	{w: [2]uint64{0xf78f69a51539d749, 0xafebff0bcb24aafe}},
-	{w: [2]uint64{0xf93f87b7442e45d4, 0x8cbccc096f5088cb}},
-	{w: [2]uint64{0x2865a5f206b06fba, 0xe12e13424bb40e13}},
-	{w: [2]uint64{0x538484c19ef38c95, 0xb424dc35095cd80f}},
-	{w: [2]uint64{0x0f9d37014bf60a11, 0x901d7cf73ab0acd9}},
-	{w: [2]uint64{0x4c2ebe687989a9b4, 0xe69594bec44de15b}},
-	{w: [2]uint64{0x09befeb9fad487c3, 0xb877aa3236a4b449}},
-	{w: [2]uint64{0x3aff322e62439fd0, 0x9392ee8e921d5d07}},
-	{w: [2]uint64{0x2b31e9e3d06c32e6, 0xec1e4a7db69561a5}},
+	{lo: 0xcccccccccccccccd, hi: 0xcccccccccccccccc},
+	{lo: 0x3d70a3d70a3d70a4, hi: 0xa3d70a3d70a3d70a},
+	{lo: 0x645a1cac083126ea, hi: 0x83126e978d4fdf3b},
+	{lo: 0xd3c36113404ea4a9, hi: 0xd1b71758e219652b},
+	{lo: 0x0fcf80dc33721d54, hi: 0xa7c5ac471b478423},
+	{lo: 0xa63f9a49c2c1b110, hi: 0x8637bd05af6c69b5},
+	{lo: 0x3d32907604691b4d, hi: 0xd6bf94d5e57a42bc},
+	{lo: 0xfdc20d2b36ba7c3e, hi: 0xabcc77118461cefc},
+	{lo: 0x31680a88f8953031, hi: 0x89705f4136b4a597},
+	{lo: 0xb573440e5a884d1c, hi: 0xdbe6fecebdedd5be},
+	{lo: 0xf78f69a51539d749, hi: 0xafebff0bcb24aafe},
+	{lo: 0xf93f87b7442e45d4, hi: 0x8cbccc096f5088cb},
+	{lo: 0x2865a5f206b06fba, hi: 0xe12e13424bb40e13},
+	{lo: 0x538484c19ef38c95, hi: 0xb424dc35095cd80f},
+	{lo: 0x0f9d37014bf60a11, hi: 0x901d7cf73ab0acd9},
+	{lo: 0x4c2ebe687989a9b4, hi: 0xe69594bec44de15b},
+	{lo: 0x09befeb9fad487c3, hi: 0xb877aa3236a4b449},
+	{lo: 0x3aff322e62439fd0, hi: 0x9392ee8e921d5d07},
+	{lo: 0x2b31e9e3d06c32e6, hi: 0xec1e4a7db69561a5},
 }
 
 var bid_Ex128m128_for64 = [19]uint32{
@@ -346,25 +346,25 @@ var bid_mask128_for64 = [19]uint64{
 }
 
 var bid_ten2mxtrunc128_for64 = [19]BID_UINT128{
-	{w: [2]uint64{0xcccccccccccccccc, 0xcccccccccccccccc}},
-	{w: [2]uint64{0x3d70a3d70a3d70a3, 0xa3d70a3d70a3d70a}},
-	{w: [2]uint64{0x645a1cac083126e9, 0x83126e978d4fdf3b}},
-	{w: [2]uint64{0xd3c36113404ea4a8, 0xd1b71758e219652b}},
-	{w: [2]uint64{0x0fcf80dc33721d53, 0xa7c5ac471b478423}},
-	{w: [2]uint64{0xa63f9a49c2c1b10f, 0x8637bd05af6c69b5}},
-	{w: [2]uint64{0x3d32907604691b4c, 0xd6bf94d5e57a42bc}},
-	{w: [2]uint64{0xfdc20d2b36ba7c3d, 0xabcc77118461cefc}},
-	{w: [2]uint64{0x31680a88f8953030, 0x89705f4136b4a597}},
-	{w: [2]uint64{0xb573440e5a884d1b, 0xdbe6fecebdedd5be}},
-	{w: [2]uint64{0xf78f69a51539d748, 0xafebff0bcb24aafe}},
-	{w: [2]uint64{0xf93f87b7442e45d3, 0x8cbccc096f5088cb}},
-	{w: [2]uint64{0x2865a5f206b06fb9, 0xe12e13424bb40e13}},
-	{w: [2]uint64{0x538484c19ef38c94, 0xb424dc35095cd80f}},
-	{w: [2]uint64{0x0f9d37014bf60a10, 0x901d7cf73ab0acd9}},
-	{w: [2]uint64{0x4c2ebe687989a9b3, 0xe69594bec44de15b}},
-	{w: [2]uint64{0x09befeb9fad487c2, 0xb877aa3236a4b449}},
-	{w: [2]uint64{0x3aff322e62439fcf, 0x9392ee8e921d5d07}},
-	{w: [2]uint64{0x2b31e9e3d06c32e5, 0xec1e4a7db69561a5}},
+	{lo: 0xcccccccccccccccc, hi: 0xcccccccccccccccc},
+	{lo: 0x3d70a3d70a3d70a3, hi: 0xa3d70a3d70a3d70a},
+	{lo: 0x645a1cac083126e9, hi: 0x83126e978d4fdf3b},
+	{lo: 0xd3c36113404ea4a8, hi: 0xd1b71758e219652b},
+	{lo: 0x0fcf80dc33721d53, hi: 0xa7c5ac471b478423},
+	{lo: 0xa63f9a49c2c1b10f, hi: 0x8637bd05af6c69b5},
+	{lo: 0x3d32907604691b4c, hi: 0xd6bf94d5e57a42bc},
+	{lo: 0xfdc20d2b36ba7c3d, hi: 0xabcc77118461cefc},
+	{lo: 0x31680a88f8953030, hi: 0x89705f4136b4a597},
+	{lo: 0xb573440e5a884d1b, hi: 0xdbe6fecebdedd5be},
+	{lo: 0xf78f69a51539d748, hi: 0xafebff0bcb24aafe},
+	{lo: 0xf93f87b7442e45d3, hi: 0x8cbccc096f5088cb},
+	{lo: 0x2865a5f206b06fb9, hi: 0xe12e13424bb40e13},
+	{lo: 0x538484c19ef38c94, hi: 0xb424dc35095cd80f},
+	{lo: 0x0f9d37014bf60a10, hi: 0x901d7cf73ab0acd9},
+	{lo: 0x4c2ebe687989a9b3, hi: 0xe69594bec44de15b},
+	{lo: 0x09befeb9fad487c2, hi: 0xb877aa3236a4b449},
+	{lo: 0x3aff322e62439fcf, hi: 0x9392ee8e921d5d07},
+	{lo: 0x2b31e9e3d06c32e5, hi: 0xec1e4a7db69561a5},
 }
 
 func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
@@ -391,12 +391,12 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 	}
 
 	// C = C + 1/2 * 10^x
-	C128.w[0] = C
-	C128.w[1] = 0
-	tmp64 = C128.w[0]
-	C128.w[0] = C128.w[0] + bid_midpoint64[ind]
-	if C128.w[0] < tmp64 {
-		C128.w[1]++
+	C128.lo = C
+	C128.hi = 0
+	tmp64 = C128.lo
+	C128.lo = C128.lo + bid_midpoint64[ind]
+	if C128.lo < tmp64 {
+		C128.hi++
 	}
 
 	// P256 = (C + 1/2 * 10^x) * Kx
@@ -404,8 +404,8 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 
 	// Cstar = P256 >> Ex, fstar = low Ex bits
 	shift = int(bid_Ex128m128_for64[ind])
-	Cstar.w[0] = (P256.w[2] >> shift) | (P256.w[3] << (64 - shift))
-	Cstar.w[1] = P256.w[3] >> shift
+	Cstar.lo = (P256.w[2] >> shift) | (P256.w[3] << (64 - shift))
+	Cstar.hi = P256.w[3] >> shift
 	fstar.w[0] = P256.w[0]
 	fstar.w[1] = P256.w[1]
 	fstar.w[2] = P256.w[2] & bid_mask128_for64[ind]
@@ -416,9 +416,9 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 		(fstar.w[2] == bid_half128_for64[ind] && (fstar.w[1] != 0 || fstar.w[0] != 0)) {
 		tmp64 = fstar.w[2] - bid_half128_for64[ind]
 		if tmp64 != 0 ||
-			fstar.w[1] > bid_ten2mxtrunc128_for64[ind].w[1] ||
-			(fstar.w[1] == bid_ten2mxtrunc128_for64[ind].w[1] &&
-				fstar.w[0] > bid_ten2mxtrunc128_for64[ind].w[0]) {
+			fstar.w[1] > bid_ten2mxtrunc128_for64[ind].hi ||
+			(fstar.w[1] == bid_ten2mxtrunc128_for64[ind].hi &&
+				fstar.w[0] > bid_ten2mxtrunc128_for64[ind].lo) {
 			*is_inexact_lt_midpoint = 1
 		}
 	} else {
@@ -427,13 +427,13 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 
 	// check for midpoints
 	if fstar.w[3] == 0 && fstar.w[2] == 0 &&
-		(fstar.w[1] < bid_ten2mxtrunc128_for64[ind].w[1] ||
-			(fstar.w[1] == bid_ten2mxtrunc128_for64[ind].w[1] &&
-				fstar.w[0] <= bid_ten2mxtrunc128_for64[ind].w[0])) {
-		if Cstar.w[0]&0x01 != 0 {
-			Cstar.w[0]--
-			if Cstar.w[0] == 0xffffffffffffffff {
-				Cstar.w[1]--
+		(fstar.w[1] < bid_ten2mxtrunc128_for64[ind].hi ||
+			(fstar.w[1] == bid_ten2mxtrunc128_for64[ind].hi &&
+				fstar.w[0] <= bid_ten2mxtrunc128_for64[ind].lo)) {
+		if Cstar.lo&0x01 != 0 {
+			Cstar.lo--
+			if Cstar.lo == 0xffffffffffffffff {
+				Cstar.hi--
 			}
 			*is_midpoint_gt_even = 1
 			*is_inexact_lt_midpoint = 0
@@ -448,17 +448,17 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 	// check for rounding overflow: Cstar = 10^(q-x)
 	ind = q - x
 	if ind <= 19 {
-		if Cstar.w[1] == 0x0 && Cstar.w[0] == bid_ten2k64[ind] {
-			Cstar.w[0] = bid_ten2k64[ind-1]
+		if Cstar.hi == 0x0 && Cstar.lo == bid_ten2k64[ind] {
+			Cstar.lo = bid_ten2k64[ind-1]
 			*incr_exp = 1
 		} else {
 			*incr_exp = 0
 		}
 	} else if ind == 20 {
-		if Cstar.w[1] == 0x0000000000000005 &&
-			Cstar.w[0] == 0x6bc75e2d63100000 {
-			Cstar.w[0] = bid_ten2k64[19]
-			Cstar.w[1] = 0x0
+		if Cstar.hi == 0x0000000000000005 &&
+			Cstar.lo == 0x6bc75e2d63100000 {
+			Cstar.lo = bid_ten2k64[19]
+			Cstar.hi = 0x0
 			*incr_exp = 1
 		} else {
 			*incr_exp = 0
@@ -466,5 +466,5 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 	} else {
 		*incr_exp = 0
 	}
-	return Cstar.w[0]
+	return Cstar.lo
 }

@@ -29,7 +29,7 @@
 use super::prelude::*;
 
 pub(crate) fn bid32_mul_pure(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
-    let mut Tmp: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Tmp: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P: u64 = 0;
     let mut Q: u64 = 0;
     let mut R: u64 = 0;
@@ -100,7 +100,7 @@ pub(crate) fn bid32_mul_pure(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
     let mut tempx = (P as f64);
     bin_expon_p = (((go_checked_shr_u64((((tempx).to_bits() & 0x7ff0000000000000)), go_shift_count_u64((52) as u64))) as i64).wrapping_sub(0x3ff));
     n_digits = (bid_estimate_decimal_digits[bin_expon_p as usize] as i64);
-    if (P >= bid_power10_table_128[n_digits as usize].w[0]) {
+    if (P >= bid_power10_table_128[n_digits as usize].lo) {
         n_digits = n_digits.wrapping_add(1);
     }
     exponent_x = exponent_x.wrapping_add((exponent_y.wrapping_sub(101)));
@@ -124,8 +124,8 @@ pub(crate) fn bid32_mul_pure(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
     P = P.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
     Tmp = __mul_64x64_to_128(P, bid_reciprocals10_64[extra_digits as usize]);
     amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-    Q = (go_checked_shr_u64(Tmp.w[1], go_shift_count_u64((amount as u64) as u64)));
-    R = (P.wrapping_sub((Q.wrapping_mul(bid_power10_table_128[extra_digits as usize].w[0]))));
+    Q = (go_checked_shr_u64(Tmp.hi, go_shift_count_u64((amount as u64) as u64)));
+    R = (P.wrapping_sub((Q.wrapping_mul(bid_power10_table_128[extra_digits as usize].lo))));
     if (rmode == 0) {
         if (R == 0) {
             Q &= 0xfffffffe;
@@ -137,7 +137,7 @@ pub(crate) fn bid32_mul_pure(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
 }
 
 pub(crate) fn bid32_mul_core(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
-    let mut Tmp: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Tmp: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P: u64 = 0;
     let mut Q: u64 = 0;
     let mut R: u64 = 0;
@@ -220,7 +220,7 @@ pub(crate) fn bid32_mul_core(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, 
     let mut tempx = (P as f64);
     bin_expon_p = (((go_checked_shr_u64((((tempx).to_bits() & 0x7ff0000000000000)), go_shift_count_u64((52) as u64))) as i64).wrapping_sub(0x3ff));
     n_digits = (bid_estimate_decimal_digits[bin_expon_p as usize] as i64);
-    if (P >= bid_power10_table_128[n_digits as usize].w[0]) {
+    if (P >= bid_power10_table_128[n_digits as usize].lo) {
         n_digits = n_digits.wrapping_add(1);
     }
     exponent_x = exponent_x.wrapping_add((exponent_y.wrapping_sub(101)));
@@ -244,8 +244,8 @@ pub(crate) fn bid32_mul_core(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, 
     P = P.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
     Tmp = __mul_64x64_to_128(P, bid_reciprocals10_64[extra_digits as usize]);
     amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-    Q = (go_checked_shr_u64(Tmp.w[1], go_shift_count_u64((amount as u64) as u64)));
-    R = (P.wrapping_sub((Q.wrapping_mul(bid_power10_table_128[extra_digits as usize].w[0]))));
+    Q = (go_checked_shr_u64(Tmp.hi, go_shift_count_u64((amount as u64) as u64)));
+    R = (P.wrapping_sub((Q.wrapping_mul(bid_power10_table_128[extra_digits as usize].lo))));
     if (R != bid_round_const_table[rmode as usize][extra_digits as usize]) {
         flags |= 32;
     }

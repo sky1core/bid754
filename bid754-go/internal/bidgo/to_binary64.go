@@ -372,20 +372,20 @@ func Bid64ToBinary128(x uint64, rndMode int) (BID_UINT128, uint32) {
 				flags |= BID_INVALID_EXCEPTION
 			}
 			if (x&INFINITY_MASK64) == INFINITY_MASK64 && (x&NAN_MASK64) != NAN_MASK64 {
-				res.w[1] = signX | 0x7fff000000000000
+				res.hi = signX | 0x7fff000000000000
 			} else {
 				payload := coefficientX & 0x0003ffffffffffff
 				frac := new(big.Int).SetUint64(payload)
 				frac.Lsh(frac, 61)
 				frac.Or(frac, new(big.Int).Lsh(big.NewInt(1), 111))
-				res.w[0] = frac.Uint64()
-				res.w[1] = signX | 0x7fff000000000000 | new(big.Int).Rsh(frac, 64).Uint64()
+				res.lo = frac.Uint64()
+				res.hi = signX | 0x7fff000000000000 | new(big.Int).Rsh(frac, 64).Uint64()
 			}
 		} else {
-			res.w[1] = signX
+			res.hi = signX
 		}
 	} else {
-		res.w[1], res.w[0], flags = bid64FiniteToBinary128Bits(signX>>63, exponentX-398, coefficientX, bidClampMode(rndMode))
+		res.hi, res.lo, flags = bid64FiniteToBinary128Bits(signX>>63, exponentX-398, coefficientX, bidClampMode(rndMode))
 	}
 	return res, flags
 }
@@ -394,7 +394,7 @@ func Bid64ToBinary128(x uint64, rndMode int) (BID_UINT128, uint32) {
 // Follows Intel bid_binarydecimal.c bid128_to_binary128 for special values;
 // the finite path goes through bidFiniteBigToBinary128Bits.
 func Bid128ToBinary128(x BID_UINT128, rndMode int) (BID_UINT128, uint32) {
-	d := bid128Decode(x.w[1], x.w[0])
+	d := bid128Decode(x.hi, x.lo)
 	flags := uint32(0)
 	var res BID_UINT128
 
@@ -402,8 +402,8 @@ func Bid128ToBinary128(x BID_UINT128, rndMode int) (BID_UINT128, uint32) {
 		if d.isSNaN {
 			flags |= BID_INVALID_EXCEPTION
 		}
-		payloadHi := x.w[1] & 0x00003fffffffffff
-		payloadLo := x.w[0]
+		payloadHi := x.hi & 0x00003fffffffffff
+		payloadLo := x.lo
 		if d.coeff.Sign() == 0 {
 			payloadHi = 0
 			payloadLo = 0
@@ -412,19 +412,19 @@ func Bid128ToBinary128(x BID_UINT128, rndMode int) (BID_UINT128, uint32) {
 		cLo := payloadLo << 18
 		fracHi := (cHi >> 17) + (1 << 47)
 		fracLo := (cLo >> 17) + (cHi << 47)
-		res.w[0] = fracLo
-		res.w[1] = d.sign | 0x7fff000000000000 | fracHi
+		res.lo = fracLo
+		res.hi = d.sign | 0x7fff000000000000 | fracHi
 		return res, flags
 	}
 	if d.isInf {
-		res.w[1] = d.sign | 0x7fff000000000000
+		res.hi = d.sign | 0x7fff000000000000
 		return res, flags
 	}
 	if d.isZero {
-		res.w[1] = d.sign
+		res.hi = d.sign
 		return res, flags
 	}
 
-	res.w[1], res.w[0], flags = bid128FiniteToBinary128Bits(d.sign>>63, d.exp, d.coeff, bidClampMode(rndMode))
+	res.hi, res.lo, flags = bid128FiniteToBinary128Bits(d.sign>>63, d.exp, d.coeff, bidClampMode(rndMode))
 	return res, flags
 }

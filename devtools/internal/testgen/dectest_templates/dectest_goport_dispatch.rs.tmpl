@@ -537,7 +537,7 @@ pub(crate) fn parse_decimal128_nan(input: &str) -> Option<BID_UINT128> {
     if lit.negative {
         hi |= 0x8000_0000_0000_0000;
     }
-    Some(BID_UINT128 { w: [lo, hi] })
+    Some(BID_UINT128 { lo, hi })
 }
 
 fn payload_string(payload: u64, canonical_limit: u64) -> String {
@@ -581,8 +581,8 @@ pub(crate) fn format_decimal64_nan(bits: u64) -> Option<String> {
 }
 
 pub(crate) fn format_decimal128_nan(x: BID_UINT128) -> Option<String> {
-    let hi = x.w[1];
-    let lo = x.w[0];
+    let hi = x.hi;
+    let lo = x.lo;
     if hi & 0x7c00_0000_0000_0000 != 0x7c00_0000_0000_0000 {
         return None;
     }
@@ -608,7 +608,7 @@ fn is_nan64(x: u64) -> bool {
 }
 
 fn is_nan128(x: BID_UINT128) -> bool {
-    x.w[1] & 0x7c00_0000_0000_0000 == 0x7c00_0000_0000_0000
+    x.hi & 0x7c00_0000_0000_0000 == 0x7c00_0000_0000_0000
 }
 
 // ============================================================================

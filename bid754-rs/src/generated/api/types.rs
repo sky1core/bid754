@@ -343,7 +343,8 @@ pub(crate) fn bid_uint128_from_le_bytes(bytes: [u8; 16]) -> crate::gen_types::BI
     lo.copy_from_slice(&bytes[0..8]);
     hi.copy_from_slice(&bytes[8..16]);
     crate::gen_types::BID_UINT128 {
-        w: [u64::from_le_bytes(lo), u64::from_le_bytes(hi)],
+        lo: u64::from_le_bytes(lo),
+        hi: u64::from_le_bytes(hi),
     }
 }
 
@@ -353,8 +354,8 @@ pub(crate) fn bid_uint128_from_le_bytes(bytes: [u8; 16]) -> crate::gen_types::BI
 /// through Go's low-level pointer-cast facility).
 pub(crate) fn bid_uint128_to_le_bytes(v: crate::gen_types::BID_UINT128) -> [u8; 16] {
     let mut bytes = [0u8; 16];
-    bytes[0..8].copy_from_slice(&v.w[0].to_le_bytes());
-    bytes[8..16].copy_from_slice(&v.w[1].to_le_bytes());
+    bytes[0..8].copy_from_slice(&v.lo.to_le_bytes());
+    bytes[8..16].copy_from_slice(&v.hi.to_le_bytes());
     bytes
 }
 

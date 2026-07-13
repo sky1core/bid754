@@ -22,12 +22,12 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 		tempx := math.Float64bits(float64(coefficient_x))
 		bin_expon_cx = int((tempx&MASK_BINARY_EXPONENT)>>52) - 0x3ff
 		digits_x = bid_estimate_decimal_digits[bin_expon_cx]
-		if coefficient_x >= bid_power10_table_128[digits_x].w[0] {
+		if coefficient_x >= bid_power10_table_128[digits_x].lo {
 			digits_x++
 		}
 
 		extra_dx = 16 - digits_x
-		coefficient_x *= bid_power10_table_128[extra_dx].w[0]
+		coefficient_x *= bid_power10_table_128[extra_dx].lo
 		if (sign_x^sign_y) != 0 && (coefficient_x == 1000000000000000) {
 			extra_dx++
 			coefficient_x = 10000000000000000
@@ -40,7 +40,7 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 
 			if exponent_x <= final_exponent_y+1 {
 				CX = __mul_64x64_to_128(coefficient_x,
-					bid_power10_table_128[diff_dec_expon].w[0])
+					bid_power10_table_128[diff_dec_expon].lo)
 
 				if sign_x == sign_y {
 					CT = __add_128_128(CY, CX)
@@ -52,14 +52,14 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 					}
 				} else {
 					CT = __sub_128_128(CY, CX)
-					if int64(CT.w[1]) < 0 {
-						CT.w[0] = 0 - CT.w[0]
-						CT.w[1] = 0 - CT.w[1]
-						if CT.w[0] != 0 {
-							CT.w[1]--
+					if int64(CT.hi) < 0 {
+						CT.lo = 0 - CT.lo
+						CT.hi = 0 - CT.hi
+						if CT.lo != 0 {
+							CT.hi--
 						}
 						sign_y = sign_x
-					} else if (CT.w[1] | CT.w[0]) == 0 {
+					} else if (CT.hi | CT.lo) == 0 {
 						if rounding_mode != BID_ROUNDING_DOWN {
 							sign_y = 0
 						} else {
@@ -69,10 +69,10 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 					if exponent_x+1 >= final_exponent_y {
 						extra_digits = __get_dec_digits64(CT) - 16
 						if extra_digits <= 0 {
-							if CT.w[0] == 0 && rounding_mode == BID_ROUNDING_DOWN {
+							if CT.lo == 0 && rounding_mode == BID_ROUNDING_DOWN {
 								sign_y = 0x8000000000000000
 							}
-							return get_BID64_withFlags(sign_y, exponent_y, CT.w[0],
+							return get_BID64_withFlags(sign_y, exponent_y, CT.lo,
 								rounding_mode, fpsc)
 						}
 					} else if __unsigned_compare_gt_128(
@@ -118,7 +118,7 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 						exponent_x--
 					}
 				}
-				if (CY.w[1] | CY.w[0]) != 0 {
+				if (CY.hi | CY.lo) != 0 {
 					*fpsc |= BID_INEXACT_EXCEPTION
 				}
 				return get_BID64_withFlags(sign_x, exponent_x, coefficient_x,
@@ -130,14 +130,14 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 			CYh = __truncate(CY, extra_digits)
 
 			// get remainder
-			T = bid_power10_table_128[extra_digits].w[0]
+			T = bid_power10_table_128[extra_digits].lo
 			CY0L = __mul_64x64_to_64(CYh, T)
 
-			remainder_y = CY.w[0] - CY0L
+			remainder_y = CY.lo - CY0L
 
 			// align coeff_x, CYh
 			CX = __mul_64x64_to_128(coefficient_x,
-				bid_power10_table_128[diff_dec2].w[0])
+				bid_power10_table_128[diff_dec2].lo)
 
 			if sign_x == sign_y {
 				CT = __add_128_64(CX, CYh)
@@ -166,24 +166,24 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 			rmode = rounding_mode
 
 			if (sign_x ^ sign_y) != 0 {
-				if CY.w[0] == 0 {
-					CY.w[1]--
+				if CY.lo == 0 {
+					CY.hi--
 				}
-				CY.w[0]--
+				CY.lo--
 				if __unsigned_compare_gt_128(bid_power10_table_128[15+extra_digits], CY) {
 					if (rmode & 3) != 0 {
 						extra_digits--
 						final_exponent_y--
 					} else {
-						CY.w[0] = 1000000000000000
-						CY.w[1] = 0
+						CY.lo = 1000000000000000
+						CY.hi = 0
 						extra_digits = 0
 					}
 				}
 			}
 			CY = __scale128_10(CY)
 			extra_digits++
-			CY.w[0] |= 1
+			CY.lo |= 1
 
 			return __bid_simple_round64_sticky(sign_y, final_exponent_y, CY,
 				extra_digits, rmode, fpsc)
@@ -191,8 +191,8 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 		// apply sign to coeff_x
 		sign_x ^= sign_y
 		sign_x = uint64(int64(sign_x) >> 63)
-		CX.w[0] = (coefficient_x + sign_x) ^ sign_x
-		CX.w[1] = sign_x
+		CX.lo = (coefficient_x + sign_x) ^ sign_x
+		CX.hi = sign_x
 
 		// check whether CY (rounded to 16 digits) and CX have
 		// any digits in the same position
@@ -200,7 +200,7 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 
 		if diff_dec2 <= 17 {
 			// align CY to 10^ex
-			S = bid_power10_table_128[diff_dec_expon].w[0]
+			S = bid_power10_table_128[diff_dec_expon].lo
 			CY_L = __mul_64x128_short(S, CY)
 
 			ST = __add_128_128(CY_L, CX)
@@ -212,10 +212,10 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 		CYh = __truncate(CY, extra_digits)
 
 		// get remainder
-		T = bid_power10_table_128[extra_digits].w[0]
+		T = bid_power10_table_128[extra_digits].lo
 		CY0L = __mul_64x64_to_64(CYh, T)
 
-		coefficient_y = CY.w[0] - CY0L
+		coefficient_y = CY.lo - CY0L
 		// add rounding constant
 		rmode = rounding_mode
 		if sign_y != 0 && uint(rmode-1) < 2 {
@@ -225,7 +225,7 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 			coefficient_y += bid_round_const_table[rmode][extra_digits]
 		}
 		// align coefficient_y, coefficient_x
-		S = bid_power10_table_128[diff_dec_expon].w[0]
+		S = bid_power10_table_128[diff_dec_expon].lo
 		F = __mul_64x64_to_128(coefficient_y, S)
 
 		// fraction
@@ -251,7 +251,7 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 		}
 		switch rmode {
 		case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
-			if int64(FS.w[1]) < 0 {
+			if int64(FS.hi) < 0 {
 				CYh--
 				if CYh < 1000000000000000 {
 					CYh = 9999999999999999
@@ -265,18 +265,18 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 				}
 			}
 		case BID_ROUNDING_UP:
-			if int64(FS.w[1]) < 0 {
+			if int64(FS.hi) < 0 {
 				break
 			}
 			T2 = bid_power10_table_128[diff_dec_expon+extra_digits]
 			if __unsigned_compare_gt_128(FS, T2) {
 				CYh += 2
 				FS = __sub_128_128(FS, T2)
-			} else if (FS.w[1] == T2.w[1]) && (FS.w[0] == T2.w[0]) {
+			} else if (FS.hi == T2.hi) && (FS.lo == T2.lo) {
 				CYh++
-				FS.w[1] = 0
-				FS.w[0] = 0
-			} else if (FS.w[1] | FS.w[0]) != 0 {
+				FS.hi = 0
+				FS.lo = 0
+			} else if (FS.hi | FS.lo) != 0 {
 				CYh++
 			}
 		default:
@@ -285,11 +285,11 @@ func bid_get_add128(sign_x uint64, exponent_x int, coefficient_x uint64,
 		status = BID_INEXACT_EXCEPTION
 		if (rmode & 3) == 0 {
 			// RN modes
-			if (FS.w[1] == bid_round_const_table_128[0][diff_dec_expon+extra_digits].w[1]) &&
-				(FS.w[0] == bid_round_const_table_128[0][diff_dec_expon+extra_digits].w[0]) {
+			if (FS.hi == bid_round_const_table_128[0][diff_dec_expon+extra_digits].hi) &&
+				(FS.lo == bid_round_const_table_128[0][diff_dec_expon+extra_digits].lo) {
 				status = BID_EXACT_STATUS
 			}
-		} else if FS.w[1] == 0 && FS.w[0] == 0 {
+		} else if FS.hi == 0 && FS.lo == 0 {
 			status = BID_EXACT_STATUS
 		}
 

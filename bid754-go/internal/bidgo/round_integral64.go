@@ -215,7 +215,7 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 		tmp1 = math.Float64bits(float64(C1)) // exact conversion
 		x_nr_bits = 1 + int(((tmp1>>52)&0x7ff)-0x3ff)
 		q = bid_estimate_decimal_digits[x_nr_bits-1]
-		if C1 >= bid_power10_table_128[q].w[0] {
+		if C1 >= bid_power10_table_128[q].lo {
 			q++
 		}
 	}
@@ -246,19 +246,19 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 				shift = bid_shiftright128_round64[ind-1] // 3 <= shift <= 63
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
 			// if (0 < f* < 10^(-x)) then the result is a midpoint
 			// since round_to_even, subtract 1 if current result is odd
-			if (res&0x0000000000000001) != 0 && (fstar.w[1] == 0) &&
-				(fstar.w[0] < bid_ten2mk64_round64[ind-1]) {
+			if (res&0x0000000000000001) != 0 && (fstar.hi == 0) &&
+				(fstar.lo < bid_ten2mk64_round64[ind-1]) {
 				res--
 			}
 			// determine inexactness of the rounding of C*
@@ -267,10 +267,10 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 			// else // if (f* - 1/2 > T*) then
 			//   the result is inexact
 			if (ind - 1) <= 2 {
-				if fstar.w[0] > 0x8000000000000000 {
+				if fstar.lo > 0x8000000000000000 {
 					// f* > 1/2 and the result may be exact
 					// fstar.w[0] - 0x8000000000000000ull is f* - 1/2
-					if (fstar.w[0] - 0x8000000000000000) > bid_ten2mk64_round64[ind-1] {
+					if (fstar.lo - 0x8000000000000000) > bid_ten2mk64_round64[ind-1] {
 						// set the inexact flag
 						pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -279,12 +279,12 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 					pfpsf |= BID_INEXACT_EXCEPTION
 				}
 			} else { // if 3 <= ind - 1 <= 21
-				if fstar.w[1] > bid_onehalf128_round64[ind-1] ||
-					(fstar.w[1] == bid_onehalf128_round64[ind-1] && fstar.w[0] != 0) {
+				if fstar.hi > bid_onehalf128_round64[ind-1] ||
+					(fstar.hi == bid_onehalf128_round64[ind-1] && fstar.lo != 0) {
 					// f2* > 1/2 and the result may be exact
 					// Calculate f2* - 1/2
-					if fstar.w[1] > bid_onehalf128_round64[ind-1] ||
-						fstar.w[0] > bid_ten2mk64_round64[ind-1] {
+					if fstar.hi > bid_onehalf128_round64[ind-1] ||
+						fstar.lo > bid_ten2mk64_round64[ind-1] {
 						// set the inexact flag
 						pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -309,30 +309,30 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
 			// midpoints are already rounded correctly
 			// determine inexactness of the rounding of C*
 			if (ind - 1) <= 2 {
-				if fstar.w[0] > 0x8000000000000000 {
-					if (fstar.w[0] - 0x8000000000000000) > bid_ten2mk64_round64[ind-1] {
+				if fstar.lo > 0x8000000000000000 {
+					if (fstar.lo - 0x8000000000000000) > bid_ten2mk64_round64[ind-1] {
 						pfpsf |= BID_INEXACT_EXCEPTION
 					}
 				} else {
 					pfpsf |= BID_INEXACT_EXCEPTION
 				}
 			} else {
-				if fstar.w[1] > bid_onehalf128_round64[ind-1] ||
-					(fstar.w[1] == bid_onehalf128_round64[ind-1] && fstar.w[0] != 0) {
-					if fstar.w[1] > bid_onehalf128_round64[ind-1] ||
-						fstar.w[0] > bid_ten2mk64_round64[ind-1] {
+				if fstar.hi > bid_onehalf128_round64[ind-1] ||
+					(fstar.hi == bid_onehalf128_round64[ind-1] && fstar.lo != 0) {
+					if fstar.hi > bid_onehalf128_round64[ind-1] ||
+						fstar.lo > bid_ten2mk64_round64[ind-1] {
 						pfpsf |= BID_INEXACT_EXCEPTION
 					}
 				} else {
@@ -352,16 +352,16 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
-			if (fstar.w[1] != 0) || (fstar.w[0] >= bid_ten2mk64_round64[ind-1]) {
+			if (fstar.hi != 0) || (fstar.lo >= bid_ten2mk64_round64[ind-1]) {
 				if x_sign != 0 {
 					res++
 				}
@@ -384,16 +384,16 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
-			if (fstar.w[1] != 0) || (fstar.w[0] >= bid_ten2mk64_round64[ind-1]) {
+			if (fstar.hi != 0) || (fstar.lo >= bid_ten2mk64_round64[ind-1]) {
 				if x_sign == 0 {
 					res++
 				}
@@ -416,16 +416,16 @@ func Bid64RoundIntegralExact(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
-			if (fstar.w[1] != 0) || (fstar.w[0] >= bid_ten2mk64_round64[ind-1]) {
+			if (fstar.hi != 0) || (fstar.lo >= bid_ten2mk64_round64[ind-1]) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 			res = x_sign | 0x31c0000000000000 | res
@@ -535,7 +535,7 @@ func Bid64NearbyInt(x uint64, rndMode int) (uint64, uint32) {
 		tmp1 = math.Float64bits(float64(C1))
 		x_nr_bits = 1 + int(((tmp1>>52)&0x7ff)-0x3ff)
 		q = bid_estimate_decimal_digits[x_nr_bits-1]
-		if C1 >= bid_power10_table_128[q].w[0] {
+		if C1 >= bid_power10_table_128[q].lo {
 			q++
 		}
 	}
@@ -553,17 +553,17 @@ func Bid64NearbyInt(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
-			if (res&0x0000000000000001) != 0 && (fstar.w[1] == 0) &&
-				(fstar.w[0] < bid_ten2mk64_round64[ind-1]) {
+			if (res&0x0000000000000001) != 0 && (fstar.hi == 0) &&
+				(fstar.lo < bid_ten2mk64_round64[ind-1]) {
 				res--
 			}
 			res = x_sign | 0x31c0000000000000 | res
@@ -579,10 +579,10 @@ func Bid64NearbyInt(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
+				res = P128.hi
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
+				res = (P128.hi >> shift)
 			}
 			res = x_sign | 0x31c0000000000000 | res
 			return res, pfpsf
@@ -596,16 +596,16 @@ func Bid64NearbyInt(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
-			if (fstar.w[1] != 0) || (fstar.w[0] >= bid_ten2mk64_round64[ind-1]) {
+			if (fstar.hi != 0) || (fstar.lo >= bid_ten2mk64_round64[ind-1]) {
 				if x_sign != 0 {
 					res++
 				}
@@ -626,16 +626,16 @@ func Bid64NearbyInt(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
-				fstar.w[1] = 0
-				fstar.w[0] = P128.w[0]
+				res = P128.hi
+				fstar.hi = 0
+				fstar.lo = P128.lo
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
-				fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-				fstar.w[0] = P128.w[0]
+				res = (P128.hi >> shift)
+				fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+				fstar.lo = P128.lo
 			}
-			if (fstar.w[1] != 0) || (fstar.w[0] >= bid_ten2mk64_round64[ind-1]) {
+			if (fstar.hi != 0) || (fstar.lo >= bid_ten2mk64_round64[ind-1]) {
 				if x_sign == 0 {
 					res++
 				}
@@ -656,10 +656,10 @@ func Bid64NearbyInt(x uint64, rndMode int) (uint64, uint32) {
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 			if (ind - 1) <= 2 {
-				res = P128.w[1]
+				res = P128.hi
 			} else if (ind - 1) <= 21 {
 				shift = bid_shiftright128_round64[ind-1]
-				res = (P128.w[1] >> shift)
+				res = (P128.hi >> shift)
 			}
 			res = x_sign | 0x31c0000000000000 | res
 			return res, pfpsf
@@ -735,7 +735,7 @@ func Bid64RoundIntegralNearestEven(x uint64) (uint64, uint32) {
 		tmp1 = math.Float64bits(float64(C1))
 		x_nr_bits = 1 + int(((tmp1>>52)&0x7ff)-0x3ff)
 		q = bid_estimate_decimal_digits[x_nr_bits-1]
-		if C1 >= bid_power10_table_128[q].w[0] {
+		if C1 >= bid_power10_table_128[q].lo {
 			q++
 		}
 	}
@@ -749,17 +749,17 @@ func Bid64RoundIntegralNearestEven(x uint64) (uint64, uint32) {
 		P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 		if (ind - 1) <= 2 {
-			res = P128.w[1]
-			fstar.w[1] = 0
-			fstar.w[0] = P128.w[0]
+			res = P128.hi
+			fstar.hi = 0
+			fstar.lo = P128.lo
 		} else if (ind - 1) <= 21 {
 			shift = bid_shiftright128_round64[ind-1]
-			res = (P128.w[1] >> shift)
-			fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-			fstar.w[0] = P128.w[0]
+			res = (P128.hi >> shift)
+			fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+			fstar.lo = P128.lo
 		}
-		if (res&0x0000000000000001) != 0 && (fstar.w[1] == 0) &&
-			(fstar.w[0] < bid_ten2mk64_round64[ind-1]) {
+		if (res&0x0000000000000001) != 0 && (fstar.hi == 0) &&
+			(fstar.lo < bid_ten2mk64_round64[ind-1]) {
 			res--
 		}
 		res = x_sign | 0x31c0000000000000 | res
@@ -835,7 +835,7 @@ func Bid64RoundIntegralNegative(x uint64) (uint64, uint32) {
 		tmp1 = math.Float64bits(float64(C1))
 		x_nr_bits = 1 + int(((tmp1>>52)&0x7ff)-0x3ff)
 		q = bid_estimate_decimal_digits[x_nr_bits-1]
-		if C1 >= bid_power10_table_128[q].w[0] {
+		if C1 >= bid_power10_table_128[q].lo {
 			q++
 		}
 	}
@@ -848,16 +848,16 @@ func Bid64RoundIntegralNegative(x uint64) (uint64, uint32) {
 		P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 		if (ind - 1) <= 2 {
-			res = P128.w[1]
-			fstar.w[1] = 0
-			fstar.w[0] = P128.w[0]
+			res = P128.hi
+			fstar.hi = 0
+			fstar.lo = P128.lo
 		} else if (ind - 1) <= 21 {
 			shift = bid_shiftright128_round64[ind-1]
-			res = (P128.w[1] >> shift)
-			fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-			fstar.w[0] = P128.w[0]
+			res = (P128.hi >> shift)
+			fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+			fstar.lo = P128.lo
 		}
-		if x_sign != 0 && ((fstar.w[1] != 0) || (fstar.w[0] >= bid_ten2mk64_round64[ind-1])) {
+		if x_sign != 0 && ((fstar.hi != 0) || (fstar.lo >= bid_ten2mk64_round64[ind-1])) {
 			res++
 		}
 		res = x_sign | 0x31c0000000000000 | res
@@ -937,7 +937,7 @@ func Bid64RoundIntegralPositive(x uint64) (uint64, uint32) {
 		tmp1 = math.Float64bits(float64(C1))
 		x_nr_bits = 1 + int(((tmp1>>52)&0x7ff)-0x3ff)
 		q = bid_estimate_decimal_digits[x_nr_bits-1]
-		if C1 >= bid_power10_table_128[q].w[0] {
+		if C1 >= bid_power10_table_128[q].lo {
 			q++
 		}
 	}
@@ -950,16 +950,16 @@ func Bid64RoundIntegralPositive(x uint64) (uint64, uint32) {
 		P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 		if (ind - 1) <= 2 {
-			res = P128.w[1]
-			fstar.w[1] = 0
-			fstar.w[0] = P128.w[0]
+			res = P128.hi
+			fstar.hi = 0
+			fstar.lo = P128.lo
 		} else if (ind - 1) <= 21 {
 			shift = bid_shiftright128_round64[ind-1]
-			res = (P128.w[1] >> shift)
-			fstar.w[1] = P128.w[1] & bid_maskhigh128_round64[ind-1]
-			fstar.w[0] = P128.w[0]
+			res = (P128.hi >> shift)
+			fstar.hi = P128.hi & bid_maskhigh128_round64[ind-1]
+			fstar.lo = P128.lo
 		}
-		if x_sign == 0 && ((fstar.w[1] != 0) || (fstar.w[0] >= bid_ten2mk64_round64[ind-1])) {
+		if x_sign == 0 && ((fstar.hi != 0) || (fstar.lo >= bid_ten2mk64_round64[ind-1])) {
 			res++
 		}
 		res = x_sign | 0x31c0000000000000 | res
@@ -1034,7 +1034,7 @@ func Bid64RoundIntegralZero(x uint64) (uint64, uint32) {
 		tmp1 = math.Float64bits(float64(C1))
 		x_nr_bits = 1 + int(((tmp1>>52)&0x7ff)-0x3ff)
 		q = bid_estimate_decimal_digits[x_nr_bits-1]
-		if C1 >= bid_power10_table_128[q].w[0] {
+		if C1 >= bid_power10_table_128[q].lo {
 			q++
 		}
 	}
@@ -1047,10 +1047,10 @@ func Bid64RoundIntegralZero(x uint64) (uint64, uint32) {
 		P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 		if (ind - 1) <= 2 {
-			res = P128.w[1]
+			res = P128.hi
 		} else if (ind - 1) <= 21 {
 			shift = bid_shiftright128_round64[ind-1]
-			res = (P128.w[1] >> shift)
+			res = (P128.hi >> shift)
 		}
 		res = x_sign | 0x31c0000000000000 | res
 		return res, pfpsf
@@ -1120,7 +1120,7 @@ func Bid64RoundIntegralNearestAway(x uint64) (uint64, uint32) {
 		tmp1 = math.Float64bits(float64(C1))
 		x_nr_bits = 1 + int(((tmp1>>52)&0x7ff)-0x3ff)
 		q = bid_estimate_decimal_digits[x_nr_bits-1]
-		if C1 >= bid_power10_table_128[q].w[0] {
+		if C1 >= bid_power10_table_128[q].lo {
 			q++
 		}
 	}
@@ -1134,10 +1134,10 @@ func Bid64RoundIntegralNearestAway(x uint64) (uint64, uint32) {
 		P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[ind-1])
 
 		if (ind - 1) <= 2 {
-			res = P128.w[1]
+			res = P128.hi
 		} else if (ind - 1) <= 21 {
 			shift = bid_shiftright128_round64[ind-1]
-			res = (P128.w[1] >> shift)
+			res = (P128.hi >> shift)
 		}
 		res = x_sign | 0x31c0000000000000 | res
 		return res, pfpsf

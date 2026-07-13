@@ -112,7 +112,7 @@ pub fn bid32_rem(mut x: u32, mut y: u32) -> (u32, u32) {
             res = x;
             return (res, pfpsf);
         }
-        T = (bid_power10_table_128[diff_expon as usize].w[0] as u32);
+        T = (bid_power10_table_128[diff_expon as usize].lo as u32);
         CYL = ((coefficient_y as u64).wrapping_mul(T as u64));
         if (CYL > ((go_checked_shl_u32(coefficient_x, go_shift_count_u64((1) as u64))) as u64)) {
             res = x;
@@ -141,7 +141,7 @@ pub fn bid32_rem(mut x: u32, mut y: u32) -> (u32, u32) {
             e_scale = diff_expon;
             diff_expon = 0;
         }
-        CX = CX.wrapping_mul(bid_power10_table_128[e_scale as usize].w[0]);
+        CX = CX.wrapping_mul(bid_power10_table_128[e_scale as usize].lo);
         Q64 = (CX / (coefficient_y as u64));
         CX = CX.wrapping_sub((Q64.wrapping_mul(coefficient_y as u64)));
         if (CX == 0) {

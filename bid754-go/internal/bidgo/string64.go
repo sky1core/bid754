@@ -200,7 +200,7 @@ func Bid64ToString(x uint64) string {
 			tempx := float32(exponent_x)
 			bin_expon_cx := int((math.Float32bits(tempx)>>23)&0xff) - 0x7f
 			digits_x := bid_estimate_decimal_digits[bin_expon_cx]
-			if uint64(exponent_x) >= bid_power10_table_128[digits_x].w[0] {
+			if uint64(exponent_x) >= bid_power10_table_128[digits_x].lo {
 				digits_x++
 			}
 
@@ -293,7 +293,7 @@ func Bid64ToString(x uint64) string {
 		tempx := float32(exponent_x)
 		bin_expon_cx := int((math.Float32bits(tempx)>>23)&0xff) - 0x7f
 		digits_x := bid_estimate_decimal_digits[bin_expon_cx]
-		if uint64(exponent_x) >= bid_power10_table_128[digits_x].w[0] {
+		if uint64(exponent_x) >= bid_power10_table_128[digits_x].lo {
 			digits_x++
 		}
 

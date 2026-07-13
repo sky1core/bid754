@@ -158,9 +158,9 @@ func Bid64ToUint32Ceil(x uint64) (uint32, uint32) {
 			// C* = C1 * 10^(-x)
 			// the approximation of 10^(-x) was rounded up to 54 bits
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64[ind-1])
-			Cstar = P128.w[1]
-			fstar.w[1] = P128.w[1] & bid_maskhigh128[ind-1]
-			fstar.w[0] = P128.w[0]
+			Cstar = P128.hi
+			fstar.hi = P128.hi & bid_maskhigh128[ind-1]
+			fstar.lo = P128.lo
 			// the top Ex bits of 10^(-x) are T* = bid_ten2mk128trunc[ind].w[0], e.g.
 			// if x=1, T*=bid_ten2mk128trunc[0].w[0]=0x1999999999999999
 			// C* = floor(C*) (logical right shift; C has p decimal digits,
@@ -176,13 +176,13 @@ func Bid64ToUint32Ceil(x uint64) (uint32, uint32) {
 			// else // if (f* > T*) then
 			//   the result is inexact
 			if ind-1 <= 2 { // fstar.w[1] is 0
-				if fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					Cstar++
 				} // else the result is exact
 			} else { // if 3 <= ind - 1 <= 14
-				if fstar.w[1] != 0 || fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.hi != 0 || fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					Cstar++
@@ -360,9 +360,9 @@ func Bid64ToUint32Xceil(x uint64) (uint32, uint32) {
 			// C* = C1 * 10^(-x)
 			// the approximation of 10^(-x) was rounded up to 54 bits
 			P128 = __mul_64x64_to_128(C1, bid_ten2mk64[ind-1])
-			Cstar = P128.w[1]
-			fstar.w[1] = P128.w[1] & bid_maskhigh128[ind-1]
-			fstar.w[0] = P128.w[0]
+			Cstar = P128.hi
+			fstar.hi = P128.hi & bid_maskhigh128[ind-1]
+			fstar.lo = P128.lo
 			// the top Ex bits of 10^(-x) are T* = bid_ten2mk128trunc[ind].w[0], e.g.
 			// if x=1, T*=bid_ten2mk128trunc[0].w[0]=0x1999999999999999
 			// C* = floor(C*) (logical right shift; C has p decimal digits,
@@ -378,7 +378,7 @@ func Bid64ToUint32Xceil(x uint64) (uint32, uint32) {
 			// else // if (f* > T*) then
 			//   the result is inexact
 			if ind-1 <= 2 { // fstar.w[1] is 0
-				if fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					Cstar++
@@ -386,7 +386,7 @@ func Bid64ToUint32Xceil(x uint64) (uint32, uint32) {
 					pfpsf |= BID_INEXACT_EXCEPTION
 				} // else the result is exact
 			} else { // if 3 <= ind - 1 <= 14
-				if fstar.w[1] != 0 || fstar.w[0] > bid_ten2mk128trunc[ind-1].w[1] {
+				if fstar.hi != 0 || fstar.lo > bid_ten2mk128trunc[ind-1].hi {
 					// bid_ten2mk128trunc[ind -1].w[1] is identical to
 					// bid_ten2mk128[ind -1].w[1]
 					Cstar++

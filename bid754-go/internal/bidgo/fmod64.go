@@ -92,16 +92,16 @@ func Bid64Fmod(x, y uint64) (uint64, uint32) {
 			return res, pfpsf
 		}
 		// set exponent of y to exponent_x, scale coefficient_y
-		T = bid_power10_table_128[diff_expon].w[0]
+		T = bid_power10_table_128[diff_expon].lo
 		CY = __mul_64x64_to_128(coefficient_y, T)
 
-		if CY.w[1] != 0 || CY.w[0] > coefficient_x {
+		if CY.hi != 0 || CY.lo > coefficient_x {
 			res = x
 			return res, pfpsf
 		}
 
-		Q = coefficient_x / CY.w[0]
-		R = coefficient_x - Q*CY.w[0]
+		Q = coefficient_x / CY.lo
+		R = coefficient_x - Q*CY.lo
 
 		res = very_fast_get_BID64(sign_x, exponent_x, R)
 		return res, pfpsf
@@ -125,7 +125,7 @@ func Bid64Fmod(x, y uint64) (uint64, uint32) {
 		}
 
 		// scale dividend to 18 or 19 digits
-		coefficient_x *= bid_power10_table_128[e_scale].w[0]
+		coefficient_x *= bid_power10_table_128[e_scale].lo
 
 		// quotient
 		Q = coefficient_x / coefficient_y

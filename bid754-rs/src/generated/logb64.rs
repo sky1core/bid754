@@ -54,7 +54,7 @@ pub fn bid64_i_logb(mut x: u64) -> (i64, u32) {
         let mut dx = (coefficient_x as f64).to_bits();
         bin_expon_cx = (((go_checked_shr_u64(dx, go_shift_count_u64((52) as u64))) as i64).wrapping_sub(1023));
         digits = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
-        if (coefficient_x >= bid_power10_table_128[digits as usize].w[0]) {
+        if (coefficient_x >= bid_power10_table_128[digits as usize].lo) {
             digits = digits.wrapping_add(1);
         }
     }

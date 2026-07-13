@@ -37,25 +37,25 @@ pub(crate) fn add_zero32(mut exponent_y: i64, mut sign_z: u32, mut exponent_z: i
     let mut tempx = (coefficient_z as f64).to_bits();
     bin_expon = ((((go_checked_shr_u64((tempx & 0x7ff0000000000000), go_shift_count_u64((52) as u64)))) as i64).wrapping_sub(0x3ff));
     scale_cz = (bid_estimate_decimal_digits[bin_expon as usize] as i64);
-    if ((coefficient_z as u64) >= bid_power10_table_128[scale_cz as usize].w[0]) {
+    if ((coefficient_z as u64) >= bid_power10_table_128[scale_cz as usize].lo) {
         scale_cz = scale_cz.wrapping_add(1);
     }
     scale_k = ((7 as i64).wrapping_sub(scale_cz));
     if (diff_expon < scale_k) {
         scale_k = diff_expon;
     }
-    coefficient_z = coefficient_z.wrapping_mul(bid_power10_table_128[scale_k as usize].w[0] as u32);
+    coefficient_z = coefficient_z.wrapping_mul(bid_power10_table_128[scale_k as usize].lo as u32);
     return get_bid32(sign_z, (exponent_z.wrapping_sub(scale_k)), (coefficient_z as u64), (*prounding_mode));
 }
 
 pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32, u32) {
-    let mut P: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut Tmp: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CB: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut Q_high: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut Q_low: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut Stemp: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut C128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut Tmp: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CB: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut Q_high: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut Q_low: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut Stemp: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut C128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P0: u64 = 0;
     let mut C64: u64 = 0;
     let mut remainder_h: u64 = 0;
@@ -238,31 +238,31 @@ pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32,
     }
     sign_ab = ((go_checked_shl_i64((((sign_a ^ sign_b) as i32) as i64), go_shift_count_u64((32) as u64))) as u64);
     sign_ab = ((go_checked_shr_i64((sign_ab as i64), go_shift_count_u64((63) as u64))) as u64);
-    CB.w[0] = (((coefficient_b.wrapping_add(sign_ab))) ^ sign_ab);
-    CB.w[1] = ((go_checked_shr_i64((CB.w[0] as i64), go_shift_count_u64((63) as u64))) as u64);
+    CB.lo = (((coefficient_b.wrapping_add(sign_ab))) ^ sign_ab);
+    CB.hi = ((go_checked_shr_i64((CB.lo as i64), go_shift_count_u64((63) as u64))) as u64);
     (_, Tmp) = __mul_64x128_full(coefficient_a, bid_power10_table_128[diff_dec_expon as usize]);
     P = __add_128_128(Tmp, CB);
-    if ((P.w[1] as i64) < 0) {
+    if ((P.hi as i64) < 0) {
         sign_a ^= 0x80000000;
-        P.w[1] = ((0 as u64).wrapping_sub(P.w[1]));
-        if (P.w[0] != 0) {
-            P.w[1] = P.w[1].wrapping_sub(1);
+        P.hi = ((0 as u64).wrapping_sub(P.hi));
+        if (P.lo != 0) {
+            P.hi = P.hi.wrapping_sub(1);
         }
-        P.w[0] = ((0 as u64).wrapping_sub(P.w[0]));
+        P.lo = ((0 as u64).wrapping_sub(P.lo));
     }
-    if (P.w[1] != 0) {
-        let mut tempx = (P.w[1] as f64).to_bits();
+    if (P.hi != 0) {
+        let mut tempx = (P.hi as f64).to_bits();
         bin_expon = (((((go_checked_shr_u64((tempx & 0x7ff0000000000000), go_shift_count_u64((52) as u64)))) as i64).wrapping_sub(0x3ff)).wrapping_add(64));
         n_digits = (bid_estimate_decimal_digits[bin_expon as usize] as i64);
         if __unsigned_compare_ge_128(P, bid_power10_table_128[n_digits as usize]) {
             n_digits = n_digits.wrapping_add(1);
         }
     } else {
-        if (P.w[0] != 0) {
-            let mut tempx = (P.w[0] as f64).to_bits();
+        if (P.lo != 0) {
+            let mut tempx = (P.lo as f64).to_bits();
             bin_expon = ((((go_checked_shr_u64((tempx & 0x7ff0000000000000), go_shift_count_u64((52) as u64)))) as i64).wrapping_sub(0x3ff));
             n_digits = (bid_estimate_decimal_digits[bin_expon as usize] as i64);
-            if (P.w[0] >= bid_power10_table_128[n_digits as usize].w[0]) {
+            if (P.lo >= bid_power10_table_128[n_digits as usize].lo) {
                 n_digits = n_digits.wrapping_add(1);
             }
         } else {
@@ -277,7 +277,7 @@ pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32,
         }
     }
     if (n_digits <= 7) {
-        res = get_bid32_uf(sign_a, exponent_b, ((P.w[0] as u32) as u64), 0, rnd_mode, (&mut pfpsf));
+        res = get_bid32_uf(sign_a, exponent_b, ((P.lo as u32) as u64), 0, rnd_mode, (&mut pfpsf));
         return (res, pfpsf);
     }
     extra_digits = (n_digits.wrapping_sub(7));
@@ -291,7 +291,7 @@ pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32,
     if (extra_digits <= 18) {
         P = __add_128_64(P, bid_round_const_table[rmode as usize][extra_digits as usize]);
     } else {
-        Stemp = __mul_64x64_to_128(bid_round_const_table[rmode as usize][18], bid_power10_table_128[(extra_digits.wrapping_sub(18)) as usize].w[0]);
+        Stemp = __mul_64x64_to_128(bid_round_const_table[rmode as usize][18], bid_power10_table_128[(extra_digits.wrapping_sub(18)) as usize].lo);
         P = __add_128_128(P, Stemp);
         if (rmode == 2) {
             P = __add_128_64(P, bid_round_const_table[rmode as usize][(extra_digits.wrapping_sub(18)) as usize]);
@@ -303,40 +303,40 @@ pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32,
     C64 = __low_64(C128);
     if (rmode == 0) {
         if ((C64 & 1) != 0) {
-            rem_l = Q_high.w[0];
+            rem_l = Q_high.lo;
             if (amount < 64) {
-                remainder_h = (go_checked_shl_u64(Q_high.w[0], go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
+                remainder_h = (go_checked_shl_u64(Q_high.lo, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
                 rem_l = 0;
             } else {
-                remainder_h = (go_checked_shl_u64(Q_high.w[1], go_shift_count_u64(((((128 as i64).wrapping_sub(amount)) as u64)) as u64)));
+                remainder_h = (go_checked_shl_u64(Q_high.hi, go_shift_count_u64(((((128 as i64).wrapping_sub(amount)) as u64)) as u64)));
             }
-            if (((remainder_h | rem_l) == 0) && (((Q_low.w[1] < bid_reciprocals10_128[extra_digits as usize].w[1]) || (((Q_low.w[1] == bid_reciprocals10_128[extra_digits as usize].w[1]) && (Q_low.w[0] < bid_reciprocals10_128[extra_digits as usize].w[0])))))) {
+            if (((remainder_h | rem_l) == 0) && (((Q_low.hi < bid_reciprocals10_128[extra_digits as usize].hi) || (((Q_low.hi == bid_reciprocals10_128[extra_digits as usize].hi) && (Q_low.lo < bid_reciprocals10_128[extra_digits as usize].lo)))))) {
                 C64 = C64.wrapping_sub(1);
             }
         }
     }
     status = 32;
-    rem_l = Q_high.w[0];
+    rem_l = Q_high.lo;
     if (amount < 64) {
-        remainder_h = (go_checked_shl_u64(Q_high.w[0], go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
+        remainder_h = (go_checked_shl_u64(Q_high.lo, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
         rem_l = 0;
     } else {
-        remainder_h = (go_checked_shl_u64(Q_high.w[1], go_shift_count_u64(((((128 as i64).wrapping_sub(amount)) as u64)) as u64)));
+        remainder_h = (go_checked_shl_u64(Q_high.hi, go_shift_count_u64(((((128 as i64).wrapping_sub(amount)) as u64)) as u64)));
     }
     match rmode {
         0 | 4 => {
-            if ((((remainder_h == 0x8000000000000000) && (rem_l == 0))) && (((Q_low.w[1] < bid_reciprocals10_128[extra_digits as usize].w[1]) || (((Q_low.w[1] == bid_reciprocals10_128[extra_digits as usize].w[1]) && (Q_low.w[0] < bid_reciprocals10_128[extra_digits as usize].w[0])))))) {
+            if ((((remainder_h == 0x8000000000000000) && (rem_l == 0))) && (((Q_low.hi < bid_reciprocals10_128[extra_digits as usize].hi) || (((Q_low.hi == bid_reciprocals10_128[extra_digits as usize].hi) && (Q_low.lo < bid_reciprocals10_128[extra_digits as usize].lo)))))) {
                 status = 0;
             }
         }
         1 | 3 => {
-            if (((remainder_h | rem_l) == 0) && (((Q_low.w[1] < bid_reciprocals10_128[extra_digits as usize].w[1]) || (((Q_low.w[1] == bid_reciprocals10_128[extra_digits as usize].w[1]) && (Q_low.w[0] < bid_reciprocals10_128[extra_digits as usize].w[0])))))) {
+            if (((remainder_h | rem_l) == 0) && (((Q_low.hi < bid_reciprocals10_128[extra_digits as usize].hi) || (((Q_low.hi == bid_reciprocals10_128[extra_digits as usize].hi) && (Q_low.lo < bid_reciprocals10_128[extra_digits as usize].lo)))))) {
                 status = 0;
             }
         }
         _ => {
-            (Stemp.w[0], CY) = __add_carry_out(Q_low.w[0], bid_reciprocals10_128[extra_digits as usize].w[0]);
-            (Stemp.w[1], carry) = __add_carry_in_out(Q_low.w[1], bid_reciprocals10_128[extra_digits as usize].w[1], CY);
+            (Stemp.lo, CY) = __add_carry_out(Q_low.lo, bid_reciprocals10_128[extra_digits as usize].lo);
+            (Stemp.hi, carry) = __add_carry_in_out(Q_low.hi, bid_reciprocals10_128[extra_digits as usize].hi, CY);
             _ = Stemp;
             if (amount < 64) {
                 if ((((go_checked_shr_u64(remainder_h, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)))).wrapping_add(carry)) >= ((go_checked_shl_u64((1 as u64), go_shift_count_u64((amount as u64) as u64))))) {

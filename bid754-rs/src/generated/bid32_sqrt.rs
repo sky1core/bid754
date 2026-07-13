@@ -90,7 +90,7 @@ pub fn bid32_sqrt(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
     scale = ((13 as i64).wrapping_sub(digits_x));
     exponent_q = ((exponent_x.wrapping_add(101)).wrapping_sub(scale));
     scale = scale.wrapping_add(exponent_q & 1);
-    CT = bid_power10_table_128[scale as usize].w[0];
+    CT = bid_power10_table_128[scale as usize].lo;
     CA = ((coefficient_x as u64).wrapping_mul(CT));
     dq = (CA as f64).sqrt();
     exponent_q = (go_checked_shr_i64((exponent_q), go_shift_count_u64((1) as u64)));

@@ -29,7 +29,7 @@
 use super::prelude::*;
 
 pub fn bid64_fmod(mut x: u64, mut y: u64) -> (u64, u32) {
-    let mut CY: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CY: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut sign_y: u64 = 0;
     let mut coefficient_x: u64 = 0;
@@ -106,14 +106,14 @@ pub fn bid64_fmod(mut x: u64, mut y: u64) -> (u64, u32) {
             res = x;
             return (res, pfpsf);
         }
-        T = bid_power10_table_128[diff_expon as usize].w[0];
+        T = bid_power10_table_128[diff_expon as usize].lo;
         CY = __mul_64x64_to_128(coefficient_y, T);
-        if ((CY.w[1] != 0) || (CY.w[0] > coefficient_x)) {
+        if ((CY.hi != 0) || (CY.lo > coefficient_x)) {
             res = x;
             return (res, pfpsf);
         }
-        Q = (coefficient_x / CY.w[0]);
-        R = (coefficient_x.wrapping_sub((Q.wrapping_mul(CY.w[0]))));
+        Q = (coefficient_x / CY.lo);
+        R = (coefficient_x.wrapping_sub((Q.wrapping_mul(CY.lo))));
         res = very_fast_get_bid64(sign_x, exponent_x, R);
         return (res, pfpsf);
     }
@@ -128,7 +128,7 @@ pub fn bid64_fmod(mut x: u64, mut y: u64) -> (u64, u32) {
             e_scale = diff_expon;
             diff_expon = 0;
         }
-        coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[e_scale as usize].w[0]);
+        coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[e_scale as usize].lo);
         Q = (coefficient_x / coefficient_y);
         coefficient_x = coefficient_x.wrapping_sub((Q.wrapping_mul(coefficient_y)));
         if (coefficient_x == 0) {

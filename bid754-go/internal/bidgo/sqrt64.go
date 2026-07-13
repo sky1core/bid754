@@ -64,14 +64,14 @@ func Bid64Sqrt(x uint64, rndMode int) (uint64, uint32) {
 	CT := bid_power10_table_128[scale]
 	CA = __mul_64x128_short(coefficient_x, CT)
 
-	da_h = float64(CA.w[1])
-	da_l = float64(CA.w[0])
+	da_h = float64(CA.hi)
+	da_l = float64(CA.lo)
 	da = noFmaMulAddF64(da_h, math.Float64frombits(t_scale), da_l)
 
 	dq = math.Sqrt(da)
 	Q = uint64(dq)
 
-	R = uint64(int64(CA.w[0]-Q*Q) >> 63)
+	R = uint64(int64(CA.lo-Q*Q) >> 63)
 	D = int64(R + R + 1)
 
 	exponent_q = (exponent_q + DECIMAL_EXPONENT_BIAS) >> 1
@@ -80,11 +80,11 @@ func Bid64Sqrt(x uint64, rndMode int) (uint64, uint32) {
 
 	if (rndMode & 3) == 0 {
 		Q2 = Q + Q + uint64(D)
-		C4 = CA.w[0] << 2
+		C4 = CA.lo << 2
 		R2 = uint64(int64(Q2*Q2-C4) >> 63)
 		Q += uint64(D) & (R ^ R2)
 	} else {
-		C4 = CA.w[0]
+		C4 = CA.lo
 		Q += uint64(D)
 		if int64(Q*Q-C4) > 0 {
 			Q--

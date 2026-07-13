@@ -150,7 +150,7 @@ func Bid64IsNormal(x uint64) int {
 	// if (exp_x - 398 = -383) the number may be subnormal
 	if exp_x < 15 {
 		sig_x_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x])
-		if sig_x_prime.w[1] == 0 && sig_x_prime.w[0] < 1000000000000000 {
+		if sig_x_prime.hi == 0 && sig_x_prime.lo < 1000000000000000 {
 			return 0 // subnormal
 		}
 		return 1 // normal
@@ -188,7 +188,7 @@ func Bid64IsSubnormal(x uint64) int {
 	// if exponent is less than -383, the number may be subnormal
 	if exp_x < 15 {
 		sig_x_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x])
-		if sig_x_prime.w[1] == 0 && sig_x_prime.w[0] < 1000000000000000 {
+		if sig_x_prime.hi == 0 && sig_x_prime.lo < 1000000000000000 {
 			return 1 // subnormal
 		}
 		return 0 // normal
@@ -322,7 +322,7 @@ func Bid64Class(x uint64) int {
 	// if exponent is less than -383, number may be subnormal
 	if exp_x < 15 { // sig_x * 10^exp_x
 		sig_x_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x])
-		if sig_x_prime.w[1] == 0 && sig_x_prime.w[0] < 1000000000000000 {
+		if sig_x_prime.hi == 0 && sig_x_prime.lo < 1000000000000000 {
 			if (x & MASK_SIGN64) == MASK_SIGN64 {
 				return negativeSubnormal
 			}
@@ -592,7 +592,7 @@ func Bid64TotalOrder(x, y uint64) int {
 
 	if exp_x > exp_y {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
-		if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_y {
+		if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_y {
 			if (exp_x <= exp_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			} else {
@@ -600,7 +600,7 @@ func Bid64TotalOrder(x, y uint64) int {
 			}
 			return res
 		}
-		cond := (sig_n_prime.w[1] == 0) && (sig_n_prime.w[0] < sig_y)
+		cond := (sig_n_prime.hi == 0) && (sig_n_prime.lo < sig_y)
 		sign := (x & MASK_SIGN64) == MASK_SIGN64
 		if cond != sign {
 			res = 1
@@ -611,7 +611,7 @@ func Bid64TotalOrder(x, y uint64) int {
 	}
 
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
-	if sig_n_prime.w[1] == 0 && sig_n_prime.w[0] == sig_x {
+	if sig_n_prime.hi == 0 && sig_n_prime.lo == sig_x {
 		if (exp_x <= exp_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		} else {
@@ -619,7 +619,7 @@ func Bid64TotalOrder(x, y uint64) int {
 		}
 		return res
 	}
-	cond := (sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])
+	cond := (sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)
 	sign := (x & MASK_SIGN64) == MASK_SIGN64
 	if cond != sign {
 		res = 1
@@ -767,11 +767,11 @@ func Bid64TotalOrderMag(x, y uint64) int {
 
 	if exp_x > exp_y {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0 // exp_x > exp_y
 			return res
 		}
-		if (sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y {
+		if (sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y {
 			res = 1
 		} else {
 			res = 0
@@ -780,11 +780,11 @@ func Bid64TotalOrderMag(x, y uint64) int {
 	}
 
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 1 // exp_x <= exp_y
 		return res
 	}
-	if (sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0]) {
+	if (sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo) {
 		res = 1
 	} else {
 		res = 0
@@ -1001,14 +1001,14 @@ func Bid64SignalingLess(x, y uint64) (int, uint32) {
 		sig_n_prime = __mul_64x64_to_128(sig_x, bid_mult_factor[exp_x-exp_y])
 
 		// return 0 if values are equal
-		if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_y) {
+		if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_y) {
 			res = 0
 			return res, pfpsf
 		}
 		// if positive, return whichever significand abs is smaller
 		//     (converse if negative)
 		res = 0
-		if ((sig_n_prime.w[1] == 0) && sig_n_prime.w[0] < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_n_prime.hi == 0) && sig_n_prime.lo < sig_y) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1018,7 +1018,7 @@ func Bid64SignalingLess(x, y uint64) (int, uint32) {
 	sig_n_prime = __mul_64x64_to_128(sig_y, bid_mult_factor[exp_y-exp_x])
 
 	// return 0 if values are equal
-	if sig_n_prime.w[1] == 0 && (sig_n_prime.w[0] == sig_x) {
+	if sig_n_prime.hi == 0 && (sig_n_prime.lo == sig_x) {
 		res = 0
 		return res, pfpsf
 	}
@@ -1026,7 +1026,7 @@ func Bid64SignalingLess(x, y uint64) (int, uint32) {
 	// if positive, return whichever significand abs is smaller
 	//     (converse if negative)
 	res = 0
-	if ((sig_n_prime.w[1] > 0) || (sig_x < sig_n_prime.w[0])) != ((x & MASK_SIGN64) == MASK_SIGN64) {
+	if ((sig_n_prime.hi > 0) || (sig_x < sig_n_prime.lo)) != ((x & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf

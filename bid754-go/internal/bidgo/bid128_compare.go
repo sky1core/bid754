@@ -17,10 +17,10 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 	// NaN (CASE1)
 	// if either number is NAN, the comparison is unordered,
 	// rather than equal : return 0
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 0
@@ -28,15 +28,15 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 	}
 	// SIMPLE (CASE2)
 	// if all the bits are the same, these numbers are equivalent.
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 1
 		return res, pfpsf
 	}
 	// INFINITY (CASE3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 			res = 0
-			if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) != MASK_SIGN64 {
+			if ((x.hi ^ y.hi) & MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -45,35 +45,35 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 			return res, pfpsf
 		}
 	}
-	if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
 		return res, pfpsf
 	}
 	// CONVERT X
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
 	// CHECK IF X IS CANONICAL
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
 	// CONVERT Y
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
 	// CHECK IF Y IS CANONICAL
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
@@ -84,10 +84,10 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 	//    (ZERO x 10^A == ZERO x 10^B) for any valid A, B => therefore
 	//    ignore the exponent field
 	//    (Any non-canonical # is considered 0)
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 
@@ -100,7 +100,7 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 	}
 	// OPPOSITE SIGN (CASE5)
 	// now, if the sign bits differ => not equal : return 0
-	if (x.w[1]^y.w[1])&MASK_SIGN64 != 0 {
+	if (x.hi^y.hi)&MASK_SIGN64 != 0 {
 		res = 0
 		return res, pfpsf
 	}
@@ -109,12 +109,12 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 		exp_t = exp_x // put the larger exp in y,
 		exp_x = exp_y
 		exp_y = exp_t
-		sig_t.w[1] = sig_x.w[1] // and the smaller exp in x
-		sig_x.w[1] = sig_y.w[1]
-		sig_y.w[1] = sig_t.w[1]
-		sig_t.w[0] = sig_x.w[0] // and the smaller exp in x
-		sig_x.w[0] = sig_y.w[0]
-		sig_y.w[0] = sig_t.w[0]
+		sig_t.hi = sig_x.hi // and the smaller exp in x
+		sig_x.hi = sig_y.hi
+		sig_y.hi = sig_t.hi
+		sig_t.lo = sig_x.lo // and the smaller exp in x
+		sig_x.lo = sig_y.lo
+		sig_y.lo = sig_t.lo
 	}
 
 	if exp_y-exp_x > 33 {
@@ -128,8 +128,8 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 			bid_ten2k128[exp_y-exp_x-20])
 		res = 0
 		if (sig_n_prime256.w[3] == 0) && (sig_n_prime256.w[2] == 0) &&
-			(sig_n_prime256.w[1] == sig_x.w[1]) &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			(sig_n_prime256.w[1] == sig_x.hi) &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 		}
 		return res, pfpsf
@@ -138,8 +138,8 @@ func Bid128QuietEqual(x, y BID_UINT128) (int, uint32) {
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_y-exp_x], sig_y)
 	res = 0
 	if (sig_n_prime192.w[2] == 0) &&
-		(sig_n_prime192.w[1] == sig_x.w[1]) &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+		(sig_n_prime192.w[1] == sig_x.hi) &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 	}
 	return res, pfpsf
@@ -157,75 +157,75 @@ func Bid128QuietGreater(x, y BID_UINT128) (int, uint32) {
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
 	// NaN (CASE1)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 0
 		return res, pfpsf
 	}
 	// SIMPLE (CASE2)
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 0
 		return res, pfpsf
 	}
 	// INFINITY (CASE3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
 			return res, pfpsf
 		} else {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) != INFINITY_MASK64) ||
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			if ((y.hi & INFINITY_MASK64) != INFINITY_MASK64) ||
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	// CONVERT X
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
 	// CHECK IF X IS CANONICAL
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
 	// CONVERT Y
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
 	// CHECK IF Y IS CANONICAL
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
 	// ZERO (CASE4)
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -233,21 +233,21 @@ func Bid128QuietGreater(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	// OPPOSITE SIGN (CASE5)
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -255,27 +255,27 @@ func Bid128QuietGreater(x, y BID_UINT128) (int, uint32) {
 	// REDUNDANT REPRESENTATIONS (CASE6)
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] > sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if (sig_x.hi > sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] < sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if (sig_x.hi < sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -286,7 +286,7 @@ func Bid128QuietGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -295,33 +295,33 @@ func Bid128QuietGreater(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 0
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -331,7 +331,7 @@ func Bid128QuietGreater(x, y BID_UINT128) (int, uint32) {
 
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -340,33 +340,33 @@ func Bid128QuietGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0 || sig_n_prime256.w[2] != 0 ||
-			(sig_n_prime256.w[1] > sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] > sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] > sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0 ||
-		(sig_n_prime192.w[1] > sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] > sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] > sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -384,26 +384,26 @@ func Bid128QuietGreaterEqual(x, y BID_UINT128) (int, uint32) {
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
 	// NaN (CASE1)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 0
 		return res, pfpsf
 	}
 	// SIMPLE (CASE2)
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 1
 		return res, pfpsf
 	}
 	// INFINITY (CASE3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) == INFINITY_MASK64) &&
-				(y.w[1]&MASK_SIGN64) == MASK_SIGN64 {
+			if ((y.hi & INFINITY_MASK64) == INFINITY_MASK64) &&
+				(y.hi&MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -411,44 +411,44 @@ func Bid128QuietGreaterEqual(x, y BID_UINT128) (int, uint32) {
 			res = 1
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	// CONVERT X
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -456,45 +456,45 @@ func Bid128QuietGreaterEqual(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] >= sig_y.w[1] && sig_x.w[0] >= sig_y.w[0] &&
+	if sig_x.hi >= sig_y.hi && sig_x.lo >= sig_y.lo &&
 		exp_x > exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] <= sig_y.w[1] && sig_x.w[0] <= sig_y.w[0] &&
+	if sig_x.hi <= sig_y.hi && sig_x.lo <= sig_y.lo &&
 		exp_x < exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -505,7 +505,7 @@ func Bid128QuietGreaterEqual(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -513,33 +513,33 @@ func Bid128QuietGreaterEqual(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 1
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -549,7 +549,7 @@ func Bid128QuietGreaterEqual(x, y BID_UINT128) (int, uint32) {
 
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -558,33 +558,33 @@ func Bid128QuietGreaterEqual(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] == 0 && sig_n_prime256.w[2] == 0 &&
-			(sig_n_prime256.w[1] < sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] < sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] < sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] < sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] == 0 &&
-		(sig_n_prime192.w[1] < sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] < sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] < sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] < sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -602,71 +602,71 @@ func Bid128QuietGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
 	// NaN (CASE1)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 1
 		return res, pfpsf
 	}
 	// SIMPLE (CASE2)
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 0
 		return res, pfpsf
 	}
 	// INFINITY (CASE3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
 			return res, pfpsf
 		} else {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) != INFINITY_MASK64) ||
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			if ((y.hi & INFINITY_MASK64) != INFINITY_MASK64) ||
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	// CONVERT X
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -674,20 +674,20 @@ func Bid128QuietGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -696,25 +696,25 @@ func Bid128QuietGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 	// This is the same as quiet_greater from CASE6 onward
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] >= sig_y.w[1] && sig_x.w[0] >= sig_y.w[0] &&
+	if sig_x.hi >= sig_y.hi && sig_x.lo >= sig_y.lo &&
 		exp_x > exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] <= sig_y.w[1] && sig_x.w[0] <= sig_y.w[0] &&
+	if sig_x.hi <= sig_y.hi && sig_x.lo <= sig_y.lo &&
 		exp_x < exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -725,7 +725,7 @@ func Bid128QuietGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -733,33 +733,33 @@ func Bid128QuietGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 0
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -769,7 +769,7 @@ func Bid128QuietGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -778,33 +778,33 @@ func Bid128QuietGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] == 0 && sig_n_prime256.w[2] == 0 &&
-			(sig_n_prime256.w[1] < sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] < sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] < sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] < sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] == 0 &&
-		(sig_n_prime192.w[1] < sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] < sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] < sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] < sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -822,26 +822,26 @@ func Bid128QuietLess(x, y BID_UINT128) (int, uint32) {
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
 	// NaN (CASE1)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 0
 		return res, pfpsf
 	}
 	// SIMPLE (CASE2)
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 0
 		return res, pfpsf
 	}
 	// INFINITY (CASE3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) != INFINITY_MASK64) ||
-				(y.w[1]&MASK_SIGN64) != MASK_SIGN64 {
+			if ((y.hi & INFINITY_MASK64) != INFINITY_MASK64) ||
+				(y.hi&MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -849,44 +849,44 @@ func Bid128QuietLess(x, y BID_UINT128) (int, uint32) {
 			res = 0
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	// CONVERT X
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -894,47 +894,47 @@ func Bid128QuietLess(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] > sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if (sig_x.hi > sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] < sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if (sig_x.hi < sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -945,7 +945,7 @@ func Bid128QuietLess(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -953,33 +953,33 @@ func Bid128QuietLess(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 0
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -989,7 +989,7 @@ func Bid128QuietLess(x, y BID_UINT128) (int, uint32) {
 
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -998,33 +998,33 @@ func Bid128QuietLess(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0 || sig_n_prime256.w[2] != 0 ||
-			(sig_n_prime256.w[1] > sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] > sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] > sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0 ||
-		(sig_n_prime192.w[1] > sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] > sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] > sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1042,71 +1042,71 @@ func Bid128QuietLessEqual(x, y BID_UINT128) (int, uint32) {
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
 	// NaN (CASE1)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 0
 		return res, pfpsf
 	}
 	// SIMPLE (CASE2)
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 1
 		return res, pfpsf
 	}
 	// INFINITY (CASE3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 			return res, pfpsf
 		} else {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) == INFINITY_MASK64) &&
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			if ((y.hi & INFINITY_MASK64) == INFINITY_MASK64) &&
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	// CONVERT X
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -1114,47 +1114,47 @@ func Bid128QuietLessEqual(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] > sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if (sig_x.hi > sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] < sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if (sig_x.hi < sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1165,7 +1165,7 @@ func Bid128QuietLessEqual(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -1173,33 +1173,33 @@ func Bid128QuietLessEqual(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 1
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1209,7 +1209,7 @@ func Bid128QuietLessEqual(x, y BID_UINT128) (int, uint32) {
 
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1218,33 +1218,33 @@ func Bid128QuietLessEqual(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0 || sig_n_prime256.w[2] != 0 ||
-			(sig_n_prime256.w[1] > sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] > sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] > sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0 ||
-		(sig_n_prime192.w[1] > sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] > sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] > sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1262,24 +1262,24 @@ func Bid128QuietLessUnordered(x, y BID_UINT128) (int, uint32) {
 	var pfpsf uint32
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 1
 		return res, pfpsf
 	}
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 0
 		return res, pfpsf
 	}
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) != INFINITY_MASK64) ||
-				(y.w[1]&MASK_SIGN64) != MASK_SIGN64 {
+			if ((y.hi & INFINITY_MASK64) != INFINITY_MASK64) ||
+				(y.hi&MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -1287,43 +1287,43 @@ func Bid128QuietLessUnordered(x, y BID_UINT128) (int, uint32) {
 			res = 0
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -1331,47 +1331,47 @@ func Bid128QuietLessUnordered(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] > sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if (sig_x.hi > sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] < sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if (sig_x.hi < sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1381,7 +1381,7 @@ func Bid128QuietLessUnordered(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -1389,33 +1389,33 @@ func Bid128QuietLessUnordered(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 0
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1424,7 +1424,7 @@ func Bid128QuietLessUnordered(x, y BID_UINT128) (int, uint32) {
 	diff = exp_y - exp_x
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1432,33 +1432,33 @@ func Bid128QuietLessUnordered(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0 || sig_n_prime256.w[2] != 0 ||
-			(sig_n_prime256.w[1] > sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] > sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] > sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0 ||
-		(sig_n_prime192.w[1] > sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] > sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] > sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1476,25 +1476,25 @@ func Bid128QuietNotEqual(x, y BID_UINT128) (int, uint32) {
 	var non_canon_x, non_canon_y int
 
 	// NaN (CASE1)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 1
 		return res, pfpsf
 	}
 	// SIMPLE (CASE2)
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 0
 		return res, pfpsf
 	}
 	// INFINITY (CASE3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 			res = 0
-			if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+			if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -1503,41 +1503,41 @@ func Bid128QuietNotEqual(x, y BID_UINT128) (int, uint32) {
 			return res, pfpsf
 		}
 	}
-	if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 1
 		return res, pfpsf
 	}
 	// CONVERT X
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 
@@ -1549,7 +1549,7 @@ func Bid128QuietNotEqual(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	}
 	// OPPOSITE SIGN (CASE5)
-	if (x.w[1]^y.w[1])&MASK_SIGN64 != 0 {
+	if (x.hi^y.hi)&MASK_SIGN64 != 0 {
 		res = 1
 		return res, pfpsf
 	}
@@ -1558,12 +1558,12 @@ func Bid128QuietNotEqual(x, y BID_UINT128) (int, uint32) {
 		exp_t = exp_x
 		exp_x = exp_y
 		exp_y = exp_t
-		sig_t.w[1] = sig_x.w[1]
-		sig_x.w[1] = sig_y.w[1]
-		sig_y.w[1] = sig_t.w[1]
-		sig_t.w[0] = sig_x.w[0]
-		sig_x.w[0] = sig_y.w[0]
-		sig_y.w[0] = sig_t.w[0]
+		sig_t.hi = sig_x.hi
+		sig_x.hi = sig_y.hi
+		sig_y.hi = sig_t.hi
+		sig_t.lo = sig_x.lo
+		sig_x.lo = sig_y.lo
+		sig_y.lo = sig_t.lo
 	}
 
 	if exp_y-exp_x > 33 {
@@ -1576,8 +1576,8 @@ func Bid128QuietNotEqual(x, y BID_UINT128) (int, uint32) {
 			bid_ten2k128[exp_y-exp_x-20])
 		res = 0
 		if (sig_n_prime256.w[3] != 0) || (sig_n_prime256.w[2] != 0) ||
-			(sig_n_prime256.w[1] != sig_x.w[1]) ||
-			(sig_n_prime256.w[0] != sig_x.w[0]) {
+			(sig_n_prime256.w[1] != sig_x.hi) ||
+			(sig_n_prime256.w[0] != sig_x.lo) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1585,8 +1585,8 @@ func Bid128QuietNotEqual(x, y BID_UINT128) (int, uint32) {
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_y-exp_x], sig_y)
 	res = 0
 	if (sig_n_prime192.w[2] != 0) ||
-		(sig_n_prime192.w[1] != sig_x.w[1]) ||
-		(sig_n_prime192.w[0] != sig_x.w[0]) {
+		(sig_n_prime192.w[1] != sig_x.hi) ||
+		(sig_n_prime192.w[0] != sig_x.lo) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1604,68 +1604,68 @@ func Bid128QuietNotGreater(x, y BID_UINT128) (int, uint32) {
 	var pfpsf uint32
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 1
 		return res, pfpsf
 	}
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 1
 		return res, pfpsf
 	}
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 			return res, pfpsf
 		} else {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) == INFINITY_MASK64) &&
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			if ((y.hi & INFINITY_MASK64) == INFINITY_MASK64) &&
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -1673,47 +1673,47 @@ func Bid128QuietNotGreater(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] > sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if (sig_x.hi > sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] < sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if (sig_x.hi < sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1723,7 +1723,7 @@ func Bid128QuietNotGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -1731,33 +1731,33 @@ func Bid128QuietNotGreater(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 1
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1766,7 +1766,7 @@ func Bid128QuietNotGreater(x, y BID_UINT128) (int, uint32) {
 	diff = exp_y - exp_x
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1774,33 +1774,33 @@ func Bid128QuietNotGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0 || sig_n_prime256.w[2] != 0 ||
-			(sig_n_prime256.w[1] > sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] > sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] > sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0 ||
-		(sig_n_prime192.w[1] > sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] > sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] > sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -1818,24 +1818,24 @@ func Bid128QuietNotLess(x, y BID_UINT128) (int, uint32) {
 	var pfpsf uint32
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 1
 		return res, pfpsf
 	}
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 1
 		return res, pfpsf
 	}
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) == INFINITY_MASK64) &&
-				(y.w[1]&MASK_SIGN64) == MASK_SIGN64 {
+			if ((y.hi & INFINITY_MASK64) == INFINITY_MASK64) &&
+				(y.hi&MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -1843,43 +1843,43 @@ func Bid128QuietNotLess(x, y BID_UINT128) (int, uint32) {
 			res = 1
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -1887,45 +1887,45 @@ func Bid128QuietNotLess(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] >= sig_y.w[1] && sig_x.w[0] >= sig_y.w[0] &&
+	if sig_x.hi >= sig_y.hi && sig_x.lo >= sig_y.lo &&
 		exp_x > exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] <= sig_y.w[1] && sig_x.w[0] <= sig_y.w[0] &&
+	if sig_x.hi <= sig_y.hi && sig_x.lo <= sig_y.lo &&
 		exp_x < exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1935,7 +1935,7 @@ func Bid128QuietNotLess(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -1943,33 +1943,33 @@ func Bid128QuietNotLess(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 1
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -1978,7 +1978,7 @@ func Bid128QuietNotLess(x, y BID_UINT128) (int, uint32) {
 	diff = exp_y - exp_x
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -1986,33 +1986,33 @@ func Bid128QuietNotLess(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] == 0 && sig_n_prime256.w[2] == 0 &&
-			(sig_n_prime256.w[1] < sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] < sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] < sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] < sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] == 0 &&
-		(sig_n_prime192.w[1] < sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] < sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] < sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] < sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2023,10 +2023,10 @@ func Bid128QuietOrdered(x, y BID_UINT128) (int, uint32) {
 	var res int
 	var pfpsf uint32
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 0
@@ -2041,10 +2041,10 @@ func Bid128QuietUnordered(x, y BID_UINT128) (int, uint32) {
 	var res int
 	var pfpsf uint32
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
-		if (x.w[1]&SNAN_MASK64) == SNAN_MASK64 ||
-			(y.w[1]&SNAN_MASK64) == SNAN_MASK64 {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
+		if (x.hi&SNAN_MASK64) == SNAN_MASK64 ||
+			(y.hi&SNAN_MASK64) == SNAN_MASK64 {
 			pfpsf |= BID_INVALID_EXCEPTION
 		}
 		res = 1
@@ -2065,65 +2065,65 @@ func Bid128SignalingGreater(x, y BID_UINT128) (int, uint32) {
 	var pfpsf uint32
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		res = 0
 		return res, pfpsf
 	}
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 0
 		return res, pfpsf
 	}
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
 			return res, pfpsf
 		} else {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) != INFINITY_MASK64) ||
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			if ((y.hi & INFINITY_MASK64) != INFINITY_MASK64) ||
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -2131,47 +2131,47 @@ func Bid128SignalingGreater(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] > sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if (sig_x.hi > sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] < sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if (sig_x.hi < sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -2181,7 +2181,7 @@ func Bid128SignalingGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -2189,33 +2189,33 @@ func Bid128SignalingGreater(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 0
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2224,7 +2224,7 @@ func Bid128SignalingGreater(x, y BID_UINT128) (int, uint32) {
 	diff = exp_y - exp_x
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -2232,33 +2232,33 @@ func Bid128SignalingGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 0
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0 || sig_n_prime256.w[2] != 0 ||
-			(sig_n_prime256.w[1] > sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] > sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] > sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 0
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0 ||
-		(sig_n_prime192.w[1] > sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] > sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] > sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2268,8 +2268,8 @@ func Bid128SignalingGreater(x, y BID_UINT128) (int, uint32) {
 func Bid128SignalingGreaterEqual(x, y BID_UINT128) (int, uint32) {
 	// Same as quiet_greater_equal but NaN always sets INVALID
 	res, pfpsf := Bid128QuietGreaterEqual(x, y)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		return 0, pfpsf
 	}
@@ -2280,8 +2280,8 @@ func Bid128SignalingGreaterEqual(x, y BID_UINT128) (int, uint32) {
 func Bid128SignalingGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 	// Same as quiet_greater_unordered but NaN always sets INVALID
 	res, pfpsf := Bid128QuietGreaterUnordered(x, y)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		return 1, pfpsf
 	}
@@ -2292,8 +2292,8 @@ func Bid128SignalingGreaterUnordered(x, y BID_UINT128) (int, uint32) {
 func Bid128SignalingLess(x, y BID_UINT128) (int, uint32) {
 	// Same as quiet_less but NaN always sets INVALID
 	res, pfpsf := Bid128QuietLess(x, y)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		return 0, pfpsf
 	}
@@ -2304,8 +2304,8 @@ func Bid128SignalingLess(x, y BID_UINT128) (int, uint32) {
 func Bid128SignalingLessEqual(x, y BID_UINT128) (int, uint32) {
 	// Same as quiet_less_equal but NaN always sets INVALID
 	res, pfpsf := Bid128QuietLessEqual(x, y)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		return 0, pfpsf
 	}
@@ -2316,8 +2316,8 @@ func Bid128SignalingLessEqual(x, y BID_UINT128) (int, uint32) {
 func Bid128SignalingLessUnordered(x, y BID_UINT128) (int, uint32) {
 	// Same as quiet_less_unordered but NaN always sets INVALID
 	res, pfpsf := Bid128QuietLessUnordered(x, y)
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		return 1, pfpsf
 	}
@@ -2336,65 +2336,65 @@ func Bid128SignalingNotGreater(x, y BID_UINT128) (int, uint32) {
 	var pfpsf uint32
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		res = 1
 		return res, pfpsf
 	}
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 1
 		return res, pfpsf
 	}
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 			return res, pfpsf
 		} else {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) == INFINITY_MASK64) &&
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			if ((y.hi & INFINITY_MASK64) == INFINITY_MASK64) &&
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -2402,47 +2402,47 @@ func Bid128SignalingNotGreater(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] > sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if (sig_x.hi > sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if (sig_x.w[1] < sig_y.w[1] ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if (sig_x.hi < sig_y.hi ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -2452,7 +2452,7 @@ func Bid128SignalingNotGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -2460,33 +2460,33 @@ func Bid128SignalingNotGreater(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 1
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) != MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) != MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2495,7 +2495,7 @@ func Bid128SignalingNotGreater(x, y BID_UINT128) (int, uint32) {
 	diff = exp_y - exp_x
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -2503,33 +2503,33 @@ func Bid128SignalingNotGreater(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0 || sig_n_prime256.w[2] != 0 ||
-			(sig_n_prime256.w[1] > sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] > sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] > sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0 ||
-		(sig_n_prime192.w[1] > sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] > sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] > sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2547,21 +2547,21 @@ func Bid128SignalingNotLess(x, y BID_UINT128) (int, uint32) {
 	var pfpsf uint32
 	var x_is_zero, y_is_zero, non_canon_x, non_canon_y int
 
-	if ((x.w[1] & NAN_MASK64) == NAN_MASK64) ||
-		((y.w[1] & NAN_MASK64) == NAN_MASK64) {
+	if ((x.hi & NAN_MASK64) == NAN_MASK64) ||
+		((y.hi & NAN_MASK64) == NAN_MASK64) {
 		pfpsf |= BID_INVALID_EXCEPTION
 		res = 1
 		return res, pfpsf
 	}
-	if x.w[0] == y.w[0] && x.w[1] == y.w[1] {
+	if x.lo == y.lo && x.hi == y.hi {
 		res = 1
 		return res, pfpsf
 	}
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 0
-			if ((y.w[1] & INFINITY_MASK64) == INFINITY_MASK64) &&
-				(y.w[1]&MASK_SIGN64) == MASK_SIGN64 {
+			if ((y.hi & INFINITY_MASK64) == INFINITY_MASK64) &&
+				(y.hi&MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -2569,43 +2569,43 @@ func Bid128SignalingNotLess(x, y BID_UINT128) (int, uint32) {
 			res = 1
 			return res, pfpsf
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_x = 1
 	} else {
 		non_canon_x = 0
 	}
 
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) {
+	if (sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) {
 		non_canon_y = 1
 	} else {
 		non_canon_y = 0
 	}
 
-	if non_canon_x != 0 || ((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if non_canon_x != 0 || ((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
 	}
-	if non_canon_y != 0 || ((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if non_canon_y != 0 || ((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
 	}
 	if x_is_zero != 0 && y_is_zero != 0 {
@@ -2613,45 +2613,45 @@ func Bid128SignalingNotLess(x, y BID_UINT128) (int, uint32) {
 		return res, pfpsf
 	} else if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	} else if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if ((x.w[1] ^ y.w[1]) & MASK_SIGN64) == MASK_SIGN64 {
+	if ((x.hi ^ y.hi) & MASK_SIGN64) == MASK_SIGN64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	if exp_y == exp_x {
 		res = 0
-		if ((sig_x.w[1] > sig_y.w[1]) ||
-			(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] >= sig_y.w[0])) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if ((sig_x.hi > sig_y.hi) ||
+			(sig_x.hi == sig_y.hi && sig_x.lo >= sig_y.lo)) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] >= sig_y.w[1] && sig_x.w[0] >= sig_y.w[0] &&
+	if sig_x.hi >= sig_y.hi && sig_x.lo >= sig_y.lo &&
 		exp_x > exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
 	}
-	if sig_x.w[1] <= sig_y.w[1] && sig_x.w[0] <= sig_y.w[0] &&
+	if sig_x.hi <= sig_y.hi && sig_x.lo <= sig_y.lo &&
 		exp_x < exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -2661,7 +2661,7 @@ func Bid128SignalingNotLess(x, y BID_UINT128) (int, uint32) {
 	if diff > 0 {
 		if diff > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 			}
 			return res, pfpsf
@@ -2669,33 +2669,33 @@ func Bid128SignalingNotLess(x, y BID_UINT128) (int, uint32) {
 		if diff > 19 {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[diff-20])
 			if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-				sig_n_prime256.w[1] == sig_y.w[1] &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				sig_n_prime256.w[1] == sig_y.hi &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 1
 				return res, pfpsf
 			}
 			res = 0
 			if (((sig_n_prime256.w[3] > 0) || sig_n_prime256.w[2] > 0) ||
-				(sig_n_prime256.w[1] > sig_y.w[1]) ||
-				(sig_n_prime256.w[1] == sig_y.w[1] &&
-					sig_n_prime256.w[0] > sig_y.w[0])) !=
-				((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				(sig_n_prime256.w[1] > sig_y.hi) ||
+				(sig_n_prime256.w[1] == sig_y.hi &&
+					sig_n_prime256.w[0] > sig_y.lo)) !=
+				((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res, pfpsf
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] > 0) ||
-			(sig_n_prime192.w[1] > sig_y.w[1]) ||
-			(sig_n_prime192.w[1] == sig_y.w[1] &&
-				sig_n_prime192.w[0] > sig_y.w[0])) !=
-			((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime192.w[1] > sig_y.hi) ||
+			(sig_n_prime192.w[1] == sig_y.hi &&
+				sig_n_prime192.w[0] > sig_y.lo)) !=
+			((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
@@ -2704,7 +2704,7 @@ func Bid128SignalingNotLess(x, y BID_UINT128) (int, uint32) {
 	diff = exp_y - exp_x
 	if diff > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res, pfpsf
@@ -2712,33 +2712,33 @@ func Bid128SignalingNotLess(x, y BID_UINT128) (int, uint32) {
 	if diff > 19 {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y, bid_ten2k128[diff-20])
 		if sig_n_prime256.w[3] == 0 && (sig_n_prime256.w[2] == 0) &&
-			sig_n_prime256.w[1] == sig_x.w[1] &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			sig_n_prime256.w[1] == sig_x.hi &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 			return res, pfpsf
 		}
 		res = 0
 		if (sig_n_prime256.w[3] == 0 && sig_n_prime256.w[2] == 0 &&
-			(sig_n_prime256.w[1] < sig_x.w[1] ||
-				(sig_n_prime256.w[1] == sig_x.w[1] &&
-					sig_n_prime256.w[0] < sig_x.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] < sig_x.hi ||
+				(sig_n_prime256.w[1] == sig_x.hi &&
+					sig_n_prime256.w[0] < sig_x.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res, pfpsf
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[diff], sig_y)
-	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.w[1] &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_x.hi &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 		return res, pfpsf
 	}
 	res = 0
 	if (sig_n_prime192.w[2] == 0 &&
-		(sig_n_prime192.w[1] < sig_x.w[1] ||
-			(sig_n_prime192.w[1] == sig_x.w[1] &&
-				sig_n_prime192.w[0] < sig_x.w[0]))) !=
-		((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] < sig_x.hi ||
+			(sig_n_prime192.w[1] == sig_x.hi &&
+				sig_n_prime192.w[0] < sig_x.lo))) !=
+		((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res, pfpsf
@@ -2754,37 +2754,37 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 	var x_is_zero, y_is_zero int
 
 	// NaN (CASE 1)
-	if (x.w[1] & NAN_MASK64) == NAN_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & NAN_MASK64) == NAN_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			// x is -NaN
-			if (y.w[1]&NAN_MASK64) != NAN_MASK64 ||
-				(y.w[1]&MASK_SIGN64) != MASK_SIGN64 {
+			if (y.hi&NAN_MASK64) != NAN_MASK64 ||
+				(y.hi&MASK_SIGN64) != MASK_SIGN64 {
 				res = 1
 				return res
 			} else {
 				// both -NaN
-				pyld_x.w[1] = x.w[1] & 0x00003fffffffffff
-				pyld_x.w[0] = x.w[0]
-				pyld_y.w[1] = y.w[1] & 0x00003fffffffffff
-				pyld_y.w[0] = y.w[0]
-				if (pyld_x.w[1] > 0x0000314dc6448d93) ||
-					((pyld_x.w[1] == 0x0000314dc6448d93) &&
-						(pyld_x.w[0] > 0x38c15b09ffffffff)) {
-					pyld_x.w[1] = 0
-					pyld_x.w[0] = 0
+				pyld_x.hi = x.hi & 0x00003fffffffffff
+				pyld_x.lo = x.lo
+				pyld_y.hi = y.hi & 0x00003fffffffffff
+				pyld_y.lo = y.lo
+				if (pyld_x.hi > 0x0000314dc6448d93) ||
+					((pyld_x.hi == 0x0000314dc6448d93) &&
+						(pyld_x.lo > 0x38c15b09ffffffff)) {
+					pyld_x.hi = 0
+					pyld_x.lo = 0
 				}
-				if (pyld_y.w[1] > 0x0000314dc6448d93) ||
-					((pyld_y.w[1] == 0x0000314dc6448d93) &&
-						(pyld_y.w[0] > 0x38c15b09ffffffff)) {
-					pyld_y.w[1] = 0
-					pyld_y.w[0] = 0
+				if (pyld_y.hi > 0x0000314dc6448d93) ||
+					((pyld_y.hi == 0x0000314dc6448d93) &&
+						(pyld_y.lo > 0x38c15b09ffffffff)) {
+					pyld_y.hi = 0
+					pyld_y.lo = 0
 				}
-				if !(((y.w[1] & SNAN_MASK64) == SNAN_MASK64) !=
-					((x.w[1] & SNAN_MASK64) == SNAN_MASK64)) {
+				if !(((y.hi & SNAN_MASK64) == SNAN_MASK64) !=
+					((x.hi & SNAN_MASK64) == SNAN_MASK64)) {
 					// both SNaN or both QNaN
-					if (pyld_x.w[1] > pyld_y.w[1]) ||
-						((pyld_x.w[1] == pyld_y.w[1]) &&
-							(pyld_x.w[0] >= pyld_y.w[0])) {
+					if (pyld_x.hi > pyld_y.hi) ||
+						((pyld_x.hi == pyld_y.hi) &&
+							(pyld_x.lo >= pyld_y.lo)) {
 						res = 1
 					} else {
 						res = 0
@@ -2792,7 +2792,7 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 					return res
 				} else {
 					res = 0
-					if (y.w[1] & SNAN_MASK64) == SNAN_MASK64 {
+					if (y.hi & SNAN_MASK64) == SNAN_MASK64 {
 						res = 1
 					}
 					return res
@@ -2800,34 +2800,34 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 			}
 		} else {
 			// x is +NaN
-			if (y.w[1]&NAN_MASK64) != NAN_MASK64 ||
-				(y.w[1]&MASK_SIGN64) == MASK_SIGN64 {
+			if (y.hi&NAN_MASK64) != NAN_MASK64 ||
+				(y.hi&MASK_SIGN64) == MASK_SIGN64 {
 				res = 0
 				return res
 			} else {
 				// both +NaN
-				pyld_x.w[1] = x.w[1] & 0x00003fffffffffff
-				pyld_x.w[0] = x.w[0]
-				pyld_y.w[1] = y.w[1] & 0x00003fffffffffff
-				pyld_y.w[0] = y.w[0]
-				if (pyld_x.w[1] > 0x0000314dc6448d93) ||
-					((pyld_x.w[1] == 0x0000314dc6448d93) &&
-						(pyld_x.w[0] > 0x38c15b09ffffffff)) {
-					pyld_x.w[1] = 0
-					pyld_x.w[0] = 0
+				pyld_x.hi = x.hi & 0x00003fffffffffff
+				pyld_x.lo = x.lo
+				pyld_y.hi = y.hi & 0x00003fffffffffff
+				pyld_y.lo = y.lo
+				if (pyld_x.hi > 0x0000314dc6448d93) ||
+					((pyld_x.hi == 0x0000314dc6448d93) &&
+						(pyld_x.lo > 0x38c15b09ffffffff)) {
+					pyld_x.hi = 0
+					pyld_x.lo = 0
 				}
-				if (pyld_y.w[1] > 0x0000314dc6448d93) ||
-					((pyld_y.w[1] == 0x0000314dc6448d93) &&
-						(pyld_y.w[0] > 0x38c15b09ffffffff)) {
-					pyld_y.w[1] = 0
-					pyld_y.w[0] = 0
+				if (pyld_y.hi > 0x0000314dc6448d93) ||
+					((pyld_y.hi == 0x0000314dc6448d93) &&
+						(pyld_y.lo > 0x38c15b09ffffffff)) {
+					pyld_y.hi = 0
+					pyld_y.lo = 0
 				}
-				if !(((y.w[1] & SNAN_MASK64) == SNAN_MASK64) !=
-					((x.w[1] & SNAN_MASK64) == SNAN_MASK64)) {
+				if !(((y.hi & SNAN_MASK64) == SNAN_MASK64) !=
+					((x.hi & SNAN_MASK64) == SNAN_MASK64)) {
 					// both SNaN or both QNaN
-					if (pyld_x.w[1] < pyld_y.w[1]) ||
-						((pyld_x.w[1] == pyld_y.w[1]) &&
-							(pyld_x.w[0] <= pyld_y.w[0])) {
+					if (pyld_x.hi < pyld_y.hi) ||
+						((pyld_x.hi == pyld_y.hi) &&
+							(pyld_x.lo <= pyld_y.lo)) {
 						res = 1
 					} else {
 						res = 0
@@ -2835,84 +2835,84 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 					return res
 				} else {
 					res = 0
-					if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 {
+					if (x.hi & SNAN_MASK64) == SNAN_MASK64 {
 						res = 1
 					}
 					return res
 				}
 			}
 		}
-	} else if (y.w[1] & NAN_MASK64) == NAN_MASK64 {
+	} else if (y.hi & NAN_MASK64) == NAN_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res
 	}
 	// SIMPLE (CASE 2)
-	if (x.w[1] == y.w[1]) && (x.w[0] == y.w[0]) {
+	if (x.hi == y.hi) && (x.lo == y.lo) {
 		res = 1
 		return res
 	}
 	// OPPOSITE SIGNS (CASE 3)
-	if ((x.w[1] & MASK_SIGN64) == MASK_SIGN64) != ((y.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+	if ((x.hi & MASK_SIGN64) == MASK_SIGN64) != ((y.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res
 	}
 	// INFINITY (CASE 4)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 			return res
 		} else {
 			res = 0
-			if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+			if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 				res = 1
 			}
 			return res
 		}
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res
 	}
 	// CONVERT x
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
 	// CHECK IF x IS CANONICAL
-	if (((sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff))) &&
-		((x.w[1] & 0x6000000000000000) != 0x6000000000000000)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) ||
-		((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if (((sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff))) &&
+		((x.hi & 0x6000000000000000) != 0x6000000000000000)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) ||
+		((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
-		if (x.w[1] & 0x6000000000000000) == 0x6000000000000000 {
-			exp_x = int((x.w[1] >> 47) & 0x000000000003fff)
+		if (x.hi & 0x6000000000000000) == 0x6000000000000000 {
+			exp_x = int((x.hi >> 47) & 0x000000000003fff)
 		}
 	}
 	// CONVERT y
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
 	// CHECK IF y IS CANONICAL
-	if (((sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff))) &&
-		((y.w[1] & 0x6000000000000000) != 0x6000000000000000)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) ||
-		((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if (((sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff))) &&
+		((y.hi & 0x6000000000000000) != 0x6000000000000000)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) ||
+		((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
-		if (y.w[1] & 0x6000000000000000) == 0x6000000000000000 {
-			exp_y = int((y.w[1] >> 47) & 0x000000000003fff)
+		if (y.hi & 0x6000000000000000) == 0x6000000000000000 {
+			exp_y = int((y.hi >> 47) & 0x000000000003fff)
 		}
 	}
 	// ZERO (CASE 5)
@@ -2922,40 +2922,40 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 			return res
 		}
 		res = 0
-		if (exp_x <= exp_y) != ((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if (exp_x <= exp_y) != ((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res
 	}
 	if x_is_zero != 0 {
 		res = 0
-		if (y.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (y.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res
 	}
 	if y_is_zero != 0 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res
 	}
 	// REDUNDANT REPRESENTATIONS (CASE 6)
-	if ((sig_x.w[1] > sig_y.w[1]) ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if ((sig_x.hi > sig_y.hi) ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 			res = 1
 		}
 		return res
 	}
-	if ((sig_x.w[1] < sig_y.w[1]) ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if ((sig_x.hi < sig_y.hi) ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res
@@ -2963,7 +2963,7 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 	if exp_x > exp_y {
 		if exp_x-exp_y > 33 {
 			res = 0
-			if (x.w[1] & MASK_SIGN64) == MASK_SIGN64 {
+			if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 				res = 1
 			}
 			return res
@@ -2972,39 +2972,39 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x,
 				bid_ten2k128[exp_x-exp_y-20])
 			if (sig_n_prime256.w[3] == 0) && (sig_n_prime256.w[2] == 0) &&
-				(sig_n_prime256.w[1] == sig_y.w[1]) &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				(sig_n_prime256.w[1] == sig_y.hi) &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 0
-				if (exp_x <= exp_y) != ((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				if (exp_x <= exp_y) != ((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 					res = 1
 				}
 				return res
 			}
 			res = 0
 			if ((sig_n_prime256.w[3] == 0) && (sig_n_prime256.w[2] == 0) &&
-				((sig_n_prime256.w[1] < sig_y.w[1]) ||
-					(sig_n_prime256.w[1] == sig_y.w[1] &&
-						sig_n_prime256.w[0] < sig_y.w[0]))) !=
-				((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+				((sig_n_prime256.w[1] < sig_y.hi) ||
+					(sig_n_prime256.w[1] == sig_y.hi &&
+						sig_n_prime256.w[0] < sig_y.lo))) !=
+				((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_x-exp_y], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 0
-			if (exp_x <= exp_y) != ((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			if (exp_x <= exp_y) != ((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res
 		}
 		res = 0
 		if ((sig_n_prime192.w[2] == 0) &&
-			((sig_n_prime192.w[1] < sig_y.w[1]) ||
-				(sig_n_prime192.w[1] == sig_y.w[1] &&
-					sig_n_prime192.w[0] < sig_y.w[0]))) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			((sig_n_prime192.w[1] < sig_y.hi) ||
+				(sig_n_prime192.w[1] == sig_y.hi &&
+					sig_n_prime192.w[0] < sig_y.lo))) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res
@@ -3012,7 +3012,7 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 	// exp_y > exp_x
 	if exp_y-exp_x > 33 {
 		res = 0
-		if (x.w[1] & MASK_SIGN64) != MASK_SIGN64 {
+		if (x.hi & MASK_SIGN64) != MASK_SIGN64 {
 			res = 1
 		}
 		return res
@@ -3021,10 +3021,10 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y,
 			bid_ten2k128[exp_y-exp_x-20])
 		if (sig_n_prime256.w[3] == 0) && (sig_n_prime256.w[2] == 0) &&
-			(sig_n_prime256.w[1] == sig_x.w[1]) &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			(sig_n_prime256.w[1] == sig_x.hi) &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 0
-			if (exp_x <= exp_y) != ((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			if (exp_x <= exp_y) != ((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 				res = 1
 			}
 			return res
@@ -3032,29 +3032,29 @@ func Bid128TotalOrder(x, y BID_UINT128) int {
 		res = 0
 		if ((sig_n_prime256.w[3] != 0) ||
 			(sig_n_prime256.w[2] != 0) ||
-			(sig_n_prime256.w[1] > sig_x.w[1]) ||
-			(sig_n_prime256.w[1] == sig_x.w[1] &&
-				sig_n_prime256.w[0] > sig_x.w[0])) !=
-			((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+			(sig_n_prime256.w[1] > sig_x.hi) ||
+			(sig_n_prime256.w[1] == sig_x.hi &&
+				sig_n_prime256.w[0] > sig_x.lo)) !=
+			((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_y-exp_x], sig_y)
-	if (sig_n_prime192.w[2] == 0) && (sig_n_prime192.w[1] == sig_x.w[1]) &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && (sig_n_prime192.w[1] == sig_x.hi) &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 0
-		if (exp_x <= exp_y) != ((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		if (exp_x <= exp_y) != ((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 			res = 1
 		}
 		return res
 	}
 	res = 0
 	if ((sig_n_prime192.w[2] != 0) ||
-		(sig_n_prime192.w[1] > sig_x.w[1]) ||
-		(sig_n_prime192.w[1] == sig_x.w[1] &&
-			sig_n_prime192.w[0] > sig_x.w[0])) !=
-		((x.w[1] & MASK_SIGN64) == MASK_SIGN64) {
+		(sig_n_prime192.w[1] > sig_x.hi) ||
+		(sig_n_prime192.w[1] == sig_x.hi &&
+			sig_n_prime192.w[0] > sig_x.lo)) !=
+		((x.hi & MASK_SIGN64) == MASK_SIGN64) {
 		res = 1
 	}
 	return res
@@ -3070,37 +3070,37 @@ func Bid128TotalOrderMag(x, y BID_UINT128) int {
 	var x_is_zero, y_is_zero int
 
 	// clear sign bits
-	x.w[1] = x.w[1] & 0x7fffffffffffffff
-	y.w[1] = y.w[1] & 0x7fffffffffffffff
+	x.hi = x.hi & 0x7fffffffffffffff
+	y.hi = y.hi & 0x7fffffffffffffff
 
 	// NaN (CASE 1)
-	if (x.w[1] & NAN_MASK64) == NAN_MASK64 {
-		if (y.w[1] & NAN_MASK64) != NAN_MASK64 {
+	if (x.hi & NAN_MASK64) == NAN_MASK64 {
+		if (y.hi & NAN_MASK64) != NAN_MASK64 {
 			res = 0
 			return res
 		} else {
 			// both +NaN
-			pyld_x.w[1] = x.w[1] & 0x00003fffffffffff
-			pyld_x.w[0] = x.w[0]
-			pyld_y.w[1] = y.w[1] & 0x00003fffffffffff
-			pyld_y.w[0] = y.w[0]
-			if (pyld_x.w[1] > 0x0000314dc6448d93) ||
-				((pyld_x.w[1] == 0x0000314dc6448d93) &&
-					(pyld_x.w[0] > 0x38c15b09ffffffff)) {
-				pyld_x.w[1] = 0
-				pyld_x.w[0] = 0
+			pyld_x.hi = x.hi & 0x00003fffffffffff
+			pyld_x.lo = x.lo
+			pyld_y.hi = y.hi & 0x00003fffffffffff
+			pyld_y.lo = y.lo
+			if (pyld_x.hi > 0x0000314dc6448d93) ||
+				((pyld_x.hi == 0x0000314dc6448d93) &&
+					(pyld_x.lo > 0x38c15b09ffffffff)) {
+				pyld_x.hi = 0
+				pyld_x.lo = 0
 			}
-			if (pyld_y.w[1] > 0x0000314dc6448d93) ||
-				((pyld_y.w[1] == 0x0000314dc6448d93) &&
-					(pyld_y.w[0] > 0x38c15b09ffffffff)) {
-				pyld_y.w[1] = 0
-				pyld_y.w[0] = 0
+			if (pyld_y.hi > 0x0000314dc6448d93) ||
+				((pyld_y.hi == 0x0000314dc6448d93) &&
+					(pyld_y.lo > 0x38c15b09ffffffff)) {
+				pyld_y.hi = 0
+				pyld_y.lo = 0
 			}
-			if !(((y.w[1] & SNAN_MASK64) == SNAN_MASK64) !=
-				((x.w[1] & SNAN_MASK64) == SNAN_MASK64)) {
-				if (pyld_x.w[1] < pyld_y.w[1]) ||
-					((pyld_x.w[1] == pyld_y.w[1]) &&
-						(pyld_x.w[0] <= pyld_y.w[0])) {
+			if !(((y.hi & SNAN_MASK64) == SNAN_MASK64) !=
+				((x.hi & SNAN_MASK64) == SNAN_MASK64)) {
+				if (pyld_x.hi < pyld_y.hi) ||
+					((pyld_x.hi == pyld_y.hi) &&
+						(pyld_x.lo <= pyld_y.lo)) {
 					res = 1
 				} else {
 					res = 0
@@ -3108,63 +3108,63 @@ func Bid128TotalOrderMag(x, y BID_UINT128) int {
 				return res
 			} else {
 				res = 0
-				if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 {
+				if (x.hi & SNAN_MASK64) == SNAN_MASK64 {
 					res = 1
 				}
 				return res
 			}
 		}
-	} else if (y.w[1] & NAN_MASK64) == NAN_MASK64 {
+	} else if (y.hi & NAN_MASK64) == NAN_MASK64 {
 		res = 1
 		return res
 	}
 	// SIMPLE (CASE 2)
-	if (x.w[1] == y.w[1]) && (x.w[0] == y.w[0]) {
+	if (x.hi == y.hi) && (x.lo == y.lo) {
 		res = 1
 		return res
 	}
 	// INFINITY (CASE 3)
-	if (x.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	if (x.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 0
-		if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+		if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 			res = 1
 		}
 		return res
-	} else if (y.w[1] & INFINITY_MASK64) == INFINITY_MASK64 {
+	} else if (y.hi & INFINITY_MASK64) == INFINITY_MASK64 {
 		res = 1
 		return res
 	}
 
 	// CONVERT x
-	sig_x.w[1] = x.w[1] & 0x0001ffffffffffff
-	sig_x.w[0] = x.w[0]
-	exp_x = int((x.w[1] >> 49) & 0x000000000003fff)
+	sig_x.hi = x.hi & 0x0001ffffffffffff
+	sig_x.lo = x.lo
+	exp_x = int((x.hi >> 49) & 0x000000000003fff)
 
-	if (((sig_x.w[1] > 0x0001ed09bead87c0) ||
-		((sig_x.w[1] == 0x0001ed09bead87c0) &&
-			(sig_x.w[0] > 0x378d8e63ffffffff))) &&
-		((x.w[1] & 0x6000000000000000) != 0x6000000000000000)) ||
-		((x.w[1] & 0x6000000000000000) == 0x6000000000000000) ||
-		((sig_x.w[1] == 0) && (sig_x.w[0] == 0)) {
+	if (((sig_x.hi > 0x0001ed09bead87c0) ||
+		((sig_x.hi == 0x0001ed09bead87c0) &&
+			(sig_x.lo > 0x378d8e63ffffffff))) &&
+		((x.hi & 0x6000000000000000) != 0x6000000000000000)) ||
+		((x.hi & 0x6000000000000000) == 0x6000000000000000) ||
+		((sig_x.hi == 0) && (sig_x.lo == 0)) {
 		x_is_zero = 1
-		if (x.w[1] & 0x6000000000000000) == 0x6000000000000000 {
-			exp_x = int((x.w[1] >> 47) & 0x000000000003fff)
+		if (x.hi & 0x6000000000000000) == 0x6000000000000000 {
+			exp_x = int((x.hi >> 47) & 0x000000000003fff)
 		}
 	}
 	// CONVERT y
-	exp_y = int((y.w[1] >> 49) & 0x0000000000003fff)
-	sig_y.w[1] = y.w[1] & 0x0001ffffffffffff
-	sig_y.w[0] = y.w[0]
+	exp_y = int((y.hi >> 49) & 0x0000000000003fff)
+	sig_y.hi = y.hi & 0x0001ffffffffffff
+	sig_y.lo = y.lo
 
-	if (((sig_y.w[1] > 0x0001ed09bead87c0) ||
-		((sig_y.w[1] == 0x0001ed09bead87c0) &&
-			(sig_y.w[0] > 0x378d8e63ffffffff))) &&
-		((y.w[1] & 0x6000000000000000) != 0x6000000000000000)) ||
-		((y.w[1] & 0x6000000000000000) == 0x6000000000000000) ||
-		((sig_y.w[1] == 0) && (sig_y.w[0] == 0)) {
+	if (((sig_y.hi > 0x0001ed09bead87c0) ||
+		((sig_y.hi == 0x0001ed09bead87c0) &&
+			(sig_y.lo > 0x378d8e63ffffffff))) &&
+		((y.hi & 0x6000000000000000) != 0x6000000000000000)) ||
+		((y.hi & 0x6000000000000000) == 0x6000000000000000) ||
+		((sig_y.hi == 0) && (sig_y.lo == 0)) {
 		y_is_zero = 1
-		if (y.w[1] & 0x6000000000000000) == 0x6000000000000000 {
-			exp_y = int((y.w[1] >> 47) & 0x000000000003fff)
+		if (y.hi & 0x6000000000000000) == 0x6000000000000000 {
+			exp_y = int((y.hi >> 47) & 0x000000000003fff)
 		}
 	}
 	// ZERO (CASE 4)
@@ -3188,14 +3188,14 @@ func Bid128TotalOrderMag(x, y BID_UINT128) int {
 		return res
 	}
 	// REDUNDANT REPRESENTATIONS (CASE 5)
-	if ((sig_x.w[1] > sig_y.w[1]) ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] > sig_y.w[0])) &&
+	if ((sig_x.hi > sig_y.hi) ||
+		(sig_x.hi == sig_y.hi && sig_x.lo > sig_y.lo)) &&
 		exp_x >= exp_y {
 		res = 0
 		return res
 	}
-	if ((sig_x.w[1] < sig_y.w[1]) ||
-		(sig_x.w[1] == sig_y.w[1] && sig_x.w[0] < sig_y.w[0])) &&
+	if ((sig_x.hi < sig_y.hi) ||
+		(sig_x.hi == sig_y.hi && sig_x.lo < sig_y.lo)) &&
 		exp_x <= exp_y {
 		res = 1
 		return res
@@ -3209,31 +3209,31 @@ func Bid128TotalOrderMag(x, y BID_UINT128) int {
 			sig_n_prime256 = __mul_128x128_to_256(sig_x,
 				bid_ten2k128[exp_x-exp_y-20])
 			if (sig_n_prime256.w[3] == 0) && (sig_n_prime256.w[2] == 0) &&
-				(sig_n_prime256.w[1] == sig_y.w[1]) &&
-				(sig_n_prime256.w[0] == sig_y.w[0]) {
+				(sig_n_prime256.w[1] == sig_y.hi) &&
+				(sig_n_prime256.w[0] == sig_y.lo) {
 				res = 0
 				return res
 			}
 			res = 0
 			if (sig_n_prime256.w[3] == 0) && (sig_n_prime256.w[2] == 0) &&
-				((sig_n_prime256.w[1] < sig_y.w[1]) ||
-					(sig_n_prime256.w[1] == sig_y.w[1] &&
-						sig_n_prime256.w[0] < sig_y.w[0])) {
+				((sig_n_prime256.w[1] < sig_y.hi) ||
+					(sig_n_prime256.w[1] == sig_y.hi &&
+						sig_n_prime256.w[0] < sig_y.lo)) {
 				res = 1
 			}
 			return res
 		}
 		sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_x-exp_y], sig_x)
-		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.w[1] &&
-			(sig_n_prime192.w[0] == sig_y.w[0]) {
+		if (sig_n_prime192.w[2] == 0) && sig_n_prime192.w[1] == sig_y.hi &&
+			(sig_n_prime192.w[0] == sig_y.lo) {
 			res = 0
 			return res
 		}
 		res = 0
 		if (sig_n_prime192.w[2] == 0) &&
-			((sig_n_prime192.w[1] < sig_y.w[1]) ||
-				(sig_n_prime192.w[1] == sig_y.w[1] &&
-					sig_n_prime192.w[0] < sig_y.w[0])) {
+			((sig_n_prime192.w[1] < sig_y.hi) ||
+				(sig_n_prime192.w[1] == sig_y.hi &&
+					sig_n_prime192.w[0] < sig_y.lo)) {
 			res = 1
 		}
 		return res
@@ -3247,32 +3247,32 @@ func Bid128TotalOrderMag(x, y BID_UINT128) int {
 		sig_n_prime256 = __mul_128x128_to_256(sig_y,
 			bid_ten2k128[exp_y-exp_x-20])
 		if (sig_n_prime256.w[3] == 0) && (sig_n_prime256.w[2] == 0) &&
-			(sig_n_prime256.w[1] == sig_x.w[1]) &&
-			(sig_n_prime256.w[0] == sig_x.w[0]) {
+			(sig_n_prime256.w[1] == sig_x.hi) &&
+			(sig_n_prime256.w[0] == sig_x.lo) {
 			res = 1
 			return res
 		}
 		res = 0
 		if (sig_n_prime256.w[3] != 0) ||
 			(sig_n_prime256.w[2] != 0) ||
-			(sig_n_prime256.w[1] > sig_x.w[1]) ||
-			(sig_n_prime256.w[1] == sig_x.w[1] &&
-				sig_n_prime256.w[0] > sig_x.w[0]) {
+			(sig_n_prime256.w[1] > sig_x.hi) ||
+			(sig_n_prime256.w[1] == sig_x.hi &&
+				sig_n_prime256.w[0] > sig_x.lo) {
 			res = 1
 		}
 		return res
 	}
 	sig_n_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_y-exp_x], sig_y)
-	if (sig_n_prime192.w[2] == 0) && (sig_n_prime192.w[1] == sig_x.w[1]) &&
-		(sig_n_prime192.w[0] == sig_x.w[0]) {
+	if (sig_n_prime192.w[2] == 0) && (sig_n_prime192.w[1] == sig_x.hi) &&
+		(sig_n_prime192.w[0] == sig_x.lo) {
 		res = 1
 		return res
 	}
 	res = 0
 	if (sig_n_prime192.w[2] != 0) ||
-		(sig_n_prime192.w[1] > sig_x.w[1]) ||
-		(sig_n_prime192.w[1] == sig_x.w[1] &&
-			sig_n_prime192.w[0] > sig_x.w[0]) {
+		(sig_n_prime192.w[1] > sig_x.hi) ||
+		(sig_n_prime192.w[1] == sig_x.hi &&
+			sig_n_prime192.w[0] > sig_x.lo) {
 		res = 1
 	}
 	return res

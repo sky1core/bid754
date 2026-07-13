@@ -54,10 +54,10 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
     let mut midi_ind: i64 = 0;
     let mut k_lcv: i64 = 0;
     let mut length: i64 = 0;
-    if ((x.w[1] & 0x7800000000000000) == 0x7800000000000000) {
-        if ((x.w[1] & 0x7c00000000000000) == 0x7c00000000000000) {
-            if ((x.w[1] & 0x7e00000000000000) == 0x7e00000000000000) {
-                if ((x.w[1] as i64) < 0) {
+    if ((x.hi & 0x7800000000000000) == 0x7800000000000000) {
+        if ((x.hi & 0x7c00000000000000) == 0x7c00000000000000) {
+            if ((x.hi & 0x7e00000000000000) == 0x7e00000000000000) {
+                if ((x.hi as i64) < 0) {
                     str[0] = b'-';
                 } else {
                     str[0] = b'+';
@@ -68,7 +68,7 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
                 str[4] = b'N';
                 return go_string_from_bytes(&mut str[..5 as usize]);
             } else {
-                if ((x.w[1] as i64) < 0) {
+                if ((x.hi as i64) < 0) {
                     str[0] = b'-';
                 } else {
                     str[0] = b'+';
@@ -79,7 +79,7 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
                 return go_string_from_bytes(&mut str[..4 as usize]);
             }
         } else {
-            if ((x.w[1] & 0x8000000000000000) == 0) {
+            if ((x.hi & 0x8000000000000000) == 0) {
                 str[0] = b'+';
                 str[1] = b'I';
                 str[2] = b'n';
@@ -93,9 +93,9 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
                 return go_string_from_bytes(&mut str[..4 as usize]);
             }
         }
-    } else if ((((x.w[1] & 0x1ffffffffffff) == 0)) && (x.w[0] == 0)) {
+    } else if ((((x.hi & 0x1ffffffffffff) == 0)) && (x.lo == 0)) {
         length = 0;
-        if ((x.w[1] & 0x8000000000000000) != 0) {
+        if ((x.hi & 0x8000000000000000) != 0) {
             str[length as usize] = b'-';
         } else {
             str[length as usize] = b'+';
@@ -105,9 +105,9 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
         length = length.wrapping_add(1);
         str[length as usize] = b'E';
         length = length.wrapping_add(1);
-        let mut exp = (((go_checked_shr_u64((x.w[1] & 0x7ffe000000000000), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
+        let mut exp = (((go_checked_shr_u64((x.hi & 0x7ffe000000000000), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
         if (exp > (((0x5ffe >> 1) - (6176)))) {
-            exp = (((go_checked_shr_u64(((((go_checked_shl_u64(x.w[1], go_shift_count_u64((2) as u64)))) & 0x7ffe000000000000)), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
+            exp = (((go_checked_shr_u64(((((go_checked_shl_u64(x.hi, go_shift_count_u64((2) as u64)))) & 0x7ffe000000000000)), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
         }
         if (exp >= 0) {
             str[length as usize] = b'+';
@@ -122,14 +122,14 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
         }
         return go_string_from_bytes(&mut str[..length as usize]);
     } else {
-        let mut x_sign = (x.w[1] & 0x8000000000000000);
-        let mut x_exp = (x.w[1] & 0x7ffe000000000000);
-        if ((x.w[1] & 0x6000000000000000) == 0x6000000000000000) {
-            x_exp = (((go_checked_shl_u64(x.w[1], go_shift_count_u64((2) as u64)))) & 0x7ffe000000000000);
+        let mut x_sign = (x.hi & 0x8000000000000000);
+        let mut x_exp = (x.hi & 0x7ffe000000000000);
+        if ((x.hi & 0x6000000000000000) == 0x6000000000000000) {
+            x_exp = (((go_checked_shl_u64(x.hi, go_shift_count_u64((2) as u64)))) & 0x7ffe000000000000);
         }
-        let mut C1: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        let mut C1: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
         let mut exp = (((go_checked_shr_u64(x_exp, go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
         _ = x_sign;
         if (x_sign != 0) {
@@ -138,13 +138,13 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
             str[k as usize] = b'+';
         }
         k = k.wrapping_add(1);
-        if ((((C1.w[1] > 0x0001ed09bead87c0) || (((C1.w[1] == 0x0001ed09bead87c0) && (C1.w[0] > 0x378d8e63ffffffff)))) || (((x.w[1] & 0x6000000000000000) == 0x6000000000000000))) || (((C1.w[1] == 0) && (C1.w[0] == 0)))) {
+        if ((((C1.hi > 0x0001ed09bead87c0) || (((C1.hi == 0x0001ed09bead87c0) && (C1.lo > 0x378d8e63ffffffff)))) || (((x.hi & 0x6000000000000000) == 0x6000000000000000))) || (((C1.hi == 0) && (C1.lo == 0)))) {
             str[k as usize] = b'0';
             k = k.wrapping_add(1);
         } else {
-            Tmp = (go_checked_shr_u64(C1.w[0], go_shift_count_u64((59) as u64)));
-            LO_18Dig = (go_checked_shr_u64(((go_checked_shl_u64(C1.w[0], go_shift_count_u64((5) as u64)))), go_shift_count_u64((5) as u64)));
-            Tmp = Tmp.wrapping_add(((go_checked_shl_u64(C1.w[1], go_shift_count_u64((5) as u64)))));
+            Tmp = (go_checked_shr_u64(C1.lo, go_shift_count_u64((59) as u64)));
+            LO_18Dig = (go_checked_shr_u64(((go_checked_shl_u64(C1.lo, go_shift_count_u64((5) as u64)))), go_shift_count_u64((5) as u64)));
+            Tmp = Tmp.wrapping_add(((go_checked_shl_u64(C1.hi, go_shift_count_u64((5) as u64)))));
             HI_18Dig = 0;
             k_lcv = 0;
             while (Tmp != 0) {
@@ -219,9 +219,9 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
 
 pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let mut str = str.as_ref().to_string();
-    let mut res: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
-    let mut CX: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut coeff_high: u64 = 0;
     let mut coeff_low: u64 = 0;
@@ -257,35 +257,35 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
     }
     c = ps_at!(0);
     if ((c == 0) || (((((c != b'.') && (c != b'-')) && (c != b'+')) && ((((c.wrapping_sub(b'0')) as u64) > 9))))) {
-        res.w[0] = 0;
+        res.lo = 0;
         if (((((tolower_macro(ps_at!(0)) == b'i') && (tolower_macro(ps_at!(1)) == b'n')) && (tolower_macro(ps_at!(2)) == b'f'))) && (((ps_at!(3) == 0) || (((((((tolower_macro(ps_at!(3)) == b'i') && (tolower_macro(ps_at!(4)) == b'n')) && (tolower_macro(ps_at!(5)) == b'i')) && (tolower_macro(ps_at!(6)) == b't')) && (tolower_macro(ps_at!(7)) == b'y')) && (ps_at!(8) == 0)))))) {
-            res.w[1] = 0x7800000000000000;
+            res.hi = 0x7800000000000000;
             return (res, pfpsf);
         }
         if ((((tolower_macro(ps_at!(0)) == b's') && (tolower_macro(ps_at!(1)) == b'n')) && (tolower_macro(ps_at!(2)) == b'a')) && (tolower_macro(ps_at!(3)) == b'n')) {
-            res.w[1] = 0x7e00000000000000;
+            res.hi = 0x7e00000000000000;
             return (res, pfpsf);
         }
-        res.w[1] = 0x7c00000000000000;
+        res.hi = 0x7c00000000000000;
         return (res, pfpsf);
     }
     if (((((tolower_macro(ps_at!(1)) == b'i') && (tolower_macro(ps_at!(2)) == b'n')) && (tolower_macro(ps_at!(3)) == b'f'))) && (((ps_at!(4) == 0) || (((((((tolower_macro(ps_at!(4)) == b'i') && (tolower_macro(ps_at!(5)) == b'n')) && (tolower_macro(ps_at!(6)) == b'i')) && (tolower_macro(ps_at!(7)) == b't')) && (tolower_macro(ps_at!(8)) == b'y')) && (ps_at!(9) == 0)))))) {
-        res.w[0] = 0;
+        res.lo = 0;
         if (c == b'+') {
-            res.w[1] = 0x7800000000000000;
+            res.hi = 0x7800000000000000;
         } else if (c == b'-') {
-            res.w[1] = 0xf800000000000000;
+            res.hi = 0xf800000000000000;
         } else {
-            res.w[1] = 0x7c00000000000000;
+            res.hi = 0x7c00000000000000;
         }
         return (res, pfpsf);
     }
     if ((((tolower_macro(ps_at!(1)) == b's') && (tolower_macro(ps_at!(2)) == b'n')) && (tolower_macro(ps_at!(3)) == b'a')) && (tolower_macro(ps_at!(4)) == b'n')) {
-        res.w[0] = 0;
+        res.lo = 0;
         if (c == b'-') {
-            res.w[1] = 0xfe00000000000000;
+            res.hi = 0xfe00000000000000;
         } else {
-            res.w[1] = 0x7e00000000000000;
+            res.hi = 0x7e00000000000000;
         }
         return (res, pfpsf);
     }
@@ -299,8 +299,8 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
     }
     c = ps_at!(0);
     if ((c != b'.') && ((((c.wrapping_sub(b'0')) as u64) > 9))) {
-        res.w[1] = (0x7c00000000000000 | sign_x);
-        res.w[0] = 0;
+        res.hi = (0x7c00000000000000 | sign_x);
+        res.lo = 0;
         return (res, pfpsf);
     }
     if (c == b'.') {
@@ -317,22 +317,22 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
                 if (rdx_pt_enc == 0) {
                     rdx_pt_enc = 1;
                     if (ps_at!(1) == 0) {
-                        res.w[1] = ((((0x3040000000000000 as u64).wrapping_sub(((go_checked_shl_u64(right_radix_leading_zeros, go_shift_count_u64((49) as u64))))))) | sign_x);
-                        res.w[0] = 0;
+                        res.hi = ((((0x3040000000000000 as u64).wrapping_sub(((go_checked_shl_u64(right_radix_leading_zeros, go_shift_count_u64((49) as u64))))))) | sign_x);
+                        res.lo = 0;
                         return (res, pfpsf);
                     }
                     ps_idx += 1;
                 } else {
-                    res.w[1] = (0x7c00000000000000 | sign_x);
-                    res.w[0] = 0;
+                    res.hi = (0x7c00000000000000 | sign_x);
+                    res.lo = 0;
                     return (res, pfpsf);
                 }
             } else if (ps_at!(0) == 0) {
                 if (right_radix_leading_zeros > 6176) {
                     right_radix_leading_zeros = 6176;
                 }
-                res.w[1] = ((((0x3040000000000000 as u64).wrapping_sub(((go_checked_shl_u64(right_radix_leading_zeros, go_shift_count_u64((49) as u64))))))) | sign_x);
-                res.w[0] = 0;
+                res.hi = ((((0x3040000000000000 as u64).wrapping_sub(((go_checked_shl_u64(right_radix_leading_zeros, go_shift_count_u64((49) as u64))))))) | sign_x);
+                res.lo = 0;
                 return (res, pfpsf);
             }
         }
@@ -407,15 +407,15 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
     dec_expon = 0;
     if (c != 0) {
         if ((c != b'e') && (c != b'E')) {
-            res.w[1] = 0x7c00000000000000;
-            res.w[0] = 0;
+            res.hi = 0x7c00000000000000;
+            res.lo = 0;
             return (res, pfpsf);
         }
         ps_idx += 1;
         c = ps_at!(0);
         if (((((c.wrapping_sub(b'0')) as u64) > 9)) && (((((c != b'+') && (c != b'-'))) || ((((ps_at!(1).wrapping_sub(b'0')) as u64) > 9))))) {
-            res.w[1] = 0x7c00000000000000;
-            res.w[0] = 0;
+            res.hi = 0x7c00000000000000;
+            res.lo = 0;
             return (res, pfpsf);
         }
         if (c == b'-') {
@@ -447,12 +447,12 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
     if (ndigits_total <= 34) {
         dec_expon = dec_expon.wrapping_add((((0x1820 as i64).wrapping_sub(ndigits_after)).wrapping_sub(right_radix_leading_zeros as i64)));
         if (dec_expon < 0) {
-            res.w[1] = (0 | sign_x);
-            res.w[0] = 0;
+            res.hi = (0 | sign_x);
+            res.lo = 0;
         }
         if (ndigits_total == 0) {
-            CX.w[0] = 0;
-            CX.w[1] = 0;
+            CX.lo = 0;
+            CX.hi = 0;
         } else if (ndigits_total <= 19) {
             coeff_high = ((buffer[0].wrapping_sub(b'0')) as u64);
             i = 1;
@@ -461,8 +461,8 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
                 coeff_high = ((((go_checked_shl_u64(coeff2, go_shift_count_u64((2) as u64)))).wrapping_add(coeff2)).wrapping_add(((buffer[i as usize].wrapping_sub(b'0')) as u64)));
                 i = i.wrapping_add(1);
             }
-            CX.w[0] = coeff_high;
-            CX.w[1] = 0;
+            CX.lo = coeff_high;
+            CX.hi = 0;
         } else {
             coeff_high = ((buffer[0].wrapping_sub(b'0')) as u64);
             i = 1;
@@ -480,9 +480,9 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
             }
             scale_high = 100000000000000000;
             CX = __mul_64x64_to_128_fast(coeff_high, scale_high);
-            CX.w[0] = CX.w[0].wrapping_add(coeff_low);
-            if (CX.w[0] < coeff_low) {
-                CX.w[1] = CX.w[1].wrapping_add(1);
+            CX.lo = CX.lo.wrapping_add(coeff_low);
+            if (CX.lo < coeff_low) {
+                CX.hi = CX.hi.wrapping_add(1);
             }
         }
         res = bid_get_bid128(sign_x, dec_expon, CX, rnd_mode, (&mut pfpsf));
@@ -490,8 +490,8 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
     } else {
         dec_expon = dec_expon.wrapping_add((((ndigits_before.wrapping_add(0x1820)).wrapping_sub(34)).wrapping_sub(right_radix_leading_zeros as i64)));
         if (dec_expon < 0) {
-            res.w[1] = (0 | sign_x);
-            res.w[0] = 0;
+            res.hi = (0 | sign_x);
+            res.lo = 0;
         }
         coeff_high = ((buffer[0].wrapping_sub(b'0')) as u64);
         i = 1;
@@ -600,9 +600,9 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
         }
         CX = __mul_64x64_to_128_fast(coeff_high, scale_high);
         coeff_low = coeff_low.wrapping_add(carry);
-        CX.w[0] = CX.w[0].wrapping_add(coeff_low);
-        if (CX.w[0] < coeff_low) {
-            CX.w[1] = CX.w[1].wrapping_add(1);
+        CX.lo = CX.lo.wrapping_add(coeff_low);
+        if (CX.lo < coeff_low) {
+            CX.hi = CX.hi.wrapping_add(1);
         }
         if (set_inexact != 0) {
             pfpsf |= 32;

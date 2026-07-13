@@ -20,18 +20,18 @@ func bid_round128_19_38(q int, x int, C BID_UINT128) (Cstar BID_UINT128, incr_ex
 	// to q - x digits, 1 <= x <= 37
 	ind = x - 1    // 0 <= ind <= 36
 	if ind <= 18 { // if 0 <= ind <= 18
-		tmp64 = C.w[0]
-		C.w[0] = C.w[0] + bid_midpoint64[ind]
-		if C.w[0] < tmp64 {
-			C.w[1]++
+		tmp64 = C.lo
+		C.lo = C.lo + bid_midpoint64[ind]
+		if C.lo < tmp64 {
+			C.hi++
 		}
 	} else { // if 19 <= ind <= 37
-		tmp64 = C.w[0]
-		C.w[0] = C.w[0] + bid_midpoint128[ind-19].w[0]
-		if C.w[0] < tmp64 {
-			C.w[1]++
+		tmp64 = C.lo
+		C.lo = C.lo + bid_midpoint128[ind-19].lo
+		if C.lo < tmp64 {
+			C.hi++
 		}
-		C.w[1] = C.w[1] + bid_midpoint128[ind-19].w[1]
+		C.hi = C.hi + bid_midpoint128[ind-19].hi
 	}
 	// kx ~= 10^(-x), kx = bid_Kx128[ind] * 2^(-Ex), 0 <= ind <= 36
 	// P256 = (C + 1/2 * 10^x) * kx * 2^Ex = (C + 1/2 * 10^x) * Kx
@@ -41,15 +41,15 @@ func bid_round128_19_38(q int, x int, C BID_UINT128) (Cstar BID_UINT128, incr_ex
 	// fstar = low Ex bits of P256
 	shift = int(bid_Ex128m128[ind]) // in [2, 63]
 	if ind <= 18 {                  // if 0 <= ind <= 18
-		Cstar.w[0] = (P256.w[2] >> uint(shift)) | (P256.w[3] << uint(64-shift))
-		Cstar.w[1] = (P256.w[3] >> uint(shift))
+		Cstar.lo = (P256.w[2] >> uint(shift)) | (P256.w[3] << uint(64-shift))
+		Cstar.hi = (P256.w[3] >> uint(shift))
 		fstar.w[0] = P256.w[0]
 		fstar.w[1] = P256.w[1]
 		fstar.w[2] = P256.w[2] & bid_mask128[ind]
 		fstar.w[3] = 0x0
 	} else { // if 19 <= ind <= 37
-		Cstar.w[0] = P256.w[3] >> uint(shift)
-		Cstar.w[1] = 0x0
+		Cstar.lo = P256.w[3] >> uint(shift)
+		Cstar.hi = 0x0
 		fstar.w[0] = P256.w[0]
 		fstar.w[1] = P256.w[1]
 		fstar.w[2] = P256.w[2]
@@ -62,7 +62,7 @@ func bid_round128_19_38(q int, x int, C BID_UINT128) (Cstar BID_UINT128, incr_ex
 			(fstar.w[2] == bid_half128[ind] && (fstar.w[1] != 0 || fstar.w[0] != 0)) {
 			// f* > 1/2 and the result may be exact
 			tmp64 = fstar.w[2] - bid_half128[ind]
-			if tmp64 != 0 || fstar.w[1] > bid_ten2mxtrunc128[ind].w[1] || (fstar.w[1] == bid_ten2mxtrunc128[ind].w[1] && fstar.w[0] > bid_ten2mxtrunc128[ind].w[0]) { // f* - 1/2 > 10^(-x)
+			if tmp64 != 0 || fstar.w[1] > bid_ten2mxtrunc128[ind].hi || (fstar.w[1] == bid_ten2mxtrunc128[ind].hi && fstar.w[0] > bid_ten2mxtrunc128[ind].lo) { // f* - 1/2 > 10^(-x)
 				is_inexact_lt_midpoint = 1
 			} // else the result is exact
 		} else { // the result is inexact; f2* <= 1/2
@@ -73,7 +73,7 @@ func bid_round128_19_38(q int, x int, C BID_UINT128) (Cstar BID_UINT128, incr_ex
 			(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
 			// f* > 1/2 and the result may be exact
 			tmp64 = fstar.w[3] - bid_half128[ind]
-			if tmp64 != 0 || fstar.w[2] != 0 || fstar.w[1] > bid_ten2mxtrunc128[ind].w[1] || (fstar.w[1] == bid_ten2mxtrunc128[ind].w[1] && fstar.w[0] > bid_ten2mxtrunc128[ind].w[0]) { // f* - 1/2 > 10^(-x)
+			if tmp64 != 0 || fstar.w[2] != 0 || fstar.w[1] > bid_ten2mxtrunc128[ind].hi || (fstar.w[1] == bid_ten2mxtrunc128[ind].hi && fstar.w[0] > bid_ten2mxtrunc128[ind].lo) { // f* - 1/2 > 10^(-x)
 				is_inexact_lt_midpoint = 1
 			} // else the result is exact
 		} else { // the result is inexact; f2* <= 1/2
@@ -82,14 +82,14 @@ func bid_round128_19_38(q int, x int, C BID_UINT128) (Cstar BID_UINT128, incr_ex
 	}
 	// check for midpoints
 	if fstar.w[3] == 0 && fstar.w[2] == 0 &&
-		(fstar.w[1] < bid_ten2mxtrunc128[ind].w[1] ||
-			(fstar.w[1] == bid_ten2mxtrunc128[ind].w[1] &&
-				fstar.w[0] <= bid_ten2mxtrunc128[ind].w[0])) {
+		(fstar.w[1] < bid_ten2mxtrunc128[ind].hi ||
+			(fstar.w[1] == bid_ten2mxtrunc128[ind].hi &&
+				fstar.w[0] <= bid_ten2mxtrunc128[ind].lo)) {
 		// the result is a midpoint
-		if Cstar.w[0]&0x01 != 0 { // Cstar is odd; MP in [EVEN, ODD]
-			Cstar.w[0]-- // Cstar is now even
-			if Cstar.w[0] == 0xffffffffffffffff {
-				Cstar.w[1]--
+		if Cstar.lo&0x01 != 0 { // Cstar is odd; MP in [EVEN, ODD]
+			Cstar.lo-- // Cstar is now even
+			if Cstar.lo == 0xffffffffffffffff {
+				Cstar.hi--
 			}
 			is_midpoint_gt_even = 1
 			is_inexact_lt_midpoint = 0
@@ -103,26 +103,26 @@ func bid_round128_19_38(q int, x int, C BID_UINT128) (Cstar BID_UINT128, incr_ex
 	// check for rounding overflow
 	ind = q - x // 1 <= ind <= q - 1
 	if ind <= 19 {
-		if Cstar.w[1] == 0x0 && Cstar.w[0] == bid_ten2k64[ind] {
-			Cstar.w[0] = bid_ten2k64[ind-1]
+		if Cstar.hi == 0x0 && Cstar.lo == bid_ten2k64[ind] {
+			Cstar.lo = bid_ten2k64[ind-1]
 			incr_exp = 1
 		} else {
 			incr_exp = 0
 		}
 	} else if ind == 20 {
-		if Cstar.w[1] == bid_ten2k128[0].w[1] &&
-			Cstar.w[0] == bid_ten2k128[0].w[0] {
-			Cstar.w[0] = bid_ten2k64[19]
-			Cstar.w[1] = 0x0
+		if Cstar.hi == bid_ten2k128[0].hi &&
+			Cstar.lo == bid_ten2k128[0].lo {
+			Cstar.lo = bid_ten2k64[19]
+			Cstar.hi = 0x0
 			incr_exp = 1
 		} else {
 			incr_exp = 0
 		}
 	} else { // if 21 <= ind <= 37
-		if Cstar.w[1] == bid_ten2k128[ind-20].w[1] &&
-			Cstar.w[0] == bid_ten2k128[ind-20].w[0] {
-			Cstar.w[0] = bid_ten2k128[ind-21].w[0]
-			Cstar.w[1] = bid_ten2k128[ind-21].w[1]
+		if Cstar.hi == bid_ten2k128[ind-20].hi &&
+			Cstar.lo == bid_ten2k128[ind-20].lo {
+			Cstar.lo = bid_ten2k128[ind-21].lo
+			Cstar.hi = bid_ten2k128[ind-21].hi
 			incr_exp = 1
 		} else {
 			incr_exp = 0
@@ -153,7 +153,7 @@ func bid_round192_39_57(q int, x int, C BID_UINT192) (Cstar BID_UINT192, incr_ex
 		}
 	} else if ind <= 37 { // if 19 <= ind <= 37
 		tmp64 = C.w[0]
-		C.w[0] = C.w[0] + bid_midpoint128[ind-19].w[0]
+		C.w[0] = C.w[0] + bid_midpoint128[ind-19].lo
 		if C.w[0] < tmp64 {
 			C.w[1]++
 			if C.w[1] == 0x0 {
@@ -161,7 +161,7 @@ func bid_round192_39_57(q int, x int, C BID_UINT192) (Cstar BID_UINT192, incr_ex
 			}
 		}
 		tmp64 = C.w[1]
-		C.w[1] = C.w[1] + bid_midpoint128[ind-19].w[1]
+		C.w[1] = C.w[1] + bid_midpoint128[ind-19].hi
 		if C.w[1] < tmp64 {
 			C.w[2]++
 		}
@@ -284,8 +284,8 @@ func bid_round192_39_57(q int, x int, C BID_UINT192) (Cstar BID_UINT192, incr_ex
 			incr_exp = 0
 		}
 	} else if ind == 20 {
-		if Cstar.w[2] == 0x0 && Cstar.w[1] == bid_ten2k128[0].w[1] &&
-			Cstar.w[0] == bid_ten2k128[0].w[0] {
+		if Cstar.w[2] == 0x0 && Cstar.w[1] == bid_ten2k128[0].hi &&
+			Cstar.w[0] == bid_ten2k128[0].lo {
 			Cstar.w[0] = bid_ten2k64[19]
 			Cstar.w[1] = 0x0
 			incr_exp = 1
@@ -293,10 +293,10 @@ func bid_round192_39_57(q int, x int, C BID_UINT192) (Cstar BID_UINT192, incr_ex
 			incr_exp = 0
 		}
 	} else if ind <= 38 { // if 21 <= ind <= 38
-		if Cstar.w[2] == 0x0 && Cstar.w[1] == bid_ten2k128[ind-20].w[1] &&
-			Cstar.w[0] == bid_ten2k128[ind-20].w[0] {
-			Cstar.w[0] = bid_ten2k128[ind-21].w[0]
-			Cstar.w[1] = bid_ten2k128[ind-21].w[1]
+		if Cstar.w[2] == 0x0 && Cstar.w[1] == bid_ten2k128[ind-20].hi &&
+			Cstar.w[0] == bid_ten2k128[ind-20].lo {
+			Cstar.w[0] = bid_ten2k128[ind-21].lo
+			Cstar.w[1] = bid_ten2k128[ind-21].hi
 			incr_exp = 1
 		} else {
 			incr_exp = 0
@@ -304,8 +304,8 @@ func bid_round192_39_57(q int, x int, C BID_UINT192) (Cstar BID_UINT192, incr_ex
 	} else if ind == 39 {
 		if Cstar.w[2] == bid_ten2k256[0].w[2] && Cstar.w[1] == bid_ten2k256[0].w[1] &&
 			Cstar.w[0] == bid_ten2k256[0].w[0] {
-			Cstar.w[0] = bid_ten2k128[18].w[0]
-			Cstar.w[1] = bid_ten2k128[18].w[1]
+			Cstar.w[0] = bid_ten2k128[18].lo
+			Cstar.w[1] = bid_ten2k128[18].hi
 			Cstar.w[2] = 0x0
 			incr_exp = 1
 		} else {
@@ -351,7 +351,7 @@ func bid_round256_58_76(q int, x int, C BID_UINT256) (Cstar BID_UINT256, incr_ex
 		}
 	} else if ind <= 37 { // if 19 <= ind <= 37
 		tmp64 = C.w[0]
-		C.w[0] = C.w[0] + bid_midpoint128[ind-19].w[0]
+		C.w[0] = C.w[0] + bid_midpoint128[ind-19].lo
 		if C.w[0] < tmp64 {
 			C.w[1]++
 			if C.w[1] == 0x0 {
@@ -362,7 +362,7 @@ func bid_round256_58_76(q int, x int, C BID_UINT256) (Cstar BID_UINT256, incr_ex
 			}
 		}
 		tmp64 = C.w[1]
-		C.w[1] = C.w[1] + bid_midpoint128[ind-19].w[1]
+		C.w[1] = C.w[1] + bid_midpoint128[ind-19].hi
 		if C.w[1] < tmp64 {
 			C.w[2]++
 			if C.w[2] == 0x0 {
@@ -578,8 +578,8 @@ func bid_round256_58_76(q int, x int, C BID_UINT256) (Cstar BID_UINT256, incr_ex
 		}
 	} else if ind == 20 {
 		if Cstar.w[3] == 0x0 && Cstar.w[2] == 0x0 &&
-			Cstar.w[1] == bid_ten2k128[0].w[1] &&
-			Cstar.w[0] == bid_ten2k128[0].w[0] {
+			Cstar.w[1] == bid_ten2k128[0].hi &&
+			Cstar.w[0] == bid_ten2k128[0].lo {
 			Cstar.w[0] = bid_ten2k64[19]
 			Cstar.w[1] = 0x0
 			incr_exp = 1
@@ -588,10 +588,10 @@ func bid_round256_58_76(q int, x int, C BID_UINT256) (Cstar BID_UINT256, incr_ex
 		}
 	} else if ind <= 38 { // if 21 <= ind <= 38
 		if Cstar.w[3] == 0x0 && Cstar.w[2] == 0x0 &&
-			Cstar.w[1] == bid_ten2k128[ind-20].w[1] &&
-			Cstar.w[0] == bid_ten2k128[ind-20].w[0] {
-			Cstar.w[0] = bid_ten2k128[ind-21].w[0]
-			Cstar.w[1] = bid_ten2k128[ind-21].w[1]
+			Cstar.w[1] == bid_ten2k128[ind-20].hi &&
+			Cstar.w[0] == bid_ten2k128[ind-20].lo {
+			Cstar.w[0] = bid_ten2k128[ind-21].lo
+			Cstar.w[1] = bid_ten2k128[ind-21].hi
 			incr_exp = 1
 		} else {
 			incr_exp = 0
@@ -600,8 +600,8 @@ func bid_round256_58_76(q int, x int, C BID_UINT256) (Cstar BID_UINT256, incr_ex
 		if Cstar.w[3] == 0x0 && Cstar.w[2] == bid_ten2k256[0].w[2] &&
 			Cstar.w[1] == bid_ten2k256[0].w[1] &&
 			Cstar.w[0] == bid_ten2k256[0].w[0] {
-			Cstar.w[0] = bid_ten2k128[18].w[0]
-			Cstar.w[1] = bid_ten2k128[18].w[1]
+			Cstar.w[0] = bid_ten2k128[18].lo
+			Cstar.w[1] = bid_ten2k128[18].hi
 			Cstar.w[2] = 0x0
 			incr_exp = 1
 		} else {

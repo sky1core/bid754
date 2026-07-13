@@ -116,7 +116,7 @@ pub(crate) fn bid32_div_pure(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
         DU = (go_checked_shr_u32(((A.wrapping_sub(B))), go_shift_count_u64((31) as u64)));
         ed1 = ((6 as i64).wrapping_add(DU as i64));
         ed2 = ((bid_estimate_decimal_digits[bin_index as usize] as i64).wrapping_add(ed1));
-        T = (bid_power10_table_128[ed1 as usize].w[0] as u32);
+        T = (bid_power10_table_128[ed1 as usize].lo as u32);
         CA = ((A as u64).wrapping_mul(T as u64));
         Q = 0;
         diff_expon = (diff_expon.wrapping_sub(ed2));
@@ -132,10 +132,10 @@ pub(crate) fn bid32_div_pure(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
         DU = (((bid_power10_index_binexp[bin_expon_cx as usize] as u32).wrapping_sub(Q)).wrapping_sub(1));
         DU = go_checked_shr_u32(DU, go_shift_count_u64((31) as u64));
         ed2 = (((7 as i64).wrapping_sub(bid_estimate_decimal_digits[bin_expon_cx as usize] as i64)).wrapping_sub(DU as i64));
-        T = (bid_power10_table_128[ed2 as usize].w[0] as u32);
+        T = (bid_power10_table_128[ed2 as usize].lo as u32);
         CA = ((R as u64).wrapping_mul(T as u64));
         B = coefficient_y;
-        Q = Q.wrapping_mul(bid_power10_table_128[ed2 as usize].w[0] as u32);
+        Q = Q.wrapping_mul(bid_power10_table_128[ed2 as usize].lo as u32);
         diff_expon = diff_expon.wrapping_sub(ed2);
     }
     Q2 = ((CA / (B as u64)) as u32);
@@ -317,7 +317,7 @@ pub(crate) fn bid32_div_core(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, 
         DU = (go_checked_shr_u32(((A.wrapping_sub(B))), go_shift_count_u64((31) as u64)));
         ed1 = ((6 as i64).wrapping_add(DU as i64));
         ed2 = ((bid_estimate_decimal_digits[bin_index as usize] as i64).wrapping_add(ed1));
-        T = (bid_power10_table_128[ed1 as usize].w[0] as u32);
+        T = (bid_power10_table_128[ed1 as usize].lo as u32);
         CA = ((A as u64).wrapping_mul(T as u64));
         Q = 0;
         diff_expon = (diff_expon.wrapping_sub(ed2));
@@ -333,10 +333,10 @@ pub(crate) fn bid32_div_core(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, 
         DU = (((bid_power10_index_binexp[bin_expon_cx as usize] as u32).wrapping_sub(Q)).wrapping_sub(1));
         DU = go_checked_shr_u32(DU, go_shift_count_u64((31) as u64));
         ed2 = (((7 as i64).wrapping_sub(bid_estimate_decimal_digits[bin_expon_cx as usize] as i64)).wrapping_sub(DU as i64));
-        T = (bid_power10_table_128[ed2 as usize].w[0] as u32);
+        T = (bid_power10_table_128[ed2 as usize].lo as u32);
         CA = ((R as u64).wrapping_mul(T as u64));
         B = coefficient_y;
-        Q = Q.wrapping_mul(bid_power10_table_128[ed2 as usize].w[0] as u32);
+        Q = Q.wrapping_mul(bid_power10_table_128[ed2 as usize].lo as u32);
         diff_expon = diff_expon.wrapping_sub(ed2);
     }
     Q2 = ((CA / (B as u64)) as u32);

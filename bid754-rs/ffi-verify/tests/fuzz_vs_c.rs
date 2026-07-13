@@ -31,20 +31,24 @@ fn next_bid64(rng: &mut StdRng) -> u64 {
 
 fn next_bid128(rng: &mut StdRng) -> RustBid128 {
     RustBid128 {
-        w: [rng.next_u64(), rng.next_u64()],
+        lo: rng.next_u64(),
+        hi: rng.next_u64(),
     }
 }
 
 fn to_c_bid128(x: RustBid128) -> CbBid128 {
-    CbBid128 { w: x.w }
+    CbBid128 { w: [x.lo, x.hi] }
 }
 
 fn to_rust_bid128(x: CbBid128) -> RustBid128 {
-    RustBid128 { w: x.w }
+    RustBid128 {
+        lo: x.w[0],
+        hi: x.w[1],
+    }
 }
 
 fn fmt_rust_bid128(x: RustBid128) -> String {
-    format!("[lo=0x{:016x}, hi=0x{:016x}]", x.w[0], x.w[1])
+    format!("[lo=0x{:016x}, hi=0x{:016x}]", x.lo, x.hi)
 }
 
 macro_rules! fuzz_binary_u32 {

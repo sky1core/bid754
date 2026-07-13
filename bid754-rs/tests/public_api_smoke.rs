@@ -302,8 +302,8 @@ fn decimal64_conversion_family_routes_through_port() {
     let (widened, flags) = d.to_decimal128();
     let (want_bits, want_raw) = bid754::generated::to_bid12864::bid64_to_bid128(d.to_bits());
     let mut want_le = [0u8; 16];
-    want_le[0..8].copy_from_slice(&want_bits.w[0].to_le_bytes());
-    want_le[8..16].copy_from_slice(&want_bits.w[1].to_le_bytes());
+    want_le[0..8].copy_from_slice(&want_bits.lo.to_le_bytes());
+    want_le[8..16].copy_from_slice(&want_bits.hi.to_le_bytes());
     assert_eq!(widened.to_le_bytes(), want_le);
     assert_eq!(flags.bits(), map_bidgo_flags(want_raw));
 }

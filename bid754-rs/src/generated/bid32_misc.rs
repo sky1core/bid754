@@ -188,7 +188,7 @@ pub fn bid32_fmod(mut x: u32, mut y: u32) -> (u32, u32) {
             res = x;
             return (res, pfpsf);
         }
-        T = (bid_power10_table_128[diff_expon as usize].w[0] as u32);
+        T = (bid_power10_table_128[diff_expon as usize].lo as u32);
         CYL = ((coefficient_y as u64).wrapping_mul(T as u64));
         if (CYL > (coefficient_x as u64)) {
             res = x;
@@ -212,7 +212,7 @@ pub fn bid32_fmod(mut x: u32, mut y: u32) -> (u32, u32) {
             e_scale = diff_expon;
             diff_expon = 0;
         }
-        CX = CX.wrapping_mul(bid_power10_table_128[e_scale as usize].w[0]);
+        CX = CX.wrapping_mul(bid_power10_table_128[e_scale as usize].lo);
         Q64 = (CX / (coefficient_y as u64));
         CX = CX.wrapping_sub((Q64.wrapping_mul(coefficient_y as u64)));
         if (CX == 0) {
@@ -318,15 +318,15 @@ pub fn bid32_na_n(tagp: impl AsRef<str>) -> u32 {
 
 pub fn bid32_next_toward(mut x: u32, mut y: BID_UINT128) -> (u32, u32) {
     let mut res: u32 = 0;
-    let mut x128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut tmp128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut x128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut tmp128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut tmp1: u32 = 0;
     let mut tmp2: u32 = 0;
     let mut tmp_fpsf: u32 = 0;
     let mut res1: i64 = 0;
     let mut res2: i64 = 0;
     let mut flags: u32 = 0;
-    if (((((x & 0x78000000) == 0x78000000)) || (((y.w[1] & 0x7c00000000000000) == 0x7c00000000000000))) || (((y.w[1] & 0x7c00000000000000) == 0x7800000000000000))) {
+    if (((((x & 0x78000000) == 0x78000000)) || (((y.hi & 0x7c00000000000000) == 0x7c00000000000000))) || (((y.hi & 0x7c00000000000000) == 0x7800000000000000))) {
         if ((x & 0x7c000000) == 0x7c000000) {
             if ((x & 0x000fffff) > 999999) {
                 x = (x & 0xfe000000);
@@ -337,24 +337,24 @@ pub fn bid32_next_toward(mut x: u32, mut y: BID_UINT128) -> (u32, u32) {
                 flags |= 1;
                 res = (x & 0xfdffffff);
             } else {
-                if ((y.w[1] & 0x7e00000000000000) == 0x7e00000000000000) {
+                if ((y.hi & 0x7e00000000000000) == 0x7e00000000000000) {
                     flags |= 1;
                 }
                 res = x;
             }
             return (res, flags);
-        } else if ((y.w[1] & 0x7c00000000000000) == 0x7c00000000000000) {
-            if ((((y.w[1] & 0x00003fffffffffff) > 0x0000314dc6448d93)) || ((((y.w[1] & 0x00003fffffffffff) == 0x0000314dc6448d93) && (y.w[0] > 0x38c15b09ffffffff)))) {
-                y.w[1] = (y.w[1] & 0xffffc00000000000);
-                y.w[0] = 0;
+        } else if ((y.hi & 0x7c00000000000000) == 0x7c00000000000000) {
+            if ((((y.hi & 0x00003fffffffffff) > 0x0000314dc6448d93)) || ((((y.hi & 0x00003fffffffffff) == 0x0000314dc6448d93) && (y.lo > 0x38c15b09ffffffff)))) {
+                y.hi = (y.hi & 0xffffc00000000000);
+                y.lo = 0;
             }
-            if ((y.w[1] & 0x7e00000000000000) == 0x7e00000000000000) {
+            if ((y.hi & 0x7e00000000000000) == 0x7e00000000000000) {
                 flags |= 1;
-                tmp128.w[1] = (y.w[1] & 0xfc003fffffffffff);
-                tmp128.w[0] = y.w[0];
+                tmp128.hi = (y.hi & 0xfc003fffffffffff);
+                tmp128.lo = y.lo;
             } else {
-                tmp128.w[1] = (y.w[1] & 0xfc003fffffffffff);
-                tmp128.w[0] = y.w[0];
+                tmp128.hi = (y.hi & 0xfc003fffffffffff);
+                tmp128.lo = y.lo;
             }
             (res, _) = bid128_to_bid32(tmp128, 0);
             return (res, flags);
@@ -362,9 +362,9 @@ pub fn bid32_next_toward(mut x: u32, mut y: BID_UINT128) -> (u32, u32) {
             if ((x & 0x78000000) == 0x78000000) {
                 x = (x & (0x80000000 | 0x78000000));
             }
-            if ((y.w[1] & 0x7c00000000000000) == 0x7800000000000000) {
-                y.w[1] = (y.w[1] & (0x8000000000000000 | 0x7800000000000000));
-                y.w[0] = 0;
+            if ((y.hi & 0x7c00000000000000) == 0x7800000000000000) {
+                y.hi = (y.hi & (0x8000000000000000 | 0x7800000000000000));
+                y.lo = 0;
             }
         }
     }
@@ -381,7 +381,7 @@ pub fn bid32_next_toward(mut x: u32, mut y: BID_UINT128) -> (u32, u32) {
     (res2, _) = bid128_quiet_greater(x128, y);
     flags = tmp_fpsf;
     if (res1 != 0) {
-        res = (((go_checked_shr_u64((y.w[1] & 0x8000000000000000), go_shift_count_u64((32) as u64))) as u32) | (x & 0x7fffffff));
+        res = (((go_checked_shr_u64((y.hi & 0x8000000000000000), go_shift_count_u64((32) as u64))) as u32) | (x & 0x7fffffff));
     } else if (res2 != 0) {
         (res, _) = bid32_next_down(x);
     } else {
@@ -440,7 +440,7 @@ pub fn bid32_to_binary64(mut x: u32, mut rndMode: i64) -> (u64, u32) {
 
 pub fn bid32_to_binary128(mut x: u32, mut rndMode: i64) -> (BID_UINT128, u32) {
     if ((x & 0x7c000000) == 0x7c000000) {
-        let mut res: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+        let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
         let mut flags: u32 = 0;
         let mut payload = ((x & 0x000fffff) as u64);
         if (payload > 999999) {
@@ -449,8 +449,8 @@ pub fn bid32_to_binary128(mut x: u32, mut rndMode: i64) -> (BID_UINT128, u32) {
         if ((x & 0x7e000000) == 0x7e000000) {
             flags |= 1;
         }
-        res.w[1] = (((((go_checked_shl_u64(((x & 0x80000000) as u64), go_shift_count_u64((32) as u64)))) | 0x7fff000000000000) | 0x0000800000000000) | ((((go_checked_shl_u64(payload, go_shift_count_u64((27) as u64)))) & 0x00007fffffffffff)));
-        res.w[0] = 0;
+        res.hi = (((((go_checked_shl_u64(((x & 0x80000000) as u64), go_shift_count_u64((32) as u64)))) | 0x7fff000000000000) | 0x0000800000000000) | ((((go_checked_shl_u64(payload, go_shift_count_u64((27) as u64)))) & 0x00007fffffffffff)));
+        res.lo = 0;
         return (res, flags);
     }
     let (mut x64, mut f0) = bid32_to_bid64(x);

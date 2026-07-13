@@ -136,7 +136,7 @@ var zeroValues = map[string]string{
 	"String":       "String::new()",
 	"&'static str": "\"\"",
 	"BigUint":      "BigUint::zero()",
-	"BID_UINT128":  "BID_UINT128 { w: [0, 0] }",
+	"BID_UINT128":  "BID_UINT128 { lo: 0, hi: 0 }",
 	"BID_UINT192":  "BID_UINT192 { w: [0, 0, 0] }",
 	"BID_UINT256":  "BID_UINT256 { w: [0, 0, 0, 0] }",
 	"BID_UINT320":  "BID_UINT320 { w: [0, 0, 0, 0, 0] }",
@@ -3644,7 +3644,7 @@ func optimizeBid32StringParse(code string) (string, error) {
 func rewriteRoundC2Loop(code string) string {
 	label := "                    // label: roundC2\n"
 	gotoStmt := "                                // goto roundC2; // TODO: convert goto to loop/break\n"
-	footer := "                    C1_hi = C1.w[1];\n"
+	footer := "                    C1_hi = C1.hi;\n"
 
 	labelPos := strings.Index(code, label)
 	if labelPos < 0 {
@@ -3722,68 +3722,68 @@ func rewriteFmaDoneLabelBlock(code string) string {
 func rewriteAdd128MatchBreak(code string) string {
 	oldBlocks := []string{
 		`        2 => {
-            if ((FS.w[1] as i64) < 0) {
+            if ((FS.hi as i64) < 0) {
                 break;
             }
             T2 = bid_power10_table_128[(diff_dec_expon.wrapping_add(extra_digits)) as usize];
             if __unsigned_compare_gt_128(FS, T2) {
                 CYh = CYh.wrapping_add(2);
                 FS = __sub_128_128(FS, T2);
-            } else if ((FS.w[1] == T2.w[1]) && (FS.w[0] == T2.w[0])) {
+            } else if ((FS.hi == T2.hi) && (FS.lo == T2.lo)) {
                 CYh = CYh.wrapping_add(1);
-                FS.w[1] = 0;
-                FS.w[0] = 0;
-            } else if ((FS.w[1] | FS.w[0]) != 0) {
+                FS.hi = 0;
+                FS.lo = 0;
+            } else if ((FS.hi | FS.lo) != 0) {
                 CYh = CYh.wrapping_add(1);
             }
         }
 `,
 		`        2 => {
-            if ((FS.w[1] as i64) < 0) {
+            if ((FS.hi as i64) < 0) {
                 break;
             }
             T2 = bid_power10_table_128[(diff_dec_expon + extra_digits) as usize];
             if __unsigned_compare_gt_128(FS, T2) {
                 CYh = CYh.wrapping_add(2);
                 FS = __sub_128_128(FS, T2);
-            } else if ((FS.w[1] == T2.w[1]) && (FS.w[0] == T2.w[0])) {
+            } else if ((FS.hi == T2.hi) && (FS.lo == T2.lo)) {
                 CYh = CYh.wrapping_add(1);
-                FS.w[1] = 0;
-                FS.w[0] = 0;
-            } else if ((FS.w[1] | FS.w[0]) != 0) {
+                FS.hi = 0;
+                FS.lo = 0;
+            } else if ((FS.hi | FS.lo) != 0) {
                 CYh = CYh.wrapping_add(1);
             }
         }
 `,
 		`        2 => {
-            if ((FS.w[1] as i64) < 0) {
+            if ((FS.hi as i64) < 0) {
                 break;
             }
             T2 = bid_power10_table_128[(diff_dec_expon + extra_digits) as usize];
             if __unsigned_compare_gt_128(FS, T2) {
                 CYh += 2;
                 FS = __sub_128_128(FS, T2);
-            } else if ((FS.w[1] == T2.w[1]) && (FS.w[0] == T2.w[0])) {
+            } else if ((FS.hi == T2.hi) && (FS.lo == T2.lo)) {
                 CYh = CYh.wrapping_add(1);
-                FS.w[1] = 0;
-                FS.w[0] = 0;
-            } else if ((FS.w[1] | FS.w[0]) != 0) {
+                FS.hi = 0;
+                FS.lo = 0;
+            } else if ((FS.hi | FS.lo) != 0) {
                 CYh = CYh.wrapping_add(1);
             }
         }
 `,
 	}
 	newBlock := `        2 => {
-            if !((FS.w[1] as i64) < 0) {
+            if !((FS.hi as i64) < 0) {
                 T2 = bid_power10_table_128[(diff_dec_expon.wrapping_add(extra_digits)) as usize];
                 if __unsigned_compare_gt_128(FS, T2) {
                     CYh = CYh.wrapping_add(2);
                     FS = __sub_128_128(FS, T2);
-                } else if ((FS.w[1] == T2.w[1]) && (FS.w[0] == T2.w[0])) {
+                } else if ((FS.hi == T2.hi) && (FS.lo == T2.lo)) {
                     CYh = CYh.wrapping_add(1);
-                    FS.w[1] = 0;
-                    FS.w[0] = 0;
-                } else if ((FS.w[1] | FS.w[0]) != 0) {
+                    FS.hi = 0;
+                    FS.lo = 0;
+                } else if ((FS.hi | FS.lo) != 0) {
                     CYh = CYh.wrapping_add(1);
                 }
             }

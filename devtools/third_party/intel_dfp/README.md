@@ -19,7 +19,7 @@ This directory contains the Intel DFP Math Library inputs used by the repository
 The repository uses this tree in two grounded ways:
 
 - `third_party/intel_dfp/lib/libbid.a` is the native archive linked by `-tags bid754_native`
-- the checked-in generators read the downloaded, checksum-verified C sources and headers (extracted here by `scripts/setup_generation_inputs.sh`; not committed) to rebuild `generated/go/intel_dfp_tables.go`, `../bid754-rs/src/intel_dfp_tables.rs` (emitted into the crate so the published package is self-contained), and `generated/json/intel_dfp_symbols.json`
+- the checked-in generators read the downloaded, checksum-verified C sources and headers (extracted here by `scripts/setup_generation_inputs.sh`; not committed) to rebuild `generated/go/intel_dfp_tables.go`, the `bid_binarydecimal.c` subset at `../bid754-go/internal/bidgo/tables_binarydecimal.go`, `../bid754-rs/src/intel_dfp_tables.rs` (emitted into the crate so the published package is self-contained), and `generated/json/intel_dfp_symbols.json`
 
 There is no Rust crate or alternate binding subsystem wired up here; the Rust file is just an extracted artifact.
 

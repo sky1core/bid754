@@ -714,7 +714,7 @@ func (w widthSpec) wrapResult(rawExpr string) string {
 // NaNs used by the Go public wrappers.
 func (w widthSpec) canonicalQNaNResult() string {
 	if w.is128 {
-		return w.wrapResult("crate::gen_types::BID_UINT128 { w: [0, " + decimal128QuietNaNHighBits + "] }")
+		return w.wrapResult("crate::gen_types::BID_UINT128 { lo: 0, hi: " + decimal128QuietNaNHighBits + " }")
 	}
 	return w.wrapResult(w.nanBits)
 }
@@ -782,7 +782,7 @@ var decimal128Width = widthSpec{
 // max (limit-1), verified against the Go source arithmetically.
 // decimal128NaNPayloadMaskHi is the high-word payload
 // extraction mask (mirrors the Go formatDecimal128BIDNaN's
-// `bits.w[1] & 0x00003fffffffffff`): together with the full 64-bit low word
+// `bits.hi & 0x00003fffffffffff`): together with the full 64-bit low word
 // this gives the ~110-bit total payload capacity.
 const (
 	decimal128QuietNaNHighBits     = "0x7c00_0000_0000_0000"
@@ -1339,7 +1339,8 @@ pub(crate) fn bid_uint128_from_le_bytes(bytes: [u8; 16]) -> crate::gen_types::BI
     lo.copy_from_slice(&bytes[0..8]);
     hi.copy_from_slice(&bytes[8..16]);
     crate::gen_types::BID_UINT128 {
-        w: [u64::from_le_bytes(lo), u64::from_le_bytes(hi)],
+        lo: u64::from_le_bytes(lo),
+        hi: u64::from_le_bytes(hi),
     }
 }
 
@@ -1349,8 +1350,8 @@ pub(crate) fn bid_uint128_from_le_bytes(bytes: [u8; 16]) -> crate::gen_types::BI
 /// through Go's low-level pointer-cast facility).
 pub(crate) fn bid_uint128_to_le_bytes(v: crate::gen_types::BID_UINT128) -> [u8; 16] {
     let mut bytes = [0u8; 16];
-    bytes[0..8].copy_from_slice(&v.w[0].to_le_bytes());
-    bytes[8..16].copy_from_slice(&v.w[1].to_le_bytes());
+    bytes[0..8].copy_from_slice(&v.lo.to_le_bytes());
+    bytes[8..16].copy_from_slice(&v.hi.to_le_bytes());
     bytes
 }
 

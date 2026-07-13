@@ -100,14 +100,14 @@ pub fn bid32_quantize(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
     let mut tempx = ((coefficient_x as f32) as f32).to_bits();
     bin_expon_cx = (((((go_checked_shr_u32(tempx, go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(0x7f));
     digits_x = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
-    if ((coefficient_x as u64) >= bid_power10_table_128[digits_x as usize].w[0]) {
+    if ((coefficient_x as u64) >= bid_power10_table_128[digits_x as usize].lo) {
         digits_x = digits_x.wrapping_add(1);
     }
     expon_diff = (exponent_x.wrapping_sub(exponent_y));
     total_digits = (digits_x.wrapping_add(expon_diff));
     if (((total_digits.wrapping_add(1)) as u32) <= 8) {
         if (expon_diff >= 0) {
-            coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[expon_diff as usize].w[0] as u32);
+            coefficient_x = coefficient_x.wrapping_mul(bid_power10_table_128[expon_diff as usize].lo as u32);
             res = very_fast_get_bid32(sign_x, exponent_y, coefficient_x);
             return (res, pfpsf);
         }

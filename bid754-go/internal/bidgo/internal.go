@@ -11,10 +11,11 @@ import (
 	"math/bits"
 )
 
-// BID_UINT128 represents a 128-bit unsigned integer
-// w[0] is low 64 bits, w[1] is high 64 bits
+// BID_UINT128 represents a 128-bit unsigned integer.
+// lo is the low 64 bits and hi is the high 64 bits.
 type BID_UINT128 struct {
-	w [2]uint64
+	lo uint64
+	hi uint64
 }
 
 // BID_UINT192 represents a 192-bit unsigned integer
@@ -91,9 +92,9 @@ const (
 // __shr_128 performs right shift on 128-bit value
 func __shr_128(a BID_UINT128, k uint) BID_UINT128 {
 	var q BID_UINT128
-	q.w[0] = a.w[0] >> k
-	q.w[0] |= a.w[1] << (64 - k)
-	q.w[1] = a.w[1] >> k
+	q.lo = a.lo >> k
+	q.lo |= a.hi << (64 - k)
+	q.hi = a.hi >> k
 	return q
 }
 
@@ -101,12 +102,12 @@ func __shr_128(a BID_UINT128, k uint) BID_UINT128 {
 func __shr_128_long(a BID_UINT128, k uint) BID_UINT128 {
 	var q BID_UINT128
 	if k < 64 {
-		q.w[0] = a.w[0] >> k
-		q.w[0] |= a.w[1] << (64 - k)
-		q.w[1] = a.w[1] >> k
+		q.lo = a.lo >> k
+		q.lo |= a.hi << (64 - k)
+		q.hi = a.hi >> k
 	} else {
-		q.w[0] = a.w[1] >> (k - 64)
-		q.w[1] = 0
+		q.lo = a.hi >> (k - 64)
+		q.hi = 0
 	}
 	return q
 }
@@ -115,62 +116,62 @@ func __shr_128_long(a BID_UINT128, k uint) BID_UINT128 {
 func __shl_128_long(a BID_UINT128, k uint) BID_UINT128 {
 	var q BID_UINT128
 	if k < 64 {
-		q.w[1] = a.w[1] << k
-		q.w[1] |= a.w[0] >> (64 - k)
-		q.w[0] = a.w[0] << k
+		q.hi = a.hi << k
+		q.hi |= a.lo >> (64 - k)
+		q.lo = a.lo << k
 	} else {
-		q.w[1] = a.w[0] << (k - 64)
-		q.w[0] = 0
+		q.hi = a.lo << (k - 64)
+		q.lo = 0
 	}
 	return q
 }
 
 // __unsigned_compare_gt_128 returns true if A > B
 func __unsigned_compare_gt_128(a, b BID_UINT128) bool {
-	return (a.w[1] > b.w[1]) || ((a.w[1] == b.w[1]) && (a.w[0] > b.w[0]))
+	return (a.hi > b.hi) || ((a.hi == b.hi) && (a.lo > b.lo))
 }
 
 // __unsigned_compare_ge_128 returns true if A >= B
 func __unsigned_compare_ge_128(a, b BID_UINT128) bool {
-	return (a.w[1] > b.w[1]) || ((a.w[1] == b.w[1]) && (a.w[0] >= b.w[0]))
+	return (a.hi > b.hi) || ((a.hi == b.hi) && (a.lo >= b.lo))
 }
 
 // __test_equal_128 returns true if A == B
 func __test_equal_128(a, b BID_UINT128) bool {
-	return (a.w[1] == b.w[1]) && (a.w[0] == b.w[0])
+	return (a.hi == b.hi) && (a.lo == b.lo)
 }
 
 // __add_128_64 adds 64-bit value to 128-bit
 func __add_128_64(a BID_UINT128, b uint64) BID_UINT128 {
 	var r BID_UINT128
-	r64h := a.w[1]
-	r.w[0] = b + a.w[0]
-	if r.w[0] < b {
+	r64h := a.hi
+	r.lo = b + a.lo
+	if r.lo < b {
 		r64h++
 	}
-	r.w[1] = r64h
+	r.hi = r64h
 	return r
 }
 
 // __sub_128_64 subtracts 64-bit value from 128-bit
 func __sub_128_64(a BID_UINT128, b uint64) BID_UINT128 {
 	var r BID_UINT128
-	r64h := a.w[1]
-	if a.w[0] < b {
+	r64h := a.hi
+	if a.lo < b {
 		r64h--
 	}
-	r.w[1] = r64h
-	r.w[0] = a.w[0] - b
+	r.hi = r64h
+	r.lo = a.lo - b
 	return r
 }
 
 // __add_128_128 adds two 128-bit values
 func __add_128_128(a, b BID_UINT128) BID_UINT128 {
 	var q BID_UINT128
-	q.w[1] = a.w[1] + b.w[1]
-	q.w[0] = b.w[0] + a.w[0]
-	if q.w[0] < b.w[0] {
-		q.w[1]++
+	q.hi = a.hi + b.hi
+	q.lo = b.lo + a.lo
+	if q.lo < b.lo {
+		q.hi++
 	}
 	return q
 }
@@ -178,10 +179,10 @@ func __add_128_128(a, b BID_UINT128) BID_UINT128 {
 // __sub_128_128 subtracts two 128-bit values
 func __sub_128_128(a, b BID_UINT128) BID_UINT128 {
 	var q BID_UINT128
-	q.w[1] = a.w[1] - b.w[1]
-	q.w[0] = a.w[0] - b.w[0]
-	if a.w[0] < b.w[0] {
-		q.w[1]--
+	q.hi = a.hi - b.hi
+	q.lo = a.lo - b.lo
+	if a.lo < b.lo {
+		q.hi--
 	}
 	return q
 }
@@ -217,7 +218,7 @@ func __sub_borrow_out(x, y uint64) (s uint64, cy uint64) {
 // __mul_64x64_to_128 multiplies two 64-bit values to get 128-bit result
 func __mul_64x64_to_128(cx, cy uint64) BID_UINT128 {
 	hi, lo := bits.Mul64(cx, cy)
-	return BID_UINT128{w: [2]uint64{lo, hi}}
+	return BID_UINT128{lo: lo, hi: hi}
 }
 
 // __mul_64x64_to_128_fast is the same as __mul_64x64_to_128 for CX, CY < 2^61
@@ -227,26 +228,26 @@ func __mul_64x64_to_128_fast(cx, cy uint64) BID_UINT128 {
 
 // __mul_64x128_full multiplies 64-bit by 128-bit, returns 64-bit high and 128-bit low
 func __mul_64x128_full(a uint64, b BID_UINT128) (ph uint64, ql BID_UINT128) {
-	albh := __mul_64x64_to_128(a, b.w[1])
-	albl := __mul_64x64_to_128(a, b.w[0])
+	albh := __mul_64x64_to_128(a, b.hi)
+	albl := __mul_64x64_to_128(a, b.lo)
 
-	ql.w[0] = albl.w[0]
-	qm2 := __add_128_64(albh, albl.w[1])
-	ql.w[1] = qm2.w[0]
-	ph = qm2.w[1]
+	ql.lo = albl.lo
+	qm2 := __add_128_64(albh, albl.hi)
+	ql.hi = qm2.lo
+	ph = qm2.hi
 	return
 }
 
 // __mul_64x128_to_192 multiplies 64-bit by 128-bit to get 192-bit result
 func __mul_64x128_to_192(a uint64, b BID_UINT128) BID_UINT192 {
 	var q BID_UINT192
-	albh := __mul_64x64_to_128(a, b.w[1])
-	albl := __mul_64x64_to_128(a, b.w[0])
+	albh := __mul_64x64_to_128(a, b.hi)
+	albl := __mul_64x64_to_128(a, b.lo)
 
-	q.w[0] = albl.w[0]
-	qm2 := __add_128_64(albh, albl.w[1])
-	q.w[1] = qm2.w[0]
-	q.w[2] = qm2.w[1]
+	q.w[0] = albl.lo
+	qm2 := __add_128_64(albh, albl.hi)
+	q.w[1] = qm2.lo
+	q.w[2] = qm2.hi
 	return q
 }
 
@@ -255,12 +256,12 @@ func __mul_128x128_to_256(a, b BID_UINT128) BID_UINT256 {
 	var p256 BID_UINT256
 	var cy1, cy2 uint64
 
-	phl, qll := __mul_64x128_full(a.w[0], b)
-	phh, qlh := __mul_64x128_full(a.w[1], b)
+	phl, qll := __mul_64x128_full(a.lo, b)
+	phh, qlh := __mul_64x128_full(a.hi, b)
 
-	p256.w[0] = qll.w[0]
-	p256.w[1], cy1 = __add_carry_out(qlh.w[0], qll.w[1])
-	p256.w[2], cy2 = __add_carry_in_out(qlh.w[1], phl, cy1)
+	p256.w[0] = qll.lo
+	p256.w[1], cy1 = __add_carry_out(qlh.lo, qll.hi)
+	p256.w[2], cy2 = __add_carry_in_out(qlh.hi, phl, cy1)
 	p256.w[3] = phh + cy2
 	return p256
 }
@@ -466,9 +467,9 @@ func get_BID64(sgn uint64, expon int, coeff uint64, rmode int) uint64 {
 					remainderH = remainderH & qh
 
 					if remainderH == 0 &&
-						(qLow.w[1] < bid_reciprocals10_128[extraDigits].w[1] ||
-							(qLow.w[1] == bid_reciprocals10_128[extraDigits].w[1] &&
-								qLow.w[0] < bid_reciprocals10_128[extraDigits].w[0])) {
+						(qLow.hi < bid_reciprocals10_128[extraDigits].hi ||
+							(qLow.hi == bid_reciprocals10_128[extraDigits].hi &&
+								qLow.lo < bid_reciprocals10_128[extraDigits].lo)) {
 						c64--
 					}
 				}
@@ -480,9 +481,9 @@ func get_BID64(sgn uint64, expon int, coeff uint64, rmode int) uint64 {
 				remainderH = remainderH & qh
 
 				if remainderH == 0 &&
-					(qLow.w[1] < bid_reciprocals10_128[extraDigits].w[1] ||
-						(qLow.w[1] == bid_reciprocals10_128[extraDigits].w[1] &&
-							qLow.w[0] < bid_reciprocals10_128[extraDigits].w[0])) {
+					(qLow.hi < bid_reciprocals10_128[extraDigits].hi ||
+						(qLow.hi == bid_reciprocals10_128[extraDigits].hi &&
+							qLow.lo < bid_reciprocals10_128[extraDigits].lo)) {
 					c64-- // tie → toward zero
 				}
 			}
@@ -543,15 +544,15 @@ func __tight_bin_range_128(P BID_UINT128, binExpon int) int {
 
 	if bp < 63 {
 		M <<= uint(bp + 1)
-		if P.w[0] >= M {
+		if P.lo >= M {
 			bp++
 		}
 	} else if bp > 64 {
 		M <<= uint(bp + 1 - 64)
-		if P.w[1] > M || (P.w[1] == M && P.w[0] != 0) {
+		if P.hi > M || (P.hi == M && P.lo != 0) {
 			bp++
 		}
-	} else if P.w[1] != 0 {
+	} else if P.hi != 0 {
 		bp++
 	}
 	return bp
@@ -561,16 +562,16 @@ func __tight_bin_range_128(P BID_UINT128, binExpon int) int {
 // Returns Qh (high 128 bits), Ql (low 128 bits)
 // Ported from Intel BID library bid_internal.h
 func __mul_128x128_full(A, B BID_UINT128) (Qh, Ql BID_UINT128) {
-	ALBH := __mul_64x64_to_128(A.w[0], B.w[1])
-	AHBL := __mul_64x64_to_128(B.w[0], A.w[1])
-	ALBL := __mul_64x64_to_128(A.w[0], B.w[0])
-	AHBH := __mul_64x64_to_128(A.w[1], B.w[1])
+	ALBH := __mul_64x64_to_128(A.lo, B.hi)
+	AHBL := __mul_64x64_to_128(B.lo, A.hi)
+	ALBL := __mul_64x64_to_128(A.lo, B.lo)
+	AHBH := __mul_64x64_to_128(A.hi, B.hi)
 
 	QM := __add_128_128(ALBH, AHBL)
-	Ql.w[0] = ALBL.w[0]
-	QM2 := __add_128_64(QM, ALBL.w[1])
-	Qh = __add_128_64(AHBH, QM2.w[1])
-	Ql.w[1] = QM2.w[0]
+	Ql.lo = ALBL.lo
+	QM2 := __add_128_64(QM, ALBL.hi)
+	Qh = __add_128_64(AHBH, QM2.hi)
+	Ql.hi = QM2.lo
 	return
 }
 
@@ -629,9 +630,9 @@ func get_BID64_small_mantissa(sgn uint64, expon int, coeff uint64, rmode int) ui
 					remainder_h = remainder_h & QH
 
 					if remainder_h == 0 &&
-						(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-							(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-								Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+						(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+							(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+								Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 						_C64--
 					}
 				}
@@ -642,9 +643,9 @@ func get_BID64_small_mantissa(sgn uint64, expon int, coeff uint64, rmode int) ui
 				remainder_h = remainder_h & QH
 
 				if remainder_h == 0 &&
-					(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+					(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					_C64-- // tie → toward zero
 				}
 			}
@@ -716,10 +717,10 @@ func get_BID64_small_mantissa_flags(sgn uint64, expon int, coeff uint64, rmode i
 
 			// get digits to be shifted out
 			extra_digits = -expon
-			C128.w[0] = coeff + bid_round_const_table[rmode][extra_digits]
+			C128.lo = coeff + bid_round_const_table[rmode][extra_digits]
 
 			// get coeff*(2^M[extra_digits])/10^extra_digits
-			QH, Q_low = __mul_64x128_full(C128.w[0], bid_reciprocals10_128[extra_digits])
+			QH, Q_low = __mul_64x128_full(C128.lo, bid_reciprocals10_128[extra_digits])
 
 			// now get P/10^extra_digits: shift Q_high right by M[extra_digits]-128
 			amount = bid_recip_scale[extra_digits]
@@ -738,9 +739,9 @@ func get_BID64_small_mantissa_flags(sgn uint64, expon int, coeff uint64, rmode i
 					remainder_h = remainder_h & QH
 
 					if remainder_h == 0 &&
-						(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-							(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-								Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+						(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+							(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+								Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 						_C64--
 					}
 				}
@@ -759,24 +760,24 @@ func get_BID64_small_mantissa_flags(sgn uint64, expon int, coeff uint64, rmode i
 				case BID_ROUNDING_TIES_AWAY:
 					// test whether fractional part is 0
 					if remainder_h == 0x8000000000000000 &&
-						(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-							(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-								Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+						(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+							(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+								Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 						status = BID_EXACT_STATUS
 					}
 				case BID_ROUNDING_DOWN:
 					fallthrough
 				case BID_ROUNDING_TO_ZERO:
 					if remainder_h == 0 &&
-						(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-							(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-								Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+						(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+							(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+								Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 						status = BID_EXACT_STATUS
 					}
 				default:
 					// round up
-					Stemp.w[0], CY = __add_carry_out(Q_low.w[0], bid_reciprocals10_128[extra_digits].w[0])
-					Stemp.w[1], carry = __add_carry_in_out(Q_low.w[1], bid_reciprocals10_128[extra_digits].w[1], CY)
+					Stemp.lo, CY = __add_carry_out(Q_low.lo, bid_reciprocals10_128[extra_digits].lo)
+					Stemp.hi, carry = __add_carry_in_out(Q_low.hi, bid_reciprocals10_128[extra_digits].hi, CY)
 					if (remainder_h>>(64-uint(amount)))+carry >= (uint64(1) << uint(amount)) {
 						status = BID_EXACT_STATUS
 					}
@@ -902,9 +903,9 @@ func get_BID64_UF(sgn uint64, expon int, coeff uint64, R uint64, rmode int) uint
 			remainder_h = remainder_h & QH
 
 			if remainder_h == 0 &&
-				(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-					(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-						Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+				(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+					(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+						Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 				_C64--
 			}
 		}
@@ -915,9 +916,9 @@ func get_BID64_UF(sgn uint64, expon int, coeff uint64, R uint64, rmode int) uint
 		remainder_h = remainder_h & QH
 
 		if remainder_h == 0 &&
-			(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-				(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-					Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+			(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+				(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+					Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 			_C64-- // tie → toward zero
 		}
 	}
@@ -979,9 +980,9 @@ func get_BID64_flags(sgn uint64, expon int, coeff uint64, rmode int) (uint64, ui
 					remainder_h = remainder_h & QH
 
 					if remainder_h == 0 &&
-						(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-							(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-								Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+						(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+							(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+								Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 						_C64--
 					}
 				}
@@ -997,23 +998,23 @@ func get_BID64_flags(sgn uint64, expon int, coeff uint64, rmode int) (uint64, ui
 			case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 				// test whether fractional part is 0
 				if remainder_h == 0x8000000000000000 &&
-					(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+					(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					status = BID_EXACT_STATUS
 				}
 			case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
 				if remainder_h == 0 &&
-					(Q_low.w[1] < bid_reciprocals10_128[extra_digits].w[1] ||
-						(Q_low.w[1] == bid_reciprocals10_128[extra_digits].w[1] &&
-							Q_low.w[0] < bid_reciprocals10_128[extra_digits].w[0])) {
+					(Q_low.hi < bid_reciprocals10_128[extra_digits].hi ||
+						(Q_low.hi == bid_reciprocals10_128[extra_digits].hi &&
+							Q_low.lo < bid_reciprocals10_128[extra_digits].lo)) {
 					status = BID_EXACT_STATUS
 				}
 			default:
 				// round up
 				var Stemp_w0 uint64
-				Stemp_w0, CY = __add_carry_out(Q_low.w[0], bid_reciprocals10_128[extra_digits].w[0])
-				_, carry = __add_carry_in_out(Q_low.w[1], bid_reciprocals10_128[extra_digits].w[1], CY)
+				Stemp_w0, CY = __add_carry_out(Q_low.lo, bid_reciprocals10_128[extra_digits].lo)
+				_, carry = __add_carry_in_out(Q_low.hi, bid_reciprocals10_128[extra_digits].hi, CY)
 				_ = Stemp_w0
 				if (remainder_h>>(64-uint(amount)))+carry >= (uint64(1) << uint(amount)) {
 					status = BID_EXACT_STATUS
@@ -1077,92 +1078,92 @@ func __mul_192x192_to_384(a, b BID_UINT192) BID_UINT384 {
 	p21 := __mul_64x64_to_128(a.w[2], b.w[1])
 	p22 := __mul_64x64_to_128(a.w[2], b.w[2])
 
-	p.w[0] = p00.w[0]
+	p.w[0] = p00.lo
 
 	// w[1] = p00.w[1] + p01.w[0] + p10.w[0]
-	p.w[1] = p00.w[1] + p01.w[0]
+	p.w[1] = p00.hi + p01.lo
 	cy = 0
-	if p.w[1] < p00.w[1] {
+	if p.w[1] < p00.hi {
 		cy++
 	}
 	tmp := p.w[1]
-	p.w[1] += p10.w[0]
+	p.w[1] += p10.lo
 	if p.w[1] < tmp {
 		cy++
 	}
 
 	// w[2] = cy + p01.w[1] + p02.w[0] + p10.w[1] + p11.w[0] + p20.w[0]
-	p.w[2] = cy + p01.w[1]
+	p.w[2] = cy + p01.hi
 	cy = 0
-	if p.w[2] < p01.w[1] {
+	if p.w[2] < p01.hi {
 		cy++
 	}
 	tmp = p.w[2]
-	p.w[2] += p02.w[0]
+	p.w[2] += p02.lo
 	if p.w[2] < tmp {
 		cy++
 	}
 	tmp = p.w[2]
-	p.w[2] += p10.w[1]
+	p.w[2] += p10.hi
 	if p.w[2] < tmp {
 		cy++
 	}
 	tmp = p.w[2]
-	p.w[2] += p11.w[0]
+	p.w[2] += p11.lo
 	if p.w[2] < tmp {
 		cy++
 	}
 	tmp = p.w[2]
-	p.w[2] += p20.w[0]
+	p.w[2] += p20.lo
 	if p.w[2] < tmp {
 		cy++
 	}
 
 	// w[3] = cy + p02.w[1] + p11.w[1] + p12.w[0] + p20.w[1] + p21.w[0]
-	p.w[3] = cy + p02.w[1]
+	p.w[3] = cy + p02.hi
 	cy = 0
-	if p.w[3] < p02.w[1] {
+	if p.w[3] < p02.hi {
 		cy++
 	}
 	tmp = p.w[3]
-	p.w[3] += p11.w[1]
+	p.w[3] += p11.hi
 	if p.w[3] < tmp {
 		cy++
 	}
 	tmp = p.w[3]
-	p.w[3] += p12.w[0]
+	p.w[3] += p12.lo
 	if p.w[3] < tmp {
 		cy++
 	}
 	tmp = p.w[3]
-	p.w[3] += p20.w[1]
+	p.w[3] += p20.hi
 	if p.w[3] < tmp {
 		cy++
 	}
 	tmp = p.w[3]
-	p.w[3] += p21.w[0]
+	p.w[3] += p21.lo
 	if p.w[3] < tmp {
 		cy++
 	}
 
 	// w[4] = cy + p12.w[1] + p21.w[1] + p22.w[0]
-	p.w[4] = cy + p12.w[1]
+	p.w[4] = cy + p12.hi
 	cy = 0
-	if p.w[4] < p12.w[1] {
+	if p.w[4] < p12.hi {
 		cy++
 	}
 	tmp = p.w[4]
-	p.w[4] += p21.w[1]
+	p.w[4] += p21.hi
 	if p.w[4] < tmp {
 		cy++
 	}
 	tmp = p.w[4]
-	p.w[4] += p22.w[0]
+	p.w[4] += p22.lo
 	if p.w[4] < tmp {
 		cy++
 	}
 
-	p.w[5] = cy + p22.w[1]
+	p.w[5] = cy + p22.hi
 
 	return p
 }
@@ -1173,10 +1174,10 @@ func __mul_256x256_to_512(a, b BID_UINT256) BID_UINT512 {
 	// a = aH * 2^128 + aL, b = bH * 2^128 + bL
 	// a*b = aH*bH*2^256 + (aH*bL + aL*bH)*2^128 + aL*bL
 	var p BID_UINT512
-	aL := BID_UINT128{w: [2]uint64{a.w[0], a.w[1]}}
-	aH := BID_UINT128{w: [2]uint64{a.w[2], a.w[3]}}
-	bL := BID_UINT128{w: [2]uint64{b.w[0], b.w[1]}}
-	bH := BID_UINT128{w: [2]uint64{b.w[2], b.w[3]}}
+	aL := BID_UINT128{lo: a.w[0], hi: a.w[1]}
+	aH := BID_UINT128{lo: a.w[2], hi: a.w[3]}
+	bL := BID_UINT128{lo: b.w[0], hi: b.w[1]}
+	bH := BID_UINT128{lo: b.w[2], hi: b.w[3]}
 
 	p0 := __mul_128x128_to_256(aL, bL) // aL * bL
 	p1 := __mul_128x128_to_256(aH, bL) // aH * bL
@@ -1272,10 +1273,10 @@ func __mul_64x192_to_256(A uint64, B BID_UINT192) BID_UINT256 {
 	lP0 := __mul_64x64_to_128(A, B.w[0])
 	lP1 := __mul_64x64_to_128(A, B.w[1])
 	lP2 := __mul_64x64_to_128(A, B.w[2])
-	P.w[0] = lP0.w[0]
-	P.w[1], c = __add_carry_out(lP1.w[0], lP0.w[1])
-	P.w[2], c = __add_carry_in_out(lP2.w[0], lP1.w[1], c)
-	P.w[3] = lP2.w[1] + c
+	P.w[0] = lP0.lo
+	P.w[1], c = __add_carry_out(lP1.lo, lP0.hi)
+	P.w[2], c = __add_carry_in_out(lP2.lo, lP1.hi, c)
+	P.w[3] = lP2.hi + c
 	return P
 }
 
@@ -1288,11 +1289,11 @@ func __mul_64x256_to_320(A uint64, B BID_UINT256) BID_UINT320 {
 	lP1 := __mul_64x64_to_128(A, B.w[1])
 	lP2 := __mul_64x64_to_128(A, B.w[2])
 	lP3 := __mul_64x64_to_128(A, B.w[3])
-	P.w[0] = lP0.w[0]
-	P.w[1], c = __add_carry_out(lP1.w[0], lP0.w[1])
-	P.w[2], c = __add_carry_in_out(lP2.w[0], lP1.w[1], c)
-	P.w[3], c = __add_carry_in_out(lP3.w[0], lP2.w[1], c)
-	P.w[4] = lP3.w[1] + c
+	P.w[0] = lP0.lo
+	P.w[1], c = __add_carry_out(lP1.lo, lP0.hi)
+	P.w[2], c = __add_carry_in_out(lP2.lo, lP1.hi, c)
+	P.w[3], c = __add_carry_in_out(lP3.lo, lP2.hi, c)
+	P.w[4] = lP3.hi + c
 	return P
 }
 
@@ -1306,12 +1307,12 @@ func __mul_64x320_to_384(A uint64, B BID_UINT320) BID_UINT384 {
 	lP2 := __mul_64x64_to_128(A, B.w[2])
 	lP3 := __mul_64x64_to_128(A, B.w[3])
 	lP4 := __mul_64x64_to_128(A, B.w[4])
-	P.w[0] = lP0.w[0]
-	P.w[1], c = __add_carry_out(lP1.w[0], lP0.w[1])
-	P.w[2], c = __add_carry_in_out(lP2.w[0], lP1.w[1], c)
-	P.w[3], c = __add_carry_in_out(lP3.w[0], lP2.w[1], c)
-	P.w[4], c = __add_carry_in_out(lP4.w[0], lP3.w[1], c)
-	P.w[5] = lP4.w[1] + c
+	P.w[0] = lP0.lo
+	P.w[1], c = __add_carry_out(lP1.lo, lP0.hi)
+	P.w[2], c = __add_carry_in_out(lP2.lo, lP1.hi, c)
+	P.w[3], c = __add_carry_in_out(lP3.lo, lP2.hi, c)
+	P.w[4], c = __add_carry_in_out(lP4.lo, lP3.hi, c)
+	P.w[5] = lP4.hi + c
 	return P
 }
 
@@ -1320,17 +1321,17 @@ func __mul_64x320_to_384(A uint64, B BID_UINT320) BID_UINT384 {
 func __sqr128_to_256(A BID_UINT128) BID_UINT256 {
 	var P256 BID_UINT256
 	var c1, c2 uint64
-	Qhh := __mul_64x64_to_128(A.w[1], A.w[1])
-	Qlh := __mul_64x64_to_128(A.w[0], A.w[1])
-	Qhh.w[1] += (Qlh.w[1] >> 63)
-	Qlh.w[1] = (Qlh.w[1] + Qlh.w[1]) | (Qlh.w[0] >> 63)
-	Qlh.w[0] += Qlh.w[0]
-	Qll := __mul_64x64_to_128(A.w[0], A.w[0])
+	Qhh := __mul_64x64_to_128(A.hi, A.hi)
+	Qlh := __mul_64x64_to_128(A.lo, A.hi)
+	Qhh.hi += (Qlh.hi >> 63)
+	Qlh.hi = (Qlh.hi + Qlh.hi) | (Qlh.lo >> 63)
+	Qlh.lo += Qlh.lo
+	Qll := __mul_64x64_to_128(A.lo, A.lo)
 
-	P256.w[1], c1 = __add_carry_out(Qlh.w[0], Qll.w[1])
-	P256.w[0] = Qll.w[0]
-	P256.w[2], c2 = __add_carry_in_out(Qlh.w[1], Qhh.w[0], c1)
-	P256.w[3] = Qhh.w[1] + c2
+	P256.w[1], c1 = __add_carry_out(Qlh.lo, Qll.hi)
+	P256.w[0] = Qll.lo
+	P256.w[2], c2 = __add_carry_in_out(Qlh.hi, Qhh.lo, c1)
+	P256.w[3] = Qhh.hi + c2
 	return P256
 }
 
@@ -1338,15 +1339,15 @@ func __sqr128_to_256(A BID_UINT128) BID_UINT256 {
 // Ported from Intel BID library bid_internal.h
 func bid_get_BID128_fast(sgn uint64, expon int, coeff BID_UINT128) BID_UINT128 {
 	var res BID_UINT128
-	if coeff.w[1] == 0x0001ed09bead87c0 && coeff.w[0] == 0x378d8e6400000000 {
+	if coeff.hi == 0x0001ed09bead87c0 && coeff.lo == 0x378d8e6400000000 {
 		expon++
-		coeff.w[1] = 0x0000314dc6448d93
-		coeff.w[0] = 0x38c15b0a00000000
+		coeff.hi = 0x0000314dc6448d93
+		coeff.lo = 0x38c15b0a00000000
 	}
-	res.w[0] = coeff.w[0]
+	res.lo = coeff.lo
 	tmp := uint64(expon)
 	tmp <<= 49
-	res.w[1] = sgn | tmp | coeff.w[1]
+	res.hi = sgn | tmp | coeff.hi
 	return res
 }
 

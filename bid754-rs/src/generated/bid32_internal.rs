@@ -71,7 +71,7 @@ pub(crate) fn fast_get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u32) -> u3
 }
 
 pub(crate) fn get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode: i64) -> u32 {
-    let mut Q: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Q: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut _C64: u64 = 0;
     let mut remainder_h: u64 = 0;
     let mut r: u32 = 0;
@@ -101,13 +101,13 @@ pub(crate) fn get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode:
             coeff = coeff.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
             Q = __mul_64x64_to_128(coeff, bid_reciprocals10_64[extra_digits as usize]);
             amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-            _C64 = (go_checked_shr_u64(Q.w[1], go_shift_count_u64((amount as u64) as u64)));
+            _C64 = (go_checked_shr_u64(Q.hi, go_shift_count_u64((amount as u64) as u64)));
             if (rmode == 0) {
                 if ((_C64 & 1) != 0) {
                     amount2 = ((64 as i64).wrapping_sub(amount));
                     remainder_h = (go_checked_shr_u64(((!(0 as u64))), go_shift_count_u64((amount2 as u64) as u64)));
-                    remainder_h = (remainder_h & Q.w[1]);
-                    if ((remainder_h == 0) && (Q.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                    remainder_h = (remainder_h & Q.hi);
+                    if ((remainder_h == 0) && (Q.lo < bid_reciprocals10_64[extra_digits as usize])) {
                         _C64 = _C64.wrapping_sub(1);
                     }
                 }
@@ -162,7 +162,7 @@ pub(crate) fn get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode:
 }
 
 pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode: i64, pfpsf: &mut u32) -> u32 {
-    let mut Q: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Q: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut _C64: u64 = 0;
     let mut remainder_h: u64 = 0;
     let mut carry: u64 = 0;
@@ -196,13 +196,13 @@ pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut 
             coeff = coeff.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
             Q = __mul_64x64_to_128(coeff, bid_reciprocals10_64[extra_digits as usize]);
             amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-            _C64 = (go_checked_shr_u64(Q.w[1], go_shift_count_u64((amount as u64) as u64)));
+            _C64 = (go_checked_shr_u64(Q.hi, go_shift_count_u64((amount as u64) as u64)));
             if ((rmode == 0) && ((_C64 & 1) != 0)) {
                 amount2 = ((64 as i64).wrapping_sub(amount));
                 remainder_h = (!(0 as u64));
                 remainder_h = go_checked_shr_u64(remainder_h, go_shift_count_u64((amount2 as u64) as u64));
-                remainder_h &= Q.w[1];
-                if ((remainder_h == 0) && (Q.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                remainder_h &= Q.hi;
+                if ((remainder_h == 0) && (Q.lo < bid_reciprocals10_64[extra_digits as usize])) {
                     _C64 = _C64.wrapping_sub(1);
                 }
             }
@@ -210,20 +210,20 @@ pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut 
                 (*pfpsf) |= 16;
             } else {
                 status = 32;
-                remainder_h = (go_checked_shl_u64(Q.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
+                remainder_h = (go_checked_shl_u64(Q.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
                 match rmode {
                     0 | 4 => {
-                        if ((remainder_h == 0x8000000000000000) && (Q.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                        if ((remainder_h == 0x8000000000000000) && (Q.lo < bid_reciprocals10_64[extra_digits as usize])) {
                             status = 0;
                         }
                     }
                     1 | 3 => {
-                        if ((remainder_h == 0) && (Q.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                        if ((remainder_h == 0) && (Q.lo < bid_reciprocals10_64[extra_digits as usize])) {
                             status = 0;
                         }
                     }
                     _ => {
-                        (Stemp, carry) = go_add64(Q.w[0], bid_reciprocals10_64[extra_digits as usize], 0);
+                        (Stemp, carry) = go_add64(Q.lo, bid_reciprocals10_64[extra_digits as usize], 0);
                         _ = Stemp;
                         if ((((go_checked_shr_u64(remainder_h, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)))).wrapping_add(carry)) >= ((go_checked_shl_u64((1 as u64), go_shift_count_u64((amount as u64) as u64))))) {
                             status = 0;
@@ -283,7 +283,7 @@ pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut 
 }
 
 pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: u32, mut rmode: i64, pfpsf: &mut u32) -> u32 {
-    let mut Q: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Q: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut _C64: u64 = 0;
     let mut remainder_h: u64 = 0;
     let mut r: u32 = 0;
@@ -318,13 +318,13 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
             coeff = coeff.wrapping_add(bid_round_const_table[rmode as usize][extra_digits as usize]);
             Q = __mul_64x64_to_128(coeff, bid_reciprocals10_64[extra_digits as usize]);
             amount = (bid_short_recip_scale[extra_digits as usize] as i64);
-            _C64 = (go_checked_shr_u64(Q.w[1], go_shift_count_u64((amount as u64) as u64)));
+            _C64 = (go_checked_shr_u64(Q.hi, go_shift_count_u64((amount as u64) as u64)));
             if (rmode == 0) {
                 if ((_C64 & 1) != 0) {
                     amount2 = ((64 as i64).wrapping_sub(amount));
                     remainder_h = (go_checked_shr_u64(((!(0 as u64))), go_shift_count_u64((amount2 as u64) as u64)));
-                    remainder_h = (remainder_h & Q.w[1]);
-                    if ((remainder_h == 0) && (Q.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                    remainder_h = (remainder_h & Q.hi);
+                    if ((remainder_h == 0) && (Q.lo < bid_reciprocals10_64[extra_digits as usize])) {
                         _C64 = _C64.wrapping_sub(1);
                     }
                 }
@@ -333,21 +333,21 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
                 (*pfpsf) |= 16;
             } else {
                 let mut status: u32 = (32 as u32);
-                remainder_h = (go_checked_shl_u64(Q.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
+                remainder_h = (go_checked_shl_u64(Q.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)));
                 match rmode {
                     0 | 4 => {
-                        if ((remainder_h == 0x8000000000000000) && (Q.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                        if ((remainder_h == 0x8000000000000000) && (Q.lo < bid_reciprocals10_64[extra_digits as usize])) {
                             status = 0;
                         }
                     }
                     1 | 3 => {
-                        if ((remainder_h == 0) && (Q.w[0] < bid_reciprocals10_64[extra_digits as usize])) {
+                        if ((remainder_h == 0) && (Q.lo < bid_reciprocals10_64[extra_digits as usize])) {
                             status = 0;
                         }
                     }
                     _ => {
                         let mut carry: u64 = 0;
-                        (_, carry) = __add_carry_out(Q.w[0], bid_reciprocals10_64[extra_digits as usize]);
+                        (_, carry) = __add_carry_out(Q.lo, bid_reciprocals10_64[extra_digits as usize]);
                         if ((((go_checked_shr_u64(remainder_h, go_shift_count_u64(((((64 as i64).wrapping_sub(amount)) as u64)) as u64)))).wrapping_add(carry)) >= ((go_checked_shl_u64((1 as u64), go_shift_count_u64((amount as u64) as u64))))) {
                             status = 0;
                         }

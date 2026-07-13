@@ -250,76 +250,76 @@ var bid_ten2mk64 = bid_ten2mk64_round64
 // bid_ten2mk128[k-1] = 10^(-k) * 2^exp(k), where 1 <= k <= 34 and
 // exp(k) = bid_shiftright128[k-1] + 128 (rounded up to 118 bits).
 var bid_ten2mk128 = [34]BID_UINT128{
-	{w: [2]uint64{0x999999999999999a, 0x1999999999999999}}, //  10^(-1) * 2^128
-	{w: [2]uint64{0x28f5c28f5c28f5c3, 0x028f5c28f5c28f5c}}, //  10^(-2) * 2^128
-	{w: [2]uint64{0x9db22d0e56041894, 0x004189374bc6a7ef}}, //  10^(-3) * 2^128
-	{w: [2]uint64{0x4af4f0d844d013aa, 0x00346dc5d6388659}}, //  10^(-4) * 2^131
-	{w: [2]uint64{0x08c3f3e0370cdc88, 0x0029f16b11c6d1e1}}, //  10^(-5) * 2^134
-	{w: [2]uint64{0x6d698fe69270b06d, 0x00218def416bdb1a}}, //  10^(-6) * 2^137
-	{w: [2]uint64{0xaf0f4ca41d811a47, 0x0035afe535795e90}}, //  10^(-7) * 2^141
-	{w: [2]uint64{0xbf3f70834acdaea0, 0x002af31dc4611873}}, //  10^(-8) * 2^144
-	{w: [2]uint64{0x65cc5a02a23e254d, 0x00225c17d04dad29}}, //  10^(-9) * 2^147
-	{w: [2]uint64{0x6fad5cd10396a214, 0x0036f9bfb3af7b75}}, // 10^(-10) * 2^151
-	{w: [2]uint64{0xbfbde3da69454e76, 0x002bfaffc2f2c92a}}, // 10^(-11) * 2^154
-	{w: [2]uint64{0x32fe4fe1edd10b92, 0x00232f33025bd422}}, // 10^(-12) * 2^157
-	{w: [2]uint64{0x84ca19697c81ac1c, 0x00384b84d092ed03}}, // 10^(-13) * 2^161
-	{w: [2]uint64{0x03d4e1213067bce4, 0x002d09370d425736}}, // 10^(-14) * 2^164
-	{w: [2]uint64{0x3643e74dc052fd83, 0x0024075f3dceac2b}}, // 10^(-15) * 2^167
-	{w: [2]uint64{0x56d30baf9a1e626b, 0x0039a5652fb11378}}, // 10^(-16) * 2^171
-	{w: [2]uint64{0x12426fbfae7eb522, 0x002e1dea8c8da92d}}, // 10^(-17) * 2^174
-	{w: [2]uint64{0x41cebfcc8b9890e8, 0x0024e4bba3a48757}}, // 10^(-18) * 2^177
-	{w: [2]uint64{0x694acc7a78f41b0d, 0x003b07929f6da558}}, // 10^(-19) * 2^181
-	{w: [2]uint64{0xbaa23d2ec729af3e, 0x002f394219248446}}, // 10^(-20) * 2^184
-	{w: [2]uint64{0xfbb4fdbf05baf298, 0x0025c768141d369e}}, // 10^(-21) * 2^187
-	{w: [2]uint64{0x2c54c931a2c4b759, 0x003c7240202ebdcb}}, // 10^(-22) * 2^191
-	{w: [2]uint64{0x89dd6dc14f03c5e1, 0x00305b66802564a2}}, // 10^(-23) * 2^194
-	{w: [2]uint64{0xd4b1249aa59c9e4e, 0x0026af8533511d4e}}, // 10^(-24) * 2^197
-	{w: [2]uint64{0x544ea0f76f60fd49, 0x003de5a1ebb4fbb1}}, // 10^(-25) * 2^201
-	{w: [2]uint64{0x76a54d92bf80caa1, 0x00318481895d9627}}, // 10^(-26) * 2^204
-	{w: [2]uint64{0x921dd7a89933d54e, 0x00279d346de4781f}}, // 10^(-27) * 2^207
-	{w: [2]uint64{0x8362f2a75b862215, 0x003f61ed7ca0c032}}, // 10^(-28) * 2^211
-	{w: [2]uint64{0xcf825bb91604e811, 0x0032b4bdfd4d668e}}, // 10^(-29) * 2^214
-	{w: [2]uint64{0x0c684960de6a5341, 0x00289097fdd7853f}}, // 10^(-30) * 2^217
-	{w: [2]uint64{0x3d203ab3e521dc34, 0x002073accb12d0ff}}, // 10^(-31) * 2^220
-	{w: [2]uint64{0x2e99f7863b696053, 0x0033ec47ab514e65}}, // 10^(-32) * 2^224
-	{w: [2]uint64{0x587b2c6b62bab376, 0x002989d2ef743eb7}}, // 10^(-33) * 2^227
-	{w: [2]uint64{0xad2f56bc4efbc2c5, 0x00213b0f25f69892}}, // 10^(-34) * 2^230
+	{lo: 0x999999999999999a, hi: 0x1999999999999999}, //  10^(-1) * 2^128
+	{lo: 0x28f5c28f5c28f5c3, hi: 0x028f5c28f5c28f5c}, //  10^(-2) * 2^128
+	{lo: 0x9db22d0e56041894, hi: 0x004189374bc6a7ef}, //  10^(-3) * 2^128
+	{lo: 0x4af4f0d844d013aa, hi: 0x00346dc5d6388659}, //  10^(-4) * 2^131
+	{lo: 0x08c3f3e0370cdc88, hi: 0x0029f16b11c6d1e1}, //  10^(-5) * 2^134
+	{lo: 0x6d698fe69270b06d, hi: 0x00218def416bdb1a}, //  10^(-6) * 2^137
+	{lo: 0xaf0f4ca41d811a47, hi: 0x0035afe535795e90}, //  10^(-7) * 2^141
+	{lo: 0xbf3f70834acdaea0, hi: 0x002af31dc4611873}, //  10^(-8) * 2^144
+	{lo: 0x65cc5a02a23e254d, hi: 0x00225c17d04dad29}, //  10^(-9) * 2^147
+	{lo: 0x6fad5cd10396a214, hi: 0x0036f9bfb3af7b75}, // 10^(-10) * 2^151
+	{lo: 0xbfbde3da69454e76, hi: 0x002bfaffc2f2c92a}, // 10^(-11) * 2^154
+	{lo: 0x32fe4fe1edd10b92, hi: 0x00232f33025bd422}, // 10^(-12) * 2^157
+	{lo: 0x84ca19697c81ac1c, hi: 0x00384b84d092ed03}, // 10^(-13) * 2^161
+	{lo: 0x03d4e1213067bce4, hi: 0x002d09370d425736}, // 10^(-14) * 2^164
+	{lo: 0x3643e74dc052fd83, hi: 0x0024075f3dceac2b}, // 10^(-15) * 2^167
+	{lo: 0x56d30baf9a1e626b, hi: 0x0039a5652fb11378}, // 10^(-16) * 2^171
+	{lo: 0x12426fbfae7eb522, hi: 0x002e1dea8c8da92d}, // 10^(-17) * 2^174
+	{lo: 0x41cebfcc8b9890e8, hi: 0x0024e4bba3a48757}, // 10^(-18) * 2^177
+	{lo: 0x694acc7a78f41b0d, hi: 0x003b07929f6da558}, // 10^(-19) * 2^181
+	{lo: 0xbaa23d2ec729af3e, hi: 0x002f394219248446}, // 10^(-20) * 2^184
+	{lo: 0xfbb4fdbf05baf298, hi: 0x0025c768141d369e}, // 10^(-21) * 2^187
+	{lo: 0x2c54c931a2c4b759, hi: 0x003c7240202ebdcb}, // 10^(-22) * 2^191
+	{lo: 0x89dd6dc14f03c5e1, hi: 0x00305b66802564a2}, // 10^(-23) * 2^194
+	{lo: 0xd4b1249aa59c9e4e, hi: 0x0026af8533511d4e}, // 10^(-24) * 2^197
+	{lo: 0x544ea0f76f60fd49, hi: 0x003de5a1ebb4fbb1}, // 10^(-25) * 2^201
+	{lo: 0x76a54d92bf80caa1, hi: 0x00318481895d9627}, // 10^(-26) * 2^204
+	{lo: 0x921dd7a89933d54e, hi: 0x00279d346de4781f}, // 10^(-27) * 2^207
+	{lo: 0x8362f2a75b862215, hi: 0x003f61ed7ca0c032}, // 10^(-28) * 2^211
+	{lo: 0xcf825bb91604e811, hi: 0x0032b4bdfd4d668e}, // 10^(-29) * 2^214
+	{lo: 0x0c684960de6a5341, hi: 0x00289097fdd7853f}, // 10^(-30) * 2^217
+	{lo: 0x3d203ab3e521dc34, hi: 0x002073accb12d0ff}, // 10^(-31) * 2^220
+	{lo: 0x2e99f7863b696053, hi: 0x0033ec47ab514e65}, // 10^(-32) * 2^224
+	{lo: 0x587b2c6b62bab376, hi: 0x002989d2ef743eb7}, // 10^(-33) * 2^227
+	{lo: 0xad2f56bc4efbc2c5, hi: 0x00213b0f25f69892}, // 10^(-34) * 2^230
 }
 
 // bid_ten2mk128trunc is ported mechanically from Intel bid128.c.
 var bid_ten2mk128trunc = [...]BID_UINT128{
-	{w: [2]uint64{0x9999999999999999, 0x1999999999999999}},
-	{w: [2]uint64{0x28f5c28f5c28f5c2, 0x028f5c28f5c28f5c}},
-	{w: [2]uint64{0x9db22d0e56041893, 0x004189374bc6a7ef}},
-	{w: [2]uint64{0x4af4f0d844d013a9, 0x00346dc5d6388659}},
-	{w: [2]uint64{0x08c3f3e0370cdc87, 0x0029f16b11c6d1e1}},
-	{w: [2]uint64{0x6d698fe69270b06c, 0x00218def416bdb1a}},
-	{w: [2]uint64{0xaf0f4ca41d811a46, 0x0035afe535795e90}},
-	{w: [2]uint64{0xbf3f70834acdae9f, 0x002af31dc4611873}},
-	{w: [2]uint64{0x65cc5a02a23e254c, 0x00225c17d04dad29}},
-	{w: [2]uint64{0x6fad5cd10396a213, 0x0036f9bfb3af7b75}},
-	{w: [2]uint64{0xbfbde3da69454e75, 0x002bfaffc2f2c92a}},
-	{w: [2]uint64{0x32fe4fe1edd10b91, 0x00232f33025bd422}},
-	{w: [2]uint64{0x84ca19697c81ac1b, 0x00384b84d092ed03}},
-	{w: [2]uint64{0x03d4e1213067bce3, 0x002d09370d425736}},
-	{w: [2]uint64{0x3643e74dc052fd82, 0x0024075f3dceac2b}},
-	{w: [2]uint64{0x56d30baf9a1e626a, 0x0039a5652fb11378}},
-	{w: [2]uint64{0x12426fbfae7eb521, 0x002e1dea8c8da92d}},
-	{w: [2]uint64{0x41cebfcc8b9890e7, 0x0024e4bba3a48757}},
-	{w: [2]uint64{0x694acc7a78f41b0c, 0x003b07929f6da558}},
-	{w: [2]uint64{0xbaa23d2ec729af3d, 0x002f394219248446}},
-	{w: [2]uint64{0xfbb4fdbf05baf297, 0x0025c768141d369e}},
-	{w: [2]uint64{0x2c54c931a2c4b758, 0x003c7240202ebdcb}},
-	{w: [2]uint64{0x89dd6dc14f03c5e0, 0x00305b66802564a2}},
-	{w: [2]uint64{0xd4b1249aa59c9e4d, 0x0026af8533511d4e}},
-	{w: [2]uint64{0x544ea0f76f60fd48, 0x003de5a1ebb4fbb1}},
-	{w: [2]uint64{0x76a54d92bf80caa0, 0x00318481895d9627}},
-	{w: [2]uint64{0x921dd7a89933d54d, 0x00279d346de4781f}},
-	{w: [2]uint64{0x8362f2a75b862214, 0x003f61ed7ca0c032}},
-	{w: [2]uint64{0xcf825bb91604e810, 0x0032b4bdfd4d668e}},
-	{w: [2]uint64{0x0c684960de6a5340, 0x00289097fdd7853f}},
-	{w: [2]uint64{0x3d203ab3e521dc33, 0x002073accb12d0ff}},
-	{w: [2]uint64{0x2e99f7863b696052, 0x0033ec47ab514e65}},
-	{w: [2]uint64{0x587b2c6b62bab375, 0x002989d2ef743eb7}},
-	{w: [2]uint64{0xad2f56bc4efbc2c4, 0x00213b0f25f69892}},
+	{lo: 0x9999999999999999, hi: 0x1999999999999999},
+	{lo: 0x28f5c28f5c28f5c2, hi: 0x028f5c28f5c28f5c},
+	{lo: 0x9db22d0e56041893, hi: 0x004189374bc6a7ef},
+	{lo: 0x4af4f0d844d013a9, hi: 0x00346dc5d6388659},
+	{lo: 0x08c3f3e0370cdc87, hi: 0x0029f16b11c6d1e1},
+	{lo: 0x6d698fe69270b06c, hi: 0x00218def416bdb1a},
+	{lo: 0xaf0f4ca41d811a46, hi: 0x0035afe535795e90},
+	{lo: 0xbf3f70834acdae9f, hi: 0x002af31dc4611873},
+	{lo: 0x65cc5a02a23e254c, hi: 0x00225c17d04dad29},
+	{lo: 0x6fad5cd10396a213, hi: 0x0036f9bfb3af7b75},
+	{lo: 0xbfbde3da69454e75, hi: 0x002bfaffc2f2c92a},
+	{lo: 0x32fe4fe1edd10b91, hi: 0x00232f33025bd422},
+	{lo: 0x84ca19697c81ac1b, hi: 0x00384b84d092ed03},
+	{lo: 0x03d4e1213067bce3, hi: 0x002d09370d425736},
+	{lo: 0x3643e74dc052fd82, hi: 0x0024075f3dceac2b},
+	{lo: 0x56d30baf9a1e626a, hi: 0x0039a5652fb11378},
+	{lo: 0x12426fbfae7eb521, hi: 0x002e1dea8c8da92d},
+	{lo: 0x41cebfcc8b9890e7, hi: 0x0024e4bba3a48757},
+	{lo: 0x694acc7a78f41b0c, hi: 0x003b07929f6da558},
+	{lo: 0xbaa23d2ec729af3d, hi: 0x002f394219248446},
+	{lo: 0xfbb4fdbf05baf297, hi: 0x0025c768141d369e},
+	{lo: 0x2c54c931a2c4b758, hi: 0x003c7240202ebdcb},
+	{lo: 0x89dd6dc14f03c5e0, hi: 0x00305b66802564a2},
+	{lo: 0xd4b1249aa59c9e4d, hi: 0x0026af8533511d4e},
+	{lo: 0x544ea0f76f60fd48, hi: 0x003de5a1ebb4fbb1},
+	{lo: 0x76a54d92bf80caa0, hi: 0x00318481895d9627},
+	{lo: 0x921dd7a89933d54d, hi: 0x00279d346de4781f},
+	{lo: 0x8362f2a75b862214, hi: 0x003f61ed7ca0c032},
+	{lo: 0xcf825bb91604e810, hi: 0x0032b4bdfd4d668e},
+	{lo: 0x0c684960de6a5340, hi: 0x00289097fdd7853f},
+	{lo: 0x3d203ab3e521dc33, hi: 0x002073accb12d0ff},
+	{lo: 0x2e99f7863b696052, hi: 0x0033ec47ab514e65},
+	{lo: 0x587b2c6b62bab375, hi: 0x002989d2ef743eb7},
+	{lo: 0xad2f56bc4efbc2c4, hi: 0x00213b0f25f69892},
 }

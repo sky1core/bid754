@@ -1198,7 +1198,7 @@ fn parse_decimal128_nan(input: &str) -> Option<Decimal128> {
         hi |= %s;
     }
     Some(Decimal128(super::types::bid_uint128_to_le_bytes(
-        crate::gen_types::BID_UINT128 { w: [lo, hi] },
+        crate::gen_types::BID_UINT128 { lo, hi },
     )))
 }
 `, decimal128NaNMaxPayload, decimal128QuietNaNHighBits, decimal128QuietNaNHighBits, decimal128SignalingNaNHighBits, decimal128SignHighBit)
@@ -1213,11 +1213,11 @@ func emitFormatDecimalNaN128Fn(b *strings.Builder) {
 /// the caller falls through to the port's to_string.
 fn format_decimal128_nan(bytes: [u8; 16]) -> Option<String> {
     let v = super::types::bid_uint128_from_le_bytes(bytes);
-    let hi = v.w[1];
+    let hi = v.hi;
     if hi & %s != %s {
         return None;
     }
-    let payload: u128 = ((hi & %s) as u128) << 64 | (v.w[0] as u128);
+    let payload: u128 = ((hi & %s) as u128) << 64 | (v.lo as u128);
     Some(super::types::format_bid_nan(
         hi & %s != 0,
         hi & %s == %s,

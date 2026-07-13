@@ -245,10 +245,12 @@ make verify-generated
 ```
 
 `make verify-generated` snapshots and compares the checked-in generated
-`bid754-go` tests/dispatch files, the generated `bid754-go/internal/testspec`
-spec loader package, BID codec vector consumers, BID string vector
-consumers, Rust generated readtest runner, Rust readtest dispatch inventory, and
-`bid754-rs/src/generated` after rerunning the generators.
+`bid754-go` tests/dispatch files, the c-tablegen-owned
+`bid754-go/internal/bidgo/tables_binarydecimal.go`, the generated
+`bid754-go/internal/testspec` spec loader package, BID codec vector consumers,
+BID string vector consumers, Rust generated readtest runner, Rust readtest
+dispatch inventory, and `bid754-rs/src/generated` after rerunning the
+generators.
 
 At the end, `make verify-generated` (also available standalone as
 `make check-generated-markers`) runs
@@ -258,13 +260,15 @@ the comparison set above or listed with a documented reason in
 `devtools/scripts/generated_marker_exceptions.txt`, so new generated artifacts
 cannot silently stay outside reproducibility verification.
 
-Two further devtools test layers anchor the verification counts and table
-values outside the generated path: `devtools/verification_anchors.json` pins
-the expected case counts of every generated verification domain (a hand-edited
-file checked against the real artifacts by a devtools test), and
+Two further devtools test layers cover verification counts and table values.
+`devtools/verification_anchors.json` pins the expected case counts of every
+generated verification domain outside the generated path (a hand-edited file
+checked against the real artifacts by a devtools test).
 `devtools/internal/tablecrosscheck` compares the c-tablegen Go output against
-the hand-ported table literals inside `bid754-go/internal/bidgo` value by
-value.
+the table literals inside `bid754-go/internal/bidgo` value by value. That
+comparison is an independent value anchor for hand-ported tables; for the
+c-tablegen-owned `tables_binarydecimal.go`, it is a closed-world value census,
+while `make verify-generated` supplies byte reproducibility.
 
 The Tier 1 routing sentinels add a third hand-maintained pin:
 `devtools/verification_sentinels.json` carries the known-answer rows that

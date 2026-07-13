@@ -78,10 +78,10 @@ func bid_rounding_correction(rnd_mode int,
 		*ptrfpsf |= BID_INEXACT_EXCEPTION
 	}
 
-	sign = res.w[1] & MASK_SIGN64
+	sign = res.hi & MASK_SIGN64
 	exp = uint64(unbexp+6176) << 49
-	C_hi = res.w[1] & MASK_COEFF128
-	C_lo = res.w[0]
+	C_hi = res.hi & MASK_COEFF128
+	C_lo = res.lo
 
 	if (sign == 0 && ((rnd_mode == BID_ROUNDING_UP && is_inexact_lt_midpoint != 0) ||
 		((rnd_mode == BID_ROUNDING_TIES_AWAY || rnd_mode == BID_ROUNDING_UP) && is_midpoint_gt_even != 0))) ||
@@ -138,8 +138,8 @@ func bid_rounding_correction(rnd_mode int,
 		}
 	}
 
-	res.w[1] = sign | exp | C_hi
-	res.w[0] = C_lo
+	res.hi = sign | exp | C_hi
+	res.lo = C_lo
 	*ptrres = res
 }
 
@@ -147,27 +147,27 @@ func bid_rounding_correction(rnd_mode int,
 // Ported from the digit-counting pattern in bid128_fma.c.
 func bid128_count_digits(C BID_UINT128) int {
 	var x_nr_bits int
-	if C.w[1] == 0 {
-		if C.w[0] == 0 {
+	if C.hi == 0 {
+		if C.lo == 0 {
 			return 0
 		}
-		if C.w[0] >= 0x0020000000000000 {
-			tmp := math.Float64bits(float64(C.w[0] >> 32))
+		if C.lo >= 0x0020000000000000 {
+			tmp := math.Float64bits(float64(C.lo >> 32))
 			x_nr_bits = 33 + int(((tmp>>52)&0x7ff)-0x3ff)
 		} else {
-			tmp := math.Float64bits(float64(C.w[0]))
+			tmp := math.Float64bits(float64(C.lo))
 			x_nr_bits = 1 + int(((tmp>>52)&0x7ff)-0x3ff)
 		}
 	} else {
-		tmp := math.Float64bits(float64(C.w[1]))
+		tmp := math.Float64bits(float64(C.hi))
 		x_nr_bits = 65 + int(((tmp>>52)&0x7ff)-0x3ff)
 	}
 	q := int(bid_nr_digits[x_nr_bits-1].digits)
 	if q == 0 {
 		q = int(bid_nr_digits[x_nr_bits-1].digits1)
-		if C.w[1] > bid_nr_digits[x_nr_bits-1].threshold_hi ||
-			(C.w[1] == bid_nr_digits[x_nr_bits-1].threshold_hi &&
-				C.w[0] >= bid_nr_digits[x_nr_bits-1].threshold_lo) {
+		if C.hi > bid_nr_digits[x_nr_bits-1].threshold_hi ||
+			(C.hi == bid_nr_digits[x_nr_bits-1].threshold_hi &&
+				C.lo >= bid_nr_digits[x_nr_bits-1].threshold_lo) {
 			q++
 		}
 	}

@@ -44,13 +44,13 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 	if diff_dec_expon > MAX_FORMAT_DIGITS {
 		// normalize a to a 16-digit coefficient
 		scale_ca = bid_estimate_decimal_digits[bin_expon_ca]
-		if coefficient_a >= bid_power10_table_128[scale_ca].w[0] {
+		if coefficient_a >= bid_power10_table_128[scale_ca].lo {
 			scale_ca++
 		}
 
 		scale_k = 16 - scale_ca
 
-		coefficient_a *= bid_power10_table_128[scale_k].w[0]
+		coefficient_a *= bid_power10_table_128[scale_k].lo
 
 		diff_dec_expon -= scale_k
 		exponent_a -= scale_k
@@ -113,7 +113,7 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 		// coefficient_a*10^(exponent_a-exponent_b)<2^63
 
 		// multiply by 10^(exponent_a-exponent_b)
-		coefficient_a *= bid_power10_table_128[diff_dec_expon].w[0]
+		coefficient_a *= bid_power10_table_128[diff_dec_expon].lo
 
 		// sign mask
 		sign_b = uint64(int64(sign_b) >> 63)
@@ -131,7 +131,7 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 		sign_s &= 0x8000000000000000
 
 		// coefficient_a < 10^16 ?
-		if coefficient_a < bid_power10_table_128[MAX_FORMAT_DIGITS].w[0] {
+		if coefficient_a < bid_power10_table_128[MAX_FORMAT_DIGITS].lo {
 			if rounding_mode == BID_ROUNDING_DOWN && coefficient_a == 0 && sign_a != sign_b {
 				sign_s = 0x8000000000000000
 			}
@@ -140,9 +140,9 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 		// otherwise rounding is necessary
 
 		// already know coefficient_a<10^19
-		if coefficient_a < bid_power10_table_128[17].w[0] {
+		if coefficient_a < bid_power10_table_128[17].lo {
 			extra_digits = 1
-		} else if coefficient_a < bid_power10_table_128[18].w[0] {
+		} else if coefficient_a < bid_power10_table_128[18].lo {
 			extra_digits = 2
 		} else {
 			extra_digits = 3
@@ -159,7 +159,7 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 
 		// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 		amount = bid_short_recip_scale[extra_digits]
-		C64 = CT.w[1] >> uint(amount)
+		C64 = CT.hi >> uint(amount)
 
 	} else {
 		// coefficient_a*10^(exponent_a-exponent_b) is large
@@ -177,10 +177,10 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 		sign_ab = uint64(int64(sign_ab) >> 63)
 
 		// T1 = 10^(16-diff_dec_expon)
-		T1 = bid_power10_table_128[16-diff_dec_expon].w[0]
+		T1 = bid_power10_table_128[16-diff_dec_expon].lo
 
 		// get number of digits in coefficient_a
-		if coefficient_a >= bid_power10_table_128[scale_ca].w[0] {
+		if coefficient_a >= bid_power10_table_128[scale_ca].lo {
 			scale_ca++
 		}
 
@@ -188,7 +188,7 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 
 		// addition
 		saved_ca = coefficient_a - T1
-		coefficient_a = uint64(int64(saved_ca) * int64(bid_power10_table_128[scale_k].w[0]))
+		coefficient_a = uint64(int64(saved_ca) * int64(bid_power10_table_128[scale_k].lo))
 		extra_digits = diff_dec_expon - scale_k
 
 		// apply sign
@@ -201,7 +201,7 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 
 		// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 		amount = bid_short_recip_scale[extra_digits]
-		C0_64 = CT.w[1] >> uint(amount)
+		C0_64 = CT.hi >> uint(amount)
 
 		// result coefficient
 		C64 = C0_64 + coefficient_a
@@ -213,13 +213,13 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 					// must divide coeff_a by 10
 					saved_ca = saved_ca + T1
 					CA = __mul_64x64_to_128(saved_ca, 0x3333333333333334)
-					coefficient_a = CA.w[1] >> 1
+					coefficient_a = CA.hi >> 1
 					rem_a = saved_ca - (coefficient_a << 3) - (coefficient_a << 1)
 					coefficient_a = coefficient_a - T1
 
-					saved_cb += rem_a * bid_power10_table_128[diff_dec_expon].w[0]
+					saved_cb += rem_a * bid_power10_table_128[diff_dec_expon].lo
 				} else {
-					coefficient_a = uint64(int64(saved_ca-T1-(T1<<3)) * int64(bid_power10_table_128[scale_k-1].w[0]))
+					coefficient_a = uint64(int64(saved_ca-T1-(T1<<3)) * int64(bid_power10_table_128[scale_k-1].lo))
 				}
 
 				extra_digits++
@@ -230,13 +230,13 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 
 				// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 				amount = bid_short_recip_scale[extra_digits]
-				C0_64 = CT.w[1] >> uint(amount)
+				C0_64 = CT.hi >> uint(amount)
 
 				// result coefficient
 				C64 = C0_64 + coefficient_a
 			} else if C64 <= 1000000000000000 {
 				// less than 16 digits in result
-				coefficient_a = uint64(int64(saved_ca) * int64(bid_power10_table_128[scale_k+1].w[0]))
+				coefficient_a = uint64(int64(saved_ca) * int64(bid_power10_table_128[scale_k+1].lo))
 				exponent_b--
 				coefficient_b = (saved_cb << 3) + (saved_cb << 1) + 100000000000000000 + bid_round_const_table[rmode][extra_digits]
 
@@ -245,7 +245,7 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 
 				// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 				amount = bid_short_recip_scale[extra_digits]
-				C0_64 = CT_new.w[1] >> uint(amount)
+				C0_64 = CT_new.hi >> uint(amount)
 
 				// result coefficient
 				C64_new = C0_64 + coefficient_a
@@ -262,10 +262,10 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 	if rmode == 0 {
 		if (C64 & 1) != 0 {
 			// get remainder
-			remainder_h = CT.w[1] << uint(64-amount)
+			remainder_h = CT.hi << uint(64-amount)
 
 			// test whether fractional part is 0
-			if remainder_h == 0 && (CT.w[0] < bid_reciprocals10_64[extra_digits]) {
+			if remainder_h == 0 && (CT.lo < bid_reciprocals10_64[extra_digits]) {
 				C64--
 			}
 		}
@@ -274,21 +274,21 @@ func bid_get_add64(sign_x uint64, exponent_x int, coefficient_x uint64,
 	status = BID_INEXACT_EXCEPTION
 
 	// get remainder
-	remainder_h = CT.w[1] << uint(64-amount)
+	remainder_h = CT.hi << uint(64-amount)
 
 	switch rmode {
 	case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 		if (remainder_h == 0x8000000000000000) &&
-			(CT.w[0] < bid_reciprocals10_64[extra_digits]) {
+			(CT.lo < bid_reciprocals10_64[extra_digits]) {
 			status = BID_EXACT_STATUS
 		}
 	case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
-		if remainder_h == 0 && (CT.w[0] < bid_reciprocals10_64[extra_digits]) {
+		if remainder_h == 0 && (CT.lo < bid_reciprocals10_64[extra_digits]) {
 			status = BID_EXACT_STATUS
 		}
 	default:
 		// round up
-		tmp, carry = __add_carry_out(CT.w[0], bid_reciprocals10_64[extra_digits])
+		tmp, carry = __add_carry_out(CT.lo, bid_reciprocals10_64[extra_digits])
 		_ = tmp
 		if (remainder_h>>uint(64-amount))+carry >= (uint64(1) << uint(amount)) {
 			status = BID_EXACT_STATUS

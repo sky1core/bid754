@@ -66,7 +66,7 @@ func Bid32Sqrt(x uint32, rnd_mode int) (uint32, uint32) {
 	exponent_q = exponent_x + DECIMAL_EXPONENT_BIAS_32 - scale
 	scale += (exponent_q & 1)
 
-	CT = bid_power10_table_128[scale].w[0]
+	CT = bid_power10_table_128[scale].lo
 	CA = uint64(coefficient_x) * CT
 
 	dq = math.Sqrt(float64(CA))

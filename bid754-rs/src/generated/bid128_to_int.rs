@@ -31,48 +31,48 @@ use super::prelude::*;
 pub(crate) fn bid128_unpack_for_int(mut x: BID_UINT128) -> (u64, u64, BID_UINT128, bool) {
     let mut x_sign: u64 = 0;
     let mut x_exp: u64 = 0;
-    let mut C1: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut C1: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut is_special: bool = false;
-    x_sign = (x.w[1] & 0x8000000000000000);
-    x_exp = (x.w[1] & 0x7ffe000000000000);
-    C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-    C1.w[0] = x.w[0];
-    is_special = ((x.w[1] & 0x7800000000000000) == 0x7800000000000000);
+    x_sign = (x.hi & 0x8000000000000000);
+    x_exp = (x.hi & 0x7ffe000000000000);
+    C1.hi = (x.hi & 0x1ffffffffffff);
+    C1.lo = x.lo;
+    is_special = ((x.hi & 0x7800000000000000) == 0x7800000000000000);
     return (x_sign, x_exp, C1, is_special);
 }
 
 pub(crate) fn bid128_is_nan_for_int(mut x: BID_UINT128) -> bool {
-    return ((x.w[1] & 0x7c00000000000000) == 0x7c00000000000000);
+    return ((x.hi & 0x7c00000000000000) == 0x7c00000000000000);
 }
 
 pub(crate) fn bid128_is_snan_for_int(mut x: BID_UINT128) -> bool {
-    return ((x.w[1] & 0x7e00000000000000) == 0x7e00000000000000);
+    return ((x.hi & 0x7e00000000000000) == 0x7e00000000000000);
 }
 
 pub(crate) fn bid128_is_noncanonical(mut C1: BID_UINT128, mut x: BID_UINT128) -> bool {
-    return (((C1.w[1] > 0x0001ed09bead87c0) || (((C1.w[1] == 0x0001ed09bead87c0) && (C1.w[0] > 0x378d8e63ffffffff)))) || (((x.w[1] & 0x6000000000000000) == 0x6000000000000000)));
+    return (((C1.hi > 0x0001ed09bead87c0) || (((C1.hi == 0x0001ed09bead87c0) && (C1.lo > 0x378d8e63ffffffff)))) || (((x.hi & 0x6000000000000000) == 0x6000000000000000)));
 }
 
 pub(crate) fn bid128_nr_digits(mut C1: BID_UINT128) -> (i64, u64) {
     let mut q: i64 = 0;
     let mut x_nr_bits: u64 = 0;
     let mut tmp1: u64 = 0;
-    if (C1.w[1] == 0) {
-        if (C1.w[0] >= 0x0020000000000000) {
-            tmp1 = (((go_checked_shr_u64(C1.w[0], go_shift_count_u64((32) as u64))) as f64)).to_bits();
+    if (C1.hi == 0) {
+        if (C1.lo >= 0x0020000000000000) {
+            tmp1 = (((go_checked_shr_u64(C1.lo, go_shift_count_u64((32) as u64))) as f64)).to_bits();
             x_nr_bits = ((33 as u64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64))) as u32) & 0x7ff)).wrapping_sub(0x3ff)) as u64)));
         } else {
-            tmp1 = (C1.w[0] as f64).to_bits();
+            tmp1 = (C1.lo as f64).to_bits();
             x_nr_bits = ((1 as u64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64))) as u32) & 0x7ff)).wrapping_sub(0x3ff)) as u64)));
         }
     } else {
-        tmp1 = (C1.w[1] as f64).to_bits();
+        tmp1 = (C1.hi as f64).to_bits();
         x_nr_bits = ((65 as u64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64))) as u32) & 0x7ff)).wrapping_sub(0x3ff)) as u64)));
     }
     q = (bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].digits as i64);
     if (q == 0) {
         q = (bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].digits1 as i64);
-        if ((C1.w[1] > bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) || (((C1.w[1] == bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) && (C1.w[0] >= bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_lo)))) {
+        if ((C1.hi > bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) || (((C1.hi == bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) && (C1.lo >= bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_lo)))) {
             q = q.wrapping_add(1);
         }
     }
@@ -80,12 +80,12 @@ pub(crate) fn bid128_nr_digits(mut C1: BID_UINT128) -> (i64, u64) {
 }
 
 pub(crate) fn bid128_check_overflow_10(mut C1: BID_UINT128, mut x_sign: u64, mut q: i64, mut neg_limit: u64, mut neg_cmp_ge: bool, mut pos_limit: u64, mut pos_cmp_ge: bool) -> (bool, u32) {
-    let mut C: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut C: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut tmp64: u64 = 0;
     let mut pfpsf: u32 = 0;
     if (x_sign != 0) {
         if (q <= 11) {
-            tmp64 = (C1.w[0].wrapping_mul(bid_ten2k64[((11 as i64).wrapping_sub(q)) as usize]));
+            tmp64 = (C1.lo.wrapping_mul(bid_ten2k64[((11 as i64).wrapping_sub(q)) as usize]));
             if neg_cmp_ge {
                 if (tmp64 >= neg_limit) {
                     pfpsf |= 1;
@@ -105,12 +105,12 @@ pub(crate) fn bid128_check_overflow_10(mut C1: BID_UINT128, mut x_sign: u64, mut
                 C = __mul_128x64_to_128(tmp64, bid_ten2k128[(q.wrapping_sub(31)) as usize]);
             }
             if neg_cmp_ge {
-                if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] >= C.w[0])))) {
+                if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo >= C.lo)))) {
                     pfpsf |= 1;
                     return (true, pfpsf);
                 }
             } else {
-                if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] > C.w[0])))) {
+                if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo > C.lo)))) {
                     pfpsf |= 1;
                     return (true, pfpsf);
                 }
@@ -118,7 +118,7 @@ pub(crate) fn bid128_check_overflow_10(mut C1: BID_UINT128, mut x_sign: u64, mut
         }
     } else {
         if (q <= 11) {
-            tmp64 = (C1.w[0].wrapping_mul(bid_ten2k64[((11 as i64).wrapping_sub(q)) as usize]));
+            tmp64 = (C1.lo.wrapping_mul(bid_ten2k64[((11 as i64).wrapping_sub(q)) as usize]));
             if pos_cmp_ge {
                 if (tmp64 >= pos_limit) {
                     pfpsf |= 1;
@@ -138,12 +138,12 @@ pub(crate) fn bid128_check_overflow_10(mut C1: BID_UINT128, mut x_sign: u64, mut
                 C = __mul_128x64_to_128(tmp64, bid_ten2k128[(q.wrapping_sub(31)) as usize]);
             }
             if pos_cmp_ge {
-                if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] >= C.w[0])))) {
+                if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo >= C.lo)))) {
                     pfpsf |= 1;
                     return (true, pfpsf);
                 }
             } else {
-                if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] > C.w[0])))) {
+                if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo > C.lo)))) {
                     pfpsf |= 1;
                     return (true, pfpsf);
                 }
@@ -155,30 +155,30 @@ pub(crate) fn bid128_check_overflow_10(mut C1: BID_UINT128, mut x_sign: u64, mut
 
 pub(crate) fn bid128_round_rnint_common(mut C1: BID_UINT128, mut ind: i64) -> u64 {
     let mut Cstar_w0: u64 = 0;
-    let mut Cstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Cstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut fstar: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut tmp64 = C1.w[0];
+    let mut tmp64 = C1.lo;
     if (ind <= 19) {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
     } else {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0]));
-        C1.w[1] = (C1.w[1].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo));
+        C1.hi = (C1.hi.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi));
     }
-    if (C1.w[0] < tmp64) {
-        C1.w[1] = C1.w[1].wrapping_add(1);
+    if (C1.lo < tmp64) {
+        C1.hi = C1.hi.wrapping_add(1);
     }
     P256 = __mul_128x128_to_256(C1, bid_ten2mk128[(ind.wrapping_sub(1)) as usize]);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[1] = P256.w[3];
-        Cstar.w[0] = P256.w[2];
+        Cstar.hi = P256.w[3];
+        Cstar.lo = P256.w[2];
         fstar.w[3] = 0;
         fstar.w[2] = (P256.w[2] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[1] = P256.w[1];
         fstar.w[0] = P256.w[0];
     } else {
-        Cstar.w[1] = 0;
-        Cstar.w[0] = P256.w[3];
+        Cstar.hi = 0;
+        Cstar.lo = P256.w[3];
         fstar.w[3] = (P256.w[3] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[2] = P256.w[2];
         fstar.w[1] = P256.w[1];
@@ -186,21 +186,21 @@ pub(crate) fn bid128_round_rnint_common(mut C1: BID_UINT128, mut ind: i64) -> u6
     }
     let mut shift = (bid_shiftright128[(ind.wrapping_sub(1)) as usize] as i64);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[0] = (((go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
+        Cstar.lo = (((go_checked_shr_u64(Cstar.lo, go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
     } else {
-        Cstar.w[0] = (go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
+        Cstar.lo = (go_checked_shr_u64(Cstar.lo, go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
     }
-    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))))) {
-        if ((Cstar.w[0] & 0x01) != 0) {
-            Cstar.w[0] = Cstar.w[0].wrapping_sub(1);
+    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))))) {
+        if ((Cstar.lo & 0x01) != 0) {
+            Cstar.lo = Cstar.lo.wrapping_sub(1);
         }
     }
-    return Cstar.w[0];
+    return Cstar.lo;
 }
 
 pub(crate) fn bid128_round_floor_ceil_int_common(mut C1: BID_UINT128, mut ind: i64, mut x_sign: u64, mut mode: i64) -> u64 {
     let mut Cstar_w0: u64 = 0;
-    let mut Cstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Cstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut fstar: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut is_inexact_lt_midpoint: i64 = 0;
@@ -208,27 +208,27 @@ pub(crate) fn bid128_round_floor_ceil_int_common(mut C1: BID_UINT128, mut ind: i
     let mut is_midpoint_lt_even: i64 = 0;
     let mut is_midpoint_gt_even: i64 = 0;
     _ = is_midpoint_gt_even;
-    let mut tmp64 = C1.w[0];
+    let mut tmp64 = C1.lo;
     if (ind <= 19) {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
     } else {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0]));
-        C1.w[1] = (C1.w[1].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo));
+        C1.hi = (C1.hi.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi));
     }
-    if (C1.w[0] < tmp64) {
-        C1.w[1] = C1.w[1].wrapping_add(1);
+    if (C1.lo < tmp64) {
+        C1.hi = C1.hi.wrapping_add(1);
     }
     P256 = __mul_128x128_to_256(C1, bid_ten2mk128[(ind.wrapping_sub(1)) as usize]);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[1] = P256.w[3];
-        Cstar.w[0] = P256.w[2];
+        Cstar.hi = P256.w[3];
+        Cstar.lo = P256.w[2];
         fstar.w[3] = 0;
         fstar.w[2] = (P256.w[2] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[1] = P256.w[1];
         fstar.w[0] = P256.w[0];
     } else {
-        Cstar.w[1] = 0;
-        Cstar.w[0] = P256.w[3];
+        Cstar.hi = 0;
+        Cstar.lo = P256.w[3];
         fstar.w[3] = (P256.w[3] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[2] = P256.w[2];
         fstar.w[1] = P256.w[1];
@@ -236,15 +236,15 @@ pub(crate) fn bid128_round_floor_ceil_int_common(mut C1: BID_UINT128, mut ind: i
     }
     let mut shift = (bid_shiftright128[(ind.wrapping_sub(1)) as usize] as i64);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[0] = (((go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
+        Cstar.lo = (((go_checked_shr_u64(Cstar.lo, go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
     } else {
-        Cstar.w[0] = (go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
+        Cstar.lo = (go_checked_shr_u64(Cstar.lo, go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
     }
     let mut tmp64A: u64 = 0;
     if ((ind.wrapping_sub(1)) <= 2) {
         if ((fstar.w[1] > 0x8000000000000000) || (((fstar.w[1] == 0x8000000000000000) && (fstar.w[0] > 0x0)))) {
             tmp64 = (fstar.w[1].wrapping_sub(0x8000000000000000));
-            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 is_inexact_lt_midpoint = 1;
             }
         } else {
@@ -257,7 +257,7 @@ pub(crate) fn bid128_round_floor_ceil_int_common(mut C1: BID_UINT128, mut ind: i
             if (tmp64 > fstar.w[2]) {
                 tmp64A = tmp64A.wrapping_sub(1);
             }
-            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 is_inexact_lt_midpoint = 1;
             }
         } else {
@@ -266,16 +266,16 @@ pub(crate) fn bid128_round_floor_ceil_int_common(mut C1: BID_UINT128, mut ind: i
     } else {
         if ((fstar.w[3] > bid_onehalf128[(ind.wrapping_sub(1)) as usize]) || (((fstar.w[3] == bid_onehalf128[(ind.wrapping_sub(1)) as usize]) && ((((fstar.w[2] != 0) || (fstar.w[1] != 0)) || (fstar.w[0] != 0)))))) {
             tmp64 = (fstar.w[3].wrapping_sub(bid_onehalf128[(ind.wrapping_sub(1)) as usize]));
-            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 is_inexact_lt_midpoint = 1;
             }
         } else {
             is_inexact_gt_midpoint = 1;
         }
     }
-    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))))) {
-        if ((Cstar.w[0] & 0x01) != 0) {
-            Cstar.w[0] = Cstar.w[0].wrapping_sub(1);
+    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))))) {
+        if ((Cstar.lo & 0x01) != 0) {
+            Cstar.lo = Cstar.lo.wrapping_sub(1);
             is_midpoint_gt_even = 1;
             is_inexact_lt_midpoint = 0;
             is_inexact_gt_midpoint = 0;
@@ -288,45 +288,45 @@ pub(crate) fn bid128_round_floor_ceil_int_common(mut C1: BID_UINT128, mut ind: i
     match mode {
         0 => {
             if ((x_sign != 0) && (((is_midpoint_gt_even != 0) || (is_inexact_lt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_add(1));
+                Cstar.lo = (Cstar.lo.wrapping_add(1));
             } else if ((x_sign == 0) && (((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_sub(1));
+                Cstar.lo = (Cstar.lo.wrapping_sub(1));
             }
         }
         1 => {
             if ((x_sign != 0) && (((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_sub(1));
+                Cstar.lo = (Cstar.lo.wrapping_sub(1));
             } else if ((x_sign == 0) && (((is_midpoint_gt_even != 0) || (is_inexact_lt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_add(1));
+                Cstar.lo = (Cstar.lo.wrapping_add(1));
             }
         }
         2 => {
             if ((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0)) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_sub(1));
+                Cstar.lo = (Cstar.lo.wrapping_sub(1));
             }
         }
         _ => {}
     }
-    return Cstar.w[0];
+    return Cstar.lo;
 }
 
 pub(crate) fn bid128_trunc_inexact_common(mut C1: BID_UINT128, mut ind: i64) -> (u64, bool) {
     let mut Cstar_w0: u64 = 0;
     let mut inexact: bool = false;
-    let mut Cstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Cstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut fstar: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     P256 = __mul_128x128_to_256(C1, bid_ten2mk128[(ind.wrapping_sub(1)) as usize]);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[1] = P256.w[3];
-        Cstar.w[0] = P256.w[2];
+        Cstar.hi = P256.w[3];
+        Cstar.lo = P256.w[2];
         fstar.w[3] = 0;
         fstar.w[2] = (P256.w[2] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[1] = P256.w[1];
         fstar.w[0] = P256.w[0];
     } else {
-        Cstar.w[1] = 0;
-        Cstar.w[0] = P256.w[3];
+        Cstar.hi = 0;
+        Cstar.lo = P256.w[3];
         fstar.w[3] = (P256.w[3] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[2] = P256.w[2];
         fstar.w[1] = P256.w[1];
@@ -334,18 +334,18 @@ pub(crate) fn bid128_trunc_inexact_common(mut C1: BID_UINT128, mut ind: i64) -> 
     }
     let mut shift = (bid_shiftright128[(ind.wrapping_sub(1)) as usize] as i64);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[0] = (((go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
+        Cstar.lo = (((go_checked_shr_u64(Cstar.lo, go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
     } else {
-        Cstar.w[0] = (go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
+        Cstar.lo = (go_checked_shr_u64(Cstar.lo, go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
     }
     if ((ind.wrapping_sub(1)) <= 2) {
-        inexact = ((fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0]))));
+        inexact = ((fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo))));
     } else if ((ind.wrapping_sub(1)) <= 21) {
-        inexact = (((fstar.w[2] != 0) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0]))));
+        inexact = (((fstar.w[2] != 0) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo))));
     } else {
-        inexact = ((((fstar.w[3] != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0]))));
+        inexact = ((((fstar.w[3] != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo))));
     }
-    return (Cstar.w[0], inexact);
+    return (Cstar.lo, inexact);
 }
 
 pub(crate) fn bid128_round_trunc_mode_common(mut C1: BID_UINT128, mut ind: i64, mut x_sign: u64, mut mode: i64, mut setInexact: bool) -> (u64, u32) {
@@ -376,30 +376,30 @@ pub(crate) fn bid128_round_trunc_mode_common(mut C1: BID_UINT128, mut ind: i64, 
 pub(crate) fn bid128_round_xrnint_common(mut C1: BID_UINT128, mut ind: i64) -> (u64, u32) {
     let mut Cstar_w0: u64 = 0;
     let mut pfpsf: u32 = 0;
-    let mut Cstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Cstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut fstar: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut tmp64 = C1.w[0];
+    let mut tmp64 = C1.lo;
     if (ind <= 19) {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
     } else {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0]));
-        C1.w[1] = (C1.w[1].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo));
+        C1.hi = (C1.hi.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi));
     }
-    if (C1.w[0] < tmp64) {
-        C1.w[1] = C1.w[1].wrapping_add(1);
+    if (C1.lo < tmp64) {
+        C1.hi = C1.hi.wrapping_add(1);
     }
     P256 = __mul_128x128_to_256(C1, bid_ten2mk128[(ind.wrapping_sub(1)) as usize]);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[1] = P256.w[3];
-        Cstar.w[0] = P256.w[2];
+        Cstar.hi = P256.w[3];
+        Cstar.lo = P256.w[2];
         fstar.w[3] = 0;
         fstar.w[2] = (P256.w[2] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[1] = P256.w[1];
         fstar.w[0] = P256.w[0];
     } else {
-        Cstar.w[1] = 0;
-        Cstar.w[0] = P256.w[3];
+        Cstar.hi = 0;
+        Cstar.lo = P256.w[3];
         fstar.w[3] = (P256.w[3] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[2] = P256.w[2];
         fstar.w[1] = P256.w[1];
@@ -407,15 +407,15 @@ pub(crate) fn bid128_round_xrnint_common(mut C1: BID_UINT128, mut ind: i64) -> (
     }
     let mut shift = (bid_shiftright128[(ind.wrapping_sub(1)) as usize] as i64);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[0] = (((go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
+        Cstar.lo = (((go_checked_shr_u64(Cstar.lo, go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
     } else {
-        Cstar.w[0] = (go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
+        Cstar.lo = (go_checked_shr_u64(Cstar.lo, go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
     }
     let mut tmp64A: u64 = 0;
     if ((ind.wrapping_sub(1)) <= 2) {
         if ((fstar.w[1] > 0x8000000000000000) || (((fstar.w[1] == 0x8000000000000000) && (fstar.w[0] > 0x0)))) {
             tmp64 = (fstar.w[1].wrapping_sub(0x8000000000000000));
-            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 pfpsf |= 32;
             }
         } else {
@@ -428,7 +428,7 @@ pub(crate) fn bid128_round_xrnint_common(mut C1: BID_UINT128, mut ind: i64) -> (
             if (tmp64 > fstar.w[2]) {
                 tmp64A = tmp64A.wrapping_sub(1);
             }
-            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 pfpsf |= 32;
             }
         } else {
@@ -437,25 +437,25 @@ pub(crate) fn bid128_round_xrnint_common(mut C1: BID_UINT128, mut ind: i64) -> (
     } else {
         if ((fstar.w[3] > bid_onehalf128[(ind.wrapping_sub(1)) as usize]) || (((fstar.w[3] == bid_onehalf128[(ind.wrapping_sub(1)) as usize]) && ((((fstar.w[2] != 0) || (fstar.w[1] != 0)) || (fstar.w[0] != 0)))))) {
             tmp64 = (fstar.w[3].wrapping_sub(bid_onehalf128[(ind.wrapping_sub(1)) as usize]));
-            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 pfpsf |= 32;
             }
         } else {
             pfpsf |= 32;
         }
     }
-    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))))) {
-        if ((Cstar.w[0] & 0x01) != 0) {
-            Cstar.w[0] = Cstar.w[0].wrapping_sub(1);
+    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))))) {
+        if ((Cstar.lo & 0x01) != 0) {
+            Cstar.lo = Cstar.lo.wrapping_sub(1);
         }
     }
-    return (Cstar.w[0], pfpsf);
+    return (Cstar.lo, pfpsf);
 }
 
 pub(crate) fn bid128_round_xfloor_xceil_xint_common(mut C1: BID_UINT128, mut ind: i64, mut x_sign: u64, mut mode: i64) -> (u64, u32) {
     let mut Cstar_w0: u64 = 0;
     let mut pfpsf: u32 = 0;
-    let mut Cstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Cstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut fstar: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut is_inexact_lt_midpoint: i64 = 0;
@@ -463,27 +463,27 @@ pub(crate) fn bid128_round_xfloor_xceil_xint_common(mut C1: BID_UINT128, mut ind
     let mut is_midpoint_lt_even: i64 = 0;
     let mut is_midpoint_gt_even: i64 = 0;
     _ = is_midpoint_gt_even;
-    let mut tmp64 = C1.w[0];
+    let mut tmp64 = C1.lo;
     if (ind <= 19) {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
     } else {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0]));
-        C1.w[1] = (C1.w[1].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo));
+        C1.hi = (C1.hi.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi));
     }
-    if (C1.w[0] < tmp64) {
-        C1.w[1] = C1.w[1].wrapping_add(1);
+    if (C1.lo < tmp64) {
+        C1.hi = C1.hi.wrapping_add(1);
     }
     P256 = __mul_128x128_to_256(C1, bid_ten2mk128[(ind.wrapping_sub(1)) as usize]);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[1] = P256.w[3];
-        Cstar.w[0] = P256.w[2];
+        Cstar.hi = P256.w[3];
+        Cstar.lo = P256.w[2];
         fstar.w[3] = 0;
         fstar.w[2] = (P256.w[2] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[1] = P256.w[1];
         fstar.w[0] = P256.w[0];
     } else {
-        Cstar.w[1] = 0;
-        Cstar.w[0] = P256.w[3];
+        Cstar.hi = 0;
+        Cstar.lo = P256.w[3];
         fstar.w[3] = (P256.w[3] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[2] = P256.w[2];
         fstar.w[1] = P256.w[1];
@@ -491,15 +491,15 @@ pub(crate) fn bid128_round_xfloor_xceil_xint_common(mut C1: BID_UINT128, mut ind
     }
     let mut shift = (bid_shiftright128[(ind.wrapping_sub(1)) as usize] as i64);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[0] = (((go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
+        Cstar.lo = (((go_checked_shr_u64(Cstar.lo, go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
     } else {
-        Cstar.w[0] = (go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
+        Cstar.lo = (go_checked_shr_u64(Cstar.lo, go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
     }
     let mut tmp64A: u64 = 0;
     if ((ind.wrapping_sub(1)) <= 2) {
         if ((fstar.w[1] > 0x8000000000000000) || (((fstar.w[1] == 0x8000000000000000) && (fstar.w[0] > 0x0)))) {
             tmp64 = (fstar.w[1].wrapping_sub(0x8000000000000000));
-            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 is_inexact_lt_midpoint = 1;
             }
         } else {
@@ -512,7 +512,7 @@ pub(crate) fn bid128_round_xfloor_xceil_xint_common(mut C1: BID_UINT128, mut ind
             if (tmp64 > fstar.w[2]) {
                 tmp64A = tmp64A.wrapping_sub(1);
             }
-            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 is_inexact_lt_midpoint = 1;
             }
         } else {
@@ -521,16 +521,16 @@ pub(crate) fn bid128_round_xfloor_xceil_xint_common(mut C1: BID_UINT128, mut ind
     } else {
         if ((fstar.w[3] > bid_onehalf128[(ind.wrapping_sub(1)) as usize]) || (((fstar.w[3] == bid_onehalf128[(ind.wrapping_sub(1)) as usize]) && ((((fstar.w[2] != 0) || (fstar.w[1] != 0)) || (fstar.w[0] != 0)))))) {
             tmp64 = (fstar.w[3].wrapping_sub(bid_onehalf128[(ind.wrapping_sub(1)) as usize]));
-            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 is_inexact_lt_midpoint = 1;
             }
         } else {
             is_inexact_gt_midpoint = 1;
         }
     }
-    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))))) {
-        if ((Cstar.w[0] & 0x01) != 0) {
-            Cstar.w[0] = Cstar.w[0].wrapping_sub(1);
+    if ((((fstar.w[3] == 0) && (fstar.w[2] == 0)) && (((fstar.w[1] != 0) || (fstar.w[0] != 0)))) && (((fstar.w[1] < bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] <= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))))) {
+        if ((Cstar.lo & 0x01) != 0) {
+            Cstar.lo = Cstar.lo.wrapping_sub(1);
             is_midpoint_gt_even = 1;
             is_inexact_lt_midpoint = 0;
             is_inexact_gt_midpoint = 0;
@@ -546,86 +546,86 @@ pub(crate) fn bid128_round_xfloor_xceil_xint_common(mut C1: BID_UINT128, mut ind
     match mode {
         0 => {
             if ((x_sign != 0) && (((is_midpoint_gt_even != 0) || (is_inexact_lt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_add(1));
+                Cstar.lo = (Cstar.lo.wrapping_add(1));
             } else if ((x_sign == 0) && (((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_sub(1));
+                Cstar.lo = (Cstar.lo.wrapping_sub(1));
             }
         }
         1 => {
             if ((x_sign != 0) && (((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_sub(1));
+                Cstar.lo = (Cstar.lo.wrapping_sub(1));
             } else if ((x_sign == 0) && (((is_midpoint_gt_even != 0) || (is_inexact_lt_midpoint != 0)))) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_add(1));
+                Cstar.lo = (Cstar.lo.wrapping_add(1));
             }
         }
         2 => {
             if ((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0)) {
-                Cstar.w[0] = (Cstar.w[0].wrapping_sub(1));
+                Cstar.lo = (Cstar.lo.wrapping_sub(1));
             }
         }
         _ => {}
     }
-    return (Cstar.w[0], pfpsf);
+    return (Cstar.lo, pfpsf);
 }
 
 pub(crate) fn bid128_round_rninta_common(mut C1: BID_UINT128, mut ind: i64) -> u64 {
     let mut Cstar_w0: u64 = 0;
-    let mut Cstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Cstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut tmp64 = C1.w[0];
+    let mut tmp64 = C1.lo;
     if (ind <= 19) {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
     } else {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0]));
-        C1.w[1] = (C1.w[1].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo));
+        C1.hi = (C1.hi.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi));
     }
-    if (C1.w[0] < tmp64) {
-        C1.w[1] = C1.w[1].wrapping_add(1);
+    if (C1.lo < tmp64) {
+        C1.hi = C1.hi.wrapping_add(1);
     }
     P256 = __mul_128x128_to_256(C1, bid_ten2mk128[(ind.wrapping_sub(1)) as usize]);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[1] = P256.w[3];
-        Cstar.w[0] = P256.w[2];
+        Cstar.hi = P256.w[3];
+        Cstar.lo = P256.w[2];
     } else {
-        Cstar.w[1] = 0;
-        Cstar.w[0] = P256.w[3];
+        Cstar.hi = 0;
+        Cstar.lo = P256.w[3];
     }
     let mut shift = (bid_shiftright128[(ind.wrapping_sub(1)) as usize] as i64);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[0] = (((go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
+        Cstar.lo = (((go_checked_shr_u64(Cstar.lo, go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
     } else {
-        Cstar.w[0] = (go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
+        Cstar.lo = (go_checked_shr_u64(Cstar.lo, go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
     }
-    return Cstar.w[0];
+    return Cstar.lo;
 }
 
 pub(crate) fn bid128_round_xrninta_common(mut C1: BID_UINT128, mut ind: i64) -> (u64, u32) {
     let mut Cstar_w0: u64 = 0;
     let mut pfpsf: u32 = 0;
-    let mut Cstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut Cstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut fstar: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
     let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut tmp64 = C1.w[0];
+    let mut tmp64 = C1.lo;
     if (ind <= 19) {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
     } else {
-        C1.w[0] = (C1.w[0].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[0]));
-        C1.w[1] = (C1.w[1].wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].w[1]));
+        C1.lo = (C1.lo.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].lo));
+        C1.hi = (C1.hi.wrapping_add(bid_midpoint128[(ind.wrapping_sub(20)) as usize].hi));
     }
-    if (C1.w[0] < tmp64) {
-        C1.w[1] = C1.w[1].wrapping_add(1);
+    if (C1.lo < tmp64) {
+        C1.hi = C1.hi.wrapping_add(1);
     }
     P256 = __mul_128x128_to_256(C1, bid_ten2mk128[(ind.wrapping_sub(1)) as usize]);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[1] = P256.w[3];
-        Cstar.w[0] = P256.w[2];
+        Cstar.hi = P256.w[3];
+        Cstar.lo = P256.w[2];
         fstar.w[3] = 0;
         fstar.w[2] = (P256.w[2] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[1] = P256.w[1];
         fstar.w[0] = P256.w[0];
     } else {
-        Cstar.w[1] = 0;
-        Cstar.w[0] = P256.w[3];
+        Cstar.hi = 0;
+        Cstar.lo = P256.w[3];
         fstar.w[3] = (P256.w[3] & bid_maskhigh128[(ind.wrapping_sub(1)) as usize]);
         fstar.w[2] = P256.w[2];
         fstar.w[1] = P256.w[1];
@@ -633,15 +633,15 @@ pub(crate) fn bid128_round_xrninta_common(mut C1: BID_UINT128, mut ind: i64) -> 
     }
     let mut shift = (bid_shiftright128[(ind.wrapping_sub(1)) as usize] as i64);
     if ((ind.wrapping_sub(1)) <= 21) {
-        Cstar.w[0] = (((go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.w[1], go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
+        Cstar.lo = (((go_checked_shr_u64(Cstar.lo, go_shift_count_u64((shift as u64) as u64)))) | ((go_checked_shl_u64(Cstar.hi, go_shift_count_u64(((((64 as i64).wrapping_sub(shift)) as u64)) as u64)))));
     } else {
-        Cstar.w[0] = (go_checked_shr_u64(Cstar.w[0], go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
+        Cstar.lo = (go_checked_shr_u64(Cstar.lo, go_shift_count_u64((((shift.wrapping_sub(64)) as u64)) as u64)));
     }
     let mut tmp64A: u64 = 0;
     if ((ind.wrapping_sub(1)) <= 2) {
         if ((fstar.w[1] > 0x8000000000000000) || (((fstar.w[1] == 0x8000000000000000) && (fstar.w[0] > 0x0)))) {
             tmp64 = (fstar.w[1].wrapping_sub(0x8000000000000000));
-            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((tmp64 > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) || (((tmp64 == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] >= bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 pfpsf |= 32;
             }
         } else {
@@ -654,7 +654,7 @@ pub(crate) fn bid128_round_xrninta_common(mut C1: BID_UINT128, mut ind: i64) -> 
             if (tmp64 > fstar.w[2]) {
                 tmp64A = tmp64A.wrapping_sub(1);
             }
-            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64A != 0) || (tmp64 != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 pfpsf |= 32;
             }
         } else {
@@ -663,14 +663,14 @@ pub(crate) fn bid128_round_xrninta_common(mut C1: BID_UINT128, mut ind: i64) -> 
     } else {
         if ((fstar.w[3] > bid_onehalf128[(ind.wrapping_sub(1)) as usize]) || (((fstar.w[3] == bid_onehalf128[(ind.wrapping_sub(1)) as usize]) && ((((fstar.w[2] != 0) || (fstar.w[1] != 0)) || (fstar.w[0] != 0)))))) {
             tmp64 = (fstar.w[3].wrapping_sub(bid_onehalf128[(ind.wrapping_sub(1)) as usize]));
-            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1])) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[1]) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].w[0])))) {
+            if ((((tmp64 != 0) || (fstar.w[2] != 0)) || (fstar.w[1] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi)) || (((fstar.w[1] == bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].hi) && (fstar.w[0] > bid_ten2mk128trunc[(ind.wrapping_sub(1)) as usize].lo)))) {
                 pfpsf |= 32;
             }
         } else {
             pfpsf |= 32;
         }
     }
-    return (Cstar.w[0], pfpsf);
+    return (Cstar.lo, pfpsf);
 }
 
 pub fn bid128_to_int32_rnint(mut x: BID_UINT128) -> (i32, u32) {
@@ -684,7 +684,7 @@ pub fn bid128_to_int32_rnint(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -703,7 +703,7 @@ pub fn bid128_to_int32_rnint(mut x: BID_UINT128) -> (i32, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] <= bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo <= bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -711,7 +711,7 @@ pub fn bid128_to_int32_rnint(mut x: BID_UINT128) -> (i32, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -730,15 +730,15 @@ pub fn bid128_to_int32_rnint(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -756,7 +756,7 @@ pub fn bid128_to_int32_xrnint(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -776,7 +776,7 @@ pub fn bid128_to_int32_xrnint(mut x: BID_UINT128) -> (i32, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] <= bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo <= bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -784,7 +784,7 @@ pub fn bid128_to_int32_xrnint(mut x: BID_UINT128) -> (i32, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -805,15 +805,15 @@ pub fn bid128_to_int32_xrnint(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -831,7 +831,7 @@ pub fn bid128_to_int32_floor(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -861,15 +861,15 @@ pub fn bid128_to_int32_floor(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -887,7 +887,7 @@ pub fn bid128_to_int32_xfloor(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -920,15 +920,15 @@ pub fn bid128_to_int32_xfloor(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -946,7 +946,7 @@ pub fn bid128_to_int32_ceil(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -976,15 +976,15 @@ pub fn bid128_to_int32_ceil(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -1002,7 +1002,7 @@ pub fn bid128_to_int32_xceil(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1035,15 +1035,15 @@ pub fn bid128_to_int32_xceil(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -1061,7 +1061,7 @@ pub fn bid128_to_int32_int(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1088,15 +1088,15 @@ pub fn bid128_to_int32_int(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -1114,7 +1114,7 @@ pub fn bid128_to_int32_xint(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1143,15 +1143,15 @@ pub fn bid128_to_int32_xint(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -1169,7 +1169,7 @@ pub fn bid128_to_int32_rninta(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1188,7 +1188,7 @@ pub fn bid128_to_int32_rninta(mut x: BID_UINT128) -> (i32, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] < bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo < bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1196,7 +1196,7 @@ pub fn bid128_to_int32_rninta(mut x: BID_UINT128) -> (i32, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo < bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1215,15 +1215,15 @@ pub fn bid128_to_int32_rninta(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -1241,7 +1241,7 @@ pub fn bid128_to_int32_xrninta(mut x: BID_UINT128) -> (i32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1261,7 +1261,7 @@ pub fn bid128_to_int32_xrninta(mut x: BID_UINT128) -> (i32, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] < bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo < bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1269,7 +1269,7 @@ pub fn bid128_to_int32_xrninta(mut x: BID_UINT128) -> (i32, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo < bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1290,15 +1290,15 @@ pub fn bid128_to_int32_xrninta(mut x: BID_UINT128) -> (i32, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i32).wrapping_neg());
+                res = ((C1.lo as i32).wrapping_neg());
             } else {
-                res = (C1.w[0] as i32);
+                res = (C1.lo as i32);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i32);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i32);
             }
         }
     }
@@ -1306,44 +1306,44 @@ pub fn bid128_to_int32_xrninta(mut x: BID_UINT128) -> (i32, u32) {
 }
 
 pub(crate) fn bid128_check_overflow_19(mut x: BID_UINT128, mut x_sign: u64, mut C1: BID_UINT128, mut q: i64, mut neg_hi: u64, mut neg_lo: u64, mut neg_cmp_ge: bool, mut pos_hi: u64, mut pos_lo: u64, mut pos_cmp_ge: bool) -> (bool, u32, BID_UINT128) {
-    let mut C: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut C: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     if (x_sign != 0) {
-        C.w[1] = neg_hi;
-        C.w[0] = neg_lo;
+        C.hi = neg_hi;
+        C.lo = neg_lo;
         if (q <= 19) {
-            C1 = __mul_64x64_to_128(C1.w[0], bid_ten2k64[((20 as i64).wrapping_sub(q)) as usize]);
+            C1 = __mul_64x64_to_128(C1.lo, bid_ten2k64[((20 as i64).wrapping_sub(q)) as usize]);
         } else if (q == 20) {
         } else {
             C = __mul_128x64_to_128(bid_ten2k64[(q.wrapping_sub(20)) as usize], C);
         }
         if neg_cmp_ge {
-            if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] >= C.w[0])))) {
+            if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo >= C.lo)))) {
                 pfpsf |= 1;
                 return (true, pfpsf, C1);
             }
         } else {
-            if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] > C.w[0])))) {
+            if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo > C.lo)))) {
                 pfpsf |= 1;
                 return (true, pfpsf, C1);
             }
         }
     } else {
-        C.w[1] = pos_hi;
-        C.w[0] = pos_lo;
+        C.hi = pos_hi;
+        C.lo = pos_lo;
         if (q <= 19) {
-            C1 = __mul_64x64_to_128(C1.w[0], bid_ten2k64[((20 as i64).wrapping_sub(q)) as usize]);
+            C1 = __mul_64x64_to_128(C1.lo, bid_ten2k64[((20 as i64).wrapping_sub(q)) as usize]);
         } else if (q == 20) {
         } else {
             C = __mul_128x64_to_128(bid_ten2k64[(q.wrapping_sub(20)) as usize], C);
         }
         if pos_cmp_ge {
-            if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] >= C.w[0])))) {
+            if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo >= C.lo)))) {
                 pfpsf |= 1;
                 return (true, pfpsf, C1);
             }
         } else {
-            if ((C1.w[1] > C.w[1]) || (((C1.w[1] == C.w[1]) && (C1.w[0] > C.w[0])))) {
+            if ((C1.hi > C.hi) || (((C1.hi == C.hi) && (C1.lo > C.lo)))) {
                 pfpsf |= 1;
                 return (true, pfpsf, C1);
             }
@@ -1353,37 +1353,37 @@ pub(crate) fn bid128_check_overflow_19(mut x: BID_UINT128, mut x_sign: u64, mut 
 }
 
 pub(crate) fn bid128_cmp_128(mut a: BID_UINT128, mut b: BID_UINT128) -> i64 {
-    if (a.w[1] < b.w[1]) {
+    if (a.hi < b.hi) {
         return (-1);
     }
-    if (a.w[1] > b.w[1]) {
+    if (a.hi > b.hi) {
         return 1;
     }
-    if (a.w[0] < b.w[0]) {
+    if (a.lo < b.lo) {
         return (-1);
     }
-    if (a.w[0] > b.w[0]) {
+    if (a.lo > b.lo) {
         return 1;
     }
     return 0;
 }
 
 pub(crate) fn bid128_check_overflow_20(mut C1: BID_UINT128, mut x_sign: u64, mut q: i64, mut neg_hi: u64, mut neg_lo: u64, mut neg_cmp_ge: bool, mut pos_hi: u64, mut pos_lo: u64, mut pos_cmp_ge: bool) -> (bool, u32) {
-    let mut scaled: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut limit: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut scaled: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut limit: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut cmp: i64 = 0;
     let mut pfpsf: u32 = 0;
-    limit.w[1] = pos_hi;
-    limit.w[0] = pos_lo;
+    limit.hi = pos_hi;
+    limit.lo = pos_lo;
     if (x_sign != 0) {
-        limit.w[1] = neg_hi;
-        limit.w[0] = neg_lo;
+        limit.hi = neg_hi;
+        limit.lo = neg_lo;
     }
     if (q < 21) {
         if (q == 1) {
-            scaled = __mul_128x64_to_128(C1.w[0], bid_ten2k128[0]);
+            scaled = __mul_128x64_to_128(C1.lo, bid_ten2k128[0]);
         } else if (q <= 19) {
-            scaled = __mul_64x64_to_128(C1.w[0], bid_ten2k64[((21 as i64).wrapping_sub(q)) as usize]);
+            scaled = __mul_64x64_to_128(C1.lo, bid_ten2k64[((21 as i64).wrapping_sub(q)) as usize]);
         } else {
             scaled = __mul_128x64_to_128(bid_ten2k64[1], C1);
         }
@@ -1418,7 +1418,7 @@ pub(crate) fn bid128_int64_core(mut x: BID_UINT128, mut roundMode: i64, mut setI
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1432,8 +1432,8 @@ pub(crate) fn bid128_int64_core(mut x: BID_UINT128, mut roundMode: i64, mut setI
             return (invalidRes, f);
         }
         C1 = newC1;
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     return qpExpLeqHandler(x_sign, C1, q, exp);
 }
@@ -1449,7 +1449,7 @@ pub fn bid128_to_int64_rnint(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1462,15 +1462,15 @@ pub fn bid128_to_int64_rnint(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) < 0) {
         return (0, 0);
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] <= bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo <= bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1478,7 +1478,7 @@ pub fn bid128_to_int64_rnint(mut x: BID_UINT128) -> (i64, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1497,15 +1497,15 @@ pub fn bid128_to_int64_rnint(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1523,7 +1523,7 @@ pub fn bid128_to_int64_xrnint(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1536,8 +1536,8 @@ pub fn bid128_to_int64_xrnint(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) < 0) {
         pfpsf |= 32;
@@ -1545,7 +1545,7 @@ pub fn bid128_to_int64_xrnint(mut x: BID_UINT128) -> (i64, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] <= bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo <= bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1553,7 +1553,7 @@ pub fn bid128_to_int64_xrnint(mut x: BID_UINT128) -> (i64, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1574,15 +1574,15 @@ pub fn bid128_to_int64_xrnint(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1600,7 +1600,7 @@ pub fn bid128_to_int64_floor(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1613,8 +1613,8 @@ pub fn bid128_to_int64_floor(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) <= 0) {
         if (x_sign != 0) {
@@ -1632,15 +1632,15 @@ pub fn bid128_to_int64_floor(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1658,7 +1658,7 @@ pub fn bid128_to_int64_xfloor(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1671,8 +1671,8 @@ pub fn bid128_to_int64_xfloor(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) <= 0) {
         pfpsf |= 32;
@@ -1692,15 +1692,15 @@ pub fn bid128_to_int64_xfloor(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1718,7 +1718,7 @@ pub fn bid128_to_int64_ceil(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1731,8 +1731,8 @@ pub fn bid128_to_int64_ceil(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) <= 0) {
         if (x_sign != 0) {
@@ -1750,15 +1750,15 @@ pub fn bid128_to_int64_ceil(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1776,7 +1776,7 @@ pub fn bid128_to_int64_xceil(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1789,8 +1789,8 @@ pub fn bid128_to_int64_xceil(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) <= 0) {
         pfpsf |= 32;
@@ -1810,15 +1810,15 @@ pub fn bid128_to_int64_xceil(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1836,7 +1836,7 @@ pub fn bid128_to_int64_int(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1849,8 +1849,8 @@ pub fn bid128_to_int64_int(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) <= 0) {
         return (0, 0);
@@ -1865,15 +1865,15 @@ pub fn bid128_to_int64_int(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1891,7 +1891,7 @@ pub fn bid128_to_int64_xint(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1904,8 +1904,8 @@ pub fn bid128_to_int64_xint(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) <= 0) {
         pfpsf |= 32;
@@ -1922,15 +1922,15 @@ pub fn bid128_to_int64_xint(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -1948,7 +1948,7 @@ pub fn bid128_to_int64_rninta(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -1961,15 +1961,15 @@ pub fn bid128_to_int64_rninta(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) < 0) {
         return (0, 0);
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] < bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo < bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1977,7 +1977,7 @@ pub fn bid128_to_int64_rninta(mut x: BID_UINT128) -> (i64, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo < bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -1996,15 +1996,15 @@ pub fn bid128_to_int64_rninta(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -2022,7 +2022,7 @@ pub fn bid128_to_int64_xrninta(mut x: BID_UINT128) -> (i64, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2035,8 +2035,8 @@ pub fn bid128_to_int64_xrninta(mut x: BID_UINT128) -> (i64, u32) {
         if invalid {
             return ((-0x8000000000000000), f);
         }
-        C1.w[1] = (x.w[1] & 0x1ffffffffffff);
-        C1.w[0] = x.w[0];
+        C1.hi = (x.hi & 0x1ffffffffffff);
+        C1.lo = x.lo;
     }
     if ((q.wrapping_add(exp)) < 0) {
         pfpsf |= 32;
@@ -2044,7 +2044,7 @@ pub fn bid128_to_int64_xrninta(mut x: BID_UINT128) -> (i64, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] < bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo < bid_midpoint64[ind as usize])) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -2052,7 +2052,7 @@ pub fn bid128_to_int64_xrninta(mut x: BID_UINT128) -> (i64, u32) {
                 res = 1;
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo < bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 res = 0;
             } else if (x_sign != 0) {
                 res = (-1);
@@ -2073,15 +2073,15 @@ pub fn bid128_to_int64_xrninta(mut x: BID_UINT128) -> (i64, u32) {
             }
         } else if (exp == 0) {
             if (x_sign != 0) {
-                res = ((C1.w[0] as i64).wrapping_neg());
+                res = ((C1.lo as i64).wrapping_neg());
             } else {
-                res = (C1.w[0] as i64);
+                res = (C1.lo as i64);
             }
         } else {
             if (x_sign != 0) {
-                res = (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
+                res = (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64).wrapping_neg());
             } else {
-                res = ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as i64);
+                res = ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as i64);
             }
         }
     }
@@ -2091,7 +2091,7 @@ pub fn bid128_to_int64_xrninta(mut x: BID_UINT128) -> (i64, u32) {
 pub(crate) fn bid128_uint_rnint_qpexp0(mut C1: BID_UINT128, mut x_sign: u64, mut q: i64) -> (u32, u32) {
     let mut ind = (q.wrapping_sub(1));
     if (ind <= 18) {
-        if ((C1.w[1] == 0) && (C1.w[0] <= bid_midpoint64[ind as usize])) {
+        if ((C1.hi == 0) && (C1.lo <= bid_midpoint64[ind as usize])) {
             return (0, 0);
         } else if (x_sign == 0) {
             return (1, 0);
@@ -2099,7 +2099,7 @@ pub(crate) fn bid128_uint_rnint_qpexp0(mut C1: BID_UINT128, mut x_sign: u64, mut
             return (0x80000000, 1);
         }
     } else {
-        if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+        if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo <= bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
             return (0, 0);
         } else if (x_sign == 0) {
             return (1, 0);
@@ -2119,7 +2119,7 @@ pub fn bid128_to_uint32_rnint(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2147,9 +2147,9 @@ pub fn bid128_to_uint32_rnint(mut x: BID_UINT128) -> (u32, u32) {
             let mut Cstar_w0 = bid128_round_rnint_common(C1, ind);
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2164,7 +2164,7 @@ pub fn bid128_to_uint32_xrnint(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2198,9 +2198,9 @@ pub fn bid128_to_uint32_xrnint(mut x: BID_UINT128) -> (u32, u32) {
             pfpsf |= f;
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2215,7 +2215,7 @@ pub fn bid128_to_uint32_floor(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2245,9 +2245,9 @@ pub fn bid128_to_uint32_floor(mut x: BID_UINT128) -> (u32, u32) {
             let mut Cstar_w0 = bid128_round_floor_ceil_int_common(C1, ind, x_sign, 0);
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2262,7 +2262,7 @@ pub fn bid128_to_uint32_xfloor(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2294,9 +2294,9 @@ pub fn bid128_to_uint32_xfloor(mut x: BID_UINT128) -> (u32, u32) {
             pfpsf |= f;
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2311,7 +2311,7 @@ pub fn bid128_to_uint32_ceil(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2340,9 +2340,9 @@ pub fn bid128_to_uint32_ceil(mut x: BID_UINT128) -> (u32, u32) {
             let mut Cstar_w0 = bid128_round_floor_ceil_int_common(C1, ind, x_sign, 1);
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2357,7 +2357,7 @@ pub fn bid128_to_uint32_xceil(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2389,9 +2389,9 @@ pub fn bid128_to_uint32_xceil(mut x: BID_UINT128) -> (u32, u32) {
             pfpsf |= f;
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2406,7 +2406,7 @@ pub fn bid128_to_uint32_int(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2435,9 +2435,9 @@ pub fn bid128_to_uint32_int(mut x: BID_UINT128) -> (u32, u32) {
             let mut Cstar_w0 = bid128_round_floor_ceil_int_common(C1, ind, x_sign, 2);
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2452,7 +2452,7 @@ pub fn bid128_to_uint32_xint(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2484,9 +2484,9 @@ pub fn bid128_to_uint32_xint(mut x: BID_UINT128) -> (u32, u32) {
             pfpsf |= f;
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2501,7 +2501,7 @@ pub fn bid128_to_uint32_rninta(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2520,7 +2520,7 @@ pub fn bid128_to_uint32_rninta(mut x: BID_UINT128) -> (u32, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] < bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo < bid_midpoint64[ind as usize])) {
                 return (0, 0);
             } else if (x_sign == 0) {
                 return (1, 0);
@@ -2528,7 +2528,7 @@ pub fn bid128_to_uint32_rninta(mut x: BID_UINT128) -> (u32, u32) {
                 return (0x80000000, 1);
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo < bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 return (0, 0);
             } else if (x_sign == 0) {
                 return (1, 0);
@@ -2546,9 +2546,9 @@ pub fn bid128_to_uint32_rninta(mut x: BID_UINT128) -> (u32, u32) {
             let mut Cstar_w0 = bid128_round_rninta_common(C1, ind);
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2563,7 +2563,7 @@ pub fn bid128_to_uint32_xrninta(mut x: BID_UINT128) -> (u32, u32) {
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2583,7 +2583,7 @@ pub fn bid128_to_uint32_xrninta(mut x: BID_UINT128) -> (u32, u32) {
     } else if ((q.wrapping_add(exp)) == 0) {
         let mut ind = (q.wrapping_sub(1));
         if (ind <= 18) {
-            if ((C1.w[1] == 0) && (C1.w[0] < bid_midpoint64[ind as usize])) {
+            if ((C1.hi == 0) && (C1.lo < bid_midpoint64[ind as usize])) {
                 return (0, 32);
             } else if (x_sign == 0) {
                 return (1, 32);
@@ -2591,7 +2591,7 @@ pub fn bid128_to_uint32_xrninta(mut x: BID_UINT128) -> (u32, u32) {
                 return (0x80000000, 1);
             }
         } else {
-            if ((C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) || (((C1.w[1] == bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) && (C1.w[0] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0])))) {
+            if ((C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) || (((C1.hi == bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) && (C1.lo < bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo)))) {
                 return (0, 32);
             } else if (x_sign == 0) {
                 return (1, 32);
@@ -2610,9 +2610,9 @@ pub fn bid128_to_uint32_xrninta(mut x: BID_UINT128) -> (u32, u32) {
             pfpsf |= f;
             return ((Cstar_w0 as u32), pfpsf);
         } else if (exp == 0) {
-            return ((C1.w[0] as u32), 0);
+            return ((C1.lo as u32), 0);
         } else {
-            return (((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
+            return (((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])) as u32), 0);
         }
     }
 }
@@ -2660,27 +2660,27 @@ pub fn bid128_to_uint64_xrninta(mut x: BID_UINT128) -> (u64, u32) {
 pub(crate) fn bid128_uint_midpoint_cmp(mut C1: BID_UINT128, mut q: i64) -> i64 {
     let mut ind = (q.wrapping_sub(1));
     if (ind <= 18) {
-        if (C1.w[1] == 0) {
-            if (C1.w[0] < bid_midpoint64[ind as usize]) {
+        if (C1.hi == 0) {
+            if (C1.lo < bid_midpoint64[ind as usize]) {
                 return (-1);
             }
-            if (C1.w[0] > bid_midpoint64[ind as usize]) {
+            if (C1.lo > bid_midpoint64[ind as usize]) {
                 return 1;
             }
             return 0;
         }
         return 1;
     }
-    if (C1.w[1] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) {
+    if (C1.hi < bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) {
         return (-1);
     }
-    if (C1.w[1] > bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[1]) {
+    if (C1.hi > bid_midpoint128[(ind.wrapping_sub(19)) as usize].hi) {
         return 1;
     }
-    if (C1.w[0] < bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0]) {
+    if (C1.lo < bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo) {
         return (-1);
     }
-    if (C1.w[0] > bid_midpoint128[(ind.wrapping_sub(19)) as usize].w[0]) {
+    if (C1.lo > bid_midpoint128[(ind.wrapping_sub(19)) as usize].lo) {
         return 1;
     }
     return 0;
@@ -2696,7 +2696,7 @@ pub(crate) fn bid128_to_uint64_core(mut x: BID_UINT128, mut mode: i64, mut setIn
     if bid128_is_noncanonical(C1, x) {
         return (0, 0);
     }
-    if ((C1.w[1] == 0) && (C1.w[0] == 0)) {
+    if ((C1.hi == 0) && (C1.lo == 0)) {
         return (0, 0);
     }
     let (mut q, _) = bid128_nr_digits(C1);
@@ -2866,9 +2866,9 @@ pub(crate) fn bid128_to_uint64_core(mut x: BID_UINT128, mut mode: i64, mut setIn
             }
         }
     } else if (exp == 0) {
-        return (C1.w[0], 0);
+        return (C1.lo, 0);
     }
-    return ((C1.w[0].wrapping_mul(bid_ten2k64[exp as usize])), 0);
+    return ((C1.lo.wrapping_mul(bid_ten2k64[exp as usize])), 0);
 }
 
 pub(crate) fn bid128_to_small_int(mut r#fn: fn(BID_UINT128) -> (i32, u32), mut x: BID_UINT128, mut sizeMask: i32, mut invalidResult: i8) -> (i8, u32) {

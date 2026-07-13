@@ -80,8 +80,8 @@ func __mul_128x256_to_384(A BID_UINT128, B BID_UINT256) BID_UINT384 {
 	var P BID_UINT384
 	var CY uint64
 
-	P0 := __mul_64x256_to_320(A.w[0], B)
-	P1 := __mul_64x256_to_320(A.w[1], B)
+	P0 := __mul_64x256_to_320(A.lo, B)
+	P1 := __mul_64x256_to_320(A.hi, B)
 	P.w[0] = P0.w[0]
 	P.w[1], CY = __add_carry_out(P1.w[0], P0.w[1])
 	P.w[2], CY = __add_carry_in_out(P1.w[1], P0.w[2], CY)
@@ -98,25 +98,25 @@ func __mul_128x256_to_384(A BID_UINT128, B BID_UINT256) BID_UINT384 {
 //
 // Ported from bid_binarydecimal.c: unpack_bid128 macro (lines 685-712).
 func unpack_bid128_binarydecimal(x BID_UINT128) (s int, e int, k int, c BID_UINT128, isZero bool, isInf bool, isNaN bool, nanPayloadHi uint64, nanPayloadLo uint64, isSNaN bool) {
-	s = int(x.w[1] >> 63)
+	s = int(x.hi >> 63)
 
-	if (x.w[1] & (3 << 61)) == (3 << 61) {
-		if (x.w[1] & (0xF << 59)) == (0xF << 59) {
-			if (x.w[1] & (0x1F << 58)) != (0x1F << 58) {
+	if (x.hi & (3 << 61)) == (3 << 61) {
+		if (x.hi & (0xF << 59)) == (0xF << 59) {
+			if (x.hi & (0x1F << 58)) != (0x1F << 58) {
 				isInf = true
 				return
 			}
-			if (x.w[1] & (1 << 57)) != 0 {
+			if (x.hi & (1 << 57)) != 0 {
 				isSNaN = true
 			}
 			isNaN = true
 			if lt128(54210108624275, 4089650035136921599,
-				x.w[1]&0x3FFFFFFFFFFF, x.w[0]) {
+				x.hi&0x3FFFFFFFFFFF, x.lo) {
 				nanPayloadHi = 0
 				nanPayloadLo = 0
 			} else {
-				nanPayloadHi = (x.w[1] << 18) + (x.w[0] >> 46)
-				nanPayloadLo = x.w[0] << 18
+				nanPayloadHi = (x.hi << 18) + (x.lo >> 46)
+				nanPayloadLo = x.lo << 18
 			}
 			return
 		}
@@ -125,19 +125,19 @@ func unpack_bid128_binarydecimal(x BID_UINT128) (s int, e int, k int, c BID_UINT
 		return
 	}
 
-	e = int((x.w[1]>>49)&((1<<14)-1)) - 6176
-	c.w[1] = x.w[1] & ((1 << 49) - 1)
-	c.w[0] = x.w[0]
-	if lt128(542101086242752, 4003012203950112767, c.w[1], c.w[0]) {
-		c.w[1] = 0
-		c.w[0] = 0
+	e = int((x.hi>>49)&((1<<14)-1)) - 6176
+	c.hi = x.hi & ((1 << 49) - 1)
+	c.lo = x.lo
+	if lt128(542101086242752, 4003012203950112767, c.hi, c.lo) {
+		c.hi = 0
+		c.lo = 0
 	}
-	if (c.w[1] == 0) && (c.w[0] == 0) {
+	if (c.hi == 0) && (c.lo == 0) {
 		isZero = true
 		return
 	}
-	k = clz128_nz(c.w[1], c.w[0]) - 15
-	c.w[1], c.w[0] = sll128(c.w[1], c.w[0], uint(k))
+	k = clz128_nz(c.hi, c.lo) - 15
+	c.hi, c.lo = sll128(c.hi, c.lo, uint(k))
 	return
 }
 
@@ -204,7 +204,7 @@ func Bid128ToBinary32(x BID_UINT128, rnd_mode int, pfpsf *uint32) float32 {
 	e_out = bid_exponents_binary32[e+80] - k
 
 	// Choose provisional exponent and reciprocal multiplier based on breakpoint
-	if le128(c.w[1], c.w[0], m_min.w[1], m_min.w[0]) {
+	if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
 		r = bid_multipliers1_binary32[e+80]
 	} else {
 		r = bid_multipliers2_binary32[e+80]
@@ -230,8 +230,8 @@ func Bid128ToBinary32(x BID_UINT128, rnd_mode int, pfpsf *uint32) float32 {
 	// Flag underflow where it may be needed even for |result| = SNN
 	rbIdx := (rnd_mode << 2) + ((s & 1) << 1) + int(c_prov&1)
 	if lt128(
-		bid_roundbound_128[rbIdx].w[1],
-		bid_roundbound_128[rbIdx].w[0],
+		bid_roundbound_128[rbIdx].hi,
+		bid_roundbound_128[rbIdx].lo,
 		z.w[4], z.w[3]) {
 		c_prov = c_prov + 1
 		if c_prov == (1 << 24) {
@@ -304,7 +304,7 @@ func Bid128ToBinary64(x BID_UINT128, rnd_mode int, pfpsf *uint32) float64 {
 	}
 
 	// Shift 6 more places left ready for reciprocal multiplication
-	c.w[1], c.w[0] = sll128_short(c.w[1], c.w[0], 6)
+	c.hi, c.lo = sll128_short(c.hi, c.lo, 6)
 
 	// Check for "trivial" overflow
 	// e >= ceil(1024 * log_10(2)) = ceil(308.25) = 309
@@ -328,7 +328,7 @@ func Bid128ToBinary64(x BID_UINT128, rnd_mode int, pfpsf *uint32) float64 {
 	e_out = bid_exponents_binary64[e+358] - k
 
 	// Choose provisional exponent and reciprocal multiplier based on breakpoint
-	if le128(c.w[1], c.w[0], m_min.w[1], m_min.w[0]) {
+	if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
 		r = bid_multipliers1_binary64[e+358]
 	} else {
 		r = bid_multipliers2_binary64[e+358]
@@ -354,8 +354,8 @@ func Bid128ToBinary64(x BID_UINT128, rnd_mode int, pfpsf *uint32) float64 {
 	// Flag underflow where it may be needed even for |result| = SNN
 	rbIdx := (rnd_mode << 2) + ((s & 1) << 1) + int(c_prov&1)
 	if lt128(
-		bid_roundbound_128[rbIdx].w[1],
-		bid_roundbound_128[rbIdx].w[0],
+		bid_roundbound_128[rbIdx].hi,
+		bid_roundbound_128[rbIdx].lo,
 		z.w[4], z.w[3]) {
 		c_prov = c_prov + 1
 		if c_prov == (1 << 53) {

@@ -50,7 +50,7 @@ func bid64DecodeForCompare(x uint64) (sign uint64, exp int, coeff *big.Int, isZe
 func bid64CompareToBid128(x uint64, y BID_UINT128) int {
 	x = bid64CanonicalizeNonCanonicalFinite(x)
 	xSign, xExp, xCoeff, xZero := bid64DecodeForCompare(x)
-	yd := bid128Decode(y.w[1], y.w[0])
+	yd := bid128Decode(y.hi, y.lo)
 	if Bid64IsInf(x) != 0 {
 		if yd.isInf {
 			if xSign == yd.sign {
@@ -105,7 +105,7 @@ func Bid64NextToward(x uint64, y BID_UINT128) (uint64, uint32) {
 	var pfpsf uint32
 	var res1, res2 int
 
-	yd := bid128Decode(y.w[1], y.w[0])
+	yd := bid128Decode(y.hi, y.lo)
 
 	// check for NaNs or infinities
 	if (x & MASK_NAN) == MASK_NAN { // x is NAN
@@ -129,7 +129,7 @@ func Bid64NextToward(x uint64, y BID_UINT128) (uint64, uint32) {
 		}
 		return res, pfpsf
 	} else if yd.isNaN { // y is NAN then res = Q (y)
-		res, pfpsf = bid128NaNToBid64(y.w[1], y.w[0])
+		res, pfpsf = bid128NaNToBid64(y.hi, y.lo)
 		return res, pfpsf
 	} else { // at least one is infinity
 		if (x & MASK_INF) == MASK_INF { // x = inf
@@ -148,7 +148,7 @@ func Bid64NextToward(x uint64, y BID_UINT128) (uint64, uint32) {
 	res2 = bid64CompareToBid128(x, y)
 	if res2 == 0 { // x = y
 		// return x with the sign of y
-		res = (y.w[1] & MASK_SIGN) | (x & 0x7fffffffffffffff)
+		res = (y.hi & MASK_SIGN) | (x & 0x7fffffffffffffff)
 	} else if res2 > 0 { // x > y
 		res, _ = Bid64NextDown(x)
 	} else { // x < y

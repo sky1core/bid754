@@ -36,8 +36,8 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut shift: i64 = 0;
     let mut C1: u64 = 0;
-    let mut fstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut fstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut exp: i64 = 0;
     let mut tmp1: u64 = 0;
@@ -121,7 +121,7 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
         tmp1 = (C1 as f64).to_bits();
         x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         q = (bid_estimate_decimal_digits[(x_nr_bits.wrapping_sub(1)) as usize] as i64);
-        if (C1 >= bid_power10_table_128[q as usize].w[0]) {
+        if (C1 >= bid_power10_table_128[q as usize].lo) {
             q = q.wrapping_add(1);
         }
     }
@@ -136,29 +136,29 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 C1 = (C1.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
-                if ((((res & 0x0000000000000001) != 0) && (fstar.w[1] == 0)) && ((fstar.w[0] < bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+                if ((((res & 0x0000000000000001) != 0) && (fstar.hi == 0)) && ((fstar.lo < bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
                     res = res.wrapping_sub(1);
                 }
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    if (fstar.w[0] > 0x8000000000000000) {
-                        if (((fstar.w[0].wrapping_sub(0x8000000000000000))) > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]) {
+                    if (fstar.lo > 0x8000000000000000) {
+                        if (((fstar.lo.wrapping_sub(0x8000000000000000))) > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]) {
                             pfpsf |= 32;
                         }
                     } else {
                         pfpsf |= 32;
                     }
                 } else {
-                    if ((fstar.w[1] > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (((fstar.w[1] == bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) && (fstar.w[0] != 0)))) {
-                        if ((fstar.w[1] > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (fstar.w[0] > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize])) {
+                    if ((fstar.hi > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (((fstar.hi == bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) && (fstar.lo != 0)))) {
+                        if ((fstar.hi > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (fstar.lo > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize])) {
                             pfpsf |= 32;
                         }
                     } else {
@@ -179,26 +179,26 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 C1 = (C1.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    if (fstar.w[0] > 0x8000000000000000) {
-                        if (((fstar.w[0].wrapping_sub(0x8000000000000000))) > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]) {
+                    if (fstar.lo > 0x8000000000000000) {
+                        if (((fstar.lo.wrapping_sub(0x8000000000000000))) > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]) {
                             pfpsf |= 32;
                         }
                     } else {
                         pfpsf |= 32;
                     }
                 } else {
-                    if ((fstar.w[1] > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (((fstar.w[1] == bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) && (fstar.w[0] != 0)))) {
-                        if ((fstar.w[1] > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (fstar.w[0] > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize])) {
+                    if ((fstar.hi > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (((fstar.hi == bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) && (fstar.lo != 0)))) {
+                        if ((fstar.hi > bid_onehalf128_round64[(ind.wrapping_sub(1)) as usize]) || (fstar.lo > bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize])) {
                             pfpsf |= 32;
                         }
                     } else {
@@ -218,16 +218,16 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 ind = (exp.wrapping_neg());
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
-                if ((fstar.w[1] != 0) || ((fstar.w[0] >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+                if ((fstar.hi != 0) || ((fstar.lo >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
                     if (x_sign != 0) {
                         res = res.wrapping_add(1);
                     }
@@ -250,16 +250,16 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 ind = (exp.wrapping_neg());
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
-                if ((fstar.w[1] != 0) || ((fstar.w[0] >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+                if ((fstar.hi != 0) || ((fstar.lo >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
                     if (x_sign == 0) {
                         res = res.wrapping_add(1);
                     }
@@ -282,16 +282,16 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 ind = (exp.wrapping_neg());
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
-                if ((fstar.w[1] != 0) || ((fstar.w[0] >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+                if ((fstar.hi != 0) || ((fstar.lo >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
                     pfpsf |= 32;
                 }
                 res = ((x_sign | 0x31c0000000000000) | res);
@@ -315,8 +315,8 @@ pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut shift: i64 = 0;
     let mut C1: u64 = 0;
-    let mut fstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut fstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut exp: i64 = 0;
     let mut tmp1: u64 = 0;
@@ -396,7 +396,7 @@ pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
         tmp1 = (C1 as f64).to_bits();
         x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         q = (bid_estimate_decimal_digits[(x_nr_bits.wrapping_sub(1)) as usize] as i64);
-        if (C1 >= bid_power10_table_128[q as usize].w[0]) {
+        if (C1 >= bid_power10_table_128[q as usize].lo) {
             q = q.wrapping_add(1);
         }
     }
@@ -411,16 +411,16 @@ pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 C1 = (C1.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
-                if ((((res & 0x0000000000000001) != 0) && (fstar.w[1] == 0)) && ((fstar.w[0] < bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+                if ((((res & 0x0000000000000001) != 0) && (fstar.hi == 0)) && ((fstar.lo < bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
                     res = res.wrapping_sub(1);
                 }
                 res = ((x_sign | 0x31c0000000000000) | res);
@@ -436,10 +436,10 @@ pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 C1 = (C1.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
+                    res = P128.hi;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
                 }
                 res = ((x_sign | 0x31c0000000000000) | res);
                 return (res, pfpsf);
@@ -453,16 +453,16 @@ pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 ind = (exp.wrapping_neg());
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
-                if ((fstar.w[1] != 0) || ((fstar.w[0] >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+                if ((fstar.hi != 0) || ((fstar.lo >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
                     if (x_sign != 0) {
                         res = res.wrapping_add(1);
                     }
@@ -483,16 +483,16 @@ pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 ind = (exp.wrapping_neg());
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
-                    fstar.w[1] = 0;
-                    fstar.w[0] = P128.w[0];
+                    res = P128.hi;
+                    fstar.hi = 0;
+                    fstar.lo = P128.lo;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-                    fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-                    fstar.w[0] = P128.w[0];
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+                    fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+                    fstar.lo = P128.lo;
                 }
-                if ((fstar.w[1] != 0) || ((fstar.w[0] >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+                if ((fstar.hi != 0) || ((fstar.lo >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
                     if (x_sign == 0) {
                         res = res.wrapping_add(1);
                     }
@@ -513,10 +513,10 @@ pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
                 ind = (exp.wrapping_neg());
                 P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
                 if (((ind.wrapping_sub(1))) <= 2) {
-                    res = P128.w[1];
+                    res = P128.hi;
                 } else if (((ind.wrapping_sub(1))) <= 21) {
                     shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-                    res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
+                    res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
                 }
                 res = ((x_sign | 0x31c0000000000000) | res);
                 return (res, pfpsf);
@@ -538,8 +538,8 @@ pub fn bid64_round_integral_nearest_even(mut x: u64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut shift: i64 = 0;
     let mut C1: u64 = 0;
-    let mut fstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut fstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut exp: i64 = 0;
     let mut tmp1: u64 = 0;
@@ -588,7 +588,7 @@ pub fn bid64_round_integral_nearest_even(mut x: u64) -> (u64, u32) {
         tmp1 = (C1 as f64).to_bits();
         x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         q = (bid_estimate_decimal_digits[(x_nr_bits.wrapping_sub(1)) as usize] as i64);
-        if (C1 >= bid_power10_table_128[q as usize].w[0]) {
+        if (C1 >= bid_power10_table_128[q as usize].lo) {
             q = q.wrapping_add(1);
         }
     }
@@ -600,16 +600,16 @@ pub fn bid64_round_integral_nearest_even(mut x: u64) -> (u64, u32) {
         C1 = (C1.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
         P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
         if (((ind.wrapping_sub(1))) <= 2) {
-            res = P128.w[1];
-            fstar.w[1] = 0;
-            fstar.w[0] = P128.w[0];
+            res = P128.hi;
+            fstar.hi = 0;
+            fstar.lo = P128.lo;
         } else if (((ind.wrapping_sub(1))) <= 21) {
             shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-            res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-            fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-            fstar.w[0] = P128.w[0];
+            res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+            fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+            fstar.lo = P128.lo;
         }
-        if ((((res & 0x0000000000000001) != 0) && (fstar.w[1] == 0)) && ((fstar.w[0] < bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
+        if ((((res & 0x0000000000000001) != 0) && (fstar.hi == 0)) && ((fstar.lo < bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))) {
             res = res.wrapping_sub(1);
         }
         res = ((x_sign | 0x31c0000000000000) | res);
@@ -628,8 +628,8 @@ pub fn bid64_round_integral_negative(mut x: u64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut shift: i64 = 0;
     let mut C1: u64 = 0;
-    let mut fstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut fstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut exp: i64 = 0;
     let mut tmp1: u64 = 0;
@@ -682,7 +682,7 @@ pub fn bid64_round_integral_negative(mut x: u64) -> (u64, u32) {
         tmp1 = (C1 as f64).to_bits();
         x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         q = (bid_estimate_decimal_digits[(x_nr_bits.wrapping_sub(1)) as usize] as i64);
-        if (C1 >= bid_power10_table_128[q as usize].w[0]) {
+        if (C1 >= bid_power10_table_128[q as usize].lo) {
             q = q.wrapping_add(1);
         }
     }
@@ -693,16 +693,16 @@ pub fn bid64_round_integral_negative(mut x: u64) -> (u64, u32) {
         ind = (exp.wrapping_neg());
         P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
         if (((ind.wrapping_sub(1))) <= 2) {
-            res = P128.w[1];
-            fstar.w[1] = 0;
-            fstar.w[0] = P128.w[0];
+            res = P128.hi;
+            fstar.hi = 0;
+            fstar.lo = P128.lo;
         } else if (((ind.wrapping_sub(1))) <= 21) {
             shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-            res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-            fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-            fstar.w[0] = P128.w[0];
+            res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+            fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+            fstar.lo = P128.lo;
         }
-        if ((x_sign != 0) && (((fstar.w[1] != 0) || ((fstar.w[0] >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))))) {
+        if ((x_sign != 0) && (((fstar.hi != 0) || ((fstar.lo >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))))) {
             res = res.wrapping_add(1);
         }
         res = ((x_sign | 0x31c0000000000000) | res);
@@ -725,8 +725,8 @@ pub fn bid64_round_integral_positive(mut x: u64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut shift: i64 = 0;
     let mut C1: u64 = 0;
-    let mut fstar: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut fstar: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut exp: i64 = 0;
     let mut tmp1: u64 = 0;
@@ -779,7 +779,7 @@ pub fn bid64_round_integral_positive(mut x: u64) -> (u64, u32) {
         tmp1 = (C1 as f64).to_bits();
         x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         q = (bid_estimate_decimal_digits[(x_nr_bits.wrapping_sub(1)) as usize] as i64);
-        if (C1 >= bid_power10_table_128[q as usize].w[0]) {
+        if (C1 >= bid_power10_table_128[q as usize].lo) {
             q = q.wrapping_add(1);
         }
     }
@@ -790,16 +790,16 @@ pub fn bid64_round_integral_positive(mut x: u64) -> (u64, u32) {
         ind = (exp.wrapping_neg());
         P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
         if (((ind.wrapping_sub(1))) <= 2) {
-            res = P128.w[1];
-            fstar.w[1] = 0;
-            fstar.w[0] = P128.w[0];
+            res = P128.hi;
+            fstar.hi = 0;
+            fstar.lo = P128.lo;
         } else if (((ind.wrapping_sub(1))) <= 21) {
             shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-            res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
-            fstar.w[1] = (P128.w[1] & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
-            fstar.w[0] = P128.w[0];
+            res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
+            fstar.hi = (P128.hi & bid_maskhigh128_round64[(ind.wrapping_sub(1)) as usize]);
+            fstar.lo = P128.lo;
         }
-        if ((x_sign == 0) && (((fstar.w[1] != 0) || ((fstar.w[0] >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))))) {
+        if ((x_sign == 0) && (((fstar.hi != 0) || ((fstar.lo >= bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]))))) {
             res = res.wrapping_add(1);
         }
         res = ((x_sign | 0x31c0000000000000) | res);
@@ -822,7 +822,7 @@ pub fn bid64_round_integral_zero(mut x: u64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut shift: i64 = 0;
     let mut C1: u64 = 0;
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut exp: i64 = 0;
     let mut tmp1: u64 = 0;
@@ -871,7 +871,7 @@ pub fn bid64_round_integral_zero(mut x: u64) -> (u64, u32) {
         tmp1 = (C1 as f64).to_bits();
         x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         q = (bid_estimate_decimal_digits[(x_nr_bits.wrapping_sub(1)) as usize] as i64);
-        if (C1 >= bid_power10_table_128[q as usize].w[0]) {
+        if (C1 >= bid_power10_table_128[q as usize].lo) {
             q = q.wrapping_add(1);
         }
     }
@@ -882,10 +882,10 @@ pub fn bid64_round_integral_zero(mut x: u64) -> (u64, u32) {
         ind = (exp.wrapping_neg());
         P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
         if (((ind.wrapping_sub(1))) <= 2) {
-            res = P128.w[1];
+            res = P128.hi;
         } else if (((ind.wrapping_sub(1))) <= 21) {
             shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-            res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
+            res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
         }
         res = ((x_sign | 0x31c0000000000000) | res);
         return (res, pfpsf);
@@ -903,7 +903,7 @@ pub fn bid64_round_integral_nearest_away(mut x: u64) -> (u64, u32) {
     let mut ind: i64 = 0;
     let mut shift: i64 = 0;
     let mut C1: u64 = 0;
-    let mut P128: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut exp: i64 = 0;
     let mut tmp1: u64 = 0;
@@ -952,7 +952,7 @@ pub fn bid64_round_integral_nearest_away(mut x: u64) -> (u64, u32) {
         tmp1 = (C1 as f64).to_bits();
         x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp1, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         q = (bid_estimate_decimal_digits[(x_nr_bits.wrapping_sub(1)) as usize] as i64);
-        if (C1 >= bid_power10_table_128[q as usize].w[0]) {
+        if (C1 >= bid_power10_table_128[q as usize].lo) {
             q = q.wrapping_add(1);
         }
     }
@@ -964,10 +964,10 @@ pub fn bid64_round_integral_nearest_away(mut x: u64) -> (u64, u32) {
         C1 = (C1.wrapping_add(bid_midpoint64[(ind.wrapping_sub(1)) as usize]));
         P128 = __mul_64x64_to_128(C1, bid_ten2mk64_round64[(ind.wrapping_sub(1)) as usize]);
         if (((ind.wrapping_sub(1))) <= 2) {
-            res = P128.w[1];
+            res = P128.hi;
         } else if (((ind.wrapping_sub(1))) <= 21) {
             shift = (bid_shiftright128_round64[(ind.wrapping_sub(1)) as usize] as i64);
-            res = ((go_checked_shr_u64(P128.w[1], go_shift_count_i64((shift) as i64))));
+            res = ((go_checked_shr_u64(P128.hi, go_shift_count_i64((shift) as i64))));
         }
         res = ((x_sign | 0x31c0000000000000) | res);
         return (res, pfpsf);

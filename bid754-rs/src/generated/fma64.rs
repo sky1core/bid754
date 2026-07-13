@@ -29,9 +29,9 @@
 use super::prelude::*;
 
 pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, u32) {
-    let mut P: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CT: BID_UINT128 = BID_UINT128 { w: [0, 0] };
-    let mut CZ: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut P: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CZ: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut sign_y: u64 = 0;
     let mut coefficient_x: u64 = 0;
@@ -197,8 +197,8 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
             res = bid_get_add64((sign_x ^ sign_y), final_exponent, C64, sign_z, exponent_z, coefficient_z, rndMode, (&mut pfpsf));
             return (res, pfpsf);
         }
-        P.w[0] = C64;
-        P.w[1] = 0;
+        P.lo = C64;
+        P.hi = 0;
         extra_digits = 0;
     } else {
         if (coefficient_z == 0) {
@@ -221,7 +221,7 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
             tempx = (coefficient_z as f64).to_bits();
             bin_expon_cx = (((go_checked_shr_u64((tempx & 0x7ff0000000000000), go_shift_count_u64((52) as u64))) as i64).wrapping_sub(0x3ff));
             digits_z = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
-            if (coefficient_z >= bid_power10_table_128[digits_z as usize].w[0]) {
+            if (coefficient_z >= bid_power10_table_128[digits_z as usize].lo) {
                 digits_z = digits_z.wrapping_add(1);
             }
             if ((((final_exponent.wrapping_add(16)) < 0)) || (((exponent_z.wrapping_add(digits_z)) > ((33 as i64).wrapping_add(final_exponent))))) {
@@ -233,21 +233,21 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
                 ez = 0;
             }
             scale_z = (exponent_z.wrapping_sub(ez));
-            coefficient_z = coefficient_z.wrapping_mul(bid_power10_table_128[scale_z as usize].w[0]);
+            coefficient_z = coefficient_z.wrapping_mul(bid_power10_table_128[scale_z as usize].lo);
             ey = (final_exponent.wrapping_sub(extra_digits));
             extra_digits = (ez.wrapping_sub(ey));
             if (extra_digits > 17) {
                 CYh = __truncate(P, 16);
-                T = bid_power10_table_128[16].w[0];
+                T = bid_power10_table_128[16].lo;
                 CY0L = __mul_64x64_to_64(CYh, T);
-                remainder_y = (P.w[0].wrapping_sub(CY0L));
+                remainder_y = (P.lo.wrapping_sub(CY0L));
                 extra_digits = extra_digits.wrapping_sub(16);
-                P.w[0] = CYh;
-                P.w[1] = 0;
+                P.lo = CYh;
+                P.hi = 0;
             } else {
                 remainder_y = 0;
             }
-            CZ = __mul_64x64_to_128(coefficient_z, bid_power10_table_128[extra_digits as usize].w[0]);
+            CZ = __mul_64x64_to_128(coefficient_z, bid_power10_table_128[extra_digits as usize].lo);
             if (sign_z == (sign_y ^ sign_x)) {
                 CT = __add_128_128(CZ, P);
                 if __unsigned_compare_ge_128(CT, bid_power10_table_128[((16 as i64).wrapping_add(extra_digits)) as usize]) {
@@ -256,20 +256,20 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
                 }
             } else {
                 if ((remainder_y != 0) && (__unsigned_compare_ge_128(CZ, P))) {
-                    P.w[0] = P.w[0].wrapping_add(1);
-                    if (P.w[0] == 0) {
-                        P.w[1] = P.w[1].wrapping_add(1);
+                    P.lo = P.lo.wrapping_add(1);
+                    if (P.lo == 0) {
+                        P.hi = P.hi.wrapping_add(1);
                     }
                 }
                 CT = __sub_128_128(CZ, P);
-                if ((CT.w[1] as i64) < 0) {
+                if ((CT.hi as i64) < 0) {
                     sign_z = (sign_y ^ sign_x);
-                    CT.w[0] = ((0 as u64).wrapping_sub(CT.w[0]));
-                    CT.w[1] = ((0 as u64).wrapping_sub(CT.w[1]));
-                    if (CT.w[0] != 0) {
-                        CT.w[1] = CT.w[1].wrapping_sub(1);
+                    CT.lo = ((0 as u64).wrapping_sub(CT.lo));
+                    CT.hi = ((0 as u64).wrapping_sub(CT.hi));
+                    if (CT.lo != 0) {
+                        CT.hi = CT.hi.wrapping_sub(1);
                     }
-                } else if ((CT.w[1] | CT.w[0]) == 0) {
+                } else if ((CT.hi | CT.lo) == 0) {
                     if (rndMode != 1) {
                         sign_z = 0;
                     } else {

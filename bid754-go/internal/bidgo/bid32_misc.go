@@ -167,7 +167,7 @@ func Bid32Fmod(x, y uint32) (uint32, uint32) {
 			res = x
 			return res, pfpsf
 		}
-		T = uint32(bid_power10_table_128[diff_expon].w[0])
+		T = uint32(bid_power10_table_128[diff_expon].lo)
 		CYL = uint64(coefficient_y) * uint64(T)
 		if CYL > uint64(coefficient_x) {
 			res = x
@@ -192,7 +192,7 @@ func Bid32Fmod(x, y uint32) (uint32, uint32) {
 			e_scale = diff_expon
 			diff_expon = 0
 		}
-		CX *= bid_power10_table_128[e_scale].w[0]
+		CX *= bid_power10_table_128[e_scale].lo
 		Q64 = CX / uint64(coefficient_y)
 		CX -= Q64 * uint64(coefficient_y)
 		if CX == 0 {
@@ -314,8 +314,8 @@ func Bid32NextToward(x uint32, y BID_UINT128) (uint32, uint32) {
 	var flags uint32
 
 	if ((x & MASK_INF32) == MASK_INF32) ||
-		((y.w[1] & MASK_NAN_128) == MASK_NAN_128) ||
-		((y.w[1] & MASK_ANY_INF_128) == MASK_INF_128) {
+		((y.hi & MASK_NAN_128) == MASK_NAN_128) ||
+		((y.hi & MASK_ANY_INF_128) == MASK_INF_128) {
 		if (x & MASK_NAN32) == MASK_NAN32 {
 			if (x & 0x000fffff) > 999999 {
 				x = x & 0xfe000000
@@ -326,25 +326,25 @@ func Bid32NextToward(x uint32, y BID_UINT128) (uint32, uint32) {
 				flags |= BID_INVALID_EXCEPTION
 				res = x & 0xfdffffff
 			} else {
-				if (y.w[1] & MASK_SNAN_128) == MASK_SNAN_128 {
+				if (y.hi & MASK_SNAN_128) == MASK_SNAN_128 {
 					flags |= BID_INVALID_EXCEPTION
 				}
 				res = x
 			}
 			return res, flags
-		} else if (y.w[1] & MASK_NAN_128) == MASK_NAN_128 {
-			if ((y.w[1] & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
-				((y.w[1]&0x00003fffffffffff) == 0x0000314dc6448d93 && y.w[0] > 0x38c15b09ffffffff) {
-				y.w[1] = y.w[1] & 0xffffc00000000000
-				y.w[0] = 0
+		} else if (y.hi & MASK_NAN_128) == MASK_NAN_128 {
+			if ((y.hi & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
+				((y.hi&0x00003fffffffffff) == 0x0000314dc6448d93 && y.lo > 0x38c15b09ffffffff) {
+				y.hi = y.hi & 0xffffc00000000000
+				y.lo = 0
 			}
-			if (y.w[1] & MASK_SNAN_128) == MASK_SNAN_128 {
+			if (y.hi & MASK_SNAN_128) == MASK_SNAN_128 {
 				flags |= BID_INVALID_EXCEPTION
-				tmp128.w[1] = y.w[1] & 0xfc003fffffffffff
-				tmp128.w[0] = y.w[0]
+				tmp128.hi = y.hi & 0xfc003fffffffffff
+				tmp128.lo = y.lo
 			} else {
-				tmp128.w[1] = y.w[1] & 0xfc003fffffffffff
-				tmp128.w[0] = y.w[0]
+				tmp128.hi = y.hi & 0xfc003fffffffffff
+				tmp128.lo = y.lo
 			}
 			res, _ = Bid128ToBid32(tmp128, BID_ROUNDING_TO_NEAREST)
 			return res, flags
@@ -352,9 +352,9 @@ func Bid32NextToward(x uint32, y BID_UINT128) (uint32, uint32) {
 			if (x & MASK_INF32) == MASK_INF32 {
 				x = x & (MASK_SIGN32 | MASK_INF32)
 			}
-			if (y.w[1] & MASK_ANY_INF_128) == MASK_INF_128 {
-				y.w[1] = y.w[1] & (MASK_SIGN_128 | MASK_INF_128)
-				y.w[0] = 0
+			if (y.hi & MASK_ANY_INF_128) == MASK_INF_128 {
+				y.hi = y.hi & (MASK_SIGN_128 | MASK_INF_128)
+				y.lo = 0
 			}
 		}
 	}
@@ -374,7 +374,7 @@ func Bid32NextToward(x uint32, y BID_UINT128) (uint32, uint32) {
 	flags = tmp_fpsf
 
 	if res1 != 0 {
-		res = uint32((y.w[1]&MASK_SIGN_128)>>32) | (x & 0x7fffffff)
+		res = uint32((y.hi&MASK_SIGN_128)>>32) | (x & 0x7fffffff)
 	} else if res2 != 0 {
 		res, _ = Bid32NextDown(x)
 	} else {
@@ -447,8 +447,8 @@ func Bid32ToBinary128(x uint32, rndMode int) (BID_UINT128, uint32) {
 		if (x & MASK_SNAN32) == MASK_SNAN32 {
 			flags |= BID_INVALID_EXCEPTION
 		}
-		res.w[1] = (uint64(x&MASK_SIGN32) << 32) | 0x7fff000000000000 | 0x0000800000000000 | ((payload << 27) & 0x00007fffffffffff)
-		res.w[0] = 0
+		res.hi = (uint64(x&MASK_SIGN32) << 32) | 0x7fff000000000000 | 0x0000800000000000 | ((payload << 27) & 0x00007fffffffffff)
+		res.lo = 0
 		return res, flags
 	}
 	x64, f0 := Bid32ToBid64(x)

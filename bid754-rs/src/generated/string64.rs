@@ -199,7 +199,7 @@ pub fn bid64_to_string(mut x: u64) -> String {
             let mut tempx = (exponent_x as f32);
             let mut bin_expon_cx = (((((go_checked_shr_u32((tempx as f32).to_bits(), go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(0x7f));
             let mut digits_x = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
-            if ((exponent_x as u64) >= bid_power10_table_128[digits_x as usize].w[0]) {
+            if ((exponent_x as u64) >= bid_power10_table_128[digits_x as usize].lo) {
                 digits_x = digits_x.wrapping_add(1);
             }
             let mut j = ((istart.wrapping_add(digits_x)).wrapping_sub(1));
@@ -273,7 +273,7 @@ pub fn bid64_to_string(mut x: u64) -> String {
         let mut tempx = (exponent_x as f32);
         let mut bin_expon_cx = (((((go_checked_shr_u32((tempx as f32).to_bits(), go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(0x7f));
         let mut digits_x = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
-        if ((exponent_x as u64) >= bid_power10_table_128[digits_x as usize].w[0]) {
+        if ((exponent_x as u64) >= bid_power10_table_128[digits_x as usize].lo) {
             digits_x = digits_x.wrapping_add(1);
         }
         let mut j = ((istart.wrapping_add(digits_x)).wrapping_sub(1));

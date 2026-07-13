@@ -73,7 +73,7 @@ func Bid64Quantize(x, y uint64, rndMode int) (uint64, uint32) {
 	tempx := math.Float32bits(float32(coefficient_x))
 	bin_expon_cx = int((tempx>>23)&0xff) - 0x7f
 	digits_x = bid_estimate_decimal_digits[bin_expon_cx]
-	if coefficient_x >= bid_power10_table_128[digits_x].w[0] {
+	if coefficient_x >= bid_power10_table_128[digits_x].lo {
 		digits_x++
 	}
 
@@ -83,7 +83,7 @@ func Bid64Quantize(x, y uint64, rndMode int) (uint64, uint32) {
 	// check range of scaled coefficient
 	if uint32(total_digits+1) <= 17 {
 		if expon_diff >= 0 {
-			coefficient_x *= bid_power10_table_128[expon_diff].w[0]
+			coefficient_x *= bid_power10_table_128[expon_diff].lo
 			res = very_fast_get_BID64(sign_x, exponent_y, coefficient_x)
 			return res, pfpsf
 		}
@@ -100,7 +100,7 @@ func Bid64Quantize(x, y uint64, rndMode int) (uint64, uint32) {
 
 		// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 		amount = bid_short_recip_scale[extra_digits]
-		C64 = CT.w[1] >> uint(amount)
+		C64 = CT.hi >> uint(amount)
 		if rndMode == 0 {
 			if C64&1 != 0 {
 				// check whether fractional part of initial_P/10^extra_digits
@@ -113,10 +113,10 @@ func Bid64Quantize(x, y uint64, rndMode int) (uint64, uint32) {
 				remainder_h = 0
 				remainder_h--
 				remainder_h >>= uint(amount2)
-				remainder_h = remainder_h & CT.w[1]
+				remainder_h = remainder_h & CT.hi
 
 				// test whether fractional part is 0
-				if remainder_h == 0 && (CT.w[0] < bid_reciprocals10_64[extra_digits]) {
+				if remainder_h == 0 && (CT.lo < bid_reciprocals10_64[extra_digits]) {
 					C64--
 				}
 			}
@@ -124,25 +124,25 @@ func Bid64Quantize(x, y uint64, rndMode int) (uint64, uint32) {
 
 		status = BID_INEXACT_EXCEPTION
 		// get remainder
-		remainder_h = CT.w[1] << (64 - uint(amount))
+		remainder_h = CT.hi << (64 - uint(amount))
 		switch rmode {
 		case BID_ROUNDING_TO_NEAREST:
 			fallthrough
 		case BID_ROUNDING_TIES_AWAY:
 			// test whether fractional part is 0
 			if (remainder_h == 0x8000000000000000) &&
-				(CT.w[0] < bid_reciprocals10_64[extra_digits]) {
+				(CT.lo < bid_reciprocals10_64[extra_digits]) {
 				status = BID_EXACT_STATUS
 			}
 		case BID_ROUNDING_DOWN:
 			fallthrough
 		case BID_ROUNDING_TO_ZERO:
-			if remainder_h == 0 && (CT.w[0] < bid_reciprocals10_64[extra_digits]) {
+			if remainder_h == 0 && (CT.lo < bid_reciprocals10_64[extra_digits]) {
 				status = BID_EXACT_STATUS
 			}
 		default:
 			// round up
-			tmp, carry = __add_carry_out(CT.w[0], bid_reciprocals10_64[extra_digits])
+			tmp, carry = __add_carry_out(CT.lo, bid_reciprocals10_64[extra_digits])
 			_ = tmp
 			if (remainder_h>>uint(64-amount))+carry >= (uint64(1) << uint(amount)) {
 				status = BID_EXACT_STATUS

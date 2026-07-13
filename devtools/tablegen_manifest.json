@@ -2,6 +2,8 @@
   "go_package": "generatedtables",
   "go_output": "generated/go/intel_dfp_tables.go",
   "rust_output": "../bid754-rs/src/intel_dfp_tables.rs",
+  "bidgo_output": "../bid754-go/internal/bidgo/tables_binarydecimal.go",
+  "bidgo_source": "third_party/intel_dfp/src/bid_binarydecimal.c",
   "tables": [
     {
       "name": "bid_bid_bid_recip_scale32",

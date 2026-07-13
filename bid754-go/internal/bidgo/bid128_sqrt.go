@@ -18,7 +18,7 @@ func short_sqrt128(A10 BID_UINT128) uint64 {
 
 	// 2^64
 	l64 := math.Float64frombits(0x43f0000000000000)
-	lx := noFmaMulAddF64(float64(A10.w[1]), l64, float64(A10.w[0]))
+	lx := noFmaMulAddF64(float64(A10.hi), l64, float64(A10.lo))
 	ly_d := 1.0 / math.Sqrt(lx)
 	ly_i := math.Float64bits(ly_d)
 
@@ -44,9 +44,9 @@ func short_sqrt128(A10 BID_UINT128) uint64 {
 			k -= 64
 		}
 		if k != 0 {
-			ARS_128 := __shr_128(BID_UINT128{w: [2]uint64{ARS.w[0], ARS.w[1]}}, uint(k))
-			ARS.w[0] = ARS_128.w[0]
-			ARS.w[1] = ARS_128.w[1]
+			ARS_128 := __shr_128(BID_UINT128{lo: ARS.w[0], hi: ARS.w[1]}, uint(k))
+			ARS.w[0] = ARS_128.lo
+			ARS.w[1] = ARS_128.hi
 		}
 		ES = ARS.w[0]
 	}
@@ -93,9 +93,9 @@ func short_sqrt128(A10 BID_UINT128) uint64 {
 		k -= 64
 	}
 	if k != 0 {
-		S_128 := __shr_128(BID_UINT128{w: [2]uint64{S.w[0], S.w[1]}}, uint(k))
-		S.w[0] = S_128.w[0]
-		S.w[1] = S_128.w[1]
+		S_128 := __shr_128(BID_UINT128{lo: S.w[0], hi: S.w[1]}, uint(k))
+		S.w[0] = S_128.lo
+		S.w[1] = S_128.hi
 	}
 
 	return (S.w[0] + 1) >> 1
@@ -135,13 +135,13 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	// shr by k=(2*ey+104)-128-192
 	k := (ey << 1) + 104 - 128 - 192
 	k2 := 64 - k
-	ES.w[0] = (ARS.w[3] >> uint(k+1)) | (ARS.w[4] << uint(k2-1))
-	ES.w[1] = (ARS.w[4] >> uint(k)) | (ARS.w[5] << uint(k2))
-	ES.w[1] = uint64(int64(ES.w[1]) >> 1)
+	ES.lo = (ARS.w[3] >> uint(k+1)) | (ARS.w[4] << uint(k2-1))
+	ES.hi = (ARS.w[4] >> uint(k)) | (ARS.w[5] << uint(k2))
+	ES.hi = uint64(int64(ES.hi) >> 1)
 
 	// A*RS >> 192 (for error term computation)
-	ARS1.w[0] = ARS0.w[3]
-	ARS1.w[1] = ARS0.w[4]
+	ARS1.lo = ARS0.w[3]
+	ARS1.hi = ARS0.w[4]
 
 	// A*RS>>64
 	ARS00.w[0] = ARS0.w[1]
@@ -149,11 +149,11 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	ARS00.w[2] = ARS0.w[3]
 	ARS00.w[3] = ARS0.w[4]
 
-	if int64(ES.w[1]) < 0 {
-		ES.w[0] = -ES.w[0]
-		ES.w[1] = -ES.w[1]
-		if ES.w[0] != 0 {
-			ES.w[1]--
+	if int64(ES.hi) < 0 {
+		ES.lo = -ES.lo
+		ES.hi = -ES.hi
+		if ES.lo != 0 {
+			ES.hi--
 		}
 
 		// A*RS*eps
@@ -174,8 +174,8 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	}
 
 	// 3/2*eps^2, scaled by 2^128
-	ES32 = ES.w[1] + (ES.w[1] >> 1)
-	ES2 = __mul_64x64_to_128(ES32, ES.w[1])
+	ES32 = ES.hi + (ES.hi >> 1)
+	ES2 = __mul_64x64_to_128(ES32, ES.hi)
 	// A*RS*3/2*eps^2
 	AE2 = __mul_128x128_to_256(ES2, ARS1)
 
@@ -198,8 +198,8 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	}
 
 	var CS BID_UINT128
-	CS.w[0] = (S.w[1] << 63) | (S.w[0] >> 1)
-	CS.w[1] = S.w[1] >> 1
+	CS.lo = (S.w[1] << 63) | (S.w[0] >> 1)
+	CS.hi = S.w[1] >> 1
 
 	return CS
 }
@@ -218,35 +218,35 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	// unpack arguments, check for NaN or Infinity
 	sign_x, exponent_x, CX, validBool := unpack_BID128_value(x)
 	if !validBool {
-		res.w[1] = CX.w[1]
-		res.w[0] = CX.w[0]
+		res.hi = CX.hi
+		res.lo = CX.lo
 		// NaN ?
-		if (x.w[1] & 0x7c00000000000000) == 0x7c00000000000000 {
-			if (x.w[1] & 0x7e00000000000000) == 0x7e00000000000000 { // sNaN
+		if (x.hi & 0x7c00000000000000) == 0x7c00000000000000 {
+			if (x.hi & 0x7e00000000000000) == 0x7e00000000000000 { // sNaN
 				pfpsf |= BID_INVALID_EXCEPTION
 			}
-			res.w[1] = CX.w[1] & QUIET_MASK64
+			res.hi = CX.hi & QUIET_MASK64
 			return res, pfpsf
 		}
 		// x is Infinity?
-		if (x.w[1] & 0x7800000000000000) == 0x7800000000000000 {
-			res.w[1] = CX.w[1]
+		if (x.hi & 0x7800000000000000) == 0x7800000000000000 {
+			res.hi = CX.hi
 			if sign_x != 0 {
 				// -Inf, return NaN
-				res.w[1] = 0x7c00000000000000
+				res.hi = 0x7c00000000000000
 				pfpsf |= BID_INVALID_EXCEPTION
 			}
 			return res, pfpsf
 		}
 		// x is 0 otherwise
-		res.w[1] = sign_x |
+		res.hi = sign_x |
 			((uint64(exponent_x+EXPONENT_BIAS128) >> 1) << 49)
-		res.w[0] = 0
+		res.lo = 0
 		return res, pfpsf
 	}
 	if sign_x != 0 {
-		res.w[1] = 0x7c00000000000000
-		res.w[0] = 0
+		res.hi = 0x7c00000000000000
+		res.lo = 0
 		pfpsf |= BID_INVALID_EXCEPTION
 		return res, pfpsf
 	}
@@ -256,35 +256,35 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	f64_d := math.Float32frombits(f64_i)
 
 	// fx ~ CX
-	fx_d := noFmaMulAddF32(float32(CX.w[1]), f64_d, float32(CX.w[0]))
+	fx_d := noFmaMulAddF32(float32(CX.hi), f64_d, float32(CX.lo))
 	fx_i := math.Float32bits(fx_d)
 	bin_expon_cx = int((fx_i>>23)&0xff) - 0x7f
 	digits = bid_estimate_decimal_digits[bin_expon_cx]
 
 	A10 = CX
 	if (exponent_x & 1) != 0 {
-		A10.w[1] = (CX.w[1] << 3) | (CX.w[0] >> 61)
-		A10.w[0] = CX.w[0] << 3
-		CX2.w[1] = (CX.w[1] << 1) | (CX.w[0] >> 63)
-		CX2.w[0] = CX.w[0] << 1
+		A10.hi = (CX.hi << 3) | (CX.lo >> 61)
+		A10.lo = CX.lo << 3
+		CX2.hi = (CX.hi << 1) | (CX.lo >> 63)
+		CX2.lo = CX.lo << 1
 		A10 = __add_128_128(A10, CX2)
 	}
 
-	CS.w[0] = short_sqrt128(A10)
-	CS.w[1] = 0
+	CS.lo = short_sqrt128(A10)
+	CS.hi = 0
 	// check for exact result
-	if CS.w[0]*CS.w[0] == A10.w[0] {
-		S2 = __mul_64x64_to_128_fast(CS.w[0], CS.w[0])
-		if S2.w[1] == A10.w[1] { // && S2.w[0]==A10.w[0]
+	if CS.lo*CS.lo == A10.lo {
+		S2 = __mul_64x64_to_128_fast(CS.lo, CS.lo)
+		if S2.hi == A10.hi { // && S2.w[0]==A10.w[0]
 			res = very_fast_get_BID128(0,
 				(exponent_x+EXPONENT_BIAS128)>>1, CS)
 			return res, pfpsf
 		}
 	}
 	// get number of digits in CX
-	D = int64(CX.w[1]) - int64(bid_power10_index_binexp_128[bin_expon_cx].w[1])
+	D = int64(CX.hi) - int64(bid_power10_index_binexp_128[bin_expon_cx].hi)
 	if D > 0 ||
-		(D == 0 && CX.w[0] >= bid_power10_index_binexp_128[bin_expon_cx].w[0]) {
+		(D == 0 && CX.lo >= bid_power10_index_binexp_128[bin_expon_cx].lo) {
 		digits++
 	}
 
@@ -314,8 +314,8 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 	if (rnd_mode & 3) == 0 {
 		// compare to midpoints
-		CSM.w[1] = (CS.w[1] << 1) | (CS.w[0] >> 63)
-		CSM.w[0] = (CS.w[0] + CS.w[0]) | 1
+		CSM.hi = (CS.hi << 1) | (CS.lo >> 63)
+		CSM.lo = (CS.lo + CS.lo) | 1
 		// CSM^2
 		M256 = __sqr128_to_256(CSM)
 
@@ -327,13 +327,13 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 							(C4.w[1] == M256.w[1] &&
 								C4.w[0] > M256.w[0]))))) {
 			// round up
-			CS.w[0]++
-			if CS.w[0] == 0 {
-				CS.w[1]++
+			CS.lo++
+			if CS.lo == 0 {
+				CS.hi++
 			}
 		} else {
-			C8.w[1] = (CS.w[1] << 3) | (CS.w[0] >> 61)
-			C8.w[0] = CS.w[0] << 3
+			C8.w[1] = (CS.hi << 3) | (CS.lo >> 61)
+			C8.w[0] = CS.lo << 3
 			// M256 - 8*CSM
 			M256.w[0], Carry = __sub_borrow_out(M256.w[0], C8.w[0])
 			M256.w[1], Carry = __sub_borrow_in_out(M256.w[1], C8.w[1], Carry)
@@ -349,16 +349,16 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 								(M256.w[1] == C4.w[1] &&
 									M256.w[0] > C4.w[0]))))) {
 				// round down
-				if CS.w[0] == 0 {
-					CS.w[1]--
+				if CS.lo == 0 {
+					CS.hi--
 				}
-				CS.w[0]--
+				CS.lo--
 			}
 		}
 	} else {
 		M256 = __sqr128_to_256(CS)
-		C8.w[1] = (CS.w[1] << 1) | (CS.w[0] >> 63)
-		C8.w[0] = CS.w[0] << 1
+		C8.w[1] = (CS.hi << 1) | (CS.lo >> 63)
+		C8.w[0] = CS.lo << 1
 		if M256.w[3] > C256.w[3] ||
 			(M256.w[3] == C256.w[3] &&
 				(M256.w[2] > C256.w[2] ||
@@ -381,10 +381,10 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 				}
 			}
 
-			if CS.w[0] == 0 {
-				CS.w[1]--
+			if CS.lo == 0 {
+				CS.hi--
 			}
-			CS.w[0]--
+			CS.lo--
 
 			if M256.w[3] > C256.w[3] ||
 				(M256.w[3] == C256.w[3] &&
@@ -394,10 +394,10 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 								(M256.w[1] == C256.w[1] &&
 									M256.w[0] > C256.w[0]))))) {
 
-				if CS.w[0] == 0 {
-					CS.w[1]--
+				if CS.lo == 0 {
+					CS.hi--
 				}
-				CS.w[0]--
+				CS.lo--
 			}
 		} else {
 			M256.w[0], Carry = __add_carry_out(M256.w[0], C8.w[0])
@@ -422,17 +422,17 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 								(M256.w[1] == C256.w[1] &&
 									M256.w[0] <= C256.w[0]))))) {
 
-				CS.w[0]++
-				if CS.w[0] == 0 {
-					CS.w[1]++
+				CS.lo++
+				if CS.lo == 0 {
+					CS.hi++
 				}
 			}
 		}
 		// RU?
 		if rnd_mode == BID_ROUNDING_UP {
-			CS.w[0]++
-			if CS.w[0] == 0 {
-				CS.w[1]++
+			CS.lo++
+			if CS.lo == 0 {
+				CS.hi++
 			}
 		}
 	}

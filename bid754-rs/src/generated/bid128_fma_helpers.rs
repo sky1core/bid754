@@ -91,10 +91,10 @@ pub(crate) fn bid_rounding_correction(mut rnd_mode: i64, mut is_inexact_lt_midpo
     if ((((is_inexact_lt_midpoint != 0) || (is_inexact_gt_midpoint != 0)) || (is_midpoint_lt_even != 0)) || (is_midpoint_gt_even != 0)) {
         (*ptrfpsf) |= 32;
     }
-    sign = (res.w[1] & 0x8000000000000000);
+    sign = (res.hi & 0x8000000000000000);
     exp = (go_checked_shl_u64(((unbexp.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64)));
-    C_hi = (res.w[1] & 0x1ffffffffffff);
-    C_lo = res.w[0];
+    C_hi = (res.hi & 0x1ffffffffffff);
+    C_lo = res.lo;
     if ((((sign == 0) && (((((rnd_mode == 2) && (is_inexact_lt_midpoint != 0))) || (((((rnd_mode == 4) || (rnd_mode == 2))) && (is_midpoint_gt_even != 0))))))) || (((sign != 0) && (((((rnd_mode == 1) && (is_inexact_lt_midpoint != 0))) || (((((rnd_mode == 4) || (rnd_mode == 1))) && (is_midpoint_gt_even != 0)))))))) {
         C_lo = (C_lo.wrapping_add(1));
         if (C_lo == 0) {
@@ -143,32 +143,32 @@ pub(crate) fn bid_rounding_correction(mut rnd_mode: i64, mut is_inexact_lt_midpo
             }
         }
     }
-    res.w[1] = ((sign | exp) | C_hi);
-    res.w[0] = C_lo;
+    res.hi = ((sign | exp) | C_hi);
+    res.lo = C_lo;
     (*ptrres) = res;
 }
 
 pub(crate) fn bid128_count_digits(mut C: BID_UINT128) -> i64 {
     let mut x_nr_bits: i64 = 0;
-    if (C.w[1] == 0) {
-        if (C.w[0] == 0) {
+    if (C.hi == 0) {
+        if (C.lo == 0) {
             return 0;
         }
-        if (C.w[0] >= 0x0020000000000000) {
-            let mut tmp = (((go_checked_shr_u64(C.w[0], go_shift_count_u64((32) as u64))) as f64)).to_bits();
+        if (C.lo >= 0x0020000000000000) {
+            let mut tmp = (((go_checked_shr_u64(C.lo, go_shift_count_u64((32) as u64))) as f64)).to_bits();
             x_nr_bits = ((33 as i64).wrapping_add(((((((go_checked_shr_u64(tmp, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         } else {
-            let mut tmp = (C.w[0] as f64).to_bits();
+            let mut tmp = (C.lo as f64).to_bits();
             x_nr_bits = ((1 as i64).wrapping_add(((((((go_checked_shr_u64(tmp, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
         }
     } else {
-        let mut tmp = (C.w[1] as f64).to_bits();
+        let mut tmp = (C.hi as f64).to_bits();
         x_nr_bits = ((65 as i64).wrapping_add(((((((go_checked_shr_u64(tmp, go_shift_count_u64((52) as u64)))) & 0x7ff)).wrapping_sub(0x3ff)) as i64)));
     }
     let mut q = (bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].digits as i64);
     if (q == 0) {
         q = (bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].digits1 as i64);
-        if ((C.w[1] > bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) || (((C.w[1] == bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) && (C.w[0] >= bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_lo)))) {
+        if ((C.hi > bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) || (((C.hi == bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_hi) && (C.lo >= bid_nr_digits[(x_nr_bits.wrapping_sub(1)) as usize].threshold_lo)))) {
             q = q.wrapping_add(1);
         }
     }

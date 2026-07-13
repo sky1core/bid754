@@ -18,7 +18,7 @@ pub fn add(self, rhs: Decimal64) -> Decimal64 {
     Decimal64(crate::generated::add64::bid64_add(self.0, rhs.0, 0))
 }
 pub(crate) fn bid_uint128_from_le_bytes(bytes: [u8; 16]) -> crate::gen_types::BID_UINT128 {
-    crate::gen_types::BID_UINT128 { w: [0, 0] }
+    crate::gen_types::BID_UINT128 { lo: 0, hi: 0 }
 }
 pub fn c(self) -> DecimalClass {
     super::types::decimal_class_from_bid_class(0)

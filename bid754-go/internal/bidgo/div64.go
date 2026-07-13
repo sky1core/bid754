@@ -103,7 +103,7 @@ func Bid64Div(x, y uint64, rndMode int) uint64 {
 		DU = (A - B) >> 63
 		ed1 = 15 + int(DU)
 		ed2 = bid_estimate_decimal_digits[bin_index] + ed1
-		T = bid_power10_table_128[ed1].w[0]
+		T = bid_power10_table_128[ed1].lo
 		CA = __mul_64x64_to_128(A, T)
 
 		Q = 0
@@ -154,26 +154,26 @@ func Bid64Div(x, y uint64, rndMode int) uint64 {
 
 		ed2 = 16 - bid_estimate_decimal_digits[bin_expon_cx] - int(DU)
 
-		T = bid_power10_table_128[ed2].w[0]
+		T = bid_power10_table_128[ed2].lo
 		CA = __mul_64x64_to_128(R, T)
 		B = coefficient_y
 
-		Q *= bid_power10_table_128[ed2].w[0]
+		Q *= bid_power10_table_128[ed2].lo
 		diff_expon -= ed2
 	}
 
-	if CA.w[1] == 0 {
-		Q2 = CA.w[0] / B
+	if CA.hi == 0 {
+		Q2 = CA.lo / B
 		B2 = B + B
 		B4 = B2 + B2
-		R = CA.w[0] - Q2*B
+		R = CA.lo - Q2*B
 		Q += Q2
 	} else {
 		// 2^64
 		t_scale := math.Float64frombits(0x43f0000000000000)
 		// convert CA to DP
-		da_h := float64(CA.w[1])
-		da_l := float64(CA.w[0])
+		da_h := float64(CA.hi)
+		da_l := float64(CA.lo)
 		da := noFmaMulAddF64(da_h, t_scale, da_l)
 
 		// quotient
@@ -181,7 +181,7 @@ func Bid64Div(x, y uint64, rndMode int) uint64 {
 		Q2 = uint64(dq)
 
 		// get w[0] remainder
-		R = CA.w[0] - Q2*B
+		R = CA.lo - Q2*B
 
 		// R<0 ?
 		D = int64(R) >> 63
@@ -241,7 +241,7 @@ func Bid64Div(x, y uint64, rndMode int) uint64 {
 				CT := __mul_64x64_to_128(Q, bid_reciprocals10_64[nzeros])
 				// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 				amount := bid_short_recip_scale[nzeros]
-				Q = CT.w[1] >> uint(amount)
+				Q = CT.hi >> uint(amount)
 			}
 
 			diff_expon += nzeros
@@ -291,7 +291,7 @@ func Bid64Div(x, y uint64, rndMode int) uint64 {
 				CT := __mul_64x64_to_128(Q, bid_reciprocals10_64[nzeros])
 				// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 				amount := bid_short_recip_scale[nzeros]
-				Q = CT.w[1] >> uint(amount)
+				Q = CT.hi >> uint(amount)
 			}
 			diff_expon += nzeros
 		}
@@ -445,7 +445,7 @@ func Bid64DivWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 		DU = (A - B) >> 63
 		ed1 = 15 + int(DU)
 		ed2 = bid_estimate_decimal_digits[bin_index] + ed1
-		T = bid_power10_table_128[ed1].w[0]
+		T = bid_power10_table_128[ed1].lo
 		CA = __mul_64x64_to_128(A, T)
 
 		Q = 0
@@ -497,26 +497,26 @@ func Bid64DivWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 
 		ed2 = 16 - bid_estimate_decimal_digits[bin_expon_cx] - int(DU)
 
-		T = bid_power10_table_128[ed2].w[0]
+		T = bid_power10_table_128[ed2].lo
 		CA = __mul_64x64_to_128(R, T)
 		B = coefficient_y
 
-		Q *= bid_power10_table_128[ed2].w[0]
+		Q *= bid_power10_table_128[ed2].lo
 		diff_expon -= ed2
 	}
 
-	if CA.w[1] == 0 {
-		Q2 = CA.w[0] / B
+	if CA.hi == 0 {
+		Q2 = CA.lo / B
 		B2 = B + B
 		B4 = B2 + B2
-		R = CA.w[0] - Q2*B
+		R = CA.lo - Q2*B
 		Q += Q2
 	} else {
 		// 2^64
 		t_scale := math.Float64frombits(0x43f0000000000000)
 		// convert CA to DP
-		da_h := float64(CA.w[1])
-		da_l := float64(CA.w[0])
+		da_h := float64(CA.hi)
+		da_l := float64(CA.lo)
 		da := noFmaMulAddF64(da_h, t_scale, da_l)
 
 		// quotient
@@ -524,7 +524,7 @@ func Bid64DivWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 		Q2 = uint64(dq)
 
 		// get w[0] remainder
-		R = CA.w[0] - Q2*B
+		R = CA.lo - Q2*B
 
 		// R<0 ?
 		D = int64(R) >> 63
@@ -589,7 +589,7 @@ func Bid64DivWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 				CT := __mul_64x64_to_128(Q, bid_reciprocals10_64[nzeros])
 				// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 				amount := bid_short_recip_scale[nzeros]
-				Q = CT.w[1] >> uint(amount)
+				Q = CT.hi >> uint(amount)
 			}
 
 			diff_expon += nzeros
@@ -639,7 +639,7 @@ func Bid64DivWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 				CT := __mul_64x64_to_128(Q, bid_reciprocals10_64[nzeros])
 				// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 				amount := bid_short_recip_scale[nzeros]
-				Q = CT.w[1] >> uint(amount)
+				Q = CT.hi >> uint(amount)
 			}
 			diff_expon += nzeros
 		}

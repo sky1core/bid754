@@ -42,8 +42,8 @@ func Bid64Frexp(x uint64) (uint64, int) {
 		if sig_x >= 0x0020000000000000 { // x >= 2^53
 			q = 16
 		} else { // if x < 2^53
-			C.w[0] = sig_x
-			C.w[1] = 0
+			C.lo = sig_x
+			C.hi = 0
 			q = __get_dec_digits64(C)
 		}
 		// Do not add trailing zeros if q < 16; leave sig_x with q digits

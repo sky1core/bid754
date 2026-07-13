@@ -29,7 +29,7 @@
 use super::prelude::*;
 
 pub fn bid64_sqrt(mut x: u64, mut rndMode: i64) -> (u64, u32) {
-    let mut CA: BID_UINT128 = BID_UINT128 { w: [0, 0] };
+    let mut CA: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut coefficient_x: u64 = 0;
     let mut Q: u64 = 0;
@@ -98,22 +98,22 @@ pub fn bid64_sqrt(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     scale = scale.wrapping_add(exponent_q & 1);
     let mut CT = bid_power10_table_128[scale as usize];
     CA = __mul_64x128_short(coefficient_x, CT);
-    da_h = (CA.w[1] as f64);
-    da_l = (CA.w[0] as f64);
+    da_h = (CA.hi as f64);
+    da_l = (CA.lo as f64);
     da = no_fma_mul_add_f64(da_h, f64::from_bits(t_scale), da_l);
     dq = (da).sqrt();
     Q = (dq as u64);
-    R = ((go_checked_shr_i64(((CA.w[0].wrapping_sub((Q.wrapping_mul(Q)))) as i64), go_shift_count_u64((63) as u64))) as u64);
+    R = ((go_checked_shr_i64(((CA.lo.wrapping_sub((Q.wrapping_mul(Q)))) as i64), go_shift_count_u64((63) as u64))) as u64);
     D = (((R.wrapping_add(R)).wrapping_add(1)) as i64);
     exponent_q = (go_checked_shr_i64(((exponent_q.wrapping_add(0x18e))), go_shift_count_u64((1) as u64)));
     pfpsf |= 32;
     if ((rndMode & 3) == 0) {
         Q2 = ((Q.wrapping_add(Q)).wrapping_add(D as u64));
-        C4 = (go_checked_shl_u64(CA.w[0], go_shift_count_u64((2) as u64)));
+        C4 = (go_checked_shl_u64(CA.lo, go_shift_count_u64((2) as u64)));
         R2 = ((go_checked_shr_i64((((Q2.wrapping_mul(Q2)).wrapping_sub(C4)) as i64), go_shift_count_u64((63) as u64))) as u64);
         Q = Q.wrapping_add(((D as u64) & (R ^ R2)));
     } else {
-        C4 = CA.w[0];
+        C4 = CA.lo;
         Q = Q.wrapping_add(D as u64);
         if ((((Q.wrapping_mul(Q)).wrapping_sub(C4)) as i64) > 0) {
             Q = Q.wrapping_sub(1);

@@ -19,9 +19,19 @@ fn test_bid64_mul_two_times_three() {
 
 #[test]
 fn test_bid128_add_one_plus_one() {
-    let one = BID_UINT128 { w: [0x0000000000000001, 0x3040000000000000] };
+    let one = BID_UINT128 {
+        lo: 0x0000000000000001,
+        hi: 0x3040000000000000,
+    };
     let mut flags: u32 = 0;
     let result = bid128_add(one, one, 0, &mut flags);
-    let expected = BID_UINT128 { w: [0x0000000000000002, 0x3040000000000000] };
-    assert_eq!(result.w, expected.w, "128-bit 1+1 should be 2, got [{:016x}, {:016x}]", result.w[0], result.w[1]);
+    let expected = BID_UINT128 {
+        lo: 0x0000000000000002,
+        hi: 0x3040000000000000,
+    };
+    assert_eq!(
+        result, expected,
+        "128-bit 1+1 should be 2, got [{:016x}, {:016x}]",
+        result.lo, result.hi
+    );
 }

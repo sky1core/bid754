@@ -2,6 +2,7 @@ package cgen
 
 import (
 	"bytes"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,6 +62,49 @@ func TestParseTableFileBidShortRecipScale(t *testing.T) {
 func TestGoScalarForCIntUsesFixedWidth(t *testing.T) {
 	if got, want := goScalarFor("int"), "int32"; got != want {
 		t.Fatalf("goScalarFor(%q) = %q, want %q", "int", got, want)
+	}
+}
+
+func TestRenderBidgoUsesNamedUint128LimbsOnly(t *testing.T) {
+	tables := []Table{
+		{
+			Spec:  TableSpec{Name: "bid_u128"},
+			CType: "BID_UINT128",
+			Dims:  []int{1},
+			Value: Value{Elements: []Value{{Elements: []Value{{Number: big.NewInt(1)}, {Number: big.NewInt(2)}}}}},
+		},
+		{
+			Spec:  TableSpec{Name: "bid_u256"},
+			CType: "BID_UINT256",
+			Dims:  []int{1},
+			Value: Value{Elements: []Value{{Elements: []Value{
+				{Number: big.NewInt(3)}, {Number: big.NewInt(4)}, {Number: big.NewInt(5)}, {Number: big.NewInt(6)},
+			}}}},
+		},
+		{
+			Spec:  TableSpec{Name: "bid_exp"},
+			CType: "int",
+			Dims:  []int{1},
+			Value: Value{Elements: []Value{{Number: big.NewInt(-7)}}},
+		},
+	}
+
+	generated, err := renderBidgo(tables)
+	if err != nil {
+		t.Fatalf("renderBidgo error: %v", err)
+	}
+	source := string(generated)
+	for _, want := range []string{
+		"var bid_u128 = [1]BID_UINT128{\n\t{lo: 1, hi: 2},\n}",
+		"var bid_u256 = [1]BID_UINT256{\n\t{w: [4]uint64{3, 4, 5, 6}},\n}",
+		"var bid_exp = [1]int{\n\t-7,\n}",
+	} {
+		if !strings.Contains(source, want) {
+			t.Fatalf("generated bidgo tables missing %q:\n%s", want, source)
+		}
+	}
+	if strings.Contains(source, "BID_UINT128{w:") || strings.Contains(source, "[2]uint64") {
+		t.Fatalf("generated bidgo BID_UINT128 retained array representation:\n%s", source)
 	}
 }
 
@@ -209,9 +253,11 @@ func TestGeneratedArtifactsStayInSync(t *testing.T) {
 
 	goPath := filepath.Join(repoRoot, manifest.GoOutput)
 	rustPath := filepath.Join(repoRoot, manifest.RustOutput)
+	bidgoPath := filepath.Join(repoRoot, manifest.BidgoOutput)
 
 	assertFileMatches(t, goPath, generated.Go)
 	assertFileMatches(t, rustPath, generated.Rust)
+	assertFileMatches(t, bidgoPath, generated.Bidgo)
 
 	goSource := string(generated.Go)
 	for _, want := range []string{
@@ -308,7 +354,7 @@ func TestLoadManifestRequiresPositiveExpectedShape(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(dir, tc.name+".json")
-			body := `{"go_package":"p","go_output":"g","rust_output":"r","tables":[` + tc.table + `]}`
+			body := `{"go_package":"p","go_output":"g","rust_output":"r","bidgo_output":"b","bidgo_source":"s","tables":[` + tc.table + `]}`
 			if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 				t.Fatalf("write manifest: %v", err)
 			}

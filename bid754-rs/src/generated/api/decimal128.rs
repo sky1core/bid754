@@ -112,16 +112,16 @@ impl Decimal128 {
             return (value, ExceptionFlags::empty());
         }
         if super::types::parse_bid_nan_literal(s).is_some() {
-            return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { w: [0, 0x7c00_0000_0000_0000] })), ExceptionFlags::INVALID_OPERATION);
+            return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION);
         }
         let (bits, raw) = crate::generated::bid128_string::bid128_from_string(s, BIDGO_ROUND_NEAREST_EVEN);
         let value = Decimal128(super::types::bid_uint128_to_le_bytes(bits));
         let flags = ExceptionFlags::from_bidgo(raw);
         if invalid_bid_string_input(s, result_is_nan(value.0)) {
-            return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { w: [0, 0x7c00_0000_0000_0000] })), ExceptionFlags::INVALID_OPERATION);
+            return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION);
         }
         if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, -6176, 6111, 34) {
-            return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { w: [0, 0x7c00_0000_0000_0000] })), ExceptionFlags::INVALID_OPERATION);
+            return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION);
         }
         (value, flags)
     }
@@ -151,11 +151,11 @@ impl Decimal128 {
         let (value, flags) = if let Some(value) = parse_decimal128_nan(s) {
             (value, ExceptionFlags::empty())
         } else if super::types::parse_bid_nan_literal(s).is_some() {
-            (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { w: [0, 0x7c00_0000_0000_0000] })), ExceptionFlags::INVALID_OPERATION)
+            (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION)
         } else {
             let (bits, raw) = crate::generated::bid128_string::bid128_from_string(s, super::types::to_bidgo_rounding(mode));
             if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, -6176, 6111, 34) {
-                (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { w: [0, 0x7c00_0000_0000_0000] })), ExceptionFlags::INVALID_OPERATION)
+                (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION)
             } else {
                 (Decimal128(super::types::bid_uint128_to_le_bytes(bits)), ExceptionFlags::from_bidgo(raw))
             }
@@ -1043,7 +1043,7 @@ fn parse_decimal128_nan(input: &str) -> Option<Decimal128> {
         hi |= 0x8000_0000_0000_0000;
     }
     Some(Decimal128(super::types::bid_uint128_to_le_bytes(
-        crate::gen_types::BID_UINT128 { w: [lo, hi] },
+        crate::gen_types::BID_UINT128 { lo, hi },
     )))
 }
 
@@ -1052,11 +1052,11 @@ fn parse_decimal128_nan(input: &str) -> Option<Decimal128> {
 /// the caller falls through to the port's to_string.
 fn format_decimal128_nan(bytes: [u8; 16]) -> Option<String> {
     let v = super::types::bid_uint128_from_le_bytes(bytes);
-    let hi = v.w[1];
+    let hi = v.hi;
     if hi & 0x7c00_0000_0000_0000 != 0x7c00_0000_0000_0000 {
         return None;
     }
-    let payload: u128 = ((hi & 0x0000_3fff_ffff_ffff) as u128) << 64 | (v.w[0] as u128);
+    let payload: u128 = ((hi & 0x0000_3fff_ffff_ffff) as u128) << 64 | (v.lo as u128);
     Some(super::types::format_bid_nan(
         hi & 0x8000_0000_0000_0000 != 0,
         hi & 0x7e00_0000_0000_0000 == 0x7e00_0000_0000_0000,

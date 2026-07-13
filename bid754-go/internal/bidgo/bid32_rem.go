@@ -80,7 +80,7 @@ func Bid32Rem(x, y uint32) (uint32, uint32) {
 			res = x
 			return res, pfpsf
 		}
-		T = uint32(bid_power10_table_128[diff_expon].w[0])
+		T = uint32(bid_power10_table_128[diff_expon].lo)
 		CYL = uint64(coefficient_y) * uint64(T)
 		if CYL > uint64(coefficient_x<<1) {
 			res = x
@@ -115,7 +115,7 @@ func Bid32Rem(x, y uint32) (uint32, uint32) {
 			diff_expon = 0
 		}
 
-		CX *= bid_power10_table_128[e_scale].w[0]
+		CX *= bid_power10_table_128[e_scale].lo
 
 		Q64 = CX / uint64(coefficient_y)
 		CX -= Q64 * uint64(coefficient_y)

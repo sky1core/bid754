@@ -8,10 +8,10 @@ use crate::gen_types::{BID_UINT128, BID_UINT192, BID_UINT256, DEC_DIGITS};
 include!("intel_dfp_tables.rs");
 
 const fn wrap_u128<const N: usize>(src: [UInt128Words; N]) -> [BID_UINT128; N] {
-    let mut out = [BID_UINT128 { w: [0u64, 0u64] }; N];
+    let mut out = [BID_UINT128 { lo: 0u64, hi: 0u64 }; N];
     let mut i = 0;
     while i < N {
-        out[i] = BID_UINT128 { w: src[i] };
+        out[i] = BID_UINT128 { lo: src[i][0], hi: src[i][1] };
         i += 1;
     }
     out
@@ -38,12 +38,12 @@ const fn wrap_u256<const N: usize>(src: [UInt256Words; N]) -> [BID_UINT256; N] {
 }
 
 const fn wrap_u128_2d<const N: usize, const M: usize>(src: [[UInt128Words; M]; N]) -> [[BID_UINT128; M]; N] {
-    let mut out = [[BID_UINT128 { w: [0u64, 0u64] }; M]; N];
+    let mut out = [[BID_UINT128 { lo: 0u64, hi: 0u64 }; M]; N];
     let mut i = 0;
     while i < N {
         let mut j = 0;
         while j < M {
-            out[i][j] = BID_UINT128 { w: src[i][j] };
+            out[i][j] = BID_UINT128 { lo: src[i][j][0], hi: src[i][j][1] };
             j += 1;
         }
         i += 1;
@@ -83,7 +83,7 @@ const fn widen_i8_pairs<const N: usize>(src: [[i8; 2]; N]) -> [[i32; 2]; N] {
 }
 
 const fn take_u128_prefix_19_from_37(src: [BID_UINT128; 37]) -> [BID_UINT128; 19] {
-    let mut out = [BID_UINT128 { w: [0u64, 0u64] }; 19];
+    let mut out = [BID_UINT128 { lo: 0u64, hi: 0u64 }; 19];
     let mut i = 0;
     while i < 19 {
         out[i] = src[i];
@@ -93,7 +93,7 @@ const fn take_u128_prefix_19_from_37(src: [BID_UINT128; 37]) -> [BID_UINT128; 19
 }
 
 const fn take_u128_range_19_from_39_start20(src: [BID_UINT128; 39]) -> [BID_UINT128; 19] {
-    let mut out = [BID_UINT128 { w: [0u64, 0u64] }; 19];
+    let mut out = [BID_UINT128 { lo: 0u64, hi: 0u64 }; 19];
     let mut i = 0;
     while i < 19 {
         out[i] = src[i + 20];

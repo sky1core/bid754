@@ -13,15 +13,15 @@ func Bid128Modf(x BID_UINT128) (BID_UINT128, BID_UINT128, uint32) {
 	xi = Bid128RoundIntegralZero(x, &pfpsf)
 
 	// check for Infinity
-	if (x.w[1] & 0x7c00000000000000) == 0x7800000000000000 {
-		res.w[1] = (x.w[1] & 0x8000000000000000) | 0x5ffe000000000000
-		res.w[0] = 0
+	if (x.hi & 0x7c00000000000000) == 0x7800000000000000 {
+		res.hi = (x.hi & 0x8000000000000000) | 0x5ffe000000000000
+		res.lo = 0
 	} else {
 		res = Bid128Sub(x, xi, BID_ROUNDING_TO_NEAREST, &pfpsf)
 	}
 
-	xi.w[1] |= (x.w[1] & 0x8000000000000000)
-	res.w[1] |= (x.w[1] & 0x8000000000000000)
+	xi.hi |= (x.hi & 0x8000000000000000)
+	res.hi |= (x.hi & 0x8000000000000000)
 
 	return res, xi, pfpsf
 }

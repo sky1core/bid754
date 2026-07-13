@@ -20,61 +20,61 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	var pfpsf uint32
 
 	// check for NaN or Infinity
-	if (x.w[1] & MASK_SPECIAL128) == MASK_SPECIAL128 {
+	if (x.hi & MASK_SPECIAL128) == MASK_SPECIAL128 {
 		// x is special
-		if (x.w[1] & NAN_MASK64) == NAN_MASK64 { // x is NAN
+		if (x.hi & NAN_MASK64) == NAN_MASK64 { // x is NAN
 			// check first for non-canonical NaN payload
-			if ((x.w[1] & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
-				((x.w[1]&0x00003fffffffffff) == 0x0000314dc6448d93 && x.w[0] > 0x38c15b09ffffffff) {
-				x.w[1] = x.w[1] & 0xffffc00000000000
-				x.w[0] = 0x0
+			if ((x.hi & 0x00003fffffffffff) > 0x0000314dc6448d93) ||
+				((x.hi&0x00003fffffffffff) == 0x0000314dc6448d93 && x.lo > 0x38c15b09ffffffff) {
+				x.hi = x.hi & 0xffffc00000000000
+				x.lo = 0x0
 			}
-			if (x.w[1] & SNAN_MASK64) == SNAN_MASK64 { // x is SNAN
+			if (x.hi & SNAN_MASK64) == SNAN_MASK64 { // x is SNAN
 				pfpsf |= BID_INVALID_EXCEPTION
-				res.w[1] = x.w[1] & 0xfc003fffffffffff
-				res.w[0] = x.w[0]
+				res.hi = x.hi & 0xfc003fffffffffff
+				res.lo = x.lo
 			} else { // x is QNaN
-				res.w[1] = x.w[1] & 0xfc003fffffffffff
-				res.w[0] = x.w[0]
+				res.hi = x.hi & 0xfc003fffffffffff
+				res.lo = x.lo
 			}
 			return res, pfpsf
 		} else { // x is not a NaN, so it must be infinity
-			if (x.w[1] & MASK_SIGN64) == 0x0 { // x is +inf
-				res.w[1] = 0x7800000000000000
-				res.w[0] = 0x0000000000000000
+			if (x.hi & MASK_SIGN64) == 0x0 { // x is +inf
+				res.hi = 0x7800000000000000
+				res.lo = 0x0000000000000000
 			} else { // x is -inf
-				res.w[1] = 0xf800000000000000
-				res.w[0] = 0x0000000000000000
+				res.hi = 0xf800000000000000
+				res.lo = 0x0000000000000000
 			}
 			return res, pfpsf
 		}
 	}
 	// unpack x
-	x_sign = x.w[1] & MASK_SIGN64
-	C1.w[1] = x.w[1] & MASK_COEFF128
-	C1.w[0] = x.w[0]
+	x_sign = x.hi & MASK_SIGN64
+	C1.hi = x.hi & MASK_COEFF128
+	C1.lo = x.lo
 
 	// check for non-canonical values (treated as zero)
-	if (x.w[1] & 0x6000000000000000) == 0x6000000000000000 { // G0_G1=11
-		x_exp = (x.w[1] << 2) & MASK_EXP128
-		C1.w[1] = 0
-		C1.w[0] = 0
+	if (x.hi & 0x6000000000000000) == 0x6000000000000000 { // G0_G1=11
+		x_exp = (x.hi << 2) & MASK_EXP128
+		C1.hi = 0
+		C1.lo = 0
 	} else {
-		x_exp = x.w[1] & MASK_EXP128
-		if C1.w[1] > 0x0001ed09bead87c0 || (C1.w[1] == 0x0001ed09bead87c0 && C1.w[0] > 0x378d8e63ffffffff) {
-			C1.w[1] = 0
-			C1.w[0] = 0
+		x_exp = x.hi & MASK_EXP128
+		if C1.hi > 0x0001ed09bead87c0 || (C1.hi == 0x0001ed09bead87c0 && C1.lo > 0x378d8e63ffffffff) {
+			C1.hi = 0
+			C1.lo = 0
 		}
 	}
 
 	// test for input equal to zero
-	if C1.w[1] == 0x0 && C1.w[0] == 0x0 {
+	if C1.hi == 0x0 && C1.lo == 0x0 {
 		if x_exp <= (0x1820 << 49) {
-			res.w[1] = (x.w[1] & 0x8000000000000000) | 0x3040000000000000
+			res.hi = (x.hi & 0x8000000000000000) | 0x3040000000000000
 		} else {
-			res.w[1] = x_sign | x_exp
+			res.hi = x_sign | x_exp
 		}
-		res.w[0] = 0x0000000000000000
+		res.lo = 0x0000000000000000
 		return res, pfpsf
 	}
 
@@ -82,69 +82,69 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	switch rnd_mode {
 	case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 		if x_exp <= 0x2ffa000000000000 { // exp <= -35
-			res.w[1] = x_sign | 0x3040000000000000
-			res.w[0] = 0x0000000000000000
+			res.hi = x_sign | 0x3040000000000000
+			res.lo = 0x0000000000000000
 			return res, pfpsf
 		}
 	case BID_ROUNDING_DOWN:
 		if x_exp <= 0x2ffc000000000000 { // exp <= -34
 			if x_sign != 0 {
-				res.w[1] = 0xb040000000000000
-				res.w[0] = 0x0000000000000001
+				res.hi = 0xb040000000000000
+				res.lo = 0x0000000000000001
 			} else {
-				res.w[1] = 0x3040000000000000
-				res.w[0] = 0x0000000000000000
+				res.hi = 0x3040000000000000
+				res.lo = 0x0000000000000000
 			}
 			return res, pfpsf
 		}
 	case BID_ROUNDING_UP:
 		if x_exp <= 0x2ffc000000000000 {
 			if x_sign != 0 {
-				res.w[1] = 0xb040000000000000
-				res.w[0] = 0x0000000000000000
+				res.hi = 0xb040000000000000
+				res.lo = 0x0000000000000000
 			} else {
-				res.w[1] = 0x3040000000000000
-				res.w[0] = 0x0000000000000001
+				res.hi = 0x3040000000000000
+				res.lo = 0x0000000000000001
 			}
 			return res, pfpsf
 		}
 	case BID_ROUNDING_TO_ZERO:
 		if x_exp <= 0x2ffc000000000000 {
-			res.w[1] = x_sign | 0x3040000000000000
-			res.w[0] = 0x0000000000000000
+			res.hi = x_sign | 0x3040000000000000
+			res.lo = 0x0000000000000000
 			return res, pfpsf
 		}
 	}
 
 	// q = nr. of decimal digits in x
 	var tmp1 uint64
-	if C1.w[1] == 0 {
-		if C1.w[0] >= 0x0020000000000000 {
-			tmp1 = math.Float64bits(float64(C1.w[0] >> 32))
+	if C1.hi == 0 {
+		if C1.lo >= 0x0020000000000000 {
+			tmp1 = math.Float64bits(float64(C1.lo >> 32))
 			x_nr_bits = 33 + uint((uint32(tmp1>>52)&0x7ff)-0x3ff)
 		} else {
-			tmp1 = math.Float64bits(float64(C1.w[0]))
+			tmp1 = math.Float64bits(float64(C1.lo))
 			x_nr_bits = 1 + uint((uint32(tmp1>>52)&0x7ff)-0x3ff)
 		}
 	} else {
-		tmp1 = math.Float64bits(float64(C1.w[1]))
+		tmp1 = math.Float64bits(float64(C1.hi))
 		x_nr_bits = 65 + uint((uint32(tmp1>>52)&0x7ff)-0x3ff)
 	}
 
 	q = int(bid_nr_digits[x_nr_bits-1].digits)
 	if q == 0 {
 		q = int(bid_nr_digits[x_nr_bits-1].digits1)
-		if C1.w[1] > bid_nr_digits[x_nr_bits-1].threshold_hi ||
-			(C1.w[1] == bid_nr_digits[x_nr_bits-1].threshold_hi &&
-				C1.w[0] >= bid_nr_digits[x_nr_bits-1].threshold_lo) {
+		if C1.hi > bid_nr_digits[x_nr_bits-1].threshold_hi ||
+			(C1.hi == bid_nr_digits[x_nr_bits-1].threshold_hi &&
+				C1.lo >= bid_nr_digits[x_nr_bits-1].threshold_lo) {
 			q++
 		}
 	}
 	exp = int(x_exp>>49) - 6176
 	if exp >= 0 {
 		// the argument is an integer already
-		res.w[1] = x.w[1]
-		res.w[0] = x.w[0]
+		res.hi = x.hi
+		res.lo = x.lo
 		return res, pfpsf
 	}
 
@@ -153,95 +153,95 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	case BID_ROUNDING_TO_NEAREST:
 		if q+exp >= 0 {
 			ind = -exp
-			tmp64 = C1.w[0]
+			tmp64 = C1.lo
 			if ind <= 19 {
-				C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+				C1.lo = C1.lo + bid_midpoint64[ind-1]
 			} else {
-				C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-				C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+				C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+				C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 			}
-			if C1.w[0] < tmp64 {
-				C1.w[1]++
+			if C1.lo < tmp64 {
+				C1.hi++
 			}
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 
 			if ind-1 <= 2 {
-				res.w[1] = P256.w[3]
-				res.w[0] = P256.w[2]
+				res.hi = P256.w[3]
+				res.lo = P256.w[2]
 				fstar.w[1] = P256.w[1]
 				fstar.w[0] = P256.w[0]
-				if (res.w[0]&0x0000000000000001 != 0) &&
-					((fstar.w[1] < bid_ten2mk128[ind-1].w[1]) ||
-						(fstar.w[1] == bid_ten2mk128[ind-1].w[1] &&
-							fstar.w[0] < bid_ten2mk128[ind-1].w[0])) {
-					res.w[0]--
+				if (res.lo&0x0000000000000001 != 0) &&
+					((fstar.w[1] < bid_ten2mk128[ind-1].hi) ||
+						(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
+							fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					res.lo--
 				}
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.w[1] = P256.w[3] >> uint(shift)
-				res.w[0] = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+				res.hi = P256.w[3] >> uint(shift)
+				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
 				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 				fstar.w[1] = P256.w[1]
 				fstar.w[0] = P256.w[0]
-				if (res.w[0]&0x0000000000000001 != 0) &&
-					fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].w[1] ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].w[1] && fstar.w[0] < bid_ten2mk128[ind-1].w[0])) {
-					res.w[0]--
+				if (res.lo&0x0000000000000001 != 0) &&
+					fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].hi ||
+					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					res.lo--
 				}
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
-				res.w[1] = 0
-				res.w[0] = P256.w[3] >> uint(shift)
+				res.hi = 0
+				res.lo = P256.w[3] >> uint(shift)
 				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 				fstar.w[2] = P256.w[2]
 				fstar.w[1] = P256.w[1]
 				fstar.w[0] = P256.w[0]
-				if (res.w[0]&0x0000000000000001 != 0) &&
-					fstar.w[3] == 0 && fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].w[1] ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].w[1] && fstar.w[0] < bid_ten2mk128[ind-1].w[0])) {
-					res.w[0]--
+				if (res.lo&0x0000000000000001 != 0) &&
+					fstar.w[3] == 0 && fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].hi ||
+					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					res.lo--
 				}
 			}
-			res.w[1] = x_sign | 0x3040000000000000 | res.w[1]
+			res.hi = x_sign | 0x3040000000000000 | res.hi
 			return res, pfpsf
 		} else {
-			res.w[1] = x_sign | 0x3040000000000000
-			res.w[0] = 0x0000000000000000
+			res.hi = x_sign | 0x3040000000000000
+			res.lo = 0x0000000000000000
 			return res, pfpsf
 		}
 
 	case BID_ROUNDING_TIES_AWAY:
 		if q+exp >= 0 {
 			ind = -exp
-			tmp64 = C1.w[0]
+			tmp64 = C1.lo
 			if ind <= 19 {
-				C1.w[0] = C1.w[0] + bid_midpoint64[ind-1]
+				C1.lo = C1.lo + bid_midpoint64[ind-1]
 			} else {
-				C1.w[0] = C1.w[0] + bid_midpoint128[ind-20].w[0]
-				C1.w[1] = C1.w[1] + bid_midpoint128[ind-20].w[1]
+				C1.lo = C1.lo + bid_midpoint128[ind-20].lo
+				C1.hi = C1.hi + bid_midpoint128[ind-20].hi
 			}
-			if C1.w[0] < tmp64 {
-				C1.w[1]++
+			if C1.lo < tmp64 {
+				C1.hi++
 			}
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 
 			if ind-1 <= 2 {
-				res.w[1] = P256.w[3]
-				res.w[0] = P256.w[2]
+				res.hi = P256.w[3]
+				res.lo = P256.w[2]
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.w[1] = P256.w[3] >> uint(shift)
-				res.w[0] = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+				res.hi = P256.w[3] >> uint(shift)
+				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
-				res.w[1] = 0
-				res.w[0] = P256.w[3] >> uint(shift)
+				res.hi = 0
+				res.lo = P256.w[3] >> uint(shift)
 			}
-			res.w[1] |= x_sign | 0x3040000000000000
+			res.hi |= x_sign | 0x3040000000000000
 			return res, pfpsf
 		} else {
-			res.w[1] = x_sign | 0x3040000000000000
-			res.w[0] = 0x0000000000000000
+			res.hi = x_sign | 0x3040000000000000
+			res.lo = 0x0000000000000000
 			return res, pfpsf
 		}
 
@@ -250,61 +250,61 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			ind = -exp
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 {
-				res.w[1] = P256.w[3]
-				res.w[0] = P256.w[2]
-				if (P256.w[1] > bid_ten2mk128[ind-1].w[1]) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].w[1] && P256.w[0] >= bid_ten2mk128[ind-1].w[0]) {
+				res.hi = P256.w[3]
+				res.lo = P256.w[2]
+				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
+					(P256.w[1] == bid_ten2mk128[ind-1].hi && P256.w[0] >= bid_ten2mk128[ind-1].lo) {
 					if x_sign != 0 {
-						res.w[0]++
-						if res.w[0] == 0 {
-							res.w[1]++
+						res.lo++
+						if res.lo == 0 {
+							res.hi++
 						}
 					}
 				}
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.w[1] = P256.w[3] >> uint(shift)
-				res.w[0] = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+				res.hi = P256.w[3] >> uint(shift)
+				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
 				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 				fstar.w[1] = P256.w[1]
 				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].w[1] ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].w[1] && fstar.w[0] >= bid_ten2mk128[ind-1].w[0]) {
+				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
+					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
 					if x_sign != 0 {
-						res.w[0]++
-						if res.w[0] == 0 {
-							res.w[1]++
+						res.lo++
+						if res.lo == 0 {
+							res.hi++
 						}
 					}
 				}
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
-				res.w[1] = 0
-				res.w[0] = P256.w[3] >> uint(shift)
+				res.hi = 0
+				res.lo = P256.w[3] >> uint(shift)
 				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 				fstar.w[2] = P256.w[2]
 				fstar.w[1] = P256.w[1]
 				fstar.w[0] = P256.w[0]
 				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].w[1] ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].w[1] && fstar.w[0] >= bid_ten2mk128[ind-1].w[0]) {
+					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
+					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
 					if x_sign != 0 {
-						res.w[0]++
-						if res.w[0] == 0 {
-							res.w[1]++
+						res.lo++
+						if res.lo == 0 {
+							res.hi++
 						}
 					}
 				}
 			}
-			res.w[1] = x_sign | 0x3040000000000000 | res.w[1]
+			res.hi = x_sign | 0x3040000000000000 | res.hi
 			return res, pfpsf
 		} else {
 			if x_sign != 0 {
-				res.w[1] = 0xb040000000000000
-				res.w[0] = 0x0000000000000001
+				res.hi = 0xb040000000000000
+				res.lo = 0x0000000000000001
 			} else {
-				res.w[1] = 0x3040000000000000
-				res.w[0] = 0x0000000000000000
+				res.hi = 0x3040000000000000
+				res.lo = 0x0000000000000000
 			}
 			return res, pfpsf
 		}
@@ -314,61 +314,61 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			ind = -exp
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 {
-				res.w[1] = P256.w[3]
-				res.w[0] = P256.w[2]
-				if (P256.w[1] > bid_ten2mk128[ind-1].w[1]) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].w[1] && P256.w[0] >= bid_ten2mk128[ind-1].w[0]) {
+				res.hi = P256.w[3]
+				res.lo = P256.w[2]
+				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
+					(P256.w[1] == bid_ten2mk128[ind-1].hi && P256.w[0] >= bid_ten2mk128[ind-1].lo) {
 					if x_sign == 0 {
-						res.w[0]++
-						if res.w[0] == 0 {
-							res.w[1]++
+						res.lo++
+						if res.lo == 0 {
+							res.hi++
 						}
 					}
 				}
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.w[1] = P256.w[3] >> uint(shift)
-				res.w[0] = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+				res.hi = P256.w[3] >> uint(shift)
+				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
 				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
 				fstar.w[1] = P256.w[1]
 				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].w[1] ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].w[1] && fstar.w[0] >= bid_ten2mk128[ind-1].w[0]) {
+				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
+					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
 					if x_sign == 0 {
-						res.w[0]++
-						if res.w[0] == 0 {
-							res.w[1]++
+						res.lo++
+						if res.lo == 0 {
+							res.hi++
 						}
 					}
 				}
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
-				res.w[1] = 0
-				res.w[0] = P256.w[3] >> uint(shift)
+				res.hi = 0
+				res.lo = P256.w[3] >> uint(shift)
 				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
 				fstar.w[2] = P256.w[2]
 				fstar.w[1] = P256.w[1]
 				fstar.w[0] = P256.w[0]
 				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].w[1] ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].w[1] && fstar.w[0] >= bid_ten2mk128[ind-1].w[0]) {
+					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
+					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
 					if x_sign == 0 {
-						res.w[0]++
-						if res.w[0] == 0 {
-							res.w[1]++
+						res.lo++
+						if res.lo == 0 {
+							res.hi++
 						}
 					}
 				}
 			}
-			res.w[1] = x_sign | 0x3040000000000000 | res.w[1]
+			res.hi = x_sign | 0x3040000000000000 | res.hi
 			return res, pfpsf
 		} else {
 			if x_sign != 0 {
-				res.w[1] = 0xb040000000000000
-				res.w[0] = 0x0000000000000000
+				res.hi = 0xb040000000000000
+				res.lo = 0x0000000000000000
 			} else {
-				res.w[1] = 0x3040000000000000
-				res.w[0] = 0x0000000000000001
+				res.hi = 0x3040000000000000
+				res.lo = 0x0000000000000001
 			}
 			return res, pfpsf
 		}
@@ -378,22 +378,22 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			ind = -exp
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 {
-				res.w[1] = P256.w[3]
-				res.w[0] = P256.w[2]
+				res.hi = P256.w[3]
+				res.lo = P256.w[2]
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.w[1] = P256.w[3] >> uint(shift)
-				res.w[0] = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+				res.hi = P256.w[3] >> uint(shift)
+				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
-				res.w[1] = 0
-				res.w[0] = P256.w[3] >> uint(shift)
+				res.hi = 0
+				res.lo = P256.w[3] >> uint(shift)
 			}
-			res.w[1] = x_sign | 0x3040000000000000 | res.w[1]
+			res.hi = x_sign | 0x3040000000000000 | res.hi
 			return res, pfpsf
 		} else {
-			res.w[1] = x_sign | 0x3040000000000000
-			res.w[0] = 0x0000000000000000
+			res.hi = x_sign | 0x3040000000000000
+			res.lo = 0x0000000000000000
 			return res, pfpsf
 		}
 	}

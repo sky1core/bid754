@@ -541,6 +541,7 @@ verify-generated:
 		devtools/tools/registry/symbols.json \
 		devtools/tools/registry/readtest_specs.json \
 		devtools/generated/go/intel_dfp_tables.go \
+		bid754-go/internal/bidgo/tables_binarydecimal.go \
 		bid754-rs/src/intel_dfp_tables.rs \
 		devtools/generated/json/intel_dfp_symbols.json \
 		bid754-codec-vectors/vectors.json \
@@ -623,6 +624,7 @@ verify-generated:
 	cmp -s devtools/tools/registry/symbols.json $$tmpdir/backup/devtools/tools/registry/symbols.json || failed="$$failed devtools/tools/registry/symbols.json"; \
 	cmp -s devtools/tools/registry/readtest_specs.json $$tmpdir/backup/devtools/tools/registry/readtest_specs.json || failed="$$failed devtools/tools/registry/readtest_specs.json"; \
 	cmp -s devtools/generated/go/intel_dfp_tables.go $$tmpdir/backup/devtools/generated/go/intel_dfp_tables.go || failed="$$failed devtools/generated/go/intel_dfp_tables.go"; \
+	cmp -s bid754-go/internal/bidgo/tables_binarydecimal.go $$tmpdir/backup/bid754-go/internal/bidgo/tables_binarydecimal.go || failed="$$failed bid754-go/internal/bidgo/tables_binarydecimal.go"; \
 	cmp -s bid754-rs/src/intel_dfp_tables.rs $$tmpdir/backup/bid754-rs/src/intel_dfp_tables.rs || failed="$$failed bid754-rs/src/intel_dfp_tables.rs"; \
 	cmp -s devtools/generated/json/intel_dfp_symbols.json $$tmpdir/backup/devtools/generated/json/intel_dfp_symbols.json || failed="$$failed devtools/generated/json/intel_dfp_symbols.json"; \
 	cmp -s bid754-codec-vectors/vectors.json $$tmpdir/backup/bid754-codec-vectors/vectors.json || failed="$$failed bid754-codec-vectors/vectors.json"; \

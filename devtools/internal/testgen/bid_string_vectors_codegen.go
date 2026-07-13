@@ -448,13 +448,13 @@ func parseGeneratedBIDStringBits128(input string) (BID_UINT128, error) {
 	if err != nil {
 		return raw, err
 	}
-	raw.w[0] = lo
-	raw.w[1] = hi
+	raw.lo = lo
+	raw.hi = hi
 	return raw, nil
 }
 
 func formatGeneratedBIDStringBits128(raw BID_UINT128) string {
-	return fmt.Sprintf("[%016x%016x]", raw.w[1], raw.w[0])
+	return fmt.Sprintf("[%016x%016x]", raw.hi, raw.lo)
 }
 
 func normalizeGeneratedBIDStringBits(input string) string {
@@ -780,11 +780,11 @@ fn parse_bits128(input: &str) -> BID_UINT128 {
     let padded = format!("{compact:0>32}");
     let hi = u64::from_str_radix(&padded[..16], 16).unwrap();
     let lo = u64::from_str_radix(&padded[16..], 16).unwrap();
-    BID_UINT128 { w: [lo, hi] }
+    BID_UINT128 { lo, hi }
 }
 
 fn format_bits128(raw: BID_UINT128) -> String {
-    format!("[{:016x}{:016x}]", raw.w[1], raw.w[0])
+    format!("[{:016x}{:016x}]", raw.hi, raw.lo)
 }
 
 fn normalize_hex(input: &str) -> String {

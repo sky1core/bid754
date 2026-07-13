@@ -104,7 +104,7 @@ func bid32_div_pure(x, y uint32, rndMode int) uint32 {
 		DU = (A - B) >> 31
 		ed1 = 6 + int(DU)
 		ed2 = bid_estimate_decimal_digits[bin_index] + ed1
-		T = uint32(bid_power10_table_128[ed1].w[0])
+		T = uint32(bid_power10_table_128[ed1].lo)
 		CA = uint64(A) * uint64(T)
 
 		Q = 0
@@ -130,11 +130,11 @@ func bid32_div_pure(x, y uint32, rndMode int) uint32 {
 
 		ed2 = 7 - bid_estimate_decimal_digits[bin_expon_cx] - int(DU)
 
-		T = uint32(bid_power10_table_128[ed2].w[0])
+		T = uint32(bid_power10_table_128[ed2].lo)
 		CA = uint64(R) * uint64(T)
 		B = coefficient_y
 
-		Q *= uint32(bid_power10_table_128[ed2].w[0])
+		Q *= uint32(bid_power10_table_128[ed2].lo)
 		diff_expon -= ed2
 	}
 
@@ -343,7 +343,7 @@ func bid32_div_core(x, y uint32, rndMode int) (uint32, uint32) {
 		DU = (A - B) >> 31
 		ed1 = 6 + int(DU)
 		ed2 = bid_estimate_decimal_digits[bin_index] + ed1
-		T = uint32(bid_power10_table_128[ed1].w[0])
+		T = uint32(bid_power10_table_128[ed1].lo)
 		CA = uint64(A) * uint64(T)
 
 		Q = 0
@@ -369,11 +369,11 @@ func bid32_div_core(x, y uint32, rndMode int) (uint32, uint32) {
 
 		ed2 = 7 - bid_estimate_decimal_digits[bin_expon_cx] - int(DU)
 
-		T = uint32(bid_power10_table_128[ed2].w[0])
+		T = uint32(bid_power10_table_128[ed2].lo)
 		CA = uint64(R) * uint64(T)
 		B = coefficient_y
 
-		Q *= uint32(bid_power10_table_128[ed2].w[0])
+		Q *= uint32(bid_power10_table_128[ed2].lo)
 		diff_expon -= ed2
 	}
 

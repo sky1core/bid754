@@ -194,7 +194,7 @@ func testBid64Binary128Readtest(t *testing.T, prefix string, fn func(uint64, int
 			failed++
 			if failed <= 10 {
 				t.Errorf("%s -> got=[%016x%016x]/%02x want=[%016x%016x]/%02x",
-					line, result.w[1], result.w[0], actualFlags, expected.w[1], expected.w[0], expectedFlags)
+					line, result.hi, result.lo, actualFlags, expected.hi, expected.lo, expectedFlags)
 			}
 		}
 	}
@@ -257,7 +257,7 @@ func testBid128Binary128Readtest(t *testing.T, prefix string, fn func(BID_UINT12
 			failed++
 			if failed <= 10 {
 				t.Errorf("%s -> got=[%016x%016x]/%02x want=[%016x%016x]/%02x",
-					line, result.w[1], result.w[0], actualFlags, expected.w[1], expected.w[0], expectedFlags)
+					line, result.hi, result.lo, actualFlags, expected.hi, expected.lo, expectedFlags)
 			}
 		}
 	}

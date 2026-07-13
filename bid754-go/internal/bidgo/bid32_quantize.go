@@ -68,7 +68,7 @@ func Bid32Quantize(x, y uint32, rnd_mode int) (uint32, uint32) {
 	tempx := math.Float32bits(float32(coefficient_x))
 	bin_expon_cx = int((tempx>>23)&0xff) - 0x7f
 	digits_x = bid_estimate_decimal_digits[bin_expon_cx]
-	if uint64(coefficient_x) >= bid_power10_table_128[digits_x].w[0] {
+	if uint64(coefficient_x) >= bid_power10_table_128[digits_x].lo {
 		digits_x++
 	}
 
@@ -77,7 +77,7 @@ func Bid32Quantize(x, y uint32, rnd_mode int) (uint32, uint32) {
 
 	if uint32(total_digits+1) <= 8 {
 		if expon_diff >= 0 {
-			coefficient_x *= uint32(bid_power10_table_128[expon_diff].w[0])
+			coefficient_x *= uint32(bid_power10_table_128[expon_diff].lo)
 			res = very_fast_get_BID32(sign_x, exponent_y, coefficient_x)
 			return res, pfpsf
 		}

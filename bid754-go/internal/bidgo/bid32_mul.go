@@ -97,7 +97,7 @@ func bid32_mul_pure(x, y uint32, rndMode int) uint32 {
 	tempx := float64(P)
 	bin_expon_p = int((math.Float64bits(tempx)&MASK_BINARY_EXPONENT)>>52) - 0x3ff
 	n_digits = bid_estimate_decimal_digits[bin_expon_p]
-	if P >= bid_power10_table_128[n_digits].w[0] {
+	if P >= bid_power10_table_128[n_digits].lo {
 		n_digits++
 	}
 
@@ -132,10 +132,10 @@ func bid32_mul_pure(x, y uint32, rndMode int) uint32 {
 
 	// now get P/10^extra_digits: shift Q_high right by M[extra_digits]-64
 	amount = bid_short_recip_scale[extra_digits]
-	Q = Tmp.w[1] >> uint(amount)
+	Q = Tmp.hi >> uint(amount)
 
 	// remainder
-	R = P - Q*bid_power10_table_128[extra_digits].w[0]
+	R = P - Q*bid_power10_table_128[extra_digits].lo
 
 	if rmode == 0 { // BID_ROUNDING_TO_NEAREST
 		if R == 0 {
@@ -247,7 +247,7 @@ func bid32_mul_core(x, y uint32, rndMode int) (uint32, uint32) {
 	tempx := float64(P)
 	bin_expon_p = int((math.Float64bits(tempx)&MASK_BINARY_EXPONENT)>>52) - 0x3ff
 	n_digits = bid_estimate_decimal_digits[bin_expon_p]
-	if P >= bid_power10_table_128[n_digits].w[0] {
+	if P >= bid_power10_table_128[n_digits].lo {
 		n_digits++
 	}
 
@@ -282,10 +282,10 @@ func bid32_mul_core(x, y uint32, rndMode int) (uint32, uint32) {
 
 	// now get P/10^extra_digits: shift Q_high right by M[extra_digits]-64
 	amount = bid_short_recip_scale[extra_digits]
-	Q = Tmp.w[1] >> uint(amount)
+	Q = Tmp.hi >> uint(amount)
 
 	// remainder
-	R = P - Q*bid_power10_table_128[extra_digits].w[0]
+	R = P - Q*bid_power10_table_128[extra_digits].lo
 	if R != bid_round_const_table[rmode][extra_digits] {
 		flags |= BID_INEXACT_EXCEPTION
 	}

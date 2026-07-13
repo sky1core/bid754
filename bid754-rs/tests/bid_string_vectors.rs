@@ -265,11 +265,11 @@ fn parse_bits128(input: &str) -> BID_UINT128 {
     let padded = format!("{compact:0>32}");
     let hi = u64::from_str_radix(&padded[..16], 16).unwrap();
     let lo = u64::from_str_radix(&padded[16..], 16).unwrap();
-    BID_UINT128 { w: [lo, hi] }
+    BID_UINT128 { lo, hi }
 }
 
 fn format_bits128(raw: BID_UINT128) -> String {
-    format!("[{:016x}{:016x}]", raw.w[1], raw.w[0])
+    format!("[{:016x}{:016x}]", raw.hi, raw.lo)
 }
 
 fn normalize_hex(input: &str) -> String {
