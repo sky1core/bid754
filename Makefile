@@ -129,24 +129,26 @@ test-rust-native-fuzz:
 test-rust-native-tier1-arithmetic-long:
 	@echo "🏦 Rust Tier 1 산술 structured + 결정론 Intel C exact bit/flag 장기 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_arithmetic_long_generated -- --nocapture --test-threads=1) | tee test_results/latest_rust_native_tier1_arithmetic_long_results.txt'
+	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_arithmetic_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_tier1_arithmetic_long_results.txt'
 
 _test-rust-native-tier1-arithmetic-long-full:
 	@echo "🏦 Rust Tier 1 산술 canonical full verification Intel C exact 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_ARITH_SHARD_COUNT BID754_TIER1_ARITH_SHARD_INDEX; \
-		bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_arithmetic_long_generated -- --nocapture --test-threads=1) | tee test_results/latest_rust_native_tier1_arithmetic_long_results.txt'
+		bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_arithmetic_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_tier1_arithmetic_long_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_rust_native_tier1_arithmetic_long_results.txt -domain tier1-arithmetic-rust
 
 test-rust-native-tier1-compare-conversion-long:
 	@echo "🏦 Rust Tier 1 비교·MinNum/MaxNum·정수/BID·폭 변환 Intel C exact 장기 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_compare_conversion_long_generated -- --nocapture --test-threads=1) | tee test_results/latest_rust_native_tier1_compare_conversion_long_results.txt'
+	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_compare_conversion_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_tier1_compare_conversion_long_results.txt'
 
 _test-rust-native-tier1-compare-conversion-long-full:
 	@echo "🏦 Rust Tier 1 비교·변환 canonical full verification Intel C exact 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_COMPARE_CONVERSION_SHARD_COUNT BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX; \
-		bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_compare_conversion_long_generated -- --nocapture --test-threads=1) | tee test_results/latest_rust_native_tier1_compare_conversion_long_results.txt'
+		bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_compare_conversion_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_tier1_compare_conversion_long_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_rust_native_tier1_compare_conversion_long_results.txt -domain tier1-compare-conversion-rust
 
 test-all:
 	@$(MAKE) test-go-modules
@@ -368,6 +370,7 @@ test-native-ffi:
 	@echo "🧬 generated FFI bit-compare native non-short 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedFFIBitCompareSubset$$" -timeout 300s ./...) | tee test_results/latest_native_ffi_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -log ../test_results/latest_native_ffi_results.txt -passes TestGeneratedFFIBitCompareSubset
 
 test-native-tier1-arithmetic-long:
 	@echo "🏦 Tier 1 산술 structured + 대량 결정론 Intel C exact bit/flag 장기 검증 실행..."
@@ -379,6 +382,7 @@ _test-native-tier1-arithmetic-long-full:
 	@mkdir -p test_results
 	@unset BID754_TIER1_ARITH_SHARD_COUNT BID754_TIER1_ARITH_SHARD_INDEX; \
 		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_tier1_arithmetic_long_results.txt -domain tier1-arithmetic-go
 
 test-native-tier1-compare-conversion-long:
 	@echo "🏦 Tier 1 quiet 비교·MinNum/MaxNum·정수/BID·BID 폭 변환 Intel C exact 장기 검증 실행..."
@@ -390,16 +394,19 @@ _test-native-tier1-compare-conversion-long-full:
 	@mkdir -p test_results
 	@unset BID754_TIER1_COMPARE_CONVERSION_SHARD_COUNT BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX; \
 		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_tier1_compare_conversion_long_results.txt -domain tier1-compare-conversion-go
 
 test-native-readtest:
 	@echo "🔎 generated readtest native non-short 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedReadCases$$" -timeout 300s ./...) | tee test_results/latest_native_readtest_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -log ../test_results/latest_native_readtest_results.txt -passes TestGeneratedReadCases
 
 test-native-dectest:
 	@echo "🔍 generated decTest native non-short 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedDectestSuites$$" -timeout 300s ./...) | tee test_results/latest_native_dectest_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -log ../test_results/latest_native_dectest_results.txt -passes TestGeneratedDectestSuites
 
 # 전체 테스트 및 벤치마크 실행 (결과 파일 자동 생성)
 test-and-bench:

@@ -1,6 +1,7 @@
 package testgen
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -48,6 +49,9 @@ type verificationAnchors struct {
 	Tier1ArithmeticScaleModeCross                uint64                       `json:"tier1_arithmetic_long_scale_meaningful_mode_cross"`
 	Tier1ArithmeticScaleModeCrossGroups          map[string]uint64            `json:"tier1_arithmetic_long_scale_mode_cross_groups_by_width"`
 	Tier1ArithmeticScaleTupleHashes              map[string]uint64            `json:"tier1_arithmetic_long_scale_tuple_hash_by_width"`
+	Tier1ArithmeticPairStreamHashes              map[string]uint64            `json:"tier1_arithmetic_long_pair_stream_hash_by_width"`
+	Tier1ArithmeticFmaTripleStreamHashes         map[string]uint64            `json:"tier1_arithmetic_long_fma_triple_stream_hash_by_width"`
+	Tier1ArithmeticRandomStreamHashes            map[string]uint64            `json:"tier1_arithmetic_long_random_stream_hash_by_width"`
 	Tier1ArithmeticTotalComparisons              map[string]uint64            `json:"tier1_arithmetic_long_total_comparisons_by_width"`
 	Tier1ArithmeticLongConsumers                 uint64                       `json:"tier1_arithmetic_long_consumers"`
 	Tier1CompareConversionBoundaryValues         map[string]uint64            `json:"tier1_compare_conversion_long_boundary_values_by_width"`
@@ -122,8 +126,12 @@ func loadVerificationAnchors(t *testing.T) verificationAnchors {
 		t.Fatalf("read verification_anchors.json: %v", err)
 	}
 	var anchors verificationAnchors
-	if err := json.Unmarshal(raw, &anchors); err != nil {
-		t.Fatalf("unmarshal verification_anchors.json: %v", err)
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	// A key this struct does not declare is an anchor nothing enforces;
+	// fail closed instead of silently carrying dead or misspelled anchors.
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&anchors); err != nil {
+		t.Fatalf("unmarshal verification_anchors.json (unknown keys are rejected): %v", err)
 	}
 	return anchors
 }
@@ -217,6 +225,9 @@ type tier1ArithmeticLongInventory struct {
 	ScaleModeCross              uint64
 	ScaleModeCrossGroups        map[string]uint64
 	ScaleTupleHashes            map[string]uint64
+	PairStreamHashes            map[string]uint64
+	FmaTripleStreamHashes       map[string]uint64
+	RandomStreamHashes          map[string]uint64
 	TotalComparisons            map[string]uint64
 }
 
@@ -304,6 +315,9 @@ func loadTier1ArithmeticLongInventory(t *testing.T) tier1ArithmeticLongInventory
 		ScaleModeCross:              require("tier1ArithmeticScaleModeCross"),
 		ScaleModeCrossGroups:        byWidth("tier1ArithmeticScaleModeCrossGroups"),
 		ScaleTupleHashes:            byWidth("tier1ArithmeticScaleTupleHash"),
+		PairStreamHashes:            byWidth("tier1ArithmeticPairStreamHash"),
+		FmaTripleStreamHashes:       byWidth("tier1ArithmeticFmaTripleStreamHash"),
+		RandomStreamHashes:          byWidth("tier1ArithmeticRandomStreamHash"),
 		TotalComparisons:            byWidth("tier1ArithmeticTotalComparisons"),
 	}
 }
@@ -473,6 +487,9 @@ func loadRustTier1ArithmeticLongInventory(t *testing.T) tier1ArithmeticLongInven
 		ScaleModeCross:              require("SCALE_MODE_CROSS"),
 		ScaleModeCrossGroups:        byWidth("SCALE_MODE_CROSS_GROUPS", ""),
 		ScaleTupleHashes:            byWidth("SCALE_TUPLE_HASH", ""),
+		PairStreamHashes:            byWidth("PAIR_STREAM_HASH", ""),
+		FmaTripleStreamHashes:       byWidth("FMA_TRIPLE_STREAM_HASH", ""),
+		RandomStreamHashes:          byWidth("RANDOM_STREAM_HASH", ""),
 		TotalComparisons:            byWidth("TOTAL", "_COUNT"),
 	}
 }
@@ -722,6 +739,9 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Tier 1 arithmetic ScaleB finite-transition limits", tier1Arithmetic.ScaleFiniteTransitionLimits, anchors.Tier1ArithmeticScaleFiniteTransitionLimits},
 		{"Tier 1 arithmetic ScaleB mode-cross groups", tier1Arithmetic.ScaleModeCrossGroups, anchors.Tier1ArithmeticScaleModeCrossGroups},
 		{"Tier 1 arithmetic ScaleB tuple hashes", tier1Arithmetic.ScaleTupleHashes, anchors.Tier1ArithmeticScaleTupleHashes},
+		{"Tier 1 arithmetic pair stream hashes", tier1Arithmetic.PairStreamHashes, anchors.Tier1ArithmeticPairStreamHashes},
+		{"Tier 1 arithmetic fma triple stream hashes", tier1Arithmetic.FmaTripleStreamHashes, anchors.Tier1ArithmeticFmaTripleStreamHashes},
+		{"Tier 1 arithmetic random stream hashes", tier1Arithmetic.RandomStreamHashes, anchors.Tier1ArithmeticRandomStreamHashes},
 		{"Tier 1 arithmetic total comparisons", tier1Arithmetic.TotalComparisons, anchors.Tier1ArithmeticTotalComparisons},
 	} {
 		if !reflect.DeepEqual(check.got, check.want) {
@@ -754,6 +774,9 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		{"Rust Tier 1 arithmetic ScaleB finite-transition limits", rustTier1Arithmetic.ScaleFiniteTransitionLimits, anchors.Tier1ArithmeticScaleFiniteTransitionLimits},
 		{"Rust Tier 1 arithmetic ScaleB mode-cross groups", rustTier1Arithmetic.ScaleModeCrossGroups, anchors.Tier1ArithmeticScaleModeCrossGroups},
 		{"Rust Tier 1 arithmetic ScaleB tuple hashes", rustTier1Arithmetic.ScaleTupleHashes, anchors.Tier1ArithmeticScaleTupleHashes},
+		{"Rust Tier 1 arithmetic pair stream hashes", rustTier1Arithmetic.PairStreamHashes, anchors.Tier1ArithmeticPairStreamHashes},
+		{"Rust Tier 1 arithmetic fma triple stream hashes", rustTier1Arithmetic.FmaTripleStreamHashes, anchors.Tier1ArithmeticFmaTripleStreamHashes},
+		{"Rust Tier 1 arithmetic random stream hashes", rustTier1Arithmetic.RandomStreamHashes, anchors.Tier1ArithmeticRandomStreamHashes},
 		{"Rust Tier 1 arithmetic total comparisons", rustTier1Arithmetic.TotalComparisons, anchors.Tier1ArithmeticTotalComparisons},
 	} {
 		if !reflect.DeepEqual(check.got, check.want) {

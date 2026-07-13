@@ -53,7 +53,12 @@ shape verification, BID string vector verification, the
 generated Rust overflow policy verification, and the native gates: native
 smoke, generated FFI bit-compare, the Go and Rust Tier 1 arithmetic and
 compare/conversion long differentials, generated readtest, generated decTest,
-Rust native readtest, and the Rust ffi-fuzz auxiliary. The native gates
+Rust native readtest, and the Rust ffi-fuzz auxiliary. Gate logs are
+additionally re-checked by `devtools/cmd/verifylog`: the canonical-full Tier 1
+targets must carry the anchored executed/total comparison counts plus
+top-level PASS evidence, and the FFI, readtest, and decTest targets must carry
+top-level PASS evidence — a zero-test or reduced-corpus run cannot report
+green. The native gates
 are required by default: when `.env.sh`, Intel BID `libbid.a`, or IBM
 decNumber are missing, the target fails; set
 `VERIFY_ALL_ALLOW_MISSING_NATIVE=1` to skip the native gates explicitly.

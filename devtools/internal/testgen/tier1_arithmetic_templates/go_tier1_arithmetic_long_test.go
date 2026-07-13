@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
+
+	"github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
 
 const (
@@ -47,8 +50,33 @@ const (
 	tier1ArithmeticScaleTupleHash32              = uint64(@@TIER1_SCALE_TUPLE_HASH32@@)
 	tier1ArithmeticScaleTupleHash64              = uint64(@@TIER1_SCALE_TUPLE_HASH64@@)
 	tier1ArithmeticScaleTupleHash128             = uint64(@@TIER1_SCALE_TUPLE_HASH128@@)
+	tier1ArithmeticPairStreamHash32              = uint64(@@TIER1_PAIR_STREAM_HASH32@@)
+	tier1ArithmeticPairStreamHash64              = uint64(@@TIER1_PAIR_STREAM_HASH64@@)
+	tier1ArithmeticPairStreamHash128             = uint64(@@TIER1_PAIR_STREAM_HASH128@@)
+	tier1ArithmeticFmaTripleStreamHash32         = uint64(@@TIER1_FMA_TRIPLE_STREAM_HASH32@@)
+	tier1ArithmeticFmaTripleStreamHash64         = uint64(@@TIER1_FMA_TRIPLE_STREAM_HASH64@@)
+	tier1ArithmeticFmaTripleStreamHash128        = uint64(@@TIER1_FMA_TRIPLE_STREAM_HASH128@@)
+	tier1ArithmeticRandomStreamHash32            = uint64(@@TIER1_RANDOM_STREAM_HASH32@@)
+	tier1ArithmeticRandomStreamHash64            = uint64(@@TIER1_RANDOM_STREAM_HASH64@@)
+	tier1ArithmeticRandomStreamHash128           = uint64(@@TIER1_RANDOM_STREAM_HASH128@@)
 	tier1ArithmeticScaleTupleHashOffset          = uint64(0xcbf29ce484222325)
 	tier1ArithmeticScaleTupleHashPrime           = uint64(0x100000001b3)
+
+	// The deterministic-random seeds are shared by the differential blocks and
+	// the corpus stream contract, so a seed edit that reaches only one of them
+	// is impossible by construction.
+	tier1ArithmeticRandomRoundedSeedBase32   = uint64(0xdec7543200000000)
+	tier1ArithmeticRandomUnroundedSeedBase32 = uint64(0xdec7543210000000)
+	tier1ArithmeticRandomFmaSeed32           = uint64(0xdec7543220000000)
+	tier1ArithmeticRandomSqrtSeed32          = uint64(0xdec7543230000000)
+	tier1ArithmeticRandomRoundedSeedBase64   = uint64(0xdec7546400000000)
+	tier1ArithmeticRandomUnroundedSeedBase64 = uint64(0xdec7546410000000)
+	tier1ArithmeticRandomFmaSeed64           = uint64(0xdec7546420000000)
+	tier1ArithmeticRandomSqrtSeed64          = uint64(0xdec7546430000000)
+	tier1ArithmeticRandomRoundedSeedBase128   = uint64(0xdec7541200000000)
+	tier1ArithmeticRandomUnroundedSeedBase128 = uint64(0xdec7541210000000)
+	tier1ArithmeticRandomFmaSeed128           = uint64(0xdec7541220000000)
+	tier1ArithmeticRandomSqrtSeed128          = uint64(0xdec7541230000000)
 
 	tier1ArithmeticBoundaryPairs32 = tier1ArithmeticBoundary32Count*tier1ArithmeticProbeCount*2 +
 		tier1ArithmeticProbeCount*tier1ArithmeticProbeCount
@@ -288,17 +316,24 @@ func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, 
 	left, right := Decimal32BID(x), Decimal32BID(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
+	pureChecked := true
+	var pure uint32
 	switch operation {
 	case "add":
 		got, gotFlags = left.AddWithMode(right, mode.public)
+		pure = bidgo.Bid32Add(x, y, mode.native)
 	case "sub":
 		got, gotFlags = left.SubWithMode(right, mode.public)
+		pure = bidgo.Bid32Sub(x, y, mode.native)
 	case "mul":
 		got, gotFlags = left.MulWithMode(right, mode.public)
+		pure = bidgo.Bid32Mul(x, y, mode.native)
 	case "div":
 		got, gotFlags = left.DivWithMode(right, mode.public)
+		pure = bidgo.Bid32Div(x, y, mode.native)
 	case "quantize":
 		got, gotFlags = left.QuantizeWithMode(right, mode.public)
+		pureChecked = false
 	default:
 		t.Fatalf("decimal32 unknown rounded Tier 1 operation %q", operation)
 	}
@@ -306,6 +341,9 @@ func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, 
 	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, mode.name, native, port, public, unknownPublicFlags)
+	}
+	if pureChecked && !strings.HasPrefix(native, fmt.Sprintf("%08x/", pure)) {
+		t.Fatalf("decimal32 %s value-only port mismatch: x=%08x y=%08x mode=%s C=%s pure=%08x", operation, x, y, mode.name, native, pure)
 	}
 }
 
@@ -366,17 +404,24 @@ func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, 
 	left, right := Decimal64BID(x), Decimal64BID(y)
 	var got Decimal64BID
 	var gotFlags ExceptionFlags
+	pureChecked := true
+	var pure uint64
 	switch operation {
 	case "add":
 		got, gotFlags = left.AddWithMode(right, mode.public)
+		pure = bidgo.Bid64Add(x, y, mode.native)
 	case "sub":
 		got, gotFlags = left.SubWithMode(right, mode.public)
+		pure = bidgo.Bid64Sub(x, y, mode.native)
 	case "mul":
 		got, gotFlags = left.MulWithMode(right, mode.public)
+		pure = bidgo.Bid64Mul(x, y, mode.native)
 	case "div":
 		got, gotFlags = left.DivWithMode(right, mode.public)
+		pure = bidgo.Bid64Div(x, y, mode.native)
 	case "quantize":
 		got, gotFlags = left.QuantizeWithMode(right, mode.public)
+		pureChecked = false
 	default:
 		t.Fatalf("decimal64 unknown rounded Tier 1 operation %q", operation)
 	}
@@ -384,6 +429,9 @@ func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, 
 	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal64 %s mismatch: x=%016x y=%016x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, mode.name, native, port, public, unknownPublicFlags)
+	}
+	if pureChecked && !strings.HasPrefix(native, fmt.Sprintf("%016x/", pure)) {
+		t.Fatalf("decimal64 %s value-only port mismatch: x=%016x y=%016x mode=%s C=%s pure=%016x", operation, x, y, mode.name, native, pure)
 	}
 }
 
@@ -960,6 +1008,25 @@ func tier1ArithmeticRandomWord(seed, caseIndex, lane uint64) uint64 {
 	return tier1ArithmeticSplitMix64(seed ^ caseIndex*0xd1342543de82ef95 ^ lane*0x9e3779b97f4a7c15)
 }
 
+// tier1ArithmeticRandomOperand* derive the deterministic-random operands for
+// one logical operand slot. The differential blocks and the corpus stream
+// contract both consume these helpers, so a lane or truncation drift cannot
+// reach only one of them.
+func tier1ArithmeticRandomOperand32(seed, caseIndex, lane uint64) uint32 {
+	return uint32(tier1ArithmeticRandomWord(seed, caseIndex, lane))
+}
+
+func tier1ArithmeticRandomOperand64(seed, caseIndex, lane uint64) uint64 {
+	return tier1ArithmeticRandomWord(seed, caseIndex, lane)
+}
+
+func tier1ArithmeticRandomOperand128(seed, caseIndex, lane uint64) tier1Arithmetic128Words {
+	return tier1Arithmetic128Words{
+		lo: tier1ArithmeticRandomWord(seed, caseIndex, lane*2),
+		hi: tier1ArithmeticRandomWord(seed, caseIndex, lane*2+1),
+	}
+}
+
 func tier1ArithmeticScaleModeCrossGroups(transitionLimit int64) uint64 {
 	return uint64(transitionLimit*2 + 1)
 }
@@ -1215,6 +1282,156 @@ func tier1ArithmeticAssertScaleCorpusContract(t *testing.T, bits int, seed, lane
 	}
 }
 
+// tier1ArithmeticAssertCorpusStreamContracts recomputes the pair, fma-triple,
+// and non-ScaleB random operand streams through the exact visit functions and
+// seed/lane/mode derivations the differentials consume, and compares the
+// digests against the generator-anchored constants. Both language runners
+// carry this contract, so an iteration-order, probe, seed, lane, truncation,
+// or mode-rotation drift in either template fails here instead of silently
+// splitting the cross-language corpus.
+func tier1ArithmeticAssertCorpusStreamContracts(t *testing.T) {
+	t.Helper()
+	mix := tier1ArithmeticScaleTupleHashMix
+
+	pairDigest32 := mix(tier1ArithmeticScaleTupleHashOffset, 32)
+	var pairVisits32 uint64
+	tier1ArithmeticVisitPairs32(func(x, y uint32) {
+		pairDigest32 = mix(pairDigest32, uint64(x))
+		pairDigest32 = mix(pairDigest32, 0)
+		pairDigest32 = mix(pairDigest32, uint64(y))
+		pairDigest32 = mix(pairDigest32, 0)
+		pairVisits32++
+	})
+	if got := mix(pairDigest32, pairVisits32); got != tier1ArithmeticPairStreamHash32 {
+		t.Fatalf("decimal32 pair stream hash=%d want=%d", got, tier1ArithmeticPairStreamHash32)
+	}
+	pairDigest64 := mix(tier1ArithmeticScaleTupleHashOffset, 64)
+	var pairVisits64 uint64
+	tier1ArithmeticVisitPairs64(func(x, y uint64) {
+		pairDigest64 = mix(pairDigest64, x)
+		pairDigest64 = mix(pairDigest64, 0)
+		pairDigest64 = mix(pairDigest64, y)
+		pairDigest64 = mix(pairDigest64, 0)
+		pairVisits64++
+	})
+	if got := mix(pairDigest64, pairVisits64); got != tier1ArithmeticPairStreamHash64 {
+		t.Fatalf("decimal64 pair stream hash=%d want=%d", got, tier1ArithmeticPairStreamHash64)
+	}
+	pairDigest128 := mix(tier1ArithmeticScaleTupleHashOffset, 128)
+	var pairVisits128 uint64
+	tier1ArithmeticVisitPairs128(func(x, y tier1Arithmetic128Words) {
+		pairDigest128 = mix(pairDigest128, x.lo)
+		pairDigest128 = mix(pairDigest128, x.hi)
+		pairDigest128 = mix(pairDigest128, y.lo)
+		pairDigest128 = mix(pairDigest128, y.hi)
+		pairVisits128++
+	})
+	if got := mix(pairDigest128, pairVisits128); got != tier1ArithmeticPairStreamHash128 {
+		t.Fatalf("decimal128 pair stream hash=%d want=%d", got, tier1ArithmeticPairStreamHash128)
+	}
+
+	tripleDigest32 := mix(tier1ArithmeticScaleTupleHashOffset, 32)
+	var tripleVisits32 uint64
+	tier1ArithmeticVisitTriples32(func(x, y, z uint32) {
+		tripleDigest32 = mix(tripleDigest32, uint64(x))
+		tripleDigest32 = mix(tripleDigest32, 0)
+		tripleDigest32 = mix(tripleDigest32, uint64(y))
+		tripleDigest32 = mix(tripleDigest32, 0)
+		tripleDigest32 = mix(tripleDigest32, uint64(z))
+		tripleDigest32 = mix(tripleDigest32, 0)
+		tripleVisits32++
+	})
+	if got := mix(tripleDigest32, tripleVisits32); got != tier1ArithmeticFmaTripleStreamHash32 {
+		t.Fatalf("decimal32 fma triple stream hash=%d want=%d", got, tier1ArithmeticFmaTripleStreamHash32)
+	}
+	tripleDigest64 := mix(tier1ArithmeticScaleTupleHashOffset, 64)
+	var tripleVisits64 uint64
+	tier1ArithmeticVisitTriples64(func(x, y, z uint64) {
+		tripleDigest64 = mix(tripleDigest64, x)
+		tripleDigest64 = mix(tripleDigest64, 0)
+		tripleDigest64 = mix(tripleDigest64, y)
+		tripleDigest64 = mix(tripleDigest64, 0)
+		tripleDigest64 = mix(tripleDigest64, z)
+		tripleDigest64 = mix(tripleDigest64, 0)
+		tripleVisits64++
+	})
+	if got := mix(tripleDigest64, tripleVisits64); got != tier1ArithmeticFmaTripleStreamHash64 {
+		t.Fatalf("decimal64 fma triple stream hash=%d want=%d", got, tier1ArithmeticFmaTripleStreamHash64)
+	}
+	tripleDigest128 := mix(tier1ArithmeticScaleTupleHashOffset, 128)
+	var tripleVisits128 uint64
+	tier1ArithmeticVisitTriples128(func(x, y, z tier1Arithmetic128Words) {
+		tripleDigest128 = mix(tripleDigest128, x.lo)
+		tripleDigest128 = mix(tripleDigest128, x.hi)
+		tripleDigest128 = mix(tripleDigest128, y.lo)
+		tripleDigest128 = mix(tripleDigest128, y.hi)
+		tripleDigest128 = mix(tripleDigest128, z.lo)
+		tripleDigest128 = mix(tripleDigest128, z.hi)
+		tripleVisits128++
+	})
+	if got := mix(tripleDigest128, tripleVisits128); got != tier1ArithmeticFmaTripleStreamHash128 {
+		t.Fatalf("decimal128 fma triple stream hash=%d want=%d", got, tier1ArithmeticFmaTripleStreamHash128)
+	}
+
+	randomStream := func(bits int, roundedBase, unroundedBase, fmaSeed, sqrtSeed, cases uint64) uint64 {
+		digest := mix(tier1ArithmeticScaleTupleHashOffset, uint64(bits))
+		mixOperand := func(seed, caseIndex, lane uint64) {
+			switch bits {
+			case 32:
+				digest = mix(digest, uint64(tier1ArithmeticRandomOperand32(seed, caseIndex, lane)))
+				digest = mix(digest, 0)
+			case 64:
+				digest = mix(digest, tier1ArithmeticRandomOperand64(seed, caseIndex, lane))
+				digest = mix(digest, 0)
+			default:
+				words := tier1ArithmeticRandomOperand128(seed, caseIndex, lane)
+				digest = mix(digest, words.lo)
+				digest = mix(digest, words.hi)
+			}
+		}
+		var total uint64
+		for opIndex := uint64(0); opIndex < tier1ArithmeticRoundedOps; opIndex++ {
+			seed := roundedBase ^ opIndex
+			for i := uint64(0); i < cases; i++ {
+				mixOperand(seed, i, 0)
+				mixOperand(seed, i, 1)
+				digest = mix(digest, uint64(tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))].native))
+				total++
+			}
+		}
+		for opIndex := uint64(0); opIndex < tier1ArithmeticUnroundedOps; opIndex++ {
+			seed := unroundedBase ^ opIndex
+			for i := uint64(0); i < cases; i++ {
+				mixOperand(seed, i, 0)
+				mixOperand(seed, i, 1)
+				total++
+			}
+		}
+		for i := uint64(0); i < cases; i++ {
+			mixOperand(fmaSeed, i, 0)
+			mixOperand(fmaSeed, i, 1)
+			mixOperand(fmaSeed, i, 2)
+			digest = mix(digest, uint64(tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))].native))
+			total++
+		}
+		for i := uint64(0); i < cases; i++ {
+			mixOperand(sqrtSeed, i, 0)
+			digest = mix(digest, uint64(tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))].native))
+			total++
+		}
+		return mix(digest, total)
+	}
+	if got := randomStream(32, tier1ArithmeticRandomRoundedSeedBase32, tier1ArithmeticRandomUnroundedSeedBase32, tier1ArithmeticRandomFmaSeed32, tier1ArithmeticRandomSqrtSeed32, tier1ArithmeticRandomCasesPerOp32); got != tier1ArithmeticRandomStreamHash32 {
+		t.Fatalf("decimal32 random stream hash=%d want=%d", got, tier1ArithmeticRandomStreamHash32)
+	}
+	if got := randomStream(64, tier1ArithmeticRandomRoundedSeedBase64, tier1ArithmeticRandomUnroundedSeedBase64, tier1ArithmeticRandomFmaSeed64, tier1ArithmeticRandomSqrtSeed64, tier1ArithmeticRandomCasesPerOp64); got != tier1ArithmeticRandomStreamHash64 {
+		t.Fatalf("decimal64 random stream hash=%d want=%d", got, tier1ArithmeticRandomStreamHash64)
+	}
+	if got := randomStream(128, tier1ArithmeticRandomRoundedSeedBase128, tier1ArithmeticRandomUnroundedSeedBase128, tier1ArithmeticRandomFmaSeed128, tier1ArithmeticRandomSqrtSeed128, tier1ArithmeticRandomCasesPerOp128); got != tier1ArithmeticRandomStreamHash128 {
+		t.Fatalf("decimal128 random stream hash=%d want=%d", got, tier1ArithmeticRandomStreamHash128)
+	}
+}
+
 func TestTier1ArithmeticCorpusContract(t *testing.T) {
 	if tier1ArithmeticScaleModeCross != uint64(len(tier1ArithmeticModes)) {
 		t.Fatalf("ScaleB mode cross=%d rounding modes=%d", tier1ArithmeticScaleModeCross, len(tier1ArithmeticModes))
@@ -1235,6 +1452,7 @@ func TestTier1ArithmeticCorpusContract(t *testing.T) {
 	tier1ArithmeticAssertScaleCorpusContract(t, 32, 0xdec7543253414c45, 1, int64(tier1ArithmeticScaleFiniteTransitionLimit32), tier1ArithmeticRandomCasesPerOp32, tier1ArithmeticScaleModeCrossGroups32, tier1ArithmeticScaleTupleHash32)
 	tier1ArithmeticAssertScaleCorpusContract(t, 64, 0xdec7546453414c45, 1, int64(tier1ArithmeticScaleFiniteTransitionLimit64), tier1ArithmeticRandomCasesPerOp64, tier1ArithmeticScaleModeCrossGroups64, tier1ArithmeticScaleTupleHash64)
 	tier1ArithmeticAssertScaleCorpusContract(t, 128, 0xdec7541253414c45, 2, int64(tier1ArithmeticScaleFiniteTransitionLimit128), tier1ArithmeticRandomCasesPerOp128, tier1ArithmeticScaleModeCrossGroups128, tier1ArithmeticScaleTupleHash128)
+	tier1ArithmeticAssertCorpusStreamContracts(t)
 }
 
 func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
@@ -1247,22 +1465,22 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("decimal32", func(t *testing.T) {
 		var comparison uint64
 		for operationIndex, operation := range tier1ArithmeticRoundedOperations {
-			seed := uint64(0xdec7543200000000) ^ uint64(operationIndex)
+			seed := tier1ArithmeticRandomRoundedSeedBase32 ^ uint64(operationIndex)
 			for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp32; i++ {
 				if shard.owns(comparison) {
-					x := uint32(tier1ArithmeticRandomWord(seed, i, 0))
-					y := uint32(tier1ArithmeticRandomWord(seed, i, 1))
+					x := tier1ArithmeticRandomOperand32(seed, i, 0)
+					y := tier1ArithmeticRandomOperand32(seed, i, 1)
 					tier1ArithmeticCheckRounded32(t, operation, x, y, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 				}
 				comparison++
 			}
 		}
 		for operationIndex, operation := range tier1ArithmeticUnroundedOperations {
-			seed := uint64(0xdec7543210000000) ^ uint64(operationIndex)
+			seed := tier1ArithmeticRandomUnroundedSeedBase32 ^ uint64(operationIndex)
 			for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp32; i++ {
 				if shard.owns(comparison) {
-					x := uint32(tier1ArithmeticRandomWord(seed, i, 0))
-					y := uint32(tier1ArithmeticRandomWord(seed, i, 1))
+					x := tier1ArithmeticRandomOperand32(seed, i, 0)
+					y := tier1ArithmeticRandomOperand32(seed, i, 1)
 					tier1ArithmeticCheckUnrounded32(t, operation, x, y)
 				}
 				comparison++
@@ -1277,20 +1495,20 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 			}
 			comparison++
 		}
-		seed = uint64(0xdec7543220000000)
+		seed = tier1ArithmeticRandomFmaSeed32
 		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp32; i++ {
 			if shard.owns(comparison) {
-				x := uint32(tier1ArithmeticRandomWord(seed, i, 0))
-				y := uint32(tier1ArithmeticRandomWord(seed, i, 1))
-				z := uint32(tier1ArithmeticRandomWord(seed, i, 2))
+				x := tier1ArithmeticRandomOperand32(seed, i, 0)
+				y := tier1ArithmeticRandomOperand32(seed, i, 1)
+				z := tier1ArithmeticRandomOperand32(seed, i, 2)
 				tier1ArithmeticCheckFma32(t, x, y, z, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 			}
 			comparison++
 		}
-		seed = uint64(0xdec7543230000000)
+		seed = tier1ArithmeticRandomSqrtSeed32
 		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp32; i++ {
 			if shard.owns(comparison) {
-				tier1ArithmeticCheckSqrt32(t, uint32(tier1ArithmeticRandomWord(seed, i, 0)), tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+				tier1ArithmeticCheckSqrt32(t, tier1ArithmeticRandomOperand32(seed, i, 0), tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 			}
 			comparison++
 		}
@@ -1303,22 +1521,22 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("decimal64", func(t *testing.T) {
 		var comparison uint64
 		for operationIndex, operation := range tier1ArithmeticRoundedOperations {
-			seed := uint64(0xdec7546400000000) ^ uint64(operationIndex)
+			seed := tier1ArithmeticRandomRoundedSeedBase64 ^ uint64(operationIndex)
 			for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp64; i++ {
 				if shard.owns(comparison) {
-					x := tier1ArithmeticRandomWord(seed, i, 0)
-					y := tier1ArithmeticRandomWord(seed, i, 1)
+					x := tier1ArithmeticRandomOperand64(seed, i, 0)
+					y := tier1ArithmeticRandomOperand64(seed, i, 1)
 					tier1ArithmeticCheckRounded64(t, operation, x, y, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 				}
 				comparison++
 			}
 		}
 		for operationIndex, operation := range tier1ArithmeticUnroundedOperations {
-			seed := uint64(0xdec7546410000000) ^ uint64(operationIndex)
+			seed := tier1ArithmeticRandomUnroundedSeedBase64 ^ uint64(operationIndex)
 			for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp64; i++ {
 				if shard.owns(comparison) {
-					x := tier1ArithmeticRandomWord(seed, i, 0)
-					y := tier1ArithmeticRandomWord(seed, i, 1)
+					x := tier1ArithmeticRandomOperand64(seed, i, 0)
+					y := tier1ArithmeticRandomOperand64(seed, i, 1)
 					tier1ArithmeticCheckUnrounded64(t, operation, x, y)
 				}
 				comparison++
@@ -1333,20 +1551,20 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 			}
 			comparison++
 		}
-		seed = uint64(0xdec7546420000000)
+		seed = tier1ArithmeticRandomFmaSeed64
 		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp64; i++ {
 			if shard.owns(comparison) {
-				x := tier1ArithmeticRandomWord(seed, i, 0)
-				y := tier1ArithmeticRandomWord(seed, i, 1)
-				z := tier1ArithmeticRandomWord(seed, i, 2)
+				x := tier1ArithmeticRandomOperand64(seed, i, 0)
+				y := tier1ArithmeticRandomOperand64(seed, i, 1)
+				z := tier1ArithmeticRandomOperand64(seed, i, 2)
 				tier1ArithmeticCheckFma64(t, x, y, z, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 			}
 			comparison++
 		}
-		seed = uint64(0xdec7546430000000)
+		seed = tier1ArithmeticRandomSqrtSeed64
 		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp64; i++ {
 			if shard.owns(comparison) {
-				tier1ArithmeticCheckSqrt64(t, tier1ArithmeticRandomWord(seed, i, 0), tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+				tier1ArithmeticCheckSqrt64(t, tier1ArithmeticRandomOperand64(seed, i, 0), tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 			}
 			comparison++
 		}
@@ -1359,22 +1577,22 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 	t.Run("decimal128", func(t *testing.T) {
 		var comparison uint64
 		for operationIndex, operation := range tier1ArithmeticRoundedOperations {
-			seed := uint64(0xdec7541200000000) ^ uint64(operationIndex)
+			seed := tier1ArithmeticRandomRoundedSeedBase128 ^ uint64(operationIndex)
 			for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp128; i++ {
 				if shard.owns(comparison) {
-					x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 0), hi: tier1ArithmeticRandomWord(seed, i, 1)})
-					y := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 2), hi: tier1ArithmeticRandomWord(seed, i, 3)})
+					x := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 0))
+					y := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 1))
 					tier1ArithmeticCheckRounded128(t, operation, x, y, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 				}
 				comparison++
 			}
 		}
 		for operationIndex, operation := range tier1ArithmeticUnroundedOperations {
-			seed := uint64(0xdec7541210000000) ^ uint64(operationIndex)
+			seed := tier1ArithmeticRandomUnroundedSeedBase128 ^ uint64(operationIndex)
 			for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp128; i++ {
 				if shard.owns(comparison) {
-					x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 0), hi: tier1ArithmeticRandomWord(seed, i, 1)})
-					y := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 2), hi: tier1ArithmeticRandomWord(seed, i, 3)})
+					x := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 0))
+					y := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 1))
 					tier1ArithmeticCheckUnrounded128(t, operation, x, y)
 				}
 				comparison++
@@ -1389,20 +1607,20 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 			}
 			comparison++
 		}
-		seed = uint64(0xdec7541220000000)
+		seed = tier1ArithmeticRandomFmaSeed128
 		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp128; i++ {
 			if shard.owns(comparison) {
-				x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 0), hi: tier1ArithmeticRandomWord(seed, i, 1)})
-				y := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 2), hi: tier1ArithmeticRandomWord(seed, i, 3)})
-				z := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 4), hi: tier1ArithmeticRandomWord(seed, i, 5)})
+				x := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 0))
+				y := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 1))
+				z := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 2))
 				tier1ArithmeticCheckFma128(t, x, y, z, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 			}
 			comparison++
 		}
-		seed = uint64(0xdec7541230000000)
+		seed = tier1ArithmeticRandomSqrtSeed128
 		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp128; i++ {
 			if shard.owns(comparison) {
-				x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{lo: tier1ArithmeticRandomWord(seed, i, 0), hi: tier1ArithmeticRandomWord(seed, i, 1)})
+				x := tier1ArithmeticDecimal128(tier1ArithmeticRandomOperand128(seed, i, 0))
 				tier1ArithmeticCheckSqrt128(t, x, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
 			}
 			comparison++
@@ -1415,48 +1633,15 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 }
 
 var tier1ArithmeticProbes32 = [...]uint32{
-	0x00000000,
-	0x80000000,
-	0x32800001,
-	0xb2800001,
-	0x00000001,
-	0x77f8967f,
-	0xf7f8967f,
-	0x78000000,
-	0x7c000001,
-	0x7e000001,
-	0x60000000,
-	0x5f800000,
+@@TIER1_PROBES32_VALUES@@
 }
 
 var tier1ArithmeticProbes64 = [...]uint64{
-	0x0000000000000000,
-	0x8000000000000000,
-	0x31c0000000000001,
-	0xb1c0000000000001,
-	0x0000000000000001,
-	0x77fb86f26fc0ffff,
-	0xf7fb86f26fc0ffff,
-	0x7800000000000000,
-	0x7c00000000000001,
-	0x7e00000000000001,
-	0x6000000000000000,
-	0x5fe0000000000000,
+@@TIER1_PROBES64_VALUES@@
 }
 
 var tier1ArithmeticProbes128 = [...]tier1Arithmetic128Words{
-	{lo: 0x0000000000000000, hi: 0x0000000000000000},
-	{lo: 0x0000000000000000, hi: 0x8000000000000000},
-	{lo: 0x0000000000000001, hi: 0x3040000000000000},
-	{lo: 0x0000000000000001, hi: 0xb040000000000000},
-	{lo: 0x0000000000000001, hi: 0x0000000000000000},
-	{lo: 0x378d8e63ffffffff, hi: 0x5fffed09bead87c0},
-	{lo: 0x378d8e63ffffffff, hi: 0xdfffed09bead87c0},
-	{lo: 0x0000000000000000, hi: 0x7800000000000000},
-	{lo: 0x0000000000000001, hi: 0x7c00000000000000},
-	{lo: 0x0000000000000001, hi: 0x7e00000000000000},
-	{lo: 0x0000000000000000, hi: 0x6000000000000000},
-	{lo: 0x0000000000000000, hi: 0x5ffe000000000000},
+@@TIER1_PROBES128_VALUES@@
 }
 
 var tier1ArithmeticSemanticRounded32Cases = []tier1ArithmeticSemanticRounded32{

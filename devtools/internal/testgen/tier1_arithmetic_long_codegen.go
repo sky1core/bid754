@@ -27,6 +27,36 @@ const (
 //go:embed tier1_arithmetic_templates/*
 var tier1ArithmeticTemplates embed.FS
 
+// tier1ArithmeticProbes* are the single source for the probe operand sets
+// injected into both language runners. The generated stream hashes below are
+// computed over these values plus the boundary corpus, so a probe edit that
+// reaches only one consumer fails the anchored stream-hash contract.
+var tier1ArithmeticProbes32Values = []uint32{
+	0x00000000, 0x80000000, 0x32800001, 0xb2800001, 0x00000001, 0x77f8967f,
+	0xf7f8967f, 0x78000000, 0x7c000001, 0x7e000001, 0x60000000, 0x5f800000,
+}
+
+var tier1ArithmeticProbes64Values = []uint64{
+	0x0000000000000000, 0x8000000000000000, 0x31c0000000000001, 0xb1c0000000000001,
+	0x0000000000000001, 0x77fb86f26fc0ffff, 0xf7fb86f26fc0ffff, 0x7800000000000000,
+	0x7c00000000000001, 0x7e00000000000001, 0x6000000000000000, 0x5fe0000000000000,
+}
+
+var tier1ArithmeticProbes128Values = []bid128BidCodecValue{
+	{lo: 0x0000000000000000, hi: 0x0000000000000000},
+	{lo: 0x0000000000000000, hi: 0x8000000000000000},
+	{lo: 0x0000000000000001, hi: 0x3040000000000000},
+	{lo: 0x0000000000000001, hi: 0xb040000000000000},
+	{lo: 0x0000000000000001, hi: 0x0000000000000000},
+	{lo: 0x378d8e63ffffffff, hi: 0x5fffed09bead87c0},
+	{lo: 0x378d8e63ffffffff, hi: 0xdfffed09bead87c0},
+	{lo: 0x0000000000000000, hi: 0x7800000000000000},
+	{lo: 0x0000000000000001, hi: 0x7c00000000000000},
+	{lo: 0x0000000000000001, hi: 0x7e00000000000000},
+	{lo: 0x0000000000000000, hi: 0x6000000000000000},
+	{lo: 0x0000000000000000, hi: 0x5ffe000000000000},
+}
+
 func WriteTier1ArithmeticLongOutputs(repoRoot string) error {
 	files, err := GenerateTier1ArithmeticLongOutputs()
 	if err != nil {
@@ -69,6 +99,37 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		uint64(len(semantic.fma32)), uint64(len(semantic.fma64)), uint64(len(semantic.fma128)),
 		uint64(len(semantic.sqrt32)), uint64(len(semantic.sqrt64)), uint64(len(semantic.sqrt128)),
 	)
+	boundaryWords32 := make([]bid128BidCodecValue, len(boundary32))
+	for i, value := range boundary32 {
+		boundaryWords32[i] = bid128BidCodecValue{lo: uint64(value)}
+	}
+	boundaryWords64 := make([]bid128BidCodecValue, len(boundary64))
+	for i, value := range boundary64 {
+		boundaryWords64[i] = bid128BidCodecValue{lo: value}
+	}
+	probeWords32 := make([]bid128BidCodecValue, len(tier1ArithmeticProbes32Values))
+	for i, value := range tier1ArithmeticProbes32Values {
+		probeWords32[i] = bid128BidCodecValue{lo: uint64(value)}
+	}
+	probeWords64 := make([]bid128BidCodecValue, len(tier1ArithmeticProbes64Values))
+	for i, value := range tier1ArithmeticProbes64Values {
+		probeWords64[i] = bid128BidCodecValue{lo: value}
+	}
+	streamHashes := map[string]string{
+		"@@TIER1_PAIR_STREAM_HASH32@@":        fmt.Sprint(tier1ArithmeticPairStreamHashForGeneration(32, boundaryWords32, probeWords32)),
+		"@@TIER1_PAIR_STREAM_HASH64@@":        fmt.Sprint(tier1ArithmeticPairStreamHashForGeneration(64, boundaryWords64, probeWords64)),
+		"@@TIER1_PAIR_STREAM_HASH128@@":       fmt.Sprint(tier1ArithmeticPairStreamHashForGeneration(128, boundary128, tier1ArithmeticProbes128Values)),
+		"@@TIER1_FMA_TRIPLE_STREAM_HASH32@@":  fmt.Sprint(tier1ArithmeticTripleStreamHashForGeneration(32, boundaryWords32, probeWords32)),
+		"@@TIER1_FMA_TRIPLE_STREAM_HASH64@@":  fmt.Sprint(tier1ArithmeticTripleStreamHashForGeneration(64, boundaryWords64, probeWords64)),
+		"@@TIER1_FMA_TRIPLE_STREAM_HASH128@@": fmt.Sprint(tier1ArithmeticTripleStreamHashForGeneration(128, boundary128, tier1ArithmeticProbes128Values)),
+		"@@TIER1_RANDOM_STREAM_HASH32@@":      fmt.Sprint(tier1ArithmeticRandomStreamHashForGeneration(32, uint64(1)<<20)),
+		"@@TIER1_RANDOM_STREAM_HASH64@@":      fmt.Sprint(tier1ArithmeticRandomStreamHashForGeneration(64, uint64(1)<<20)),
+		"@@TIER1_RANDOM_STREAM_HASH128@@":     fmt.Sprint(tier1ArithmeticRandomStreamHashForGeneration(128, uint64(1)<<19)),
+	}
+	streamHashReplacements := make([]string, 0, len(streamHashes)*2)
+	for token, value := range streamHashes {
+		streamHashReplacements = append(streamHashReplacements, token, value)
+	}
 	replacer := strings.NewReplacer(
 		"@@TIER1_BOUNDARY32_COUNT@@", fmt.Sprint(len(boundary32)),
 		"@@TIER1_BOUNDARY64_COUNT@@", fmt.Sprint(len(boundary64)),
@@ -121,7 +182,12 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		"@@TIER1_RANDOM_SAMPLE1@@", fmt.Sprintf("0x%016x", tier1ArithmeticRandomWordForGeneration(0xdec7546400000004, (uint64(1)<<20)-1, 1)),
 		"@@TIER1_RANDOM_SAMPLE2@@", fmt.Sprintf("0x%016x", tier1ArithmeticRandomWordForGeneration(0xdec7541253414c45, (uint64(1)<<19)-1, 2)),
 	)
-	source := []byte(genmarker.Line("testgen") + "\n" + replacer.Replace(string(template)))
+	goStreamReplacer := strings.NewReplacer(append(append([]string{}, streamHashReplacements...),
+		"@@TIER1_PROBES32_VALUES@@", tier1ArithmeticUint32Literals(tier1ArithmeticProbes32Values),
+		"@@TIER1_PROBES64_VALUES@@", tier1ArithmeticUint64Literals(tier1ArithmeticProbes64Values),
+		"@@TIER1_PROBES128_VALUES@@", tier1ArithmeticUint128Literals(tier1ArithmeticProbes128Values),
+	)...)
+	source := []byte(genmarker.Line("testgen") + "\n" + goStreamReplacer.Replace(replacer.Replace(string(template))))
 	goOutputs, err := formatGeneratedGoOutputs(map[string][]byte{
 		tier1ArithmeticLongGeneratedPath: source,
 	})
@@ -192,7 +258,12 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		"@@TIER1_RANDOM_SAMPLE1@@", fmt.Sprintf("0x%016x", tier1ArithmeticRandomWordForGeneration(0xdec7546400000004, (uint64(1)<<20)-1, 1)),
 		"@@TIER1_RANDOM_SAMPLE2@@", fmt.Sprintf("0x%016x", tier1ArithmeticRandomWordForGeneration(0xdec7541253414c45, (uint64(1)<<19)-1, 2)),
 	)
-	rustSource, err := formatGeneratedRustOutput([]byte(genmarker.Line("testgen") + "\n" + rustReplacer.Replace(string(rustTemplate))))
+	rustStreamReplacer := strings.NewReplacer(append(append([]string{}, streamHashReplacements...),
+		"@@TIER1_PROBES32_VALUES@@", tier1RustUint32Literals(tier1ArithmeticProbes32Values),
+		"@@TIER1_PROBES64_VALUES@@", tier1RustUint64Literals(tier1ArithmeticProbes64Values),
+		"@@TIER1_PROBES128_VALUES@@", tier1RustUint128Literals(tier1ArithmeticProbes128Values),
+	)...)
+	rustSource, err := formatGeneratedRustOutput([]byte(genmarker.Line("testgen") + "\n" + rustStreamReplacer.Replace(rustReplacer.Replace(string(rustTemplate)))))
 	if err != nil {
 		return nil, err
 	}
@@ -356,6 +427,142 @@ func tier1ArithmeticScaleTupleHashForGeneration(bits int, seed, exponentLane uin
 		digest = tier1ArithmeticScaleTupleHashMix(digest, nativeModes[caseIndex%uint64(len(nativeModes))])
 	}
 	return tier1ArithmeticScaleTupleHashMix(digest, cases)
+}
+
+// tier1ArithmeticPairStreamHashForGeneration replicates both runners'
+// visit-pairs iteration (boundary×probes in both operand orders, then the
+// full probes×probes cross) and folds every operand word plus the final visit
+// count into the ScaleB FNV mix. The generated Go and Rust corpus-contract
+// tests recompute this digest over their own visit functions, so an
+// iteration-order or probe drift in either template fails against the anchor.
+func tier1ArithmeticPairStreamHashForGeneration(bits uint64, boundary, probes []bid128BidCodecValue) uint64 {
+	digest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, bits)
+	var visits uint64
+	visit := func(x, y bid128BidCodecValue) {
+		digest = tier1ArithmeticScaleTupleHashMix(digest, x.lo)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, x.hi)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, y.lo)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, y.hi)
+		visits++
+	}
+	for _, x := range boundary {
+		for _, y := range probes {
+			visit(x, y)
+			visit(y, x)
+		}
+	}
+	for _, x := range probes {
+		for _, y := range probes {
+			visit(x, y)
+		}
+	}
+	return tier1ArithmeticScaleTupleHashMix(digest, visits)
+}
+
+// tier1ArithmeticTripleStreamHashForGeneration replicates the fma
+// visit-triples iteration (boundary value rotated through all three operand
+// slots against (i+j)%probes companion pairs, then the full probes^3 cross).
+func tier1ArithmeticTripleStreamHashForGeneration(bits uint64, boundary, probes []bid128BidCodecValue) uint64 {
+	digest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, bits)
+	var visits uint64
+	visit := func(x, y, z bid128BidCodecValue) {
+		digest = tier1ArithmeticScaleTupleHashMix(digest, x.lo)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, x.hi)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, y.lo)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, y.hi)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, z.lo)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, z.hi)
+		visits++
+	}
+	for i, x := range boundary {
+		for j, y := range probes {
+			z := probes[(i+j)%len(probes)]
+			visit(x, y, z)
+			visit(y, z, x)
+			visit(z, x, y)
+		}
+	}
+	for _, x := range probes {
+		for _, y := range probes {
+			for _, z := range probes {
+				visit(x, y, z)
+			}
+		}
+	}
+	return tier1ArithmeticScaleTupleHashMix(digest, visits)
+}
+
+// tier1ArithmeticRandomStreamHashForGeneration replicates the deterministic
+// random blocks of both runners for every non-ScaleB operation (rounded add/
+// sub/mul/div/quantize, unrounded remainder/fmod, fma, sqrt — ScaleB keeps
+// its own dedicated tuple hash), folding the exact operand words the runners
+// consume (including the 32-bit truncation) and the native rounding mode of
+// each moded case. A seed, lane, operand-width, or mode-rotation drift in
+// either template fails against the anchor.
+func tier1ArithmeticRandomStreamHashForGeneration(bits int, cases uint64) uint64 {
+	var roundedBase, unroundedBase, fmaSeed, sqrtSeed uint64
+	switch bits {
+	case 32:
+		roundedBase, unroundedBase = 0xdec7543200000000, 0xdec7543210000000
+		fmaSeed, sqrtSeed = 0xdec7543220000000, 0xdec7543230000000
+	case 64:
+		roundedBase, unroundedBase = 0xdec7546400000000, 0xdec7546410000000
+		fmaSeed, sqrtSeed = 0xdec7546420000000, 0xdec7546430000000
+	case 128:
+		roundedBase, unroundedBase = 0xdec7541200000000, 0xdec7541210000000
+		fmaSeed, sqrtSeed = 0xdec7541220000000, 0xdec7541230000000
+	default:
+		panic(fmt.Sprintf("unsupported Tier 1 random stream width %d", bits))
+	}
+	nativeModes := [...]uint64{0, 4, 3, 2, 1}
+	digest := tier1ArithmeticScaleTupleHashMix(tier1ArithmeticScaleTupleHashOffset, uint64(bits))
+	operand := func(seed, caseIndex, lane uint64) (lo, hi uint64) {
+		switch bits {
+		case 32:
+			return uint64(uint32(tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane))), 0
+		case 64:
+			return tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane), 0
+		default:
+			return tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane*2),
+				tier1ArithmeticRandomWordForGeneration(seed, caseIndex, lane*2+1)
+		}
+	}
+	mixOperand := func(seed, caseIndex, lane uint64) {
+		lo, hi := operand(seed, caseIndex, lane)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, lo)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, hi)
+	}
+	var total uint64
+	for opIndex := uint64(0); opIndex < 5; opIndex++ {
+		seed := roundedBase ^ opIndex
+		for i := uint64(0); i < cases; i++ {
+			mixOperand(seed, i, 0)
+			mixOperand(seed, i, 1)
+			digest = tier1ArithmeticScaleTupleHashMix(digest, nativeModes[i%uint64(len(nativeModes))])
+			total++
+		}
+	}
+	for opIndex := uint64(0); opIndex < 2; opIndex++ {
+		seed := unroundedBase ^ opIndex
+		for i := uint64(0); i < cases; i++ {
+			mixOperand(seed, i, 0)
+			mixOperand(seed, i, 1)
+			total++
+		}
+	}
+	for i := uint64(0); i < cases; i++ {
+		mixOperand(fmaSeed, i, 0)
+		mixOperand(fmaSeed, i, 1)
+		mixOperand(fmaSeed, i, 2)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, nativeModes[i%uint64(len(nativeModes))])
+		total++
+	}
+	for i := uint64(0); i < cases; i++ {
+		mixOperand(sqrtSeed, i, 0)
+		digest = tier1ArithmeticScaleTupleHashMix(digest, nativeModes[i%uint64(len(nativeModes))])
+		total++
+	}
+	return tier1ArithmeticScaleTupleHashMix(digest, total)
 }
 
 type tier1ArithmeticCounts struct {
