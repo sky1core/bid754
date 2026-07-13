@@ -405,12 +405,12 @@
     "testspec_tree": "77005cf417d9a369c1572ef22a647a43502b5abc9f985ba92e75b09fa6e49ea0",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "690b6b40106da6d26be43794e58c3ab287c79c9cf2ba13418ef1491ccd2fbc3d",
-    "goport_verification_runners": "b4397745738b307813f4a7417aefb00c575ca3966472cdcc40b6a74796b62845",
+    "goport_verification_runners": "c5bca1632315c51c85f4c982a0fe96ea57f9f7dbcba1599043551b4778bbe278",
     "dectest_executor": "b731b95adf9c7e5e9a386fb4f0e5f5e650d857e67996609d086c65d3a0721509",
     "spec_loader": "70ee64e2cd159fe5e245415f0d8009789ca1e7254f4f020f730ed551c89dffd9",
     "rust_readtest_runner": "cbb69d5fad63a20527ac1f3f2f51317ae6c98bac2305fa20f10376e48980e37a",
     "rust_public_parity_runner": "2c29d58bc4d6c982ed228171da10c8ee828e48e7867f94ec58ea90027d11c156",
     "rust_dectest_runner": "1250594b0576b54d5deba8f30ffa23143fe18ddced9cf4f7704cce5a6f89c3ae",
-    "rust_tier1_long_runners": "4b1011125a60207c3464d4fae366eb906f3fd061ed2c0c351b4029993ea40631"
+    "rust_tier1_long_runners": "674aaa1d2104aa473be89cc3e86f09eea053d60141937266d326ce45f7c5ab06"
   }
 }

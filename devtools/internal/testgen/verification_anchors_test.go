@@ -141,6 +141,148 @@ func loadVerificationAnchors(t *testing.T) verificationAnchors {
 	return anchors
 }
 
+// verificationSentinels mirrors devtools/verification_sentinels.json, the
+// hand-maintained routing-sentinel row pin that lives outside every
+// generation path (GUARDRAILS: no generator reads or writes it). The rows
+// are the anchor payload themselves — not counts — so the comparison below
+// requires exact, ordered, byte-equal row sets across the pin file and both
+// generated runner literals.
+type verificationSentinels struct {
+	Comment                           []string `json:"comment"`
+	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
+	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
+}
+
+func loadVerificationSentinels(t *testing.T) verificationSentinels {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("..", "..", "verification_sentinels.json"))
+	if err != nil {
+		t.Fatalf("read verification_sentinels.json: %v", err)
+	}
+	var sentinels verificationSentinels
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	// A key this struct does not declare is a pin nothing enforces; fail
+	// closed instead of silently carrying dead or misspelled sentinel keys.
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&sentinels); err != nil {
+		t.Fatalf("unmarshal verification_sentinels.json (unknown keys are rejected): %v", err)
+	}
+	return sentinels
+}
+
+// loadGeneratedGoStringSliceLiteral extracts the ordered string elements of
+// one `var <name> = []string{...}` declaration from a generated Go artifact.
+// The existing scalar extractor evaluates integer constants only, so the
+// sentinel rows need this dedicated string-slice reader.
+func loadGeneratedGoStringSliceLiteral(t *testing.T, path, varName string) []string {
+	t.Helper()
+	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+	if err != nil {
+		t.Fatalf("parse generated artifact %s: %v", path, err)
+	}
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || gen.Tok != token.VAR {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			values, ok := spec.(*ast.ValueSpec)
+			if !ok || len(values.Names) != 1 || values.Names[0].Name != varName || len(values.Values) != 1 {
+				continue
+			}
+			composite, ok := values.Values[0].(*ast.CompositeLit)
+			if !ok {
+				t.Fatalf("generated %s: %s is not a composite literal", path, varName)
+			}
+			rows := make([]string, 0, len(composite.Elts))
+			for _, element := range composite.Elts {
+				literal, ok := element.(*ast.BasicLit)
+				if !ok || literal.Kind != token.STRING {
+					t.Fatalf("generated %s: %s carries a non-string element %T", path, varName, element)
+				}
+				row, err := strconv.Unquote(literal.Value)
+				if err != nil {
+					t.Fatalf("generated %s: %s element %s: %v", path, varName, literal.Value, err)
+				}
+				rows = append(rows, row)
+			}
+			return rows
+		}
+	}
+	t.Fatalf("generated %s: string-slice literal %s not found", path, varName)
+	return nil
+}
+
+var rustRoutingSentinelHeaderRe = regexp.MustCompile(`^const ROUTING_SENTINEL_ROWS: \[&str; (\d+)\] = \[$`)
+var rustRoutingSentinelRowRe = regexp.MustCompile(`^\s*"([ -~]+)",$`)
+
+// loadRustRoutingSentinelRows extracts the ordered ROUTING_SENTINEL_ROWS
+// literal from a generated Rust Tier 1 runner and requires the declared
+// array length to match the extracted row count.
+func loadRustRoutingSentinelRows(t *testing.T, filename string) []string {
+	t.Helper()
+	path := filepath.Join("..", "..", "..", "bid754-rs", "ffi-verify", "tests", filename)
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read generated Rust Tier 1 long harness %s: %v", filename, err)
+	}
+	lines := strings.Split(string(raw), "\n")
+	declared := -1
+	rows := []string(nil)
+	for i := 0; i < len(lines); i++ {
+		header := rustRoutingSentinelHeaderRe.FindStringSubmatch(lines[i])
+		if header == nil {
+			continue
+		}
+		if declared >= 0 {
+			t.Fatalf("generated %s: ROUTING_SENTINEL_ROWS declared twice", filename)
+		}
+		count, err := strconv.Atoi(header[1])
+		if err != nil {
+			t.Fatalf("generated %s: bad ROUTING_SENTINEL_ROWS length %q: %v", filename, header[1], err)
+		}
+		declared = count
+		rows = []string{}
+		for i++; i < len(lines); i++ {
+			if strings.TrimSpace(lines[i]) == "];" {
+				break
+			}
+			// The generated token-injection layout leaves one blank line
+			// before the closing bracket; it carries no row.
+			if strings.TrimSpace(lines[i]) == "" {
+				continue
+			}
+			match := rustRoutingSentinelRowRe.FindStringSubmatch(lines[i])
+			if match == nil {
+				t.Fatalf("generated %s: unparseable ROUTING_SENTINEL_ROWS line %q", filename, lines[i])
+			}
+			rows = append(rows, match[1])
+		}
+	}
+	if declared < 0 {
+		t.Fatalf("generated %s: ROUTING_SENTINEL_ROWS block not found", filename)
+	}
+	if len(rows) != declared {
+		t.Fatalf("generated %s: ROUTING_SENTINEL_ROWS declares %d rows but carries %d", filename, declared, len(rows))
+	}
+	return rows
+}
+
+// firstSentinelRowDivergence renders the first index where two sentinel row
+// lists differ, as a diagnostic suffix for the three-way comparison.
+func firstSentinelRowDivergence(got, want []string) string {
+	limit := len(got)
+	if len(want) < limit {
+		limit = len(want)
+	}
+	for i := 0; i < limit; i++ {
+		if got[i] != want[i] {
+			return fmt.Sprintf("; first divergence at row %d: generated %q, pinned %q", i, got[i], want[i])
+		}
+	}
+	return ""
+}
+
 type bidCodecD32HarnessInventory struct {
 	RawPatterns       uint64
 	StructuredCases   uint64
@@ -811,6 +953,45 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	}
 	if rustTier1Arithmetic.RandomOperations != anchors.Tier1ArithmeticRandomOperations {
 		t.Errorf("generated Rust Tier 1 arithmetic random operations = %d, anchor = %d", rustTier1Arithmetic.RandomOperations, anchors.Tier1ArithmeticRandomOperations)
+	}
+	// Routing sentinels: the hand-pinned rows in verification_sentinels.json
+	// must be byte-equal, in order, with both generated runner literals. The
+	// generator cannot touch the pin file, so a selection change (or a hand
+	// edit to either runner) fails here until a human re-audits and re-pins.
+	sentinels := loadVerificationSentinels(t)
+	if len(sentinels.Tier1ArithmeticRoutingRows) == 0 {
+		t.Errorf("verification_sentinels.json pins no Tier 1 arithmetic routing sentinel rows")
+	}
+	goSentinelRows := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_ffi_bitcompare_tier1_arithmetic_long_test.go"),
+		"tier1ArithmeticRoutingSentinelRows")
+	if !reflect.DeepEqual(goSentinelRows, sentinels.Tier1ArithmeticRoutingRows) {
+		t.Errorf("generated Go Tier 1 arithmetic routing sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(goSentinelRows), len(sentinels.Tier1ArithmeticRoutingRows),
+			firstSentinelRowDivergence(goSentinelRows, sentinels.Tier1ArithmeticRoutingRows))
+	}
+	rustSentinelRows := loadRustRoutingSentinelRows(t, "tier1_arithmetic_long_generated.rs")
+	if !reflect.DeepEqual(rustSentinelRows, sentinels.Tier1ArithmeticRoutingRows) {
+		t.Errorf("generated Rust Tier 1 arithmetic routing sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(rustSentinelRows), len(sentinels.Tier1ArithmeticRoutingRows),
+			firstSentinelRowDivergence(rustSentinelRows, sentinels.Tier1ArithmeticRoutingRows))
+	}
+	if len(sentinels.Tier1CompareConversionRoutingRows) == 0 {
+		t.Errorf("verification_sentinels.json pins no Tier 1 compare/conversion routing sentinel rows")
+	}
+	goCCSentinelRows := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_ffi_bitcompare_tier1_compare_conversion_long_test.go"),
+		"tier1CompareConversionRoutingSentinelRows")
+	if !reflect.DeepEqual(goCCSentinelRows, sentinels.Tier1CompareConversionRoutingRows) {
+		t.Errorf("generated Go Tier 1 compare/conversion routing sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(goCCSentinelRows), len(sentinels.Tier1CompareConversionRoutingRows),
+			firstSentinelRowDivergence(goCCSentinelRows, sentinels.Tier1CompareConversionRoutingRows))
+	}
+	rustCCSentinelRows := loadRustRoutingSentinelRows(t, "tier1_compare_conversion_long_generated.rs")
+	if !reflect.DeepEqual(rustCCSentinelRows, sentinels.Tier1CompareConversionRoutingRows) {
+		t.Errorf("generated Rust Tier 1 compare/conversion routing sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(rustCCSentinelRows), len(sentinels.Tier1CompareConversionRoutingRows),
+			firstSentinelRowDivergence(rustCCSentinelRows, sentinels.Tier1CompareConversionRoutingRows))
 	}
 	tier1CompareConversionOutputs, err := GenerateTier1CompareConversionLongOutputs()
 	if err != nil {

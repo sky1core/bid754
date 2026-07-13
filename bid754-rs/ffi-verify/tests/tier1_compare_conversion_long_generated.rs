@@ -742,7 +742,15 @@ fn random_operand128(seed: u64, case_index: u64, lane: u64) -> Words {
     }
 }
 
-fn check_quiet32(op: QuietOp, x: u32, y: u32) {
+// legs_* compute every leg of one comparison from one decoded case. They are
+// the single operand/dispatch fan-out shared by the differential checks and
+// the routing sentinels, so a slot swap or a dispatch-row mislabel in this
+// glue skews the differential's legs identically (an agreed-upon wrong answer
+// the differential cannot see) while the pinned sentinel rows diverge and
+// fail. The one-operand families (to-int, width, binary, constructor) already
+// route both paths through the shared native_*/public_* dispatch pairs.
+
+fn legs_quiet32(op: QuietOp, x: u32, y: u32) -> (bool, u32, bool, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         QuietOp::Equal => libbid_sys::bid32_quiet_equal(x, y, &mut native_flags),
@@ -758,10 +766,15 @@ fn check_quiet32(op: QuietOp, x: u32, y: u32) {
         QuietOp::Less => left.quiet_lt(right), QuietOp::LessEqual => left.quiet_le(right),
         QuietOp::Greater => left.quiet_gt(right), QuietOp::GreaterEqual => left.quiet_ge(right),
     };
-    assert_eq!((public, public_raw_flags(flags)), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
+    (native, native_flags, public, public_raw_flags(flags))
 }
 
-fn check_quiet64(op: QuietOp, x: u64, y: u64) {
+fn check_quiet32(op: QuietOp, x: u32, y: u32) {
+    let (native, native_flags, public, public_flags) = legs_quiet32(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
+}
+
+fn legs_quiet64(op: QuietOp, x: u64, y: u64) -> (bool, u32, bool, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         QuietOp::Equal => libbid_sys::bid64_quiet_equal(x, y, &mut native_flags),
@@ -777,10 +790,15 @@ fn check_quiet64(op: QuietOp, x: u64, y: u64) {
         QuietOp::Less => left.quiet_lt(right), QuietOp::LessEqual => left.quiet_le(right),
         QuietOp::Greater => left.quiet_gt(right), QuietOp::GreaterEqual => left.quiet_ge(right),
     };
-    assert_eq!((public, public_raw_flags(flags)), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+    (native, native_flags, public, public_raw_flags(flags))
 }
 
-fn check_quiet128(op: QuietOp, x: Words, y: Words) {
+fn check_quiet64(op: QuietOp, x: u64, y: u64) {
+    let (native, native_flags, public, public_flags) = legs_quiet64(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+}
+
+fn legs_quiet128(op: QuietOp, x: Words, y: Words) -> (bool, u32, bool, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         QuietOp::Equal => libbid_sys::bid128_quiet_equal(c128(x), c128(y), &mut native_flags),
@@ -796,10 +814,15 @@ fn check_quiet128(op: QuietOp, x: Words, y: Words) {
         QuietOp::Less => left.quiet_lt(right), QuietOp::LessEqual => left.quiet_le(right),
         QuietOp::Greater => left.quiet_gt(right), QuietOp::GreaterEqual => left.quiet_ge(right),
     };
-    assert_eq!((public, public_raw_flags(flags)), (native, native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
+    (native, native_flags, public, public_raw_flags(flags))
 }
 
-fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
+fn check_quiet128(op: QuietOp, x: Words, y: Words) {
+    let (native, native_flags, public, public_flags) = legs_quiet128(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
+}
+
+fn legs_minmax32(op: MinMaxOp, x: u32, y: u32) -> (u32, u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid32_minnum(x, y, &mut native_flags),
@@ -812,19 +835,24 @@ fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
         MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
         MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
-    // The value-only generated bodies (bid32_minnum_pure / bid32_maxnum_pure /
-    // bid32_minnum_mag_pure / bid32_maxnum_mag_pure) are separate
-    // implementations from the status-aware bodies, so they are compared
-    // against the native value bits directly, mirroring the Go runner.
     let pure = match op {
         MinMaxOp::MinNum => bid32_min_num(x, y), MinMaxOp::MaxNum => bid32_max_num(x, y),
         MinMaxOp::MinNumMag => bid32_min_num_mag(x, y), MinMaxOp::MaxNumMag => bid32_max_num_mag(x, y),
     };
+    (native, native_flags, public.to_bits(), public_raw_flags(flags), pure)
+}
+
+fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
+    let (native, native_flags, public, public_flags, pure) = legs_minmax32(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
+    // The value-only generated bodies (bid32_minnum_pure / bid32_maxnum_pure /
+    // bid32_minnum_mag_pure / bid32_maxnum_mag_pure) are separate
+    // implementations from the status-aware bodies, so they are compared
+    // against the native value bits directly, mirroring the Go runner.
     assert_eq!(pure, native, "Decimal32 pure {op:?} x={x:08x} y={y:08x}");
 }
 
-fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
+fn legs_minmax64(op: MinMaxOp, x: u64, y: u64) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid64_minnum(x, y, &mut native_flags),
@@ -837,10 +865,15 @@ fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
         MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
         MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
 }
 
-fn check_minmax128(op: MinMaxOp, x: Words, y: Words) {
+fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
+    let (native, native_flags, public, public_flags) = legs_minmax64(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+}
+
+fn legs_minmax128(op: MinMaxOp, x: Words, y: Words) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid128_minnum(c128(x), c128(y), &mut native_flags),
@@ -853,7 +886,12 @@ fn check_minmax128(op: MinMaxOp, x: Words, y: Words) {
         MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
         MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
     };
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_minmax128(op: MinMaxOp, x: Words, y: Words) {
+    let (native, native_flags, public, public_flags) = legs_minmax128(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
 }
 
 fn visit_pairs32(mut visit: impl FnMut(u32, u32)) {
@@ -1701,6 +1739,1154 @@ fn tier1_conversion_deterministic_random_native_differential() {
     assert_eq!(total, CONVERSION_RANDOM); assert_eq!(CONVERSION_STRUCTURED + total, CONVERSION_TOTAL);
     eprintln!("Rust deterministic random Tier 1 conversion exact comparisons: {executed}/{total}");
 }
+
+// Routing sentinels: generator-selected known-answer rows that bind the
+// compare/conversion runner glue (operand slots, dispatch-row labels
+// including their embedded rounding modes) to values pinned outside the
+// runtime. Every dispatch-table row of every family carries at least one row;
+// a glue bug that skews the Intel C and generated-Rust legs identically —
+// invisible to the differential — diverges from the pin here.
+
+fn sentinel_mode(row: &str, native: u32) -> Mode {
+    for mode in MODES {
+        if mode.native == native {
+            return mode;
+        }
+    }
+    panic!("routing sentinel row [{row}]: native mode {native} is not in the runner mode table");
+}
+
+fn sentinel_mode_name(mode: Mode) -> &'static str {
+    match mode.native {
+        0 => "nearest_even",
+        4 => "nearest_away",
+        3 => "toward_zero",
+        2 => "toward_positive",
+        1 => "toward_negative",
+        _ => "unknown",
+    }
+}
+
+fn sentinel_mode_label(mode: Mode) -> String {
+    format!("{}(native {})", sentinel_mode_name(mode), mode.native)
+}
+
+fn sentinel_hex32(row: &str, text: &str) -> u32 {
+    assert!(text.len() == 8, "routing sentinel row [{row}]: expected 8 hex digits, got {text:?}");
+    u32::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 32-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_hex64(row: &str, text: &str) -> u64 {
+    assert!(text.len() == 16, "routing sentinel row [{row}]: expected 16 hex digits, got {text:?}");
+    u64::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 64-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_words128(row: &str, text: &str) -> Words {
+    assert!(
+        text.len() == 33 && text.as_bytes()[16] == b':',
+        "routing sentinel row [{row}]: expected <hi16>:<lo16> hex words, got {text:?}"
+    );
+    Words { hi: sentinel_hex64(row, &text[..16]), lo: sentinel_hex64(row, &text[17..]) }
+}
+
+fn sentinel_raw(row: &str, width: &str, text: &str) -> RawDecimal {
+    match width {
+        "d32" => RawDecimal::D32(sentinel_hex32(row, text)),
+        "d64" => RawDecimal::D64(sentinel_hex64(row, text)),
+        "d128" => RawDecimal::D128(sentinel_words128(row, text)),
+        _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+    }
+}
+
+fn sentinel_bool(value: bool, flags: u32) -> String {
+    format!("{:02}/{flags:08x}", if value { 1 } else { 0 })
+}
+
+fn sentinel_bits(bits: Bits, flags: u32) -> String {
+    match bits {
+        Bits::D32(v) => format!("{v:08x}/{flags:08x}"),
+        Bits::D64(v) => format!("{v:016x}/{flags:08x}"),
+        Bits::D128(words) => format!("{:016x}:{:016x}/{flags:08x}", words.hi, words.lo),
+    }
+}
+
+fn sentinel_bits_flagless(bits: Bits) -> String {
+    match bits {
+        Bits::D32(v) => format!("{v:08x}"),
+        Bits::D64(v) => format!("{v:016x}"),
+        Bits::D128(words) => format!("{:016x}:{:016x}", words.hi, words.lo),
+    }
+}
+
+fn sentinel_assert(row: &str, mode_label: &str, pinned: &str, native: &str, public: &str) {
+    if native == pinned && public == pinned {
+        return;
+    }
+    let mut diverged = Vec::new();
+    if native != pinned {
+        diverged.push("C");
+    }
+    if public != pinned {
+        diverged.push("public");
+    }
+    panic!(
+        "routing sentinel mismatch [{row}]:\n  pinned={pinned} C={native} public={public}\n  mode={mode_label} diverged={{{}}}",
+        diverged.join(",")
+    );
+}
+
+fn sentinel_quiet_op(row: &str, name: &str) -> QuietOp {
+    match name {
+        "quiet_equal" => QuietOp::Equal,
+        "quiet_not_equal" => QuietOp::NotEqual,
+        "quiet_less" => QuietOp::Less,
+        "quiet_less_equal" => QuietOp::LessEqual,
+        "quiet_greater" => QuietOp::Greater,
+        "quiet_greater_equal" => QuietOp::GreaterEqual,
+        _ => panic!("routing sentinel row [{row}]: unknown quiet predicate {name:?}"),
+    }
+}
+
+fn sentinel_minmax_op(row: &str, name: &str) -> MinMaxOp {
+    match name {
+        "minnum" => MinMaxOp::MinNum,
+        "maxnum" => MinMaxOp::MaxNum,
+        "minnum_mag" => MinMaxOp::MinNumMag,
+        "maxnum_mag" => MinMaxOp::MaxNumMag,
+        _ => panic!("routing sentinel row [{row}]: unknown min/max operation {name:?}"),
+    }
+}
+
+fn sentinel_int_kind_name(kind: IntKind) -> &'static str {
+    match kind {
+        IntKind::I8 => "int8",
+        IntKind::I16 => "int16",
+        IntKind::I32 => "int32",
+        IntKind::I64 => "int64",
+        IntKind::U8 => "uint8",
+        IntKind::U16 => "uint16",
+        IntKind::U32 => "uint32",
+        IntKind::U64 => "uint64",
+    }
+}
+
+fn sentinel_int_suffix_name(suffix: IntSuffix) -> &'static str {
+    match suffix {
+        IntSuffix::Rnint => "rnint",
+        IntSuffix::Rninta => "rninta",
+        IntSuffix::Int => "int",
+        IntSuffix::Ceil => "ceil",
+        IntSuffix::Floor => "floor",
+        IntSuffix::Xrnint => "xrnint",
+        IntSuffix::Xrninta => "xrninta",
+        IntSuffix::Xint => "xint",
+        IntSuffix::Xceil => "xceil",
+        IntSuffix::Xfloor => "xfloor",
+    }
+}
+
+fn sentinel_to_int_op(row: &str, name: &str) -> ToIntOp {
+    for op in to_int_ops() {
+        if format!("to_{}_{}", sentinel_int_kind_name(op.kind), sentinel_int_suffix_name(op.suffix)) == name {
+            return op;
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} is not in the runner to-integer table");
+}
+
+fn sentinel_width_op(row: &str, source: u8, name: &str, mode: Option<Mode>) -> WidthOp {
+    for op in width_ops(source) {
+        if format!("to_bid{}", op.dest) != name {
+            continue;
+        }
+        match (op.mode, mode) {
+            (None, None) => return op,
+            (Some(op_mode), Some(row_mode)) if op_mode.native == row_mode.native => return op,
+            _ => continue,
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} (mode {mode:?}) is not in the runner width table");
+}
+
+fn sentinel_binary_op(row: &str, source: u8, name: &str, mode: Mode) -> BinaryOp {
+    for op in binary_ops(source) {
+        if format!("to_binary{}", op.dest) == name && op.mode.native == mode.native {
+            return op;
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} is not in the runner binary-conversion table");
+}
+
+fn sentinel_constructor_kind_name(kind: ConstructorKind) -> &'static str {
+    match kind {
+        ConstructorKind::I32 => "int32",
+        ConstructorKind::U32 => "uint32",
+        ConstructorKind::I64 => "int64",
+        ConstructorKind::U64 => "uint64",
+    }
+}
+
+fn sentinel_constructor_op(row: &str, dest: u8, name: &str, mode: Option<Mode>) -> ConstructorOp {
+    for op in constructor_ops() {
+        if op.dest != dest || format!("from_{}", sentinel_constructor_kind_name(op.kind)) != name {
+            continue;
+        }
+        match (op.mode, mode) {
+            (None, None) => return op,
+            (Some(op_mode), Some(row_mode)) if op_mode.native == row_mode.native => return op,
+            _ => continue,
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} (mode {mode:?}) is not in the runner constructor table");
+}
+
+// Rebuilds the 64-bit register image from the row's kind-typed decimal input,
+// mirroring the structured differential's convention (32-bit kinds
+// zero-extend their low word).
+fn sentinel_constructor_register(row: &str, kind: ConstructorKind, text: &str) -> u64 {
+    match kind {
+        ConstructorKind::I32 => text.parse::<i32>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad int32 input {text:?}: {err}")) as u32 as u64,
+        ConstructorKind::U32 => text.parse::<u32>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad uint32 input {text:?}: {err}")) as u64,
+        ConstructorKind::I64 => text.parse::<i64>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad int64 input {text:?}: {err}")) as u64,
+        ConstructorKind::U64 => text.parse::<u64>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad uint64 input {text:?}: {err}")),
+    }
+}
+
+fn check_routing_sentinel_row(row: &str) {
+    let fields: Vec<&str> = row.split(' ').collect();
+    assert!(
+        fields.len() >= 4 && fields[fields.len() - 2] == "->",
+        "routing sentinel row [{row}]: malformed layout"
+    );
+    let width = fields[0];
+    let operation = fields[1];
+    let pinned = fields[fields.len() - 1];
+    let mut x_text: Option<&str> = None;
+    let mut y_text: Option<&str> = None;
+    let mut i_text: Option<&str> = None;
+    let mut mode: Option<Mode> = None;
+    for field in &fields[2..fields.len() - 2] {
+        if let Some(text) = field.strip_prefix("x=") {
+            x_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("y=") {
+            y_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("i=") {
+            i_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("m=") {
+            let native = text.parse::<u32>().unwrap_or_else(|err| {
+                panic!("routing sentinel row [{row}]: bad native mode {text:?}: {err}")
+            });
+            mode = Some(sentinel_mode(row, native));
+        } else {
+            panic!("routing sentinel row [{row}]: unknown field {field:?}");
+        }
+    }
+    let source: u8 = match width {
+        "d32" => 32,
+        "d64" => 64,
+        "d128" => 128,
+        _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+    };
+    if operation.starts_with("quiet_") {
+        assert!(x_text.is_some() && y_text.is_some() && i_text.is_none() && mode.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a quiet predicate");
+        let op = sentinel_quiet_op(row, operation);
+        let (native, native_flags, public, public_flags) = match width {
+            "d32" => legs_quiet32(op, sentinel_hex32(row, x_text.unwrap()), sentinel_hex32(row, y_text.unwrap())),
+            "d64" => legs_quiet64(op, sentinel_hex64(row, x_text.unwrap()), sentinel_hex64(row, y_text.unwrap())),
+            _ => legs_quiet128(op, sentinel_words128(row, x_text.unwrap()), sentinel_words128(row, y_text.unwrap())),
+        };
+        sentinel_assert(row, "(none)", pinned, &sentinel_bool(native, native_flags), &sentinel_bool(public, public_flags));
+    } else if operation == "minnum" || operation == "maxnum" || operation == "minnum_mag" || operation == "maxnum_mag" {
+        assert!(x_text.is_some() && y_text.is_some() && i_text.is_none() && mode.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a min/max operation");
+        let op = sentinel_minmax_op(row, operation);
+        let (native, native_flags, public, public_flags) = match width {
+            "d32" => {
+                let (n, nf, p, pf, _) = legs_minmax32(op, sentinel_hex32(row, x_text.unwrap()), sentinel_hex32(row, y_text.unwrap()));
+                (Bits::D32(n), nf, Bits::D32(p), pf)
+            }
+            "d64" => {
+                let (n, nf, p, pf) = legs_minmax64(op, sentinel_hex64(row, x_text.unwrap()), sentinel_hex64(row, y_text.unwrap()));
+                (Bits::D64(n), nf, Bits::D64(p), pf)
+            }
+            _ => {
+                let (n, nf, p, pf) = legs_minmax128(op, sentinel_words128(row, x_text.unwrap()), sentinel_words128(row, y_text.unwrap()));
+                (Bits::D128(n), nf, Bits::D128(p), pf)
+            }
+        };
+        sentinel_assert(row, "(none)", pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+    } else if operation.starts_with("to_int") || operation.starts_with("to_uint") {
+        assert!(x_text.is_some() && y_text.is_none() && i_text.is_none() && mode.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a to-integer operation");
+        let op = sentinel_to_int_op(row, operation);
+        let value = sentinel_raw(row, width, x_text.unwrap());
+        let (native, native_flags) = native_to_int(value, op);
+        let (public, public_flags) = public_to_int(value, op);
+        sentinel_assert(
+            row,
+            &format!("{}(suffix)", sentinel_mode_name(op.mode)),
+            pinned,
+            &format!("{native:016x}/{native_flags:08x}"),
+            &format!("{public:016x}/{public_flags:08x}"),
+        );
+    } else if operation.starts_with("to_bid") {
+        assert!(x_text.is_some() && y_text.is_none() && i_text.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a width conversion");
+        let op = sentinel_width_op(row, source, operation, mode);
+        let value = sentinel_raw(row, width, x_text.unwrap());
+        let (native, native_flags) = native_width(value, op);
+        let (public, public_flags) = public_width(value, op);
+        let mode_label = op.mode.map_or("(none)".to_string(), sentinel_mode_label);
+        sentinel_assert(row, &mode_label, pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+    } else if operation.starts_with("to_binary") {
+        assert!(x_text.is_some() && y_text.is_none() && i_text.is_none() && mode.is_some(),
+            "routing sentinel row [{row}]: field shape does not match a binary conversion");
+        let op = sentinel_binary_op(row, source, operation, mode.unwrap());
+        let value = sentinel_raw(row, width, x_text.unwrap());
+        let (native, native_flags) = native_binary(value, op);
+        let (public, public_flags) = public_binary(value, op);
+        sentinel_assert(row, &sentinel_mode_label(op.mode), pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+    } else if operation.starts_with("from_") {
+        assert!(x_text.is_none() && y_text.is_none() && i_text.is_some(),
+            "routing sentinel row [{row}]: field shape does not match a constructor");
+        let op = sentinel_constructor_op(row, source, operation, mode);
+        let raw = sentinel_constructor_register(row, op.kind, i_text.unwrap());
+        let (native, native_flags) = native_constructor(raw, op);
+        let (public, public_flags) = public_constructor(raw, op);
+        let mode_label = op.mode.map_or("(none)".to_string(), sentinel_mode_label);
+        if op.mode.is_some() {
+            sentinel_assert(row, &mode_label, pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+        } else {
+            // Exact constructors have no flags channel; the pinned result is
+            // bits-only and the flag words are structurally zero.
+            assert_eq!((native_flags, public_flags), (0, 0), "routing sentinel row [{row}]: exact constructor raised flags");
+            sentinel_assert(row, &mode_label, pinned, &sentinel_bits_flagless(native), &sentinel_bits_flagless(public));
+        }
+    } else {
+        panic!("routing sentinel row [{row}]: unknown operation {operation:?}");
+    }
+}
+
+// Runs every pinned sentinel row on every leg. Deliberately ignores the
+// shard environment: the rows are few and every shard configuration (and the
+// -full gate) must execute all of them.
+#[test]
+fn tier1_compare_conversion_routing_sentinels() {
+    assert!(
+        !ROUTING_SENTINEL_ROWS.is_empty(),
+        "generated Tier 1 compare/conversion routing sentinel row set is empty"
+    );
+    for row in ROUTING_SENTINEL_ROWS {
+        check_routing_sentinel_row(row);
+    }
+    let n = ROUTING_SENTINEL_ROWS.len();
+    println!("Rust Tier 1 compare/conversion routing sentinels: {n}/{n}");
+}
+
+// The canonical sentinel row set. The identical byte sequence is pinned by
+// hand in devtools/verification_sentinels.json and emitted into the generated
+// Go runner; TestVerificationAnchorsMatchGeneratedArtifacts requires the
+// three copies to match exactly.
+const ROUTING_SENTINEL_ROWS: [&str; 790] = [
+    "d32 quiet_equal x=b2800005 y=32800003 -> 00/00000000",
+    "d32 quiet_equal x=32800005 y=32800003 -> 00/00000000",
+    "d32 quiet_not_equal x=7e000001 y=32800003 -> 01/00000001",
+    "d32 quiet_less x=b2800005 y=32800003 -> 01/00000000",
+    "d32 quiet_less x=32800005 y=32800003 -> 00/00000000",
+    "d32 quiet_less x=32800003 y=32800003 -> 00/00000000",
+    "d32 quiet_less_equal x=b2800005 y=32800003 -> 01/00000000",
+    "d32 quiet_less_equal x=32800003 y=32800003 -> 01/00000000",
+    "d32 quiet_greater x=b2800005 y=32800003 -> 00/00000000",
+    "d32 quiet_greater x=32800003 y=32800003 -> 00/00000000",
+    "d32 quiet_greater_equal x=b2800005 y=32800003 -> 00/00000000",
+    "d32 quiet_greater_equal x=32800005 y=32800003 -> 01/00000000",
+    "d32 quiet_greater_equal x=32800003 y=32800003 -> 01/00000000",
+    "d32 minnum x=b2800005 y=32800003 -> b2800005/00000000",
+    "d32 minnum x=b2800003 y=32800005 -> b2800003/00000000",
+    "d32 minnum x=7c000001 y=7c000002 -> 7c000001/00000000",
+    "d32 maxnum x=b2800005 y=32800003 -> 32800003/00000000",
+    "d32 maxnum x=80000000 y=00000000 -> 00000000/00000000",
+    "d32 minnum_mag x=80000000 y=00000000 -> 80000000/00000000",
+    "d32 maxnum_mag x=b2800005 y=32800003 -> b2800005/00000000",
+    "d32 maxnum_mag x=b2800003 y=32800005 -> 32800005/00000000",
+    "d32 maxnum_mag x=7c000001 y=7c000002 -> 7c000001/00000000",
+    "d32 to_int8_rnint x=320004fb -> ffffffffffffff80/00000001",
+    "d32 to_int8_rnint x=32000019 -> 0000000000000002/00000000",
+    "d32 to_int8_rninta x=320004fb -> ffffffffffffff80/00000001",
+    "d32 to_int8_rninta x=b2000019 -> fffffffffffffffd/00000000",
+    "d32 to_int8_int x=b200001b -> fffffffffffffffe/00000000",
+    "d32 to_int8_int x=32000519 -> ffffffffffffff80/00000001",
+    "d32 to_int8_int x=320004fb -> 000000000000007f/00000000",
+    "d32 to_int8_ceil x=320004fb -> ffffffffffffff80/00000001",
+    "d32 to_int8_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_int8_floor x=b2000016 -> fffffffffffffffd/00000000",
+    "d32 to_int8_floor x=32000519 -> ffffffffffffff80/00000001",
+    "d32 to_int8_xrnint x=320004fb -> ffffffffffffff80/00000001",
+    "d32 to_int8_xrnint x=32000019 -> 0000000000000002/00000020",
+    "d32 to_int8_xrninta x=320004fb -> ffffffffffffff80/00000001",
+    "d32 to_int8_xrninta x=b2000019 -> fffffffffffffffd/00000020",
+    "d32 to_int8_xint x=b200001b -> fffffffffffffffe/00000020",
+    "d32 to_int8_xint x=32000519 -> ffffffffffffff80/00000001",
+    "d32 to_int8_xint x=320004fb -> 000000000000007f/00000020",
+    "d32 to_int8_xceil x=320004fb -> ffffffffffffff80/00000001",
+    "d32 to_int8_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_int8_xfloor x=b2000016 -> fffffffffffffffd/00000020",
+    "d32 to_int8_xfloor x=32000519 -> ffffffffffffff80/00000001",
+    "d32 to_int16_rnint x=3204fffb -> ffffffffffff8000/00000001",
+    "d32 to_int16_rnint x=32000519 -> 0000000000000082/00000000",
+    "d32 to_int16_rninta x=3204fffb -> ffffffffffff8000/00000001",
+    "d32 to_int16_rninta x=b2000019 -> fffffffffffffffd/00000000",
+    "d32 to_int16_int x=b200001b -> fffffffffffffffe/00000000",
+    "d32 to_int16_int x=328080e8 -> ffffffffffff8000/00000001",
+    "d32 to_int16_int x=32000519 -> 0000000000000082/00000000",
+    "d32 to_int16_ceil x=3204fffb -> ffffffffffff8000/00000001",
+    "d32 to_int16_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_int16_floor x=b2000016 -> fffffffffffffffd/00000000",
+    "d32 to_int16_floor x=328080e8 -> ffffffffffff8000/00000001",
+    "d32 to_int16_xrnint x=3204fffb -> ffffffffffff8000/00000001",
+    "d32 to_int16_xrnint x=32000519 -> 0000000000000082/00000020",
+    "d32 to_int16_xrninta x=3204fffb -> ffffffffffff8000/00000001",
+    "d32 to_int16_xrninta x=b2000019 -> fffffffffffffffd/00000020",
+    "d32 to_int16_xint x=b200001b -> fffffffffffffffe/00000020",
+    "d32 to_int16_xint x=328080e8 -> ffffffffffff8000/00000001",
+    "d32 to_int16_xint x=32000519 -> 0000000000000082/00000020",
+    "d32 to_int16_xceil x=3204fffb -> ffffffffffff8000/00000001",
+    "d32 to_int16_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_int16_xfloor x=b2000016 -> fffffffffffffffd/00000020",
+    "d32 to_int16_xfloor x=328080e8 -> ffffffffffff8000/00000001",
+    "d32 to_int32_rnint x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_rnint x=32000519 -> 0000000000000082/00000000",
+    "d32 to_int32_rnint x=320009fb -> 0000000000000100/00000000",
+    "d32 to_int32_rninta x=b2000019 -> fffffffffffffffd/00000000",
+    "d32 to_int32_rninta x=3204fffb -> 0000000000008000/00000000",
+    "d32 to_int32_rninta x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_int x=b200001b -> fffffffffffffffe/00000000",
+    "d32 to_int32_int x=3209fffb -> 000000000000ffff/00000000",
+    "d32 to_int32_int x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_int32_ceil x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_floor x=b2000016 -> fffffffffffffffd/00000000",
+    "d32 to_int32_floor x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_xrnint x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_xrnint x=32000519 -> 0000000000000082/00000020",
+    "d32 to_int32_xrnint x=320009fb -> 0000000000000100/00000020",
+    "d32 to_int32_xrninta x=b2000019 -> fffffffffffffffd/00000020",
+    "d32 to_int32_xrninta x=3204fffb -> 0000000000008000/00000020",
+    "d32 to_int32_xrninta x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_xint x=b200001b -> fffffffffffffffe/00000020",
+    "d32 to_int32_xint x=3209fffb -> 000000000000ffff/00000020",
+    "d32 to_int32_xint x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_int32_xceil x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int32_xfloor x=b2000016 -> fffffffffffffffd/00000020",
+    "d32 to_int32_xfloor x=3420c49c -> ffffffff80000000/00000001",
+    "d32 to_int64_rnint x=390e12e2 -> 8000000000000000/00000001",
+    "d32 to_int64_rnint x=32000519 -> 0000000000000082/00000000",
+    "d32 to_int64_rnint x=320009fb -> 0000000000000100/00000000",
+    "d32 to_int64_rninta x=b2000019 -> fffffffffffffffd/00000000",
+    "d32 to_int64_rninta x=3204fffb -> 0000000000008000/00000000",
+    "d32 to_int64_rninta x=3420c49c -> 0000000080000160/00000000",
+    "d32 to_int64_int x=b200001b -> fffffffffffffffe/00000000",
+    "d32 to_int64_int x=3209fffb -> 000000000000ffff/00000000",
+    "d32 to_int64_int x=3420c49c -> 0000000080000160/00000000",
+    "d32 to_int64_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_int64_ceil x=390e12e2 -> 8000000000000000/00000001",
+    "d32 to_int64_floor x=b2000016 -> fffffffffffffffd/00000000",
+    "d32 to_int64_floor x=3420c49c -> 0000000080000160/00000000",
+    "d32 to_int64_xrnint x=390e12e2 -> 8000000000000000/00000001",
+    "d32 to_int64_xrnint x=32000519 -> 0000000000000082/00000020",
+    "d32 to_int64_xrnint x=320009fb -> 0000000000000100/00000020",
+    "d32 to_int64_xrninta x=b2000019 -> fffffffffffffffd/00000020",
+    "d32 to_int64_xrninta x=3204fffb -> 0000000000008000/00000020",
+    "d32 to_int64_xrninta x=3420c49c -> 0000000080000160/00000000",
+    "d32 to_int64_xint x=b200001b -> fffffffffffffffe/00000020",
+    "d32 to_int64_xint x=3209fffb -> 000000000000ffff/00000020",
+    "d32 to_int64_xint x=3420c49c -> 0000000080000160/00000000",
+    "d32 to_int64_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_int64_xceil x=390e12e2 -> 8000000000000000/00000001",
+    "d32 to_int64_xfloor x=b2000016 -> fffffffffffffffd/00000020",
+    "d32 to_int64_xfloor x=3420c49c -> 0000000080000160/00000000",
+    "d32 to_uint8_rnint x=320009fb -> 0000000000000080/00000001",
+    "d32 to_uint8_rnint x=32000519 -> 0000000000000082/00000000",
+    "d32 to_uint8_rninta x=b2000005 -> 0000000000000080/00000001",
+    "d32 to_uint8_rninta x=32000519 -> 0000000000000083/00000000",
+    "d32 to_uint8_int x=3280012c -> 0000000000000080/00000001",
+    "d32 to_uint8_int x=320009fb -> 00000000000000ff/00000000",
+    "d32 to_uint8_int x=b2000007 -> 0000000000000000/00000000",
+    "d32 to_uint8_ceil x=320009fb -> 0000000000000080/00000001",
+    "d32 to_uint8_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_uint8_floor x=b2000002 -> 0000000000000080/00000001",
+    "d32 to_uint8_floor x=32000519 -> 0000000000000082/00000000",
+    "d32 to_uint8_xrnint x=320009fb -> 0000000000000080/00000001",
+    "d32 to_uint8_xrnint x=32000519 -> 0000000000000082/00000020",
+    "d32 to_uint8_xrninta x=b2000005 -> 0000000000000080/00000001",
+    "d32 to_uint8_xrninta x=32000519 -> 0000000000000083/00000020",
+    "d32 to_uint8_xint x=3280012c -> 0000000000000080/00000001",
+    "d32 to_uint8_xint x=320009fb -> 00000000000000ff/00000020",
+    "d32 to_uint8_xint x=b2000007 -> 0000000000000000/00000020",
+    "d32 to_uint8_xceil x=320009fb -> 0000000000000080/00000001",
+    "d32 to_uint8_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_uint8_xfloor x=b2000002 -> 0000000000000080/00000001",
+    "d32 to_uint8_xfloor x=32000519 -> 0000000000000082/00000020",
+    "d32 to_uint16_rnint x=3209fffb -> 0000000000008000/00000001",
+    "d32 to_uint16_rnint x=32000519 -> 0000000000000082/00000000",
+    "d32 to_uint16_rninta x=b2000005 -> 0000000000008000/00000001",
+    "d32 to_uint16_rninta x=32000519 -> 0000000000000083/00000000",
+    "d32 to_uint16_int x=3209fffb -> 000000000000ffff/00000000",
+    "d32 to_uint16_int x=32811170 -> 0000000000008000/00000001",
+    "d32 to_uint16_int x=b2000007 -> 0000000000000000/00000000",
+    "d32 to_uint16_ceil x=3209fffb -> 0000000000008000/00000001",
+    "d32 to_uint16_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_uint16_floor x=b2000002 -> 0000000000008000/00000001",
+    "d32 to_uint16_floor x=32000519 -> 0000000000000082/00000000",
+    "d32 to_uint16_xrnint x=3209fffb -> 0000000000008000/00000001",
+    "d32 to_uint16_xrnint x=32000519 -> 0000000000000082/00000020",
+    "d32 to_uint16_xrninta x=b2000005 -> 0000000000008000/00000001",
+    "d32 to_uint16_xrninta x=32000519 -> 0000000000000083/00000020",
+    "d32 to_uint16_xint x=3209fffb -> 000000000000ffff/00000020",
+    "d32 to_uint16_xint x=32811170 -> 0000000000008000/00000001",
+    "d32 to_uint16_xint x=b2000007 -> 0000000000000000/00000020",
+    "d32 to_uint16_xceil x=3209fffb -> 0000000000008000/00000001",
+    "d32 to_uint16_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_uint16_xfloor x=b2000002 -> 0000000000008000/00000001",
+    "d32 to_uint16_xfloor x=32000519 -> 0000000000000082/00000020",
+    "d32 to_uint32_rnint x=b2000007 -> 0000000080000000/00000001",
+    "d32 to_uint32_rnint x=b2000005 -> 0000000000000000/00000000",
+    "d32 to_uint32_rninta x=b2000005 -> 0000000080000000/00000001",
+    "d32 to_uint32_rninta x=32000519 -> 0000000000000083/00000000",
+    "d32 to_uint32_int x=3209fffb -> 000000000000ffff/00000000",
+    "d32 to_uint32_int x=34418938 -> 0000000080000000/00000001",
+    "d32 to_uint32_int x=b2000007 -> 0000000000000000/00000000",
+    "d32 to_uint32_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_uint32_ceil x=34418938 -> 0000000080000000/00000001",
+    "d32 to_uint32_floor x=b2000002 -> 0000000080000000/00000001",
+    "d32 to_uint32_floor x=32000519 -> 0000000000000082/00000000",
+    "d32 to_uint32_xrnint x=b2000007 -> 0000000080000000/00000001",
+    "d32 to_uint32_xrnint x=b2000005 -> 0000000000000000/00000020",
+    "d32 to_uint32_xrninta x=b2000005 -> 0000000080000000/00000001",
+    "d32 to_uint32_xrninta x=32000519 -> 0000000000000083/00000020",
+    "d32 to_uint32_xint x=3209fffb -> 000000000000ffff/00000020",
+    "d32 to_uint32_xint x=34418938 -> 0000000080000000/00000001",
+    "d32 to_uint32_xint x=b2000007 -> 0000000000000000/00000020",
+    "d32 to_uint32_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_uint32_xceil x=34418938 -> 0000000080000000/00000001",
+    "d32 to_uint32_xfloor x=b2000002 -> 0000000080000000/00000001",
+    "d32 to_uint32_xfloor x=32000519 -> 0000000000000082/00000020",
+    "d32 to_uint64_rnint x=b2000007 -> 8000000000000000/00000001",
+    "d32 to_uint64_rnint x=b2000005 -> 0000000000000000/00000000",
+    "d32 to_uint64_rninta x=b2000005 -> 8000000000000000/00000001",
+    "d32 to_uint64_rninta x=32000519 -> 0000000000000083/00000000",
+    "d32 to_uint64_int x=3209fffb -> 000000000000ffff/00000000",
+    "d32 to_uint64_int x=390e12e2 -> 8000073e10714000/00000000",
+    "d32 to_uint64_int x=b2000007 -> 0000000000000000/00000000",
+    "d32 to_uint64_ceil x=32000016 -> 0000000000000003/00000000",
+    "d32 to_uint64_ceil x=390e12e2 -> 8000073e10714000/00000000",
+    "d32 to_uint64_floor x=b2000002 -> 8000000000000000/00000001",
+    "d32 to_uint64_floor x=32000519 -> 0000000000000082/00000000",
+    "d32 to_uint64_xrnint x=b2000007 -> 8000000000000000/00000001",
+    "d32 to_uint64_xrnint x=b2000005 -> 0000000000000000/00000020",
+    "d32 to_uint64_xrninta x=b2000005 -> 8000000000000000/00000001",
+    "d32 to_uint64_xrninta x=32000519 -> 0000000000000083/00000020",
+    "d32 to_uint64_xint x=3209fffb -> 000000000000ffff/00000020",
+    "d32 to_uint64_xint x=390e12e2 -> 8000073e10714000/00000000",
+    "d32 to_uint64_xint x=b2000007 -> 0000000000000000/00000020",
+    "d32 to_uint64_xceil x=32000016 -> 0000000000000003/00000020",
+    "d32 to_uint64_xceil x=390e12e2 -> 8000073e10714000/00000000",
+    "d32 to_uint64_xfloor x=b2000002 -> 8000000000000000/00000001",
+    "d32 to_uint64_xfloor x=32000519 -> 0000000000000082/00000020",
+    "d32 to_bid64 x=32800001 -> 31c0000000000001/00000000",
+    "d32 to_bid128 x=32800001 -> 3040000000000000:0000000000000001/00000000",
+    "d32 to_binary32 x=35800435 m=0 -> 4e80636e/00000020",
+    "d32 to_binary32 x=3a80e6a9 m=0 -> 62000ac8/00000020",
+    "d32 to_binary32 x=35800435 m=4 -> 4e80636f/00000020",
+    "d32 to_binary32 x=b2000001 m=4 -> bdcccccd/00000020",
+    "d32 to_binary32 x=3a80e6a9 m=3 -> 62000ac7/00000020",
+    "d32 to_binary32 x=b2000001 m=3 -> bdcccccc/00000020",
+    "d32 to_binary32 x=32000007 m=2 -> 3f333334/00000020",
+    "d32 to_binary32 x=b2000007 m=1 -> bf333334/00000020",
+    "d32 to_binary64 x=3a80e6a9 m=0 -> 44400158f3399634/00000020",
+    "d32 to_binary64 x=46571cc1 m=0 -> 4970000068d0bb64/00000020",
+    "d32 to_binary64 x=3a80e6a9 m=4 -> 44400158f3399635/00000020",
+    "d32 to_binary64 x=b2000001 m=4 -> bfb999999999999a/00000020",
+    "d32 to_binary64 x=46571cc1 m=3 -> 4970000068d0bb63/00000020",
+    "d32 to_binary64 x=b2000001 m=3 -> bfb9999999999999/00000020",
+    "d32 to_binary64 x=32000007 m=2 -> 3fe6666666666667/00000020",
+    "d32 to_binary64 x=b2000007 m=1 -> bfe6666666666667/00000020",
+    "d32 to_binary128 x=46571cc1 m=0 -> 40970000068d0bb6:3d99a725eb665c36/00000020",
+    "d32 to_binary128 x=32000001 m=0 -> 3ffb999999999999:999999999999999a/00000020",
+    "d32 to_binary128 x=46571cc1 m=4 -> 40970000068d0bb6:3d99a725eb665c37/00000020",
+    "d32 to_binary128 x=b2000001 m=4 -> bffb999999999999:999999999999999a/00000020",
+    "d32 to_binary128 x=32000001 m=3 -> 3ffb999999999999:9999999999999999/00000020",
+    "d32 to_binary128 x=b2000001 m=3 -> bffb999999999999:9999999999999999/00000020",
+    "d32 to_binary128 x=32000007 m=2 -> 3ffe666666666666:6666666666666667/00000020",
+    "d32 to_binary128 x=b2000007 m=1 -> bffe666666666666:6666666666666667/00000020",
+    "d32 from_int32 i=-12345647 m=0 -> b312d685/00000020",
+    "d32 from_int32 i=1410065408 m=0 -> 34158411/00000020",
+    "d32 from_int32 i=12345645 m=0 -> 3312d684/00000020",
+    "d32 from_int32 i=12345647 m=0 -> 3312d685/00000020",
+    "d32 from_int32 i=-12345647 m=4 -> b312d685/00000020",
+    "d32 from_int32 i=12345645 m=4 -> 3312d685/00000020",
+    "d32 from_int32 i=1410065408 m=4 -> 34158411/00000020",
+    "d32 from_int32 i=-12345647 m=3 -> b312d684/00000020",
+    "d32 from_int32 i=1410065408 m=3 -> 34158411/00000020",
+    "d32 from_int32 i=1410065408 m=2 -> 34158412/00000020",
+    "d32 from_int32 i=-12345647 m=2 -> b312d684/00000020",
+    "d32 from_int32 i=-12345647 m=1 -> b312d685/00000020",
+    "d32 from_int32 i=12345647 m=1 -> 3312d684/00000020",
+    "d32 from_int32 i=1410065408 m=1 -> 34158411/00000020",
+    "d32 from_uint32 i=4282621649 m=0 -> 344158fe/00000020",
+    "d32 from_uint32 i=12345645 m=0 -> 3312d684/00000020",
+    "d32 from_uint32 i=4282621649 m=4 -> 344158fe/00000020",
+    "d32 from_uint32 i=12345645 m=4 -> 3312d685/00000020",
+    "d32 from_uint32 i=12345641 m=4 -> 3312d684/00000020",
+    "d32 from_uint32 i=4282621649 m=3 -> 344158fd/00000020",
+    "d32 from_uint32 i=4294967295 m=2 -> 34418938/00000020",
+    "d32 from_uint32 i=4282621649 m=1 -> 344158fd/00000020",
+    "d32 from_int64 i=-12345647 m=0 -> b312d685/00000020",
+    "d32 from_int64 i=10000000000 m=0 -> 348f4240/00000000",
+    "d32 from_int64 i=12345645 m=0 -> 3312d684/00000020",
+    "d32 from_int64 i=12345647 m=0 -> 3312d685/00000020",
+    "d32 from_int64 i=-12345647 m=4 -> b312d685/00000020",
+    "d32 from_int64 i=12345645 m=4 -> 3312d685/00000020",
+    "d32 from_int64 i=10000000000 m=4 -> 348f4240/00000000",
+    "d32 from_int64 i=-12345647 m=3 -> b312d684/00000020",
+    "d32 from_int64 i=12345645 m=3 -> 3312d684/00000020",
+    "d32 from_int64 i=10000000000 m=3 -> 348f4240/00000000",
+    "d32 from_int64 i=12345641 m=2 -> 3312d685/00000020",
+    "d32 from_int64 i=-12345647 m=2 -> b312d684/00000020",
+    "d32 from_int64 i=10000000000 m=2 -> 348f4240/00000000",
+    "d32 from_int64 i=-12345647 m=1 -> b312d685/00000020",
+    "d32 from_int64 i=12345647 m=1 -> 3312d684/00000020",
+    "d32 from_int64 i=10000000000 m=1 -> 348f4240/00000000",
+    "d32 from_uint64 i=18446744073697205969 m=0 -> 391c25c2/00000020",
+    "d32 from_uint64 i=12345647 m=0 -> 3312d685/00000020",
+    "d32 from_uint64 i=12345645 m=0 -> 3312d684/00000020",
+    "d32 from_uint64 i=18446744073697205969 m=4 -> 391c25c2/00000020",
+    "d32 from_uint64 i=12345645 m=4 -> 3312d685/00000020",
+    "d32 from_uint64 i=18446744073697205969 m=3 -> 391c25c2/00000020",
+    "d32 from_uint64 i=12345647 m=3 -> 3312d684/00000020",
+    "d32 from_uint64 i=18446744073697205969 m=2 -> 391c25c3/00000020",
+    "d32 from_uint64 i=18446744073697205969 m=1 -> 391c25c2/00000020",
+    "d32 from_uint64 i=12345647 m=1 -> 3312d684/00000020",
+    "d64 quiet_equal x=b1c0000000000005 y=31c0000000000003 -> 00/00000000",
+    "d64 quiet_equal x=31c0000000000005 y=31c0000000000003 -> 00/00000000",
+    "d64 quiet_not_equal x=7e00000000000001 y=31c0000000000003 -> 01/00000001",
+    "d64 quiet_less x=b1c0000000000005 y=31c0000000000003 -> 01/00000000",
+    "d64 quiet_less x=31c0000000000005 y=31c0000000000003 -> 00/00000000",
+    "d64 quiet_less x=31c0000000000003 y=31c0000000000003 -> 00/00000000",
+    "d64 quiet_less_equal x=b1c0000000000005 y=31c0000000000003 -> 01/00000000",
+    "d64 quiet_less_equal x=31c0000000000003 y=31c0000000000003 -> 01/00000000",
+    "d64 quiet_greater x=b1c0000000000005 y=31c0000000000003 -> 00/00000000",
+    "d64 quiet_greater x=31c0000000000003 y=31c0000000000003 -> 00/00000000",
+    "d64 quiet_greater_equal x=b1c0000000000005 y=31c0000000000003 -> 00/00000000",
+    "d64 quiet_greater_equal x=31c0000000000005 y=31c0000000000003 -> 01/00000000",
+    "d64 quiet_greater_equal x=31c0000000000003 y=31c0000000000003 -> 01/00000000",
+    "d64 minnum x=b1c0000000000005 y=31c0000000000003 -> b1c0000000000005/00000000",
+    "d64 minnum x=b1c0000000000003 y=31c0000000000005 -> b1c0000000000003/00000000",
+    "d64 minnum x=7c00000000000001 y=7c00000000000002 -> 7c00000000000001/00000000",
+    "d64 maxnum x=b1c0000000000005 y=31c0000000000003 -> 31c0000000000003/00000000",
+    "d64 maxnum x=8000000000000000 y=0000000000000000 -> 0000000000000000/00000000",
+    "d64 minnum_mag x=8000000000000000 y=0000000000000000 -> 8000000000000000/00000000",
+    "d64 maxnum_mag x=b1c0000000000005 y=31c0000000000003 -> b1c0000000000005/00000000",
+    "d64 maxnum_mag x=b1c0000000000003 y=31c0000000000005 -> 31c0000000000005/00000000",
+    "d64 maxnum_mag x=7c00000000000001 y=7c00000000000002 -> 7c00000000000001/00000000",
+    "d64 to_int8_rnint x=31a00000000004fb -> ffffffffffffff80/00000001",
+    "d64 to_int8_rnint x=31a0000000000019 -> 0000000000000002/00000000",
+    "d64 to_int8_rninta x=31a00000000004fb -> ffffffffffffff80/00000001",
+    "d64 to_int8_rninta x=b1a0000000000019 -> fffffffffffffffd/00000000",
+    "d64 to_int8_int x=b1a000000000001b -> fffffffffffffffe/00000000",
+    "d64 to_int8_int x=31a0000000000519 -> ffffffffffffff80/00000001",
+    "d64 to_int8_int x=31a00000000004fb -> 000000000000007f/00000000",
+    "d64 to_int8_ceil x=31a00000000004fb -> ffffffffffffff80/00000001",
+    "d64 to_int8_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_int8_floor x=b1a0000000000016 -> fffffffffffffffd/00000000",
+    "d64 to_int8_floor x=31a0000000000519 -> ffffffffffffff80/00000001",
+    "d64 to_int8_xrnint x=31a00000000004fb -> ffffffffffffff80/00000001",
+    "d64 to_int8_xrnint x=31a0000000000019 -> 0000000000000002/00000020",
+    "d64 to_int8_xrninta x=31a00000000004fb -> ffffffffffffff80/00000001",
+    "d64 to_int8_xrninta x=b1a0000000000019 -> fffffffffffffffd/00000020",
+    "d64 to_int8_xint x=b1a000000000001b -> fffffffffffffffe/00000020",
+    "d64 to_int8_xint x=31a0000000000519 -> ffffffffffffff80/00000001",
+    "d64 to_int8_xint x=31a00000000004fb -> 000000000000007f/00000020",
+    "d64 to_int8_xceil x=31a00000000004fb -> ffffffffffffff80/00000001",
+    "d64 to_int8_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_int8_xfloor x=b1a0000000000016 -> fffffffffffffffd/00000020",
+    "d64 to_int8_xfloor x=31a0000000000519 -> ffffffffffffff80/00000001",
+    "d64 to_int16_rnint x=31a000000004fffb -> ffffffffffff8000/00000001",
+    "d64 to_int16_rnint x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_int16_rninta x=31a000000004fffb -> ffffffffffff8000/00000001",
+    "d64 to_int16_rninta x=b1a0000000000019 -> fffffffffffffffd/00000000",
+    "d64 to_int16_int x=b1a000000000001b -> fffffffffffffffe/00000000",
+    "d64 to_int16_int x=31c00000000080e8 -> ffffffffffff8000/00000001",
+    "d64 to_int16_int x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_int16_ceil x=31a000000004fffb -> ffffffffffff8000/00000001",
+    "d64 to_int16_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_int16_floor x=b1a0000000000016 -> fffffffffffffffd/00000000",
+    "d64 to_int16_floor x=31c00000000080e8 -> ffffffffffff8000/00000001",
+    "d64 to_int16_xrnint x=31a000000004fffb -> ffffffffffff8000/00000001",
+    "d64 to_int16_xrnint x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_int16_xrninta x=31a000000004fffb -> ffffffffffff8000/00000001",
+    "d64 to_int16_xrninta x=b1a0000000000019 -> fffffffffffffffd/00000020",
+    "d64 to_int16_xint x=b1a000000000001b -> fffffffffffffffe/00000020",
+    "d64 to_int16_xint x=31c00000000080e8 -> ffffffffffff8000/00000001",
+    "d64 to_int16_xint x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_int16_xceil x=31a000000004fffb -> ffffffffffff8000/00000001",
+    "d64 to_int16_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_int16_xfloor x=b1a0000000000016 -> fffffffffffffffd/00000020",
+    "d64 to_int16_xfloor x=31c00000000080e8 -> ffffffffffff8000/00000001",
+    "d64 to_int32_rnint x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_rnint x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_int32_rnint x=31a00000000009fb -> 0000000000000100/00000000",
+    "d64 to_int32_rninta x=b1a0000000000019 -> fffffffffffffffd/00000000",
+    "d64 to_int32_rninta x=31a000000004fffb -> 0000000000008000/00000000",
+    "d64 to_int32_rninta x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_int x=b1a000000000001b -> fffffffffffffffe/00000000",
+    "d64 to_int32_int x=31a000000009fffb -> 000000000000ffff/00000000",
+    "d64 to_int32_int x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_int32_ceil x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_floor x=b1a0000000000016 -> fffffffffffffffd/00000000",
+    "d64 to_int32_floor x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_xrnint x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_xrnint x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_int32_xrnint x=31a00000000009fb -> 0000000000000100/00000020",
+    "d64 to_int32_xrninta x=b1a0000000000019 -> fffffffffffffffd/00000020",
+    "d64 to_int32_xrninta x=31a000000004fffb -> 0000000000008000/00000020",
+    "d64 to_int32_xrninta x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_xint x=b1a000000000001b -> fffffffffffffffe/00000020",
+    "d64 to_int32_xint x=31a000000009fffb -> 000000000000ffff/00000020",
+    "d64 to_int32_xint x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_int32_xceil x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int32_xfloor x=b1a0000000000016 -> fffffffffffffffd/00000020",
+    "d64 to_int32_xfloor x=322000000020c49c -> ffffffff80000000/00000001",
+    "d64 to_int64_rnint x=33600000000e12e2 -> 8000000000000000/00000001",
+    "d64 to_int64_rnint x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_int64_rnint x=31a00000000009fb -> 0000000000000100/00000000",
+    "d64 to_int64_rninta x=b1a0000000000019 -> fffffffffffffffd/00000000",
+    "d64 to_int64_rninta x=31a000000004fffb -> 0000000000008000/00000000",
+    "d64 to_int64_rninta x=322000000020c49c -> 0000000080000160/00000000",
+    "d64 to_int64_int x=b1a000000000001b -> fffffffffffffffe/00000000",
+    "d64 to_int64_int x=31a000000009fffb -> 000000000000ffff/00000000",
+    "d64 to_int64_int x=322000000020c49c -> 0000000080000160/00000000",
+    "d64 to_int64_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_int64_ceil x=33600000000e12e2 -> 8000000000000000/00000001",
+    "d64 to_int64_floor x=b1a0000000000016 -> fffffffffffffffd/00000000",
+    "d64 to_int64_floor x=322000000020c49c -> 0000000080000160/00000000",
+    "d64 to_int64_xrnint x=33600000000e12e2 -> 8000000000000000/00000001",
+    "d64 to_int64_xrnint x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_int64_xrnint x=31a00000000009fb -> 0000000000000100/00000020",
+    "d64 to_int64_xrninta x=b1a0000000000019 -> fffffffffffffffd/00000020",
+    "d64 to_int64_xrninta x=31a000000004fffb -> 0000000000008000/00000020",
+    "d64 to_int64_xrninta x=322000000020c49c -> 0000000080000160/00000000",
+    "d64 to_int64_xint x=b1a000000000001b -> fffffffffffffffe/00000020",
+    "d64 to_int64_xint x=31a000000009fffb -> 000000000000ffff/00000020",
+    "d64 to_int64_xint x=322000000020c49c -> 0000000080000160/00000000",
+    "d64 to_int64_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_int64_xceil x=33600000000e12e2 -> 8000000000000000/00000001",
+    "d64 to_int64_xfloor x=b1a0000000000016 -> fffffffffffffffd/00000020",
+    "d64 to_int64_xfloor x=322000000020c49c -> 0000000080000160/00000000",
+    "d64 to_uint8_rnint x=31a00000000009fb -> 0000000000000080/00000001",
+    "d64 to_uint8_rnint x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_uint8_rninta x=b1a0000000000005 -> 0000000000000080/00000001",
+    "d64 to_uint8_rninta x=31a0000000000519 -> 0000000000000083/00000000",
+    "d64 to_uint8_int x=31c000000000012c -> 0000000000000080/00000001",
+    "d64 to_uint8_int x=31a00000000009fb -> 00000000000000ff/00000000",
+    "d64 to_uint8_int x=b1a0000000000007 -> 0000000000000000/00000000",
+    "d64 to_uint8_ceil x=31a00000000009fb -> 0000000000000080/00000001",
+    "d64 to_uint8_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_uint8_floor x=b1a0000000000002 -> 0000000000000080/00000001",
+    "d64 to_uint8_floor x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_uint8_xrnint x=31a00000000009fb -> 0000000000000080/00000001",
+    "d64 to_uint8_xrnint x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_uint8_xrninta x=b1a0000000000005 -> 0000000000000080/00000001",
+    "d64 to_uint8_xrninta x=31a0000000000519 -> 0000000000000083/00000020",
+    "d64 to_uint8_xint x=31c000000000012c -> 0000000000000080/00000001",
+    "d64 to_uint8_xint x=31a00000000009fb -> 00000000000000ff/00000020",
+    "d64 to_uint8_xint x=b1a0000000000007 -> 0000000000000000/00000020",
+    "d64 to_uint8_xceil x=31a00000000009fb -> 0000000000000080/00000001",
+    "d64 to_uint8_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_uint8_xfloor x=b1a0000000000002 -> 0000000000000080/00000001",
+    "d64 to_uint8_xfloor x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_uint16_rnint x=31a000000009fffb -> 0000000000008000/00000001",
+    "d64 to_uint16_rnint x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_uint16_rninta x=b1a0000000000005 -> 0000000000008000/00000001",
+    "d64 to_uint16_rninta x=31a0000000000519 -> 0000000000000083/00000000",
+    "d64 to_uint16_int x=31a000000009fffb -> 000000000000ffff/00000000",
+    "d64 to_uint16_int x=31c0000000011170 -> 0000000000008000/00000001",
+    "d64 to_uint16_int x=b1a0000000000007 -> 0000000000000000/00000000",
+    "d64 to_uint16_ceil x=31a000000009fffb -> 0000000000008000/00000001",
+    "d64 to_uint16_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_uint16_floor x=b1a0000000000002 -> 0000000000008000/00000001",
+    "d64 to_uint16_floor x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_uint16_xrnint x=31a000000009fffb -> 0000000000008000/00000001",
+    "d64 to_uint16_xrnint x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_uint16_xrninta x=b1a0000000000005 -> 0000000000008000/00000001",
+    "d64 to_uint16_xrninta x=31a0000000000519 -> 0000000000000083/00000020",
+    "d64 to_uint16_xint x=31a000000009fffb -> 000000000000ffff/00000020",
+    "d64 to_uint16_xint x=31c0000000011170 -> 0000000000008000/00000001",
+    "d64 to_uint16_xint x=b1a0000000000007 -> 0000000000000000/00000020",
+    "d64 to_uint16_xceil x=31a000000009fffb -> 0000000000008000/00000001",
+    "d64 to_uint16_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_uint16_xfloor x=b1a0000000000002 -> 0000000000008000/00000001",
+    "d64 to_uint16_xfloor x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_uint32_rnint x=b1a0000000000007 -> 0000000080000000/00000001",
+    "d64 to_uint32_rnint x=b1a0000000000005 -> 0000000000000000/00000000",
+    "d64 to_uint32_rninta x=b1a0000000000005 -> 0000000080000000/00000001",
+    "d64 to_uint32_rninta x=31a0000000000519 -> 0000000000000083/00000000",
+    "d64 to_uint32_int x=31a000000009fffb -> 000000000000ffff/00000000",
+    "d64 to_uint32_int x=3220000000418938 -> 0000000080000000/00000001",
+    "d64 to_uint32_int x=b1a0000000000007 -> 0000000000000000/00000000",
+    "d64 to_uint32_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_uint32_ceil x=3220000000418938 -> 0000000080000000/00000001",
+    "d64 to_uint32_floor x=b1a0000000000002 -> 0000000080000000/00000001",
+    "d64 to_uint32_floor x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_uint32_xrnint x=b1a0000000000007 -> 0000000080000000/00000001",
+    "d64 to_uint32_xrnint x=b1a0000000000005 -> 0000000000000000/00000020",
+    "d64 to_uint32_xrninta x=b1a0000000000005 -> 0000000080000000/00000001",
+    "d64 to_uint32_xrninta x=31a0000000000519 -> 0000000000000083/00000020",
+    "d64 to_uint32_xint x=31a000000009fffb -> 000000000000ffff/00000020",
+    "d64 to_uint32_xint x=3220000000418938 -> 0000000080000000/00000001",
+    "d64 to_uint32_xint x=b1a0000000000007 -> 0000000000000000/00000020",
+    "d64 to_uint32_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_uint32_xceil x=3220000000418938 -> 0000000080000000/00000001",
+    "d64 to_uint32_xfloor x=b1a0000000000002 -> 0000000080000000/00000001",
+    "d64 to_uint32_xfloor x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_uint64_rnint x=b1a0000000000007 -> 8000000000000000/00000001",
+    "d64 to_uint64_rnint x=b1a0000000000005 -> 0000000000000000/00000000",
+    "d64 to_uint64_rninta x=b1a0000000000005 -> 8000000000000000/00000001",
+    "d64 to_uint64_rninta x=31a0000000000519 -> 0000000000000083/00000000",
+    "d64 to_uint64_int x=31a000000009fffb -> 000000000000ffff/00000000",
+    "d64 to_uint64_int x=33600000000e12e2 -> 8000073e10714000/00000000",
+    "d64 to_uint64_int x=b1a0000000000007 -> 0000000000000000/00000000",
+    "d64 to_uint64_ceil x=31a0000000000016 -> 0000000000000003/00000000",
+    "d64 to_uint64_ceil x=33600000000e12e2 -> 8000073e10714000/00000000",
+    "d64 to_uint64_floor x=b1a0000000000002 -> 8000000000000000/00000001",
+    "d64 to_uint64_floor x=31a0000000000519 -> 0000000000000082/00000000",
+    "d64 to_uint64_xrnint x=b1a0000000000007 -> 8000000000000000/00000001",
+    "d64 to_uint64_xrnint x=b1a0000000000005 -> 0000000000000000/00000020",
+    "d64 to_uint64_xrninta x=b1a0000000000005 -> 8000000000000000/00000001",
+    "d64 to_uint64_xrninta x=31a0000000000519 -> 0000000000000083/00000020",
+    "d64 to_uint64_xint x=31a000000009fffb -> 000000000000ffff/00000020",
+    "d64 to_uint64_xint x=33600000000e12e2 -> 8000073e10714000/00000000",
+    "d64 to_uint64_xint x=b1a0000000000007 -> 0000000000000000/00000020",
+    "d64 to_uint64_xceil x=31a0000000000016 -> 0000000000000003/00000020",
+    "d64 to_uint64_xceil x=33600000000e12e2 -> 8000073e10714000/00000000",
+    "d64 to_uint64_xfloor x=b1a0000000000002 -> 8000000000000000/00000001",
+    "d64 to_uint64_xfloor x=31a0000000000519 -> 0000000000000082/00000020",
+    "d64 to_bid32 x=30e0000000989685 m=0 -> 2f8f4240/00000020",
+    "d64 to_bid32 x=30e0000000989689 m=0 -> 2f8f4241/00000020",
+    "d64 to_bid32 x=30e0000000989685 m=4 -> 2f8f4241/00000020",
+    "d64 to_bid32 x=30e0000000989681 m=4 -> 2f8f4240/00000020",
+    "d64 to_bid32 x=30e0000000989689 m=3 -> 2f8f4240/00000020",
+    "d64 to_bid32 x=b0e0000000989681 m=3 -> af8f4240/00000020",
+    "d64 to_bid32 x=30e0000000989681 m=2 -> 2f8f4241/00000020",
+    "d64 to_bid32 x=b0e0000000989681 m=1 -> af8f4241/00000020",
+    "d64 to_bid128 x=30e0000000989685 -> 3032000000000000:0000000000989685/00000000",
+    "d64 to_binary32 x=3280000000000435 m=0 -> 4e80636e/00000020",
+    "d64 to_binary32 x=33c000000000e6a9 m=0 -> 62000ac8/00000020",
+    "d64 to_binary32 x=3280000000000435 m=4 -> 4e80636f/00000020",
+    "d64 to_binary32 x=b1a0000000000001 m=4 -> bdcccccd/00000020",
+    "d64 to_binary32 x=33c000000000e6a9 m=3 -> 62000ac7/00000020",
+    "d64 to_binary32 x=b1a0000000000001 m=3 -> bdcccccc/00000020",
+    "d64 to_binary32 x=31a0000000000007 m=2 -> 3f333334/00000020",
+    "d64 to_binary32 x=b1a0000000000007 m=1 -> bf333334/00000020",
+    "d64 to_binary64 x=33c000000000e6a9 m=0 -> 44400158f3399634/00000020",
+    "d64 to_binary64 x=36a0000000571cc1 m=0 -> 4970000068d0bb64/00000020",
+    "d64 to_binary64 x=33c000000000e6a9 m=4 -> 44400158f3399635/00000020",
+    "d64 to_binary64 x=b1a0000000000001 m=4 -> bfb999999999999a/00000020",
+    "d64 to_binary64 x=36a0000000571cc1 m=3 -> 4970000068d0bb63/00000020",
+    "d64 to_binary64 x=b1a0000000000001 m=3 -> bfb9999999999999/00000020",
+    "d64 to_binary64 x=31a0000000000007 m=2 -> 3fe6666666666667/00000020",
+    "d64 to_binary64 x=b1a0000000000007 m=1 -> bfe6666666666667/00000020",
+    "d64 to_binary128 x=36a0000000571cc1 m=0 -> 40970000068d0bb6:3d99a725eb665c36/00000020",
+    "d64 to_binary128 x=31a0000000000001 m=0 -> 3ffb999999999999:999999999999999a/00000020",
+    "d64 to_binary128 x=36a0000000571cc1 m=4 -> 40970000068d0bb6:3d99a725eb665c37/00000020",
+    "d64 to_binary128 x=b1a0000000000001 m=4 -> bffb999999999999:999999999999999a/00000020",
+    "d64 to_binary128 x=31a0000000000001 m=3 -> 3ffb999999999999:9999999999999999/00000020",
+    "d64 to_binary128 x=b1a0000000000001 m=3 -> bffb999999999999:9999999999999999/00000020",
+    "d64 to_binary128 x=31a0000000000007 m=2 -> 3ffe666666666666:6666666666666667/00000020",
+    "d64 to_binary128 x=b1a0000000000007 m=1 -> bffe666666666666:6666666666666667/00000020",
+    "d64 from_int32 i=-1678423855 -> b1c00000640ab72f",
+    "d64 from_uint32 i=2616543441 -> 31c000009bf548d1",
+    "d64 from_int64 i=-12345679012345647 m=0 -> b1e462d53d344585/00000020",
+    "d64 from_int64 i=12345679012345645 m=0 -> 31e462d53d344584/00000020",
+    "d64 from_int64 i=12345679012345647 m=0 -> 31e462d53d344585/00000020",
+    "d64 from_int64 i=-12345679012345647 m=4 -> b1e462d53d344585/00000020",
+    "d64 from_int64 i=12345679012345645 m=4 -> 31e462d53d344585/00000020",
+    "d64 from_int64 i=-12345679012345647 m=3 -> b1e462d53d344584/00000020",
+    "d64 from_int64 i=12345679012345645 m=3 -> 31e462d53d344584/00000020",
+    "d64 from_int64 i=-12345679012345647 m=2 -> b1e462d53d344584/00000020",
+    "d64 from_int64 i=12345679012345645 m=2 -> 31e462d53d344585/00000020",
+    "d64 from_int64 i=-12345679012345647 m=1 -> b1e462d53d344585/00000020",
+    "d64 from_int64 i=12345679012345647 m=1 -> 31e462d53d344584/00000020",
+    "d64 from_uint64 i=18434398394697205969 m=0 -> 32468c9948cbe099/00000020",
+    "d64 from_uint64 i=12345679012345645 m=0 -> 31e462d53d344584/00000020",
+    "d64 from_uint64 i=18434398394697205969 m=4 -> 32468c9948cbe099/00000020",
+    "d64 from_uint64 i=12345679012345645 m=4 -> 31e462d53d344585/00000020",
+    "d64 from_uint64 i=18446744073709551615 m=4 -> 32468db8bac710cb/00000020",
+    "d64 from_uint64 i=18434398394697205969 m=3 -> 32468c9948cbe098/00000020",
+    "d64 from_uint64 i=18446744073709551615 m=2 -> 32468db8bac710cc/00000020",
+    "d64 from_uint64 i=18434398394697205969 m=1 -> 32468c9948cbe098/00000020",
+    "d128 quiet_equal x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 00/00000000",
+    "d128 quiet_equal x=3040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 00/00000000",
+    "d128 quiet_not_equal x=7e00000000000000:0000000000000001 y=3040000000000000:0000000000000003 -> 01/00000001",
+    "d128 quiet_less x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 01/00000000",
+    "d128 quiet_less x=3040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 00/00000000",
+    "d128 quiet_less x=3040000000000000:0000000000000003 y=3040000000000000:0000000000000003 -> 00/00000000",
+    "d128 quiet_less_equal x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 01/00000000",
+    "d128 quiet_less_equal x=3040000000000000:0000000000000003 y=3040000000000000:0000000000000003 -> 01/00000000",
+    "d128 quiet_greater x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 00/00000000",
+    "d128 quiet_greater x=3040000000000000:0000000000000003 y=3040000000000000:0000000000000003 -> 00/00000000",
+    "d128 quiet_greater_equal x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 00/00000000",
+    "d128 quiet_greater_equal x=3040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 01/00000000",
+    "d128 quiet_greater_equal x=3040000000000000:0000000000000003 y=3040000000000000:0000000000000003 -> 01/00000000",
+    "d128 minnum x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> b040000000000000:0000000000000005/00000000",
+    "d128 minnum x=8000000000000000:0000000000000000 y=0000000000000000:0000000000000000 -> 8000000000000000:0000000000000000/00000000",
+    "d128 maxnum x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 3040000000000000:0000000000000003/00000000",
+    "d128 maxnum x=b040000000000000:0000000000000003 y=3040000000000000:0000000000000005 -> 3040000000000000:0000000000000005/00000000",
+    "d128 maxnum x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 minnum_mag x=b040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 3040000000000000:0000000000000003/00000000",
+    "d128 minnum_mag x=b040000000000000:0000000000000003 y=3040000000000000:0000000000000005 -> b040000000000000:0000000000000003/00000000",
+    "d128 minnum_mag x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 maxnum_mag x=8000000000000000:0000000000000000 y=0000000000000000:0000000000000000 -> 0000000000000000:0000000000000000/00000000",
+    "d128 to_int8_rnint x=303e000000000000:00000000000004fb -> ffffffffffffff80/00000001",
+    "d128 to_int8_rnint x=303e000000000000:0000000000000019 -> 0000000000000002/00000000",
+    "d128 to_int8_rninta x=303e000000000000:00000000000004fb -> ffffffffffffff80/00000001",
+    "d128 to_int8_rninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000000",
+    "d128 to_int8_int x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000000",
+    "d128 to_int8_int x=303e000000000000:0000000000000519 -> ffffffffffffff80/00000001",
+    "d128 to_int8_int x=303e000000000000:00000000000004fb -> 000000000000007f/00000000",
+    "d128 to_int8_ceil x=303e000000000000:00000000000004fb -> ffffffffffffff80/00000001",
+    "d128 to_int8_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_int8_floor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000000",
+    "d128 to_int8_floor x=303e000000000000:0000000000000519 -> ffffffffffffff80/00000001",
+    "d128 to_int8_xrnint x=303e000000000000:00000000000004fb -> ffffffffffffff80/00000001",
+    "d128 to_int8_xrnint x=303e000000000000:0000000000000019 -> 0000000000000002/00000020",
+    "d128 to_int8_xrninta x=303e000000000000:00000000000004fb -> ffffffffffffff80/00000001",
+    "d128 to_int8_xrninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000020",
+    "d128 to_int8_xint x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000020",
+    "d128 to_int8_xint x=303e000000000000:0000000000000519 -> ffffffffffffff80/00000001",
+    "d128 to_int8_xint x=303e000000000000:00000000000004fb -> 000000000000007f/00000020",
+    "d128 to_int8_xceil x=303e000000000000:00000000000004fb -> ffffffffffffff80/00000001",
+    "d128 to_int8_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_int8_xfloor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000020",
+    "d128 to_int8_xfloor x=303e000000000000:0000000000000519 -> ffffffffffffff80/00000001",
+    "d128 to_int16_rnint x=303e000000000000:000000000004fffb -> ffffffffffff8000/00000001",
+    "d128 to_int16_rnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_int16_rninta x=303e000000000000:000000000004fffb -> ffffffffffff8000/00000001",
+    "d128 to_int16_rninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000000",
+    "d128 to_int16_int x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000000",
+    "d128 to_int16_int x=3040000000000000:00000000000080e8 -> ffffffffffff8000/00000001",
+    "d128 to_int16_int x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_int16_ceil x=303e000000000000:000000000004fffb -> ffffffffffff8000/00000001",
+    "d128 to_int16_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_int16_floor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000000",
+    "d128 to_int16_floor x=3040000000000000:00000000000080e8 -> ffffffffffff8000/00000001",
+    "d128 to_int16_xrnint x=303e000000000000:000000000004fffb -> ffffffffffff8000/00000001",
+    "d128 to_int16_xrnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_int16_xrninta x=303e000000000000:000000000004fffb -> ffffffffffff8000/00000001",
+    "d128 to_int16_xrninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000020",
+    "d128 to_int16_xint x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000020",
+    "d128 to_int16_xint x=3040000000000000:00000000000080e8 -> ffffffffffff8000/00000001",
+    "d128 to_int16_xint x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_int16_xceil x=303e000000000000:000000000004fffb -> ffffffffffff8000/00000001",
+    "d128 to_int16_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_int16_xfloor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000020",
+    "d128 to_int16_xfloor x=3040000000000000:00000000000080e8 -> ffffffffffff8000/00000001",
+    "d128 to_int32_rnint x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_rnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_int32_rnint x=303e000000000000:00000000000009fb -> 0000000000000100/00000000",
+    "d128 to_int32_rninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000000",
+    "d128 to_int32_rninta x=303e000000000000:000000000004fffb -> 0000000000008000/00000000",
+    "d128 to_int32_rninta x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_int x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000000",
+    "d128 to_int32_int x=303e000000000000:000000000009fffb -> 000000000000ffff/00000000",
+    "d128 to_int32_int x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_int32_ceil x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_floor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000000",
+    "d128 to_int32_floor x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_xrnint x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_xrnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_int32_xrnint x=303e000000000000:00000000000009fb -> 0000000000000100/00000020",
+    "d128 to_int32_xrninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000020",
+    "d128 to_int32_xrninta x=303e000000000000:000000000004fffb -> 0000000000008000/00000020",
+    "d128 to_int32_xrninta x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_xint x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000020",
+    "d128 to_int32_xint x=303e000000000000:000000000009fffb -> 000000000000ffff/00000020",
+    "d128 to_int32_xint x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_int32_xceil x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int32_xfloor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000020",
+    "d128 to_int32_xfloor x=3046000000000000:000000000020c49c -> ffffffff80000000/00000001",
+    "d128 to_int64_rnint x=305a000000000000:00000000000e12e2 -> 8000000000000000/00000001",
+    "d128 to_int64_rnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_int64_rnint x=303e000000000000:00000000000009fb -> 0000000000000100/00000000",
+    "d128 to_int64_rninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000000",
+    "d128 to_int64_rninta x=303e000000000000:000000000004fffb -> 0000000000008000/00000000",
+    "d128 to_int64_rninta x=3046000000000000:000000000020c49c -> 0000000080000160/00000000",
+    "d128 to_int64_int x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000000",
+    "d128 to_int64_int x=303e000000000000:000000000009fffb -> 000000000000ffff/00000000",
+    "d128 to_int64_int x=3046000000000000:000000000020c49c -> 0000000080000160/00000000",
+    "d128 to_int64_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_int64_ceil x=305a000000000000:00000000000e12e2 -> 8000000000000000/00000001",
+    "d128 to_int64_floor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000000",
+    "d128 to_int64_floor x=3046000000000000:000000000020c49c -> 0000000080000160/00000000",
+    "d128 to_int64_xrnint x=305a000000000000:00000000000e12e2 -> 8000000000000000/00000001",
+    "d128 to_int64_xrnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_int64_xrnint x=303e000000000000:00000000000009fb -> 0000000000000100/00000020",
+    "d128 to_int64_xrninta x=b03e000000000000:0000000000000019 -> fffffffffffffffd/00000020",
+    "d128 to_int64_xrninta x=303e000000000000:000000000004fffb -> 0000000000008000/00000020",
+    "d128 to_int64_xrninta x=3046000000000000:000000000020c49c -> 0000000080000160/00000000",
+    "d128 to_int64_xint x=b03e000000000000:000000000000001b -> fffffffffffffffe/00000020",
+    "d128 to_int64_xint x=303e000000000000:000000000009fffb -> 000000000000ffff/00000020",
+    "d128 to_int64_xint x=3046000000000000:000000000020c49c -> 0000000080000160/00000000",
+    "d128 to_int64_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_int64_xceil x=305a000000000000:00000000000e12e2 -> 8000000000000000/00000001",
+    "d128 to_int64_xfloor x=b03e000000000000:0000000000000016 -> fffffffffffffffd/00000020",
+    "d128 to_int64_xfloor x=3046000000000000:000000000020c49c -> 0000000080000160/00000000",
+    "d128 to_uint8_rnint x=303e000000000000:00000000000009fb -> 0000000000000080/00000001",
+    "d128 to_uint8_rnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_uint8_rninta x=b03e000000000000:0000000000000005 -> 0000000000000080/00000001",
+    "d128 to_uint8_rninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000000",
+    "d128 to_uint8_int x=3040000000000000:000000000000012c -> 0000000000000080/00000001",
+    "d128 to_uint8_int x=303e000000000000:00000000000009fb -> 00000000000000ff/00000000",
+    "d128 to_uint8_int x=b03e000000000000:0000000000000007 -> 0000000000000000/00000000",
+    "d128 to_uint8_ceil x=303e000000000000:00000000000009fb -> 0000000000000080/00000001",
+    "d128 to_uint8_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_uint8_floor x=b03e000000000000:0000000000000002 -> 0000000000000080/00000001",
+    "d128 to_uint8_floor x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_uint8_xrnint x=303e000000000000:00000000000009fb -> 0000000000000080/00000001",
+    "d128 to_uint8_xrnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_uint8_xrninta x=b03e000000000000:0000000000000005 -> 0000000000000080/00000001",
+    "d128 to_uint8_xrninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000020",
+    "d128 to_uint8_xint x=3040000000000000:000000000000012c -> 0000000000000080/00000001",
+    "d128 to_uint8_xint x=303e000000000000:00000000000009fb -> 00000000000000ff/00000020",
+    "d128 to_uint8_xint x=b03e000000000000:0000000000000007 -> 0000000000000000/00000020",
+    "d128 to_uint8_xceil x=303e000000000000:00000000000009fb -> 0000000000000080/00000001",
+    "d128 to_uint8_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_uint8_xfloor x=b03e000000000000:0000000000000002 -> 0000000000000080/00000001",
+    "d128 to_uint8_xfloor x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_uint16_rnint x=303e000000000000:000000000009fffb -> 0000000000008000/00000001",
+    "d128 to_uint16_rnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_uint16_rninta x=b03e000000000000:0000000000000005 -> 0000000000008000/00000001",
+    "d128 to_uint16_rninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000000",
+    "d128 to_uint16_int x=303e000000000000:000000000009fffb -> 000000000000ffff/00000000",
+    "d128 to_uint16_int x=3040000000000000:0000000000011170 -> 0000000000008000/00000001",
+    "d128 to_uint16_int x=b03e000000000000:0000000000000007 -> 0000000000000000/00000000",
+    "d128 to_uint16_ceil x=303e000000000000:000000000009fffb -> 0000000000008000/00000001",
+    "d128 to_uint16_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_uint16_floor x=b03e000000000000:0000000000000002 -> 0000000000008000/00000001",
+    "d128 to_uint16_floor x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_uint16_xrnint x=303e000000000000:000000000009fffb -> 0000000000008000/00000001",
+    "d128 to_uint16_xrnint x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_uint16_xrninta x=b03e000000000000:0000000000000005 -> 0000000000008000/00000001",
+    "d128 to_uint16_xrninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000020",
+    "d128 to_uint16_xint x=303e000000000000:000000000009fffb -> 000000000000ffff/00000020",
+    "d128 to_uint16_xint x=3040000000000000:0000000000011170 -> 0000000000008000/00000001",
+    "d128 to_uint16_xint x=b03e000000000000:0000000000000007 -> 0000000000000000/00000020",
+    "d128 to_uint16_xceil x=303e000000000000:000000000009fffb -> 0000000000008000/00000001",
+    "d128 to_uint16_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_uint16_xfloor x=b03e000000000000:0000000000000002 -> 0000000000008000/00000001",
+    "d128 to_uint16_xfloor x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_uint32_rnint x=b03e000000000000:0000000000000007 -> 0000000080000000/00000001",
+    "d128 to_uint32_rnint x=b03e000000000000:0000000000000005 -> 0000000000000000/00000000",
+    "d128 to_uint32_rninta x=b03e000000000000:0000000000000005 -> 0000000080000000/00000001",
+    "d128 to_uint32_rninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000000",
+    "d128 to_uint32_int x=303e000000000000:000000000009fffb -> 000000000000ffff/00000000",
+    "d128 to_uint32_int x=3046000000000000:0000000000418938 -> 0000000080000000/00000001",
+    "d128 to_uint32_int x=b03e000000000000:0000000000000007 -> 0000000000000000/00000000",
+    "d128 to_uint32_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_uint32_ceil x=3046000000000000:0000000000418938 -> 0000000080000000/00000001",
+    "d128 to_uint32_floor x=b03e000000000000:0000000000000002 -> 0000000080000000/00000001",
+    "d128 to_uint32_floor x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_uint32_xrnint x=b03e000000000000:0000000000000007 -> 0000000080000000/00000001",
+    "d128 to_uint32_xrnint x=b03e000000000000:0000000000000005 -> 0000000000000000/00000020",
+    "d128 to_uint32_xrninta x=b03e000000000000:0000000000000005 -> 0000000080000000/00000001",
+    "d128 to_uint32_xrninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000020",
+    "d128 to_uint32_xint x=303e000000000000:000000000009fffb -> 000000000000ffff/00000020",
+    "d128 to_uint32_xint x=3046000000000000:0000000000418938 -> 0000000080000000/00000001",
+    "d128 to_uint32_xint x=b03e000000000000:0000000000000007 -> 0000000000000000/00000020",
+    "d128 to_uint32_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_uint32_xceil x=3046000000000000:0000000000418938 -> 0000000080000000/00000001",
+    "d128 to_uint32_xfloor x=b03e000000000000:0000000000000002 -> 0000000080000000/00000001",
+    "d128 to_uint32_xfloor x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_uint64_rnint x=b03e000000000000:0000000000000007 -> 8000000000000000/00000001",
+    "d128 to_uint64_rnint x=b03e000000000000:0000000000000005 -> 0000000000000000/00000000",
+    "d128 to_uint64_rninta x=b03e000000000000:0000000000000005 -> 8000000000000000/00000001",
+    "d128 to_uint64_rninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000000",
+    "d128 to_uint64_int x=303e000000000000:000000000009fffb -> 000000000000ffff/00000000",
+    "d128 to_uint64_int x=305a000000000000:00000000000e12e2 -> 8000073e10714000/00000000",
+    "d128 to_uint64_int x=b03e000000000000:0000000000000007 -> 0000000000000000/00000000",
+    "d128 to_uint64_ceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000000",
+    "d128 to_uint64_ceil x=305a000000000000:00000000000e12e2 -> 8000073e10714000/00000000",
+    "d128 to_uint64_floor x=b03e000000000000:0000000000000002 -> 8000000000000000/00000001",
+    "d128 to_uint64_floor x=303e000000000000:0000000000000519 -> 0000000000000082/00000000",
+    "d128 to_uint64_xrnint x=b03e000000000000:0000000000000007 -> 8000000000000000/00000001",
+    "d128 to_uint64_xrnint x=b03e000000000000:0000000000000005 -> 0000000000000000/00000020",
+    "d128 to_uint64_xrninta x=b03e000000000000:0000000000000005 -> 8000000000000000/00000001",
+    "d128 to_uint64_xrninta x=303e000000000000:0000000000000519 -> 0000000000000083/00000020",
+    "d128 to_uint64_xint x=303e000000000000:000000000009fffb -> 000000000000ffff/00000020",
+    "d128 to_uint64_xint x=305a000000000000:00000000000e12e2 -> 8000073e10714000/00000000",
+    "d128 to_uint64_xint x=b03e000000000000:0000000000000007 -> 0000000000000000/00000020",
+    "d128 to_uint64_xceil x=303e000000000000:0000000000000016 -> 0000000000000003/00000020",
+    "d128 to_uint64_xceil x=305a000000000000:00000000000e12e2 -> 8000073e10714000/00000000",
+    "d128 to_uint64_xfloor x=b03e000000000000:0000000000000002 -> 8000000000000000/00000001",
+    "d128 to_uint64_xfloor x=303e000000000000:0000000000000519 -> 0000000000000082/00000020",
+    "d128 to_bid32 x=3032000000000000:0000000000989685 m=0 -> 2f8f4240/00000020",
+    "d128 to_bid32 x=3032000000000000:0000000000989689 m=0 -> 2f8f4241/00000020",
+    "d128 to_bid32 x=3032000000000000:0000000000989685 m=4 -> 2f8f4241/00000020",
+    "d128 to_bid32 x=3020000000000000:002386f26fc10005 m=4 -> 2f8f4240/00000020",
+    "d128 to_bid32 x=3032000000000000:0000000000989689 m=3 -> 2f8f4240/00000020",
+    "d128 to_bid32 x=b020000000000000:002386f26fc10001 m=3 -> af8f4240/00000020",
+    "d128 to_bid32 x=3020000000000000:002386f26fc10005 m=2 -> 2f8f4241/00000020",
+    "d128 to_bid32 x=b020000000000000:002386f26fc10001 m=1 -> af8f4241/00000020",
+    "d128 to_bid64 x=3020000000000000:002386f26fc10005 m=0 -> 2fe38d7ea4c68000/00000020",
+    "d128 to_bid64 x=3020000000000000:002386f26fc10009 m=0 -> 2fe38d7ea4c68001/00000020",
+    "d128 to_bid64 x=3020000000000000:002386f26fc10005 m=4 -> 2fe38d7ea4c68001/00000020",
+    "d128 to_bid64 x=3020000000000000:002386f26fc10001 m=4 -> 2fe38d7ea4c68000/00000020",
+    "d128 to_bid64 x=3020000000000000:002386f26fc10009 m=3 -> 2fe38d7ea4c68000/00000020",
+    "d128 to_bid64 x=b020000000000000:002386f26fc10001 m=3 -> afe38d7ea4c68000/00000020",
+    "d128 to_bid64 x=3020000000000000:002386f26fc10001 m=2 -> 2fe38d7ea4c68001/00000020",
+    "d128 to_bid64 x=b020000000000000:002386f26fc10001 m=1 -> afe38d7ea4c68001/00000020",
+    "d128 to_binary32 x=304c000000000000:0000000000000435 m=0 -> 4e80636e/00000020",
+    "d128 to_binary32 x=3060000000000000:000000000000e6a9 m=0 -> 62000ac8/00000020",
+    "d128 to_binary32 x=304c000000000000:0000000000000435 m=4 -> 4e80636f/00000020",
+    "d128 to_binary32 x=b03e000000000000:0000000000000001 m=4 -> bdcccccd/00000020",
+    "d128 to_binary32 x=3060000000000000:000000000000e6a9 m=3 -> 62000ac7/00000020",
+    "d128 to_binary32 x=b03e000000000000:0000000000000001 m=3 -> bdcccccc/00000020",
+    "d128 to_binary32 x=303e000000000000:0000000000000007 m=2 -> 3f333334/00000020",
+    "d128 to_binary32 x=b03e000000000000:0000000000000007 m=1 -> bf333334/00000020",
+    "d128 to_binary64 x=3060000000000000:000000000000e6a9 m=0 -> 44400158f3399634/00000020",
+    "d128 to_binary64 x=308e000000000000:0000000000571cc1 m=0 -> 4970000068d0bb64/00000020",
+    "d128 to_binary64 x=3060000000000000:000000000000e6a9 m=4 -> 44400158f3399635/00000020",
+    "d128 to_binary64 x=b03e000000000000:0000000000000001 m=4 -> bfb999999999999a/00000020",
+    "d128 to_binary64 x=308e000000000000:0000000000571cc1 m=3 -> 4970000068d0bb63/00000020",
+    "d128 to_binary64 x=b03e000000000000:0000000000000001 m=3 -> bfb9999999999999/00000020",
+    "d128 to_binary64 x=303e000000000000:0000000000000007 m=2 -> 3fe6666666666667/00000020",
+    "d128 to_binary64 x=b03e000000000000:0000000000000007 m=1 -> bfe6666666666667/00000020",
+    "d128 to_binary128 x=308e000000000000:0000000000571cc1 m=0 -> 40970000068d0bb6:3d99a725eb665c36/00000020",
+    "d128 to_binary128 x=303e000000000000:0000000000000001 m=0 -> 3ffb999999999999:999999999999999a/00000020",
+    "d128 to_binary128 x=308e000000000000:0000000000571cc1 m=4 -> 40970000068d0bb6:3d99a725eb665c37/00000020",
+    "d128 to_binary128 x=b03e000000000000:0000000000000001 m=4 -> bffb999999999999:999999999999999a/00000020",
+    "d128 to_binary128 x=303e000000000000:0000000000000001 m=3 -> 3ffb999999999999:9999999999999999/00000020",
+    "d128 to_binary128 x=b03e000000000000:0000000000000001 m=3 -> bffb999999999999:9999999999999999/00000020",
+    "d128 to_binary128 x=303e000000000000:0000000000000007 m=2 -> 3ffe666666666666:6666666666666667/00000020",
+    "d128 to_binary128 x=b03e000000000000:0000000000000007 m=1 -> bffe666666666666:6666666666666667/00000020",
+    "d128 from_int32 i=-1678423855 -> b040000000000000:00000000640ab72f",
+    "d128 from_uint32 i=2616543441 -> 3040000000000000:000000009bf548d1",
+    "d128 from_int64 i=-12345679012345647 -> b040000000000000:002bdc54640ab72f",
+    "d128 from_uint64 i=18434398394697205969 -> 3040000000000000:ffd423ab9bf548d1",
+
+];
 
 const PROBES32: [u32; 12] = [0x00000000, 0x80000000, 0x32800001, 0xb2800001, 0x00000001, 0x77f8967f, 0xf7f8967f, 0x78000000, 0x7c000001, 0x7e000001, 0x60000000, 0x5f800000];
 const PROBES64: [u64; 12] = [0x0000000000000000, 0x8000000000000000, 0x31c0000000000001, 0xb1c0000000000001, 0x0000000000000001, 0x77fb86f26fc0ffff, 0xf7fb86f26fc0ffff, 0x7800000000000000, 0x7c00000000000001, 0x7e00000000000001, 0x6000000000000000, 0x5fe0000000000000];

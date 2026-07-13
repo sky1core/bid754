@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"path/filepath"
 
@@ -10,7 +11,18 @@ import (
 
 func main() {
 	manifestPath := flag.String("manifest", "testgen_manifest.json", "path to the shared test generation manifest")
+	printSentinelAnchors := flag.Bool("print-sentinel-anchors", false,
+		"print the proposed verification_sentinels.json routing-sentinel rows to stdout and exit; writes no file and reads no anchor")
 	flag.Parse()
+
+	if *printSentinelAnchors {
+		proposal, err := testgen.Tier1SentinelAnchorProposal()
+		if err != nil {
+			log.Fatalf("compute sentinel anchor proposal: %v", err)
+		}
+		fmt.Print(proposal)
+		return
+	}
 
 	repoRoot, err := filepath.Abs(".")
 	if err != nil {

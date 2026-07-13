@@ -28,8 +28,16 @@ type anchors struct {
 	Tier1CCConversionRandom         uint64            `json:"tier1_compare_conversion_long_conversion_random"`
 }
 
+// sentinels mirrors the routing-sentinel row pin file; the row counts are
+// len(rows) by design (no separate count scalar to drift).
+type sentinels struct {
+	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
+	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
+}
+
 func main() {
 	anchorsPath := flag.String("anchors", "verification_anchors.json", "path to verification_anchors.json")
+	sentinelsPath := flag.String("sentinels", "verification_sentinels.json", "path to verification_sentinels.json (routing-sentinel row pins)")
 	logPath := flag.String("log", "", "path to the captured gate log")
 	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust")
 	passes := flag.String("passes", "", "comma-separated top-level Go test names that must have '--- PASS:' evidence")
@@ -66,8 +74,10 @@ func main() {
 		case "tier1-arithmetic-go":
 			required = append(required,
 				topLevelPass("TestTier1ArithmeticCorpusContract"),
+				topLevelPass("TestTier1ArithmeticRoutingSentinels"),
 				topLevelPass("TestTier1ArithmeticStructuredNativeDifferential"),
 				topLevelPass("TestTier1ArithmeticDeterministicRandomNativeDifferential"),
+				sentinelCountEvidence(*sentinelsPath, "Tier 1 arithmetic routing sentinels"),
 			)
 			for _, w := range widths {
 				structured := a.Tier1ArithmeticStructured["decimal"+w]
@@ -78,7 +88,10 @@ func main() {
 				)
 			}
 		case "tier1-arithmetic-rust":
-			required = append(required, countLine("test result: ok. 3 passed; 0 failed;"))
+			required = append(required,
+				countLine("test result: ok. 4 passed; 0 failed;"),
+				sentinelCountEvidence(*sentinelsPath, "Rust Tier 1 arithmetic routing sentinels"),
+			)
 			for _, w := range widths {
 				structured := a.Tier1ArithmeticStructured["decimal"+w]
 				random := a.Tier1ArithmeticRandomCasesPerOp["decimal"+w] * a.Tier1ArithmeticRandomOperations
@@ -90,10 +103,12 @@ func main() {
 		case "tier1-compare-conversion-go":
 			required = append(required,
 				topLevelPass("TestTier1QuietComparisonSemanticMatrix"),
+				topLevelPass("TestTier1CompareConversionRoutingSentinels"),
 				topLevelPass("TestTier1ComparisonMinMaxStructuredNativeDifferential"),
 				topLevelPass("TestTier1ComparisonMinMaxDeterministicRandomNativeDifferential"),
 				topLevelPass("TestTier1ConversionStructuredNativeDifferential"),
 				topLevelPass("TestTier1ConversionDeterministicRandomNativeDifferential"),
+				sentinelCCCountEvidence(*sentinelsPath, "Tier 1 compare/conversion routing sentinels"),
 				countLine(fmt.Sprintf("Tier 1 structured conversion exact comparisons: %d/%d", a.Tier1CCConversionStructured, a.Tier1CCConversionStructured)),
 				countLine(fmt.Sprintf("Tier 1 deterministic random conversion exact comparisons: %d/%d", a.Tier1CCConversionRandom, a.Tier1CCConversionRandom)),
 			)
@@ -107,7 +122,8 @@ func main() {
 			}
 		case "tier1-compare-conversion-rust":
 			required = append(required,
-				countLine("test result: ok. 6 passed; 0 failed;"),
+				countLine("test result: ok. 7 passed; 0 failed;"),
+				sentinelCCCountEvidence(*sentinelsPath, "Rust Tier 1 compare/conversion routing sentinels"),
 				countLine(fmt.Sprintf("Rust structured Tier 1 conversion exact comparisons: %d/%d;", a.Tier1CCConversionStructured, a.Tier1CCConversionStructured)),
 				countLine(fmt.Sprintf("Rust deterministic random Tier 1 conversion exact comparisons: %d/%d", a.Tier1CCConversionRandom, a.Tier1CCConversionRandom)),
 			)
@@ -146,6 +162,42 @@ type evidence struct {
 
 func topLevelPass(name string) evidence { return evidence{kind: "pass", literal: name} }
 func countLine(literal string) evidence { return evidence{kind: "count", literal: literal} }
+
+// loadSentinels reads the routing-sentinel row pin file for the count
+// evidence below.
+func loadSentinels(sentinelsPath string) sentinels {
+	rawSentinels, err := os.ReadFile(sentinelsPath)
+	if err != nil {
+		fail("read sentinels: %v", err)
+	}
+	var s sentinels
+	if err := json.Unmarshal(rawSentinels, &s); err != nil {
+		fail("unmarshal sentinels: %v", err)
+	}
+	return s
+}
+
+// sentinelCountEvidence loads the routing-sentinel row pin and requires the
+// runner's "<prefix>: N/N" full-count line, N = len(pinned rows). Zero pinned
+// rows fail immediately: an empty pin would turn the sentinel gate into a
+// green no-op.
+func sentinelCountEvidence(sentinelsPath, prefix string) evidence {
+	n := len(loadSentinels(sentinelsPath).Tier1ArithmeticRoutingRows)
+	if n == 0 {
+		fail("verification_sentinels.json pins zero Tier 1 arithmetic routing sentinel rows")
+	}
+	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
+}
+
+// sentinelCCCountEvidence is the compare/conversion analogue of
+// sentinelCountEvidence.
+func sentinelCCCountEvidence(sentinelsPath, prefix string) evidence {
+	n := len(loadSentinels(sentinelsPath).Tier1CompareConversionRoutingRows)
+	if n == 0 {
+		fail("verification_sentinels.json pins zero Tier 1 compare/conversion routing sentinel rows")
+	}
+	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
+}
 
 func (e evidence) String() string {
 	if e.kind == "pass" {

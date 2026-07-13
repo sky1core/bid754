@@ -259,19 +259,28 @@ verify-cexport-disabled:
 		}; \
 		echo "cexport disabled check passed"'
 
-# 공개 Go 모듈과 devtools는 stdlib 외 의존이 0이어야 한다 (포트 순수성/이식성 계약)
+# 공개 Go 모듈과 devtools는 외부(리포 밖) 의존이 0이어야 한다 (포트 순수성/이식성 계약).
+# devtools만 예외적으로 리포 내부 bid754-go 모듈을 추가로 허용한다: Tier 1 라우팅
+# 센티널 코드젠이 핀 시점 오라클로 공개 bid754-go API(기계 포트 경유, cgo-free)를
+# 호출하기 때문이며, 외부 의존은 여전히 금지다.
 verify-zero-deps:
 	@echo "🧊 bid754-go/bid754-codec-go/devtools zero-dependency 계약 검증..."
 	@bash -o pipefail -c 'set -e; \
 	for module in $(GO_MODULES); do \
+		allowed="^github.com/sky1core/bid754/$$module"; \
+		label="stdlib-only"; \
+		if [ "$$module" = "devtools" ]; then \
+			allowed="$$allowed|^github.com/sky1core/bid754/bid754-go"; \
+			label="stdlib + in-repo bid754-go (sentinel pin-time oracle)"; \
+		fi; \
 		deps=$$(cd "$$module" && $(GOENV) go list -deps -f "{{if not .Standard}}{{.ImportPath}}{{end}}" ./...); \
-		out=$$(printf "%s\n" "$$deps" | grep -v "^github.com/sky1core/bid754/$$module" | grep -v "^$$" || true); \
+		out=$$(printf "%s\n" "$$deps" | grep -Ev "$$allowed" | grep -v "^$$" || true); \
 		if [ -n "$$out" ]; then \
-			echo "ERROR: $$module imports non-stdlib packages outside its own module:"; \
+			echo "ERROR: $$module imports non-stdlib packages outside its allowed set:"; \
 			echo "$$out"; \
 			exit 1; \
 		fi; \
-		echo "✅ $$module: stdlib-only"; \
+		echo "✅ $$module: $$label"; \
 	done'
 
 # 기본(태그 없는) 빌드 그래프에 cgo 파일이 유입되면 안 된다.
@@ -375,25 +384,25 @@ test-native-ffi:
 test-native-tier1-arithmetic-long:
 	@echo "🏦 Tier 1 산술 structured + 대량 결정론 Intel C exact bit/flag 장기 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
+	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
 
 _test-native-tier1-arithmetic-long-full:
 	@echo "🏦 Tier 1 산술 canonical full verification Intel C exact bit/flag 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_ARITH_SHARD_COUNT BID754_TIER1_ARITH_SHARD_INDEX; \
-		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
+		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_tier1_arithmetic_long_results.txt -domain tier1-arithmetic-go
 
 test-native-tier1-compare-conversion-long:
 	@echo "🏦 Tier 1 quiet 비교·MinNum/MaxNum·정수/BID·BID 폭 변환 Intel C exact 장기 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
+	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|CompareConversionRoutingSentinels|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
 
 _test-native-tier1-compare-conversion-long-full:
 	@echo "🏦 Tier 1 비교·변환 canonical full verification Intel C exact 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_COMPARE_CONVERSION_SHARD_COUNT BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX; \
-		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
+		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|CompareConversionRoutingSentinels|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_tier1_compare_conversion_long_results.txt -domain tier1-compare-conversion-go
 
 test-native-readtest:

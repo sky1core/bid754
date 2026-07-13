@@ -261,7 +261,15 @@ fn random_operand128(seed: u64, case_index: u64, lane: u64) -> Words {
     }
 }
 
-fn check_quiet32(op: QuietOp, x: u32, y: u32) {
+// legs_* compute every leg of one comparison from one decoded case. They are
+// the single operand/dispatch fan-out shared by the differential checks and
+// the routing sentinels, so a slot swap or a dispatch-row mislabel in this
+// glue skews the differential's legs identically (an agreed-upon wrong answer
+// the differential cannot see) while the pinned sentinel rows diverge and
+// fail. The one-operand families (to-int, width, binary, constructor) already
+// route both paths through the shared native_*/public_* dispatch pairs.
+
+fn legs_quiet32(op: QuietOp, x: u32, y: u32) -> (bool, u32, bool, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         QuietOp::Equal => libbid_sys::bid32_quiet_equal(x, y, &mut native_flags),
@@ -277,10 +285,15 @@ fn check_quiet32(op: QuietOp, x: u32, y: u32) {
         QuietOp::Less => left.quiet_lt(right), QuietOp::LessEqual => left.quiet_le(right),
         QuietOp::Greater => left.quiet_gt(right), QuietOp::GreaterEqual => left.quiet_ge(right),
     };
-    assert_eq!((public, public_raw_flags(flags)), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
+    (native, native_flags, public, public_raw_flags(flags))
 }
 
-fn check_quiet64(op: QuietOp, x: u64, y: u64) {
+fn check_quiet32(op: QuietOp, x: u32, y: u32) {
+    let (native, native_flags, public, public_flags) = legs_quiet32(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
+}
+
+fn legs_quiet64(op: QuietOp, x: u64, y: u64) -> (bool, u32, bool, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         QuietOp::Equal => libbid_sys::bid64_quiet_equal(x, y, &mut native_flags),
@@ -296,10 +309,15 @@ fn check_quiet64(op: QuietOp, x: u64, y: u64) {
         QuietOp::Less => left.quiet_lt(right), QuietOp::LessEqual => left.quiet_le(right),
         QuietOp::Greater => left.quiet_gt(right), QuietOp::GreaterEqual => left.quiet_ge(right),
     };
-    assert_eq!((public, public_raw_flags(flags)), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+    (native, native_flags, public, public_raw_flags(flags))
 }
 
-fn check_quiet128(op: QuietOp, x: Words, y: Words) {
+fn check_quiet64(op: QuietOp, x: u64, y: u64) {
+    let (native, native_flags, public, public_flags) = legs_quiet64(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+}
+
+fn legs_quiet128(op: QuietOp, x: Words, y: Words) -> (bool, u32, bool, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         QuietOp::Equal => libbid_sys::bid128_quiet_equal(c128(x), c128(y), &mut native_flags),
@@ -315,10 +333,15 @@ fn check_quiet128(op: QuietOp, x: Words, y: Words) {
         QuietOp::Less => left.quiet_lt(right), QuietOp::LessEqual => left.quiet_le(right),
         QuietOp::Greater => left.quiet_gt(right), QuietOp::GreaterEqual => left.quiet_ge(right),
     };
-    assert_eq!((public, public_raw_flags(flags)), (native, native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
+    (native, native_flags, public, public_raw_flags(flags))
 }
 
-fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
+fn check_quiet128(op: QuietOp, x: Words, y: Words) {
+    let (native, native_flags, public, public_flags) = legs_quiet128(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
+}
+
+fn legs_minmax32(op: MinMaxOp, x: u32, y: u32) -> (u32, u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid32_minnum(x, y, &mut native_flags),
@@ -331,19 +354,24 @@ fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
         MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
         MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
-    // The value-only generated bodies (bid32_minnum_pure / bid32_maxnum_pure /
-    // bid32_minnum_mag_pure / bid32_maxnum_mag_pure) are separate
-    // implementations from the status-aware bodies, so they are compared
-    // against the native value bits directly, mirroring the Go runner.
     let pure = match op {
         MinMaxOp::MinNum => bid32_min_num(x, y), MinMaxOp::MaxNum => bid32_max_num(x, y),
         MinMaxOp::MinNumMag => bid32_min_num_mag(x, y), MinMaxOp::MaxNumMag => bid32_max_num_mag(x, y),
     };
+    (native, native_flags, public.to_bits(), public_raw_flags(flags), pure)
+}
+
+fn check_minmax32(op: MinMaxOp, x: u32, y: u32) {
+    let (native, native_flags, public, public_flags, pure) = legs_minmax32(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal32 {op:?} x={x:08x} y={y:08x}");
+    // The value-only generated bodies (bid32_minnum_pure / bid32_maxnum_pure /
+    // bid32_minnum_mag_pure / bid32_maxnum_mag_pure) are separate
+    // implementations from the status-aware bodies, so they are compared
+    // against the native value bits directly, mirroring the Go runner.
     assert_eq!(pure, native, "Decimal32 pure {op:?} x={x:08x} y={y:08x}");
 }
 
-fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
+fn legs_minmax64(op: MinMaxOp, x: u64, y: u64) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid64_minnum(x, y, &mut native_flags),
@@ -356,10 +384,15 @@ fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
         MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
         MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
 }
 
-fn check_minmax128(op: MinMaxOp, x: Words, y: Words) {
+fn check_minmax64(op: MinMaxOp, x: u64, y: u64) {
+    let (native, native_flags, public, public_flags) = legs_minmax64(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal64 {op:?} x={x:016x} y={y:016x}");
+}
+
+fn legs_minmax128(op: MinMaxOp, x: Words, y: Words) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         MinMaxOp::MinNum => libbid_sys::bid128_minnum(c128(x), c128(y), &mut native_flags),
@@ -372,7 +405,12 @@ fn check_minmax128(op: MinMaxOp, x: Words, y: Words) {
         MinMaxOp::MinNum => left.min_num(right), MinMaxOp::MaxNum => left.max_num(right),
         MinMaxOp::MinNumMag => left.min_num_mag(right), MinMaxOp::MaxNumMag => left.max_num_mag(right),
     };
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_minmax128(op: MinMaxOp, x: Words, y: Words) {
+    let (native, native_flags, public, public_flags) = legs_minmax128(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags), "Decimal128 {op:?} x={x:?} y={y:?}");
 }
 
 fn visit_pairs32(mut visit: impl FnMut(u32, u32)) {
@@ -980,6 +1018,364 @@ fn tier1_conversion_deterministic_random_native_differential() {
     assert_eq!(total, CONVERSION_RANDOM); assert_eq!(CONVERSION_STRUCTURED + total, CONVERSION_TOTAL);
     eprintln!("Rust deterministic random Tier 1 conversion exact comparisons: {executed}/{total}");
 }
+
+// Routing sentinels: generator-selected known-answer rows that bind the
+// compare/conversion runner glue (operand slots, dispatch-row labels
+// including their embedded rounding modes) to values pinned outside the
+// runtime. Every dispatch-table row of every family carries at least one row;
+// a glue bug that skews the Intel C and generated-Rust legs identically —
+// invisible to the differential — diverges from the pin here.
+
+fn sentinel_mode(row: &str, native: u32) -> Mode {
+    for mode in MODES {
+        if mode.native == native {
+            return mode;
+        }
+    }
+    panic!("routing sentinel row [{row}]: native mode {native} is not in the runner mode table");
+}
+
+fn sentinel_mode_name(mode: Mode) -> &'static str {
+    match mode.native {
+        0 => "nearest_even",
+        4 => "nearest_away",
+        3 => "toward_zero",
+        2 => "toward_positive",
+        1 => "toward_negative",
+        _ => "unknown",
+    }
+}
+
+fn sentinel_mode_label(mode: Mode) -> String {
+    format!("{}(native {})", sentinel_mode_name(mode), mode.native)
+}
+
+fn sentinel_hex32(row: &str, text: &str) -> u32 {
+    assert!(text.len() == 8, "routing sentinel row [{row}]: expected 8 hex digits, got {text:?}");
+    u32::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 32-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_hex64(row: &str, text: &str) -> u64 {
+    assert!(text.len() == 16, "routing sentinel row [{row}]: expected 16 hex digits, got {text:?}");
+    u64::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 64-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_words128(row: &str, text: &str) -> Words {
+    assert!(
+        text.len() == 33 && text.as_bytes()[16] == b':',
+        "routing sentinel row [{row}]: expected <hi16>:<lo16> hex words, got {text:?}"
+    );
+    Words { hi: sentinel_hex64(row, &text[..16]), lo: sentinel_hex64(row, &text[17..]) }
+}
+
+fn sentinel_raw(row: &str, width: &str, text: &str) -> RawDecimal {
+    match width {
+        "d32" => RawDecimal::D32(sentinel_hex32(row, text)),
+        "d64" => RawDecimal::D64(sentinel_hex64(row, text)),
+        "d128" => RawDecimal::D128(sentinel_words128(row, text)),
+        _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+    }
+}
+
+fn sentinel_bool(value: bool, flags: u32) -> String {
+    format!("{:02}/{flags:08x}", if value { 1 } else { 0 })
+}
+
+fn sentinel_bits(bits: Bits, flags: u32) -> String {
+    match bits {
+        Bits::D32(v) => format!("{v:08x}/{flags:08x}"),
+        Bits::D64(v) => format!("{v:016x}/{flags:08x}"),
+        Bits::D128(words) => format!("{:016x}:{:016x}/{flags:08x}", words.hi, words.lo),
+    }
+}
+
+fn sentinel_bits_flagless(bits: Bits) -> String {
+    match bits {
+        Bits::D32(v) => format!("{v:08x}"),
+        Bits::D64(v) => format!("{v:016x}"),
+        Bits::D128(words) => format!("{:016x}:{:016x}", words.hi, words.lo),
+    }
+}
+
+fn sentinel_assert(row: &str, mode_label: &str, pinned: &str, native: &str, public: &str) {
+    if native == pinned && public == pinned {
+        return;
+    }
+    let mut diverged = Vec::new();
+    if native != pinned {
+        diverged.push("C");
+    }
+    if public != pinned {
+        diverged.push("public");
+    }
+    panic!(
+        "routing sentinel mismatch [{row}]:\n  pinned={pinned} C={native} public={public}\n  mode={mode_label} diverged={{{}}}",
+        diverged.join(",")
+    );
+}
+
+fn sentinel_quiet_op(row: &str, name: &str) -> QuietOp {
+    match name {
+        "quiet_equal" => QuietOp::Equal,
+        "quiet_not_equal" => QuietOp::NotEqual,
+        "quiet_less" => QuietOp::Less,
+        "quiet_less_equal" => QuietOp::LessEqual,
+        "quiet_greater" => QuietOp::Greater,
+        "quiet_greater_equal" => QuietOp::GreaterEqual,
+        _ => panic!("routing sentinel row [{row}]: unknown quiet predicate {name:?}"),
+    }
+}
+
+fn sentinel_minmax_op(row: &str, name: &str) -> MinMaxOp {
+    match name {
+        "minnum" => MinMaxOp::MinNum,
+        "maxnum" => MinMaxOp::MaxNum,
+        "minnum_mag" => MinMaxOp::MinNumMag,
+        "maxnum_mag" => MinMaxOp::MaxNumMag,
+        _ => panic!("routing sentinel row [{row}]: unknown min/max operation {name:?}"),
+    }
+}
+
+fn sentinel_int_kind_name(kind: IntKind) -> &'static str {
+    match kind {
+        IntKind::I8 => "int8",
+        IntKind::I16 => "int16",
+        IntKind::I32 => "int32",
+        IntKind::I64 => "int64",
+        IntKind::U8 => "uint8",
+        IntKind::U16 => "uint16",
+        IntKind::U32 => "uint32",
+        IntKind::U64 => "uint64",
+    }
+}
+
+fn sentinel_int_suffix_name(suffix: IntSuffix) -> &'static str {
+    match suffix {
+        IntSuffix::Rnint => "rnint",
+        IntSuffix::Rninta => "rninta",
+        IntSuffix::Int => "int",
+        IntSuffix::Ceil => "ceil",
+        IntSuffix::Floor => "floor",
+        IntSuffix::Xrnint => "xrnint",
+        IntSuffix::Xrninta => "xrninta",
+        IntSuffix::Xint => "xint",
+        IntSuffix::Xceil => "xceil",
+        IntSuffix::Xfloor => "xfloor",
+    }
+}
+
+fn sentinel_to_int_op(row: &str, name: &str) -> ToIntOp {
+    for op in to_int_ops() {
+        if format!("to_{}_{}", sentinel_int_kind_name(op.kind), sentinel_int_suffix_name(op.suffix)) == name {
+            return op;
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} is not in the runner to-integer table");
+}
+
+fn sentinel_width_op(row: &str, source: u8, name: &str, mode: Option<Mode>) -> WidthOp {
+    for op in width_ops(source) {
+        if format!("to_bid{}", op.dest) != name {
+            continue;
+        }
+        match (op.mode, mode) {
+            (None, None) => return op,
+            (Some(op_mode), Some(row_mode)) if op_mode.native == row_mode.native => return op,
+            _ => continue,
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} (mode {mode:?}) is not in the runner width table");
+}
+
+fn sentinel_binary_op(row: &str, source: u8, name: &str, mode: Mode) -> BinaryOp {
+    for op in binary_ops(source) {
+        if format!("to_binary{}", op.dest) == name && op.mode.native == mode.native {
+            return op;
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} is not in the runner binary-conversion table");
+}
+
+fn sentinel_constructor_kind_name(kind: ConstructorKind) -> &'static str {
+    match kind {
+        ConstructorKind::I32 => "int32",
+        ConstructorKind::U32 => "uint32",
+        ConstructorKind::I64 => "int64",
+        ConstructorKind::U64 => "uint64",
+    }
+}
+
+fn sentinel_constructor_op(row: &str, dest: u8, name: &str, mode: Option<Mode>) -> ConstructorOp {
+    for op in constructor_ops() {
+        if op.dest != dest || format!("from_{}", sentinel_constructor_kind_name(op.kind)) != name {
+            continue;
+        }
+        match (op.mode, mode) {
+            (None, None) => return op,
+            (Some(op_mode), Some(row_mode)) if op_mode.native == row_mode.native => return op,
+            _ => continue,
+        }
+    }
+    panic!("routing sentinel row [{row}]: operation {name:?} (mode {mode:?}) is not in the runner constructor table");
+}
+
+// Rebuilds the 64-bit register image from the row's kind-typed decimal input,
+// mirroring the structured differential's convention (32-bit kinds
+// zero-extend their low word).
+fn sentinel_constructor_register(row: &str, kind: ConstructorKind, text: &str) -> u64 {
+    match kind {
+        ConstructorKind::I32 => text.parse::<i32>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad int32 input {text:?}: {err}")) as u32 as u64,
+        ConstructorKind::U32 => text.parse::<u32>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad uint32 input {text:?}: {err}")) as u64,
+        ConstructorKind::I64 => text.parse::<i64>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad int64 input {text:?}: {err}")) as u64,
+        ConstructorKind::U64 => text.parse::<u64>()
+            .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad uint64 input {text:?}: {err}")),
+    }
+}
+
+fn check_routing_sentinel_row(row: &str) {
+    let fields: Vec<&str> = row.split(' ').collect();
+    assert!(
+        fields.len() >= 4 && fields[fields.len() - 2] == "->",
+        "routing sentinel row [{row}]: malformed layout"
+    );
+    let width = fields[0];
+    let operation = fields[1];
+    let pinned = fields[fields.len() - 1];
+    let mut x_text: Option<&str> = None;
+    let mut y_text: Option<&str> = None;
+    let mut i_text: Option<&str> = None;
+    let mut mode: Option<Mode> = None;
+    for field in &fields[2..fields.len() - 2] {
+        if let Some(text) = field.strip_prefix("x=") {
+            x_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("y=") {
+            y_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("i=") {
+            i_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("m=") {
+            let native = text.parse::<u32>().unwrap_or_else(|err| {
+                panic!("routing sentinel row [{row}]: bad native mode {text:?}: {err}")
+            });
+            mode = Some(sentinel_mode(row, native));
+        } else {
+            panic!("routing sentinel row [{row}]: unknown field {field:?}");
+        }
+    }
+    let source: u8 = match width {
+        "d32" => 32,
+        "d64" => 64,
+        "d128" => 128,
+        _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+    };
+    if operation.starts_with("quiet_") {
+        assert!(x_text.is_some() && y_text.is_some() && i_text.is_none() && mode.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a quiet predicate");
+        let op = sentinel_quiet_op(row, operation);
+        let (native, native_flags, public, public_flags) = match width {
+            "d32" => legs_quiet32(op, sentinel_hex32(row, x_text.unwrap()), sentinel_hex32(row, y_text.unwrap())),
+            "d64" => legs_quiet64(op, sentinel_hex64(row, x_text.unwrap()), sentinel_hex64(row, y_text.unwrap())),
+            _ => legs_quiet128(op, sentinel_words128(row, x_text.unwrap()), sentinel_words128(row, y_text.unwrap())),
+        };
+        sentinel_assert(row, "(none)", pinned, &sentinel_bool(native, native_flags), &sentinel_bool(public, public_flags));
+    } else if operation == "minnum" || operation == "maxnum" || operation == "minnum_mag" || operation == "maxnum_mag" {
+        assert!(x_text.is_some() && y_text.is_some() && i_text.is_none() && mode.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a min/max operation");
+        let op = sentinel_minmax_op(row, operation);
+        let (native, native_flags, public, public_flags) = match width {
+            "d32" => {
+                let (n, nf, p, pf, _) = legs_minmax32(op, sentinel_hex32(row, x_text.unwrap()), sentinel_hex32(row, y_text.unwrap()));
+                (Bits::D32(n), nf, Bits::D32(p), pf)
+            }
+            "d64" => {
+                let (n, nf, p, pf) = legs_minmax64(op, sentinel_hex64(row, x_text.unwrap()), sentinel_hex64(row, y_text.unwrap()));
+                (Bits::D64(n), nf, Bits::D64(p), pf)
+            }
+            _ => {
+                let (n, nf, p, pf) = legs_minmax128(op, sentinel_words128(row, x_text.unwrap()), sentinel_words128(row, y_text.unwrap()));
+                (Bits::D128(n), nf, Bits::D128(p), pf)
+            }
+        };
+        sentinel_assert(row, "(none)", pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+    } else if operation.starts_with("to_int") || operation.starts_with("to_uint") {
+        assert!(x_text.is_some() && y_text.is_none() && i_text.is_none() && mode.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a to-integer operation");
+        let op = sentinel_to_int_op(row, operation);
+        let value = sentinel_raw(row, width, x_text.unwrap());
+        let (native, native_flags) = native_to_int(value, op);
+        let (public, public_flags) = public_to_int(value, op);
+        sentinel_assert(
+            row,
+            &format!("{}(suffix)", sentinel_mode_name(op.mode)),
+            pinned,
+            &format!("{native:016x}/{native_flags:08x}"),
+            &format!("{public:016x}/{public_flags:08x}"),
+        );
+    } else if operation.starts_with("to_bid") {
+        assert!(x_text.is_some() && y_text.is_none() && i_text.is_none(),
+            "routing sentinel row [{row}]: field shape does not match a width conversion");
+        let op = sentinel_width_op(row, source, operation, mode);
+        let value = sentinel_raw(row, width, x_text.unwrap());
+        let (native, native_flags) = native_width(value, op);
+        let (public, public_flags) = public_width(value, op);
+        let mode_label = op.mode.map_or("(none)".to_string(), sentinel_mode_label);
+        sentinel_assert(row, &mode_label, pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+    } else if operation.starts_with("to_binary") {
+        assert!(x_text.is_some() && y_text.is_none() && i_text.is_none() && mode.is_some(),
+            "routing sentinel row [{row}]: field shape does not match a binary conversion");
+        let op = sentinel_binary_op(row, source, operation, mode.unwrap());
+        let value = sentinel_raw(row, width, x_text.unwrap());
+        let (native, native_flags) = native_binary(value, op);
+        let (public, public_flags) = public_binary(value, op);
+        sentinel_assert(row, &sentinel_mode_label(op.mode), pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+    } else if operation.starts_with("from_") {
+        assert!(x_text.is_none() && y_text.is_none() && i_text.is_some(),
+            "routing sentinel row [{row}]: field shape does not match a constructor");
+        let op = sentinel_constructor_op(row, source, operation, mode);
+        let raw = sentinel_constructor_register(row, op.kind, i_text.unwrap());
+        let (native, native_flags) = native_constructor(raw, op);
+        let (public, public_flags) = public_constructor(raw, op);
+        let mode_label = op.mode.map_or("(none)".to_string(), sentinel_mode_label);
+        if op.mode.is_some() {
+            sentinel_assert(row, &mode_label, pinned, &sentinel_bits(native, native_flags), &sentinel_bits(public, public_flags));
+        } else {
+            // Exact constructors have no flags channel; the pinned result is
+            // bits-only and the flag words are structurally zero.
+            assert_eq!((native_flags, public_flags), (0, 0), "routing sentinel row [{row}]: exact constructor raised flags");
+            sentinel_assert(row, &mode_label, pinned, &sentinel_bits_flagless(native), &sentinel_bits_flagless(public));
+        }
+    } else {
+        panic!("routing sentinel row [{row}]: unknown operation {operation:?}");
+    }
+}
+
+// Runs every pinned sentinel row on every leg. Deliberately ignores the
+// shard environment: the rows are few and every shard configuration (and the
+// -full gate) must execute all of them.
+#[test]
+fn tier1_compare_conversion_routing_sentinels() {
+    assert!(
+        !ROUTING_SENTINEL_ROWS.is_empty(),
+        "generated Tier 1 compare/conversion routing sentinel row set is empty"
+    );
+    for row in ROUTING_SENTINEL_ROWS {
+        check_routing_sentinel_row(row);
+    }
+    let n = ROUTING_SENTINEL_ROWS.len();
+    println!("Rust Tier 1 compare/conversion routing sentinels: {n}/{n}");
+}
+
+// The canonical sentinel row set. The identical byte sequence is pinned by
+// hand in devtools/verification_sentinels.json and emitted into the generated
+// Go runner; TestVerificationAnchorsMatchGeneratedArtifacts requires the
+// three copies to match exactly.
+const ROUTING_SENTINEL_ROWS: [&str; @@TIER1_CC_SENTINEL_COUNT@@] = [
+@@TIER1_CC_SENTINEL_ROWS@@
+];
 
 const PROBES32: [u32; 12] = [0x00000000, 0x80000000, 0x32800001, 0xb2800001, 0x00000001, 0x77f8967f, 0xf7f8967f, 0x78000000, 0x7c000001, 0x7e000001, 0x60000000, 0x5f800000];
 const PROBES64: [u64; 12] = [0x0000000000000000, 0x8000000000000000, 0x31c0000000000001, 0xb1c0000000000001, 0x0000000000000001, 0x77fb86f26fc0ffff, 0xf7fb86f26fc0ffff, 0x7800000000000000, 0x7c00000000000001, 0x7e00000000000001, 0x6000000000000000, 0x5fe0000000000000];

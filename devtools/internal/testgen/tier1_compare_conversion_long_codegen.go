@@ -84,7 +84,17 @@ func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
 	}
 	streamHashReplacer := strings.NewReplacer(streamHashReplacements...)
 
+	// Routing sentinels: deterministic known-answer rows selected and
+	// self-asserted by tier1_sentinel_cc_codegen.go; a selection failure
+	// aborts the whole generation run with no partial output.
+	sentinelRows, err := GenerateTier1CompareConversionSentinelRows()
+	if err != nil {
+		return nil, err
+	}
+
 	replacer := strings.NewReplacer(
+		"@@TIER1_CC_SENTINEL_COUNT@@", fmt.Sprint(len(sentinelRows)),
+		"@@TIER1_CC_SENTINEL_ROWS@@", tier1SentinelGoRowLiterals(sentinelRows),
 		"@@TIER1_BOUNDARY32_COUNT@@", fmt.Sprint(len(tier1ArithmeticBoundary32Values())),
 		"@@TIER1_BOUNDARY64_COUNT@@", fmt.Sprint(len(bid64BidCodecEdgeValues())),
 		"@@TIER1_BOUNDARY128_COUNT@@", fmt.Sprint(len(bid128BidCodecEdgeValues())),
@@ -111,6 +121,8 @@ func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
 		return nil, err
 	}
 	rustReplacer := strings.NewReplacer(
+		"@@TIER1_CC_SENTINEL_COUNT@@", fmt.Sprint(len(sentinelRows)),
+		"@@TIER1_CC_SENTINEL_ROWS@@", tier1SentinelRustRowLiterals(sentinelRows),
 		"@@TIER1_BOUNDARY32_COUNT@@", fmt.Sprint(len(boundary32)),
 		"@@TIER1_BOUNDARY64_COUNT@@", fmt.Sprint(len(boundary64)),
 		"@@TIER1_BOUNDARY128_COUNT@@", fmt.Sprint(len(boundary128)),

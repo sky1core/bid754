@@ -223,7 +223,14 @@ fn public_raw_flags(flags: ExceptionFlags) -> u32 {
     raw
 }
 
-fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
+// legs_* compute every leg of one comparison from one decoded case. They are
+// the single operand/mode/dispatch fan-out shared by the differential checks
+// and the routing sentinels, so a slot swap, a mode miswire, or a
+// dispatch-row mislabel in this glue skews the differential's legs
+// identically (an agreed-upon wrong answer the differential cannot see)
+// while the pinned sentinel rows diverge and fail.
+
+fn legs_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) -> (u32, u32, u32, u32, Option<u32>) {
     let mut native_flags = 0u32;
     let native = unsafe {
         match op {
@@ -243,9 +250,6 @@ fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
         RoundedOp::Div => left.div_with_mode(right, mode.public),
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
-        "Decimal32 {op:?} mismatch x={x:08x} y={y:08x} mode={}", mode.name);
-
     let flagless = match op {
         RoundedOp::Add => Some(bid32_add(x, y, i64::from(mode.native))),
         RoundedOp::Sub => Some(bid32_sub(x, y, i64::from(mode.native))),
@@ -253,13 +257,20 @@ fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
         RoundedOp::Div => Some(bid32_div(x, y, i64::from(mode.native))),
         RoundedOp::Quantize => None,
     };
+    (native, native_flags, public.to_bits(), public_raw_flags(flags), flagless)
+}
+
+fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded32(op, x, y, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
+        "Decimal32 {op:?} mismatch x={x:08x} y={y:08x} mode={}", mode.name);
     if let Some(flagless) = flagless {
         assert_eq!(flagless, native,
             "Decimal32 flagless {op:?} mismatch x={x:08x} y={y:08x} mode={}", mode.name);
     }
 }
 
-fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
+fn legs_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) -> (u64, u32, u64, u32, Option<u64>) {
     let mut native_flags = 0u32;
     let native = unsafe {
         match op {
@@ -279,9 +290,6 @@ fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
         RoundedOp::Div => left.div_with_mode(right, mode.public),
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
-        "Decimal64 {op:?} mismatch x={x:016x} y={y:016x} mode={}", mode.name);
-
     let flagless = match op {
         RoundedOp::Add => Some(bid64_add(x, y, i64::from(mode.native))),
         RoundedOp::Sub => Some(bid64_sub(x, y, i64::from(mode.native))),
@@ -289,13 +297,20 @@ fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
         RoundedOp::Div => Some(bid64_div(x, y, i64::from(mode.native))),
         RoundedOp::Quantize => None,
     };
+    (native, native_flags, public.to_bits(), public_raw_flags(flags), flagless)
+}
+
+fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded64(op, x, y, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
+        "Decimal64 {op:?} mismatch x={x:016x} y={y:016x} mode={}", mode.name);
     if let Some(flagless) = flagless {
         assert_eq!(flagless, native,
             "Decimal64 flagless {op:?} mismatch x={x:016x} y={y:016x} mode={}", mode.name);
     }
 }
 
-fn check_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) {
+fn legs_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe {
         match op {
@@ -315,61 +330,96 @@ fn check_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) {
         RoundedOp::Div => left.div_with_mode(right, mode.public),
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_rounded128(op, x, y, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 {op:?} mismatch x={x:?} y={y:?} mode={}", mode.name);
 }
 
-fn check_fma32(x: u32, y: u32, z: u32, mode: Mode) {
+fn legs_fma32(x: u32, y: u32, z: u32, mode: Mode) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid32_fma(x, y, z, mode.native, &mut native_flags) };
     let (public, flags) = Decimal32::from_bits(x)
         .fma_with_mode(Decimal32::from_bits(y), Decimal32::from_bits(z), mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_fma32(x: u32, y: u32, z: u32, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_fma32(x, y, z, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 fma mismatch x={x:08x} y={y:08x} z={z:08x} mode={}", mode.name);
 }
 
-fn check_fma64(x: u64, y: u64, z: u64, mode: Mode) {
+fn legs_fma64(x: u64, y: u64, z: u64, mode: Mode) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid64_fma(x, y, z, mode.native, &mut native_flags) };
     let (public, flags) = Decimal64::from_bits(x)
         .fma_with_mode(Decimal64::from_bits(y), Decimal64::from_bits(z), mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_fma64(x: u64, y: u64, z: u64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_fma64(x, y, z, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 fma mismatch x={x:016x} y={y:016x} z={z:016x} mode={}", mode.name);
 }
 
-fn check_fma128(x: Words, y: Words, z: Words, mode: Mode) {
+fn legs_fma128(x: Words, y: Words, z: Words, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid128_fma(c128(x), c128(y), c128(z), mode.native, &mut native_flags) };
     let (public, flags) = decimal128(x).fma_with_mode(decimal128(y), decimal128(z), mode.public);
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_fma128(x: Words, y: Words, z: Words, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_fma128(x, y, z, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 fma mismatch x={x:?} y={y:?} z={z:?} mode={}", mode.name);
 }
 
-fn check_sqrt32(x: u32, mode: Mode) {
+fn legs_sqrt32(x: u32, mode: Mode) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid32_sqrt(x, mode.native, &mut native_flags) };
     let (public, flags) = Decimal32::from_bits(x).sqrt_with_mode(mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_sqrt32(x: u32, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_sqrt32(x, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 sqrt mismatch x={x:08x} mode={}", mode.name);
 }
 
-fn check_sqrt64(x: u64, mode: Mode) {
+fn legs_sqrt64(x: u64, mode: Mode) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid64_sqrt(x, mode.native, &mut native_flags) };
     let (public, flags) = Decimal64::from_bits(x).sqrt_with_mode(mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_sqrt64(x: u64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_sqrt64(x, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 sqrt mismatch x={x:016x} mode={}", mode.name);
 }
 
-fn check_sqrt128(x: Words, mode: Mode) {
+fn legs_sqrt128(x: Words, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid128_sqrt(c128(x), mode.native, &mut native_flags) };
     let (public, flags) = decimal128(x).sqrt_with_mode(mode.public);
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_sqrt128(x: Words, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_sqrt128(x, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 sqrt mismatch x={x:?} mode={}", mode.name);
 }
 
-fn check_unrounded32(op: UnroundedOp, x: u32, y: u32) {
+fn legs_unrounded32(op: UnroundedOp, x: u32, y: u32) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         UnroundedOp::Remainder => native_bid32_rem(x, y, &mut native_flags),
@@ -381,11 +431,16 @@ fn check_unrounded32(op: UnroundedOp, x: u32, y: u32) {
         UnroundedOp::Remainder => left.remainder(right),
         UnroundedOp::Fmod => left.fmod(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_unrounded32(op: UnroundedOp, x: u32, y: u32) {
+    let (native, native_flags, public, public_flags) = legs_unrounded32(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 {op:?} mismatch x={x:08x} y={y:08x}");
 }
 
-fn check_unrounded64(op: UnroundedOp, x: u64, y: u64) {
+fn legs_unrounded64(op: UnroundedOp, x: u64, y: u64) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         UnroundedOp::Remainder => native_bid64_rem(x, y, &mut native_flags),
@@ -397,11 +452,16 @@ fn check_unrounded64(op: UnroundedOp, x: u64, y: u64) {
         UnroundedOp::Remainder => left.remainder(right),
         UnroundedOp::Fmod => left.fmod(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_unrounded64(op: UnroundedOp, x: u64, y: u64) {
+    let (native, native_flags, public, public_flags) = legs_unrounded64(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 {op:?} mismatch x={x:016x} y={y:016x}");
 }
 
-fn check_unrounded128(op: UnroundedOp, x: Words, y: Words) {
+fn legs_unrounded128(op: UnroundedOp, x: Words, y: Words) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         UnroundedOp::Remainder => native_bid128_rem(c128(x), c128(y), &mut native_flags),
@@ -413,31 +473,51 @@ fn check_unrounded128(op: UnroundedOp, x: Words, y: Words) {
         UnroundedOp::Remainder => left.remainder(right),
         UnroundedOp::Fmod => left.fmod(right),
     };
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_unrounded128(op: UnroundedOp, x: Words, y: Words) {
+    let (native, native_flags, public, public_flags) = legs_unrounded128(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 {op:?} mismatch x={x:?} y={y:?}");
 }
 
-fn check_scale32(x: u32, exponent: i64, mode: Mode) {
+fn legs_scale32(x: u32, exponent: i64, mode: Mode) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { native_bid32_scalbln(x, exponent as c_long, mode.native, &mut native_flags) };
     let (public, flags) = Decimal32::from_bits(x).scaleb_with_mode(exponent, mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_scale32(x: u32, exponent: i64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_scale32(x, exponent, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 scaleB mismatch x={x:08x} exponent={exponent} mode={}", mode.name);
 }
 
-fn check_scale64(x: u64, exponent: i64, mode: Mode) {
+fn legs_scale64(x: u64, exponent: i64, mode: Mode) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { native_bid64_scalbln(x, exponent as c_long, mode.native, &mut native_flags) };
     let (public, flags) = Decimal64::from_bits(x).scaleb_with_mode(exponent, mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_scale64(x: u64, exponent: i64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_scale64(x, exponent, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 scaleB mismatch x={x:016x} exponent={exponent} mode={}", mode.name);
 }
 
-fn check_scale128(x: Words, exponent: i64, mode: Mode) {
+fn legs_scale128(x: Words, exponent: i64, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { native_bid128_scalbln(c128(x), exponent as c_long, mode.native, &mut native_flags) };
     let (public, flags) = decimal128(x).scaleb_with_mode(exponent, mode.public);
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_scale128(x: Words, exponent: i64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_scale128(x, exponent, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 scaleB mismatch x={x:?} exponent={exponent} mode={}", mode.name);
 }
 
@@ -1166,6 +1246,875 @@ fn tier1_arithmetic_deterministic_random_native_differential() {
     assert_eq!(count, RANDOM128_COUNT);
     eprintln!("Rust Decimal128 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
 }
+
+// Routing sentinels: generator-selected known-answer rows that bind the
+// runner glue (operand slots, rounding-mode wiring, dispatch-row labels) to
+// values pinned outside the runtime. Each row's expected (bits, flags) was
+// computed at generation time through the public bid754-go API and is
+// byte-equal pinned in devtools/verification_sentinels.json; at runtime the
+// Intel C leg, the generated Rust public leg, and (where exported) the
+// flagless leg must reproduce the pinned answer exactly. A glue bug that
+// skews every leg the same way — invisible to the differential — diverges
+// from the pin here. The diverged set names the broken leg axis:
+// {C,public} means shared runner glue (slot/mode/dispatch), {public} a
+// generated-Rust regression, {C} an FFI/link regression.
+
+fn sentinel_mode(row: &str, native: u32) -> Mode {
+    for mode in MODES {
+        if mode.native == native {
+            return mode;
+        }
+    }
+    panic!("routing sentinel row [{row}]: native mode {native} is not in the runner mode table");
+}
+
+fn sentinel_mode_label(mode: Mode) -> String {
+    format!("{}(native {})", mode.name, mode.native)
+}
+
+fn sentinel_hex32(row: &str, text: &str) -> u32 {
+    assert!(text.len() == 8, "routing sentinel row [{row}]: expected 8 hex digits, got {text:?}");
+    u32::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 32-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_hex64(row: &str, text: &str) -> u64 {
+    assert!(text.len() == 16, "routing sentinel row [{row}]: expected 16 hex digits, got {text:?}");
+    u64::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 64-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_words128(row: &str, text: &str) -> Words {
+    assert!(
+        text.len() == 33 && text.as_bytes()[16] == b':',
+        "routing sentinel row [{row}]: expected <hi16>:<lo16> hex words, got {text:?}"
+    );
+    Words { hi: sentinel_hex64(row, &text[..16]), lo: sentinel_hex64(row, &text[17..]) }
+}
+
+fn sentinel_result32(bits: u32, flags: u32) -> String {
+    format!("{bits:08x}/{flags:08x}")
+}
+
+fn sentinel_result64(bits: u64, flags: u32) -> String {
+    format!("{bits:016x}/{flags:08x}")
+}
+
+fn sentinel_result128(words: Words, flags: u32) -> String {
+    format!("{:016x}:{:016x}/{flags:08x}", words.hi, words.lo)
+}
+
+fn sentinel_assert(row: &str, mode_label: &str, pinned: &str, native: &str, public: &str, flagless: Option<&str>) {
+    let pinned_bits = pinned.split('/').next().unwrap_or("");
+    let flagless_matches = flagless.map_or(true, |bits| bits == pinned_bits);
+    if native == pinned && public == pinned && flagless_matches {
+        return;
+    }
+    let mut diverged = Vec::new();
+    if native != pinned {
+        diverged.push("C");
+    }
+    if public != pinned {
+        diverged.push("public");
+    }
+    if !flagless_matches {
+        diverged.push("flagless");
+    }
+    panic!(
+        "routing sentinel mismatch [{row}]:\n  pinned={pinned} C={native} public={public} flagless={}\n  mode={mode_label} diverged={{{}}}",
+        flagless.unwrap_or("-"),
+        diverged.join(",")
+    );
+}
+
+fn sentinel_rounded32(row: &str, op: RoundedOp, x: u32, y: u32, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded32(op, x, y, mode);
+    let flagless_text = flagless.map(|bits| format!("{bits:08x}"));
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        flagless_text.as_deref(),
+    );
+}
+
+fn sentinel_rounded64(row: &str, op: RoundedOp, x: u64, y: u64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded64(op, x, y, mode);
+    let flagless_text = flagless.map(|bits| format!("{bits:016x}"));
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        flagless_text.as_deref(),
+    );
+}
+
+fn sentinel_rounded128(row: &str, op: RoundedOp, x: Words, y: Words, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_rounded128(op, x, y, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_unrounded32(row: &str, op: UnroundedOp, x: u32, y: u32, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_unrounded32(op, x, y);
+    sentinel_assert(
+        row,
+        "(none)",
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_unrounded64(row: &str, op: UnroundedOp, x: u64, y: u64, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_unrounded64(op, x, y);
+    sentinel_assert(
+        row,
+        "(none)",
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_unrounded128(row: &str, op: UnroundedOp, x: Words, y: Words, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_unrounded128(op, x, y);
+    sentinel_assert(
+        row,
+        "(none)",
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_fma32(row: &str, x: u32, y: u32, z: u32, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_fma32(x, y, z, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_fma64(row: &str, x: u64, y: u64, z: u64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_fma64(x, y, z, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_fma128(row: &str, x: Words, y: Words, z: Words, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_fma128(x, y, z, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_sqrt32(row: &str, x: u32, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_sqrt32(x, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_sqrt64(row: &str, x: u64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_sqrt64(x, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_sqrt128(row: &str, x: Words, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_sqrt128(x, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_scale32(row: &str, x: u32, exponent: i64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_scale32(x, exponent, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_scale64(row: &str, x: u64, exponent: i64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_scale64(x, exponent, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_scale128(row: &str, x: Words, exponent: i64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_scale128(x, exponent, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_rounded_op(row: &str, name: &str) -> RoundedOp {
+    match name {
+        "add" => RoundedOp::Add,
+        "sub" => RoundedOp::Sub,
+        "mul" => RoundedOp::Mul,
+        "div" => RoundedOp::Div,
+        "quantize" => RoundedOp::Quantize,
+        _ => panic!("routing sentinel row [{row}]: unknown rounded operation {name:?}"),
+    }
+}
+
+fn check_routing_sentinel_row(row: &str) {
+    let fields: Vec<&str> = row.split(' ').collect();
+    assert!(
+        fields.len() >= 5 && fields[fields.len() - 2] == "->",
+        "routing sentinel row [{row}]: malformed layout"
+    );
+    let width = fields[0];
+    let operation = fields[1];
+    let pinned = fields[fields.len() - 1];
+    let mut x_text: Option<&str> = None;
+    let mut y_text: Option<&str> = None;
+    let mut z_text: Option<&str> = None;
+    let mut exponent: Option<i64> = None;
+    let mut mode: Option<Mode> = None;
+    for field in &fields[2..fields.len() - 2] {
+        if let Some(text) = field.strip_prefix("x=") {
+            x_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("y=") {
+            y_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("z=") {
+            z_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("n=") {
+            exponent = Some(text.parse::<i64>().unwrap_or_else(|err| {
+                panic!("routing sentinel row [{row}]: bad scaleb exponent {text:?}: {err}")
+            }));
+        } else if let Some(text) = field.strip_prefix("m=") {
+            let native = text.parse::<u32>().unwrap_or_else(|err| {
+                panic!("routing sentinel row [{row}]: bad native mode {text:?}: {err}")
+            });
+            mode = Some(sentinel_mode(row, native));
+        } else {
+            panic!("routing sentinel row [{row}]: unknown field {field:?}");
+        }
+    }
+    let require_shape = |need_x: bool, need_y: bool, need_z: bool, need_n: bool, need_mode: bool| {
+        assert!(
+            x_text.is_some() == need_x
+                && y_text.is_some() == need_y
+                && z_text.is_some() == need_z
+                && exponent.is_some() == need_n
+                && mode.is_some() == need_mode,
+            "routing sentinel row [{row}]: field shape does not match operation {operation:?}"
+        );
+    };
+    match operation {
+        "add" | "sub" | "mul" | "div" | "quantize" => {
+            require_shape(true, true, false, false, true);
+            let op = sentinel_rounded_op(row, operation);
+            let (x, y, mode) = (x_text.unwrap(), y_text.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_rounded32(row, op, sentinel_hex32(row, x), sentinel_hex32(row, y), mode, pinned),
+                "d64" => sentinel_rounded64(row, op, sentinel_hex64(row, x), sentinel_hex64(row, y), mode, pinned),
+                "d128" => sentinel_rounded128(row, op, sentinel_words128(row, x), sentinel_words128(row, y), mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "remainder" | "fmod" => {
+            require_shape(true, true, false, false, false);
+            let op = if operation == "remainder" { UnroundedOp::Remainder } else { UnroundedOp::Fmod };
+            let (x, y) = (x_text.unwrap(), y_text.unwrap());
+            match width {
+                "d32" => sentinel_unrounded32(row, op, sentinel_hex32(row, x), sentinel_hex32(row, y), pinned),
+                "d64" => sentinel_unrounded64(row, op, sentinel_hex64(row, x), sentinel_hex64(row, y), pinned),
+                "d128" => sentinel_unrounded128(row, op, sentinel_words128(row, x), sentinel_words128(row, y), pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "fma" => {
+            require_shape(true, true, true, false, true);
+            let (x, y, z, mode) = (x_text.unwrap(), y_text.unwrap(), z_text.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_fma32(row, sentinel_hex32(row, x), sentinel_hex32(row, y), sentinel_hex32(row, z), mode, pinned),
+                "d64" => sentinel_fma64(row, sentinel_hex64(row, x), sentinel_hex64(row, y), sentinel_hex64(row, z), mode, pinned),
+                "d128" => sentinel_fma128(row, sentinel_words128(row, x), sentinel_words128(row, y), sentinel_words128(row, z), mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "sqrt" => {
+            require_shape(true, false, false, false, true);
+            let (x, mode) = (x_text.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_sqrt32(row, sentinel_hex32(row, x), mode, pinned),
+                "d64" => sentinel_sqrt64(row, sentinel_hex64(row, x), mode, pinned),
+                "d128" => sentinel_sqrt128(row, sentinel_words128(row, x), mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "scaleb" => {
+            require_shape(true, false, false, true, true);
+            let (x, n, mode) = (x_text.unwrap(), exponent.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_scale32(row, sentinel_hex32(row, x), n, mode, pinned),
+                "d64" => sentinel_scale64(row, sentinel_hex64(row, x), n, mode, pinned),
+                "d128" => sentinel_scale128(row, sentinel_words128(row, x), n, mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        _ => panic!("routing sentinel row [{row}]: unknown operation {operation:?}"),
+    }
+}
+
+// Runs every pinned sentinel row on every leg. Deliberately ignores the
+// shard environment: the rows are few and every shard configuration (and the
+// -full gate) must execute all of them.
+#[test]
+fn tier1_arithmetic_routing_sentinels() {
+    assert!(
+        !ROUTING_SENTINEL_ROWS.is_empty(),
+        "generated Tier 1 arithmetic routing sentinel row set is empty"
+    );
+    for row in ROUTING_SENTINEL_ROWS {
+        check_routing_sentinel_row(row);
+    }
+    let n = ROUTING_SENTINEL_ROWS.len();
+    println!("Rust Tier 1 arithmetic routing sentinels: {n}/{n}");
+}
+
+// The canonical sentinel row set. The identical byte sequence is pinned by
+// hand in devtools/verification_sentinels.json and emitted into the generated
+// Go runner; TestVerificationAnchorsMatchGeneratedArtifacts requires the
+// three copies to match exactly.
+const ROUTING_SENTINEL_ROWS: [&str; 471] = [
+    "d32 add x=32800001 y=2f000005 m=0 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000005 m=4 -> 2f8f4241/00000020",
+    "d32 add x=32800001 y=2f000005 m=3 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000005 m=2 -> 2f8f4241/00000020",
+    "d32 add x=32800001 y=2f000005 m=1 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000001 m=0 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000001 m=4 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000001 m=3 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000001 m=2 -> 2f8f4241/00000020",
+    "d32 add x=32800001 y=2f000001 m=1 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000009 m=0 -> 2f8f4241/00000020",
+    "d32 add x=32800001 y=2f000009 m=4 -> 2f8f4241/00000020",
+    "d32 add x=32800001 y=2f000009 m=3 -> 2f8f4240/00000020",
+    "d32 add x=32800001 y=2f000009 m=2 -> 2f8f4241/00000020",
+    "d32 add x=32800001 y=2f000009 m=1 -> 2f8f4240/00000020",
+    "d32 add x=b2800001 y=af000001 m=0 -> af8f4240/00000020",
+    "d32 add x=b2800001 y=af000001 m=4 -> af8f4240/00000020",
+    "d32 add x=b2800001 y=af000001 m=3 -> af8f4240/00000020",
+    "d32 add x=b2800001 y=af000001 m=2 -> af8f4240/00000020",
+    "d32 add x=b2800001 y=af000001 m=1 -> af8f4241/00000020",
+    "d32 add x=7c000001 y=7c000002 m=0 -> 7c000001/00000000",
+    "d32 add x=7c000001 y=7c000002 m=4 -> 7c000001/00000000",
+    "d32 add x=7c000001 y=7c000002 m=3 -> 7c000001/00000000",
+    "d32 add x=7c000001 y=7c000002 m=2 -> 7c000001/00000000",
+    "d32 add x=7c000001 y=7c000002 m=1 -> 7c000001/00000000",
+    "d32 sub x=32800001 y=2e800001 m=0 -> 2f8f4240/00000020",
+    "d32 sub x=32800001 y=2e800001 m=4 -> 2f8f4240/00000020",
+    "d32 sub x=32800001 y=2e800001 m=3 -> 6bd8967f/00000020",
+    "d32 sub x=32800001 y=2e800001 m=2 -> 2f8f4240/00000020",
+    "d32 sub x=32800001 y=2e800001 m=1 -> 6bd8967f/00000020",
+    "d32 sub x=b2800001 y=2e800001 m=0 -> af8f4240/00000020",
+    "d32 sub x=b2800001 y=2e800001 m=4 -> af8f4240/00000020",
+    "d32 sub x=b2800001 y=2e800001 m=3 -> af8f4240/00000020",
+    "d32 sub x=b2800001 y=2e800001 m=2 -> af8f4240/00000020",
+    "d32 sub x=b2800001 y=2e800001 m=1 -> af8f4241/00000020",
+    "d32 sub x=32a5ad09 y=32000005 m=0 -> 32a5ad08/00000020",
+    "d32 sub x=32a5ad09 y=32000005 m=4 -> 32a5ad09/00000020",
+    "d32 sub x=32a5ad09 y=32000005 m=3 -> 32a5ad08/00000020",
+    "d32 sub x=32a5ad09 y=32000005 m=2 -> 32a5ad09/00000020",
+    "d32 sub x=32a5ad09 y=32000005 m=1 -> 32a5ad08/00000020",
+    "d32 sub x=32800002 y=2f000009 m=0 -> 2f9e847f/00000020",
+    "d32 sub x=32800002 y=2f000009 m=4 -> 2f9e847f/00000020",
+    "d32 sub x=32800002 y=2f000009 m=3 -> 2f9e847f/00000020",
+    "d32 sub x=32800002 y=2f000009 m=2 -> 2f9e8480/00000020",
+    "d32 sub x=32800002 y=2f000009 m=1 -> 2f9e847f/00000020",
+    "d32 mul x=32b2dcd6 y=32800003 m=0 -> 330f4240/00000020",
+    "d32 mul x=32b2dcd6 y=32800003 m=4 -> 330f4240/00000020",
+    "d32 mul x=32b2dcd6 y=32800003 m=3 -> 330f4240/00000020",
+    "d32 mul x=32b2dcd6 y=32800003 m=2 -> 330f4241/00000020",
+    "d32 mul x=32b2dcd6 y=32800003 m=1 -> 330f4240/00000020",
+    "d32 mul x=32a1e88f y=32800009 m=0 -> 331e8481/00000020",
+    "d32 mul x=32a1e88f y=32800009 m=4 -> 331e8481/00000020",
+    "d32 mul x=32a1e88f y=32800009 m=3 -> 331e8480/00000020",
+    "d32 mul x=32a1e88f y=32800009 m=2 -> 331e8481/00000020",
+    "d32 mul x=32a1e88f y=32800009 m=1 -> 331e8480/00000020",
+    "d32 mul x=32a5ad09 y=32800005 m=0 -> 3312d684/00000020",
+    "d32 mul x=32a5ad09 y=32800005 m=4 -> 3312d685/00000020",
+    "d32 mul x=32a5ad09 y=32800005 m=3 -> 3312d684/00000020",
+    "d32 mul x=32a5ad09 y=32800005 m=2 -> 3312d685/00000020",
+    "d32 mul x=32a5ad09 y=32800005 m=1 -> 3312d684/00000020",
+    "d32 mul x=b2b2dcd6 y=32800003 m=0 -> b30f4240/00000020",
+    "d32 mul x=b2b2dcd6 y=32800003 m=4 -> b30f4240/00000020",
+    "d32 mul x=b2b2dcd6 y=32800003 m=3 -> b30f4240/00000020",
+    "d32 mul x=b2b2dcd6 y=32800003 m=2 -> b30f4240/00000020",
+    "d32 mul x=b2b2dcd6 y=32800003 m=1 -> b30f4241/00000020",
+    "d32 mul x=7c000001 y=7c000002 m=0 -> 7c000001/00000000",
+    "d32 mul x=7c000001 y=7c000002 m=4 -> 7c000001/00000000",
+    "d32 mul x=7c000001 y=7c000002 m=3 -> 7c000001/00000000",
+    "d32 mul x=7c000001 y=7c000002 m=2 -> 7c000001/00000000",
+    "d32 mul x=7c000001 y=7c000002 m=1 -> 7c000001/00000000",
+    "d32 div x=32800001 y=32800003 m=0 -> 2f32dcd5/00000020",
+    "d32 div x=32800001 y=32800003 m=4 -> 2f32dcd5/00000020",
+    "d32 div x=32800001 y=32800003 m=3 -> 2f32dcd5/00000020",
+    "d32 div x=32800001 y=32800003 m=2 -> 2f32dcd6/00000020",
+    "d32 div x=32800001 y=32800003 m=1 -> 2f32dcd5/00000020",
+    "d32 div x=32800002 y=32800003 m=0 -> 2f65b9ab/00000020",
+    "d32 div x=32800002 y=32800003 m=4 -> 2f65b9ab/00000020",
+    "d32 div x=32800002 y=32800003 m=3 -> 2f65b9aa/00000020",
+    "d32 div x=32800002 y=32800003 m=2 -> 2f65b9ab/00000020",
+    "d32 div x=32800002 y=32800003 m=1 -> 2f65b9aa/00000020",
+    "d32 div x=32a5ad09 y=32800002 m=0 -> 3292d684/00000020",
+    "d32 div x=32a5ad09 y=32800002 m=4 -> 3292d685/00000020",
+    "d32 div x=32a5ad09 y=32800002 m=3 -> 3292d684/00000020",
+    "d32 div x=32a5ad09 y=32800002 m=2 -> 3292d685/00000020",
+    "d32 div x=32a5ad09 y=32800002 m=1 -> 3292d684/00000020",
+    "d32 div x=b2800001 y=32800003 m=0 -> af32dcd5/00000020",
+    "d32 div x=b2800001 y=32800003 m=4 -> af32dcd5/00000020",
+    "d32 div x=b2800001 y=32800003 m=3 -> af32dcd5/00000020",
+    "d32 div x=b2800001 y=32800003 m=2 -> af32dcd5/00000020",
+    "d32 div x=b2800001 y=32800003 m=1 -> af32dcd6/00000020",
+    "d32 quantize x=32000019 y=32800001 m=0 -> 32800002/00000020",
+    "d32 quantize x=32000019 y=32800001 m=4 -> 32800003/00000020",
+    "d32 quantize x=32000019 y=32800001 m=3 -> 32800002/00000020",
+    "d32 quantize x=32000019 y=32800001 m=2 -> 32800003/00000020",
+    "d32 quantize x=32000019 y=32800001 m=1 -> 32800002/00000020",
+    "d32 quantize x=32000023 y=32800001 m=0 -> 32800004/00000020",
+    "d32 quantize x=32000023 y=32800001 m=4 -> 32800004/00000020",
+    "d32 quantize x=32000023 y=32800001 m=3 -> 32800003/00000020",
+    "d32 quantize x=32000023 y=32800001 m=2 -> 32800004/00000020",
+    "d32 quantize x=32000023 y=32800001 m=1 -> 32800003/00000020",
+    "d32 quantize x=b2000019 y=32800001 m=0 -> b2800002/00000020",
+    "d32 quantize x=b2000019 y=32800001 m=4 -> b2800003/00000020",
+    "d32 quantize x=b2000019 y=32800001 m=3 -> b2800002/00000020",
+    "d32 quantize x=b2000019 y=32800001 m=2 -> b2800002/00000020",
+    "d32 quantize x=b2000019 y=32800001 m=1 -> b2800003/00000020",
+    "d32 remainder x=32800005 y=32800003 -> b2800001/00000000",
+    "d32 fmod x=32800005 y=32800003 -> 32800002/00000000",
+    "d32 fma x=32800001 y=32800001 z=2f000005 m=0 -> 2f8f4240/00000020",
+    "d32 fma x=32800001 y=32800001 z=2f000005 m=4 -> 2f8f4241/00000020",
+    "d32 fma x=32800001 y=32800001 z=2f000005 m=3 -> 2f8f4240/00000020",
+    "d32 fma x=32800001 y=32800001 z=2f000005 m=2 -> 2f8f4241/00000020",
+    "d32 fma x=32800001 y=32800001 z=2f000005 m=1 -> 2f8f4240/00000020",
+    "d32 fma x=32b2dcd6 y=32800003 z=32800000 m=0 -> 330f4240/00000020",
+    "d32 fma x=32b2dcd6 y=32800003 z=32800000 m=4 -> 330f4240/00000020",
+    "d32 fma x=32b2dcd6 y=32800003 z=32800000 m=3 -> 330f4240/00000020",
+    "d32 fma x=32b2dcd6 y=32800003 z=32800000 m=2 -> 330f4241/00000020",
+    "d32 fma x=32b2dcd6 y=32800003 z=32800000 m=1 -> 330f4240/00000020",
+    "d32 fma x=b2800001 y=32800001 z=af000001 m=0 -> af8f4240/00000020",
+    "d32 fma x=b2800001 y=32800001 z=af000001 m=4 -> af8f4240/00000020",
+    "d32 fma x=b2800001 y=32800001 z=af000001 m=3 -> af8f4240/00000020",
+    "d32 fma x=b2800001 y=32800001 z=af000001 m=2 -> af8f4240/00000020",
+    "d32 fma x=b2800001 y=32800001 z=af000001 m=1 -> af8f4241/00000020",
+    "d32 fma x=32a1e88f y=32800009 z=32800000 m=0 -> 331e8481/00000020",
+    "d32 fma x=32a1e88f y=32800009 z=32800000 m=4 -> 331e8481/00000020",
+    "d32 fma x=32a1e88f y=32800009 z=32800000 m=3 -> 331e8480/00000020",
+    "d32 fma x=32a1e88f y=32800009 z=32800000 m=2 -> 331e8481/00000020",
+    "d32 fma x=32a1e88f y=32800009 z=32800000 m=1 -> 331e8480/00000020",
+    "d32 fma x=7c000001 y=7c000002 z=32800001 m=0 -> 7c000002/00000000",
+    "d32 fma x=7c000001 y=7c000002 z=32800001 m=4 -> 7c000002/00000000",
+    "d32 fma x=7c000001 y=7c000002 z=32800001 m=3 -> 7c000002/00000000",
+    "d32 fma x=7c000001 y=7c000002 z=32800001 m=2 -> 7c000002/00000000",
+    "d32 fma x=7c000001 y=7c000002 z=32800001 m=1 -> 7c000002/00000000",
+    "d32 sqrt x=32800002 m=0 -> 2f959446/00000020",
+    "d32 sqrt x=32800002 m=4 -> 2f959446/00000020",
+    "d32 sqrt x=32800002 m=3 -> 2f959445/00000020",
+    "d32 sqrt x=32800002 m=2 -> 2f959446/00000020",
+    "d32 sqrt x=32800002 m=1 -> 2f959445/00000020",
+    "d32 sqrt x=32800007 m=0 -> 2fa85ef7/00000020",
+    "d32 sqrt x=32800007 m=4 -> 2fa85ef7/00000020",
+    "d32 sqrt x=32800007 m=3 -> 2fa85ef7/00000020",
+    "d32 sqrt x=32800007 m=2 -> 2fa85ef8/00000020",
+    "d32 sqrt x=32800007 m=1 -> 2fa85ef7/00000020",
+    "d32 scaleb x=3292d687 n=91 m=0 -> 78000000/00000028",
+    "d32 scaleb x=3292d687 n=91 m=4 -> 78000000/00000028",
+    "d32 scaleb x=3292d687 n=91 m=3 -> 77f8967f/00000028",
+    "d32 scaleb x=3292d687 n=91 m=2 -> 78000000/00000028",
+    "d32 scaleb x=3292d687 n=91 m=1 -> 77f8967f/00000028",
+    "d32 scaleb x=b292d687 n=91 m=0 -> f8000000/00000028",
+    "d32 scaleb x=b292d687 n=91 m=4 -> f8000000/00000028",
+    "d32 scaleb x=b292d687 n=91 m=3 -> f7f8967f/00000028",
+    "d32 scaleb x=b292d687 n=91 m=2 -> f7f8967f/00000028",
+    "d32 scaleb x=b292d687 n=91 m=1 -> f8000000/00000028",
+    "d32 scaleb x=32000005 n=-101 m=0 -> 00000000/00000030",
+    "d32 scaleb x=32000005 n=-101 m=4 -> 00000001/00000030",
+    "d32 scaleb x=32000005 n=-101 m=3 -> 00000000/00000030",
+    "d32 scaleb x=32000005 n=-101 m=2 -> 00000001/00000030",
+    "d32 scaleb x=32000005 n=-101 m=1 -> 00000000/00000030",
+    "d64 add x=31c0000000000001 y=2fc0000000000005 m=0 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000005 m=4 -> 2fe38d7ea4c68001/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000005 m=3 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000005 m=2 -> 2fe38d7ea4c68001/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000005 m=1 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000001 m=0 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000001 m=4 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000001 m=3 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000001 m=2 -> 2fe38d7ea4c68001/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000001 m=1 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000009 m=0 -> 2fe38d7ea4c68001/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000009 m=4 -> 2fe38d7ea4c68001/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000009 m=3 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000009 m=2 -> 2fe38d7ea4c68001/00000020",
+    "d64 add x=31c0000000000001 y=2fc0000000000009 m=1 -> 2fe38d7ea4c68000/00000020",
+    "d64 add x=b1c0000000000001 y=afc0000000000001 m=0 -> afe38d7ea4c68000/00000020",
+    "d64 add x=b1c0000000000001 y=afc0000000000001 m=4 -> afe38d7ea4c68000/00000020",
+    "d64 add x=b1c0000000000001 y=afc0000000000001 m=3 -> afe38d7ea4c68000/00000020",
+    "d64 add x=b1c0000000000001 y=afc0000000000001 m=2 -> afe38d7ea4c68000/00000020",
+    "d64 add x=b1c0000000000001 y=afc0000000000001 m=1 -> afe38d7ea4c68001/00000020",
+    "d64 add x=7c00000000000001 y=7c00000000000002 m=0 -> 7c00000000000001/00000000",
+    "d64 add x=7c00000000000001 y=7c00000000000002 m=4 -> 7c00000000000001/00000000",
+    "d64 add x=7c00000000000001 y=7c00000000000002 m=3 -> 7c00000000000001/00000000",
+    "d64 add x=7c00000000000001 y=7c00000000000002 m=2 -> 7c00000000000001/00000000",
+    "d64 add x=7c00000000000001 y=7c00000000000002 m=1 -> 7c00000000000001/00000000",
+    "d64 sub x=31c0000000000001 y=2fa0000000000001 m=0 -> 2fe38d7ea4c68000/00000020",
+    "d64 sub x=31c0000000000001 y=2fa0000000000001 m=4 -> 2fe38d7ea4c68000/00000020",
+    "d64 sub x=31c0000000000001 y=2fa0000000000001 m=3 -> 6bf386f26fc0ffff/00000020",
+    "d64 sub x=31c0000000000001 y=2fa0000000000001 m=2 -> 2fe38d7ea4c68000/00000020",
+    "d64 sub x=31c0000000000001 y=2fa0000000000001 m=1 -> 6bf386f26fc0ffff/00000020",
+    "d64 sub x=b1c0000000000001 y=2fa0000000000001 m=0 -> afe38d7ea4c68000/00000020",
+    "d64 sub x=b1c0000000000001 y=2fa0000000000001 m=4 -> afe38d7ea4c68000/00000020",
+    "d64 sub x=b1c0000000000001 y=2fa0000000000001 m=3 -> afe38d7ea4c68000/00000020",
+    "d64 sub x=b1c0000000000001 y=2fa0000000000001 m=2 -> afe38d7ea4c68000/00000020",
+    "d64 sub x=b1c0000000000001 y=2fa0000000000001 m=1 -> afe38d7ea4c68001/00000020",
+    "d64 sub x=31c8c5aa7a688b09 y=31a0000000000005 m=0 -> 31c8c5aa7a688b08/00000020",
+    "d64 sub x=31c8c5aa7a688b09 y=31a0000000000005 m=4 -> 31c8c5aa7a688b09/00000020",
+    "d64 sub x=31c8c5aa7a688b09 y=31a0000000000005 m=3 -> 31c8c5aa7a688b08/00000020",
+    "d64 sub x=31c8c5aa7a688b09 y=31a0000000000005 m=2 -> 31c8c5aa7a688b09/00000020",
+    "d64 sub x=31c8c5aa7a688b09 y=31a0000000000005 m=1 -> 31c8c5aa7a688b08/00000020",
+    "d64 sub x=31c0000000000002 y=2fc0000000000009 m=0 -> 2fe71afd498cffff/00000020",
+    "d64 sub x=31c0000000000002 y=2fc0000000000009 m=4 -> 2fe71afd498cffff/00000020",
+    "d64 sub x=31c0000000000002 y=2fc0000000000009 m=3 -> 2fe71afd498cffff/00000020",
+    "d64 sub x=31c0000000000002 y=2fc0000000000009 m=2 -> 2fe71afd498d0000/00000020",
+    "d64 sub x=31c0000000000002 y=2fc0000000000009 m=1 -> 2fe71afd498cffff/00000020",
+    "d64 mul x=31cbd7a625405556 y=31c0000000000003 m=0 -> 31e38d7ea4c68000/00000020",
+    "d64 mul x=31cbd7a625405556 y=31c0000000000003 m=4 -> 31e38d7ea4c68000/00000020",
+    "d64 mul x=31cbd7a625405556 y=31c0000000000003 m=3 -> 31e38d7ea4c68000/00000020",
+    "d64 mul x=31cbd7a625405556 y=31c0000000000003 m=2 -> 31e38d7ea4c68001/00000020",
+    "d64 mul x=31cbd7a625405556 y=31c0000000000003 m=1 -> 31e38d7ea4c68000/00000020",
+    "d64 mul x=31c7e5196e2ae38f y=31c0000000000009 m=0 -> 31e71afd498d0001/00000020",
+    "d64 mul x=31c7e5196e2ae38f y=31c0000000000009 m=4 -> 31e71afd498d0001/00000020",
+    "d64 mul x=31c7e5196e2ae38f y=31c0000000000009 m=3 -> 31e71afd498d0000/00000020",
+    "d64 mul x=31c7e5196e2ae38f y=31c0000000000009 m=2 -> 31e71afd498d0001/00000020",
+    "d64 mul x=31c7e5196e2ae38f y=31c0000000000009 m=1 -> 31e71afd498d0000/00000020",
+    "d64 mul x=31c8c5aa7a688b09 y=31c0000000000005 m=0 -> 31e462d53d344584/00000020",
+    "d64 mul x=31c8c5aa7a688b09 y=31c0000000000005 m=4 -> 31e462d53d344585/00000020",
+    "d64 mul x=31c8c5aa7a688b09 y=31c0000000000005 m=3 -> 31e462d53d344584/00000020",
+    "d64 mul x=31c8c5aa7a688b09 y=31c0000000000005 m=2 -> 31e462d53d344585/00000020",
+    "d64 mul x=31c8c5aa7a688b09 y=31c0000000000005 m=1 -> 31e462d53d344584/00000020",
+    "d64 mul x=b1cbd7a625405556 y=31c0000000000003 m=0 -> b1e38d7ea4c68000/00000020",
+    "d64 mul x=b1cbd7a625405556 y=31c0000000000003 m=4 -> b1e38d7ea4c68000/00000020",
+    "d64 mul x=b1cbd7a625405556 y=31c0000000000003 m=3 -> b1e38d7ea4c68000/00000020",
+    "d64 mul x=b1cbd7a625405556 y=31c0000000000003 m=2 -> b1e38d7ea4c68000/00000020",
+    "d64 mul x=b1cbd7a625405556 y=31c0000000000003 m=1 -> b1e38d7ea4c68001/00000020",
+    "d64 mul x=7c00000000000001 y=7c00000000000002 m=0 -> 7c00000000000001/00000000",
+    "d64 mul x=7c00000000000001 y=7c00000000000002 m=4 -> 7c00000000000001/00000000",
+    "d64 mul x=7c00000000000001 y=7c00000000000002 m=3 -> 7c00000000000001/00000000",
+    "d64 mul x=7c00000000000001 y=7c00000000000002 m=2 -> 7c00000000000001/00000000",
+    "d64 mul x=7c00000000000001 y=7c00000000000002 m=1 -> 7c00000000000001/00000000",
+    "d64 div x=31c0000000000001 y=31c0000000000003 m=0 -> 2fcbd7a625405555/00000020",
+    "d64 div x=31c0000000000001 y=31c0000000000003 m=4 -> 2fcbd7a625405555/00000020",
+    "d64 div x=31c0000000000001 y=31c0000000000003 m=3 -> 2fcbd7a625405555/00000020",
+    "d64 div x=31c0000000000001 y=31c0000000000003 m=2 -> 2fcbd7a625405556/00000020",
+    "d64 div x=31c0000000000001 y=31c0000000000003 m=1 -> 2fcbd7a625405555/00000020",
+    "d64 div x=31c0000000000002 y=31c0000000000003 m=0 -> 2fd7af4c4a80aaab/00000020",
+    "d64 div x=31c0000000000002 y=31c0000000000003 m=4 -> 2fd7af4c4a80aaab/00000020",
+    "d64 div x=31c0000000000002 y=31c0000000000003 m=3 -> 2fd7af4c4a80aaaa/00000020",
+    "d64 div x=31c0000000000002 y=31c0000000000003 m=2 -> 2fd7af4c4a80aaab/00000020",
+    "d64 div x=31c0000000000002 y=31c0000000000003 m=1 -> 2fd7af4c4a80aaaa/00000020",
+    "d64 div x=31c8c5aa7a688b09 y=31c0000000000002 m=0 -> 31c462d53d344584/00000020",
+    "d64 div x=31c8c5aa7a688b09 y=31c0000000000002 m=4 -> 31c462d53d344585/00000020",
+    "d64 div x=31c8c5aa7a688b09 y=31c0000000000002 m=3 -> 31c462d53d344584/00000020",
+    "d64 div x=31c8c5aa7a688b09 y=31c0000000000002 m=2 -> 31c462d53d344585/00000020",
+    "d64 div x=31c8c5aa7a688b09 y=31c0000000000002 m=1 -> 31c462d53d344584/00000020",
+    "d64 div x=b1c0000000000001 y=31c0000000000003 m=0 -> afcbd7a625405555/00000020",
+    "d64 div x=b1c0000000000001 y=31c0000000000003 m=4 -> afcbd7a625405555/00000020",
+    "d64 div x=b1c0000000000001 y=31c0000000000003 m=3 -> afcbd7a625405555/00000020",
+    "d64 div x=b1c0000000000001 y=31c0000000000003 m=2 -> afcbd7a625405555/00000020",
+    "d64 div x=b1c0000000000001 y=31c0000000000003 m=1 -> afcbd7a625405556/00000020",
+    "d64 quantize x=31a0000000000019 y=31c0000000000001 m=0 -> 31c0000000000002/00000020",
+    "d64 quantize x=31a0000000000019 y=31c0000000000001 m=4 -> 31c0000000000003/00000020",
+    "d64 quantize x=31a0000000000019 y=31c0000000000001 m=3 -> 31c0000000000002/00000020",
+    "d64 quantize x=31a0000000000019 y=31c0000000000001 m=2 -> 31c0000000000003/00000020",
+    "d64 quantize x=31a0000000000019 y=31c0000000000001 m=1 -> 31c0000000000002/00000020",
+    "d64 quantize x=31a0000000000023 y=31c0000000000001 m=0 -> 31c0000000000004/00000020",
+    "d64 quantize x=31a0000000000023 y=31c0000000000001 m=4 -> 31c0000000000004/00000020",
+    "d64 quantize x=31a0000000000023 y=31c0000000000001 m=3 -> 31c0000000000003/00000020",
+    "d64 quantize x=31a0000000000023 y=31c0000000000001 m=2 -> 31c0000000000004/00000020",
+    "d64 quantize x=31a0000000000023 y=31c0000000000001 m=1 -> 31c0000000000003/00000020",
+    "d64 quantize x=b1a0000000000019 y=31c0000000000001 m=0 -> b1c0000000000002/00000020",
+    "d64 quantize x=b1a0000000000019 y=31c0000000000001 m=4 -> b1c0000000000003/00000020",
+    "d64 quantize x=b1a0000000000019 y=31c0000000000001 m=3 -> b1c0000000000002/00000020",
+    "d64 quantize x=b1a0000000000019 y=31c0000000000001 m=2 -> b1c0000000000002/00000020",
+    "d64 quantize x=b1a0000000000019 y=31c0000000000001 m=1 -> b1c0000000000003/00000020",
+    "d64 remainder x=31c0000000000005 y=31c0000000000003 -> b1c0000000000001/00000000",
+    "d64 fmod x=31c0000000000005 y=31c0000000000003 -> 31c0000000000002/00000000",
+    "d64 fma x=31c0000000000001 y=31c0000000000001 z=2fc0000000000005 m=0 -> 2fe38d7ea4c68000/00000020",
+    "d64 fma x=31c0000000000001 y=31c0000000000001 z=2fc0000000000005 m=4 -> 2fe38d7ea4c68001/00000020",
+    "d64 fma x=31c0000000000001 y=31c0000000000001 z=2fc0000000000005 m=3 -> 2fe38d7ea4c68000/00000020",
+    "d64 fma x=31c0000000000001 y=31c0000000000001 z=2fc0000000000005 m=2 -> 2fe38d7ea4c68001/00000020",
+    "d64 fma x=31c0000000000001 y=31c0000000000001 z=2fc0000000000005 m=1 -> 2fe38d7ea4c68000/00000020",
+    "d64 fma x=31cbd7a625405556 y=31c0000000000003 z=31c0000000000000 m=0 -> 31e38d7ea4c68000/00000020",
+    "d64 fma x=31cbd7a625405556 y=31c0000000000003 z=31c0000000000000 m=4 -> 31e38d7ea4c68000/00000020",
+    "d64 fma x=31cbd7a625405556 y=31c0000000000003 z=31c0000000000000 m=3 -> 31e38d7ea4c68000/00000020",
+    "d64 fma x=31cbd7a625405556 y=31c0000000000003 z=31c0000000000000 m=2 -> 31e38d7ea4c68001/00000020",
+    "d64 fma x=31cbd7a625405556 y=31c0000000000003 z=31c0000000000000 m=1 -> 31e38d7ea4c68000/00000020",
+    "d64 fma x=b1c0000000000001 y=31c0000000000001 z=afc0000000000001 m=0 -> afe38d7ea4c68000/00000020",
+    "d64 fma x=b1c0000000000001 y=31c0000000000001 z=afc0000000000001 m=4 -> afe38d7ea4c68000/00000020",
+    "d64 fma x=b1c0000000000001 y=31c0000000000001 z=afc0000000000001 m=3 -> afe38d7ea4c68000/00000020",
+    "d64 fma x=b1c0000000000001 y=31c0000000000001 z=afc0000000000001 m=2 -> afe38d7ea4c68000/00000020",
+    "d64 fma x=b1c0000000000001 y=31c0000000000001 z=afc0000000000001 m=1 -> afe38d7ea4c68001/00000020",
+    "d64 fma x=31c7e5196e2ae38f y=31c0000000000009 z=31c0000000000000 m=0 -> 31e71afd498d0001/00000020",
+    "d64 fma x=31c7e5196e2ae38f y=31c0000000000009 z=31c0000000000000 m=4 -> 31e71afd498d0001/00000020",
+    "d64 fma x=31c7e5196e2ae38f y=31c0000000000009 z=31c0000000000000 m=3 -> 31e71afd498d0000/00000020",
+    "d64 fma x=31c7e5196e2ae38f y=31c0000000000009 z=31c0000000000000 m=2 -> 31e71afd498d0001/00000020",
+    "d64 fma x=31c7e5196e2ae38f y=31c0000000000009 z=31c0000000000000 m=1 -> 31e71afd498d0000/00000020",
+    "d64 fma x=7c00000000000001 y=7c00000000000002 z=31c0000000000001 m=0 -> 7c00000000000002/00000000",
+    "d64 fma x=7c00000000000001 y=7c00000000000002 z=31c0000000000001 m=4 -> 7c00000000000002/00000000",
+    "d64 fma x=7c00000000000001 y=7c00000000000002 z=31c0000000000001 m=3 -> 7c00000000000002/00000000",
+    "d64 fma x=7c00000000000001 y=7c00000000000002 z=31c0000000000001 m=2 -> 7c00000000000002/00000000",
+    "d64 fma x=7c00000000000001 y=7c00000000000002 z=31c0000000000001 m=1 -> 7c00000000000002/00000000",
+    "d64 sqrt x=31c0000000000002 m=0 -> 2fe50638410593e7/00000020",
+    "d64 sqrt x=31c0000000000002 m=4 -> 2fe50638410593e7/00000020",
+    "d64 sqrt x=31c0000000000002 m=3 -> 2fe50638410593e7/00000020",
+    "d64 sqrt x=31c0000000000002 m=2 -> 2fe50638410593e8/00000020",
+    "d64 sqrt x=31c0000000000002 m=1 -> 2fe50638410593e7/00000020",
+    "d64 sqrt x=31c0000000000005 m=0 -> 2fe7f1b1257e148e/00000020",
+    "d64 sqrt x=31c0000000000005 m=4 -> 2fe7f1b1257e148e/00000020",
+    "d64 sqrt x=31c0000000000005 m=3 -> 2fe7f1b1257e148d/00000020",
+    "d64 sqrt x=31c0000000000005 m=2 -> 2fe7f1b1257e148e/00000020",
+    "d64 sqrt x=31c0000000000005 m=1 -> 2fe7f1b1257e148d/00000020",
+    "d64 scaleb x=31c462d53c8abac0 n=370 m=0 -> 7800000000000000/00000028",
+    "d64 scaleb x=31c462d53c8abac0 n=370 m=4 -> 7800000000000000/00000028",
+    "d64 scaleb x=31c462d53c8abac0 n=370 m=3 -> 77fb86f26fc0ffff/00000028",
+    "d64 scaleb x=31c462d53c8abac0 n=370 m=2 -> 7800000000000000/00000028",
+    "d64 scaleb x=31c462d53c8abac0 n=370 m=1 -> 77fb86f26fc0ffff/00000028",
+    "d64 scaleb x=b1c462d53c8abac0 n=370 m=0 -> f800000000000000/00000028",
+    "d64 scaleb x=b1c462d53c8abac0 n=370 m=4 -> f800000000000000/00000028",
+    "d64 scaleb x=b1c462d53c8abac0 n=370 m=3 -> f7fb86f26fc0ffff/00000028",
+    "d64 scaleb x=b1c462d53c8abac0 n=370 m=2 -> f7fb86f26fc0ffff/00000028",
+    "d64 scaleb x=b1c462d53c8abac0 n=370 m=1 -> f800000000000000/00000028",
+    "d64 scaleb x=31a0000000000005 n=-398 m=0 -> 0000000000000000/00000030",
+    "d64 scaleb x=31a0000000000005 n=-398 m=4 -> 0000000000000001/00000030",
+    "d64 scaleb x=31a0000000000005 n=-398 m=3 -> 0000000000000000/00000030",
+    "d64 scaleb x=31a0000000000005 n=-398 m=2 -> 0000000000000001/00000030",
+    "d64 scaleb x=31a0000000000005 n=-398 m=1 -> 0000000000000000/00000030",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000005 m=0 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000005 m=4 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000005 m=3 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000005 m=2 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000005 m=1 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000001 m=0 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000001 m=4 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000001 m=3 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000001 m=2 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000001 m=1 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000009 m=0 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000009 m=4 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000009 m=3 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000009 m=2 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 add x=3040000000000000:0000000000000001 y=2ffc000000000000:0000000000000009 m=1 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=b040000000000000:0000000000000001 y=affc000000000000:0000000000000001 m=0 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=b040000000000000:0000000000000001 y=affc000000000000:0000000000000001 m=4 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=b040000000000000:0000000000000001 y=affc000000000000:0000000000000001 m=3 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=b040000000000000:0000000000000001 y=affc000000000000:0000000000000001 m=2 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 add x=b040000000000000:0000000000000001 y=affc000000000000:0000000000000001 m=1 -> affe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 add x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=0 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 add x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=4 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 add x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=3 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 add x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=2 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 add x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=1 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 sub x=3040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=0 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 sub x=3040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=4 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 sub x=3040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=3 -> 2ffded09bead87c0:378d8e63ffffffff/00000020",
+    "d128 sub x=3040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=2 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 sub x=3040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=1 -> 2ffded09bead87c0:378d8e63ffffffff/00000020",
+    "d128 sub x=b040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=0 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 sub x=b040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=4 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 sub x=b040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=3 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 sub x=b040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=2 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 sub x=b040000000000000:0000000000000001 y=2ffa000000000000:0000000000000001 m=1 -> affe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 sub x=304079bce0119022:d1aada7781948b09 y=303e000000000000:0000000000000005 m=0 -> 304079bce0119022:d1aada7781948b08/00000020",
+    "d128 sub x=304079bce0119022:d1aada7781948b09 y=303e000000000000:0000000000000005 m=4 -> 304079bce0119022:d1aada7781948b09/00000020",
+    "d128 sub x=304079bce0119022:d1aada7781948b09 y=303e000000000000:0000000000000005 m=3 -> 304079bce0119022:d1aada7781948b08/00000020",
+    "d128 sub x=304079bce0119022:d1aada7781948b09 y=303e000000000000:0000000000000005 m=2 -> 304079bce0119022:d1aada7781948b09/00000020",
+    "d128 sub x=304079bce0119022:d1aada7781948b09 y=303e000000000000:0000000000000005 m=1 -> 304079bce0119022:d1aada7781948b08/00000020",
+    "d128 sub x=3040000000000000:0000000000000002 y=2ffc000000000000:0000000000000009 m=0 -> 2ffe629b8c891b26:7182b613ffffffff/00000020",
+    "d128 sub x=3040000000000000:0000000000000002 y=2ffc000000000000:0000000000000009 m=4 -> 2ffe629b8c891b26:7182b613ffffffff/00000020",
+    "d128 sub x=3040000000000000:0000000000000002 y=2ffc000000000000:0000000000000009 m=3 -> 2ffe629b8c891b26:7182b613ffffffff/00000020",
+    "d128 sub x=3040000000000000:0000000000000002 y=2ffc000000000000:0000000000000009 m=2 -> 2ffe629b8c891b26:7182b61400000000/00000020",
+    "d128 sub x=3040000000000000:0000000000000002 y=2ffc000000000000:0000000000000009 m=1 -> 2ffe629b8c891b26:7182b613ffffffff/00000020",
+    "d128 mul x=3040000000000000:0de0b6b3a763ffff y=3040000000000000:016345785d89ffff m=0 -> 3043ed09bead87c0:3606c1f932b50000/00000020",
+    "d128 mul x=3040000000000000:0de0b6b3a763ffff y=3040000000000000:016345785d89ffff m=4 -> 3043ed09bead87c0:3606c1f932b50000/00000020",
+    "d128 mul x=3040000000000000:0de0b6b3a763ffff y=3040000000000000:016345785d89ffff m=3 -> 3043ed09bead87c0:3606c1f932b50000/00000020",
+    "d128 mul x=3040000000000000:0de0b6b3a763ffff y=3040000000000000:016345785d89ffff m=2 -> 3043ed09bead87c0:3606c1f932b50001/00000020",
+    "d128 mul x=3040000000000000:0de0b6b3a763ffff y=3040000000000000:016345785d89ffff m=1 -> 3043ed09bead87c0:3606c1f932b50000/00000020",
+    "d128 mul x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 m=0 -> 304836c831a180dc:77f27e99a27e8e39/00000020",
+    "d128 mul x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 m=4 -> 304836c831a180dc:77f27e99a27e8e39/00000020",
+    "d128 mul x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 m=3 -> 304836c831a180dc:77f27e99a27e8e38/00000020",
+    "d128 mul x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 m=2 -> 304836c831a180dc:77f27e99a27e8e39/00000020",
+    "d128 mul x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 m=1 -> 304836c831a180dc:77f27e99a27e8e38/00000020",
+    "d128 mul x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000005 m=0 -> 30423cde7008c811:68d56d3bc0ca4584/00000020",
+    "d128 mul x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000005 m=4 -> 30423cde7008c811:68d56d3bc0ca4585/00000020",
+    "d128 mul x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000005 m=3 -> 30423cde7008c811:68d56d3bc0ca4584/00000020",
+    "d128 mul x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000005 m=2 -> 30423cde7008c811:68d56d3bc0ca4585/00000020",
+    "d128 mul x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000005 m=1 -> 30423cde7008c811:68d56d3bc0ca4584/00000020",
+    "d128 mul x=b040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff m=0 -> b049ed09bead87c0:37867366b6730000/00000020",
+    "d128 mul x=b040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff m=4 -> b049ed09bead87c0:37867366b6730000/00000020",
+    "d128 mul x=b040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff m=3 -> b049ed09bead87c0:37867366b6730000/00000020",
+    "d128 mul x=b040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff m=2 -> b049ed09bead87c0:37867366b6730000/00000020",
+    "d128 mul x=b040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff m=1 -> b049ed09bead87c0:37867366b6730001/00000020",
+    "d128 mul x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=0 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 mul x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=4 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 mul x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=3 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 mul x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=2 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 mul x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 m=1 -> 7c00000000000000:0000000000000001/00000000",
+    "d128 div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=0 -> 2ffca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=4 -> 2ffca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=3 -> 2ffca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=2 -> 2ffca45894e48295:67d9da2155555556/00000020",
+    "d128 div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=1 -> 2ffca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000003 m=0 -> 2ffd48b129c9052a:cfb3b442aaaaaaab/00000020",
+    "d128 div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000003 m=4 -> 2ffd48b129c9052a:cfb3b442aaaaaaab/00000020",
+    "d128 div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000003 m=3 -> 2ffd48b129c9052a:cfb3b442aaaaaaaa/00000020",
+    "d128 div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000003 m=2 -> 2ffd48b129c9052a:cfb3b442aaaaaaab/00000020",
+    "d128 div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000003 m=1 -> 2ffd48b129c9052a:cfb3b442aaaaaaaa/00000020",
+    "d128 div x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000002 m=0 -> 30403cde7008c811:68d56d3bc0ca4584/00000020",
+    "d128 div x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000002 m=4 -> 30403cde7008c811:68d56d3bc0ca4585/00000020",
+    "d128 div x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000002 m=3 -> 30403cde7008c811:68d56d3bc0ca4584/00000020",
+    "d128 div x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000002 m=2 -> 30403cde7008c811:68d56d3bc0ca4585/00000020",
+    "d128 div x=304079bce0119022:d1aada7781948b09 y=3040000000000000:0000000000000002 m=1 -> 30403cde7008c811:68d56d3bc0ca4584/00000020",
+    "d128 div x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=0 -> affca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=4 -> affca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=3 -> affca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=2 -> affca45894e48295:67d9da2155555555/00000020",
+    "d128 div x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=1 -> affca45894e48295:67d9da2155555556/00000020",
+    "d128 quantize x=303e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=0 -> 3040000000000000:0000000000000002/00000020",
+    "d128 quantize x=303e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=4 -> 3040000000000000:0000000000000003/00000020",
+    "d128 quantize x=303e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=3 -> 3040000000000000:0000000000000002/00000020",
+    "d128 quantize x=303e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=2 -> 3040000000000000:0000000000000003/00000020",
+    "d128 quantize x=303e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=1 -> 3040000000000000:0000000000000002/00000020",
+    "d128 quantize x=303e000000000000:0000000000000023 y=3040000000000000:0000000000000001 m=0 -> 3040000000000000:0000000000000004/00000020",
+    "d128 quantize x=303e000000000000:0000000000000023 y=3040000000000000:0000000000000001 m=4 -> 3040000000000000:0000000000000004/00000020",
+    "d128 quantize x=303e000000000000:0000000000000023 y=3040000000000000:0000000000000001 m=3 -> 3040000000000000:0000000000000003/00000020",
+    "d128 quantize x=303e000000000000:0000000000000023 y=3040000000000000:0000000000000001 m=2 -> 3040000000000000:0000000000000004/00000020",
+    "d128 quantize x=303e000000000000:0000000000000023 y=3040000000000000:0000000000000001 m=1 -> 3040000000000000:0000000000000003/00000020",
+    "d128 quantize x=b03e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=0 -> b040000000000000:0000000000000002/00000020",
+    "d128 quantize x=b03e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=4 -> b040000000000000:0000000000000003/00000020",
+    "d128 quantize x=b03e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=3 -> b040000000000000:0000000000000002/00000020",
+    "d128 quantize x=b03e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=2 -> b040000000000000:0000000000000002/00000020",
+    "d128 quantize x=b03e000000000000:0000000000000019 y=3040000000000000:0000000000000001 m=1 -> b040000000000000:0000000000000003/00000020",
+    "d128 remainder x=3040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> b040000000000000:0000000000000001/00000000",
+    "d128 fmod x=3040000000000000:0000000000000005 y=3040000000000000:0000000000000003 -> 3040000000000000:0000000000000002/00000000",
+    "d128 fma x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=2ffc000000000000:0000000000000005 m=0 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 fma x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=2ffc000000000000:0000000000000005 m=4 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 fma x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=2ffc000000000000:0000000000000005 m=3 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 fma x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=2ffc000000000000:0000000000000005 m=2 -> 2ffe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 fma x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=2ffc000000000000:0000000000000005 m=1 -> 2ffe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 fma x=3040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff z=3040000000000000:0000000000000000 m=0 -> 3049ed09bead87c0:37867366b6730000/00000020",
+    "d128 fma x=3040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff z=3040000000000000:0000000000000000 m=4 -> 3049ed09bead87c0:37867366b6730000/00000020",
+    "d128 fma x=3040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff z=3040000000000000:0000000000000000 m=3 -> 3049ed09bead87c0:37867366b6730000/00000020",
+    "d128 fma x=3040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff z=3040000000000000:0000000000000000 m=2 -> 3049ed09bead87c0:37867366b6730001/00000020",
+    "d128 fma x=3040000000000000:8ac7230489e7ffff y=3040000000000000:8ac7230489e7ffff z=3040000000000000:0000000000000000 m=1 -> 3049ed09bead87c0:37867366b6730000/00000020",
+    "d128 fma x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=affc000000000000:0000000000000001 m=0 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 fma x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=affc000000000000:0000000000000001 m=4 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 fma x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=affc000000000000:0000000000000001 m=3 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 fma x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=affc000000000000:0000000000000001 m=2 -> affe314dc6448d93:38c15b0a00000000/00000020",
+    "d128 fma x=b040000000000000:0000000000000001 y=3040000000000000:0000000000000001 z=affc000000000000:0000000000000001 m=1 -> affe314dc6448d93:38c15b0a00000001/00000020",
+    "d128 fma x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 z=3040000000000000:0000000000000000 m=0 -> 304836c831a180dc:77f27e99a27e8e39/00000020",
+    "d128 fma x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 z=3040000000000000:0000000000000000 m=4 -> 304836c831a180dc:77f27e99a27e8e39/00000020",
+    "d128 fma x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 z=3040000000000000:0000000000000000 m=3 -> 304836c831a180dc:77f27e99a27e8e38/00000020",
+    "d128 fma x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 z=3040000000000000:0000000000000000 m=2 -> 304836c831a180dc:77f27e99a27e8e39/00000020",
+    "d128 fma x=3040000000000000:2e426101834d5555 y=3040000000000000:2e426101834d5555 z=3040000000000000:0000000000000000 m=1 -> 304836c831a180dc:77f27e99a27e8e38/00000020",
+    "d128 fma x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 z=3040000000000000:0000000000000001 m=0 -> 7c00000000000000:0000000000000002/00000000",
+    "d128 fma x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 z=3040000000000000:0000000000000001 m=4 -> 7c00000000000000:0000000000000002/00000000",
+    "d128 fma x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 z=3040000000000000:0000000000000001 m=3 -> 7c00000000000000:0000000000000002/00000000",
+    "d128 fma x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 z=3040000000000000:0000000000000001 m=2 -> 7c00000000000000:0000000000000002/00000000",
+    "d128 fma x=7c00000000000000:0000000000000001 y=7c00000000000000:0000000000000002 z=3040000000000000:0000000000000001 m=1 -> 7c00000000000000:0000000000000002/00000000",
+    "d128 sqrt x=3040000000000000:0000000000000002 m=0 -> 2ffe45b9e278cdf8:b43e0f0f10148022/00000020",
+    "d128 sqrt x=3040000000000000:0000000000000002 m=4 -> 2ffe45b9e278cdf8:b43e0f0f10148022/00000020",
+    "d128 sqrt x=3040000000000000:0000000000000002 m=3 -> 2ffe45b9e278cdf8:b43e0f0f10148022/00000020",
+    "d128 sqrt x=3040000000000000:0000000000000002 m=2 -> 2ffe45b9e278cdf8:b43e0f0f10148023/00000020",
+    "d128 sqrt x=3040000000000000:0000000000000002 m=1 -> 2ffe45b9e278cdf8:b43e0f0f10148022/00000020",
+    "d128 sqrt x=3040000000000000:000000000000000a m=0 -> 2ffe9be98e340036:baa9baf39995e44f/00000020",
+    "d128 sqrt x=3040000000000000:000000000000000a m=4 -> 2ffe9be98e340036:baa9baf39995e44f/00000020",
+    "d128 sqrt x=3040000000000000:000000000000000a m=3 -> 2ffe9be98e340036:baa9baf39995e44e/00000020",
+    "d128 sqrt x=3040000000000000:000000000000000a m=2 -> 2ffe9be98e340036:baa9baf39995e44f/00000020",
+    "d128 sqrt x=3040000000000000:000000000000000a m=1 -> 2ffe9be98e340036:baa9baf39995e44e/00000020",
+    "d128 scaleb x=3040000000000000:112210f47de98115 n=6127 m=0 -> 7800000000000000:0000000000000000/00000028",
+    "d128 scaleb x=3040000000000000:112210f47de98115 n=6127 m=4 -> 7800000000000000:0000000000000000/00000028",
+    "d128 scaleb x=3040000000000000:112210f47de98115 n=6127 m=3 -> 5fffed09bead87c0:378d8e63ffffffff/00000028",
+    "d128 scaleb x=3040000000000000:112210f47de98115 n=6127 m=2 -> 7800000000000000:0000000000000000/00000028",
+    "d128 scaleb x=3040000000000000:112210f47de98115 n=6127 m=1 -> 5fffed09bead87c0:378d8e63ffffffff/00000028",
+    "d128 scaleb x=b040000000000000:112210f47de98115 n=6127 m=0 -> f800000000000000:0000000000000000/00000028",
+    "d128 scaleb x=b040000000000000:112210f47de98115 n=6127 m=4 -> f800000000000000:0000000000000000/00000028",
+    "d128 scaleb x=b040000000000000:112210f47de98115 n=6127 m=3 -> dfffed09bead87c0:378d8e63ffffffff/00000028",
+    "d128 scaleb x=b040000000000000:112210f47de98115 n=6127 m=2 -> dfffed09bead87c0:378d8e63ffffffff/00000028",
+    "d128 scaleb x=b040000000000000:112210f47de98115 n=6127 m=1 -> f800000000000000:0000000000000000/00000028",
+    "d128 scaleb x=303e000000000000:0000000000000005 n=-6176 m=0 -> 0000000000000000:0000000000000000/00000030",
+    "d128 scaleb x=303e000000000000:0000000000000005 n=-6176 m=4 -> 0000000000000000:0000000000000001/00000030",
+    "d128 scaleb x=303e000000000000:0000000000000005 n=-6176 m=3 -> 0000000000000000:0000000000000000/00000030",
+    "d128 scaleb x=303e000000000000:0000000000000005 n=-6176 m=2 -> 0000000000000000:0000000000000001/00000030",
+    "d128 scaleb x=303e000000000000:0000000000000005 n=-6176 m=1 -> 0000000000000000:0000000000000000/00000030",
+
+];
 
 const PROBES32: [u32; 12] = [
     0x00000000,

@@ -55,8 +55,11 @@ smoke, generated FFI bit-compare, the Go and Rust Tier 1 arithmetic and
 compare/conversion long differentials, generated readtest, generated decTest,
 Rust native readtest, and the Rust ffi-fuzz auxiliary. Gate logs are
 additionally re-checked by `devtools/cmd/verifylog`: the canonical-full Tier 1
-targets must carry the anchored executed/total comparison counts plus
-top-level PASS evidence, and the FFI, readtest, and decTest targets must carry
+targets must carry the anchored executed/total comparison counts, the
+routing-sentinel full-count lines (row counts pinned in
+`devtools/verification_sentinels.json`), and top-level PASS evidence
+(including the Rust runners' exact passed-test counts), and the FFI,
+readtest, and decTest targets must carry
 top-level PASS evidence — a zero-test or reduced-corpus run cannot report
 green. The native gates
 are required by default: when `.env.sh`, Intel BID `libbid.a`, or IBM
@@ -232,6 +235,34 @@ file checked against the real artifacts by a devtools test), and
 `devtools/internal/tablecrosscheck` compares the c-tablegen Go output against
 the hand-ported table literals inside `bid754-go/internal/bidgo` value by
 value.
+
+The Tier 1 routing sentinels add a third hand-maintained pin:
+`devtools/verification_sentinels.json` carries the known-answer rows that
+bind the Tier 1 long runners' glue (operand slots, rounding-mode wiring,
+dispatch-row labels) to expected results computed at generation time through
+the public `bid754-go` API. No generator reads or writes that file. Updating
+the pins is a deliberate manual step:
+
+1. `make generate-testspec` — the sentinel codegen re-selects the rows and
+   self-asserts its sensitivity requirements (a selection that cannot
+   distinguish an operand-slot swap, a rounding-mode pair, or a dispatch-row
+   sibling fails the whole generation run).
+2. `cd devtools && go run ./cmd/testgen -print-sentinel-anchors` — prints the
+   proposed row arrays plus a per-row decimal interpretation. It writes no
+   file.
+3. Audit the printed rows and paste them into
+   `devtools/verification_sentinels.json` by hand.
+4. `cd devtools && go test ./internal/testgen` — the anchor test requires the
+   pinned rows to be byte-equal, in order, with the generated Go and Rust
+   runner literals.
+5. Because the runner bytes changed, hand-update the
+   `goport_verification_runners` and `rust_tier1_long_runners` entries under
+   `verification_artifact_sha256` in `devtools/verification_anchors.json` to
+   the hashes the failing content-hash test prints, then re-run step 4.
+
+This friction is intended: a `bidgo` value-behavior change that moves a
+sentinel answer must pass through a human re-audit, and the generator cannot
+re-pin its own regression.
 
 Generated files are reproducible artifacts. Do not edit them directly.
 `make generate-testspec` also regenerates the checked-in BID codec vector data at `bid754-codec-vectors/vectors.json`.

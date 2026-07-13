@@ -25,6 +25,7 @@ const (
 	tier1ConstructorUint32Count             = uint64(@@TIER1_CONSTRUCTOR_UINT32_COUNT@@)
 	tier1ConstructorInt64Count              = uint64(@@TIER1_CONSTRUCTOR_INT64_COUNT@@)
 	tier1ConstructorUint64Count             = uint64(@@TIER1_CONSTRUCTOR_UINT64_COUNT@@)
+	tier1CompareConversionRoutingSentinelCount = uint64(@@TIER1_CC_SENTINEL_COUNT@@)
 
 	tier1QuietPredicateCount        = uint64(6)
 	tier1MinMaxOperationCount       = uint64(4)
@@ -186,9 +187,16 @@ var tier1QuietPredicates = [...]string{
 
 var tier1MinMaxOperations = [...]string{"minnum", "maxnum", "minnum_mag", "maxnum_mag"}
 
-func tier1CheckQuiet32(t *testing.T, operation string, x, y uint32) {
+// tier1Legs* compute every leg of one comparison from one decoded case. They
+// are the single operand/dispatch fan-out shared by the differential checks
+// and the routing sentinels, so a slot swap or a dispatch-row mislabel in
+// this glue skews the differential's legs identically (an agreed-upon wrong
+// answer the differential cannot see) while the pinned sentinel rows diverge
+// and fail.
+
+func tier1LegsQuiet32(t *testing.T, operation string, x, y uint32) (native int, nativeFlags uint32, port int, portFlags uint32, public int, publicFlags uint32, unknownFlags ExceptionFlags) {
 	t.Helper()
-	native, nativeFlags, port, portFlags := runGeneratedFFICase32IntBinary(operation, x, y)
+	native, nativeFlags, port, portFlags = runGeneratedFFICase32IntBinary(operation, x, y)
 	left, right := Decimal32BID(x), Decimal32BID(y)
 	var got bool
 	var gotFlags ExceptionFlags
@@ -208,19 +216,24 @@ func tier1CheckQuiet32(t *testing.T, operation string, x, y uint32) {
 	default:
 		t.Fatalf("decimal32 unknown Tier 1 quiet predicate %q", operation)
 	}
-	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := 0
+	publicFlags, unknownFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	if got {
 		public = 1
 	}
+	return
+}
+
+func tier1CheckQuiet32(t *testing.T, operation string, x, y uint32) {
+	t.Helper()
+	native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags := tier1LegsQuiet32(t, operation, x, y)
 	if unknownFlags != 0 || native != port || nativeFlags != portFlags || native != public || nativeFlags != publicFlags {
 		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x C=%d/%08x port=%d/%08x public=%d/%08x unknown_public_flags=%s", operation, x, y, native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags)
 	}
 }
 
-func tier1CheckQuiet64(t *testing.T, operation string, x, y uint64) {
+func tier1LegsQuiet64(t *testing.T, operation string, x, y uint64) (native int, nativeFlags uint32, port int, portFlags uint32, public int, publicFlags uint32, unknownFlags ExceptionFlags) {
 	t.Helper()
-	native, nativeFlags, port, portFlags := runGeneratedFFICase64IntBinary(operation, x, y)
+	native, nativeFlags, port, portFlags = runGeneratedFFICase64IntBinary(operation, x, y)
 	left, right := Decimal64BID(x), Decimal64BID(y)
 	var got bool
 	var gotFlags ExceptionFlags
@@ -240,19 +253,24 @@ func tier1CheckQuiet64(t *testing.T, operation string, x, y uint64) {
 	default:
 		t.Fatalf("decimal64 unknown Tier 1 quiet predicate %q", operation)
 	}
-	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := 0
+	publicFlags, unknownFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	if got {
 		public = 1
 	}
+	return
+}
+
+func tier1CheckQuiet64(t *testing.T, operation string, x, y uint64) {
+	t.Helper()
+	native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags := tier1LegsQuiet64(t, operation, x, y)
 	if unknownFlags != 0 || native != port || nativeFlags != portFlags || native != public || nativeFlags != publicFlags {
 		t.Fatalf("decimal64 %s mismatch: x=%016x y=%016x C=%d/%08x port=%d/%08x public=%d/%08x unknown_public_flags=%s", operation, x, y, native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags)
 	}
 }
 
-func tier1CheckQuiet128(t *testing.T, operation string, x, y Decimal128BID) {
+func tier1LegsQuiet128(t *testing.T, operation string, x, y Decimal128BID) (native int, nativeFlags uint32, port int, portFlags uint32, public int, publicFlags uint32, unknownFlags ExceptionFlags) {
 	t.Helper()
-	native, nativeFlags, port, portFlags := runGeneratedFFICase128IntBinary(operation, x, y)
+	native, nativeFlags, port, portFlags = runGeneratedFFICase128IntBinary(operation, x, y)
 	var got bool
 	var gotFlags ExceptionFlags
 	switch operation {
@@ -271,19 +289,24 @@ func tier1CheckQuiet128(t *testing.T, operation string, x, y Decimal128BID) {
 	default:
 		t.Fatalf("decimal128 unknown Tier 1 quiet predicate %q", operation)
 	}
-	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := 0
+	publicFlags, unknownFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	if got {
 		public = 1
 	}
+	return
+}
+
+func tier1CheckQuiet128(t *testing.T, operation string, x, y Decimal128BID) {
+	t.Helper()
+	native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags := tier1LegsQuiet128(t, operation, x, y)
 	if unknownFlags != 0 || native != port || nativeFlags != portFlags || native != public || nativeFlags != publicFlags {
 		t.Fatalf("decimal128 %s mismatch: x=%x y=%x C=%d/%08x port=%d/%08x public=%d/%08x unknown_public_flags=%s", operation, x, y, native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags)
 	}
 }
 
-func tier1CheckMinMax32(t *testing.T, operation string, x, y uint32) {
+func tier1LegsMinMax32(t *testing.T, operation string, x, y uint32) (native, port, public, pure string, unknownFlags ExceptionFlags) {
 	t.Helper()
-	native, port := runGeneratedFFICase32Binary("bid32_"+operation, x, y, 0)
+	native, port = runGeneratedFFICase32Binary("bid32_"+operation, x, y, 0)
 	left, right := Decimal32BID(x), Decimal32BID(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
@@ -303,21 +326,28 @@ func tier1CheckMinMax32(t *testing.T, operation string, x, y uint32) {
 	} else {
 		t.Fatalf("decimal32 unknown Tier 1 min/max operation %q", operation)
 	}
-	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicFlags)
+	var publicFlags uint32
+	publicFlags, unknownFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicFlags)
+	pure = fmt.Sprintf("%08x", pureBits)
+	return
+}
+
+func tier1CheckMinMax32(t *testing.T, operation string, x, y uint32) {
+	t.Helper()
+	native, port, public, pure, unknownFlags := tier1LegsMinMax32(t, operation, x, y)
 	// The value-only port bodies (bid32_minnum_pure / bid32_maxnum_pure /
 	// bid32_minnum_mag_pure / bid32_maxnum_mag_pure) are separate
 	// implementations from the status-aware bodies, so their result bits are
 	// compared against the native value directly.
-	pure := fmt.Sprintf("%08x", pureBits)
 	if unknownFlags != 0 || native != port || native != public || !strings.HasPrefix(native, pure+"/") {
 		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x C=%s port=%s public=%s pure=%s unknown_public_flags=%s", operation, x, y, native, port, public, pure, unknownFlags)
 	}
 }
 
-func tier1CheckMinMax64(t *testing.T, operation string, x, y uint64) {
+func tier1LegsMinMax64(t *testing.T, operation string, x, y uint64) (native, port, public string, unknownFlags ExceptionFlags) {
 	t.Helper()
-	native, port := runGeneratedFFICase64Binary("bid64_"+operation, x, y, 0)
+	native, port = runGeneratedFFICase64Binary("bid64_"+operation, x, y, 0)
 	left, right := Decimal64BID(x), Decimal64BID(y)
 	var got Decimal64BID
 	var gotFlags ExceptionFlags
@@ -332,16 +362,23 @@ func tier1CheckMinMax64(t *testing.T, operation string, x, y uint64) {
 	} else {
 		t.Fatalf("decimal64 unknown Tier 1 min/max operation %q", operation)
 	}
-	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicFlags)
+	var publicFlags uint32
+	publicFlags, unknownFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicFlags)
+	return
+}
+
+func tier1CheckMinMax64(t *testing.T, operation string, x, y uint64) {
+	t.Helper()
+	native, port, public, unknownFlags := tier1LegsMinMax64(t, operation, x, y)
 	if unknownFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal64 %s mismatch: x=%016x y=%016x C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, native, port, public, unknownFlags)
 	}
 }
 
-func tier1CheckMinMax128(t *testing.T, operation string, x, y Decimal128BID) {
+func tier1LegsMinMax128(t *testing.T, operation string, x, y Decimal128BID) (native, port, public string, unknownFlags ExceptionFlags) {
 	t.Helper()
-	native, port := runGeneratedFFICase128Binary("bid128_"+operation, x, y, 0)
+	native, port = runGeneratedFFICase128Binary("bid128_"+operation, x, y, 0)
 	var got Decimal128BID
 	var gotFlags ExceptionFlags
 	if operation == "minnum" {
@@ -355,8 +392,15 @@ func tier1CheckMinMax128(t *testing.T, operation string, x, y Decimal128BID) {
 	} else {
 		t.Fatalf("decimal128 unknown Tier 1 min/max operation %q", operation)
 	}
-	publicFlags, unknownFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicFlags)
+	var publicFlags uint32
+	publicFlags, unknownFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicFlags)
+	return
+}
+
+func tier1CheckMinMax128(t *testing.T, operation string, x, y Decimal128BID) {
+	t.Helper()
+	native, port, public, unknownFlags := tier1LegsMinMax128(t, operation, x, y)
 	if unknownFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal128 %s mismatch: x=%x y=%x C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, native, port, public, unknownFlags)
 	}
@@ -947,26 +991,60 @@ func tier1PublicToInteger128(value Decimal128BID, operation tier1ToIntegerOperat
 	panic("unknown Decimal128 Tier 1 integer conversion kind: " + operation.kind)
 }
 
-func tier1CheckToInteger(t *testing.T, width int, operand string, operation tier1ToIntegerOperation, public string, unknownFlags ExceptionFlags) {
+// tier1LegsToInteger computes the Intel C and Go-port legs of one integer
+// conversion from the shared function-name/operand fan-out. Together with the
+// per-width tier1LegsToInteger* wrappers (which add the public leg) it is the
+// glue the routing sentinels bind.
+func tier1LegsToInteger(t *testing.T, width int, operand string, operation tier1ToIntegerOperation) (function, native, port string) {
 	t.Helper()
-	function := fmt.Sprintf("bid%d_to_%s_%s", width, operation.kind, operation.suffix)
+	function = fmt.Sprintf("bid%d_to_%s_%s", width, operation.kind, operation.suffix)
 	tc := generatedFFICase{
-		Format: fmt.Sprintf("decimal%d", width),
+		Format:    fmt.Sprintf("decimal%d", width),
 		Operation: fmt.Sprintf("to_%s_%s", operation.kind, operation.suffix),
-		Function: function,
-		Operands: []string{operand},
+		Function:  function,
+		Operands:  []string{operand},
 	}
-	native, err := runGeneratedFFICaseNativeBaseIntegerTo(tc)
+	var err error
+	native, err = runGeneratedFFICaseNativeBaseIntegerTo(tc)
 	if err != nil {
 		t.Fatalf("%s native integer conversion: %v", function, err)
 	}
-	port, err := runGeneratedFFICaseGoBaseIntegerTo(tc)
+	port, err = runGeneratedFFICaseGoBaseIntegerTo(tc)
 	if err != nil {
 		t.Fatalf("%s Go-port integer conversion: %v", function, err)
 	}
+	return
+}
+
+func tier1CheckToInteger(t *testing.T, width int, operand string, operation tier1ToIntegerOperation, public string, unknownFlags ExceptionFlags) {
+	t.Helper()
+	function, native, port := tier1LegsToInteger(t, width, operand, operation)
 	if unknownFlags != 0 || native != port || native != public {
 		t.Fatalf("%s mismatch: operand=%s mode=%s exact=%v C=%s port=%s public=%s unknown_public_flags=%s", function, operand, operation.mode.name, operation.exact, native, port, public, unknownFlags)
 	}
+}
+
+func tier1LegsToInteger32(t *testing.T, value uint32, operation tier1ToIntegerOperation) (native, port, public string, unknownFlags ExceptionFlags) {
+	t.Helper()
+	public, unknownFlags = tier1PublicToInteger32(Decimal32BID(value), operation)
+	_, native, port = tier1LegsToInteger(t, 32, fmt.Sprintf("%08x", value), operation)
+	return
+}
+
+func tier1LegsToInteger64(t *testing.T, value uint64, operation tier1ToIntegerOperation) (native, port, public string, unknownFlags ExceptionFlags) {
+	t.Helper()
+	public, unknownFlags = tier1PublicToInteger64(Decimal64BID(value), operation)
+	_, native, port = tier1LegsToInteger(t, 64, fmt.Sprintf("%016x", value), operation)
+	return
+}
+
+func tier1LegsToInteger128(t *testing.T, value Decimal128BID, operation tier1ToIntegerOperation) (native, port, public string, unknownFlags ExceptionFlags) {
+	t.Helper()
+	public, unknownFlags = tier1PublicToInteger128(value, operation)
+	raw := value.ToBytes()
+	operand := fmt.Sprintf("%016x%016x", binary.LittleEndian.Uint64(raw[8:16]), binary.LittleEndian.Uint64(raw[0:8]))
+	_, native, port = tier1LegsToInteger(t, 128, operand, operation)
+	return
 }
 
 func tier1CheckToInteger32(t *testing.T, value uint32, operation tier1ToIntegerOperation) {
@@ -1002,9 +1080,13 @@ func tier1BinaryOperations(source int) []tier1BinaryOperation {
 	return operations
 }
 
-func tier1CheckBinaryConversion(t *testing.T, operation tier1BinaryOperation, operand string, public string, unknownFlags ExceptionFlags) {
+// tier1LegsBinaryConversion computes the Intel C and Go-port legs of one
+// BID-to-binary conversion from the shared function-name/operand/mode
+// fan-out; the routing sentinels bind it together with the per-width public
+// dispatchers.
+func tier1LegsBinaryConversion(t *testing.T, operation tier1BinaryOperation, operand string) (function, native, port string) {
 	t.Helper()
-	function := fmt.Sprintf("bid%d_to_binary%d", operation.source, operation.dest)
+	function = fmt.Sprintf("bid%d_to_binary%d", operation.source, operation.dest)
 	tc := generatedFFICase{
 		Format:    fmt.Sprintf("decimal%d", operation.source),
 		Operation: fmt.Sprintf("to_binary%d", operation.dest),
@@ -1012,10 +1094,17 @@ func tier1CheckBinaryConversion(t *testing.T, operation tier1BinaryOperation, op
 		Rounding:  operation.mode.native,
 		Operands:  []string{operand},
 	}
-	native, port, err := runGeneratedFFICaseBinaryConversion(tc)
+	var err error
+	native, port, err = runGeneratedFFICaseBinaryConversion(tc)
 	if err != nil {
 		t.Fatalf("%s native/port binary conversion: %v", function, err)
 	}
+	return
+}
+
+func tier1CheckBinaryConversion(t *testing.T, operation tier1BinaryOperation, operand string, public string, unknownFlags ExceptionFlags) {
+	t.Helper()
+	function, native, port := tier1LegsBinaryConversion(t, operation, operand)
 	if unknownFlags != 0 || native != port || native != public {
 		t.Fatalf("%s mismatch: operand=%s mode=%s C=%s port=%s public=%s unknown_public_flags=%s", function, operand, operation.mode.name, native, port, public, unknownFlags)
 	}
@@ -1122,9 +1211,12 @@ func tier1WidthOperations(source int) []tier1WidthOperation {
 	return operations
 }
 
-func tier1CheckWidthConversion(t *testing.T, operation tier1WidthOperation, operand string, public string, unknownFlags ExceptionFlags) {
+// tier1LegsWidthConversion computes the Intel C and Go-port legs of one BID
+// width conversion from the shared function-name/operand/mode fan-out; the
+// routing sentinels bind it together with the per-width public dispatchers.
+func tier1LegsWidthConversion(t *testing.T, operation tier1WidthOperation, operand string) (function, native, port string) {
 	t.Helper()
-	function := fmt.Sprintf("bid%d_to_bid%d", operation.source, operation.dest)
+	function = fmt.Sprintf("bid%d_to_bid%d", operation.source, operation.dest)
 	rounding := 0
 	if operation.rounded {
 		rounding = operation.mode.native
@@ -1136,68 +1228,87 @@ func tier1CheckWidthConversion(t *testing.T, operation tier1WidthOperation, oper
 		Rounding:  rounding,
 		Operands:  []string{operand},
 	}
-	native, port, err := runGeneratedFFICaseBIDWidthConversion(tc)
+	var err error
+	native, port, err = runGeneratedFFICaseBIDWidthConversion(tc)
 	if err != nil {
 		t.Fatalf("%s native/port width conversion: %v", function, err)
 	}
+	return
+}
+
+func tier1CheckWidthConversion(t *testing.T, operation tier1WidthOperation, operand string, public string, unknownFlags ExceptionFlags) {
+	t.Helper()
+	function, native, port := tier1LegsWidthConversion(t, operation, operand)
 	if unknownFlags != 0 || native != port || native != public {
 		t.Fatalf("%s mismatch: operand=%s mode=%s C=%s port=%s public=%s unknown_public_flags=%s", function, operand, operation.mode.name, native, port, public, unknownFlags)
 	}
 }
 
-func tier1CheckWidth32(t *testing.T, value uint32, operation tier1WidthOperation) {
+func tier1PublicWidth32(t *testing.T, value uint32, operation tier1WidthOperation) (string, ExceptionFlags) {
+	t.Helper()
 	source := Decimal32BID(value)
-	var public string
-	var unknownFlags ExceptionFlags
 	switch operation.dest {
 	case 64:
 		result, flags := source.ToDecimal64()
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		public, unknownFlags = fmt.Sprintf("%016x/%08x", result.ToUint64(), rawFlags), unknown
+		return fmt.Sprintf("%016x/%08x", result.ToUint64(), rawFlags), unknown
 	case 128:
 		result, flags := source.ToDecimal128()
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		public, unknownFlags = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(result), rawFlags), unknown
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(result), rawFlags), unknown
 	default:
 		t.Fatalf("unknown Decimal32 width-conversion destination %d", operation.dest)
+		return "", 0
 	}
-	tier1CheckWidthConversion(t, operation, fmt.Sprintf("%08x", value), public, unknownFlags)
 }
 
-func tier1CheckWidth64(t *testing.T, value uint64, operation tier1WidthOperation) {
+func tier1PublicWidth64(t *testing.T, value uint64, operation tier1WidthOperation) (string, ExceptionFlags) {
+	t.Helper()
 	source := Decimal64BID(value)
-	var public string
-	var unknownFlags ExceptionFlags
 	switch operation.dest {
 	case 32:
 		result, flags := source.ToDecimal32(operation.mode.public)
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		public, unknownFlags = fmt.Sprintf("%08x/%08x", result.ToUint32(), rawFlags), unknown
+		return fmt.Sprintf("%08x/%08x", result.ToUint32(), rawFlags), unknown
 	case 128:
 		result, flags := source.ToDecimal128()
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		public, unknownFlags = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(result), rawFlags), unknown
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(result), rawFlags), unknown
 	default:
 		t.Fatalf("unknown Decimal64 width-conversion destination %d", operation.dest)
+		return "", 0
 	}
-	tier1CheckWidthConversion(t, operation, fmt.Sprintf("%016x", value), public, unknownFlags)
 }
 
-func tier1CheckWidth128(t *testing.T, value Decimal128BID, operation tier1WidthOperation) {
-	var public string
-	var unknownFlags ExceptionFlags
+func tier1PublicWidth128(t *testing.T, value Decimal128BID, operation tier1WidthOperation) (string, ExceptionFlags) {
+	t.Helper()
 	switch operation.dest {
 	case 32:
 		result, flags := value.ToDecimal32(operation.mode.public)
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		public, unknownFlags = fmt.Sprintf("%08x/%08x", result.ToUint32(), rawFlags), unknown
+		return fmt.Sprintf("%08x/%08x", result.ToUint32(), rawFlags), unknown
 	case 64:
 		result, flags := value.ToDecimal64(operation.mode.public)
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		public, unknownFlags = fmt.Sprintf("%016x/%08x", result.ToUint64(), rawFlags), unknown
+		return fmt.Sprintf("%016x/%08x", result.ToUint64(), rawFlags), unknown
 	default:
 		t.Fatalf("unknown Decimal128 width-conversion destination %d", operation.dest)
+		return "", 0
 	}
+}
+
+func tier1CheckWidth32(t *testing.T, value uint32, operation tier1WidthOperation) {
+	public, unknownFlags := tier1PublicWidth32(t, value, operation)
+	tier1CheckWidthConversion(t, operation, fmt.Sprintf("%08x", value), public, unknownFlags)
+}
+
+func tier1CheckWidth64(t *testing.T, value uint64, operation tier1WidthOperation) {
+	public, unknownFlags := tier1PublicWidth64(t, value, operation)
+	tier1CheckWidthConversion(t, operation, fmt.Sprintf("%016x", value), public, unknownFlags)
+}
+
+func tier1CheckWidth128(t *testing.T, value Decimal128BID, operation tier1WidthOperation) {
+	public, unknownFlags := tier1PublicWidth128(t, value, operation)
 	tier1CheckWidthConversion(t, operation, formatFFIUint128Bits(value), public, unknownFlags)
 }
 
@@ -1301,27 +1412,37 @@ func tier1PublicConstructor(operation tier1ConstructorOperation, raw uint64) (st
 	}
 }
 
-func tier1CheckConstructor(t *testing.T, operation tier1ConstructorOperation, raw uint64) {
+// tier1LegsConstructor computes every leg of one integer constructor from the
+// shared register/kind-cast/mode fan-out; the routing sentinels bind it.
+func tier1LegsConstructor(t *testing.T, operation tier1ConstructorOperation, raw uint64) (function, operand, native, port, public string, unknownFlags ExceptionFlags) {
 	t.Helper()
-	function := fmt.Sprintf("bid%d_from_%s", operation.dest, operation.kind)
+	function = fmt.Sprintf("bid%d_from_%s", operation.dest, operation.kind)
 	rounding := 0
 	if operation.rounded {
 		rounding = operation.mode.native
 	}
+	operand = tier1ConstructorOperand(raw, operation.kind)
 	tc := generatedFFICase{
 		Format:    fmt.Sprintf("decimal%d", operation.dest),
 		Operation: "from_" + operation.kind,
 		Function:  function,
 		Rounding:  rounding,
-		Operands:  []string{tier1ConstructorOperand(raw, operation.kind)},
+		Operands:  []string{operand},
 	}
-	native, port, err := runGeneratedFFICaseBaseIntegerFrom(tc)
+	var err error
+	native, port, err = runGeneratedFFICaseBaseIntegerFrom(tc)
 	if err != nil {
 		t.Fatalf("%s native/port constructor: %v", function, err)
 	}
-	public, unknownFlags := tier1PublicConstructor(operation, raw)
+	public, unknownFlags = tier1PublicConstructor(operation, raw)
+	return
+}
+
+func tier1CheckConstructor(t *testing.T, operation tier1ConstructorOperation, raw uint64) {
+	t.Helper()
+	function, operand, native, port, public, unknownFlags := tier1LegsConstructor(t, operation, raw)
 	if unknownFlags != 0 || native != port || native != public {
-		t.Fatalf("%s mismatch: operand=%s mode=%s C=%s port=%s public=%s unknown_public_flags=%s", function, tc.Operands[0], operation.mode.name, native, port, public, unknownFlags)
+		t.Fatalf("%s mismatch: operand=%s mode=%s C=%s port=%s public=%s unknown_public_flags=%s", function, operand, operation.mode.name, native, port, public, unknownFlags)
 	}
 }
 
@@ -1942,6 +2063,426 @@ func TestTier1ConversionDeterministicRandomNativeDifferential(t *testing.T) {
 	} else {
 		t.Logf("Tier 1 selected deterministic random conversion exact comparisons: %d", randomExecuted)
 	}
+}
+
+// Routing sentinels: generator-selected known-answer rows that bind the
+// compare/conversion runner glue (operand slots, dispatch-row labels
+// including their embedded rounding modes) to values pinned outside the
+// runtime; see the arithmetic runner's sentinel block for the axis-reading
+// rules. Every dispatch-table row of every family carries at least one row.
+
+// tier1CCSentinelCanonToInt rewrites one to-int leg from the runner-internal
+// "<decimal>/<2-hex status>" form into the cross-language canonical
+// "<64-bit two's-complement hex>/<8-hex flags>" form.
+func tier1CCSentinelCanonToInt(t *testing.T, row, leg, text string, signed bool) string {
+	t.Helper()
+	slash := strings.IndexByte(text, '/')
+	if slash < 0 {
+		t.Fatalf("routing sentinel row [%s]: unexpected %s integer result %q", row, leg, text)
+	}
+	var register uint64
+	if signed {
+		value, err := strconv.ParseInt(text[:slash], 10, 64)
+		if err != nil {
+			t.Fatalf("routing sentinel row [%s]: undecodable %s signed integer %q: %v", row, leg, text, err)
+		}
+		register = uint64(value)
+	} else {
+		value, err := strconv.ParseUint(text[:slash], 10, 64)
+		if err != nil {
+			t.Fatalf("routing sentinel row [%s]: undecodable %s unsigned integer %q: %v", row, leg, text, err)
+		}
+		register = value
+	}
+	status, err := strconv.ParseUint(text[slash+1:], 16, 32)
+	if err != nil {
+		t.Fatalf("routing sentinel row [%s]: undecodable %s status %q: %v", row, leg, text, err)
+	}
+	return fmt.Sprintf("%016x/%08x", register, uint32(status))
+}
+
+// tier1CCSentinelCanon128NoFlags rewrites a flagless 128-bit leg
+// ("<32 le-hex>") into the canonical "<hi16>:<lo16>" form.
+func tier1CCSentinelCanon128NoFlags(t *testing.T, row, leg, ffi string) string {
+	t.Helper()
+	canon := tier1ArithmeticSentinelCanon128(t, row, leg, ffi+"/00000000")
+	return strings.TrimSuffix(canon, "/00000000")
+}
+
+func tier1CCSentinelBool(value int, flags uint32) string {
+	return fmt.Sprintf("%02d/%08x", value, flags)
+}
+
+func tier1CCSentinelQuiet(t *testing.T, row, widthLabel, operation, xText, yText, pinned string) {
+	t.Helper()
+	var native, port, public int
+	var nativeFlags, portFlags, publicFlags uint32
+	var unknownFlags ExceptionFlags
+	switch widthLabel {
+	case "d32":
+		native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags = tier1LegsQuiet32(t, operation,
+			tier1ArithmeticSentinelHex32(t, row, xText), tier1ArithmeticSentinelHex32(t, row, yText))
+	case "d64":
+		native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags = tier1LegsQuiet64(t, operation,
+			tier1ArithmeticSentinelHex64(t, row, xText), tier1ArithmeticSentinelHex64(t, row, yText))
+	case "d128":
+		native, nativeFlags, port, portFlags, public, publicFlags, unknownFlags = tier1LegsQuiet128(t, operation,
+			tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)),
+			tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, yText)))
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+	}
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownFlags)
+	tier1ArithmeticSentinelAssert(t, row, "(none)", pinned,
+		tier1CCSentinelBool(native, nativeFlags), tier1CCSentinelBool(port, portFlags), tier1CCSentinelBool(public, publicFlags))
+}
+
+func tier1CCSentinelMinMax(t *testing.T, row, widthLabel, operation, xText, yText, pinned string) {
+	t.Helper()
+	var native, port, public string
+	var unknownFlags ExceptionFlags
+	switch widthLabel {
+	case "d32":
+		native, port, public, _, unknownFlags = tier1LegsMinMax32(t, operation,
+			tier1ArithmeticSentinelHex32(t, row, xText), tier1ArithmeticSentinelHex32(t, row, yText))
+	case "d64":
+		native, port, public, unknownFlags = tier1LegsMinMax64(t, operation,
+			tier1ArithmeticSentinelHex64(t, row, xText), tier1ArithmeticSentinelHex64(t, row, yText))
+	case "d128":
+		nativeFFI, portFFI, publicFFI, unknown := tier1LegsMinMax128(t, operation,
+			tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)),
+			tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, yText)))
+		native = tier1ArithmeticSentinelCanon128(t, row, "C", nativeFFI)
+		port = tier1ArithmeticSentinelCanon128(t, row, "port", portFFI)
+		public = tier1ArithmeticSentinelCanon128(t, row, "public", publicFFI)
+		unknownFlags = unknown
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+	}
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownFlags)
+	tier1ArithmeticSentinelAssert(t, row, "(none)", pinned, native, port, public)
+}
+
+func tier1CCSentinelToIntOperation(t *testing.T, row, operation string) tier1ToIntegerOperation {
+	t.Helper()
+	for _, candidate := range tier1ToIntegerOperations() {
+		if "to_"+candidate.kind+"_"+candidate.suffix == operation {
+			return candidate
+		}
+	}
+	t.Fatalf("routing sentinel row [%s]: operation %q is not in the runner to-integer table", row, operation)
+	return tier1ToIntegerOperation{}
+}
+
+func tier1CCSentinelToInt(t *testing.T, row, widthLabel, operation, xText, pinned string) {
+	t.Helper()
+	op := tier1CCSentinelToIntOperation(t, row, operation)
+	signed := strings.HasPrefix(op.kind, "int")
+	var native, port, public string
+	var unknownFlags ExceptionFlags
+	switch widthLabel {
+	case "d32":
+		native, port, public, unknownFlags = tier1LegsToInteger32(t, tier1ArithmeticSentinelHex32(t, row, xText), op)
+	case "d64":
+		native, port, public, unknownFlags = tier1LegsToInteger64(t, tier1ArithmeticSentinelHex64(t, row, xText), op)
+	case "d128":
+		native, port, public, unknownFlags = tier1LegsToInteger128(t, tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)), op)
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+	}
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownFlags)
+	tier1ArithmeticSentinelAssert(t, row, op.mode.name+"(suffix)", pinned,
+		tier1CCSentinelCanonToInt(t, row, "C", native, signed),
+		tier1CCSentinelCanonToInt(t, row, "port", port, signed),
+		tier1CCSentinelCanonToInt(t, row, "public", public, signed))
+}
+
+func tier1CCSentinelWidthOperation(t *testing.T, row string, source int, operation string, haveMode bool, mode tier1ArithmeticMode) tier1WidthOperation {
+	t.Helper()
+	for _, candidate := range tier1WidthOperations(source) {
+		if fmt.Sprintf("to_bid%d", candidate.dest) != operation {
+			continue
+		}
+		if candidate.rounded != haveMode {
+			continue
+		}
+		if candidate.rounded && candidate.mode.native != mode.native {
+			continue
+		}
+		return candidate
+	}
+	t.Fatalf("routing sentinel row [%s]: operation %q (mode present %v) is not in the runner width table", row, operation, haveMode)
+	return tier1WidthOperation{}
+}
+
+func tier1CCSentinelWidth(t *testing.T, row, widthLabel, operation, xText string, haveMode bool, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	var source int
+	var operand string
+	var public string
+	var unknownFlags ExceptionFlags
+	var op tier1WidthOperation
+	switch widthLabel {
+	case "d32":
+		source = 32
+		value := tier1ArithmeticSentinelHex32(t, row, xText)
+		op = tier1CCSentinelWidthOperation(t, row, source, operation, haveMode, mode)
+		operand = fmt.Sprintf("%08x", value)
+		public, unknownFlags = tier1PublicWidth32(t, value, op)
+	case "d64":
+		source = 64
+		value := tier1ArithmeticSentinelHex64(t, row, xText)
+		op = tier1CCSentinelWidthOperation(t, row, source, operation, haveMode, mode)
+		operand = fmt.Sprintf("%016x", value)
+		public, unknownFlags = tier1PublicWidth64(t, value, op)
+	case "d128":
+		source = 128
+		value := tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText))
+		op = tier1CCSentinelWidthOperation(t, row, source, operation, haveMode, mode)
+		operand = formatFFIUint128Bits(value)
+		public, unknownFlags = tier1PublicWidth128(t, value, op)
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+	}
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownFlags)
+	_, native, port := tier1LegsWidthConversion(t, op, operand)
+	if op.dest == 128 {
+		native = tier1ArithmeticSentinelCanon128(t, row, "C", native)
+		port = tier1ArithmeticSentinelCanon128(t, row, "port", port)
+		public = tier1ArithmeticSentinelCanon128(t, row, "public", public)
+	}
+	modeLabel := "(none)"
+	if haveMode {
+		modeLabel = tier1ArithmeticSentinelModeLabel(mode)
+	}
+	tier1ArithmeticSentinelAssert(t, row, modeLabel, pinned, native, port, public)
+}
+
+func tier1CCSentinelBinaryOperation(t *testing.T, row string, source int, operation string, mode tier1ArithmeticMode) tier1BinaryOperation {
+	t.Helper()
+	for _, candidate := range tier1BinaryOperations(source) {
+		if fmt.Sprintf("to_binary%d", candidate.dest) == operation && candidate.mode.native == mode.native {
+			return candidate
+		}
+	}
+	t.Fatalf("routing sentinel row [%s]: operation %q is not in the runner binary-conversion table", row, operation)
+	return tier1BinaryOperation{}
+}
+
+func tier1CCSentinelBinary(t *testing.T, row, widthLabel, operation, xText string, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	var operand string
+	var public string
+	var unknownFlags ExceptionFlags
+	var op tier1BinaryOperation
+	switch widthLabel {
+	case "d32":
+		value := tier1ArithmeticSentinelHex32(t, row, xText)
+		op = tier1CCSentinelBinaryOperation(t, row, 32, operation, mode)
+		operand = fmt.Sprintf("%08x", value)
+		public, unknownFlags = tier1PublicBinary32(Decimal32BID(value), op)
+	case "d64":
+		value := tier1ArithmeticSentinelHex64(t, row, xText)
+		op = tier1CCSentinelBinaryOperation(t, row, 64, operation, mode)
+		operand = fmt.Sprintf("%016x", value)
+		public, unknownFlags = tier1PublicBinary64(Decimal64BID(value), op)
+	case "d128":
+		value := tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText))
+		op = tier1CCSentinelBinaryOperation(t, row, 128, operation, mode)
+		operand = formatFFIUint128Bits(value)
+		public, unknownFlags = tier1PublicBinary128(value, op)
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+	}
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownFlags)
+	_, native, port := tier1LegsBinaryConversion(t, op, operand)
+	if op.dest == 128 {
+		native = tier1ArithmeticSentinelCanon128(t, row, "C", native)
+		port = tier1ArithmeticSentinelCanon128(t, row, "port", port)
+		public = tier1ArithmeticSentinelCanon128(t, row, "public", public)
+	}
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1CCSentinelConstructorOperation(t *testing.T, row string, dest int, operation string, haveMode bool, mode tier1ArithmeticMode) tier1ConstructorOperation {
+	t.Helper()
+	for _, candidate := range tier1ConstructorOperations() {
+		if candidate.dest != dest || "from_"+candidate.kind != operation {
+			continue
+		}
+		if candidate.rounded != haveMode {
+			continue
+		}
+		if candidate.rounded && candidate.mode.native != mode.native {
+			continue
+		}
+		return candidate
+	}
+	t.Fatalf("routing sentinel row [%s]: operation %q (mode present %v) is not in the runner constructor table", row, operation, haveMode)
+	return tier1ConstructorOperation{}
+}
+
+// tier1CCSentinelConstructorRegister rebuilds the 64-bit register image from
+// the row's kind-typed decimal input, mirroring the structured differential's
+// convention (32-bit kinds zero-extend their low word).
+func tier1CCSentinelConstructorRegister(t *testing.T, row, kind, text string) uint64 {
+	t.Helper()
+	switch kind {
+	case "int32":
+		value, err := strconv.ParseInt(text, 10, 32)
+		if err != nil {
+			t.Fatalf("routing sentinel row [%s]: bad int32 input %q: %v", row, text, err)
+		}
+		return uint64(uint32(int32(value)))
+	case "uint32":
+		value, err := strconv.ParseUint(text, 10, 32)
+		if err != nil {
+			t.Fatalf("routing sentinel row [%s]: bad uint32 input %q: %v", row, text, err)
+		}
+		return uint64(uint32(value))
+	case "int64":
+		value, err := strconv.ParseInt(text, 10, 64)
+		if err != nil {
+			t.Fatalf("routing sentinel row [%s]: bad int64 input %q: %v", row, text, err)
+		}
+		return uint64(value)
+	case "uint64":
+		value, err := strconv.ParseUint(text, 10, 64)
+		if err != nil {
+			t.Fatalf("routing sentinel row [%s]: bad uint64 input %q: %v", row, text, err)
+		}
+		return value
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown constructor kind %q", row, kind)
+		return 0
+	}
+}
+
+func tier1CCSentinelConstructor(t *testing.T, row, widthLabel, operation, iText string, haveMode bool, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	var dest int
+	switch widthLabel {
+	case "d32":
+		dest = 32
+	case "d64":
+		dest = 64
+	case "d128":
+		dest = 128
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+	}
+	op := tier1CCSentinelConstructorOperation(t, row, dest, operation, haveMode, mode)
+	raw := tier1CCSentinelConstructorRegister(t, row, op.kind, iText)
+	_, _, native, port, public, unknownFlags := tier1LegsConstructor(t, op, raw)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownFlags)
+	if dest == 128 {
+		native = tier1CCSentinelCanon128NoFlags(t, row, "C", native)
+		port = tier1CCSentinelCanon128NoFlags(t, row, "port", port)
+		public = tier1CCSentinelCanon128NoFlags(t, row, "public", public)
+	}
+	modeLabel := "(none)"
+	if haveMode {
+		modeLabel = tier1ArithmeticSentinelModeLabel(mode)
+	}
+	tier1ArithmeticSentinelAssert(t, row, modeLabel, pinned, native, port, public)
+}
+
+func tier1CompareConversionCheckRoutingSentinelRow(t *testing.T, row string) {
+	t.Helper()
+	fields := strings.Split(row, " ")
+	if len(fields) < 4 || fields[len(fields)-2] != "->" {
+		t.Fatalf("routing sentinel row [%s]: malformed layout", row)
+	}
+	widthLabel, operation := fields[0], fields[1]
+	pinned := fields[len(fields)-1]
+	var haveX, haveY, haveI, haveMode bool
+	var xText, yText, iText string
+	var mode tier1ArithmeticMode
+	for _, field := range fields[2 : len(fields)-2] {
+		switch {
+		case strings.HasPrefix(field, "x="):
+			xText, haveX = field[2:], true
+		case strings.HasPrefix(field, "y="):
+			yText, haveY = field[2:], true
+		case strings.HasPrefix(field, "i="):
+			iText, haveI = field[2:], true
+		case strings.HasPrefix(field, "m="):
+			native, err := strconv.Atoi(field[2:])
+			if err != nil {
+				t.Fatalf("routing sentinel row [%s]: bad native mode %q: %v", row, field, err)
+			}
+			mode, haveMode = tier1ArithmeticSentinelModeByNative(t, row, native), true
+		default:
+			t.Fatalf("routing sentinel row [%s]: unknown field %q", row, field)
+		}
+	}
+	requireShape := func(needX, needY, needI bool) {
+		t.Helper()
+		if haveX != needX || haveY != needY || haveI != needI {
+			t.Fatalf("routing sentinel row [%s]: field shape does not match operation %q", row, operation)
+		}
+	}
+	switch {
+	case strings.HasPrefix(operation, "quiet_"):
+		requireShape(true, true, false)
+		if haveMode {
+			t.Fatalf("routing sentinel row [%s]: quiet predicates carry no mode", row)
+		}
+		tier1CCSentinelQuiet(t, row, widthLabel, operation, xText, yText, pinned)
+	case operation == "minnum" || operation == "maxnum" || operation == "minnum_mag" || operation == "maxnum_mag":
+		requireShape(true, true, false)
+		if haveMode {
+			t.Fatalf("routing sentinel row [%s]: min/max operations carry no mode", row)
+		}
+		tier1CCSentinelMinMax(t, row, widthLabel, operation, xText, yText, pinned)
+	case strings.HasPrefix(operation, "to_int") || strings.HasPrefix(operation, "to_uint"):
+		requireShape(true, false, false)
+		if haveMode {
+			t.Fatalf("routing sentinel row [%s]: to-integer operations embed the mode in the operation name", row)
+		}
+		tier1CCSentinelToInt(t, row, widthLabel, operation, xText, pinned)
+	case strings.HasPrefix(operation, "to_bid"):
+		requireShape(true, false, false)
+		tier1CCSentinelWidth(t, row, widthLabel, operation, xText, haveMode, mode, pinned)
+	case strings.HasPrefix(operation, "to_binary"):
+		requireShape(true, false, false)
+		if !haveMode {
+			t.Fatalf("routing sentinel row [%s]: binary conversions require a mode", row)
+		}
+		tier1CCSentinelBinary(t, row, widthLabel, operation, xText, mode, pinned)
+	case strings.HasPrefix(operation, "from_"):
+		requireShape(false, false, true)
+		tier1CCSentinelConstructor(t, row, widthLabel, operation, iText, haveMode, mode, pinned)
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown operation %q", row, operation)
+	}
+}
+
+// TestTier1CompareConversionRoutingSentinels runs every pinned sentinel row
+// on every leg. It deliberately ignores the shard environment: the rows are
+// few and every shard configuration (and the -full gate) must execute all of
+// them.
+func TestTier1CompareConversionRoutingSentinels(t *testing.T) {
+	requireNative(t)
+	if len(tier1CompareConversionRoutingSentinelRows) == 0 {
+		t.Fatal("generated Tier 1 compare/conversion routing sentinel row set is empty")
+	}
+	if uint64(len(tier1CompareConversionRoutingSentinelRows)) != tier1CompareConversionRoutingSentinelCount {
+		t.Fatalf("generated Tier 1 compare/conversion routing sentinel rows=%d want=%d", len(tier1CompareConversionRoutingSentinelRows), tier1CompareConversionRoutingSentinelCount)
+	}
+	for _, row := range tier1CompareConversionRoutingSentinelRows {
+		tier1CompareConversionCheckRoutingSentinelRow(t, row)
+	}
+	t.Logf("Tier 1 compare/conversion routing sentinels: %d/%d", len(tier1CompareConversionRoutingSentinelRows), len(tier1CompareConversionRoutingSentinelRows))
+}
+
+// tier1CompareConversionRoutingSentinelRows is the canonical sentinel row
+// set. The identical byte sequence is pinned by hand in
+// devtools/verification_sentinels.json and emitted into the generated Rust
+// runner; TestVerificationAnchorsMatchGeneratedArtifacts requires the three
+// copies to match exactly.
+var tier1CompareConversionRoutingSentinelRows = []string{
+@@TIER1_CC_SENTINEL_ROWS@@
 }
 
 var tier1ConversionSemantic32 = []uint32{

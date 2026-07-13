@@ -222,7 +222,14 @@ fn public_raw_flags(flags: ExceptionFlags) -> u32 {
     raw
 }
 
-fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
+// legs_* compute every leg of one comparison from one decoded case. They are
+// the single operand/mode/dispatch fan-out shared by the differential checks
+// and the routing sentinels, so a slot swap, a mode miswire, or a
+// dispatch-row mislabel in this glue skews the differential's legs
+// identically (an agreed-upon wrong answer the differential cannot see)
+// while the pinned sentinel rows diverge and fail.
+
+fn legs_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) -> (u32, u32, u32, u32, Option<u32>) {
     let mut native_flags = 0u32;
     let native = unsafe {
         match op {
@@ -242,9 +249,6 @@ fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
         RoundedOp::Div => left.div_with_mode(right, mode.public),
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
-        "Decimal32 {op:?} mismatch x={x:08x} y={y:08x} mode={}", mode.name);
-
     let flagless = match op {
         RoundedOp::Add => Some(bid32_add(x, y, i64::from(mode.native))),
         RoundedOp::Sub => Some(bid32_sub(x, y, i64::from(mode.native))),
@@ -252,13 +256,20 @@ fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
         RoundedOp::Div => Some(bid32_div(x, y, i64::from(mode.native))),
         RoundedOp::Quantize => None,
     };
+    (native, native_flags, public.to_bits(), public_raw_flags(flags), flagless)
+}
+
+fn check_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded32(op, x, y, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
+        "Decimal32 {op:?} mismatch x={x:08x} y={y:08x} mode={}", mode.name);
     if let Some(flagless) = flagless {
         assert_eq!(flagless, native,
             "Decimal32 flagless {op:?} mismatch x={x:08x} y={y:08x} mode={}", mode.name);
     }
 }
 
-fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
+fn legs_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) -> (u64, u32, u64, u32, Option<u64>) {
     let mut native_flags = 0u32;
     let native = unsafe {
         match op {
@@ -278,9 +289,6 @@ fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
         RoundedOp::Div => left.div_with_mode(right, mode.public),
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
-        "Decimal64 {op:?} mismatch x={x:016x} y={y:016x} mode={}", mode.name);
-
     let flagless = match op {
         RoundedOp::Add => Some(bid64_add(x, y, i64::from(mode.native))),
         RoundedOp::Sub => Some(bid64_sub(x, y, i64::from(mode.native))),
@@ -288,13 +296,20 @@ fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
         RoundedOp::Div => Some(bid64_div(x, y, i64::from(mode.native))),
         RoundedOp::Quantize => None,
     };
+    (native, native_flags, public.to_bits(), public_raw_flags(flags), flagless)
+}
+
+fn check_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded64(op, x, y, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
+        "Decimal64 {op:?} mismatch x={x:016x} y={y:016x} mode={}", mode.name);
     if let Some(flagless) = flagless {
         assert_eq!(flagless, native,
             "Decimal64 flagless {op:?} mismatch x={x:016x} y={y:016x} mode={}", mode.name);
     }
 }
 
-fn check_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) {
+fn legs_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe {
         match op {
@@ -314,61 +329,96 @@ fn check_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) {
         RoundedOp::Div => left.div_with_mode(right, mode.public),
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_rounded128(op: RoundedOp, x: Words, y: Words, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_rounded128(op, x, y, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 {op:?} mismatch x={x:?} y={y:?} mode={}", mode.name);
 }
 
-fn check_fma32(x: u32, y: u32, z: u32, mode: Mode) {
+fn legs_fma32(x: u32, y: u32, z: u32, mode: Mode) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid32_fma(x, y, z, mode.native, &mut native_flags) };
     let (public, flags) = Decimal32::from_bits(x)
         .fma_with_mode(Decimal32::from_bits(y), Decimal32::from_bits(z), mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_fma32(x: u32, y: u32, z: u32, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_fma32(x, y, z, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 fma mismatch x={x:08x} y={y:08x} z={z:08x} mode={}", mode.name);
 }
 
-fn check_fma64(x: u64, y: u64, z: u64, mode: Mode) {
+fn legs_fma64(x: u64, y: u64, z: u64, mode: Mode) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid64_fma(x, y, z, mode.native, &mut native_flags) };
     let (public, flags) = Decimal64::from_bits(x)
         .fma_with_mode(Decimal64::from_bits(y), Decimal64::from_bits(z), mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_fma64(x: u64, y: u64, z: u64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_fma64(x, y, z, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 fma mismatch x={x:016x} y={y:016x} z={z:016x} mode={}", mode.name);
 }
 
-fn check_fma128(x: Words, y: Words, z: Words, mode: Mode) {
+fn legs_fma128(x: Words, y: Words, z: Words, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid128_fma(c128(x), c128(y), c128(z), mode.native, &mut native_flags) };
     let (public, flags) = decimal128(x).fma_with_mode(decimal128(y), decimal128(z), mode.public);
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_fma128(x: Words, y: Words, z: Words, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_fma128(x, y, z, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 fma mismatch x={x:?} y={y:?} z={z:?} mode={}", mode.name);
 }
 
-fn check_sqrt32(x: u32, mode: Mode) {
+fn legs_sqrt32(x: u32, mode: Mode) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid32_sqrt(x, mode.native, &mut native_flags) };
     let (public, flags) = Decimal32::from_bits(x).sqrt_with_mode(mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_sqrt32(x: u32, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_sqrt32(x, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 sqrt mismatch x={x:08x} mode={}", mode.name);
 }
 
-fn check_sqrt64(x: u64, mode: Mode) {
+fn legs_sqrt64(x: u64, mode: Mode) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid64_sqrt(x, mode.native, &mut native_flags) };
     let (public, flags) = Decimal64::from_bits(x).sqrt_with_mode(mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_sqrt64(x: u64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_sqrt64(x, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 sqrt mismatch x={x:016x} mode={}", mode.name);
 }
 
-fn check_sqrt128(x: Words, mode: Mode) {
+fn legs_sqrt128(x: Words, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { libbid_sys::bid128_sqrt(c128(x), mode.native, &mut native_flags) };
     let (public, flags) = decimal128(x).sqrt_with_mode(mode.public);
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_sqrt128(x: Words, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_sqrt128(x, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 sqrt mismatch x={x:?} mode={}", mode.name);
 }
 
-fn check_unrounded32(op: UnroundedOp, x: u32, y: u32) {
+fn legs_unrounded32(op: UnroundedOp, x: u32, y: u32) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         UnroundedOp::Remainder => native_bid32_rem(x, y, &mut native_flags),
@@ -380,11 +430,16 @@ fn check_unrounded32(op: UnroundedOp, x: u32, y: u32) {
         UnroundedOp::Remainder => left.remainder(right),
         UnroundedOp::Fmod => left.fmod(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_unrounded32(op: UnroundedOp, x: u32, y: u32) {
+    let (native, native_flags, public, public_flags) = legs_unrounded32(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 {op:?} mismatch x={x:08x} y={y:08x}");
 }
 
-fn check_unrounded64(op: UnroundedOp, x: u64, y: u64) {
+fn legs_unrounded64(op: UnroundedOp, x: u64, y: u64) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         UnroundedOp::Remainder => native_bid64_rem(x, y, &mut native_flags),
@@ -396,11 +451,16 @@ fn check_unrounded64(op: UnroundedOp, x: u64, y: u64) {
         UnroundedOp::Remainder => left.remainder(right),
         UnroundedOp::Fmod => left.fmod(right),
     };
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_unrounded64(op: UnroundedOp, x: u64, y: u64) {
+    let (native, native_flags, public, public_flags) = legs_unrounded64(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 {op:?} mismatch x={x:016x} y={y:016x}");
 }
 
-fn check_unrounded128(op: UnroundedOp, x: Words, y: Words) {
+fn legs_unrounded128(op: UnroundedOp, x: Words, y: Words) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { match op {
         UnroundedOp::Remainder => native_bid128_rem(c128(x), c128(y), &mut native_flags),
@@ -412,31 +472,51 @@ fn check_unrounded128(op: UnroundedOp, x: Words, y: Words) {
         UnroundedOp::Remainder => left.remainder(right),
         UnroundedOp::Fmod => left.fmod(right),
     };
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_unrounded128(op: UnroundedOp, x: Words, y: Words) {
+    let (native, native_flags, public, public_flags) = legs_unrounded128(op, x, y);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 {op:?} mismatch x={x:?} y={y:?}");
 }
 
-fn check_scale32(x: u32, exponent: i64, mode: Mode) {
+fn legs_scale32(x: u32, exponent: i64, mode: Mode) -> (u32, u32, u32, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { native_bid32_scalbln(x, exponent as c_long, mode.native, &mut native_flags) };
     let (public, flags) = Decimal32::from_bits(x).scaleb_with_mode(exponent, mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_scale32(x: u32, exponent: i64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_scale32(x, exponent, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal32 scaleB mismatch x={x:08x} exponent={exponent} mode={}", mode.name);
 }
 
-fn check_scale64(x: u64, exponent: i64, mode: Mode) {
+fn legs_scale64(x: u64, exponent: i64, mode: Mode) -> (u64, u32, u64, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { native_bid64_scalbln(x, exponent as c_long, mode.native, &mut native_flags) };
     let (public, flags) = Decimal64::from_bits(x).scaleb_with_mode(exponent, mode.public);
-    assert_eq!((public.to_bits(), public_raw_flags(flags)), (native, native_flags),
+    (native, native_flags, public.to_bits(), public_raw_flags(flags))
+}
+
+fn check_scale64(x: u64, exponent: i64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_scale64(x, exponent, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal64 scaleB mismatch x={x:016x} exponent={exponent} mode={}", mode.name);
 }
 
-fn check_scale128(x: Words, exponent: i64, mode: Mode) {
+fn legs_scale128(x: Words, exponent: i64, mode: Mode) -> (Words, u32, Words, u32) {
     let mut native_flags = 0u32;
     let native = unsafe { native_bid128_scalbln(c128(x), exponent as c_long, mode.native, &mut native_flags) };
     let (public, flags) = decimal128(x).scaleb_with_mode(exponent, mode.public);
-    assert_eq!((decimal128_words(public), public_raw_flags(flags)), (c128_words(native), native_flags),
+    (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
+}
+
+fn check_scale128(x: Words, exponent: i64, mode: Mode) {
+    let (native, native_flags, public, public_flags) = legs_scale128(x, exponent, mode);
+    assert_eq!((public, public_flags), (native, native_flags),
         "Decimal128 scaleB mismatch x={x:?} exponent={exponent} mode={}", mode.name);
 }
 
@@ -1165,6 +1245,404 @@ fn tier1_arithmetic_deterministic_random_native_differential() {
     assert_eq!(count, RANDOM128_COUNT);
     eprintln!("Rust Decimal128 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
 }
+
+// Routing sentinels: generator-selected known-answer rows that bind the
+// runner glue (operand slots, rounding-mode wiring, dispatch-row labels) to
+// values pinned outside the runtime. Each row's expected (bits, flags) was
+// computed at generation time through the public bid754-go API and is
+// byte-equal pinned in devtools/verification_sentinels.json; at runtime the
+// Intel C leg, the generated Rust public leg, and (where exported) the
+// flagless leg must reproduce the pinned answer exactly. A glue bug that
+// skews every leg the same way — invisible to the differential — diverges
+// from the pin here. The diverged set names the broken leg axis:
+// {C,public} means shared runner glue (slot/mode/dispatch), {public} a
+// generated-Rust regression, {C} an FFI/link regression.
+
+fn sentinel_mode(row: &str, native: u32) -> Mode {
+    for mode in MODES {
+        if mode.native == native {
+            return mode;
+        }
+    }
+    panic!("routing sentinel row [{row}]: native mode {native} is not in the runner mode table");
+}
+
+fn sentinel_mode_label(mode: Mode) -> String {
+    format!("{}(native {})", mode.name, mode.native)
+}
+
+fn sentinel_hex32(row: &str, text: &str) -> u32 {
+    assert!(text.len() == 8, "routing sentinel row [{row}]: expected 8 hex digits, got {text:?}");
+    u32::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 32-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_hex64(row: &str, text: &str) -> u64 {
+    assert!(text.len() == 16, "routing sentinel row [{row}]: expected 16 hex digits, got {text:?}");
+    u64::from_str_radix(text, 16)
+        .unwrap_or_else(|err| panic!("routing sentinel row [{row}]: bad 64-bit hex {text:?}: {err}"))
+}
+
+fn sentinel_words128(row: &str, text: &str) -> Words {
+    assert!(
+        text.len() == 33 && text.as_bytes()[16] == b':',
+        "routing sentinel row [{row}]: expected <hi16>:<lo16> hex words, got {text:?}"
+    );
+    Words { hi: sentinel_hex64(row, &text[..16]), lo: sentinel_hex64(row, &text[17..]) }
+}
+
+fn sentinel_result32(bits: u32, flags: u32) -> String {
+    format!("{bits:08x}/{flags:08x}")
+}
+
+fn sentinel_result64(bits: u64, flags: u32) -> String {
+    format!("{bits:016x}/{flags:08x}")
+}
+
+fn sentinel_result128(words: Words, flags: u32) -> String {
+    format!("{:016x}:{:016x}/{flags:08x}", words.hi, words.lo)
+}
+
+fn sentinel_assert(row: &str, mode_label: &str, pinned: &str, native: &str, public: &str, flagless: Option<&str>) {
+    let pinned_bits = pinned.split('/').next().unwrap_or("");
+    let flagless_matches = flagless.map_or(true, |bits| bits == pinned_bits);
+    if native == pinned && public == pinned && flagless_matches {
+        return;
+    }
+    let mut diverged = Vec::new();
+    if native != pinned {
+        diverged.push("C");
+    }
+    if public != pinned {
+        diverged.push("public");
+    }
+    if !flagless_matches {
+        diverged.push("flagless");
+    }
+    panic!(
+        "routing sentinel mismatch [{row}]:\n  pinned={pinned} C={native} public={public} flagless={}\n  mode={mode_label} diverged={{{}}}",
+        flagless.unwrap_or("-"),
+        diverged.join(",")
+    );
+}
+
+fn sentinel_rounded32(row: &str, op: RoundedOp, x: u32, y: u32, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded32(op, x, y, mode);
+    let flagless_text = flagless.map(|bits| format!("{bits:08x}"));
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        flagless_text.as_deref(),
+    );
+}
+
+fn sentinel_rounded64(row: &str, op: RoundedOp, x: u64, y: u64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags, flagless) = legs_rounded64(op, x, y, mode);
+    let flagless_text = flagless.map(|bits| format!("{bits:016x}"));
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        flagless_text.as_deref(),
+    );
+}
+
+fn sentinel_rounded128(row: &str, op: RoundedOp, x: Words, y: Words, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_rounded128(op, x, y, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_unrounded32(row: &str, op: UnroundedOp, x: u32, y: u32, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_unrounded32(op, x, y);
+    sentinel_assert(
+        row,
+        "(none)",
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_unrounded64(row: &str, op: UnroundedOp, x: u64, y: u64, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_unrounded64(op, x, y);
+    sentinel_assert(
+        row,
+        "(none)",
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_unrounded128(row: &str, op: UnroundedOp, x: Words, y: Words, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_unrounded128(op, x, y);
+    sentinel_assert(
+        row,
+        "(none)",
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_fma32(row: &str, x: u32, y: u32, z: u32, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_fma32(x, y, z, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_fma64(row: &str, x: u64, y: u64, z: u64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_fma64(x, y, z, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_fma128(row: &str, x: Words, y: Words, z: Words, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_fma128(x, y, z, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_sqrt32(row: &str, x: u32, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_sqrt32(x, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_sqrt64(row: &str, x: u64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_sqrt64(x, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_sqrt128(row: &str, x: Words, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_sqrt128(x, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_scale32(row: &str, x: u32, exponent: i64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_scale32(x, exponent, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result32(native, native_flags),
+        &sentinel_result32(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_scale64(row: &str, x: u64, exponent: i64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_scale64(x, exponent, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result64(native, native_flags),
+        &sentinel_result64(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_scale128(row: &str, x: Words, exponent: i64, mode: Mode, pinned: &str) {
+    let (native, native_flags, public, public_flags) = legs_scale128(x, exponent, mode);
+    sentinel_assert(
+        row,
+        &sentinel_mode_label(mode),
+        pinned,
+        &sentinel_result128(native, native_flags),
+        &sentinel_result128(public, public_flags),
+        None,
+    );
+}
+
+fn sentinel_rounded_op(row: &str, name: &str) -> RoundedOp {
+    match name {
+        "add" => RoundedOp::Add,
+        "sub" => RoundedOp::Sub,
+        "mul" => RoundedOp::Mul,
+        "div" => RoundedOp::Div,
+        "quantize" => RoundedOp::Quantize,
+        _ => panic!("routing sentinel row [{row}]: unknown rounded operation {name:?}"),
+    }
+}
+
+fn check_routing_sentinel_row(row: &str) {
+    let fields: Vec<&str> = row.split(' ').collect();
+    assert!(
+        fields.len() >= 5 && fields[fields.len() - 2] == "->",
+        "routing sentinel row [{row}]: malformed layout"
+    );
+    let width = fields[0];
+    let operation = fields[1];
+    let pinned = fields[fields.len() - 1];
+    let mut x_text: Option<&str> = None;
+    let mut y_text: Option<&str> = None;
+    let mut z_text: Option<&str> = None;
+    let mut exponent: Option<i64> = None;
+    let mut mode: Option<Mode> = None;
+    for field in &fields[2..fields.len() - 2] {
+        if let Some(text) = field.strip_prefix("x=") {
+            x_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("y=") {
+            y_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("z=") {
+            z_text = Some(text);
+        } else if let Some(text) = field.strip_prefix("n=") {
+            exponent = Some(text.parse::<i64>().unwrap_or_else(|err| {
+                panic!("routing sentinel row [{row}]: bad scaleb exponent {text:?}: {err}")
+            }));
+        } else if let Some(text) = field.strip_prefix("m=") {
+            let native = text.parse::<u32>().unwrap_or_else(|err| {
+                panic!("routing sentinel row [{row}]: bad native mode {text:?}: {err}")
+            });
+            mode = Some(sentinel_mode(row, native));
+        } else {
+            panic!("routing sentinel row [{row}]: unknown field {field:?}");
+        }
+    }
+    let require_shape = |need_x: bool, need_y: bool, need_z: bool, need_n: bool, need_mode: bool| {
+        assert!(
+            x_text.is_some() == need_x
+                && y_text.is_some() == need_y
+                && z_text.is_some() == need_z
+                && exponent.is_some() == need_n
+                && mode.is_some() == need_mode,
+            "routing sentinel row [{row}]: field shape does not match operation {operation:?}"
+        );
+    };
+    match operation {
+        "add" | "sub" | "mul" | "div" | "quantize" => {
+            require_shape(true, true, false, false, true);
+            let op = sentinel_rounded_op(row, operation);
+            let (x, y, mode) = (x_text.unwrap(), y_text.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_rounded32(row, op, sentinel_hex32(row, x), sentinel_hex32(row, y), mode, pinned),
+                "d64" => sentinel_rounded64(row, op, sentinel_hex64(row, x), sentinel_hex64(row, y), mode, pinned),
+                "d128" => sentinel_rounded128(row, op, sentinel_words128(row, x), sentinel_words128(row, y), mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "remainder" | "fmod" => {
+            require_shape(true, true, false, false, false);
+            let op = if operation == "remainder" { UnroundedOp::Remainder } else { UnroundedOp::Fmod };
+            let (x, y) = (x_text.unwrap(), y_text.unwrap());
+            match width {
+                "d32" => sentinel_unrounded32(row, op, sentinel_hex32(row, x), sentinel_hex32(row, y), pinned),
+                "d64" => sentinel_unrounded64(row, op, sentinel_hex64(row, x), sentinel_hex64(row, y), pinned),
+                "d128" => sentinel_unrounded128(row, op, sentinel_words128(row, x), sentinel_words128(row, y), pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "fma" => {
+            require_shape(true, true, true, false, true);
+            let (x, y, z, mode) = (x_text.unwrap(), y_text.unwrap(), z_text.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_fma32(row, sentinel_hex32(row, x), sentinel_hex32(row, y), sentinel_hex32(row, z), mode, pinned),
+                "d64" => sentinel_fma64(row, sentinel_hex64(row, x), sentinel_hex64(row, y), sentinel_hex64(row, z), mode, pinned),
+                "d128" => sentinel_fma128(row, sentinel_words128(row, x), sentinel_words128(row, y), sentinel_words128(row, z), mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "sqrt" => {
+            require_shape(true, false, false, false, true);
+            let (x, mode) = (x_text.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_sqrt32(row, sentinel_hex32(row, x), mode, pinned),
+                "d64" => sentinel_sqrt64(row, sentinel_hex64(row, x), mode, pinned),
+                "d128" => sentinel_sqrt128(row, sentinel_words128(row, x), mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        "scaleb" => {
+            require_shape(true, false, false, true, true);
+            let (x, n, mode) = (x_text.unwrap(), exponent.unwrap(), mode.unwrap());
+            match width {
+                "d32" => sentinel_scale32(row, sentinel_hex32(row, x), n, mode, pinned),
+                "d64" => sentinel_scale64(row, sentinel_hex64(row, x), n, mode, pinned),
+                "d128" => sentinel_scale128(row, sentinel_words128(row, x), n, mode, pinned),
+                _ => panic!("routing sentinel row [{row}]: unknown width {width:?}"),
+            }
+        }
+        _ => panic!("routing sentinel row [{row}]: unknown operation {operation:?}"),
+    }
+}
+
+// Runs every pinned sentinel row on every leg. Deliberately ignores the
+// shard environment: the rows are few and every shard configuration (and the
+// -full gate) must execute all of them.
+#[test]
+fn tier1_arithmetic_routing_sentinels() {
+    assert!(
+        !ROUTING_SENTINEL_ROWS.is_empty(),
+        "generated Tier 1 arithmetic routing sentinel row set is empty"
+    );
+    for row in ROUTING_SENTINEL_ROWS {
+        check_routing_sentinel_row(row);
+    }
+    let n = ROUTING_SENTINEL_ROWS.len();
+    println!("Rust Tier 1 arithmetic routing sentinels: {n}/{n}");
+}
+
+// The canonical sentinel row set. The identical byte sequence is pinned by
+// hand in devtools/verification_sentinels.json and emitted into the generated
+// Go runner; TestVerificationAnchorsMatchGeneratedArtifacts requires the
+// three copies to match exactly.
+const ROUTING_SENTINEL_ROWS: [&str; @@TIER1_ARITH_SENTINEL_COUNT@@] = [
+@@TIER1_ARITH_SENTINEL_ROWS@@
+];
 
 const PROBES32: [u32; 12] = [
 @@TIER1_PROBES32_VALUES@@

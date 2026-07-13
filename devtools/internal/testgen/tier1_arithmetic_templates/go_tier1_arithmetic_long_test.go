@@ -4,6 +4,7 @@ package bid754
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strconv"
@@ -32,6 +33,7 @@ const (
 	tier1ArithmeticSemanticSqrt32Count  = uint64(@@TIER1_SEMANTIC_SQRT32_COUNT@@)
 	tier1ArithmeticSemanticSqrt64Count  = uint64(@@TIER1_SEMANTIC_SQRT64_COUNT@@)
 	tier1ArithmeticSemanticSqrt128Count = uint64(@@TIER1_SEMANTIC_SQRT128_COUNT@@)
+	tier1ArithmeticRoutingSentinelCount = uint64(@@TIER1_ARITH_SENTINEL_COUNT@@)
 	tier1ArithmeticProbeCount       = uint64(12)
 	tier1ArithmeticRoundingModes    = uint64(5)
 	tier1ArithmeticRoundedOps       = uint64(5)
@@ -314,13 +316,20 @@ func tier1ArithmeticPublicRawFlags(flags ExceptionFlags) (uint32, ExceptionFlags
 	return raw, flags &^ known
 }
 
-func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase32Binary("bid32_"+operation, x, y, mode.native)
+// tier1ArithmeticLegs* compute every leg of one comparison from one decoded
+// case. They are the single operand/mode/dispatch fan-out shared by the
+// differential checks and the routing sentinels, so a slot swap, a mode
+// miswire, or a dispatch-row mislabel in this glue skews the differential's
+// legs identically (an agreed-upon wrong answer the differential cannot see)
+// while the pinned sentinel rows diverge and fail.
+
+func tier1ArithmeticLegsRounded32(t *testing.T, operation string, x, y uint32, mode tier1ArithmeticMode) (native, port, public string, pure uint32, pureChecked bool, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase32Binary("bid32_"+operation, x, y, mode.native)
 	left, right := Decimal32BID(x), Decimal32BID(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
-	pureChecked := true
-	var pure uint32
+	pureChecked = true
 	switch operation {
 	case "add":
 		got, gotFlags = left.AddWithMode(right, mode.public)
@@ -340,8 +349,14 @@ func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, 
 	default:
 		t.Fatalf("decimal32 unknown rounded Tier 1 operation %q", operation)
 	}
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, mode tier1ArithmeticMode) {
+	native, port, public, pure, pureChecked, unknownPublicFlags := tier1ArithmeticLegsRounded32(t, operation, x, y, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, mode.name, native, port, public, unknownPublicFlags)
 	}
@@ -350,34 +365,49 @@ func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, 
 	}
 }
 
-func tier1ArithmeticCheckFma32(t *testing.T, x, y, z uint32, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase32Ternary("bid32_fma", x, y, z, mode.native)
+func tier1ArithmeticLegsFma32(t *testing.T, x, y, z uint32, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase32Ternary("bid32_fma", x, y, z, mode.native)
 	got, gotFlags := Decimal32BID(x).FMAWithMode(Decimal32BID(y), Decimal32BID(z), mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckFma32(t *testing.T, x, y, z uint32, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsFma32(t, x, y, z, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal32 fma mismatch: x=%08x y=%08x z=%08x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, y, z, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckSqrt32(t *testing.T, x uint32, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase32Unary("bid32_sqrt", x, mode.native)
+func tier1ArithmeticLegsSqrt32(t *testing.T, x uint32, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase32Unary("bid32_sqrt", x, mode.native)
 	got, gotFlags := Decimal32BID(x).SqrtWithMode(mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckSqrt32(t *testing.T, x uint32, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsSqrt32(t, x, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal32 sqrt mismatch: x=%08x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckUnrounded32(t *testing.T, operation string, x, y uint32) {
+func tier1ArithmeticLegsUnrounded32(t *testing.T, operation string, x, y uint32) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
 	function := "bid32_rem"
 	if operation == "fmod" {
 		function = "bid32_fmod"
 	} else if operation != "remainder" {
 		t.Fatalf("decimal32 unknown unrounded Tier 1 operation %q", operation)
 	}
-	native, port := runGeneratedFFICase32Binary(function, x, y, 0)
+	native, port = runGeneratedFFICase32Binary(function, x, y, 0)
 	left, right := Decimal32BID(x), Decimal32BID(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
@@ -386,29 +416,45 @@ func tier1ArithmeticCheckUnrounded32(t *testing.T, operation string, x, y uint32
 	} else {
 		got, gotFlags = left.Fmod(right)
 	}
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckUnrounded32(t *testing.T, operation string, x, y uint32) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsUnrounded32(t, operation, x, y)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal32 %s mismatch: x=%08x y=%08x C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckScale32(t *testing.T, x uint32, exponent int64, mode tier1ArithmeticMode) {
-	native, nativeFlags, port, portFlags := runGeneratedFFICase32DecimalFlagInt("scalbln", x, int(exponent), mode.native)
+func tier1ArithmeticLegsScale32(t *testing.T, x uint32, exponent int64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	nativeBits, nativeFlags, portBits, portFlags := runGeneratedFFICase32DecimalFlagInt("scalbln", x, int(exponent), mode.native)
 	got, gotFlags := Decimal32BID(x).ScaleBWithMode(int(exponent), mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	if unknownPublicFlags != 0 || native != port || nativeFlags != portFlags || got.ToUint32() != native || publicRawFlags != nativeFlags {
-		t.Fatalf("decimal32 scaleB mismatch: x=%08x exponent=%d mode=%s C=%08x/%08x port=%08x/%08x public=%08x/%08x unknown_public_flags=%s", x, exponent, mode.name, native, nativeFlags, port, portFlags, got.ToUint32(), publicRawFlags, unknownPublicFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	native = fmt.Sprintf("%08x/%08x", nativeBits, nativeFlags)
+	port = fmt.Sprintf("%08x/%08x", portBits, portFlags)
+	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckScale32(t *testing.T, x uint32, exponent int64, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsScale32(t, x, exponent, mode)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal32 scaleB mismatch: x=%08x exponent=%d mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, exponent, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase64Binary("bid64_"+operation, x, y, mode.native)
+func tier1ArithmeticLegsRounded64(t *testing.T, operation string, x, y uint64, mode tier1ArithmeticMode) (native, port, public string, pure uint64, pureChecked bool, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase64Binary("bid64_"+operation, x, y, mode.native)
 	left, right := Decimal64BID(x), Decimal64BID(y)
 	var got Decimal64BID
 	var gotFlags ExceptionFlags
-	pureChecked := true
-	var pure uint64
+	pureChecked = true
 	switch operation {
 	case "add":
 		got, gotFlags = left.AddWithMode(right, mode.public)
@@ -428,8 +474,14 @@ func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, 
 	default:
 		t.Fatalf("decimal64 unknown rounded Tier 1 operation %q", operation)
 	}
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, mode tier1ArithmeticMode) {
+	native, port, public, pure, pureChecked, unknownPublicFlags := tier1ArithmeticLegsRounded64(t, operation, x, y, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal64 %s mismatch: x=%016x y=%016x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, mode.name, native, port, public, unknownPublicFlags)
 	}
@@ -438,34 +490,49 @@ func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, 
 	}
 }
 
-func tier1ArithmeticCheckFma64(t *testing.T, x, y, z uint64, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase64Ternary("bid64_fma", x, y, z, mode.native)
+func tier1ArithmeticLegsFma64(t *testing.T, x, y, z uint64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase64Ternary("bid64_fma", x, y, z, mode.native)
 	got, gotFlags := Decimal64BID(x).FMAWithMode(Decimal64BID(y), Decimal64BID(z), mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckFma64(t *testing.T, x, y, z uint64, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsFma64(t, x, y, z, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal64 fma mismatch: x=%016x y=%016x z=%016x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, y, z, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckSqrt64(t *testing.T, x uint64, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase64Unary("bid64_sqrt", x, mode.native)
+func tier1ArithmeticLegsSqrt64(t *testing.T, x uint64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase64Unary("bid64_sqrt", x, mode.native)
 	got, gotFlags := Decimal64BID(x).SqrtWithMode(mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckSqrt64(t *testing.T, x uint64, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsSqrt64(t, x, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal64 sqrt mismatch: x=%016x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckUnrounded64(t *testing.T, operation string, x, y uint64) {
+func tier1ArithmeticLegsUnrounded64(t *testing.T, operation string, x, y uint64) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
 	function := "bid64_rem"
 	if operation == "fmod" {
 		function = "bid64_fmod"
 	} else if operation != "remainder" {
 		t.Fatalf("decimal64 unknown unrounded Tier 1 operation %q", operation)
 	}
-	native, port := runGeneratedFFICase64Binary(function, x, y, 0)
+	native, port = runGeneratedFFICase64Binary(function, x, y, 0)
 	left, right := Decimal64BID(x), Decimal64BID(y)
 	var got Decimal64BID
 	var gotFlags ExceptionFlags
@@ -474,24 +541,41 @@ func tier1ArithmeticCheckUnrounded64(t *testing.T, operation string, x, y uint64
 	} else {
 		got, gotFlags = left.Fmod(right)
 	}
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckUnrounded64(t *testing.T, operation string, x, y uint64) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsUnrounded64(t, operation, x, y)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal64 %s mismatch: x=%016x y=%016x C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckScale64(t *testing.T, x uint64, exponent int64, mode tier1ArithmeticMode) {
-	native, nativeFlags, port, portFlags := runGeneratedFFICase64DecimalFlagInt("scalbln", x, int(exponent), mode.native)
+func tier1ArithmeticLegsScale64(t *testing.T, x uint64, exponent int64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	nativeBits, nativeFlags, portBits, portFlags := runGeneratedFFICase64DecimalFlagInt("scalbln", x, int(exponent), mode.native)
 	got, gotFlags := Decimal64BID(x).ScaleBWithMode(int(exponent), mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	if unknownPublicFlags != 0 || native != port || nativeFlags != portFlags || got.ToUint64() != native || publicRawFlags != nativeFlags {
-		t.Fatalf("decimal64 scaleB mismatch: x=%016x exponent=%d mode=%s C=%016x/%08x port=%016x/%08x public=%016x/%08x unknown_public_flags=%s", x, exponent, mode.name, native, nativeFlags, port, portFlags, got.ToUint64(), publicRawFlags, unknownPublicFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	native = fmt.Sprintf("%016x/%08x", nativeBits, nativeFlags)
+	port = fmt.Sprintf("%016x/%08x", portBits, portFlags)
+	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckScale64(t *testing.T, x uint64, exponent int64, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsScale64(t, x, exponent, mode)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal64 scaleB mismatch: x=%016x exponent=%d mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, exponent, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckRounded128(t *testing.T, operation string, x, y Decimal128BID, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase128Binary("bid128_"+operation, x, y, mode.native)
+func tier1ArithmeticLegsRounded128(t *testing.T, operation string, x, y Decimal128BID, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase128Binary("bid128_"+operation, x, y, mode.native)
 	var got Decimal128BID
 	var gotFlags ExceptionFlags
 	switch operation {
@@ -508,41 +592,62 @@ func tier1ArithmeticCheckRounded128(t *testing.T, operation string, x, y Decimal
 	default:
 		t.Fatalf("decimal128 unknown rounded Tier 1 operation %q", operation)
 	}
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckRounded128(t *testing.T, operation string, x, y Decimal128BID, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsRounded128(t, operation, x, y, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal128 %s mismatch: x=%x y=%x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckFma128(t *testing.T, x, y, z Decimal128BID, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase128Ternary("bid128_fma", x, y, z, mode.native)
+func tier1ArithmeticLegsFma128(t *testing.T, x, y, z Decimal128BID, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase128Ternary("bid128_fma", x, y, z, mode.native)
 	got, gotFlags := x.FMAWithMode(y, z, mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckFma128(t *testing.T, x, y, z Decimal128BID, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsFma128(t, x, y, z, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal128 fma mismatch: x=%x y=%x z=%x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, y, z, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckSqrt128(t *testing.T, x Decimal128BID, mode tier1ArithmeticMode) {
-	native, port := runGeneratedFFICase128Unary("bid128_sqrt", x, mode.native)
+func tier1ArithmeticLegsSqrt128(t *testing.T, x Decimal128BID, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	native, port = runGeneratedFFICase128Unary("bid128_sqrt", x, mode.native)
 	got, gotFlags := x.SqrtWithMode(mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckSqrt128(t *testing.T, x Decimal128BID, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsSqrt128(t, x, mode)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal128 sqrt mismatch: x=%x mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckUnrounded128(t *testing.T, operation string, x, y Decimal128BID) {
+func tier1ArithmeticLegsUnrounded128(t *testing.T, operation string, x, y Decimal128BID) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
 	function := "bid128_rem"
 	if operation == "fmod" {
 		function = "bid128_fmod"
 	} else if operation != "remainder" {
 		t.Fatalf("decimal128 unknown unrounded Tier 1 operation %q", operation)
 	}
-	native, port := runGeneratedFFICase128Binary(function, x, y, 0)
+	native, port = runGeneratedFFICase128Binary(function, x, y, 0)
 	var got Decimal128BID
 	var gotFlags ExceptionFlags
 	if operation == "remainder" {
@@ -550,19 +655,35 @@ func tier1ArithmeticCheckUnrounded128(t *testing.T, operation string, x, y Decim
 	} else {
 		got, gotFlags = x.Fmod(y)
 	}
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	public := fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	public = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckUnrounded128(t *testing.T, operation string, x, y Decimal128BID) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsUnrounded128(t, operation, x, y)
 	if unknownPublicFlags != 0 || native != port || native != public {
 		t.Fatalf("decimal128 %s mismatch: x=%x y=%x C=%s port=%s public=%s unknown_public_flags=%s", operation, x, y, native, port, public, unknownPublicFlags)
 	}
 }
 
-func tier1ArithmeticCheckScale128(t *testing.T, x Decimal128BID, exponent int64, mode tier1ArithmeticMode) {
-	native, nativeFlags, port, portFlags := runGeneratedFFICase128DecimalFlagInt("scalbln", x, int(exponent), mode.native)
+func tier1ArithmeticLegsScale128(t *testing.T, x Decimal128BID, exponent int64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
+	t.Helper()
+	nativeBits, nativeFlags, portBits, portFlags := runGeneratedFFICase128DecimalFlagInt("scalbln", x, int(exponent), mode.native)
 	got, gotFlags := x.ScaleBWithMode(int(exponent), mode.public)
-	publicRawFlags, unknownPublicFlags := tier1ArithmeticPublicRawFlags(gotFlags)
-	if unknownPublicFlags != 0 || native != port || nativeFlags != portFlags || got != native || publicRawFlags != nativeFlags {
-		t.Fatalf("decimal128 scaleB mismatch: x=%x exponent=%d mode=%s C=%x/%08x port=%x/%08x public=%x/%08x unknown_public_flags=%s", x, exponent, mode.name, native, nativeFlags, port, portFlags, got, publicRawFlags, unknownPublicFlags)
+	var publicRawFlags uint32
+	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
+	native = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(nativeBits), nativeFlags)
+	port = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(portBits), portFlags)
+	public = fmt.Sprintf("%s/%08x", formatFFIUint128Bits(got), publicRawFlags)
+	return
+}
+
+func tier1ArithmeticCheckScale128(t *testing.T, x Decimal128BID, exponent int64, mode tier1ArithmeticMode) {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsScale128(t, x, exponent, mode)
+	if unknownPublicFlags != 0 || native != port || native != public {
+		t.Fatalf("decimal128 scaleB mismatch: x=%x exponent=%d mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, exponent, mode.name, native, port, public, unknownPublicFlags)
 	}
 }
 
@@ -1472,6 +1593,354 @@ func TestTier1ArithmeticCorpusContract(t *testing.T) {
 	tier1ArithmeticAssertCorpusStreamContracts(t)
 }
 
+// Routing sentinels: generator-selected known-answer rows that bind the
+// runner glue (operand slots, rounding-mode wiring, dispatch-row labels) to
+// values pinned outside the runtime. Each row's expected (bits, flags) was
+// computed at generation time through the public bid754-go API and is
+// byte-equal pinned in devtools/verification_sentinels.json; at runtime every
+// leg the differential exercises (Intel C, Go port, public wrapper) must
+// reproduce the pinned answer exactly. A glue bug that skews every leg the
+// same way — invisible to the differential — diverges from the pin here.
+// The diverged set names the broken leg axis: {C,port,public} means shared
+// runner glue (slot/mode/dispatch), {port,public} a Go-port regression,
+// {public} a wrapper regression, {C} an FFI/link regression.
+
+func tier1ArithmeticSentinelModeByNative(t *testing.T, row string, native int) tier1ArithmeticMode {
+	t.Helper()
+	for _, mode := range tier1ArithmeticModes {
+		if mode.native == native {
+			return mode
+		}
+	}
+	t.Fatalf("routing sentinel row [%s]: native mode %d is not in the runner mode table", row, native)
+	return tier1ArithmeticMode{}
+}
+
+func tier1ArithmeticSentinelHex32(t *testing.T, row, text string) uint32 {
+	t.Helper()
+	if len(text) != 8 {
+		t.Fatalf("routing sentinel row [%s]: expected 8 hex digits, got %q", row, text)
+	}
+	value, err := strconv.ParseUint(text, 16, 32)
+	if err != nil {
+		t.Fatalf("routing sentinel row [%s]: bad 32-bit hex %q: %v", row, text, err)
+	}
+	return uint32(value)
+}
+
+func tier1ArithmeticSentinelHex64(t *testing.T, row, text string) uint64 {
+	t.Helper()
+	if len(text) != 16 {
+		t.Fatalf("routing sentinel row [%s]: expected 16 hex digits, got %q", row, text)
+	}
+	value, err := strconv.ParseUint(text, 16, 64)
+	if err != nil {
+		t.Fatalf("routing sentinel row [%s]: bad 64-bit hex %q: %v", row, text, err)
+	}
+	return value
+}
+
+func tier1ArithmeticSentinelWords128(t *testing.T, row, text string) tier1Arithmetic128Words {
+	t.Helper()
+	if len(text) != 33 || text[16] != ':' {
+		t.Fatalf("routing sentinel row [%s]: expected <hi16>:<lo16> hex words, got %q", row, text)
+	}
+	return tier1Arithmetic128Words{
+		hi: tier1ArithmeticSentinelHex64(t, row, text[:16]),
+		lo: tier1ArithmeticSentinelHex64(t, row, text[17:]),
+	}
+}
+
+// tier1ArithmeticSentinelCanon128 rewrites a 128-bit FFI helper result
+// ("<32 le-hex>/<flags>") into the canonical sentinel form
+// ("<hi16>:<lo16>/<flags>") shared by the pinned rows and both runners.
+func tier1ArithmeticSentinelCanon128(t *testing.T, row, leg, ffi string) string {
+	t.Helper()
+	if len(ffi) < 34 || ffi[32] != '/' {
+		t.Fatalf("routing sentinel row [%s]: unexpected %s 128-bit result %q", row, leg, ffi)
+	}
+	raw, err := hex.DecodeString(ffi[:32])
+	if err != nil {
+		t.Fatalf("routing sentinel row [%s]: undecodable %s 128-bit result %q: %v", row, leg, ffi, err)
+	}
+	return fmt.Sprintf("%016x:%016x/%s", binary.LittleEndian.Uint64(raw[8:16]), binary.LittleEndian.Uint64(raw[0:8]), ffi[33:])
+}
+
+func tier1ArithmeticSentinelUnknownFlags(t *testing.T, row string, unknown ExceptionFlags) {
+	t.Helper()
+	if unknown != 0 {
+		t.Fatalf("routing sentinel row [%s]: public flags outside the Intel raw set: %s", row, unknown)
+	}
+}
+
+func tier1ArithmeticSentinelAssert(t *testing.T, row, modeLabel, pinned, native, port, public string) {
+	t.Helper()
+	if pinned == native && pinned == port && pinned == public {
+		return
+	}
+	diverged := make([]string, 0, 3)
+	if native != pinned {
+		diverged = append(diverged, "C")
+	}
+	if port != pinned {
+		diverged = append(diverged, "port")
+	}
+	if public != pinned {
+		diverged = append(diverged, "public")
+	}
+	t.Fatalf("routing sentinel mismatch [%s]:\n  pinned=%s C=%s port=%s public=%s\n  mode=%s diverged={%s}",
+		row, pinned, native, port, public, modeLabel, strings.Join(diverged, ","))
+}
+
+func tier1ArithmeticSentinelRounded32(t *testing.T, row, operation string, x, y uint32, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, _, _, unknownPublicFlags := tier1ArithmeticLegsRounded32(t, operation, x, y, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelRounded64(t *testing.T, row, operation string, x, y uint64, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, _, _, unknownPublicFlags := tier1ArithmeticLegsRounded64(t, operation, x, y, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelRounded128(t *testing.T, row, operation string, x, y Decimal128BID, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	nativeFFI, portFFI, publicFFI, unknownPublicFlags := tier1ArithmeticLegsRounded128(t, operation, x, y, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	native := tier1ArithmeticSentinelCanon128(t, row, "C", nativeFFI)
+	port := tier1ArithmeticSentinelCanon128(t, row, "port", portFFI)
+	public := tier1ArithmeticSentinelCanon128(t, row, "public", publicFFI)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelUnrounded32(t *testing.T, row, operation string, x, y uint32, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsUnrounded32(t, operation, x, y)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, "(none)", pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelUnrounded64(t *testing.T, row, operation string, x, y uint64, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsUnrounded64(t, operation, x, y)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, "(none)", pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelUnrounded128(t *testing.T, row, operation string, x, y Decimal128BID, pinned string) {
+	t.Helper()
+	nativeFFI, portFFI, publicFFI, unknownPublicFlags := tier1ArithmeticLegsUnrounded128(t, operation, x, y)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	native := tier1ArithmeticSentinelCanon128(t, row, "C", nativeFFI)
+	port := tier1ArithmeticSentinelCanon128(t, row, "port", portFFI)
+	public := tier1ArithmeticSentinelCanon128(t, row, "public", publicFFI)
+	tier1ArithmeticSentinelAssert(t, row, "(none)", pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelFma32(t *testing.T, row string, x, y, z uint32, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsFma32(t, x, y, z, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelFma64(t *testing.T, row string, x, y, z uint64, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsFma64(t, x, y, z, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelFma128(t *testing.T, row string, x, y, z Decimal128BID, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	nativeFFI, portFFI, publicFFI, unknownPublicFlags := tier1ArithmeticLegsFma128(t, x, y, z, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	native := tier1ArithmeticSentinelCanon128(t, row, "C", nativeFFI)
+	port := tier1ArithmeticSentinelCanon128(t, row, "port", portFFI)
+	public := tier1ArithmeticSentinelCanon128(t, row, "public", publicFFI)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelSqrt32(t *testing.T, row string, x uint32, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsSqrt32(t, x, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelSqrt64(t *testing.T, row string, x uint64, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsSqrt64(t, x, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelSqrt128(t *testing.T, row string, x Decimal128BID, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	nativeFFI, portFFI, publicFFI, unknownPublicFlags := tier1ArithmeticLegsSqrt128(t, x, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	native := tier1ArithmeticSentinelCanon128(t, row, "C", nativeFFI)
+	port := tier1ArithmeticSentinelCanon128(t, row, "port", portFFI)
+	public := tier1ArithmeticSentinelCanon128(t, row, "public", publicFFI)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelScale32(t *testing.T, row string, x uint32, exponent int64, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsScale32(t, x, exponent, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelScale64(t *testing.T, row string, x uint64, exponent int64, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsScale64(t, x, exponent, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelScale128(t *testing.T, row string, x Decimal128BID, exponent int64, mode tier1ArithmeticMode, pinned string) {
+	t.Helper()
+	nativeFFI, portFFI, publicFFI, unknownPublicFlags := tier1ArithmeticLegsScale128(t, x, exponent, mode)
+	tier1ArithmeticSentinelUnknownFlags(t, row, unknownPublicFlags)
+	native := tier1ArithmeticSentinelCanon128(t, row, "C", nativeFFI)
+	port := tier1ArithmeticSentinelCanon128(t, row, "port", portFFI)
+	public := tier1ArithmeticSentinelCanon128(t, row, "public", publicFFI)
+	tier1ArithmeticSentinelAssert(t, row, tier1ArithmeticSentinelModeLabel(mode), pinned, native, port, public)
+}
+
+func tier1ArithmeticSentinelModeLabel(mode tier1ArithmeticMode) string {
+	return fmt.Sprintf("%s(native %d)", mode.name, mode.native)
+}
+
+func tier1ArithmeticCheckRoutingSentinelRow(t *testing.T, row string) {
+	t.Helper()
+	fields := strings.Split(row, " ")
+	if len(fields) < 5 || fields[len(fields)-2] != "->" {
+		t.Fatalf("routing sentinel row [%s]: malformed layout", row)
+	}
+	widthLabel, operation := fields[0], fields[1]
+	pinned := fields[len(fields)-1]
+	var haveX, haveY, haveZ, haveN, haveMode bool
+	var xText, yText, zText string
+	var exponent int64
+	var mode tier1ArithmeticMode
+	for _, field := range fields[2 : len(fields)-2] {
+		switch {
+		case strings.HasPrefix(field, "x="):
+			xText, haveX = field[2:], true
+		case strings.HasPrefix(field, "y="):
+			yText, haveY = field[2:], true
+		case strings.HasPrefix(field, "z="):
+			zText, haveZ = field[2:], true
+		case strings.HasPrefix(field, "n="):
+			parsed, err := strconv.ParseInt(field[2:], 10, 64)
+			if err != nil {
+				t.Fatalf("routing sentinel row [%s]: bad scaleb exponent %q: %v", row, field, err)
+			}
+			exponent, haveN = parsed, true
+		case strings.HasPrefix(field, "m="):
+			native, err := strconv.Atoi(field[2:])
+			if err != nil {
+				t.Fatalf("routing sentinel row [%s]: bad native mode %q: %v", row, field, err)
+			}
+			mode, haveMode = tier1ArithmeticSentinelModeByNative(t, row, native), true
+		default:
+			t.Fatalf("routing sentinel row [%s]: unknown field %q", row, field)
+		}
+	}
+	requireShape := func(needX, needY, needZ, needN, needMode bool) {
+		t.Helper()
+		if haveX != needX || haveY != needY || haveZ != needZ || haveN != needN || haveMode != needMode {
+			t.Fatalf("routing sentinel row [%s]: field shape does not match operation %q", row, operation)
+		}
+	}
+	switch operation {
+	case "add", "sub", "mul", "div", "quantize":
+		requireShape(true, true, false, false, true)
+		switch widthLabel {
+		case "d32":
+			tier1ArithmeticSentinelRounded32(t, row, operation, tier1ArithmeticSentinelHex32(t, row, xText), tier1ArithmeticSentinelHex32(t, row, yText), mode, pinned)
+		case "d64":
+			tier1ArithmeticSentinelRounded64(t, row, operation, tier1ArithmeticSentinelHex64(t, row, xText), tier1ArithmeticSentinelHex64(t, row, yText), mode, pinned)
+		case "d128":
+			tier1ArithmeticSentinelRounded128(t, row, operation, tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)), tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, yText)), mode, pinned)
+		default:
+			t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+		}
+	case "remainder", "fmod":
+		requireShape(true, true, false, false, false)
+		switch widthLabel {
+		case "d32":
+			tier1ArithmeticSentinelUnrounded32(t, row, operation, tier1ArithmeticSentinelHex32(t, row, xText), tier1ArithmeticSentinelHex32(t, row, yText), pinned)
+		case "d64":
+			tier1ArithmeticSentinelUnrounded64(t, row, operation, tier1ArithmeticSentinelHex64(t, row, xText), tier1ArithmeticSentinelHex64(t, row, yText), pinned)
+		case "d128":
+			tier1ArithmeticSentinelUnrounded128(t, row, operation, tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)), tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, yText)), pinned)
+		default:
+			t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+		}
+	case "fma":
+		requireShape(true, true, true, false, true)
+		switch widthLabel {
+		case "d32":
+			tier1ArithmeticSentinelFma32(t, row, tier1ArithmeticSentinelHex32(t, row, xText), tier1ArithmeticSentinelHex32(t, row, yText), tier1ArithmeticSentinelHex32(t, row, zText), mode, pinned)
+		case "d64":
+			tier1ArithmeticSentinelFma64(t, row, tier1ArithmeticSentinelHex64(t, row, xText), tier1ArithmeticSentinelHex64(t, row, yText), tier1ArithmeticSentinelHex64(t, row, zText), mode, pinned)
+		case "d128":
+			tier1ArithmeticSentinelFma128(t, row, tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)), tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, yText)), tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, zText)), mode, pinned)
+		default:
+			t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+		}
+	case "sqrt":
+		requireShape(true, false, false, false, true)
+		switch widthLabel {
+		case "d32":
+			tier1ArithmeticSentinelSqrt32(t, row, tier1ArithmeticSentinelHex32(t, row, xText), mode, pinned)
+		case "d64":
+			tier1ArithmeticSentinelSqrt64(t, row, tier1ArithmeticSentinelHex64(t, row, xText), mode, pinned)
+		case "d128":
+			tier1ArithmeticSentinelSqrt128(t, row, tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)), mode, pinned)
+		default:
+			t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+		}
+	case "scaleb":
+		requireShape(true, false, false, true, true)
+		switch widthLabel {
+		case "d32":
+			tier1ArithmeticSentinelScale32(t, row, tier1ArithmeticSentinelHex32(t, row, xText), exponent, mode, pinned)
+		case "d64":
+			tier1ArithmeticSentinelScale64(t, row, tier1ArithmeticSentinelHex64(t, row, xText), exponent, mode, pinned)
+		case "d128":
+			tier1ArithmeticSentinelScale128(t, row, tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText)), exponent, mode, pinned)
+		default:
+			t.Fatalf("routing sentinel row [%s]: unknown width %q", row, widthLabel)
+		}
+	default:
+		t.Fatalf("routing sentinel row [%s]: unknown operation %q", row, operation)
+	}
+}
+
+// TestTier1ArithmeticRoutingSentinels runs every pinned sentinel row on every
+// leg. It deliberately ignores the shard environment: the rows are few and
+// every shard configuration (and the -full gate) must execute all of them.
+func TestTier1ArithmeticRoutingSentinels(t *testing.T) {
+	requireNative(t)
+	if len(tier1ArithmeticRoutingSentinelRows) == 0 {
+		t.Fatal("generated Tier 1 arithmetic routing sentinel row set is empty")
+	}
+	if uint64(len(tier1ArithmeticRoutingSentinelRows)) != tier1ArithmeticRoutingSentinelCount {
+		t.Fatalf("generated Tier 1 arithmetic routing sentinel rows=%d want=%d", len(tier1ArithmeticRoutingSentinelRows), tier1ArithmeticRoutingSentinelCount)
+	}
+	for _, row := range tier1ArithmeticRoutingSentinelRows {
+		tier1ArithmeticCheckRoutingSentinelRow(t, row)
+	}
+	t.Logf("Tier 1 arithmetic routing sentinels: %d/%d", len(tier1ArithmeticRoutingSentinelRows), len(tier1ArithmeticRoutingSentinelRows))
+}
+
 func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 	requireNative(t)
 	if strconv.IntSize != 64 {
@@ -1718,6 +2187,16 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 		}
 		t.Logf("decimal128 deterministic random exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
 	})
+}
+
+// tier1ArithmeticRoutingSentinelRows is the canonical sentinel row set. The
+// identical byte sequence is pinned by hand in
+// devtools/verification_sentinels.json and emitted into the generated Rust
+// runner; TestVerificationAnchorsMatchGeneratedArtifacts requires the three
+// copies to match exactly, so neither a generator regression nor a hand edit
+// can move one copy alone.
+var tier1ArithmeticRoutingSentinelRows = []string{
+@@TIER1_ARITH_SENTINEL_ROWS@@
 }
 
 var tier1ArithmeticProbes32 = [...]uint32{
