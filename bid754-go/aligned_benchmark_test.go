@@ -18,6 +18,11 @@ import "testing"
 // add<->add_pure and add_with_flags<->FairBID32/add; do not read
 // AlignedBID32/add as a wrapper over FairBID32/add. For 64/128 the value-only
 // methods wrap the status-aware bodies, so both rows share one implementation.
+// fma/sqrt have no value-only public variants: FMA and Sqrt always return
+// flags and route to the status-aware port bodies on every width, so compare
+// them 1:1 with the FairBID*/fma and FairBID*/sqrt rows. fma consumes the
+// contract's z operand as the addend (x*y + z); sqrt reuses the non-negative
+// x operand.
 
 var (
 	alignedSink32     Decimal32BID
@@ -34,6 +39,7 @@ func BenchmarkAlignedBID32(b *testing.B) {
 
 	x := exactBenchmarkDecimal32(b, inputs.Decimal32.X)
 	y := exactBenchmarkDecimal32(b, inputs.Decimal32.Y)
+	z := exactBenchmarkDecimal32(b, inputs.Decimal32.Z)
 
 	b.Run("add", func(b *testing.B) {
 		b.ReportAllocs()
@@ -71,6 +77,18 @@ func BenchmarkAlignedBID32(b *testing.B) {
 			alignedSink32, alignedSinkFlags = x.DivWithFlags(y)
 		}
 	})
+	b.Run("fma", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			alignedSink32, alignedSinkFlags = x.FMA(y, z)
+		}
+	})
+	b.Run("sqrt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			alignedSink32, alignedSinkFlags = x.Sqrt()
+		}
+	})
 	b.Run("parse", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
@@ -91,6 +109,7 @@ func BenchmarkAlignedBID64(b *testing.B) {
 
 	x := exactBenchmarkDecimal64(b, inputs.Decimal64.X)
 	y := exactBenchmarkDecimal64(b, inputs.Decimal64.Y)
+	z := exactBenchmarkDecimal64(b, inputs.Decimal64.Z)
 
 	b.Run("add", func(b *testing.B) {
 		b.ReportAllocs()
@@ -128,6 +147,18 @@ func BenchmarkAlignedBID64(b *testing.B) {
 			alignedSink64, alignedSinkFlags = x.DivWithFlags(y)
 		}
 	})
+	b.Run("fma", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			alignedSink64, alignedSinkFlags = x.FMA(y, z)
+		}
+	})
+	b.Run("sqrt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			alignedSink64, alignedSinkFlags = x.Sqrt()
+		}
+	})
 	b.Run("parse", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
@@ -148,6 +179,7 @@ func BenchmarkAlignedBID128(b *testing.B) {
 
 	x := exactBenchmarkDecimal128(b, inputs.Decimal128.X)
 	y := exactBenchmarkDecimal128(b, inputs.Decimal128.Y)
+	z := exactBenchmarkDecimal128(b, inputs.Decimal128.Z)
 
 	b.Run("add", func(b *testing.B) {
 		b.ReportAllocs()
@@ -183,6 +215,18 @@ func BenchmarkAlignedBID128(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			alignedSink128, alignedSinkFlags = x.DivWithFlags(y)
+		}
+	})
+	b.Run("fma", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			alignedSink128, alignedSinkFlags = x.FMA(y, z)
+		}
+	})
+	b.Run("sqrt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			alignedSink128, alignedSinkFlags = x.Sqrt()
 		}
 	})
 	b.Run("parse", func(b *testing.B) {

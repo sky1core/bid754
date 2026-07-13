@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -473,6 +473,33 @@ bench-rust-baseline:
 	@mkdir -p test_results
 	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust-baseline save-baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && cargo bench --locked --bench core -- --save-baseline pinned ) | tee test_results/latest_benchmark_rust_baseline_results.txt'
 
+# Go 벤치 기준점 저장: 직전 make bench-native / make bench-bidgo 결과를 기준점
+# 파일로 복사한다 (Criterion 'pinned' 기준점과 동일 철학 — 기준점은 이
+# 명시적 타깃으로만 갱신하고, 벤치 실행이 기준점을 암시적으로 덮어쓰지
+# 않는다).
+bench-go-baseline:
+	@echo "📌 Go 벤치 기준점 저장 (직전 bench-native + bench-bidgo 결과)..."
+	@test -f test_results/latest_benchmark_root_results.txt || { echo "❌ test_results/latest_benchmark_root_results.txt 없음 — 먼저 make bench-native 를 실행해라"; exit 1; }
+	@test -f test_results/latest_benchmark_bid_go_results.txt || { echo "❌ test_results/latest_benchmark_bid_go_results.txt 없음 — 먼저 make bench-bidgo 를 실행해라"; exit 1; }
+	@cp test_results/latest_benchmark_root_results.txt test_results/bench_baseline_root.txt
+	@cp test_results/latest_benchmark_bid_go_results.txt test_results/bench_baseline_bidgo.txt
+	@echo "✅ Go 벤치 기준점 저장됨: test_results/bench_baseline_root.txt, test_results/bench_baseline_bidgo.txt"
+
+# Go 벤치 회귀 게이트: latest 결과 2종(root native, bidgo)을 저장된 기준점
+# 2종과 devtools/cmd/benchdiff 로 비교한다 (벤치별 ns/op 중앙값 비교, 임계
+# 초과 회귀 또는 기준점 벤치 소실 시 실패; 임계는 BENCH_REGRESSION_THRESHOLD
+# 로 조정, 기본 8%). Criterion pinned 대비 change% 게이트의 Go 매트릭스 대응물.
+bench-go-check:
+	@echo "🔍 Go 벤치 회귀 비교 (저장된 기준점 대비, benchdiff)..."
+	@test -f test_results/bench_baseline_root.txt || { echo "❌ Go 벤치 기준점 없음: test_results/bench_baseline_root.txt — make bench-native && make bench-bidgo 후 make bench-go-baseline 으로 기준점을 먼저 저장해라"; exit 1; }
+	@test -f test_results/bench_baseline_bidgo.txt || { echo "❌ Go 벤치 기준점 없음: test_results/bench_baseline_bidgo.txt — make bench-native && make bench-bidgo 후 make bench-go-baseline 으로 기준점을 먼저 저장해라"; exit 1; }
+	@test -f test_results/latest_benchmark_root_results.txt || { echo "❌ 비교 대상 없음: test_results/latest_benchmark_root_results.txt — 먼저 make bench-native 를 실행해라"; exit 1; }
+	@test -f test_results/latest_benchmark_bid_go_results.txt || { echo "❌ 비교 대상 없음: test_results/latest_benchmark_bid_go_results.txt — 먼저 make bench-bidgo 를 실행해라"; exit 1; }
+	@bash -o pipefail -c '( rc=0; \
+		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_root.txt -candidate ../test_results/latest_benchmark_root_results.txt) || rc=1; \
+		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_bidgo.txt -candidate ../test_results/latest_benchmark_bid_go_results.txt) || rc=1; \
+		exit $$rc ) | tee test_results/latest_bench_go_check_results.txt'
+
 # generated IBM decTest 스위트만 실행
 test-dectest: test-native-dectest
 
@@ -774,7 +801,7 @@ summary:
 		section "Intel C direct (BenchmarkIntelCBID*, cgo-amortized)" "BenchmarkIntelCBID.*-([0-9]+|[0-9]+\\s)"; \
 		section "Public Go API (BenchmarkAlignedBID*)" "BenchmarkAlignedBID.*-([0-9]+|[0-9]+\\s)"; \
 		section "Go mechanical port direct (BenchmarkFairBID*)" "BenchmarkFairBID.*-([0-9]+|[0-9]+\\s)"; \
-		section "generated Rust (Criterion, vs pinned baseline)" "^(bid32|bid64|bid128)/(add|mul|div|parse|to_string)"; \
+		section "generated Rust (Criterion, vs pinned baseline)" "^(bid32|bid64|bid128)/(add|mul|div|fma|sqrt|parse|to_string)"; \
 		echo "✅ 성능 요약이 test_results/latest_performance_summary.txt에 저장됨"; \
 	else \
 		echo "❌ 벤치마크 결과가 없어 요약을 생성할 수 없음"; \
@@ -843,6 +870,8 @@ help:
 	@echo "  make bench-bidgo    bidgo mechanical-port direct 벤치마크 (count=$(BENCH_COUNT))"
 	@echo "  make bench-rust     generated Rust Criterion 벤치마크 (pinned 기준점 대비)"
 	@echo "  make bench-rust-baseline Criterion pinned 기준점 저장/갱신"
+	@echo "  make bench-go-baseline 직전 bench-native+bench-bidgo 결과를 Go 벤치 기준점으로 저장"
+	@echo "  make bench-go-check latest Go 벤치 결과를 기준점과 비교 (중앙값 회귀 게이트, BENCH_REGRESSION_THRESHOLD 기본 8%)"
 	@echo "  make test-dectest   generated decTest native non-short 검증"
 	@echo
 	@echo "결과 관리:"

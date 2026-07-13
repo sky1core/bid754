@@ -84,9 +84,11 @@ This runs Intel BID C direct benchmarks, the `bid754-go` public Go API with
 the native tag, direct Go mechanical-port (`bid754-go/internal/bidgo`) calls,
 and generated Rust Criterion
 benches. The fair cross-implementation matrix is `bid32`/`bid64`/`bid128` by
-`add`, `mul`, `div`, `parse`, and `to_string` for Intel C, the Go mechanical
-port, and
-generated Rust. Public Go API benchmarks are reported as an additional
+`add`, `mul`, `div`, `fma`, `sqrt`, `parse`, and `to_string` for Intel C, the
+Go mechanical port, and
+generated Rust (`fma` consumes the shared contract's third `z` operand as the
+addend `x*y + z`; `sqrt` reuses the non-negative `x` operand). Public Go API
+benchmarks are reported as an additional
 wrapper/API surface. `bench-native`, `bench-bidgo`, and `bench-rust` run those
 surfaces individually.
 
@@ -115,6 +117,34 @@ baseline name instead, since Criterion does its own sampling) into its
 state that produced it. The Go matrix targets repeat each benchmark
 `BENCH_COUNT` times (default 5) for stable before/after samples;
 `bench-quick` is a single-sample smoke and is not regression evidence.
+
+The Go benchmark legs have a saved-baseline regression gate mirroring the
+Criterion `pinned` baseline on the Rust leg. Workflow:
+
+```bash
+make bench-native && make bench-bidgo   # measure the reference state
+make bench-go-baseline                  # save it as the explicit baseline
+# ...make changes...
+make bench-native && make bench-bidgo   # measure the candidate state
+make bench-go-check                     # compare candidate vs baseline
+```
+
+`bench-go-baseline` copies the latest `bench-native`/`bench-bidgo` result
+files to `test_results/bench_baseline_root.txt` and
+`test_results/bench_baseline_bidgo.txt`; like `bench-rust-baseline`, it is
+the only step that (over)writes the baseline — benchmark runs never update it
+implicitly. `bench-go-check` runs `devtools/cmd/benchdiff`, which aggregates
+the `BENCH_COUNT` repeated samples of each benchmark into a median ns/op and
+compares candidate against baseline: a median regression above the threshold
+(default 8%, tunable via `BENCH_REGRESSION_THRESHOLD`; the default clears the
+±3–4% run-to-run noise measured on the Apple M1 reference machine) or a
+benchmark that vanished from the candidate fails the gate, while
+candidate-only benchmarks are reported as `new (no baseline)` without
+failing. When benchmarks are added (they start as `new`), re-run
+`make bench-go-baseline` — and `make bench-rust-baseline` for the Criterion
+leg, whose strict `--baseline pinned` comparison fails outright on
+benchmarks missing from an older pinned baseline — to fold them into the
+saved baselines.
 
 To verify the generated BID codec vector consumers for the required Go, Rust,
 Java, Python, JavaScript/TypeScript, and Swift targets:

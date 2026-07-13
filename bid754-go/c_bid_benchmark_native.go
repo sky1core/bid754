@@ -15,16 +15,22 @@ package bid754
 
 static BID_UINT32 bid754_bench_c_bid32_x;
 static BID_UINT32 bid754_bench_c_bid32_y;
+static BID_UINT32 bid754_bench_c_bid32_z;
 static BID_UINT64 bid754_bench_c_bid64_x;
 static BID_UINT64 bid754_bench_c_bid64_y;
+static BID_UINT64 bid754_bench_c_bid64_z;
 static BID_UINT128 bid754_bench_c_bid128_x;
 static BID_UINT128 bid754_bench_c_bid128_y;
+static BID_UINT128 bid754_bench_c_bid128_z;
 static char bid754_bench_c_bid32_x_text[128];
 static char bid754_bench_c_bid32_y_text[128];
+static char bid754_bench_c_bid32_z_text[128];
 static char bid754_bench_c_bid64_x_text[128];
 static char bid754_bench_c_bid64_y_text[128];
+static char bid754_bench_c_bid64_z_text[128];
 static char bid754_bench_c_bid128_x_text[128];
 static char bid754_bench_c_bid128_y_text[128];
+static char bid754_bench_c_bid128_z_text[128];
 
 static volatile BID_UINT32 bid754_bench_c_sink32;
 static volatile BID_UINT64 bid754_bench_c_sink64;
@@ -49,17 +55,23 @@ static int bid754_bench_c_copy_text(char *dst, size_t capacity, const char *src)
 static int bid754_bench_c_init(
 	const char *bid32_x_text,
 	const char *bid32_y_text,
+	const char *bid32_z_text,
 	const char *bid64_x_text,
 	const char *bid64_y_text,
+	const char *bid64_z_text,
 	const char *bid128_x_text,
-	const char *bid128_y_text
+	const char *bid128_y_text,
+	const char *bid128_z_text
 ) {
 	if (!bid754_bench_c_copy_text(bid754_bench_c_bid32_x_text, sizeof(bid754_bench_c_bid32_x_text), bid32_x_text) ||
 		!bid754_bench_c_copy_text(bid754_bench_c_bid32_y_text, sizeof(bid754_bench_c_bid32_y_text), bid32_y_text) ||
+		!bid754_bench_c_copy_text(bid754_bench_c_bid32_z_text, sizeof(bid754_bench_c_bid32_z_text), bid32_z_text) ||
 		!bid754_bench_c_copy_text(bid754_bench_c_bid64_x_text, sizeof(bid754_bench_c_bid64_x_text), bid64_x_text) ||
 		!bid754_bench_c_copy_text(bid754_bench_c_bid64_y_text, sizeof(bid754_bench_c_bid64_y_text), bid64_y_text) ||
+		!bid754_bench_c_copy_text(bid754_bench_c_bid64_z_text, sizeof(bid754_bench_c_bid64_z_text), bid64_z_text) ||
 		!bid754_bench_c_copy_text(bid754_bench_c_bid128_x_text, sizeof(bid754_bench_c_bid128_x_text), bid128_x_text) ||
-		!bid754_bench_c_copy_text(bid754_bench_c_bid128_y_text, sizeof(bid754_bench_c_bid128_y_text), bid128_y_text)) {
+		!bid754_bench_c_copy_text(bid754_bench_c_bid128_y_text, sizeof(bid754_bench_c_bid128_y_text), bid128_y_text) ||
+		!bid754_bench_c_copy_text(bid754_bench_c_bid128_z_text, sizeof(bid754_bench_c_bid128_z_text), bid128_z_text)) {
 		return 0;
 	}
 
@@ -74,6 +86,11 @@ static int bid754_bench_c_init(
 		return 0;
 	}
 	flags = 0;
+	bid754_bench_c_bid32_z = bid32_from_string(bid754_bench_c_bid32_z_text, BID_ROUNDING_TO_NEAREST, &flags);
+	if (flags != 0 || !bid32_isFinite(bid754_bench_c_bid32_z)) {
+		return 0;
+	}
+	flags = 0;
 	bid754_bench_c_bid64_x = bid64_from_string(bid754_bench_c_bid64_x_text, BID_ROUNDING_TO_NEAREST, &flags);
 	if (flags != 0 || !bid64_isFinite(bid754_bench_c_bid64_x)) {
 		return 0;
@@ -84,6 +101,11 @@ static int bid754_bench_c_init(
 		return 0;
 	}
 	flags = 0;
+	bid754_bench_c_bid64_z = bid64_from_string(bid754_bench_c_bid64_z_text, BID_ROUNDING_TO_NEAREST, &flags);
+	if (flags != 0 || !bid64_isFinite(bid754_bench_c_bid64_z)) {
+		return 0;
+	}
+	flags = 0;
 	bid754_bench_c_bid128_x = bid128_from_string(bid754_bench_c_bid128_x_text, BID_ROUNDING_TO_NEAREST, &flags);
 	if (flags != 0 || !bid128_isFinite(bid754_bench_c_bid128_x)) {
 		return 0;
@@ -91,6 +113,11 @@ static int bid754_bench_c_init(
 	flags = 0;
 	bid754_bench_c_bid128_y = bid128_from_string(bid754_bench_c_bid128_y_text, BID_ROUNDING_TO_NEAREST, &flags);
 	if (flags != 0 || !bid128_isFinite(bid754_bench_c_bid128_y)) {
+		return 0;
+	}
+	flags = 0;
+	bid754_bench_c_bid128_z = bid128_from_string(bid754_bench_c_bid128_z_text, BID_ROUNDING_TO_NEAREST, &flags);
+	if (flags != 0 || !bid128_isFinite(bid754_bench_c_bid128_z)) {
 		return 0;
 	}
 	return 1;
@@ -116,6 +143,22 @@ static void bid754_bench_c_bid32_div(long long n) {
 	for (long long i = 0; i < n; i++) {
 		_IDEC_flags flags = 0;
 		bid754_bench_c_sink32 = bid32_div(bid754_bench_c_bid32_x, bid754_bench_c_bid32_y, BID_ROUNDING_TO_NEAREST, &flags);
+		bid754_bench_c_sink_flags = flags;
+	}
+}
+
+static void bid754_bench_c_bid32_fma(long long n) {
+	for (long long i = 0; i < n; i++) {
+		_IDEC_flags flags = 0;
+		bid754_bench_c_sink32 = bid32_fma(bid754_bench_c_bid32_x, bid754_bench_c_bid32_y, bid754_bench_c_bid32_z, BID_ROUNDING_TO_NEAREST, &flags);
+		bid754_bench_c_sink_flags = flags;
+	}
+}
+
+static void bid754_bench_c_bid32_sqrt(long long n) {
+	for (long long i = 0; i < n; i++) {
+		_IDEC_flags flags = 0;
+		bid754_bench_c_sink32 = bid32_sqrt(bid754_bench_c_bid32_x, BID_ROUNDING_TO_NEAREST, &flags);
 		bid754_bench_c_sink_flags = flags;
 	}
 }
@@ -162,6 +205,22 @@ static void bid754_bench_c_bid64_div(long long n) {
 	}
 }
 
+static void bid754_bench_c_bid64_fma(long long n) {
+	for (long long i = 0; i < n; i++) {
+		_IDEC_flags flags = 0;
+		bid754_bench_c_sink64 = bid64_fma(bid754_bench_c_bid64_x, bid754_bench_c_bid64_y, bid754_bench_c_bid64_z, BID_ROUNDING_TO_NEAREST, &flags);
+		bid754_bench_c_sink_flags = flags;
+	}
+}
+
+static void bid754_bench_c_bid64_sqrt(long long n) {
+	for (long long i = 0; i < n; i++) {
+		_IDEC_flags flags = 0;
+		bid754_bench_c_sink64 = bid64_sqrt(bid754_bench_c_bid64_x, BID_ROUNDING_TO_NEAREST, &flags);
+		bid754_bench_c_sink_flags = flags;
+	}
+}
+
 static void bid754_bench_c_bid64_parse(long long n) {
 	for (long long i = 0; i < n; i++) {
 		_IDEC_flags flags = 0;
@@ -204,6 +263,22 @@ static void bid754_bench_c_bid128_div(long long n) {
 	}
 }
 
+static void bid754_bench_c_bid128_fma(long long n) {
+	for (long long i = 0; i < n; i++) {
+		_IDEC_flags flags = 0;
+		bid754_bench_c_keep128(bid128_fma(bid754_bench_c_bid128_x, bid754_bench_c_bid128_y, bid754_bench_c_bid128_z, BID_ROUNDING_TO_NEAREST, &flags));
+		bid754_bench_c_sink_flags = flags;
+	}
+}
+
+static void bid754_bench_c_bid128_sqrt(long long n) {
+	for (long long i = 0; i < n; i++) {
+		_IDEC_flags flags = 0;
+		bid754_bench_c_keep128(bid128_sqrt(bid754_bench_c_bid128_x, BID_ROUNDING_TO_NEAREST, &flags));
+		bid754_bench_c_sink_flags = flags;
+	}
+}
+
 static void bid754_bench_c_bid128_parse(long long n) {
 	for (long long i = 0; i < n; i++) {
 		_IDEC_flags flags = 0;
@@ -226,36 +301,48 @@ import "C"
 
 import "unsafe"
 
-func nativeBenchCBIDInit(bid32X, bid32Y, bid64X, bid64Y, bid128X, bid128Y string) bool {
+func nativeBenchCBIDInit(bid32X, bid32Y, bid32Z, bid64X, bid64Y, bid64Z, bid128X, bid128Y, bid128Z string) bool {
 	cBid32X := C.CString(bid32X)
 	cBid32Y := C.CString(bid32Y)
+	cBid32Z := C.CString(bid32Z)
 	cBid64X := C.CString(bid64X)
 	cBid64Y := C.CString(bid64Y)
+	cBid64Z := C.CString(bid64Z)
 	cBid128X := C.CString(bid128X)
 	cBid128Y := C.CString(bid128Y)
+	cBid128Z := C.CString(bid128Z)
 	defer C.free(unsafe.Pointer(cBid32X))
 	defer C.free(unsafe.Pointer(cBid32Y))
+	defer C.free(unsafe.Pointer(cBid32Z))
 	defer C.free(unsafe.Pointer(cBid64X))
 	defer C.free(unsafe.Pointer(cBid64Y))
+	defer C.free(unsafe.Pointer(cBid64Z))
 	defer C.free(unsafe.Pointer(cBid128X))
 	defer C.free(unsafe.Pointer(cBid128Y))
-	return C.bid754_bench_c_init(cBid32X, cBid32Y, cBid64X, cBid64Y, cBid128X, cBid128Y) != 0
+	defer C.free(unsafe.Pointer(cBid128Z))
+	return C.bid754_bench_c_init(cBid32X, cBid32Y, cBid32Z, cBid64X, cBid64Y, cBid64Z, cBid128X, cBid128Y, cBid128Z) != 0
 }
 
 func nativeBenchCBID32Add(n int)      { C.bid754_bench_c_bid32_add(C.longlong(n)) }
 func nativeBenchCBID32Mul(n int)      { C.bid754_bench_c_bid32_mul(C.longlong(n)) }
 func nativeBenchCBID32Div(n int)      { C.bid754_bench_c_bid32_div(C.longlong(n)) }
+func nativeBenchCBID32Fma(n int)      { C.bid754_bench_c_bid32_fma(C.longlong(n)) }
+func nativeBenchCBID32Sqrt(n int)     { C.bid754_bench_c_bid32_sqrt(C.longlong(n)) }
 func nativeBenchCBID32Parse(n int)    { C.bid754_bench_c_bid32_parse(C.longlong(n)) }
 func nativeBenchCBID32ToString(n int) { C.bid754_bench_c_bid32_to_string(C.longlong(n)) }
 
 func nativeBenchCBID64Add(n int)      { C.bid754_bench_c_bid64_add(C.longlong(n)) }
 func nativeBenchCBID64Mul(n int)      { C.bid754_bench_c_bid64_mul(C.longlong(n)) }
 func nativeBenchCBID64Div(n int)      { C.bid754_bench_c_bid64_div(C.longlong(n)) }
+func nativeBenchCBID64Fma(n int)      { C.bid754_bench_c_bid64_fma(C.longlong(n)) }
+func nativeBenchCBID64Sqrt(n int)     { C.bid754_bench_c_bid64_sqrt(C.longlong(n)) }
 func nativeBenchCBID64Parse(n int)    { C.bid754_bench_c_bid64_parse(C.longlong(n)) }
 func nativeBenchCBID64ToString(n int) { C.bid754_bench_c_bid64_to_string(C.longlong(n)) }
 
 func nativeBenchCBID128Add(n int)      { C.bid754_bench_c_bid128_add(C.longlong(n)) }
 func nativeBenchCBID128Mul(n int)      { C.bid754_bench_c_bid128_mul(C.longlong(n)) }
 func nativeBenchCBID128Div(n int)      { C.bid754_bench_c_bid128_div(C.longlong(n)) }
+func nativeBenchCBID128Fma(n int)      { C.bid754_bench_c_bid128_fma(C.longlong(n)) }
+func nativeBenchCBID128Sqrt(n int)     { C.bid754_bench_c_bid128_sqrt(C.longlong(n)) }
 func nativeBenchCBID128Parse(n int)    { C.bid754_bench_c_bid128_parse(C.longlong(n)) }
 func nativeBenchCBID128ToString(n int) { C.bid754_bench_c_bid128_to_string(C.longlong(n)) }

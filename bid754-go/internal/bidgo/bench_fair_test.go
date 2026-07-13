@@ -6,7 +6,9 @@ import "testing"
 // on the shared exact-operand contract (../../testdata/benchmark_inputs.json).
 // The bid32 add_pure/mul_pure/div_pure rows measure the separate value-only
 // port bodies that the value-only public methods route to; 64/128 have no
-// separate pure bodies, so no pure rows exist there. See
+// separate pure bodies, so no pure rows exist there. fma/sqrt have single
+// status-aware port bodies on every width (fma consumes the contract's z
+// operand as the addend x*y + z; sqrt reuses the non-negative x operand). See
 // aligned_benchmark_test.go for the full bench-name -> layer matrix.
 
 var sink64 uint64
@@ -19,6 +21,7 @@ func BenchmarkFairBID32(b *testing.B) {
 	inputs := loadBenchmarkInputs(b)
 	x := exactBenchmarkDecimal32(b, inputs.Decimal32.X)
 	y := exactBenchmarkDecimal32(b, inputs.Decimal32.Y)
+	z := exactBenchmarkDecimal32(b, inputs.Decimal32.Z)
 
 	b.Run("add", func(b *testing.B) {
 		b.ReportAllocs()
@@ -56,6 +59,18 @@ func BenchmarkFairBID32(b *testing.B) {
 			sink32 = Bid32Div(x, y, 0)
 		}
 	})
+	b.Run("fma", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink32, sinkFlags = Bid32Fma(x, y, z, 0)
+		}
+	})
+	b.Run("sqrt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink32, sinkFlags = Bid32Sqrt(x, 0)
+		}
+	})
 	b.Run("parse", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
@@ -74,6 +89,7 @@ func BenchmarkFairBID64(b *testing.B) {
 	inputs := loadBenchmarkInputs(b)
 	x := exactBenchmarkDecimal64(b, inputs.Decimal64.X)
 	y := exactBenchmarkDecimal64(b, inputs.Decimal64.Y)
+	z := exactBenchmarkDecimal64(b, inputs.Decimal64.Z)
 
 	b.Run("add", func(b *testing.B) {
 		b.ReportAllocs()
@@ -91,6 +107,18 @@ func BenchmarkFairBID64(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			sink64, sinkFlags = Bid64DivWithFlags(x, y, 0)
+		}
+	})
+	b.Run("fma", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink64, sinkFlags = Bid64Fma(x, y, z, 0)
+		}
+	})
+	b.Run("sqrt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink64, sinkFlags = Bid64Sqrt(x, 0)
 		}
 	})
 	b.Run("parse", func(b *testing.B) {
@@ -111,6 +139,7 @@ func BenchmarkFairBID128(b *testing.B) {
 	inputs := loadBenchmarkInputs(b)
 	x := exactBenchmarkDecimal128(b, inputs.Decimal128.X)
 	y := exactBenchmarkDecimal128(b, inputs.Decimal128.Y)
+	z := exactBenchmarkDecimal128(b, inputs.Decimal128.Z)
 
 	b.Run("add", func(b *testing.B) {
 		b.ReportAllocs()
@@ -131,6 +160,18 @@ func BenchmarkFairBID128(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			sink128, sinkFlags = Bid128Div(x, y, 0)
+		}
+	})
+	b.Run("fma", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink128, sinkFlags = Bid128Fma(x, y, z, 0)
+		}
+	})
+	b.Run("sqrt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			sink128, sinkFlags = Bid128Sqrt(x, 0)
 		}
 	})
 	b.Run("parse", func(b *testing.B) {

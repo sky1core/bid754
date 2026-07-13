@@ -9,6 +9,9 @@ import (
 type benchmarkInputPair struct {
 	X string `json:"x"`
 	Y string `json:"y"`
+	// Z is the third fma operand (result = x*y + z); sqrt reuses the
+	// non-negative X operand and needs no dedicated input.
+	Z string `json:"z"`
 }
 
 type benchmarkInputs struct {
@@ -39,8 +42,8 @@ func loadBenchmarkInputs(tb testing.TB) benchmarkInputs {
 		{"decimal64", inputs.Decimal64},
 		{"decimal128", inputs.Decimal128},
 	} {
-		if item.pair.X == "" || item.pair.Y == "" {
-			tb.Fatalf("benchmark input %s requires non-empty x and y", item.name)
+		if item.pair.X == "" || item.pair.Y == "" || item.pair.Z == "" {
+			tb.Fatalf("benchmark input %s requires non-empty x, y, and z", item.name)
 		}
 	}
 	return inputs
@@ -77,8 +80,31 @@ func TestBenchmarkInputsAreFiniteAndExact(t *testing.T) {
 	inputs := loadBenchmarkInputs(t)
 	exactBenchmarkDecimal32(t, inputs.Decimal32.X)
 	exactBenchmarkDecimal32(t, inputs.Decimal32.Y)
+	exactBenchmarkDecimal32(t, inputs.Decimal32.Z)
 	exactBenchmarkDecimal64(t, inputs.Decimal64.X)
 	exactBenchmarkDecimal64(t, inputs.Decimal64.Y)
+	exactBenchmarkDecimal64(t, inputs.Decimal64.Z)
 	exactBenchmarkDecimal128(t, inputs.Decimal128.X)
 	exactBenchmarkDecimal128(t, inputs.Decimal128.Y)
+	exactBenchmarkDecimal128(t, inputs.Decimal128.Z)
+	requireNonNegativeSqrtOperands(t, inputs)
+}
+
+// requireNonNegativeSqrtOperands pins the sqrt-benchmark precondition: the
+// sqrt rows reuse the X operands, so a negative X would silently turn every
+// sqrt benchmark into a NaN/invalid path instead of a real square root.
+func requireNonNegativeSqrtOperands(t *testing.T, inputs benchmarkInputs) {
+	t.Helper()
+	for _, item := range []struct {
+		name string
+		x    string
+	}{
+		{"decimal32", inputs.Decimal32.X},
+		{"decimal64", inputs.Decimal64.X},
+		{"decimal128", inputs.Decimal128.X},
+	} {
+		if len(item.x) > 0 && item.x[0] == '-' {
+			t.Fatalf("benchmark input %s x = %q is negative; sqrt benchmarks reuse x and require a non-negative operand", item.name, item.x)
+		}
+	}
 }
