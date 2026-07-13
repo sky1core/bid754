@@ -73,9 +73,9 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     let mut R64: u64 = 0;
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-    let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut scale: i64 = 0;
     let mut ind: i64 = 0;
     let mut x0: i64 = 0;
@@ -166,24 +166,24 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
                 is_inexact_gt_midpoint = 1;
             } else {
                 if (q4 == 1) {
-                    R64 = C4.w[0];
+                    R64 = C4.w0;
                 } else {
                     if (q4 <= 18) {
-                        R64 = bid_round64_2_18(q4, (q4.wrapping_sub(1)), C4.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+                        R64 = bid_round64_2_18(q4, (q4.wrapping_sub(1)), C4.w0, (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
                     } else if (q4 <= 38) {
-                        P128.hi = C4.w[1];
-                        P128.lo = C4.w[0];
+                        P128.hi = C4.w1;
+                        P128.lo = C4.w0;
                         (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, (q4.wrapping_sub(1)), P128);
                         R64 = R128.lo;
                     } else if (q4 <= 57) {
-                        P192.w[2] = C4.w[2];
-                        P192.w[1] = C4.w[1];
-                        P192.w[0] = C4.w[0];
+                        P192.w2 = C4.w2;
+                        P192.w1 = C4.w1;
+                        P192.w0 = C4.w0;
                         (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(q4, (q4.wrapping_sub(1)), P192);
-                        R64 = R192.w[0];
+                        R64 = R192.w0;
                     } else {
                         (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(q4, (q4.wrapping_sub(1)), C4);
-                        R64 = R256.w[0];
+                        R64 = R256.w0;
                     }
                     if (incr_exp != 0) {
                         R64 = 10;
@@ -260,33 +260,33 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
         eq_half_ulp = 0;
         gt_half_ulp = 0;
         if (q4 <= 19) {
-            if (C4.w[0] < bid_midpoint64[(q4.wrapping_sub(1)) as usize]) {
+            if (C4.w0 < bid_midpoint64[(q4.wrapping_sub(1)) as usize]) {
                 lt_half_ulp = 1;
-            } else if (C4.w[0] == bid_midpoint64[(q4.wrapping_sub(1)) as usize]) {
+            } else if (C4.w0 == bid_midpoint64[(q4.wrapping_sub(1)) as usize]) {
                 eq_half_ulp = 1;
             } else {
                 gt_half_ulp = 1;
             }
         } else if (q4 <= 38) {
-            if ((C4.w[2] == 0) && (((C4.w[1] < bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi) || (((C4.w[1] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi) && (C4.w[0] < bid_midpoint128[(q4.wrapping_sub(20)) as usize].lo)))))) {
+            if ((C4.w2 == 0) && (((C4.w1 < bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi) || (((C4.w1 == bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi) && (C4.w0 < bid_midpoint128[(q4.wrapping_sub(20)) as usize].lo)))))) {
                 lt_half_ulp = 1;
-            } else if (((C4.w[2] == 0) && (C4.w[1] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi)) && (C4.w[0] == bid_midpoint128[(q4.wrapping_sub(20)) as usize].lo)) {
+            } else if (((C4.w2 == 0) && (C4.w1 == bid_midpoint128[(q4.wrapping_sub(20)) as usize].hi)) && (C4.w0 == bid_midpoint128[(q4.wrapping_sub(20)) as usize].lo)) {
                 eq_half_ulp = 1;
             } else {
                 gt_half_ulp = 1;
             }
         } else if (q4 <= 58) {
-            if ((C4.w[3] == 0) && ((((C4.w[2] < bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[2]) || (((C4.w[2] == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[2]) && (C4.w[1] < bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[1])))) || ((((C4.w[2] == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[2]) && (C4.w[1] == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[1])) && (C4.w[0] < bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[0])))))) {
+            if ((C4.w3 == 0) && ((((C4.w2 < bid_midpoint192[(q4.wrapping_sub(39)) as usize].w2) || (((C4.w2 == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w2) && (C4.w1 < bid_midpoint192[(q4.wrapping_sub(39)) as usize].w1)))) || ((((C4.w2 == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w2) && (C4.w1 == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w1)) && (C4.w0 < bid_midpoint192[(q4.wrapping_sub(39)) as usize].w0)))))) {
                 lt_half_ulp = 1;
-            } else if ((((C4.w[3] == 0) && (C4.w[2] == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[2])) && (C4.w[1] == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[1])) && (C4.w[0] == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w[0])) {
+            } else if ((((C4.w3 == 0) && (C4.w2 == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w2)) && (C4.w1 == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w1)) && (C4.w0 == bid_midpoint192[(q4.wrapping_sub(39)) as usize].w0)) {
                 eq_half_ulp = 1;
             } else {
                 gt_half_ulp = 1;
             }
         } else {
-            if ((((C4.w[3] < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[3]) || (((C4.w[3] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[3]) && (C4.w[2] < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[2])))) || ((((C4.w[3] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[3]) && (C4.w[2] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[2])) && (C4.w[1] < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[1])))) || (((((C4.w[3] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[3]) && (C4.w[2] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[2])) && (C4.w[1] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[1])) && (C4.w[0] < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[0])))) {
+            if ((((C4.w3 < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w3) || (((C4.w3 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w3) && (C4.w2 < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w2)))) || ((((C4.w3 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w3) && (C4.w2 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w2)) && (C4.w1 < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w1)))) || (((((C4.w3 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w3) && (C4.w2 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w2)) && (C4.w1 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w1)) && (C4.w0 < bid_midpoint256[(q4.wrapping_sub(59)) as usize].w0)))) {
                 lt_half_ulp = 1;
-            } else if ((((C4.w[3] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[3]) && (C4.w[2] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[2])) && (C4.w[1] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[1])) && (C4.w[0] == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w[0])) {
+            } else if ((((C4.w3 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w3) && (C4.w2 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w2)) && (C4.w1 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w1)) && (C4.w0 == bid_midpoint256[(q4.wrapping_sub(59)) as usize].w0)) {
                 eq_half_ulp = 1;
             } else {
                 gt_half_ulp = 1;
@@ -352,10 +352,10 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
         if ((delta.wrapping_add(q4)) < q3) {
             P128.hi = C3.hi;
             P128.lo = C3.lo;
-            C3.hi = C4.w[1];
-            C3.lo = C4.w[0];
-            C4.w[1] = P128.hi;
-            C4.w[0] = P128.lo;
+            C3.hi = C4.w1;
+            C3.lo = C4.w0;
+            C4.w1 = P128.hi;
+            C4.w0 = P128.lo;
             ind = q3;
             q3 = q4;
             q4 = ind;
@@ -403,9 +403,9 @@ pub(crate) fn bid_fma_delta_lt_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     let mut R64: u64 = 0;
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-    let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut scale: i64 = 0;
     let mut ind: i64 = 0;
     let mut x0: i64 = 0;
@@ -416,10 +416,10 @@ pub(crate) fn bid_fma_delta_lt_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     } else if ((((((((q4 <= p34) && (p34 <= delta))) || ((((q4 <= delta) && (delta < p34)) && (p34 < (delta.wrapping_add(q3)))))) || (((q4 <= delta) && ((delta.wrapping_add(q3)) <= p34)))) || ((((delta < q4) && (q4 <= p34)) && (p34 < (delta.wrapping_add(q3)))))) || ((((delta < q4) && (q4 <= (delta.wrapping_add(q3)))) && ((delta.wrapping_add(q3)) <= p34)))) || ((((delta.wrapping_add(q3)) < q4) && (q4 <= p34)))) {
         P128.hi = C3.hi;
         P128.lo = C3.lo;
-        C3.hi = C4.w[1];
-        C3.lo = C4.w[0];
-        C4.w[1] = P128.hi;
-        C4.w[0] = P128.lo;
+        C3.hi = C4.w1;
+        C3.lo = C4.w0;
+        C4.w1 = P128.hi;
+        C4.w0 = P128.lo;
         ind = q3;
         q3 = q4;
         q4 = ind;
@@ -480,9 +480,9 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
     let mut R64: u64 = 0;
     let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-    let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     if ((res.hi != 0x0000314dc6448d93) || (res.lo != 0x38c15b0a00000000)) {
         if (lt_half_ulp != 0) {
             res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
@@ -528,27 +528,27 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
         if (e3 > -6176) {
             if (q4 == 1) {
                 res.hi = 0x0001ed09bead87c0;
-                res.lo = ((0x378d8e6400000000 as u64).wrapping_sub(C4.w[0]));
+                res.lo = ((0x378d8e6400000000 as u64).wrapping_sub(C4.w0));
                 z_exp = (z_exp.wrapping_sub(0x2000000000000));
                 e3 = (e3.wrapping_sub(1));
                 res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | res.hi);
             } else {
                 if (q4 <= 18) {
-                    R64 = bid_round64_2_18(q4, (q4.wrapping_sub(1)), C4.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+                    R64 = bid_round64_2_18(q4, (q4.wrapping_sub(1)), C4.w0, (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
                 } else if (q4 <= 38) {
-                    P128.hi = C4.w[1];
-                    P128.lo = C4.w[0];
+                    P128.hi = C4.w1;
+                    P128.lo = C4.w0;
                     (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, (q4.wrapping_sub(1)), P128);
                     R64 = R128.lo;
                 } else if (q4 <= 57) {
-                    P192.w[2] = C4.w[2];
-                    P192.w[1] = C4.w[1];
-                    P192.w[0] = C4.w[0];
+                    P192.w2 = C4.w2;
+                    P192.w1 = C4.w1;
+                    P192.w0 = C4.w0;
                     (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(q4, (q4.wrapping_sub(1)), P192);
-                    R64 = R192.w[0];
+                    R64 = R192.w0;
                 } else {
                     (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(q4, (q4.wrapping_sub(1)), C4);
-                    R64 = R256.w[0];
+                    R64 = R256.w0;
                 }
                 if ((((is_midpoint_lt_even == 0) && (is_midpoint_gt_even == 0)) && (is_inexact_lt_midpoint == 0)) && (is_inexact_gt_midpoint == 0)) {
                     z_exp = (z_exp.wrapping_sub(0x2000000000000));
@@ -651,9 +651,9 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
     let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut R64: u64 = 0;
-    let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut lsb: u64 = 0;
     let mut tmp64: u64 = 0;
     let mut ind: i64 = 0;
@@ -664,18 +664,18 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
         scale = ((q3.wrapping_sub(delta)).wrapping_sub(q4));
         if (q4 <= 19) {
             if (scale <= 19) {
-                P128 = __mul_64x64_to_128(C4.w[0], bid_ten2k64[scale as usize]);
+                P128 = __mul_64x64_to_128(C4.w0, bid_ten2k64[scale as usize]);
             } else {
-                P128 = __mul_128x64_to_128(C4.w[0], bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
+                P128 = __mul_128x64_to_128(C4.w0, bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
             }
         } else {
             let mut C4_128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-            C4_128.lo = C4.w[0];
-            C4_128.hi = C4.w[1];
+            C4_128.lo = C4.w0;
+            C4_128.hi = C4.w1;
             P128 = __mul_128x64_to_128(bid_ten2k64[scale as usize], C4_128);
         }
-        C4.w[0] = P128.lo;
-        C4.w[1] = P128.hi;
+        C4.w0 = P128.lo;
+        C4.w1 = P128.hi;
         scale = 0;
         x0 = 0;
     } else {
@@ -697,18 +697,18 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
         }
         e3 = (e3.wrapping_sub(scale));
         if (x0 == 0) {
-            R128.hi = C4.w[1];
-            R128.lo = C4.w[0];
+            R128.hi = C4.w1;
+            R128.lo = C4.w0;
         } else if (q4 <= 18) {
-            R64 = bid_round64_2_18(q4, x0, C4.w[0], (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+            R64 = bid_round64_2_18(q4, x0, C4.w0, (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
             if (incr_exp != 0) {
                 R64 = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
             }
             R128.hi = 0;
             R128.lo = R64;
         } else if (q4 <= 38) {
-            P128.hi = C4.w[1];
-            P128.lo = C4.w[0];
+            P128.hi = C4.w1;
+            P128.lo = C4.w0;
             (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, x0, P128);
             if (incr_exp != 0) {
                 if ((q4.wrapping_sub(x0)) <= 19) {
@@ -719,32 +719,32 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
                 }
             }
         } else if (q4 <= 57) {
-            P192.w[2] = C4.w[2];
-            P192.w[1] = C4.w[1];
-            P192.w[0] = C4.w[0];
+            P192.w2 = C4.w2;
+            P192.w1 = C4.w1;
+            P192.w0 = C4.w0;
             (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(q4, x0, P192);
             if (incr_exp != 0) {
                 if ((q4.wrapping_sub(x0)) <= 19) {
-                    R192.w[0] = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
+                    R192.w0 = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
                 } else {
-                    R192.w[0] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
-                    R192.w[1] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
+                    R192.w0 = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
+                    R192.w1 = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
                 }
             }
-            R128.hi = R192.w[1];
-            R128.lo = R192.w[0];
+            R128.hi = R192.w1;
+            R128.lo = R192.w0;
         } else {
             (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(q4, x0, C4);
             if (incr_exp != 0) {
                 if ((q4.wrapping_sub(x0)) <= 19) {
-                    R256.w[0] = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
+                    R256.w0 = bid_ten2k64[(q4.wrapping_sub(x0)) as usize];
                 } else {
-                    R256.w[0] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
-                    R256.w[1] = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
+                    R256.w0 = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].lo;
+                    R256.w1 = bid_ten2k128[((q4.wrapping_sub(x0)).wrapping_sub(20)) as usize].hi;
                 }
             }
-            R128.hi = R256.w[1];
-            R128.lo = R256.w[0];
+            R128.hi = R256.w1;
+            R128.lo = R256.w0;
         }
         if (z_sign == p_sign) {
             lsb = (res.lo & 0x01);
@@ -1056,26 +1056,26 @@ pub(crate) fn bid_fma_case7(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint
     let mut is_inexact_gt_midpoint: i64 = 0;
     let mut incr_exp: i64 = 0;
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-    let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut x0: i64 = 0;
     x0 = (q4.wrapping_sub(p34));
     if (q4 <= 38) {
-        P128.hi = C4.w[1];
-        P128.lo = C4.w[0];
+        P128.hi = C4.w1;
+        P128.lo = C4.w0;
         ((*res), incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, x0, P128);
     } else if (q4 <= 57) {
-        P192.w[2] = C4.w[2];
-        P192.w[1] = C4.w[1];
-        P192.w[0] = C4.w[0];
+        P192.w2 = C4.w2;
+        P192.w1 = C4.w1;
+        P192.w0 = C4.w0;
         (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(q4, x0, P192);
-        res.lo = R192.w[0];
-        res.hi = R192.w[1];
+        res.lo = R192.w0;
+        res.hi = R192.w1;
     } else {
         (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(q4, x0, C4);
-        res.lo = R256.w[0];
-        res.hi = R256.w[1];
+        res.lo = R256.w0;
+        res.hi = R256.w1;
     }
     e4 = (e4.wrapping_add(x0));
     if (incr_exp != 0) {
@@ -1183,8 +1183,8 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
     let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut P192_128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut incr_exp: i64 = 0;
     let mut ind: i64 = 0;
     let mut x0: i64 = 0;
@@ -1208,15 +1208,15 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
         (*C3) = __mul_64x128_to_128(bid_ten2k64[1], P128);
     }
     e3 = (e3.wrapping_add(x0));
-    R256.w[3] = 0;
-    R256.w[2] = 0;
-    R256.w[1] = C3.hi;
-    R256.w[0] = C3.lo;
+    R256.w3 = 0;
+    R256.w2 = 0;
+    R256.w1 = C3.hi;
+    R256.w0 = C3.lo;
     if (p_sign == z_sign) {
         R256 = bid_add256(C4, R256);
     } else {
         R256 = bid_sub256(C4, R256);
-        lsb = (C4.w[0] & 0x01);
+        lsb = (C4.w0 & 0x01);
         if (is_inexact_lt_midpoint != 0) {
             is_inexact_lt_midpoint = 0;
             is_inexact_gt_midpoint = 1;
@@ -1233,24 +1233,24 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
             }
         } else if (lsb == 1) {
             if (is_midpoint_lt_even != 0) {
-                R256.w[0] = R256.w[0].wrapping_add(1);
-                if (R256.w[0] == 0) {
-                    R256.w[1] = R256.w[1].wrapping_add(1);
-                    if (R256.w[1] == 0) {
-                        R256.w[2] = R256.w[2].wrapping_add(1);
-                        if (R256.w[2] == 0) {
-                            R256.w[3] = R256.w[3].wrapping_add(1);
+                R256.w0 = R256.w0.wrapping_add(1);
+                if (R256.w0 == 0) {
+                    R256.w1 = R256.w1.wrapping_add(1);
+                    if (R256.w1 == 0) {
+                        R256.w2 = R256.w2.wrapping_add(1);
+                        if (R256.w2 == 0) {
+                            R256.w3 = R256.w3.wrapping_add(1);
                         }
                     }
                 }
             } else if (is_midpoint_gt_even != 0) {
-                R256.w[0] = R256.w[0].wrapping_sub(1);
-                if (R256.w[0] == 0xffffffffffffffff) {
-                    R256.w[1] = R256.w[1].wrapping_sub(1);
-                    if (R256.w[1] == 0xffffffffffffffff) {
-                        R256.w[2] = R256.w[2].wrapping_sub(1);
-                        if (R256.w[2] == 0xffffffffffffffff) {
-                            R256.w[3] = R256.w[3].wrapping_sub(1);
+                R256.w0 = R256.w0.wrapping_sub(1);
+                if (R256.w0 == 0xffffffffffffffff) {
+                    R256.w1 = R256.w1.wrapping_sub(1);
+                    if (R256.w1 == 0xffffffffffffffff) {
+                        R256.w2 = R256.w2.wrapping_sub(1);
+                        if (R256.w2 == 0xffffffffffffffff) {
+                            R256.w3 = R256.w3.wrapping_sub(1);
                         }
                     }
                 }
@@ -1260,8 +1260,8 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
     ind = bid_bid_nr_digits256(R256);
     if (ind < p34) {
     } else if (ind == p34) {
-        res.hi = R256.w[1];
-        res.lo = R256.w[0];
+        res.hi = R256.w1;
+        res.lo = R256.w0;
     } else {
         x0 = (ind.wrapping_sub(p34));
         is_inexact_lt_midpoint0 = is_inexact_lt_midpoint;
@@ -1273,21 +1273,21 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
         is_midpoint_lt_even = 0;
         is_midpoint_gt_even = 0;
         if (ind <= 38) {
-            P128.hi = R256.w[1];
-            P128.lo = R256.w[0];
+            P128.hi = R256.w1;
+            P128.lo = R256.w0;
             (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(ind, x0, P128);
         } else if (ind <= 57) {
-            let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-            P192.w[2] = R256.w[2];
-            P192.w[1] = R256.w[1];
-            P192.w[0] = R256.w[0];
+            let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+            P192.w2 = R256.w2;
+            P192.w1 = R256.w1;
+            P192.w0 = R256.w0;
             (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(ind, x0, P192);
-            R128.hi = R192.w[1];
-            R128.lo = R192.w[0];
+            R128.hi = R192.w1;
+            R128.lo = R192.w0;
         } else {
             (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(ind, x0, R256);
-            R128.hi = R256.w[1];
-            R128.lo = R256.w[0];
+            R128.hi = R256.w1;
+            R128.lo = R256.w0;
         }
         e4 = ((e4.wrapping_add(x0)).wrapping_add(incr_exp));
         res.hi = R128.hi;
@@ -1487,9 +1487,9 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
     let mut R64: u64 = 0;
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut R128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-    let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut is_midpoint_lt_even: i64 = 0;
     let mut is_midpoint_gt_even: i64 = 0;
     let mut is_inexact_lt_midpoint: i64 = 0;
@@ -1505,10 +1505,10 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
     let mut res = (*ptrres);
     scale = ((q4.wrapping_sub(delta)).wrapping_sub(q3));
     if (scale == 0) {
-        R256.w[3] = 0x0;
-        R256.w[2] = 0x0;
-        R256.w[1] = C3.hi;
-        R256.w[0] = C3.lo;
+        R256.w3 = 0x0;
+        R256.w2 = 0x0;
+        R256.w1 = C3.hi;
+        R256.w0 = C3.lo;
     } else if (scale <= 19) {
         P128.hi = 0;
         P128.lo = bid_ten2k64[scale as usize];
@@ -1525,13 +1525,13 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
     if (p_sign == z_sign) {
         R256 = bid_add256(C4, R256);
     } else {
-        if ((((R256.w[3] > C4.w[3]) || (((R256.w[3] == C4.w[3]) && (R256.w[2] > C4.w[2])))) || ((((R256.w[3] == C4.w[3]) && (R256.w[2] == C4.w[2])) && (R256.w[1] > C4.w[1])))) || (((((R256.w[3] == C4.w[3]) && (R256.w[2] == C4.w[2])) && (R256.w[1] == C4.w[1])) && (R256.w[0] >= C4.w[0])))) {
+        if ((((R256.w3 > C4.w3) || (((R256.w3 == C4.w3) && (R256.w2 > C4.w2)))) || ((((R256.w3 == C4.w3) && (R256.w2 == C4.w2)) && (R256.w1 > C4.w1)))) || (((((R256.w3 == C4.w3) && (R256.w2 == C4.w2)) && (R256.w1 == C4.w1)) && (R256.w0 >= C4.w0)))) {
             R256 = bid_sub256(R256, C4);
             p_sign = z_sign;
         } else {
             R256 = bid_sub256(C4, R256);
         }
-        if ((((R256.w[3] == 0x0) && (R256.w[2] == 0x0)) && (R256.w[1] == 0x0)) && (R256.w[0] == 0x0)) {
+        if ((((R256.w3 == 0x0) && (R256.w2 == 0x0)) && (R256.w1 == 0x0)) && (R256.w0 == 0x0)) {
             if (rnd_mode != 1) {
                 p_sign = 0x0000000000000000;
             } else {
@@ -1551,25 +1551,25 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
         if ((ind.wrapping_add(e4)) < (p34.wrapping_add(-6176))) {
             is_tiny = 1;
         }
-        res.hi = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | R256.w[1]);
-        res.lo = R256.w[0];
+        res.hi = ((p_sign | ((go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | R256.w1);
+        res.lo = R256.w0;
     } else {
         x0 = (ind.wrapping_sub(p34));
         if (ind <= 38) {
-            P128.hi = R256.w[1];
-            P128.lo = R256.w[0];
+            P128.hi = R256.w1;
+            P128.lo = R256.w0;
             (R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(ind, x0, P128);
         } else if (ind <= 57) {
-            P192.w[2] = R256.w[2];
-            P192.w[1] = R256.w[1];
-            P192.w[0] = R256.w[0];
+            P192.w2 = R256.w2;
+            P192.w1 = R256.w1;
+            P192.w0 = R256.w0;
             (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(ind, x0, P192);
-            R128.hi = R192.w[1];
-            R128.lo = R192.w[0];
+            R128.hi = R192.w1;
+            R128.lo = R192.w0;
         } else {
             (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(ind, x0, R256);
-            R128.hi = R256.w[1];
-            R128.lo = R256.w[0];
+            R128.hi = R256.w1;
+            R128.lo = R256.w0;
         }
         if ((e4.wrapping_add(x0)) < -6176) {
             is_tiny = 1;
@@ -1710,31 +1710,31 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
 
 pub(crate) fn bid_bid_nr_digits256(mut R256: BID_UINT256) -> i64 {
     let mut ind: i64 = 0;
-    if (((R256.w[3] == 0x0) && (R256.w[2] == 0x0)) && (R256.w[1] == 0x0)) {
+    if (((R256.w3 == 0x0) && (R256.w2 == 0x0)) && (R256.w1 == 0x0)) {
         ind = 1;
         while (ind <= 19) {
-            if (R256.w[0] < bid_ten2k64[ind as usize]) {
+            if (R256.w0 < bid_ten2k64[ind as usize]) {
                 break;
             }
             ind = ind.wrapping_add(1);
         }
-    } else if (((R256.w[3] == 0x0) && (R256.w[2] == 0x0)) && (((R256.w[1] < bid_ten2k128[0].hi) || (((R256.w[1] == bid_ten2k128[0].hi) && (R256.w[0] < bid_ten2k128[0].lo)))))) {
+    } else if (((R256.w3 == 0x0) && (R256.w2 == 0x0)) && (((R256.w1 < bid_ten2k128[0].hi) || (((R256.w1 == bid_ten2k128[0].hi) && (R256.w0 < bid_ten2k128[0].lo)))))) {
         ind = 20;
-    } else if ((R256.w[3] == 0x0) && (R256.w[2] == 0x0)) {
+    } else if ((R256.w3 == 0x0) && (R256.w2 == 0x0)) {
         ind = 1;
         while (ind <= 18) {
-            if ((R256.w[1] < bid_ten2k128[ind as usize].hi) || (((R256.w[1] == bid_ten2k128[ind as usize].hi) && (R256.w[0] < bid_ten2k128[ind as usize].lo)))) {
+            if ((R256.w1 < bid_ten2k128[ind as usize].hi) || (((R256.w1 == bid_ten2k128[ind as usize].hi) && (R256.w0 < bid_ten2k128[ind as usize].lo)))) {
                 break;
             }
             ind = ind.wrapping_add(1);
         }
         ind = (ind.wrapping_add(20));
-    } else if ((R256.w[3] == 0x0) && ((((R256.w[2] < bid_ten2k256[0].w[2]) || (((R256.w[2] == bid_ten2k256[0].w[2]) && (R256.w[1] < bid_ten2k256[0].w[1])))) || ((((R256.w[2] == bid_ten2k256[0].w[2]) && (R256.w[1] == bid_ten2k256[0].w[1])) && (R256.w[0] < bid_ten2k256[0].w[0])))))) {
+    } else if ((R256.w3 == 0x0) && ((((R256.w2 < bid_ten2k256[0].w2) || (((R256.w2 == bid_ten2k256[0].w2) && (R256.w1 < bid_ten2k256[0].w1)))) || ((((R256.w2 == bid_ten2k256[0].w2) && (R256.w1 == bid_ten2k256[0].w1)) && (R256.w0 < bid_ten2k256[0].w0)))))) {
         ind = 39;
     } else {
         ind = 1;
         while (ind <= 29) {
-            if ((((R256.w[3] < bid_ten2k256[ind as usize].w[3]) || (((R256.w[3] == bid_ten2k256[ind as usize].w[3]) && (R256.w[2] < bid_ten2k256[ind as usize].w[2])))) || ((((R256.w[3] == bid_ten2k256[ind as usize].w[3]) && (R256.w[2] == bid_ten2k256[ind as usize].w[2])) && (R256.w[1] < bid_ten2k256[ind as usize].w[1])))) || (((((R256.w[3] == bid_ten2k256[ind as usize].w[3]) && (R256.w[2] == bid_ten2k256[ind as usize].w[2])) && (R256.w[1] == bid_ten2k256[ind as usize].w[1])) && (R256.w[0] < bid_ten2k256[ind as usize].w[0])))) {
+            if ((((R256.w3 < bid_ten2k256[ind as usize].w3) || (((R256.w3 == bid_ten2k256[ind as usize].w3) && (R256.w2 < bid_ten2k256[ind as usize].w2)))) || ((((R256.w3 == bid_ten2k256[ind as usize].w3) && (R256.w2 == bid_ten2k256[ind as usize].w2)) && (R256.w1 < bid_ten2k256[ind as usize].w1)))) || (((((R256.w3 == bid_ten2k256[ind as usize].w3) && (R256.w2 == bid_ten2k256[ind as usize].w2)) && (R256.w1 == bid_ten2k256[ind as usize].w1)) && (R256.w0 < bid_ten2k256[ind as usize].w0)))) {
                 break;
             }
             ind = ind.wrapping_add(1);

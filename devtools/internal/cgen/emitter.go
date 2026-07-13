@@ -195,9 +195,9 @@ func renderBidgoValue(table Table, v Value, indent int, depth int) string {
 			}
 			words := make([]string, len(v.Elements))
 			for i, elem := range v.Elements {
-				words[i] = elem.Number.String()
+				words[i] = fmt.Sprintf("w%d: %s", i, elem.Number.String())
 			}
-			return fmt.Sprintf("{w: [%d]uint64{%s}}", arity, strings.Join(words, ", "))
+			return fmt.Sprintf("{%s}", strings.Join(words, ", "))
 		}
 	}
 	if v.IsScalar() {

@@ -135,7 +135,7 @@ pub(crate) fn bid___div_128_by_128(mut CX0: BID_UINT128, mut CY: BID_UINT128) ->
 }
 
 pub(crate) fn bid___div_256_by_128(pCQ: &mut BID_UINT128, pCA4: &mut BID_UINT256, mut CY: BID_UINT128) {
-    let mut CA4: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut CA4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut CA2: [u64; 3] = [0; 3];
     let mut CQ: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut A2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -143,16 +143,16 @@ pub(crate) fn bid___div_256_by_128(pCQ: &mut BID_UINT128, pCA4: &mut BID_UINT256
     let mut CQT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut Q: u64 = 0;
     let mut carry64: u64 = 0;
-    CA4.w[3] = pCA4.w[3];
-    CA4.w[2] = pCA4.w[2];
-    CA4.w[1] = pCA4.w[1];
-    CA4.w[0] = pCA4.w[0];
+    CA4.w3 = pCA4.w3;
+    CA4.w2 = pCA4.w2;
+    CA4.w1 = pCA4.w1;
+    CA4.w0 = pCA4.w0;
     CQ.hi = pCQ.hi;
     CQ.lo = pCQ.lo;
     let mut t64 = f64::from_bits(0x43f0000000000000);
     let mut d128 = (t64 * t64);
     let mut d192 = (d128 * t64);
-    let mut lx = no_fma_mul_add_f64((CA4.w[3] as f64), d192, no_fma_mul_add_f64((CA4.w[2] as f64), d128, no_fma_mul_add_f64((CA4.w[1] as f64), t64, (CA4.w[0] as f64))));
+    let mut lx = no_fma_mul_add_f64((CA4.w3 as f64), d192, no_fma_mul_add_f64((CA4.w2 as f64), d128, no_fma_mul_add_f64((CA4.w1 as f64), t64, (CA4.w0 as f64))));
     let mut ly = no_fma_mul_add_f64((CY.hi as f64), t64, (CY.lo as f64));
     let mut lq = (lx / ly);
     let mut CY36_2: u64 = 0;
@@ -161,18 +161,18 @@ pub(crate) fn bid___div_256_by_128(pCQ: &mut BID_UINT128, pCA4: &mut BID_UINT256
     CY36_2 = (go_checked_shr_u64(CY.hi, go_shift_count_u64((64 - 36) as u64)));
     CY36_1 = (((go_checked_shl_u64(CY.hi, go_shift_count_u64((36) as u64)))) | ((go_checked_shr_u64(CY.lo, go_shift_count_u64((64 - 36) as u64)))));
     CY36_0 = (go_checked_shl_u64(CY.lo, go_shift_count_u64((36) as u64)));
-    if ((CA4.w[3] > CY36_2) || (((CA4.w[3] == CY36_2) && (((CA4.w[2] > CY36_1) || (((CA4.w[2] == CY36_1) && (CA4.w[1] >= CY36_0)))))))) {
+    if ((CA4.w3 > CY36_2) || (((CA4.w3 == CY36_2) && (((CA4.w2 > CY36_1) || (((CA4.w2 == CY36_1) && (CA4.w1 >= CY36_0)))))))) {
         let mut d60 = f64::from_bits(0x3c30000000000000);
         lq *= d60;
         Q = ((lq as u64).wrapping_sub(4));
         let mut tmp192 = __mul_64x128_to_192(Q, CY);
-        CA2[2] = (((go_checked_shl_u64(tmp192.w[2], go_shift_count_u64((60) as u64)))) | ((go_checked_shr_u64(tmp192.w[1], go_shift_count_u64((64 - 60) as u64)))));
-        CA2[1] = (((go_checked_shl_u64(tmp192.w[1], go_shift_count_u64((60) as u64)))) | ((go_checked_shr_u64(tmp192.w[0], go_shift_count_u64((64 - 60) as u64)))));
-        CA2[0] = (go_checked_shl_u64(tmp192.w[0], go_shift_count_u64((60) as u64)));
-        (CA4.w[0], carry64) = __sub_borrow_out(CA4.w[0], CA2[0]);
-        (CA4.w[1], carry64) = __sub_borrow_in_out(CA4.w[1], CA2[1], carry64);
-        CA4.w[2] = ((CA4.w[2].wrapping_sub(CA2[2])).wrapping_sub(carry64));
-        lx = no_fma_mul_add_f64((CA4.w[2] as f64), d128, no_fma_mul_add_f64((CA4.w[1] as f64), t64, (CA4.w[0] as f64)));
+        CA2[2] = (((go_checked_shl_u64(tmp192.w2, go_shift_count_u64((60) as u64)))) | ((go_checked_shr_u64(tmp192.w1, go_shift_count_u64((64 - 60) as u64)))));
+        CA2[1] = (((go_checked_shl_u64(tmp192.w1, go_shift_count_u64((60) as u64)))) | ((go_checked_shr_u64(tmp192.w0, go_shift_count_u64((64 - 60) as u64)))));
+        CA2[0] = (go_checked_shl_u64(tmp192.w0, go_shift_count_u64((60) as u64)));
+        (CA4.w0, carry64) = __sub_borrow_out(CA4.w0, CA2[0]);
+        (CA4.w1, carry64) = __sub_borrow_in_out(CA4.w1, CA2[1], carry64);
+        CA4.w2 = ((CA4.w2.wrapping_sub(CA2[2])).wrapping_sub(carry64));
+        lx = no_fma_mul_add_f64((CA4.w2 as f64), d128, no_fma_mul_add_f64((CA4.w1 as f64), t64, (CA4.w0 as f64)));
         lq = (lx / ly);
         CQT.hi = (go_checked_shr_u64(Q, go_shift_count_u64((64 - 60) as u64)));
         CQT.lo = (go_checked_shl_u64(Q, go_shift_count_u64((60) as u64)));
@@ -184,9 +184,9 @@ pub(crate) fn bid___div_256_by_128(pCQ: &mut BID_UINT128, pCA4: &mut BID_UINT256
     CY51_2 = (go_checked_shr_u64(CY.hi, go_shift_count_u64((64 - 51) as u64)));
     CY51_1 = (((go_checked_shl_u64(CY.hi, go_shift_count_u64((51) as u64)))) | ((go_checked_shr_u64(CY.lo, go_shift_count_u64((64 - 51) as u64)))));
     CY51_0 = (go_checked_shl_u64(CY.lo, go_shift_count_u64((51) as u64)));
-    let mut ca4_128 = BID_UINT128 { lo: CA4.w[0], hi: CA4.w[1], ..Default::default() };
+    let mut ca4_128 = BID_UINT128 { lo: CA4.w0, hi: CA4.w1, ..Default::default() };
     let mut cy51_128 = BID_UINT128 { lo: CY51_0, hi: CY51_1, ..Default::default() };
-    if ((CA4.w[2] > CY51_2) || (((CA4.w[2] == CY51_2) && __unsigned_compare_gt_128(ca4_128, cy51_128)))) {
+    if ((CA4.w2 > CY51_2) || (((CA4.w2 == CY51_2) && __unsigned_compare_gt_128(ca4_128, cy51_128)))) {
         let mut d49 = f64::from_bits(0x3ce0000000000000);
         lq *= d49;
         Q = ((lq as u64).wrapping_sub(1));
@@ -199,49 +199,49 @@ pub(crate) fn bid___div_256_by_128(pCQ: &mut BID_UINT128, pCA4: &mut BID_UINT256
         CA2[2] = (((go_checked_shl_u64(A2h.hi, go_shift_count_u64((49) as u64)))) | ((go_checked_shr_u64(A2.hi, go_shift_count_u64((64 - 49) as u64)))));
         CA2[1] = (((go_checked_shl_u64(A2.hi, go_shift_count_u64((49) as u64)))) | ((go_checked_shr_u64(A2.lo, go_shift_count_u64((64 - 49) as u64)))));
         CA2[0] = (go_checked_shl_u64(A2.lo, go_shift_count_u64((49) as u64)));
-        (CA4.w[0], carry64) = __sub_borrow_out(CA4.w[0], CA2[0]);
-        (CA4.w[1], carry64) = __sub_borrow_in_out(CA4.w[1], CA2[1], carry64);
-        CA4.w[2] = ((CA4.w[2].wrapping_sub(CA2[2])).wrapping_sub(carry64));
+        (CA4.w0, carry64) = __sub_borrow_out(CA4.w0, CA2[0]);
+        (CA4.w1, carry64) = __sub_borrow_in_out(CA4.w1, CA2[1], carry64);
+        CA4.w2 = ((CA4.w2.wrapping_sub(CA2[2])).wrapping_sub(carry64));
         CQT.hi = (go_checked_shr_u64(Q, go_shift_count_u64((64 - 49) as u64)));
         CQT.lo = (go_checked_shl_u64(Q, go_shift_count_u64((49) as u64)));
         CQ = __add_128_128(CQ, CQT);
-        lx = no_fma_mul_add_f64((CA4.w[2] as f64), d128, no_fma_mul_add_f64((CA4.w[1] as f64), t64, (CA4.w[0] as f64)));
+        lx = no_fma_mul_add_f64((CA4.w2 as f64), d128, no_fma_mul_add_f64((CA4.w1 as f64), t64, (CA4.w0 as f64)));
         lq = (lx / ly);
     }
     Q = (lq as u64);
     A2 = __mul_64x64_to_128(Q, CY.lo);
     A2.hi = A2.hi.wrapping_add((Q.wrapping_mul(CY.hi)));
-    let mut tmpCA = BID_UINT128 { lo: CA4.w[0], hi: CA4.w[1], ..Default::default() };
+    let mut tmpCA = BID_UINT128 { lo: CA4.w0, hi: CA4.w1, ..Default::default() };
     tmpCA = __sub_128_128(tmpCA, A2);
-    CA4.w[0] = tmpCA.lo;
-    CA4.w[1] = tmpCA.hi;
-    if ((CA4.w[1] as i64) < 0) {
+    CA4.w0 = tmpCA.lo;
+    CA4.w1 = tmpCA.hi;
+    if ((CA4.w1 as i64) < 0) {
         Q = Q.wrapping_sub(1);
-        CA4.w[0] = CA4.w[0].wrapping_add(CY.lo);
-        if (CA4.w[0] < CY.lo) {
-            CA4.w[1] = CA4.w[1].wrapping_add(1);
+        CA4.w0 = CA4.w0.wrapping_add(CY.lo);
+        if (CA4.w0 < CY.lo) {
+            CA4.w1 = CA4.w1.wrapping_add(1);
         }
-        CA4.w[1] = CA4.w[1].wrapping_add(CY.hi);
-        if ((CA4.w[1] as i64) < 0) {
+        CA4.w1 = CA4.w1.wrapping_add(CY.hi);
+        if ((CA4.w1 as i64) < 0) {
             Q = Q.wrapping_sub(1);
-            CA4.w[0] = CA4.w[0].wrapping_add(CY.lo);
-            if (CA4.w[0] < CY.lo) {
-                CA4.w[1] = CA4.w[1].wrapping_add(1);
+            CA4.w0 = CA4.w0.wrapping_add(CY.lo);
+            if (CA4.w0 < CY.lo) {
+                CA4.w1 = CA4.w1.wrapping_add(1);
             }
-            CA4.w[1] = CA4.w[1].wrapping_add(CY.hi);
+            CA4.w1 = CA4.w1.wrapping_add(CY.hi);
         }
-    } else if ((CA4.w[1] > CY.hi) || (((CA4.w[1] == CY.hi) && (CA4.w[0] >= CY.lo)))) {
+    } else if ((CA4.w1 > CY.hi) || (((CA4.w1 == CY.hi) && (CA4.w0 >= CY.lo)))) {
         Q = Q.wrapping_add(1);
-        let mut tmpCA2 = BID_UINT128 { lo: CA4.w[0], hi: CA4.w[1], ..Default::default() };
+        let mut tmpCA2 = BID_UINT128 { lo: CA4.w0, hi: CA4.w1, ..Default::default() };
         tmpCA2 = __sub_128_128(tmpCA2, CY);
-        CA4.w[0] = tmpCA2.lo;
-        CA4.w[1] = tmpCA2.hi;
+        CA4.w0 = tmpCA2.lo;
+        CA4.w1 = tmpCA2.hi;
     }
     CQ = __add_128_64(CQ, Q);
     pCQ.hi = CQ.hi;
     pCQ.lo = CQ.lo;
-    pCA4.w[1] = CA4.w[1];
-    pCA4.w[0] = CA4.w[0];
+    pCA4.w1 = CA4.w1;
+    pCA4.w0 = CA4.w0;
 }
 
 pub(crate) fn handle_uf_128(mut sgn: u64, mut expon: i64, mut CQ: BID_UINT128, mut prounding_mode: i64, fpsc: &mut u32) -> BID_UINT128 {
@@ -491,9 +491,9 @@ pub(crate) fn bid_get_bid128(mut sgn: u64, mut expon: i64, mut coeff: BID_UINT12
 }
 
 pub fn bid128_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
-    let mut CA4: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut CA4r: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut CA4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
+    let mut CA4r: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
+    let mut P256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CY: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut T128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -650,7 +650,7 @@ pub fn bid128_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> 
         CQ = __mul_128x128_low(CQ, T128);
     }
     bid___div_256_by_128((&mut CQ), (&mut CA4), CY);
-    if ((CA4.w[0] != 0) || (CA4.w[1] != 0)) {
+    if ((CA4.w0 != 0) || (CA4.w1 != 0)) {
         pfpsf |= 32;
     } else {
         if ((((CX.hi == 0) && (CY.hi == 0)) && (CX.lo <= 1024)) && (CY.lo <= 1024)) {
@@ -669,7 +669,7 @@ pub fn bid128_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> 
             T128.lo = 0x44909befeb9fad49;
             T128.hi = 0x000b877aa3236a4b;
             P256 = __mul_128x128_to_256(CQ, T128);
-            Q_high = (((go_checked_shr_u64(P256.w[2], go_shift_count_u64((44) as u64)))) | ((go_checked_shl_u64(P256.w[3], go_shift_count_u64((64 - 44) as u64)))));
+            Q_high = (((go_checked_shr_u64(P256.w2, go_shift_count_u64((44) as u64)))) | ((go_checked_shl_u64(P256.w3, go_shift_count_u64((64 - 44) as u64)))));
             Q_low = (CQ.lo.wrapping_sub((Q_high.wrapping_mul(100000000000000000))));
             if (Q_low == 0) {
                 diff_expon = diff_expon.wrapping_add(17);
@@ -787,32 +787,32 @@ pub fn bid128_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> 
         }
         match rmode {
             0 => {
-                CA4r.w[1] = (((CA4.w[1].wrapping_add(CA4.w[1]))) | ((go_checked_shr_u64(CA4.w[0], go_shift_count_u64((63) as u64)))));
-                CA4r.w[0] = (CA4.w[0].wrapping_add(CA4.w[0]));
-                (CA4r.w[0], carry64) = __sub_borrow_out(CA4r.w[0], CY.lo);
-                CA4r.w[1] = ((CA4r.w[1].wrapping_sub(CY.hi)).wrapping_sub(carry64));
-                if ((CA4r.w[1] | CA4r.w[0]) != 0) {
+                CA4r.w1 = (((CA4.w1.wrapping_add(CA4.w1))) | ((go_checked_shr_u64(CA4.w0, go_shift_count_u64((63) as u64)))));
+                CA4r.w0 = (CA4.w0.wrapping_add(CA4.w0));
+                (CA4r.w0, carry64) = __sub_borrow_out(CA4r.w0, CY.lo);
+                CA4r.w1 = ((CA4r.w1.wrapping_sub(CY.hi)).wrapping_sub(carry64));
+                if ((CA4r.w1 | CA4r.w0) != 0) {
                     D = 1;
                 } else {
                     D = 0;
                 }
-                carry64 = ((((1 as i64).wrapping_add((go_checked_shr_i64((CA4r.w[1] as i64), go_shift_count_u64((63) as u64))))) as u64) & (((CQ.lo) | D)));
+                carry64 = ((((1 as i64).wrapping_add((go_checked_shr_i64((CA4r.w1 as i64), go_shift_count_u64((63) as u64))))) as u64) & (((CQ.lo) | D)));
                 CQ.lo = CQ.lo.wrapping_add(carry64);
                 if (CQ.lo < carry64) {
                     CQ.hi = CQ.hi.wrapping_add(1);
                 }
             }
             4 => {
-                CA4r.w[1] = (((CA4.w[1].wrapping_add(CA4.w[1]))) | ((go_checked_shr_u64(CA4.w[0], go_shift_count_u64((63) as u64)))));
-                CA4r.w[0] = (CA4.w[0].wrapping_add(CA4.w[0]));
-                (CA4r.w[0], carry64) = __sub_borrow_out(CA4r.w[0], CY.lo);
-                CA4r.w[1] = ((CA4r.w[1].wrapping_sub(CY.hi)).wrapping_sub(carry64));
-                if ((CA4r.w[1] | CA4r.w[0]) != 0) {
+                CA4r.w1 = (((CA4.w1.wrapping_add(CA4.w1))) | ((go_checked_shr_u64(CA4.w0, go_shift_count_u64((63) as u64)))));
+                CA4r.w0 = (CA4.w0.wrapping_add(CA4.w0));
+                (CA4r.w0, carry64) = __sub_borrow_out(CA4r.w0, CY.lo);
+                CA4r.w1 = ((CA4r.w1.wrapping_sub(CY.hi)).wrapping_sub(carry64));
+                if ((CA4r.w1 | CA4r.w0) != 0) {
                     D = 0;
                 } else {
                     D = 1;
                 }
-                carry64 = ((((1 as i64).wrapping_add((go_checked_shr_i64((CA4r.w[1] as i64), go_shift_count_u64((63) as u64))))) as u64) | D);
+                carry64 = ((((1 as i64).wrapping_add((go_checked_shr_i64((CA4r.w1 as i64), go_shift_count_u64((63) as u64))))) as u64) | D);
                 CQ.lo = CQ.lo.wrapping_add(carry64);
                 if (CQ.lo < carry64) {
                     CQ.hi = CQ.hi.wrapping_add(1);
@@ -828,10 +828,10 @@ pub fn bid128_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> 
             }
         }
     } else {
-        if ((CA4.w[0] != 0) || (CA4.w[1] != 0)) {
+        if ((CA4.w0 != 0) || (CA4.w1 != 0)) {
             pfpsf |= 32;
         }
-        res = bid_handle_uf_128_rem((sign_x ^ sign_y), diff_expon, CQ, (CA4.w[1] | CA4.w[0]), rnd_mode, (&mut pfpsf));
+        res = bid_handle_uf_128_rem((sign_x ^ sign_y), diff_expon, CQ, (CA4.w1 | CA4.w0), rnd_mode, (&mut pfpsf));
         return (res, pfpsf);
     }
     res = bid_get_bid128((sign_x ^ sign_y), diff_expon, CQ, rnd_mode, (&mut pfpsf));

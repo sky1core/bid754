@@ -30,8 +30,8 @@ use super::prelude::*;
 
 pub fn bid128_class(mut x: BID_UINT128) -> i64 {
     let mut res: i64 = 0;
-    let mut sig_x_prime256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
-    let mut sig_x_prime192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
+    let mut sig_x_prime256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
+    let mut sig_x_prime192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
     let mut sig_x: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut exp_x: i64 = 0;
     if ((x.hi & 0x7c00000000000000) == 0x7c00000000000000) {
@@ -64,7 +64,7 @@ pub fn bid128_class(mut x: BID_UINT128) -> i64 {
     if (exp_x < 33) {
         if (exp_x > 19) {
             sig_x_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[(exp_x.wrapping_sub(20)) as usize]);
-            if (((sig_x_prime256.w[3] == 0) && (sig_x_prime256.w[2] == 0)) && (((sig_x_prime256.w[1] < 0x0000314dc6448d93) || (((sig_x_prime256.w[1] == 0x0000314dc6448d93) && (sig_x_prime256.w[0] < 0x38c15b0a00000000)))))) {
+            if (((sig_x_prime256.w3 == 0) && (sig_x_prime256.w2 == 0)) && (((sig_x_prime256.w1 < 0x0000314dc6448d93) || (((sig_x_prime256.w1 == 0x0000314dc6448d93) && (sig_x_prime256.w0 < 0x38c15b0a00000000)))))) {
                 if ((x.hi & 0x8000000000000000) == 0x8000000000000000) {
                     res = 4;
                 } else {
@@ -74,7 +74,7 @@ pub fn bid128_class(mut x: BID_UINT128) -> i64 {
             }
         } else {
             sig_x_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_x as usize], sig_x);
-            if ((sig_x_prime192.w[2] == 0) && (((sig_x_prime192.w[1] < 0x0000314dc6448d93) || (((sig_x_prime192.w[1] == 0x0000314dc6448d93) && (sig_x_prime192.w[0] < 0x38c15b0a00000000)))))) {
+            if ((sig_x_prime192.w2 == 0) && (((sig_x_prime192.w1 < 0x0000314dc6448d93) || (((sig_x_prime192.w1 == 0x0000314dc6448d93) && (sig_x_prime192.w0 < 0x38c15b0a00000000)))))) {
                 if ((x.hi & 0x8000000000000000) == 0x8000000000000000) {
                     res = 4;
                 } else {

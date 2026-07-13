@@ -404,21 +404,21 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 
 	// Cstar = P256 >> Ex, fstar = low Ex bits
 	shift = int(bid_Ex128m128_for64[ind])
-	Cstar.lo = (P256.w[2] >> shift) | (P256.w[3] << (64 - shift))
-	Cstar.hi = P256.w[3] >> shift
-	fstar.w[0] = P256.w[0]
-	fstar.w[1] = P256.w[1]
-	fstar.w[2] = P256.w[2] & bid_mask128_for64[ind]
-	fstar.w[3] = 0
+	Cstar.lo = (P256.w2 >> shift) | (P256.w3 << (64 - shift))
+	Cstar.hi = P256.w3 >> shift
+	fstar.w0 = P256.w0
+	fstar.w1 = P256.w1
+	fstar.w2 = P256.w2 & bid_mask128_for64[ind]
+	fstar.w3 = 0
 
 	// determine inexactness
-	if fstar.w[2] > bid_half128_for64[ind] ||
-		(fstar.w[2] == bid_half128_for64[ind] && (fstar.w[1] != 0 || fstar.w[0] != 0)) {
-		tmp64 = fstar.w[2] - bid_half128_for64[ind]
+	if fstar.w2 > bid_half128_for64[ind] ||
+		(fstar.w2 == bid_half128_for64[ind] && (fstar.w1 != 0 || fstar.w0 != 0)) {
+		tmp64 = fstar.w2 - bid_half128_for64[ind]
 		if tmp64 != 0 ||
-			fstar.w[1] > bid_ten2mxtrunc128_for64[ind].hi ||
-			(fstar.w[1] == bid_ten2mxtrunc128_for64[ind].hi &&
-				fstar.w[0] > bid_ten2mxtrunc128_for64[ind].lo) {
+			fstar.w1 > bid_ten2mxtrunc128_for64[ind].hi ||
+			(fstar.w1 == bid_ten2mxtrunc128_for64[ind].hi &&
+				fstar.w0 > bid_ten2mxtrunc128_for64[ind].lo) {
 			*is_inexact_lt_midpoint = 1
 		}
 	} else {
@@ -426,10 +426,10 @@ func bid_round128_19_38_for64(q, x int, C uint64, incr_exp *int,
 	}
 
 	// check for midpoints
-	if fstar.w[3] == 0 && fstar.w[2] == 0 &&
-		(fstar.w[1] < bid_ten2mxtrunc128_for64[ind].hi ||
-			(fstar.w[1] == bid_ten2mxtrunc128_for64[ind].hi &&
-				fstar.w[0] <= bid_ten2mxtrunc128_for64[ind].lo)) {
+	if fstar.w3 == 0 && fstar.w2 == 0 &&
+		(fstar.w1 < bid_ten2mxtrunc128_for64[ind].hi ||
+			(fstar.w1 == bid_ten2mxtrunc128_for64[ind].hi &&
+				fstar.w0 <= bid_ten2mxtrunc128_for64[ind].lo)) {
 		if Cstar.lo&0x01 != 0 {
 			Cstar.lo--
 			if Cstar.lo == 0xffffffffffffffff {

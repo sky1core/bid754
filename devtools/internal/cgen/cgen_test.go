@@ -65,7 +65,7 @@ func TestGoScalarForCIntUsesFixedWidth(t *testing.T) {
 	}
 }
 
-func TestRenderBidgoUsesNamedUint128LimbsOnly(t *testing.T) {
+func TestRenderBidgoUsesScalarLimbs(t *testing.T) {
 	tables := []Table{
 		{
 			Spec:  TableSpec{Name: "bid_u128"},
@@ -74,11 +74,19 @@ func TestRenderBidgoUsesNamedUint128LimbsOnly(t *testing.T) {
 			Value: Value{Elements: []Value{{Elements: []Value{{Number: big.NewInt(1)}, {Number: big.NewInt(2)}}}}},
 		},
 		{
+			Spec:  TableSpec{Name: "bid_u192"},
+			CType: "BID_UINT192",
+			Dims:  []int{1},
+			Value: Value{Elements: []Value{{Elements: []Value{
+				{Number: big.NewInt(3)}, {Number: big.NewInt(4)}, {Number: big.NewInt(5)},
+			}}}},
+		},
+		{
 			Spec:  TableSpec{Name: "bid_u256"},
 			CType: "BID_UINT256",
 			Dims:  []int{1},
 			Value: Value{Elements: []Value{{Elements: []Value{
-				{Number: big.NewInt(3)}, {Number: big.NewInt(4)}, {Number: big.NewInt(5)}, {Number: big.NewInt(6)},
+				{Number: big.NewInt(6)}, {Number: big.NewInt(7)}, {Number: big.NewInt(8)}, {Number: big.NewInt(9)},
 			}}}},
 		},
 		{
@@ -96,15 +104,18 @@ func TestRenderBidgoUsesNamedUint128LimbsOnly(t *testing.T) {
 	source := string(generated)
 	for _, want := range []string{
 		"var bid_u128 = [1]BID_UINT128{\n\t{lo: 1, hi: 2},\n}",
-		"var bid_u256 = [1]BID_UINT256{\n\t{w: [4]uint64{3, 4, 5, 6}},\n}",
+		"var bid_u192 = [1]BID_UINT192{\n\t{w0: 3, w1: 4, w2: 5},\n}",
+		"var bid_u256 = [1]BID_UINT256{\n\t{w0: 6, w1: 7, w2: 8, w3: 9},\n}",
 		"var bid_exp = [1]int{\n\t-7,\n}",
 	} {
 		if !strings.Contains(source, want) {
 			t.Fatalf("generated bidgo tables missing %q:\n%s", want, source)
 		}
 	}
-	if strings.Contains(source, "BID_UINT128{w:") || strings.Contains(source, "[2]uint64") {
-		t.Fatalf("generated bidgo BID_UINT128 retained array representation:\n%s", source)
+	for _, forbidden := range []string{"BID_UINT128{w:", "BID_UINT192{w:", "BID_UINT256{w:", "[2]uint64", "[3]uint64", "[4]uint64"} {
+		if strings.Contains(source, forbidden) {
+			t.Fatalf("generated bidgo retained array representation %q:\n%s", forbidden, source)
+		}
 	}
 }
 

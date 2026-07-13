@@ -278,23 +278,23 @@ func bid128_ext_fma(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) (
 	e4 = e1 + e2
 
 	// Calculate C4 = C1 * C2
-	C4.w[3] = 0
-	C4.w[2] = 0
-	C4.w[1] = 0
-	C4.w[0] = 0
+	C4.w3 = 0
+	C4.w2 = 0
+	C4.w1 = 0
+	C4.w0 = 0
 
 	if q1+q2 <= 19 {
-		C4.w[0] = C1.lo * C2.lo
-		if C4.w[0] < bid_ten2k64[q1+q2-1] {
+		C4.w0 = C1.lo * C2.lo
+		if C4.w0 < bid_ten2k64[q1+q2-1] {
 			q4 = q1 + q2 - 1
 		} else {
 			q4 = q1 + q2
 		}
 	} else if q1+q2 == 20 {
 		tmp128 := __mul_64x64_to_128(C1.lo, C2.lo)
-		C4.w[0] = tmp128.lo
-		C4.w[1] = tmp128.hi
-		if C4.w[1] == 0 && C4.w[0] < bid_ten2k64[19] {
+		C4.w0 = tmp128.lo
+		C4.w1 = tmp128.hi
+		if C4.w1 == 0 && C4.w0 < bid_ten2k64[19] {
 			q4 = 19
 		} else {
 			q4 = 20
@@ -306,53 +306,53 @@ func bid128_ext_fma(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) (
 		} else {
 			_, tmp128 = __mul_64x128_full(C2.lo, C1)
 		}
-		C4.w[0] = tmp128.lo
-		C4.w[1] = tmp128.hi
-		if C4.w[1] < bid_ten2k128[q1+q2-21].hi ||
-			(C4.w[1] == bid_ten2k128[q1+q2-21].hi && C4.w[0] < bid_ten2k128[q1+q2-21].lo) {
+		C4.w0 = tmp128.lo
+		C4.w1 = tmp128.hi
+		if C4.w1 < bid_ten2k128[q1+q2-21].hi ||
+			(C4.w1 == bid_ten2k128[q1+q2-21].hi && C4.w0 < bid_ten2k128[q1+q2-21].lo) {
 			q4 = q1 + q2 - 1
 		} else {
 			q4 = q1 + q2
 		}
 	} else if q1+q2 == 39 {
 		C4 = __mul_128x128_to_256(C1, C2)
-		if C4.w[2] == 0 && (C4.w[1] < bid_ten2k128[18].hi ||
-			(C4.w[1] == bid_ten2k128[18].hi && C4.w[0] < bid_ten2k128[18].lo)) {
+		if C4.w2 == 0 && (C4.w1 < bid_ten2k128[18].hi ||
+			(C4.w1 == bid_ten2k128[18].hi && C4.w0 < bid_ten2k128[18].lo)) {
 			q4 = 38
 		} else {
 			q4 = 39
 		}
 	} else if q1+q2 <= 57 { // 40 <= q1+q2 <= 57
 		C4 = __mul_128x128_to_256(C1, C2)
-		if C4.w[2] < bid_ten2k256[q1+q2-40].w[2] ||
-			(C4.w[2] == bid_ten2k256[q1+q2-40].w[2] &&
-				(C4.w[1] < bid_ten2k256[q1+q2-40].w[1] ||
-					(C4.w[1] == bid_ten2k256[q1+q2-40].w[1] &&
-						C4.w[0] < bid_ten2k256[q1+q2-40].w[0]))) {
+		if C4.w2 < bid_ten2k256[q1+q2-40].w2 ||
+			(C4.w2 == bid_ten2k256[q1+q2-40].w2 &&
+				(C4.w1 < bid_ten2k256[q1+q2-40].w1 ||
+					(C4.w1 == bid_ten2k256[q1+q2-40].w1 &&
+						C4.w0 < bid_ten2k256[q1+q2-40].w0))) {
 			q4 = q1 + q2 - 1
 		} else {
 			q4 = q1 + q2
 		}
 	} else if q1+q2 == 58 {
 		C4 = __mul_128x128_to_256(C1, C2)
-		if C4.w[3] == 0 && (C4.w[2] < bid_ten2k256[18].w[2] ||
-			(C4.w[2] == bid_ten2k256[18].w[2] &&
-				(C4.w[1] < bid_ten2k256[18].w[1] ||
-					(C4.w[1] == bid_ten2k256[18].w[1] &&
-						C4.w[0] < bid_ten2k256[18].w[0])))) {
+		if C4.w3 == 0 && (C4.w2 < bid_ten2k256[18].w2 ||
+			(C4.w2 == bid_ten2k256[18].w2 &&
+				(C4.w1 < bid_ten2k256[18].w1 ||
+					(C4.w1 == bid_ten2k256[18].w1 &&
+						C4.w0 < bid_ten2k256[18].w0)))) {
 			q4 = 57
 		} else {
 			q4 = 58
 		}
 	} else { // 59 <= q1+q2 <= 68
 		C4 = __mul_128x128_to_256(C1, C2)
-		if C4.w[3] < bid_ten2k256[q1+q2-40].w[3] ||
-			(C4.w[3] == bid_ten2k256[q1+q2-40].w[3] &&
-				(C4.w[2] < bid_ten2k256[q1+q2-40].w[2] ||
-					(C4.w[2] == bid_ten2k256[q1+q2-40].w[2] &&
-						(C4.w[1] < bid_ten2k256[q1+q2-40].w[1] ||
-							(C4.w[1] == bid_ten2k256[q1+q2-40].w[1] &&
-								C4.w[0] < bid_ten2k256[q1+q2-40].w[0]))))) {
+		if C4.w3 < bid_ten2k256[q1+q2-40].w3 ||
+			(C4.w3 == bid_ten2k256[q1+q2-40].w3 &&
+				(C4.w2 < bid_ten2k256[q1+q2-40].w2 ||
+					(C4.w2 == bid_ten2k256[q1+q2-40].w2 &&
+						(C4.w1 < bid_ten2k256[q1+q2-40].w1 ||
+							(C4.w1 == bid_ten2k256[q1+q2-40].w1 &&
+								C4.w0 < bid_ten2k256[q1+q2-40].w0))))) {
 			q4 = q1 + q2 - 1
 		} else {
 			q4 = q1 + q2
@@ -380,20 +380,20 @@ func bid128_ext_fma(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) (
 			// truncate C4 to p34 digits into res
 			x0 = q4 - p34
 			if q4 <= 38 {
-				P128.hi = C4.w[1]
-				P128.lo = C4.w[0]
+				P128.hi = C4.w1
+				P128.lo = C4.w0
 				res, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint = bid_round128_19_38(q4, x0, P128)
 			} else if q4 <= 57 {
-				P192.w[2] = C4.w[2]
-				P192.w[1] = C4.w[1]
-				P192.w[0] = C4.w[0]
+				P192.w2 = C4.w2
+				P192.w1 = C4.w1
+				P192.w0 = C4.w0
 				R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint = bid_round192_39_57(q4, x0, P192)
-				res.lo = R192.w[0]
-				res.hi = R192.w[1]
+				res.lo = R192.w0
+				res.hi = R192.w1
 			} else { // if q4 <= 68
 				R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint = bid_round256_58_76(q4, x0, C4)
-				res.lo = R256.w[0]
-				res.hi = R256.w[1]
+				res.lo = R256.w0
+				res.hi = R256.w1
 			}
 			e4 = e4 + x0
 			q4 = p34
@@ -409,18 +409,18 @@ func bid128_ext_fma(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) (
 				scale = e4 - expmax
 				if q4 <= 19 {
 					if scale <= 19 {
-						res = __mul_64x64_to_128(C4.w[0], bid_ten2k64[scale])
+						res = __mul_64x64_to_128(C4.w0, bid_ten2k64[scale])
 					} else {
-						res = __mul_64x128_to_128(C4.w[0], bid_ten2k128[scale-20])
+						res = __mul_64x128_to_128(C4.w0, bid_ten2k128[scale-20])
 					}
 				} else {
-					res = __mul_64x128_to_128(bid_ten2k64[scale], BID_UINT128{lo: C4.w[0], hi: C4.w[1]})
+					res = __mul_64x128_to_128(bid_ten2k64[scale], BID_UINT128{lo: C4.w0, hi: C4.w1})
 				}
 				e4 = e4 - scale
 				q4 = q4 + scale
 			} else {
-				res.hi = C4.w[1]
-				res.lo = C4.w[0]
+				res.hi = C4.w1
+				res.lo = C4.w0
 			}
 		}
 

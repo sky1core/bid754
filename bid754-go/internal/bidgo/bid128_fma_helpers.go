@@ -10,56 +10,56 @@ const expmax = 6111
 // bid_add256 adds two 256-bit values.
 func bid_add256(x, y BID_UINT256) BID_UINT256 {
 	var z BID_UINT256
-	z.w[0] = x.w[0] + y.w[0]
-	if z.w[0] < x.w[0] {
-		x.w[1]++
-		if x.w[1] == 0 {
-			x.w[2]++
-			if x.w[2] == 0 {
-				x.w[3]++
+	z.w0 = x.w0 + y.w0
+	if z.w0 < x.w0 {
+		x.w1++
+		if x.w1 == 0 {
+			x.w2++
+			if x.w2 == 0 {
+				x.w3++
 			}
 		}
 	}
-	z.w[1] = x.w[1] + y.w[1]
-	if z.w[1] < x.w[1] {
-		x.w[2]++
-		if x.w[2] == 0 {
-			x.w[3]++
+	z.w1 = x.w1 + y.w1
+	if z.w1 < x.w1 {
+		x.w2++
+		if x.w2 == 0 {
+			x.w3++
 		}
 	}
-	z.w[2] = x.w[2] + y.w[2]
-	if z.w[2] < x.w[2] {
-		x.w[3]++
+	z.w2 = x.w2 + y.w2
+	if z.w2 < x.w2 {
+		x.w3++
 	}
-	z.w[3] = x.w[3] + y.w[3]
+	z.w3 = x.w3 + y.w3
 	return z
 }
 
 // bid_sub256 subtracts y from x (assumes x >= y).
 func bid_sub256(x, y BID_UINT256) BID_UINT256 {
 	var z BID_UINT256
-	z.w[0] = x.w[0] - y.w[0]
-	if z.w[0] > x.w[0] {
-		x.w[1]--
-		if x.w[1] == 0xffffffffffffffff {
-			x.w[2]--
-			if x.w[2] == 0xffffffffffffffff {
-				x.w[3]--
+	z.w0 = x.w0 - y.w0
+	if z.w0 > x.w0 {
+		x.w1--
+		if x.w1 == 0xffffffffffffffff {
+			x.w2--
+			if x.w2 == 0xffffffffffffffff {
+				x.w3--
 			}
 		}
 	}
-	z.w[1] = x.w[1] - y.w[1]
-	if z.w[1] > x.w[1] {
-		x.w[2]--
-		if x.w[2] == 0xffffffffffffffff {
-			x.w[3]--
+	z.w1 = x.w1 - y.w1
+	if z.w1 > x.w1 {
+		x.w2--
+		if x.w2 == 0xffffffffffffffff {
+			x.w3--
 		}
 	}
-	z.w[2] = x.w[2] - y.w[2]
-	if z.w[2] > x.w[2] {
-		x.w[3]--
+	z.w2 = x.w2 - y.w2
+	if z.w2 > x.w2 {
+		x.w3--
 	}
-	z.w[3] = x.w[3] - y.w[3]
+	z.w3 = x.w3 - y.w3
 	return z
 }
 

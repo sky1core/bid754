@@ -37,20 +37,20 @@ const fn wrap_u128<const N: usize>(src: [UInt128Words; N]) -> [BID_UINT128; N] {
 }
 
 const fn wrap_u192<const N: usize>(src: [UInt192Words; N]) -> [BID_UINT192; N] {
-    let mut out = [BID_UINT192 { w: [0u64, 0u64, 0u64] }; N];
+    let mut out = [BID_UINT192 { w0: 0u64, w1: 0u64, w2: 0u64 }; N];
     let mut i = 0;
     while i < N {
-        out[i] = BID_UINT192 { w: src[i] };
+        out[i] = BID_UINT192 { w0: src[i][0], w1: src[i][1], w2: src[i][2] };
         i += 1;
     }
     out
 }
 
 const fn wrap_u256<const N: usize>(src: [UInt256Words; N]) -> [BID_UINT256; N] {
-    let mut out = [BID_UINT256 { w: [0u64, 0u64, 0u64, 0u64] }; N];
+    let mut out = [BID_UINT256 { w0: 0u64, w1: 0u64, w2: 0u64, w3: 0u64 }; N];
     let mut i = 0;
     while i < N {
-        out[i] = BID_UINT256 { w: src[i] };
+        out[i] = BID_UINT256 { w0: src[i][0], w1: src[i][1], w2: src[i][2], w3: src[i][3] };
         i += 1;
     }
     out

@@ -173,19 +173,19 @@ func bid128_round_rnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64) {
 	// calculate C* and f*
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.hi = P256.w[3]
-		Cstar.lo = P256.w[2]
-		fstar.w[3] = 0
-		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.hi = P256.w3
+		Cstar.lo = P256.w2
+		fstar.w3 = 0
+		fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	} else {
 		Cstar.hi = 0
-		Cstar.lo = P256.w[3]
-		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-		fstar.w[2] = P256.w[2]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.lo = P256.w3
+		fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+		fstar.w2 = P256.w2
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	}
 
 	// shift right C* by Ex-128 = bid_shiftright128[ind]
@@ -196,11 +196,11 @@ func bid128_round_rnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64) {
 		Cstar.lo = Cstar.lo >> uint(shift-64)
 	}
 	// check for midpoints
-	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
-		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
+	if (fstar.w3 == 0) && (fstar.w2 == 0) &&
+		(fstar.w1 != 0 || fstar.w0 != 0) &&
+		(fstar.w1 < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w0 <= bid_ten2mk128trunc[ind-1].lo)) {
 		// the result is a midpoint; round to nearest
 		if Cstar.lo&0x01 != 0 {
 			Cstar.lo--
@@ -234,19 +234,19 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.hi = P256.w[3]
-		Cstar.lo = P256.w[2]
-		fstar.w[3] = 0
-		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.hi = P256.w3
+		Cstar.lo = P256.w2
+		fstar.w3 = 0
+		fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	} else {
 		Cstar.hi = 0
-		Cstar.lo = P256.w[3]
-		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-		fstar.w[2] = P256.w[2]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.lo = P256.w3
+		fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+		fstar.w2 = P256.w2
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	}
 
 	shift := bid_shiftright128[ind-1]
@@ -259,44 +259,44 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 	// determine inexactness
 	var tmp64A uint64
 	if ind-1 <= 2 {
-		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
-			tmp64 = fstar.w[1] - 0x8000000000000000
+		if fstar.w1 > 0x8000000000000000 || (fstar.w1 == 0x8000000000000000 && fstar.w0 > 0x0) {
+			tmp64 = fstar.w1 - 0x8000000000000000
 			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
 				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
+					fstar.w0 >= bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
 			is_inexact_gt_midpoint = 1
 		}
 	} else if ind-1 <= 21 {
-		if fstar.w[3] > 0x0 ||
-			(fstar.w[3] == 0x0 && fstar.w[2] > bid_onehalf128[ind-1]) ||
-			(fstar.w[3] == 0x0 && fstar.w[2] == bid_onehalf128[ind-1] &&
-				(fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[2] - bid_onehalf128[ind-1]
-			tmp64A = fstar.w[3]
-			if tmp64 > fstar.w[2] {
+		if fstar.w3 > 0x0 ||
+			(fstar.w3 == 0x0 && fstar.w2 > bid_onehalf128[ind-1]) ||
+			(fstar.w3 == 0x0 && fstar.w2 == bid_onehalf128[ind-1] &&
+				(fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w2 - bid_onehalf128[ind-1]
+			tmp64A = fstar.w3
+			if tmp64 > fstar.w2 {
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
 			is_inexact_gt_midpoint = 1
 		}
 	} else {
-		if fstar.w[3] > bid_onehalf128[ind-1] ||
-			(fstar.w[3] == bid_onehalf128[ind-1] &&
-				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
-			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+		if fstar.w3 > bid_onehalf128[ind-1] ||
+			(fstar.w3 == bid_onehalf128[ind-1] &&
+				(fstar.w2 != 0 || fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w3 - bid_onehalf128[ind-1]
+			if tmp64 != 0 || fstar.w2 != 0 ||
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -305,11 +305,11 @@ func bid128_round_floor_ceil_int_common(C1 BID_UINT128, ind int, x_sign uint64, 
 	}
 
 	// check for midpoints
-	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
-		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
+	if (fstar.w3 == 0) && (fstar.w2 == 0) &&
+		(fstar.w1 != 0 || fstar.w0 != 0) &&
+		(fstar.w1 < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w0 <= bid_ten2mk128trunc[ind-1].lo)) {
 		if Cstar.lo&0x01 != 0 {
 			Cstar.lo--
 			is_midpoint_gt_even = 1
@@ -350,19 +350,19 @@ func bid128_trunc_inexact_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, inex
 
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.hi = P256.w[3]
-		Cstar.lo = P256.w[2]
-		fstar.w[3] = 0
-		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.hi = P256.w3
+		Cstar.lo = P256.w2
+		fstar.w3 = 0
+		fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	} else {
 		Cstar.hi = 0
-		Cstar.lo = P256.w[3]
-		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-		fstar.w[2] = P256.w[2]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.lo = P256.w3
+		fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+		fstar.w2 = P256.w2
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	}
 
 	shift := bid_shiftright128[ind-1]
@@ -373,19 +373,19 @@ func bid128_trunc_inexact_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, inex
 	}
 
 	if ind-1 <= 2 {
-		inexact = fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-				fstar.w[0] > bid_ten2mk128trunc[ind-1].lo)
+		inexact = fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w0 > bid_ten2mk128trunc[ind-1].lo)
 	} else if ind-1 <= 21 {
-		inexact = fstar.w[2] != 0 ||
-			fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-				fstar.w[0] > bid_ten2mk128trunc[ind-1].lo)
+		inexact = fstar.w2 != 0 ||
+			fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w0 > bid_ten2mk128trunc[ind-1].lo)
 	} else {
-		inexact = fstar.w[3] != 0 || fstar.w[2] != 0 ||
-			fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-				fstar.w[0] > bid_ten2mk128trunc[ind-1].lo)
+		inexact = fstar.w3 != 0 || fstar.w2 != 0 ||
+			fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w0 > bid_ten2mk128trunc[ind-1].lo)
 	}
 
 	return Cstar.lo, inexact
@@ -428,19 +428,19 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.hi = P256.w[3]
-		Cstar.lo = P256.w[2]
-		fstar.w[3] = 0
-		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.hi = P256.w3
+		Cstar.lo = P256.w2
+		fstar.w3 = 0
+		fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	} else {
 		Cstar.hi = 0
-		Cstar.lo = P256.w[3]
-		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-		fstar.w[2] = P256.w[2]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.lo = P256.w3
+		fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+		fstar.w2 = P256.w2
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	}
 
 	shift := bid_shiftright128[ind-1]
@@ -453,44 +453,44 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 	// determine inexactness
 	var tmp64A uint64
 	if ind-1 <= 2 {
-		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
-			tmp64 = fstar.w[1] - 0x8000000000000000
+		if fstar.w1 > 0x8000000000000000 || (fstar.w1 == 0x8000000000000000 && fstar.w0 > 0x0) {
+			tmp64 = fstar.w1 - 0x8000000000000000
 			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
 				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
+					fstar.w0 >= bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
 			pfpsf |= BID_INEXACT_EXCEPTION
 		}
 	} else if ind-1 <= 21 {
-		if fstar.w[3] > 0x0 ||
-			(fstar.w[3] == 0x0 && fstar.w[2] > bid_onehalf128[ind-1]) ||
-			(fstar.w[3] == 0x0 && fstar.w[2] == bid_onehalf128[ind-1] &&
-				(fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[2] - bid_onehalf128[ind-1]
-			tmp64A = fstar.w[3]
-			if tmp64 > fstar.w[2] {
+		if fstar.w3 > 0x0 ||
+			(fstar.w3 == 0x0 && fstar.w2 > bid_onehalf128[ind-1]) ||
+			(fstar.w3 == 0x0 && fstar.w2 == bid_onehalf128[ind-1] &&
+				(fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w2 - bid_onehalf128[ind-1]
+			tmp64A = fstar.w3
+			if tmp64 > fstar.w2 {
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
 			pfpsf |= BID_INEXACT_EXCEPTION
 		}
 	} else {
-		if fstar.w[3] > bid_onehalf128[ind-1] ||
-			(fstar.w[3] == bid_onehalf128[ind-1] &&
-				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
-			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+		if fstar.w3 > bid_onehalf128[ind-1] ||
+			(fstar.w3 == bid_onehalf128[ind-1] &&
+				(fstar.w2 != 0 || fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w3 - bid_onehalf128[ind-1]
+			if tmp64 != 0 || fstar.w2 != 0 ||
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
@@ -499,11 +499,11 @@ func bid128_round_xrnint_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfpsf
 	}
 
 	// check for midpoints
-	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
-		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
+	if (fstar.w3 == 0) && (fstar.w2 == 0) &&
+		(fstar.w1 != 0 || fstar.w0 != 0) &&
+		(fstar.w1 < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w0 <= bid_ten2mk128trunc[ind-1].lo)) {
 		if Cstar.lo&0x01 != 0 {
 			Cstar.lo--
 		}
@@ -535,19 +535,19 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.hi = P256.w[3]
-		Cstar.lo = P256.w[2]
-		fstar.w[3] = 0
-		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.hi = P256.w3
+		Cstar.lo = P256.w2
+		fstar.w3 = 0
+		fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	} else {
 		Cstar.hi = 0
-		Cstar.lo = P256.w[3]
-		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-		fstar.w[2] = P256.w[2]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.lo = P256.w3
+		fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+		fstar.w2 = P256.w2
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	}
 
 	shift := bid_shiftright128[ind-1]
@@ -560,44 +560,44 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 	// determine inexactness
 	var tmp64A uint64
 	if ind-1 <= 2 {
-		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
-			tmp64 = fstar.w[1] - 0x8000000000000000
+		if fstar.w1 > 0x8000000000000000 || (fstar.w1 == 0x8000000000000000 && fstar.w0 > 0x0) {
+			tmp64 = fstar.w1 - 0x8000000000000000
 			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
 				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
+					fstar.w0 >= bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
 			is_inexact_gt_midpoint = 1
 		}
 	} else if ind-1 <= 21 {
-		if fstar.w[3] > 0x0 ||
-			(fstar.w[3] == 0x0 && fstar.w[2] > bid_onehalf128[ind-1]) ||
-			(fstar.w[3] == 0x0 && fstar.w[2] == bid_onehalf128[ind-1] &&
-				(fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[2] - bid_onehalf128[ind-1]
-			tmp64A = fstar.w[3]
-			if tmp64 > fstar.w[2] {
+		if fstar.w3 > 0x0 ||
+			(fstar.w3 == 0x0 && fstar.w2 > bid_onehalf128[ind-1]) ||
+			(fstar.w3 == 0x0 && fstar.w2 == bid_onehalf128[ind-1] &&
+				(fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w2 - bid_onehalf128[ind-1]
+			tmp64A = fstar.w3
+			if tmp64 > fstar.w2 {
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
 			is_inexact_gt_midpoint = 1
 		}
 	} else {
-		if fstar.w[3] > bid_onehalf128[ind-1] ||
-			(fstar.w[3] == bid_onehalf128[ind-1] &&
-				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
-			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+		if fstar.w3 > bid_onehalf128[ind-1] ||
+			(fstar.w3 == bid_onehalf128[ind-1] &&
+				(fstar.w2 != 0 || fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w3 - bid_onehalf128[ind-1]
+			if tmp64 != 0 || fstar.w2 != 0 ||
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				is_inexact_lt_midpoint = 1
 			}
 		} else {
@@ -606,11 +606,11 @@ func bid128_round_xfloor_xceil_xint_common(C1 BID_UINT128, ind int, x_sign uint6
 	}
 
 	// check for midpoints
-	if (fstar.w[3] == 0) && (fstar.w[2] == 0) &&
-		(fstar.w[1] != 0 || fstar.w[0] != 0) &&
-		(fstar.w[1] < bid_ten2mk128trunc[ind-1].hi ||
-			(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-				fstar.w[0] <= bid_ten2mk128trunc[ind-1].lo)) {
+	if (fstar.w3 == 0) && (fstar.w2 == 0) &&
+		(fstar.w1 != 0 || fstar.w0 != 0) &&
+		(fstar.w1 < bid_ten2mk128trunc[ind-1].hi ||
+			(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+				fstar.w0 <= bid_ten2mk128trunc[ind-1].lo)) {
 		if Cstar.lo&0x01 != 0 {
 			Cstar.lo--
 			is_midpoint_gt_even = 1
@@ -666,11 +666,11 @@ func bid128_round_rninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64) {
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.hi = P256.w[3]
-		Cstar.lo = P256.w[2]
+		Cstar.hi = P256.w3
+		Cstar.lo = P256.w2
 	} else {
 		Cstar.hi = 0
-		Cstar.lo = P256.w[3]
+		Cstar.lo = P256.w3
 	}
 
 	shift := bid_shiftright128[ind-1]
@@ -701,19 +701,19 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 	}
 	P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 	if ind-1 <= 21 {
-		Cstar.hi = P256.w[3]
-		Cstar.lo = P256.w[2]
-		fstar.w[3] = 0
-		fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.hi = P256.w3
+		Cstar.lo = P256.w2
+		fstar.w3 = 0
+		fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	} else {
 		Cstar.hi = 0
-		Cstar.lo = P256.w[3]
-		fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-		fstar.w[2] = P256.w[2]
-		fstar.w[1] = P256.w[1]
-		fstar.w[0] = P256.w[0]
+		Cstar.lo = P256.w3
+		fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+		fstar.w2 = P256.w2
+		fstar.w1 = P256.w1
+		fstar.w0 = P256.w0
 	}
 
 	shift := bid_shiftright128[ind-1]
@@ -726,44 +726,44 @@ func bid128_round_xrninta_common(C1 BID_UINT128, ind int) (Cstar_w0 uint64, pfps
 	// determine inexactness for xrninta
 	var tmp64A uint64
 	if ind-1 <= 2 {
-		if fstar.w[1] > 0x8000000000000000 || (fstar.w[1] == 0x8000000000000000 && fstar.w[0] > 0x0) {
-			tmp64 = fstar.w[1] - 0x8000000000000000
+		if fstar.w1 > 0x8000000000000000 || (fstar.w1 == 0x8000000000000000 && fstar.w0 > 0x0) {
+			tmp64 = fstar.w1 - 0x8000000000000000
 			if tmp64 > bid_ten2mk128trunc[ind-1].hi ||
 				(tmp64 == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] >= bid_ten2mk128trunc[ind-1].lo) {
+					fstar.w0 >= bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
 			pfpsf |= BID_INEXACT_EXCEPTION
 		}
 	} else if ind-1 <= 21 {
-		if fstar.w[3] > 0x0 ||
-			(fstar.w[3] == 0x0 && fstar.w[2] > bid_onehalf128[ind-1]) ||
-			(fstar.w[3] == 0x0 && fstar.w[2] == bid_onehalf128[ind-1] &&
-				(fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[2] - bid_onehalf128[ind-1]
-			tmp64A = fstar.w[3]
-			if tmp64 > fstar.w[2] {
+		if fstar.w3 > 0x0 ||
+			(fstar.w3 == 0x0 && fstar.w2 > bid_onehalf128[ind-1]) ||
+			(fstar.w3 == 0x0 && fstar.w2 == bid_onehalf128[ind-1] &&
+				(fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w2 - bid_onehalf128[ind-1]
+			tmp64A = fstar.w3
+			if tmp64 > fstar.w2 {
 				tmp64A--
 			}
 			if tmp64A != 0 || tmp64 != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {
 			pfpsf |= BID_INEXACT_EXCEPTION
 		}
 	} else {
-		if fstar.w[3] > bid_onehalf128[ind-1] ||
-			(fstar.w[3] == bid_onehalf128[ind-1] &&
-				(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
-			tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
-			if tmp64 != 0 || fstar.w[2] != 0 ||
-				fstar.w[1] > bid_ten2mk128trunc[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128trunc[ind-1].hi &&
-					fstar.w[0] > bid_ten2mk128trunc[ind-1].lo) {
+		if fstar.w3 > bid_onehalf128[ind-1] ||
+			(fstar.w3 == bid_onehalf128[ind-1] &&
+				(fstar.w2 != 0 || fstar.w1 != 0 || fstar.w0 != 0)) {
+			tmp64 = fstar.w3 - bid_onehalf128[ind-1]
+			if tmp64 != 0 || fstar.w2 != 0 ||
+				fstar.w1 > bid_ten2mk128trunc[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128trunc[ind-1].hi &&
+					fstar.w0 > bid_ten2mk128trunc[ind-1].lo) {
 				pfpsf |= BID_INEXACT_EXCEPTION
 			}
 		} else {

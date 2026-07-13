@@ -237,7 +237,7 @@ pub(crate) fn bid128_ext_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_
     let mut e2: i64 = 0;
     let mut e3: i64 = 0;
     let mut e4: i64 = 0;
-    let mut C4: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut C4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut scale: i64 = 0;
     let mut ind: i64 = 0;
     if ((C1.hi != 0) || (C1.lo != 0)) {
@@ -281,22 +281,22 @@ pub(crate) fn bid128_ext_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_
     e2 = (((go_checked_shr_u64(y_exp, go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
     e3 = (((go_checked_shr_u64(z_exp, go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
     e4 = (e1.wrapping_add(e2));
-    C4.w[3] = 0;
-    C4.w[2] = 0;
-    C4.w[1] = 0;
-    C4.w[0] = 0;
+    C4.w3 = 0;
+    C4.w2 = 0;
+    C4.w1 = 0;
+    C4.w0 = 0;
     if ((q1.wrapping_add(q2)) <= 19) {
-        C4.w[0] = (C1.lo.wrapping_mul(C2.lo));
-        if (C4.w[0] < bid_ten2k64[((q1.wrapping_add(q2)).wrapping_sub(1)) as usize]) {
+        C4.w0 = (C1.lo.wrapping_mul(C2.lo));
+        if (C4.w0 < bid_ten2k64[((q1.wrapping_add(q2)).wrapping_sub(1)) as usize]) {
             q4 = ((q1.wrapping_add(q2)).wrapping_sub(1));
         } else {
             q4 = (q1.wrapping_add(q2));
         }
     } else if ((q1.wrapping_add(q2)) == 20) {
         let mut tmp128 = __mul_64x64_to_128(C1.lo, C2.lo);
-        C4.w[0] = tmp128.lo;
-        C4.w[1] = tmp128.hi;
-        if ((C4.w[1] == 0) && (C4.w[0] < bid_ten2k64[19])) {
+        C4.w0 = tmp128.lo;
+        C4.w1 = tmp128.hi;
+        if ((C4.w1 == 0) && (C4.w0 < bid_ten2k64[19])) {
             q4 = 19;
         } else {
             q4 = 20;
@@ -308,37 +308,37 @@ pub(crate) fn bid128_ext_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_
         } else {
             (_, tmp128) = __mul_64x128_full(C2.lo, C1);
         }
-        C4.w[0] = tmp128.lo;
-        C4.w[1] = tmp128.hi;
-        if ((C4.w[1] < bid_ten2k128[((q1.wrapping_add(q2)).wrapping_sub(21)) as usize].hi) || (((C4.w[1] == bid_ten2k128[((q1.wrapping_add(q2)).wrapping_sub(21)) as usize].hi) && (C4.w[0] < bid_ten2k128[((q1.wrapping_add(q2)).wrapping_sub(21)) as usize].lo)))) {
+        C4.w0 = tmp128.lo;
+        C4.w1 = tmp128.hi;
+        if ((C4.w1 < bid_ten2k128[((q1.wrapping_add(q2)).wrapping_sub(21)) as usize].hi) || (((C4.w1 == bid_ten2k128[((q1.wrapping_add(q2)).wrapping_sub(21)) as usize].hi) && (C4.w0 < bid_ten2k128[((q1.wrapping_add(q2)).wrapping_sub(21)) as usize].lo)))) {
             q4 = ((q1.wrapping_add(q2)).wrapping_sub(1));
         } else {
             q4 = (q1.wrapping_add(q2));
         }
     } else if ((q1.wrapping_add(q2)) == 39) {
         C4 = __mul_128x128_to_256(C1, C2);
-        if ((C4.w[2] == 0) && (((C4.w[1] < bid_ten2k128[18].hi) || (((C4.w[1] == bid_ten2k128[18].hi) && (C4.w[0] < bid_ten2k128[18].lo)))))) {
+        if ((C4.w2 == 0) && (((C4.w1 < bid_ten2k128[18].hi) || (((C4.w1 == bid_ten2k128[18].hi) && (C4.w0 < bid_ten2k128[18].lo)))))) {
             q4 = 38;
         } else {
             q4 = 39;
         }
     } else if ((q1.wrapping_add(q2)) <= 57) {
         C4 = __mul_128x128_to_256(C1, C2);
-        if ((C4.w[2] < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[2]) || (((C4.w[2] == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[2]) && (((C4.w[1] < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[1]) || (((C4.w[1] == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[1]) && (C4.w[0] < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[0])))))))) {
+        if ((C4.w2 < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w2) || (((C4.w2 == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w2) && (((C4.w1 < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w1) || (((C4.w1 == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w1) && (C4.w0 < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w0)))))))) {
             q4 = ((q1.wrapping_add(q2)).wrapping_sub(1));
         } else {
             q4 = (q1.wrapping_add(q2));
         }
     } else if ((q1.wrapping_add(q2)) == 58) {
         C4 = __mul_128x128_to_256(C1, C2);
-        if ((C4.w[3] == 0) && (((C4.w[2] < bid_ten2k256[18].w[2]) || (((C4.w[2] == bid_ten2k256[18].w[2]) && (((C4.w[1] < bid_ten2k256[18].w[1]) || (((C4.w[1] == bid_ten2k256[18].w[1]) && (C4.w[0] < bid_ten2k256[18].w[0])))))))))) {
+        if ((C4.w3 == 0) && (((C4.w2 < bid_ten2k256[18].w2) || (((C4.w2 == bid_ten2k256[18].w2) && (((C4.w1 < bid_ten2k256[18].w1) || (((C4.w1 == bid_ten2k256[18].w1) && (C4.w0 < bid_ten2k256[18].w0)))))))))) {
             q4 = 57;
         } else {
             q4 = 58;
         }
     } else {
         C4 = __mul_128x128_to_256(C1, C2);
-        if ((C4.w[3] < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[3]) || (((C4.w[3] == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[3]) && (((C4.w[2] < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[2]) || (((C4.w[2] == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[2]) && (((C4.w[1] < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[1]) || (((C4.w[1] == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[1]) && (C4.w[0] < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w[0])))))))))))) {
+        if ((C4.w3 < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w3) || (((C4.w3 == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w3) && (((C4.w2 < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w2) || (((C4.w2 == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w2) && (((C4.w1 < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w1) || (((C4.w1 == bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w1) && (C4.w0 < bid_ten2k256[((q1.wrapping_add(q2)).wrapping_sub(40)) as usize].w0)))))))))))) {
             q4 = ((q1.wrapping_add(q2)).wrapping_sub(1));
         } else {
             q4 = (q1.wrapping_add(q2));
@@ -355,9 +355,9 @@ pub(crate) fn bid128_ext_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_
     let mut is_tiny: i64 = 0;
     let mut R64: u64 = 0;
     let mut P128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
-    let mut P192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R192: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
-    let mut R256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R192: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
+    let mut R256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut x0: i64 = 0;
     let mut p34: i64 = 34;
     if ((C3.hi == 0x0) && (C3.lo == 0x0)) {
@@ -366,20 +366,20 @@ pub(crate) fn bid128_ext_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_
         if (q4 > p34) {
             x0 = (q4.wrapping_sub(p34));
             if (q4 <= 38) {
-                P128.hi = C4.w[1];
-                P128.lo = C4.w[0];
+                P128.hi = C4.w1;
+                P128.lo = C4.w0;
                 (res, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38(q4, x0, P128);
             } else if (q4 <= 57) {
-                P192.w[2] = C4.w[2];
-                P192.w[1] = C4.w[1];
-                P192.w[0] = C4.w[0];
+                P192.w2 = C4.w2;
+                P192.w1 = C4.w1;
+                P192.w0 = C4.w0;
                 (R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round192_39_57(q4, x0, P192);
-                res.lo = R192.w[0];
-                res.hi = R192.w[1];
+                res.lo = R192.w0;
+                res.hi = R192.w1;
             } else {
                 (R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round256_58_76(q4, x0, C4);
-                res.lo = R256.w[0];
-                res.hi = R256.w[1];
+                res.lo = R256.w0;
+                res.hi = R256.w1;
             }
             e4 = (e4.wrapping_add(x0));
             q4 = p34;
@@ -394,18 +394,18 @@ pub(crate) fn bid128_ext_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_
                 scale = (e4.wrapping_sub(0x17df));
                 if (q4 <= 19) {
                     if (scale <= 19) {
-                        res = __mul_64x64_to_128(C4.w[0], bid_ten2k64[scale as usize]);
+                        res = __mul_64x64_to_128(C4.w0, bid_ten2k64[scale as usize]);
                     } else {
-                        res = __mul_64x128_to_128(C4.w[0], bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
+                        res = __mul_64x128_to_128(C4.w0, bid_ten2k128[(scale.wrapping_sub(20)) as usize]);
                     }
                 } else {
-                    res = __mul_64x128_to_128(bid_ten2k64[scale as usize], BID_UINT128 { lo: C4.w[0], hi: C4.w[1], ..Default::default() });
+                    res = __mul_64x128_to_128(bid_ten2k64[scale as usize], BID_UINT128 { lo: C4.w0, hi: C4.w1, ..Default::default() });
                 }
                 e4 = (e4.wrapping_sub(scale));
                 q4 = (q4.wrapping_add(scale));
             } else {
-                res.hi = C4.w[1];
-                res.lo = C4.w[0];
+                res.hi = C4.w1;
+                res.lo = C4.w0;
             }
         }
         if ((q4.wrapping_add(e4)) > (p34.wrapping_add(0x17df))) {

@@ -296,10 +296,10 @@ func bid___div_256_by_128(pCQ *BID_UINT128, pCA4 *BID_UINT256, CY BID_UINT128) {
 	// as needed by BID128 divide routines
 
 	// initial dividend
-	CA4.w[3] = pCA4.w[3]
-	CA4.w[2] = pCA4.w[2]
-	CA4.w[1] = pCA4.w[1]
-	CA4.w[0] = pCA4.w[0]
+	CA4.w3 = pCA4.w3
+	CA4.w2 = pCA4.w2
+	CA4.w1 = pCA4.w1
+	CA4.w0 = pCA4.w0
 	CQ.hi = pCQ.hi
 	CQ.lo = pCQ.lo
 
@@ -307,9 +307,9 @@ func bid___div_256_by_128(pCQ *BID_UINT128, pCA4 *BID_UINT256, CY BID_UINT128) {
 	t64 := math.Float64frombits(0x43f0000000000000)
 	d128 := t64 * t64
 	d192 := d128 * t64
-	lx := noFmaMulAddF64(float64(CA4.w[3]), d192,
-		noFmaMulAddF64(float64(CA4.w[2]), d128,
-			noFmaMulAddF64(float64(CA4.w[1]), t64, float64(CA4.w[0]))))
+	lx := noFmaMulAddF64(float64(CA4.w3), d192,
+		noFmaMulAddF64(float64(CA4.w2), d128,
+			noFmaMulAddF64(float64(CA4.w1), t64, float64(CA4.w0))))
 	ly := noFmaMulAddF64(float64(CY.hi), t64, float64(CY.lo))
 	lq := lx / ly
 
@@ -319,10 +319,10 @@ func bid___div_256_by_128(pCQ *BID_UINT128, pCA4 *BID_UINT256, CY BID_UINT128) {
 	CY36_0 = CY.lo << 36
 
 	// Q >= 2^100 ?
-	if CA4.w[3] > CY36_2 ||
-		(CA4.w[3] == CY36_2 &&
-			(CA4.w[2] > CY36_1 ||
-				(CA4.w[2] == CY36_1 && CA4.w[1] >= CY36_0))) {
+	if CA4.w3 > CY36_2 ||
+		(CA4.w3 == CY36_2 &&
+			(CA4.w2 > CY36_1 ||
+				(CA4.w2 == CY36_1 && CA4.w1 >= CY36_0))) {
 		// 2^(-60)*CA4/CY
 		d60 := math.Float64frombits(0x3c30000000000000)
 		lq *= d60
@@ -332,17 +332,17 @@ func bid___div_256_by_128(pCQ *BID_UINT128, pCA4 *BID_UINT256, CY BID_UINT128) {
 		tmp192 := __mul_64x128_to_192(Q, CY)
 
 		// CA2 <<= 60
-		CA2[2] = (tmp192.w[2] << 60) | (tmp192.w[1] >> (64 - 60))
-		CA2[1] = (tmp192.w[1] << 60) | (tmp192.w[0] >> (64 - 60))
-		CA2[0] = tmp192.w[0] << 60
+		CA2[2] = (tmp192.w2 << 60) | (tmp192.w1 >> (64 - 60))
+		CA2[1] = (tmp192.w1 << 60) | (tmp192.w0 >> (64 - 60))
+		CA2[0] = tmp192.w0 << 60
 
 		// CA4 -= CA2
-		CA4.w[0], carry64 = __sub_borrow_out(CA4.w[0], CA2[0])
-		CA4.w[1], carry64 = __sub_borrow_in_out(CA4.w[1], CA2[1], carry64)
-		CA4.w[2] = CA4.w[2] - CA2[2] - carry64
+		CA4.w0, carry64 = __sub_borrow_out(CA4.w0, CA2[0])
+		CA4.w1, carry64 = __sub_borrow_in_out(CA4.w1, CA2[1], carry64)
+		CA4.w2 = CA4.w2 - CA2[2] - carry64
 
-		lx = noFmaMulAddF64(float64(CA4.w[2]), d128,
-			noFmaMulAddF64(float64(CA4.w[1]), t64, float64(CA4.w[0])))
+		lx = noFmaMulAddF64(float64(CA4.w2), d128,
+			noFmaMulAddF64(float64(CA4.w1), t64, float64(CA4.w0)))
 		lq = lx / ly
 
 		CQT.hi = Q >> (64 - 60)
@@ -356,10 +356,10 @@ func bid___div_256_by_128(pCQ *BID_UINT128, pCA4 *BID_UINT256, CY BID_UINT128) {
 	CY51_0 = CY.lo << 51
 
 	// compare CA4 with CY51 (as 192-bit values)
-	ca4_128 := BID_UINT128{lo: CA4.w[0], hi: CA4.w[1]}
+	ca4_128 := BID_UINT128{lo: CA4.w0, hi: CA4.w1}
 	cy51_128 := BID_UINT128{lo: CY51_0, hi: CY51_1}
 
-	if CA4.w[2] > CY51_2 || ((CA4.w[2] == CY51_2) &&
+	if CA4.w2 > CY51_2 || ((CA4.w2 == CY51_2) &&
 		__unsigned_compare_gt_128(ca4_128, cy51_128)) {
 		// Q > 2^51
 
@@ -382,16 +382,16 @@ func bid___div_256_by_128(pCQ *BID_UINT128, pCA4 *BID_UINT256, CY BID_UINT128) {
 		CA2[1] = (A2.hi << 49) | (A2.lo >> (64 - 49))
 		CA2[0] = A2.lo << 49
 
-		CA4.w[0], carry64 = __sub_borrow_out(CA4.w[0], CA2[0])
-		CA4.w[1], carry64 = __sub_borrow_in_out(CA4.w[1], CA2[1], carry64)
-		CA4.w[2] = CA4.w[2] - CA2[2] - carry64
+		CA4.w0, carry64 = __sub_borrow_out(CA4.w0, CA2[0])
+		CA4.w1, carry64 = __sub_borrow_in_out(CA4.w1, CA2[1], carry64)
+		CA4.w2 = CA4.w2 - CA2[2] - carry64
 
 		CQT.hi = Q >> (64 - 49)
 		CQT.lo = Q << 49
 		CQ = __add_128_128(CQ, CQT)
 
-		lx = noFmaMulAddF64(float64(CA4.w[2]), d128,
-			noFmaMulAddF64(float64(CA4.w[1]), t64, float64(CA4.w[0])))
+		lx = noFmaMulAddF64(float64(CA4.w2), d128,
+			noFmaMulAddF64(float64(CA4.w1), t64, float64(CA4.w0)))
 		lq = lx / ly
 	}
 
@@ -400,40 +400,40 @@ func bid___div_256_by_128(pCQ *BID_UINT128, pCA4 *BID_UINT256, CY BID_UINT128) {
 	A2.hi += Q * CY.hi
 
 	// __sub_128_128(CA4, CA4, A2) - using CA4.w[0:1] as 128-bit
-	tmpCA := BID_UINT128{lo: CA4.w[0], hi: CA4.w[1]}
+	tmpCA := BID_UINT128{lo: CA4.w0, hi: CA4.w1}
 	tmpCA = __sub_128_128(tmpCA, A2)
-	CA4.w[0] = tmpCA.lo
-	CA4.w[1] = tmpCA.hi
+	CA4.w0 = tmpCA.lo
+	CA4.w1 = tmpCA.hi
 
-	if int64(CA4.w[1]) < 0 {
+	if int64(CA4.w1) < 0 {
 		Q--
-		CA4.w[0] += CY.lo
-		if CA4.w[0] < CY.lo {
-			CA4.w[1]++
+		CA4.w0 += CY.lo
+		if CA4.w0 < CY.lo {
+			CA4.w1++
 		}
-		CA4.w[1] += CY.hi
-		if int64(CA4.w[1]) < 0 {
+		CA4.w1 += CY.hi
+		if int64(CA4.w1) < 0 {
 			Q--
-			CA4.w[0] += CY.lo
-			if CA4.w[0] < CY.lo {
-				CA4.w[1]++
+			CA4.w0 += CY.lo
+			if CA4.w0 < CY.lo {
+				CA4.w1++
 			}
-			CA4.w[1] += CY.hi
+			CA4.w1 += CY.hi
 		}
-	} else if CA4.w[1] > CY.hi || (CA4.w[1] == CY.hi && CA4.w[0] >= CY.lo) {
+	} else if CA4.w1 > CY.hi || (CA4.w1 == CY.hi && CA4.w0 >= CY.lo) {
 		Q++
-		tmpCA2 := BID_UINT128{lo: CA4.w[0], hi: CA4.w[1]}
+		tmpCA2 := BID_UINT128{lo: CA4.w0, hi: CA4.w1}
 		tmpCA2 = __sub_128_128(tmpCA2, CY)
-		CA4.w[0] = tmpCA2.lo
-		CA4.w[1] = tmpCA2.hi
+		CA4.w0 = tmpCA2.lo
+		CA4.w1 = tmpCA2.hi
 	}
 
 	CQ = __add_128_64(CQ, Q)
 
 	pCQ.hi = CQ.hi
 	pCQ.lo = CQ.lo
-	pCA4.w[1] = CA4.w[1]
-	pCA4.w[0] = CA4.w[0]
+	pCA4.w1 = CA4.w1
+	pCA4.w0 = CA4.w0
 }
 
 // handle_UF_128 handles BID128 underflow (without remainder).
@@ -919,7 +919,7 @@ func Bid128Div(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 	bid___div_256_by_128(&CQ, &CA4, CY)
 
-	if CA4.w[0] != 0 || CA4.w[1] != 0 {
+	if CA4.w0 != 0 || CA4.w1 != 0 {
 		// set status flags
 		pfpsf |= BID_INEXACT_EXCEPTION
 	} else {
@@ -950,7 +950,7 @@ func Bid128Div(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			T128.hi = 0x000b877aa3236a4b
 			P256 = __mul_128x128_to_256(CQ, T128)
 			//amount = bid_recip_scale[17];
-			Q_high = (P256.w[2] >> 44) | (P256.w[3] << (64 - 44))
+			Q_high = (P256.w2 >> 44) | (P256.w3 << (64 - 44))
 			Q_low = CQ.lo - Q_high*100000000000000000
 
 			if Q_low == 0 {
@@ -1092,16 +1092,16 @@ func Bid128Div(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 		case BID_ROUNDING_TO_NEAREST: // round to nearest code
 			// rounding
 			// 2*CA4 - CY
-			CA4r.w[1] = (CA4.w[1] + CA4.w[1]) | (CA4.w[0] >> 63)
-			CA4r.w[0] = CA4.w[0] + CA4.w[0]
-			CA4r.w[0], carry64 = __sub_borrow_out(CA4r.w[0], CY.lo)
-			CA4r.w[1] = CA4r.w[1] - CY.hi - carry64
-			if (CA4r.w[1] | CA4r.w[0]) != 0 {
+			CA4r.w1 = (CA4.w1 + CA4.w1) | (CA4.w0 >> 63)
+			CA4r.w0 = CA4.w0 + CA4.w0
+			CA4r.w0, carry64 = __sub_borrow_out(CA4r.w0, CY.lo)
+			CA4r.w1 = CA4r.w1 - CY.hi - carry64
+			if (CA4r.w1 | CA4r.w0) != 0 {
 				D = 1
 			} else {
 				D = 0
 			}
-			carry64 = uint64(1+int64(CA4r.w[1])>>63) & ((CQ.lo) | D)
+			carry64 = uint64(1+int64(CA4r.w1)>>63) & ((CQ.lo) | D)
 			CQ.lo += carry64
 			if CQ.lo < carry64 {
 				CQ.hi++
@@ -1109,16 +1109,16 @@ func Bid128Div(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 		case BID_ROUNDING_TIES_AWAY:
 			// rounding
 			// 2*CA4 - CY
-			CA4r.w[1] = (CA4.w[1] + CA4.w[1]) | (CA4.w[0] >> 63)
-			CA4r.w[0] = CA4.w[0] + CA4.w[0]
-			CA4r.w[0], carry64 = __sub_borrow_out(CA4r.w[0], CY.lo)
-			CA4r.w[1] = CA4r.w[1] - CY.hi - carry64
-			if (CA4r.w[1] | CA4r.w[0]) != 0 {
+			CA4r.w1 = (CA4.w1 + CA4.w1) | (CA4.w0 >> 63)
+			CA4r.w0 = CA4.w0 + CA4.w0
+			CA4r.w0, carry64 = __sub_borrow_out(CA4r.w0, CY.lo)
+			CA4r.w1 = CA4r.w1 - CY.hi - carry64
+			if (CA4r.w1 | CA4r.w0) != 0 {
 				D = 0
 			} else {
 				D = 1
 			}
-			carry64 = uint64(1+int64(CA4r.w[1])>>63) | D
+			carry64 = uint64(1+int64(CA4r.w1)>>63) | D
 			CQ.lo += carry64
 			if CQ.lo < carry64 {
 				CQ.hi++
@@ -1133,13 +1133,13 @@ func Bid128Div(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 		}
 
 	} else {
-		if CA4.w[0] != 0 || CA4.w[1] != 0 {
+		if CA4.w0 != 0 || CA4.w1 != 0 {
 			// set status flags
 			pfpsf |= BID_INEXACT_EXCEPTION
 		}
 
 		res = bid_handle_UF_128_rem(sign_x^sign_y, diff_expon, CQ,
-			CA4.w[1]|CA4.w[0], rnd_mode, &pfpsf)
+			CA4.w1|CA4.w0, rnd_mode, &pfpsf)
 		return res, pfpsf
 	}
 

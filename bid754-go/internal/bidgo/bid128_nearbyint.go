@@ -166,39 +166,39 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 
 			if ind-1 <= 2 {
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
+				res.hi = P256.w3
+				res.lo = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
 				if (res.lo&0x0000000000000001 != 0) &&
-					((fstar.w[1] < bid_ten2mk128[ind-1].hi) ||
-						(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					((fstar.w1 < bid_ten2mk128[ind-1].hi) ||
+						(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+							fstar.w0 < bid_ten2mk128[ind-1].lo)) {
 					res.lo--
 				}
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.hi = P256.w[3] >> uint(shift)
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
+				res.hi = P256.w3 >> uint(shift)
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
 				if (res.lo&0x0000000000000001 != 0) &&
-					fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					fstar.w2 == 0 && (fstar.w1 < bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi && fstar.w0 < bid_ten2mk128[ind-1].lo)) {
 					res.lo--
 				}
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
 				if (res.lo&0x0000000000000001 != 0) &&
-					fstar.w[3] == 0 && fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					fstar.w3 == 0 && fstar.w2 == 0 && (fstar.w1 < bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi && fstar.w0 < bid_ten2mk128[ind-1].lo)) {
 					res.lo--
 				}
 			}
@@ -226,16 +226,16 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 
 			if ind-1 <= 2 {
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
+				res.hi = P256.w3
+				res.lo = P256.w2
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.hi = P256.w[3] >> uint(shift)
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+				res.hi = P256.w3 >> uint(shift)
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
+				res.lo = P256.w3 >> uint(shift)
 			}
 			res.hi |= x_sign | 0x3040000000000000
 			return res, pfpsf
@@ -250,10 +250,10 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			ind = -exp
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 {
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].hi && P256.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.hi = P256.w3
+				res.lo = P256.w2
+				if (P256.w1 > bid_ten2mk128[ind-1].hi) ||
+					(P256.w1 == bid_ten2mk128[ind-1].hi && P256.w0 >= bid_ten2mk128[ind-1].lo) {
 					if x_sign != 0 {
 						res.lo++
 						if res.lo == 0 {
@@ -263,13 +263,13 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 				}
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.hi = P256.w[3] >> uint(shift)
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.hi = P256.w3 >> uint(shift)
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi && fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					if x_sign != 0 {
 						res.lo++
 						if res.lo == 0 {
@@ -280,14 +280,14 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 != 0 || fstar.w2 != 0 ||
+					fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi && fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					if x_sign != 0 {
 						res.lo++
 						if res.lo == 0 {
@@ -314,10 +314,10 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			ind = -exp
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 {
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].hi && P256.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.hi = P256.w3
+				res.lo = P256.w2
+				if (P256.w1 > bid_ten2mk128[ind-1].hi) ||
+					(P256.w1 == bid_ten2mk128[ind-1].hi && P256.w0 >= bid_ten2mk128[ind-1].lo) {
 					if x_sign == 0 {
 						res.lo++
 						if res.lo == 0 {
@@ -327,13 +327,13 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 				}
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.hi = P256.w[3] >> uint(shift)
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.hi = P256.w3 >> uint(shift)
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi && fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					if x_sign == 0 {
 						res.lo++
 						if res.lo == 0 {
@@ -344,14 +344,14 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi && fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 != 0 || fstar.w2 != 0 ||
+					fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi && fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					if x_sign == 0 {
 						res.lo++
 						if res.lo == 0 {
@@ -378,16 +378,16 @@ func Bid128Nearbyint(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			ind = -exp
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 {
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
+				res.hi = P256.w3
+				res.lo = P256.w2
 			} else if ind-1 <= 21 {
 				shift = bid_shiftright128[ind-1]
-				res.hi = P256.w[3] >> uint(shift)
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+				res.hi = P256.w3 >> uint(shift)
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
 			} else {
 				shift = bid_shiftright128[ind-1] - 64
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
+				res.lo = P256.w3 >> uint(shift)
 			}
 			res.hi = x_sign | 0x3040000000000000 | res.hi
 			return res, pfpsf

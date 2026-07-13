@@ -11,31 +11,52 @@ pub struct BID_UINT128 {
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct BID_UINT192 {
-    pub w: [u64; 3],
+    pub w0: u64,
+    pub w1: u64,
+    pub w2: u64,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct BID_UINT256 {
-    pub w: [u64; 4],
+    pub w0: u64,
+    pub w1: u64,
+    pub w2: u64,
+    pub w3: u64,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct BID_UINT320 {
-    pub w: [u64; 5],
+    pub w0: u64,
+    pub w1: u64,
+    pub w2: u64,
+    pub w3: u64,
+    pub w4: u64,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct BID_UINT384 {
-    pub w: [u64; 6],
+    pub w0: u64,
+    pub w1: u64,
+    pub w2: u64,
+    pub w3: u64,
+    pub w4: u64,
+    pub w5: u64,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 #[repr(C)]
 pub struct BID_UINT512 {
-    pub w: [u64; 8],
+    pub w0: u64,
+    pub w1: u64,
+    pub w2: u64,
+    pub w3: u64,
+    pub w4: u64,
+    pub w5: u64,
+    pub w6: u64,
+    pub w7: u64,
 }
 
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]

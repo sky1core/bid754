@@ -29,7 +29,7 @@
 use super::prelude::*;
 
 pub fn bid128_rem(mut x: BID_UINT128, mut y: BID_UINT128) -> (BID_UINT128, u32) {
-    let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CY: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CX2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -117,23 +117,23 @@ pub fn bid128_rem(mut x: BID_UINT128, mut y: BID_UINT128) -> (BID_UINT128, u32) 
         }
         T = bid_power10_table_128[diff_expon as usize];
         P256 = __mul_128x128_to_256(CY, T);
-        if ((P256.w[2] != 0) || (P256.w[3] != 0)) {
+        if ((P256.w2 != 0) || (P256.w3 != 0)) {
             res = x;
             return (res, pfpsf);
         }
         CX2.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((63) as u64)))));
         CX2.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((1) as u64)));
-        let mut P256_128 = BID_UINT128 { lo: P256.w[0], hi: P256.w[1], ..Default::default() };
+        let mut P256_128 = BID_UINT128 { lo: P256.w0, hi: P256.w1, ..Default::default() };
         if __unsigned_compare_ge_128(P256_128, CX2) {
             res = x;
             return (res, pfpsf);
         }
-        P128.lo = P256.w[0];
-        P128.hi = P256.w[1];
+        P128.lo = P256.w0;
+        P128.hi = P256.w1;
         (CQ, CR) = bid___div_128_by_128(CX, P128);
         CX2.hi = (((go_checked_shl_u64(CR.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CR.lo, go_shift_count_u64((63) as u64)))));
         CX2.lo = (go_checked_shl_u64(CR.lo, go_shift_count_u64((1) as u64)));
-        if (__unsigned_compare_gt_128(CX2, P256_128) || ((((CX2.hi == P256.w[1]) && (CX2.lo == P256.w[0])) && ((CQ.lo & 1) != 0)))) {
+        if (__unsigned_compare_gt_128(CX2, P256_128) || ((((CX2.hi == P256.w1) && (CX2.lo == P256.w0)) && ((CQ.lo & 1) != 0)))) {
             CR = __sub_128_128(P256_128, CR);
             sign_x ^= 0x8000000000000000;
         }
@@ -179,7 +179,7 @@ pub fn bid128_rem(mut x: BID_UINT128, mut y: BID_UINT128) -> (BID_UINT128, u32) 
 }
 
 pub fn bid128_fmod(mut x: BID_UINT128, mut y: BID_UINT128) -> (BID_UINT128, u32) {
-    let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CY: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CQ: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -266,16 +266,16 @@ pub fn bid128_fmod(mut x: BID_UINT128, mut y: BID_UINT128) -> (BID_UINT128, u32)
         }
         T = bid_power10_table_128[diff_expon as usize];
         P256 = __mul_128x128_to_256(CY, T);
-        if ((P256.w[2] != 0) || (P256.w[3] != 0)) {
+        if ((P256.w2 != 0) || (P256.w3 != 0)) {
             res = x;
             return (res, pfpsf);
         }
-        if __unsigned_compare_gt_128(BID_UINT128 { lo: P256.w[0], hi: P256.w[1], ..Default::default() }, CX) {
+        if __unsigned_compare_gt_128(BID_UINT128 { lo: P256.w0, hi: P256.w1, ..Default::default() }, CX) {
             res = x;
             return (res, pfpsf);
         }
-        P128.lo = P256.w[0];
-        P128.hi = P256.w[1];
+        P128.lo = P256.w0;
+        P128.hi = P256.w1;
         (_, CR) = bid___div_128_by_128(CX, P128);
         res = very_fast_get_bid128(sign_x, exponent_x, CR);
         return (res, pfpsf);

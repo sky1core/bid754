@@ -82,12 +82,12 @@ func __mul_128x256_to_384(A BID_UINT128, B BID_UINT256) BID_UINT384 {
 
 	P0 := __mul_64x256_to_320(A.lo, B)
 	P1 := __mul_64x256_to_320(A.hi, B)
-	P.w[0] = P0.w[0]
-	P.w[1], CY = __add_carry_out(P1.w[0], P0.w[1])
-	P.w[2], CY = __add_carry_in_out(P1.w[1], P0.w[2], CY)
-	P.w[3], CY = __add_carry_in_out(P1.w[2], P0.w[3], CY)
-	P.w[4], CY = __add_carry_in_out(P1.w[3], P0.w[4], CY)
-	P.w[5] = P1.w[4] + CY
+	P.w0 = P0.w0
+	P.w1, CY = __add_carry_out(P1.w0, P0.w1)
+	P.w2, CY = __add_carry_in_out(P1.w1, P0.w2, CY)
+	P.w3, CY = __add_carry_in_out(P1.w2, P0.w3, CY)
+	P.w4, CY = __add_carry_in_out(P1.w3, P0.w4, CY)
+	P.w5 = P1.w4 + CY
 	return P
 }
 
@@ -221,9 +221,9 @@ func Bid128ToBinary32(x BID_UINT128, rnd_mode int, pfpsf *uint32) float32 {
 			d = 26
 		}
 		e_out = 1
-		z.w[5], z.w[4], z.w[3], z.w[2] = srl256_short(z.w[5], z.w[4], z.w[3], z.w[2], uint(d))
+		z.w5, z.w4, z.w3, z.w2 = srl256_short(z.w5, z.w4, z.w3, z.w2, uint(d))
 	}
-	c_prov = z.w[5]
+	c_prov = z.w5
 
 	// Round using round-sticky words
 	// If we spill into the next binade, correct
@@ -232,15 +232,15 @@ func Bid128ToBinary32(x BID_UINT128, rnd_mode int, pfpsf *uint32) float32 {
 	if lt128(
 		bid_roundbound_128[rbIdx].hi,
 		bid_roundbound_128[rbIdx].lo,
-		z.w[4], z.w[3]) {
+		z.w4, z.w3) {
 		c_prov = c_prov + 1
 		if c_prov == (1 << 24) {
 			c_prov = 1 << 23
 			e_out = e_out + 1
 		} else if (c_prov == (1 << 23)) && (e_out == 1) {
 			// BINARY_TINY_DETECTION_AFTER_ROUNDING
-			if (((rnd_mode & 3) == 0) && (z.w[4] < (3 << 62))) ||
-				((rnd_mode+int(s&1) == 2) && (z.w[4] < (1 << 63))) {
+			if (((rnd_mode & 3) == 0) && (z.w4 < (3 << 62))) ||
+				((rnd_mode+int(s&1) == 2) && (z.w4 < (1 << 63))) {
 				*pfpsf |= BID_UNDERFLOW_EXCEPTION
 			}
 		}
@@ -265,7 +265,7 @@ func Bid128ToBinary32(x BID_UINT128, rnd_mode int, pfpsf *uint32) float32 {
 	}
 
 	// Set the inexact and underflow flag as appropriate
-	if (z.w[4] != 0) || (z.w[3] != 0) {
+	if (z.w4 != 0) || (z.w3 != 0) {
 		*pfpsf |= BID_INEXACT_EXCEPTION
 		if e_out == 0 {
 			*pfpsf |= BID_UNDERFLOW_EXCEPTION
@@ -345,9 +345,9 @@ func Bid128ToBinary64(x BID_UINT128, rnd_mode int, pfpsf *uint32) float64 {
 			d = 55
 		}
 		e_out = 1
-		z.w[5], z.w[4], z.w[3], z.w[2] = srl256_short(z.w[5], z.w[4], z.w[3], z.w[2], uint(d))
+		z.w5, z.w4, z.w3, z.w2 = srl256_short(z.w5, z.w4, z.w3, z.w2, uint(d))
 	}
-	c_prov = z.w[5]
+	c_prov = z.w5
 
 	// Round using round-sticky words
 	// If we spill into the next binade, correct
@@ -356,15 +356,15 @@ func Bid128ToBinary64(x BID_UINT128, rnd_mode int, pfpsf *uint32) float64 {
 	if lt128(
 		bid_roundbound_128[rbIdx].hi,
 		bid_roundbound_128[rbIdx].lo,
-		z.w[4], z.w[3]) {
+		z.w4, z.w3) {
 		c_prov = c_prov + 1
 		if c_prov == (1 << 53) {
 			c_prov = 1 << 52
 			e_out = e_out + 1
 		} else if (c_prov == (1 << 52)) && (e_out == 1) {
 			// BINARY_TINY_DETECTION_AFTER_ROUNDING
-			if (((rnd_mode & 3) == 0) && (z.w[4] < (3 << 62))) ||
-				((rnd_mode+int(s&1) == 2) && (z.w[4] < (1 << 63))) {
+			if (((rnd_mode & 3) == 0) && (z.w4 < (3 << 62))) ||
+				((rnd_mode+int(s&1) == 2) && (z.w4 < (1 << 63))) {
 				*pfpsf |= BID_UNDERFLOW_EXCEPTION
 			}
 		}
@@ -389,7 +389,7 @@ func Bid128ToBinary64(x BID_UINT128, rnd_mode int, pfpsf *uint32) float64 {
 	}
 
 	// Set the inexact and underflow flag as appropriate
-	if (z.w[4] != 0) || (z.w[3] != 0) {
+	if (z.w4 != 0) || (z.w3 != 0) {
 		*pfpsf |= BID_INEXACT_EXCEPTION
 		if e_out == 0 {
 			*pfpsf |= BID_UNDERFLOW_EXCEPTION

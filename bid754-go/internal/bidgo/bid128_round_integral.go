@@ -220,26 +220,26 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			//   the result is inexact
 
 			if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
+				res.hi = P256.w3
+				res.lo = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
 				// if 0 < fstar < 10^(-x), subtract 1 if odd (for rounding to even)
 				if (res.lo&0x0000000000000001) != 0 && // is result odd, and from MP?
-					((fstar.w[1] < (bid_ten2mk128[ind-1].hi)) ||
-						((fstar.w[1] == bid_ten2mk128[ind-1].hi) &&
-							(fstar.w[0] < bid_ten2mk128[ind-1].lo))) {
+					((fstar.w1 < (bid_ten2mk128[ind-1].hi)) ||
+						((fstar.w1 == bid_ten2mk128[ind-1].hi) &&
+							(fstar.w0 < bid_ten2mk128[ind-1].lo))) {
 					// subtract 1 to make even
 					res.lo--
 				}
-				if fstar.w[1] > 0x8000000000000000 ||
-					(fstar.w[1] == 0x8000000000000000 &&
-						fstar.w[0] > 0x0) {
+				if fstar.w1 > 0x8000000000000000 ||
+					(fstar.w1 == 0x8000000000000000 &&
+						fstar.w0 > 0x0) {
 					// f* > 1/2 and the result may be exact
-					tmp64 = fstar.w[1] - 0x8000000000000000 // f* - 1/2
+					tmp64 = fstar.w1 - 0x8000000000000000 // f* - 1/2
 					if tmp64 > bid_ten2mk128[ind-1].hi ||
 						(tmp64 == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+							fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 						// set the inexact flag
 						*pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -249,27 +249,27 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 				}
 			} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 				shift = bid_shiftright128[ind-1] // 3 <= shift <= 63
-				res.hi = (P256.w[3] >> uint(shift))
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
+				res.hi = (P256.w3 >> uint(shift))
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
 				if (res.lo&0x0000000000000001) != 0 && // is result odd, and from MP?
-					fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					fstar.w2 == 0 && (fstar.w1 < bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 < bid_ten2mk128[ind-1].lo)) {
 					// subtract 1 to make even
 					res.lo--
 				}
-				if fstar.w[2] > bid_onehalf128[ind-1] ||
-					(fstar.w[2] == bid_onehalf128[ind-1] &&
-						(fstar.w[1] != 0 || fstar.w[0] != 0)) {
+				if fstar.w2 > bid_onehalf128[ind-1] ||
+					(fstar.w2 == bid_onehalf128[ind-1] &&
+						(fstar.w1 != 0 || fstar.w0 != 0)) {
 					// f2* > 1/2 and the result may be exact
 					// Calculate f2* - 1/2
-					tmp64 = fstar.w[2] - bid_onehalf128[ind-1]
-					if tmp64 != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-						(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+					tmp64 = fstar.w2 - bid_onehalf128[ind-1]
+					if tmp64 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+						(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+							fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 						// set the inexact flag
 						*pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -280,28 +280,28 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			} else { // 22 <= ind - 1 <= 33
 				shift = bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
 				if (res.lo&0x0000000000000001) != 0 && // is result odd, and from MP?
-					fstar.w[3] == 0 && fstar.w[2] == 0 &&
-					(fstar.w[1] < bid_ten2mk128[ind-1].hi ||
-						(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+					fstar.w3 == 0 && fstar.w2 == 0 &&
+					(fstar.w1 < bid_ten2mk128[ind-1].hi ||
+						(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+							fstar.w0 < bid_ten2mk128[ind-1].lo)) {
 					// subtract 1 to make even
 					res.lo--
 				}
-				if fstar.w[3] > bid_onehalf128[ind-1] ||
-					(fstar.w[3] == bid_onehalf128[ind-1] &&
-						(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
+				if fstar.w3 > bid_onehalf128[ind-1] ||
+					(fstar.w3 == bid_onehalf128[ind-1] &&
+						(fstar.w2 != 0 || fstar.w1 != 0 || fstar.w0 != 0)) {
 					// f2* > 1/2 and the result may be exact
 					// Calculate f2* - 1/2
-					tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
-					if tmp64 != 0 || fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-						(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+					tmp64 = fstar.w3 - bid_onehalf128[ind-1]
+					if tmp64 != 0 || fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+						(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+							fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 						// set the inexact flag
 						*pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -339,18 +339,18 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 
 			if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[1] > 0x8000000000000000 ||
-					(fstar.w[1] == 0x8000000000000000 &&
-						fstar.w[0] > 0x0) {
+				res.hi = P256.w3
+				res.lo = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w1 > 0x8000000000000000 ||
+					(fstar.w1 == 0x8000000000000000 &&
+						fstar.w0 > 0x0) {
 					// f* > 1/2 and the result may be exact
-					tmp64 = fstar.w[1] - 0x8000000000000000 // f* - 1/2
+					tmp64 = fstar.w1 - 0x8000000000000000 // f* - 1/2
 					if tmp64 > bid_ten2mk128[ind-1].hi ||
 						(tmp64 == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+							fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 						// set the inexact flag
 						*pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -360,20 +360,20 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 				}
 			} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 				shift = bid_shiftright128[ind-1] // 3 <= shift <= 63
-				res.hi = (P256.w[3] >> uint(shift))
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] > bid_onehalf128[ind-1] ||
-					(fstar.w[2] == bid_onehalf128[ind-1] &&
-						(fstar.w[1] != 0 || fstar.w[0] != 0)) {
+				res.hi = (P256.w3 >> uint(shift))
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 > bid_onehalf128[ind-1] ||
+					(fstar.w2 == bid_onehalf128[ind-1] &&
+						(fstar.w1 != 0 || fstar.w0 != 0)) {
 					// f2* > 1/2 and the result may be exact
 					// Calculate f2* - 1/2
-					tmp64 = fstar.w[2] - bid_onehalf128[ind-1]
-					if tmp64 != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-						(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+					tmp64 = fstar.w2 - bid_onehalf128[ind-1]
+					if tmp64 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+						(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+							fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 						// set the inexact flag
 						*pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -384,20 +384,20 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			} else { // 22 <= ind - 1 <= 33
 				shift = bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] > bid_onehalf128[ind-1] ||
-					(fstar.w[3] == bid_onehalf128[ind-1] &&
-						(fstar.w[2] != 0 || fstar.w[1] != 0 || fstar.w[0] != 0)) {
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 > bid_onehalf128[ind-1] ||
+					(fstar.w3 == bid_onehalf128[ind-1] &&
+						(fstar.w2 != 0 || fstar.w1 != 0 || fstar.w0 != 0)) {
 					// f2* > 1/2 and the result may be exact
 					// Calculate f2* - 1/2
-					tmp64 = fstar.w[3] - bid_onehalf128[ind-1]
-					if tmp64 != 0 || fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-						(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-							fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+					tmp64 = fstar.w3 - bid_onehalf128[ind-1]
+					if tmp64 != 0 || fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+						(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+							fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 						// set the inexact flag
 						*pfpsf |= BID_INEXACT_EXCEPTION
 					} // else the result is exact
@@ -422,11 +422,11 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			ind = -exp // 1 <= ind <= 34; ind is a synonym for 'x'
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].hi &&
-						(P256.w[0] >= bid_ten2mk128[ind-1].lo)) {
+				res.hi = P256.w3
+				res.lo = P256.w2
+				if (P256.w1 > bid_ten2mk128[ind-1].hi) ||
+					(P256.w1 == bid_ten2mk128[ind-1].hi &&
+						(P256.w0 >= bid_ten2mk128[ind-1].lo)) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 					// if positive, the truncated value is already the correct result
 					if x_sign != 0 { // if negative
@@ -438,14 +438,14 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 				}
 			} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 				shift = bid_shiftright128[ind-1] // 0 <= shift <= 102
-				res.hi = (P256.w[3] >> uint(shift))
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.hi = (P256.w3 >> uint(shift))
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 					// if positive, the truncated value is already the correct result
 					if x_sign != 0 { // if negative
@@ -458,15 +458,15 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			} else { // 22 <= ind - 1 <= 33
 				shift = bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 != 0 || fstar.w2 != 0 ||
+					fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 					// if positive, the truncated value is already the correct result
 					if x_sign != 0 { // if negative
@@ -496,11 +496,11 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			ind = -exp // 1 <= ind <= 34; ind is a synonym for 'x'
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].hi &&
-						(P256.w[0] >= bid_ten2mk128[ind-1].lo)) {
+				res.hi = P256.w3
+				res.lo = P256.w2
+				if (P256.w1 > bid_ten2mk128[ind-1].hi) ||
+					(P256.w1 == bid_ten2mk128[ind-1].hi &&
+						(P256.w0 >= bid_ten2mk128[ind-1].lo)) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 					// if negative, the truncated value is already the correct result
 					if x_sign == 0 { // if positive
@@ -512,14 +512,14 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 				}
 			} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 				shift = bid_shiftright128[ind-1] // 3 <= shift <= 63
-				res.hi = (P256.w[3] >> uint(shift))
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.hi = (P256.w3 >> uint(shift))
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 					// if negative, the truncated value is already the correct result
 					if x_sign == 0 { // if positive
@@ -532,15 +532,15 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			} else { // 22 <= ind - 1 <= 33
 				shift = bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 != 0 || fstar.w2 != 0 ||
+					fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 					// if negative, the truncated value is already the correct result
 					if x_sign == 0 { // if positive
@@ -570,37 +570,37 @@ func Bid128RoundIntegralExact(x BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UI
 			ind = -exp // 1 <= ind <= 34; ind is a synonym for 'x'
 			P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 			if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-				res.hi = P256.w[3]
-				res.lo = P256.w[2]
-				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].hi &&
-						(P256.w[0] >= bid_ten2mk128[ind-1].lo)) {
+				res.hi = P256.w3
+				res.lo = P256.w2
+				if (P256.w1 > bid_ten2mk128[ind-1].hi) ||
+					(P256.w1 == bid_ten2mk128[ind-1].hi &&
+						(P256.w0 >= bid_ten2mk128[ind-1].lo)) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 				}
 			} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 				shift = bid_shiftright128[ind-1] // 3 <= shift <= 63
-				res.hi = (P256.w[3] >> uint(shift))
-				res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.hi = (P256.w3 >> uint(shift))
+				res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 				}
 			} else { // 22 <= ind - 1 <= 33
 				shift = bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 				res.hi = 0
-				res.lo = P256.w[3] >> uint(shift)
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				res.lo = P256.w3 >> uint(shift)
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 != 0 || fstar.w2 != 0 ||
+					fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					*pfpsf |= BID_INEXACT_EXCEPTION
 				}
 			}
@@ -774,43 +774,43 @@ func Bid128RoundIntegralNearestEven(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 		P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 		// determine the value of res and fstar
 		if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-			res.hi = P256.w[3]
-			res.lo = P256.w[2]
+			res.hi = P256.w3
+			res.lo = P256.w2
 			// if 0 < fstar < 10^(-x), subtract 1 if odd (for rounding to even)
 			if (res.lo&0x0000000000000001) != 0 &&
-				((P256.w[1] < (bid_ten2mk128[ind-1].hi)) ||
-					((P256.w[1] == bid_ten2mk128[ind-1].hi) &&
-						(P256.w[0] < bid_ten2mk128[ind-1].lo))) {
+				((P256.w1 < (bid_ten2mk128[ind-1].hi)) ||
+					((P256.w1 == bid_ten2mk128[ind-1].hi) &&
+						(P256.w0 < bid_ten2mk128[ind-1].lo))) {
 				// subtract 1 to make even
 				res.lo--
 			}
 		} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 			shift := bid_shiftright128[ind-1] // 3 <= shift <= 63
-			res.hi = (P256.w[3] >> uint(shift))
-			res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-			fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-			fstar.w[1] = P256.w[1]
-			fstar.w[0] = P256.w[0]
+			res.hi = (P256.w3 >> uint(shift))
+			res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+			fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+			fstar.w1 = P256.w1
+			fstar.w0 = P256.w0
 			if (res.lo&0x0000000000000001) != 0 &&
-				fstar.w[2] == 0 && (fstar.w[1] < bid_ten2mk128[ind-1].hi ||
-				(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-					fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+				fstar.w2 == 0 && (fstar.w1 < bid_ten2mk128[ind-1].hi ||
+				(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+					fstar.w0 < bid_ten2mk128[ind-1].lo)) {
 				// subtract 1 to make even
 				res.lo--
 			}
 		} else { // 22 <= ind - 1 <= 33
 			shift := bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 			res.hi = 0
-			res.lo = P256.w[3] >> uint(shift)
-			fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-			fstar.w[2] = P256.w[2]
-			fstar.w[1] = P256.w[1]
-			fstar.w[0] = P256.w[0]
+			res.lo = P256.w3 >> uint(shift)
+			fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+			fstar.w2 = P256.w2
+			fstar.w1 = P256.w1
+			fstar.w0 = P256.w0
 			if (res.lo&0x0000000000000001) != 0 &&
-				fstar.w[3] == 0 && fstar.w[2] == 0 &&
-				(fstar.w[1] < bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] < bid_ten2mk128[ind-1].lo)) {
+				fstar.w3 == 0 && fstar.w2 == 0 &&
+				(fstar.w1 < bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 < bid_ten2mk128[ind-1].lo)) {
 				// subtract 1 to make even
 				res.lo--
 			}
@@ -864,13 +864,13 @@ func Bid128RoundIntegralNegative(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 		ind := -exp // 1 <= ind <= 34; ind is a synonym for 'x'
 		P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 		if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-			res.hi = P256.w[3]
-			res.lo = P256.w[2]
+			res.hi = P256.w3
+			res.lo = P256.w2
 			// if positive, the truncated value is already the correct result
 			if x_sign != 0 { // if negative
-				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].hi &&
-						(P256.w[0] >= bid_ten2mk128[ind-1].lo)) {
+				if (P256.w1 > bid_ten2mk128[ind-1].hi) ||
+					(P256.w1 == bid_ten2mk128[ind-1].hi &&
+						(P256.w0 >= bid_ten2mk128[ind-1].lo)) {
 					res.lo++
 					if res.lo == 0 {
 						res.hi++
@@ -879,16 +879,16 @@ func Bid128RoundIntegralNegative(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 			}
 		} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 			shift := bid_shiftright128[ind-1] // 0 <= shift <= 102
-			res.hi = (P256.w[3] >> uint(shift))
-			res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+			res.hi = (P256.w3 >> uint(shift))
+			res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
 			// if positive, the truncated value is already the correct result
 			if x_sign != 0 { // if negative
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					res.lo++
 					if res.lo == 0 {
 						res.hi++
@@ -898,17 +898,17 @@ func Bid128RoundIntegralNegative(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 		} else { // 22 <= ind - 1 <= 33
 			shift := bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 			res.hi = 0
-			res.lo = P256.w[3] >> uint(shift)
+			res.lo = P256.w3 >> uint(shift)
 			// if positive, the truncated value is already the correct result
 			if x_sign != 0 { // if negative
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 != 0 || fstar.w2 != 0 ||
+					fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					res.lo++
 					if res.lo == 0 {
 						res.hi++
@@ -969,13 +969,13 @@ func Bid128RoundIntegralPositive(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 		ind := -exp // 1 <= ind <= 34; ind is a synonym for 'x'
 		P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 		if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-			res.hi = P256.w[3]
-			res.lo = P256.w[2]
+			res.hi = P256.w3
+			res.lo = P256.w2
 			// if negative, the truncated value is already the correct result
 			if x_sign == 0 { // if positive
-				if (P256.w[1] > bid_ten2mk128[ind-1].hi) ||
-					(P256.w[1] == bid_ten2mk128[ind-1].hi &&
-						(P256.w[0] >= bid_ten2mk128[ind-1].lo)) {
+				if (P256.w1 > bid_ten2mk128[ind-1].hi) ||
+					(P256.w1 == bid_ten2mk128[ind-1].hi &&
+						(P256.w0 >= bid_ten2mk128[ind-1].lo)) {
 					res.lo++
 					if res.lo == 0 {
 						res.hi++
@@ -984,16 +984,16 @@ func Bid128RoundIntegralPositive(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 			}
 		} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 			shift := bid_shiftright128[ind-1] // 3 <= shift <= 63
-			res.hi = (P256.w[3] >> uint(shift))
-			res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+			res.hi = (P256.w3 >> uint(shift))
+			res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
 			// if negative, the truncated value is already the correct result
 			if x_sign == 0 { // if positive
-				fstar.w[2] = P256.w[2] & bid_maskhigh128[ind-1]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[2] != 0 || fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				fstar.w2 = P256.w2 & bid_maskhigh128[ind-1]
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w2 != 0 || fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					res.lo++
 					if res.lo == 0 {
 						res.hi++
@@ -1003,17 +1003,17 @@ func Bid128RoundIntegralPositive(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 		} else { // 22 <= ind - 1 <= 33
 			shift := bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 			res.hi = 0
-			res.lo = P256.w[3] >> uint(shift)
+			res.lo = P256.w3 >> uint(shift)
 			// if negative, the truncated value is already the correct result
 			if x_sign == 0 { // if positive
-				fstar.w[3] = P256.w[3] & bid_maskhigh128[ind-1]
-				fstar.w[2] = P256.w[2]
-				fstar.w[1] = P256.w[1]
-				fstar.w[0] = P256.w[0]
-				if fstar.w[3] != 0 || fstar.w[2] != 0 ||
-					fstar.w[1] > bid_ten2mk128[ind-1].hi ||
-					(fstar.w[1] == bid_ten2mk128[ind-1].hi &&
-						fstar.w[0] >= bid_ten2mk128[ind-1].lo) {
+				fstar.w3 = P256.w3 & bid_maskhigh128[ind-1]
+				fstar.w2 = P256.w2
+				fstar.w1 = P256.w1
+				fstar.w0 = P256.w0
+				if fstar.w3 != 0 || fstar.w2 != 0 ||
+					fstar.w1 > bid_ten2mk128[ind-1].hi ||
+					(fstar.w1 == bid_ten2mk128[ind-1].hi &&
+						fstar.w0 >= bid_ten2mk128[ind-1].lo) {
 					res.lo++
 					if res.lo == 0 {
 						res.hi++
@@ -1064,16 +1064,16 @@ func Bid128RoundIntegralZero(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 		ind := -exp // 1 <= ind <= 34; ind is a synonym for 'x'
 		P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 		if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-			res.hi = P256.w[3]
-			res.lo = P256.w[2]
+			res.hi = P256.w3
+			res.lo = P256.w2
 		} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 			shift := bid_shiftright128[ind-1] // 3 <= shift <= 63
-			res.hi = (P256.w[3] >> uint(shift))
-			res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
+			res.hi = (P256.w3 >> uint(shift))
+			res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
 		} else { // 22 <= ind - 1 <= 33
 			shift := bid_shiftright128[ind-1] - 64 // 2 <= shift <= 38
 			res.hi = 0
-			res.lo = P256.w[3] >> uint(shift)
+			res.lo = P256.w3 >> uint(shift)
 		}
 		res.hi = x_sign | 0x3040000000000000 | res.hi
 		return res
@@ -1126,16 +1126,16 @@ func Bid128RoundIntegralNearestAway(x BID_UINT128, pfpsf *uint32) BID_UINT128 {
 		P256 = __mul_128x128_to_256(C1, bid_ten2mk128[ind-1])
 		// shift right C* by Ex-128 = bid_shiftright128[ind]
 		if ind-1 <= 2 { // 0 <= ind - 1 <= 2 => shift = 0
-			res.hi = P256.w[3]
-			res.lo = P256.w[2]
+			res.hi = P256.w3
+			res.lo = P256.w2
 		} else if ind-1 <= 21 { // 3 <= ind - 1 <= 21 => 3 <= shift <= 63
 			shift := bid_shiftright128[ind-1] // 3 <= shift <= 63
-			res.lo = (P256.w[3] << uint(64-shift)) | (P256.w[2] >> uint(shift))
-			res.hi = (P256.w[3] >> uint(shift))
+			res.lo = (P256.w3 << uint(64-shift)) | (P256.w2 >> uint(shift))
+			res.hi = (P256.w3 >> uint(shift))
 		} else { // 22 <= ind - 1 <= 33
 			shift := bid_shiftright128[ind-1] // 2 <= shift <= 38
 			res.hi = 0
-			res.lo = (P256.w[3] >> uint(shift-64)) // 2 <= shift - 64 <= 38
+			res.lo = (P256.w3 >> uint(shift-64)) // 2 <= shift - 64 <= 38
 		}
 		// if the result was a midpoint, it was already rounded away from zero
 		res.hi |= x_sign | 0x3040000000000000

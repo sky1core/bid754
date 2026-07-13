@@ -122,8 +122,8 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 		// now get P/10^extra_digits: shift C64 right by M[extra_digits]-128
 		amount = int(bid_recip_scale[extra_digits])
-		CX2.lo = CT.w[2]
-		CX2.hi = CT.w[3]
+		CX2.lo = CT.w2
+		CX2.hi = CT.w3
 		if amount >= 64 {
 			CR.hi = 0
 			CR.lo = CX2.hi >> uint(amount-64)
@@ -146,9 +146,9 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 				// test whether fractional part is 0
 				if remainder_h == 0 &&
-					(CT.w[1] < bid_reciprocals10_128[extra_digits].hi ||
-						(CT.w[1] == bid_reciprocals10_128[extra_digits].hi &&
-							CT.w[0] < bid_reciprocals10_128[extra_digits].lo)) {
+					(CT.w1 < bid_reciprocals10_128[extra_digits].hi ||
+						(CT.w1 == bid_reciprocals10_128[extra_digits].hi &&
+							CT.w0 < bid_reciprocals10_128[extra_digits].lo)) {
 					CR.lo--
 				}
 			}
@@ -169,23 +169,23 @@ func Bid128Quantize(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 		case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
 			// test whether fractional part is 0
 			if REM_H.hi == 0x8000000000000000 && REM_H.lo == 0 &&
-				(CT.w[1] < bid_reciprocals10_128[extra_digits].hi ||
-					(CT.w[1] == bid_reciprocals10_128[extra_digits].hi &&
-						CT.w[0] < bid_reciprocals10_128[extra_digits].lo)) {
+				(CT.w1 < bid_reciprocals10_128[extra_digits].hi ||
+					(CT.w1 == bid_reciprocals10_128[extra_digits].hi &&
+						CT.w0 < bid_reciprocals10_128[extra_digits].lo)) {
 				status = int(BID_EXACT_STATUS)
 			}
 		case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
 			if (REM_H.hi|REM_H.lo) == 0 &&
-				(CT.w[1] < bid_reciprocals10_128[extra_digits].hi ||
-					(CT.w[1] == bid_reciprocals10_128[extra_digits].hi &&
-						CT.w[0] < bid_reciprocals10_128[extra_digits].lo)) {
+				(CT.w1 < bid_reciprocals10_128[extra_digits].hi ||
+					(CT.w1 == bid_reciprocals10_128[extra_digits].hi &&
+						CT.w0 < bid_reciprocals10_128[extra_digits].lo)) {
 				status = int(BID_EXACT_STATUS)
 			}
 		default:
 			// round up
-			Stemp.lo, CY64 = __add_carry_out(CT.w[0],
+			Stemp.lo, CY64 = __add_carry_out(CT.w0,
 				bid_reciprocals10_128[extra_digits].lo)
-			Stemp.hi, carry = __add_carry_in_out(CT.w[1],
+			Stemp.hi, carry = __add_carry_in_out(CT.w1,
 				bid_reciprocals10_128[extra_digits].hi, CY64)
 			if amount < 64 {
 				C2N.hi = 0

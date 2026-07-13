@@ -110,7 +110,7 @@ func Bid128Rem(x, y BID_UINT128) (BID_UINT128, uint32) {
 		T = bid_power10_table_128[diff_expon]
 		P256 = __mul_128x128_to_256(CY, T)
 
-		if P256.w[2] != 0 || P256.w[3] != 0 {
+		if P256.w2 != 0 || P256.w3 != 0 {
 			// |x|<|y| in this case
 			res = x
 			return res, pfpsf
@@ -118,21 +118,21 @@ func Bid128Rem(x, y BID_UINT128) (BID_UINT128, uint32) {
 
 		CX2.hi = (CX.hi << 1) | (CX.lo >> 63)
 		CX2.lo = CX.lo << 1
-		P256_128 := BID_UINT128{lo: P256.w[0], hi: P256.w[1]}
+		P256_128 := BID_UINT128{lo: P256.w0, hi: P256.w1}
 		if __unsigned_compare_ge_128(P256_128, CX2) {
 			// |x|<|y| in this case
 			res = x
 			return res, pfpsf
 		}
 
-		P128.lo = P256.w[0]
-		P128.hi = P256.w[1]
+		P128.lo = P256.w0
+		P128.hi = P256.w1
 		CQ, CR = bid___div_128_by_128(CX, P128)
 
 		CX2.hi = (CR.hi << 1) | (CR.lo >> 63)
 		CX2.lo = CR.lo << 1
 		if __unsigned_compare_gt_128(CX2, P256_128) ||
-			(CX2.hi == P256.w[1] && CX2.lo == P256.w[0] &&
+			(CX2.hi == P256.w1 && CX2.lo == P256.w0 &&
 				(CQ.lo&1) != 0) {
 			CR = __sub_128_128(P256_128, CR)
 			sign_x ^= 0x8000000000000000
@@ -299,20 +299,20 @@ func Bid128Fmod(x, y BID_UINT128) (BID_UINT128, uint32) {
 		T = bid_power10_table_128[diff_expon]
 		P256 = __mul_128x128_to_256(CY, T)
 
-		if P256.w[2] != 0 || P256.w[3] != 0 {
+		if P256.w2 != 0 || P256.w3 != 0 {
 			// |x|<|y| in this case
 			res = x
 			return res, pfpsf
 		}
 
-		if __unsigned_compare_gt_128(BID_UINT128{lo: P256.w[0], hi: P256.w[1]}, CX) {
+		if __unsigned_compare_gt_128(BID_UINT128{lo: P256.w0, hi: P256.w1}, CX) {
 			// |x|<|y| in this case
 			res = x
 			return res, pfpsf
 		}
 
-		P128.lo = P256.w[0]
-		P128.hi = P256.w[1]
+		P128.lo = P256.w0
+		P128.hi = P256.w1
 		_, CR = bid___div_128_by_128(CX, P128)
 
 		res = very_fast_get_BID128(sign_x, exponent_x, CR)

@@ -54,10 +54,10 @@ func Bid128Class(x BID_UINT128) int {
 		if exp_x > 19 {
 			sig_x_prime256 = __mul_128x128_to_256(sig_x, bid_ten2k128[exp_x-20])
 			// 10^33 = 0x0000314dc6448d93_38c15b0a00000000
-			if (sig_x_prime256.w[3] == 0) && (sig_x_prime256.w[2] == 0) &&
-				((sig_x_prime256.w[1] < 0x0000314dc6448d93) ||
-					((sig_x_prime256.w[1] == 0x0000314dc6448d93) &&
-						(sig_x_prime256.w[0] < 0x38c15b0a00000000))) {
+			if (sig_x_prime256.w3 == 0) && (sig_x_prime256.w2 == 0) &&
+				((sig_x_prime256.w1 < 0x0000314dc6448d93) ||
+					((sig_x_prime256.w1 == 0x0000314dc6448d93) &&
+						(sig_x_prime256.w0 < 0x38c15b0a00000000))) {
 				if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 					res = negativeSubnormal
 				} else {
@@ -68,10 +68,10 @@ func Bid128Class(x BID_UINT128) int {
 		} else {
 			sig_x_prime192 = __mul_64x128_to_192(bid_ten2k64[exp_x], sig_x)
 			// 10^33 = 0x0000314dc6448d93_38c15b0a00000000
-			if (sig_x_prime192.w[2] == 0) &&
-				((sig_x_prime192.w[1] < 0x0000314dc6448d93) ||
-					((sig_x_prime192.w[1] == 0x0000314dc6448d93) &&
-						(sig_x_prime192.w[0] < 0x38c15b0a00000000))) {
+			if (sig_x_prime192.w2 == 0) &&
+				((sig_x_prime192.w1 < 0x0000314dc6448d93) ||
+					((sig_x_prime192.w1 == 0x0000314dc6448d93) &&
+						(sig_x_prime192.w0 < 0x38c15b0a00000000))) {
 				if (x.hi & MASK_SIGN64) == MASK_SIGN64 {
 					res = negativeSubnormal
 				} else {

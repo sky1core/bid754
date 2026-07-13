@@ -15,7 +15,7 @@ This document defines the project's target architecture. It is not a document cl
 - the Rust implementation path is a path generated from the Go implementation path
 - `devtools/tools/go2rs` is the only permitted generation path for full Rust implementation artifacts
 - generated outputs must be reproducible
-- the Go mechanical port represents `BID_UINT128` as two scalar `uint64` limbs named `lo` then `hi`, not as an array field; this is a representation mapping that preserves Intel's low-word/high-word order and the 16-byte value layout, and the generated Rust type mirrors the same ordered fields
+- the Go mechanical port represents every multi-limb `BID_UINT` as scalar `uint64` fields rather than an array field: `BID_UINT128` uses `lo`, `hi`, and `BID_UINT192`/`256`/`320`/`384`/`512` use `w0` through `wN` in least-significant-to-most-significant order; this representation mapping preserves Intel's word order and the respective 16/24/32/40/48/64-byte value layouts, and the generated Rust types mirror the same ordered fields
 
 ## Target Structure
 
@@ -116,7 +116,7 @@ Key layout:
 
 - `bid754-go/`: public Go implementation module (`github.com/sky1core/bid754/bid754-go`). The module root package `bid754` contains the public Go value types, API routing/plumbing, generated module root declarations, and generated module root tests
 - `bid754-go/internal/bidgo/`: implementation path that directly mechanically ports Intel BID C to Go (package `bidgo`)
-- `bid754-go/internal/bidgo/tables_binarydecimal.go`: Go-port table artifact generated directly from pinned Intel `bid_binarydecimal.c` by c-tablegen; its `BID_UINT128` entries use the mechanical port's scalar `lo`/`hi` representation while wider table entries retain their declared multiword representation
+- `bid754-go/internal/bidgo/tables_binarydecimal.go`: Go-port table artifact generated directly from pinned Intel `bid_binarydecimal.c` by c-tablegen; its `BID_UINT128`, `BID_UINT192`, and `BID_UINT256` entries use the mechanical port's ordered scalar-limb representations
 - `bid754-go/internal/bidgo/cexport/`: inactive C ABI compatibility snapshot outside the regular `readtest` generated verification path. Its reference C source is excluded from normal link inputs by the `.disabled` extension. `cexport`, `libbidgo.a`, and `libbidgo.h` are local build outputs, not checked-in artifacts
 - `bid754-go/internal/testspec/`: generated test-spec loader/schema plumbing produced by `devtools/cmd/testgen`. It is part of the generated verification path and is not edited directly
 - `devtools/generated/go/`, `devtools/generated/json/`, `devtools/generated/testspec/`: table/symbol/test-spec artifacts generated from C or official inputs

@@ -169,26 +169,26 @@ pub(crate) fn __mul_64x128_full(mut a: u64, mut b: BID_UINT128) -> (u64, BID_UIN
 }
 
 pub(crate) fn __mul_64x128_to_192(mut a: u64, mut b: BID_UINT128) -> BID_UINT192 {
-    let mut q: BID_UINT192 = BID_UINT192 { w: [0, 0, 0] };
+    let mut q: BID_UINT192 = BID_UINT192 { w0: 0, w1: 0, w2: 0 };
     let mut albh = __mul_64x64_to_128(a, b.hi);
     let mut albl = __mul_64x64_to_128(a, b.lo);
-    q.w[0] = albl.lo;
+    q.w0 = albl.lo;
     let mut qm2 = __add_128_64(albh, albl.hi);
-    q.w[1] = qm2.lo;
-    q.w[2] = qm2.hi;
+    q.w1 = qm2.lo;
+    q.w2 = qm2.hi;
     return q;
 }
 
 pub(crate) fn __mul_128x128_to_256(mut a: BID_UINT128, mut b: BID_UINT128) -> BID_UINT256 {
-    let mut p256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut p256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut cy1: u64 = 0;
     let mut cy2: u64 = 0;
     let (mut phl, mut qll) = __mul_64x128_full(a.lo, b);
     let (mut phh, mut qlh) = __mul_64x128_full(a.hi, b);
-    p256.w[0] = qll.lo;
-    (p256.w[1], cy1) = __add_carry_out(qlh.lo, qll.hi);
-    (p256.w[2], cy2) = __add_carry_in_out(qlh.hi, phl, cy1);
-    p256.w[3] = (phh.wrapping_add(cy2));
+    p256.w0 = qll.lo;
+    (p256.w1, cy1) = __add_carry_out(qlh.lo, qll.hi);
+    (p256.w2, cy2) = __add_carry_in_out(qlh.hi, phl, cy1);
+    p256.w3 = (phh.wrapping_add(cy2));
     return p256;
 }
 
@@ -820,161 +820,161 @@ pub(crate) fn get_bid64_flags(mut sgn: u64, mut expon: i64, mut coeff: u64, mut 
 }
 
 pub(crate) fn __mul_192x192_to_384(mut a: BID_UINT192, mut b: BID_UINT192) -> BID_UINT384 {
-    let mut p: BID_UINT384 = BID_UINT384 { w: [0, 0, 0, 0, 0, 0] };
+    let mut p: BID_UINT384 = BID_UINT384 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0, w5: 0 };
     let mut cy: u64 = 0;
-    let mut p00 = __mul_64x64_to_128(a.w[0], b.w[0]);
-    let mut p01 = __mul_64x64_to_128(a.w[0], b.w[1]);
-    let mut p02 = __mul_64x64_to_128(a.w[0], b.w[2]);
-    let mut p10 = __mul_64x64_to_128(a.w[1], b.w[0]);
-    let mut p11 = __mul_64x64_to_128(a.w[1], b.w[1]);
-    let mut p12 = __mul_64x64_to_128(a.w[1], b.w[2]);
-    let mut p20 = __mul_64x64_to_128(a.w[2], b.w[0]);
-    let mut p21 = __mul_64x64_to_128(a.w[2], b.w[1]);
-    let mut p22 = __mul_64x64_to_128(a.w[2], b.w[2]);
-    p.w[0] = p00.lo;
-    p.w[1] = (p00.hi.wrapping_add(p01.lo));
+    let mut p00 = __mul_64x64_to_128(a.w0, b.w0);
+    let mut p01 = __mul_64x64_to_128(a.w0, b.w1);
+    let mut p02 = __mul_64x64_to_128(a.w0, b.w2);
+    let mut p10 = __mul_64x64_to_128(a.w1, b.w0);
+    let mut p11 = __mul_64x64_to_128(a.w1, b.w1);
+    let mut p12 = __mul_64x64_to_128(a.w1, b.w2);
+    let mut p20 = __mul_64x64_to_128(a.w2, b.w0);
+    let mut p21 = __mul_64x64_to_128(a.w2, b.w1);
+    let mut p22 = __mul_64x64_to_128(a.w2, b.w2);
+    p.w0 = p00.lo;
+    p.w1 = (p00.hi.wrapping_add(p01.lo));
     cy = 0;
-    if (p.w[1] < p00.hi) {
+    if (p.w1 < p00.hi) {
         cy = cy.wrapping_add(1);
     }
-    let mut tmp = p.w[1];
-    p.w[1] = p.w[1].wrapping_add(p10.lo);
-    if (p.w[1] < tmp) {
+    let mut tmp = p.w1;
+    p.w1 = p.w1.wrapping_add(p10.lo);
+    if (p.w1 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    p.w[2] = (cy.wrapping_add(p01.hi));
+    p.w2 = (cy.wrapping_add(p01.hi));
     cy = 0;
-    if (p.w[2] < p01.hi) {
+    if (p.w2 < p01.hi) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[2];
-    p.w[2] = p.w[2].wrapping_add(p02.lo);
-    if (p.w[2] < tmp) {
+    tmp = p.w2;
+    p.w2 = p.w2.wrapping_add(p02.lo);
+    if (p.w2 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[2];
-    p.w[2] = p.w[2].wrapping_add(p10.hi);
-    if (p.w[2] < tmp) {
+    tmp = p.w2;
+    p.w2 = p.w2.wrapping_add(p10.hi);
+    if (p.w2 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[2];
-    p.w[2] = p.w[2].wrapping_add(p11.lo);
-    if (p.w[2] < tmp) {
+    tmp = p.w2;
+    p.w2 = p.w2.wrapping_add(p11.lo);
+    if (p.w2 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[2];
-    p.w[2] = p.w[2].wrapping_add(p20.lo);
-    if (p.w[2] < tmp) {
+    tmp = p.w2;
+    p.w2 = p.w2.wrapping_add(p20.lo);
+    if (p.w2 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    p.w[3] = (cy.wrapping_add(p02.hi));
+    p.w3 = (cy.wrapping_add(p02.hi));
     cy = 0;
-    if (p.w[3] < p02.hi) {
+    if (p.w3 < p02.hi) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[3];
-    p.w[3] = p.w[3].wrapping_add(p11.hi);
-    if (p.w[3] < tmp) {
+    tmp = p.w3;
+    p.w3 = p.w3.wrapping_add(p11.hi);
+    if (p.w3 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[3];
-    p.w[3] = p.w[3].wrapping_add(p12.lo);
-    if (p.w[3] < tmp) {
+    tmp = p.w3;
+    p.w3 = p.w3.wrapping_add(p12.lo);
+    if (p.w3 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[3];
-    p.w[3] = p.w[3].wrapping_add(p20.hi);
-    if (p.w[3] < tmp) {
+    tmp = p.w3;
+    p.w3 = p.w3.wrapping_add(p20.hi);
+    if (p.w3 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[3];
-    p.w[3] = p.w[3].wrapping_add(p21.lo);
-    if (p.w[3] < tmp) {
+    tmp = p.w3;
+    p.w3 = p.w3.wrapping_add(p21.lo);
+    if (p.w3 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    p.w[4] = (cy.wrapping_add(p12.hi));
+    p.w4 = (cy.wrapping_add(p12.hi));
     cy = 0;
-    if (p.w[4] < p12.hi) {
+    if (p.w4 < p12.hi) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[4];
-    p.w[4] = p.w[4].wrapping_add(p21.hi);
-    if (p.w[4] < tmp) {
+    tmp = p.w4;
+    p.w4 = p.w4.wrapping_add(p21.hi);
+    if (p.w4 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    tmp = p.w[4];
-    p.w[4] = p.w[4].wrapping_add(p22.lo);
-    if (p.w[4] < tmp) {
+    tmp = p.w4;
+    p.w4 = p.w4.wrapping_add(p22.lo);
+    if (p.w4 < tmp) {
         cy = cy.wrapping_add(1);
     }
-    p.w[5] = (cy.wrapping_add(p22.hi));
+    p.w5 = (cy.wrapping_add(p22.hi));
     return p;
 }
 
 pub(crate) fn __mul_256x256_to_512(mut a: BID_UINT256, mut b: BID_UINT256) -> BID_UINT512 {
-    let mut p: BID_UINT512 = BID_UINT512 { w: [0, 0, 0, 0, 0, 0, 0, 0] };
-    let mut aL = BID_UINT128 { lo: a.w[0], hi: a.w[1], ..Default::default() };
-    let mut aH = BID_UINT128 { lo: a.w[2], hi: a.w[3], ..Default::default() };
-    let mut bL = BID_UINT128 { lo: b.w[0], hi: b.w[1], ..Default::default() };
-    let mut bH = BID_UINT128 { lo: b.w[2], hi: b.w[3], ..Default::default() };
+    let mut p: BID_UINT512 = BID_UINT512 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0, w5: 0, w6: 0, w7: 0 };
+    let mut aL = BID_UINT128 { lo: a.w0, hi: a.w1, ..Default::default() };
+    let mut aH = BID_UINT128 { lo: a.w2, hi: a.w3, ..Default::default() };
+    let mut bL = BID_UINT128 { lo: b.w0, hi: b.w1, ..Default::default() };
+    let mut bH = BID_UINT128 { lo: b.w2, hi: b.w3, ..Default::default() };
     let mut p0 = __mul_128x128_to_256(aL, bL);
     let mut p1 = __mul_128x128_to_256(aH, bL);
     let mut p2 = __mul_128x128_to_256(aL, bH);
     let mut p3 = __mul_128x128_to_256(aH, bH);
-    p.w[0] = p0.w[0];
-    p.w[1] = p0.w[1];
+    p.w0 = p0.w0;
+    p.w1 = p0.w1;
     let mut cy: u64 = 0;
-    p.w[2] = (p0.w[2].wrapping_add(p1.w[0]));
+    p.w2 = (p0.w2.wrapping_add(p1.w0));
     cy = 0;
-    if (p.w[2] < p0.w[2]) {
+    if (p.w2 < p0.w2) {
         cy = 1;
     }
-    p.w[3] = ((p0.w[3].wrapping_add(p1.w[1])).wrapping_add(cy));
+    p.w3 = ((p0.w3.wrapping_add(p1.w1)).wrapping_add(cy));
     cy = 0;
-    if ((p.w[3] < p1.w[1]) || (((cy == 0) && (p.w[3] < p0.w[3])))) {
+    if ((p.w3 < p1.w1) || (((cy == 0) && (p.w3 < p0.w3)))) {
         cy = 1;
     }
-    let mut c4 = (p1.w[2].wrapping_add(cy));
+    let mut c4 = (p1.w2.wrapping_add(cy));
     cy = 0;
-    if (c4 < p1.w[2]) {
+    if (c4 < p1.w2) {
         cy = 1;
     }
-    let mut c5 = (p1.w[3].wrapping_add(cy));
-    let mut tmp = p.w[2];
-    p.w[2] = p.w[2].wrapping_add(p2.w[0]);
+    let mut c5 = (p1.w3.wrapping_add(cy));
+    let mut tmp = p.w2;
+    p.w2 = p.w2.wrapping_add(p2.w0);
     cy = 0;
-    if (p.w[2] < tmp) {
+    if (p.w2 < tmp) {
         cy = 1;
     }
-    tmp = p.w[3];
-    p.w[3] = p.w[3].wrapping_add((p2.w[1].wrapping_add(cy)));
+    tmp = p.w3;
+    p.w3 = p.w3.wrapping_add((p2.w1.wrapping_add(cy)));
     cy = 0;
-    if ((p.w[3] < tmp) || (((p.w[3] == tmp) && (cy > 0)))) {
+    if ((p.w3 < tmp) || (((p.w3 == tmp) && (cy > 0)))) {
         cy = 1;
     }
     tmp = c4;
-    c4 = c4.wrapping_add((p2.w[2].wrapping_add(cy)));
+    c4 = c4.wrapping_add((p2.w2.wrapping_add(cy)));
     cy = 0;
     if ((c4 < tmp) || (((c4 == tmp) && (cy > 0)))) {
         cy = 1;
     }
-    c5 = c5.wrapping_add((p2.w[3].wrapping_add(cy)));
-    p.w[4] = (c4.wrapping_add(p3.w[0]));
+    c5 = c5.wrapping_add((p2.w3.wrapping_add(cy)));
+    p.w4 = (c4.wrapping_add(p3.w0));
     cy = 0;
-    if (p.w[4] < c4) {
+    if (p.w4 < c4) {
         cy = 1;
     }
-    p.w[5] = ((c5.wrapping_add(p3.w[1])).wrapping_add(cy));
+    p.w5 = ((c5.wrapping_add(p3.w1)).wrapping_add(cy));
     cy = 0;
-    if ((p.w[5] < c5) || (((p.w[5] == c5) && (cy > 0)))) {
+    if ((p.w5 < c5) || (((p.w5 == c5) && (cy > 0)))) {
         cy = 1;
     }
-    p.w[6] = (p3.w[2].wrapping_add(cy));
+    p.w6 = (p3.w2.wrapping_add(cy));
     cy = 0;
-    if (p.w[6] < p3.w[2]) {
+    if (p.w6 < p3.w2) {
         cy = 1;
     }
-    p.w[7] = (p3.w[3].wrapping_add(cy));
+    p.w7 = (p3.w3.wrapping_add(cy));
     return p;
 }
 
@@ -984,52 +984,52 @@ pub(crate) fn __mul_64x128_to_128(mut a: u64, mut b: BID_UINT128) -> BID_UINT128
 }
 
 pub(crate) fn __mul_64x192_to_256(mut A: u64, mut B: BID_UINT192) -> BID_UINT256 {
-    let mut P: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut c: u64 = 0;
-    let mut lP0 = __mul_64x64_to_128(A, B.w[0]);
-    let mut lP1 = __mul_64x64_to_128(A, B.w[1]);
-    let mut lP2 = __mul_64x64_to_128(A, B.w[2]);
-    P.w[0] = lP0.lo;
-    (P.w[1], c) = __add_carry_out(lP1.lo, lP0.hi);
-    (P.w[2], c) = __add_carry_in_out(lP2.lo, lP1.hi, c);
-    P.w[3] = (lP2.hi.wrapping_add(c));
+    let mut lP0 = __mul_64x64_to_128(A, B.w0);
+    let mut lP1 = __mul_64x64_to_128(A, B.w1);
+    let mut lP2 = __mul_64x64_to_128(A, B.w2);
+    P.w0 = lP0.lo;
+    (P.w1, c) = __add_carry_out(lP1.lo, lP0.hi);
+    (P.w2, c) = __add_carry_in_out(lP2.lo, lP1.hi, c);
+    P.w3 = (lP2.hi.wrapping_add(c));
     return P;
 }
 
 pub(crate) fn __mul_64x256_to_320(mut A: u64, mut B: BID_UINT256) -> BID_UINT320 {
-    let mut P: BID_UINT320 = BID_UINT320 { w: [0, 0, 0, 0, 0] };
+    let mut P: BID_UINT320 = BID_UINT320 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0 };
     let mut c: u64 = 0;
-    let mut lP0 = __mul_64x64_to_128(A, B.w[0]);
-    let mut lP1 = __mul_64x64_to_128(A, B.w[1]);
-    let mut lP2 = __mul_64x64_to_128(A, B.w[2]);
-    let mut lP3 = __mul_64x64_to_128(A, B.w[3]);
-    P.w[0] = lP0.lo;
-    (P.w[1], c) = __add_carry_out(lP1.lo, lP0.hi);
-    (P.w[2], c) = __add_carry_in_out(lP2.lo, lP1.hi, c);
-    (P.w[3], c) = __add_carry_in_out(lP3.lo, lP2.hi, c);
-    P.w[4] = (lP3.hi.wrapping_add(c));
+    let mut lP0 = __mul_64x64_to_128(A, B.w0);
+    let mut lP1 = __mul_64x64_to_128(A, B.w1);
+    let mut lP2 = __mul_64x64_to_128(A, B.w2);
+    let mut lP3 = __mul_64x64_to_128(A, B.w3);
+    P.w0 = lP0.lo;
+    (P.w1, c) = __add_carry_out(lP1.lo, lP0.hi);
+    (P.w2, c) = __add_carry_in_out(lP2.lo, lP1.hi, c);
+    (P.w3, c) = __add_carry_in_out(lP3.lo, lP2.hi, c);
+    P.w4 = (lP3.hi.wrapping_add(c));
     return P;
 }
 
 pub(crate) fn __mul_64x320_to_384(mut A: u64, mut B: BID_UINT320) -> BID_UINT384 {
-    let mut P: BID_UINT384 = BID_UINT384 { w: [0, 0, 0, 0, 0, 0] };
+    let mut P: BID_UINT384 = BID_UINT384 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0, w5: 0 };
     let mut c: u64 = 0;
-    let mut lP0 = __mul_64x64_to_128(A, B.w[0]);
-    let mut lP1 = __mul_64x64_to_128(A, B.w[1]);
-    let mut lP2 = __mul_64x64_to_128(A, B.w[2]);
-    let mut lP3 = __mul_64x64_to_128(A, B.w[3]);
-    let mut lP4 = __mul_64x64_to_128(A, B.w[4]);
-    P.w[0] = lP0.lo;
-    (P.w[1], c) = __add_carry_out(lP1.lo, lP0.hi);
-    (P.w[2], c) = __add_carry_in_out(lP2.lo, lP1.hi, c);
-    (P.w[3], c) = __add_carry_in_out(lP3.lo, lP2.hi, c);
-    (P.w[4], c) = __add_carry_in_out(lP4.lo, lP3.hi, c);
-    P.w[5] = (lP4.hi.wrapping_add(c));
+    let mut lP0 = __mul_64x64_to_128(A, B.w0);
+    let mut lP1 = __mul_64x64_to_128(A, B.w1);
+    let mut lP2 = __mul_64x64_to_128(A, B.w2);
+    let mut lP3 = __mul_64x64_to_128(A, B.w3);
+    let mut lP4 = __mul_64x64_to_128(A, B.w4);
+    P.w0 = lP0.lo;
+    (P.w1, c) = __add_carry_out(lP1.lo, lP0.hi);
+    (P.w2, c) = __add_carry_in_out(lP2.lo, lP1.hi, c);
+    (P.w3, c) = __add_carry_in_out(lP3.lo, lP2.hi, c);
+    (P.w4, c) = __add_carry_in_out(lP4.lo, lP3.hi, c);
+    P.w5 = (lP4.hi.wrapping_add(c));
     return P;
 }
 
 pub(crate) fn __sqr128_to_256(mut A: BID_UINT128) -> BID_UINT256 {
-    let mut P256: BID_UINT256 = BID_UINT256 { w: [0, 0, 0, 0] };
+    let mut P256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut c1: u64 = 0;
     let mut c2: u64 = 0;
     let mut Qhh = __mul_64x64_to_128(A.hi, A.hi);
@@ -1038,10 +1038,10 @@ pub(crate) fn __sqr128_to_256(mut A: BID_UINT128) -> BID_UINT256 {
     Qlh.hi = (((Qlh.hi.wrapping_add(Qlh.hi))) | ((go_checked_shr_u64(Qlh.lo, go_shift_count_u64((63) as u64)))));
     Qlh.lo = Qlh.lo.wrapping_add(Qlh.lo);
     let mut Qll = __mul_64x64_to_128(A.lo, A.lo);
-    (P256.w[1], c1) = __add_carry_out(Qlh.lo, Qll.hi);
-    P256.w[0] = Qll.lo;
-    (P256.w[2], c2) = __add_carry_in_out(Qlh.hi, Qhh.lo, c1);
-    P256.w[3] = (Qhh.hi.wrapping_add(c2));
+    (P256.w1, c1) = __add_carry_out(Qlh.lo, Qll.hi);
+    P256.w0 = Qll.lo;
+    (P256.w2, c2) = __add_carry_in_out(Qlh.hi, Qhh.lo, c1);
+    P256.w3 = (Qhh.hi.wrapping_add(c2));
     return P256;
 }
 

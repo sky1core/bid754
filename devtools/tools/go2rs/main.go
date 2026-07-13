@@ -137,11 +137,11 @@ var zeroValues = map[string]string{
 	"&'static str": "\"\"",
 	"BigUint":      "BigUint::zero()",
 	"BID_UINT128":  "BID_UINT128 { lo: 0, hi: 0 }",
-	"BID_UINT192":  "BID_UINT192 { w: [0, 0, 0] }",
-	"BID_UINT256":  "BID_UINT256 { w: [0, 0, 0, 0] }",
-	"BID_UINT320":  "BID_UINT320 { w: [0, 0, 0, 0, 0] }",
-	"BID_UINT384":  "BID_UINT384 { w: [0, 0, 0, 0, 0, 0] }",
-	"BID_UINT512":  "BID_UINT512 { w: [0, 0, 0, 0, 0, 0, 0, 0] }",
+	"BID_UINT192":  "BID_UINT192 { w0: 0, w1: 0, w2: 0 }",
+	"BID_UINT256":  "BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 }",
+	"BID_UINT320":  "BID_UINT320 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0 }",
+	"BID_UINT384":  "BID_UINT384 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0, w5: 0 }",
+	"BID_UINT512":  "BID_UINT512 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0, w5: 0, w6: 0, w7: 0 }",
 }
 
 var registryOwnedEmptySourceFiles = map[string]string{

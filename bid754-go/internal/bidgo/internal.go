@@ -18,29 +18,55 @@ type BID_UINT128 struct {
 	hi uint64
 }
 
-// BID_UINT192 represents a 192-bit unsigned integer
+// BID_UINT192 represents a 192-bit unsigned integer.
+// w0 through w2 are ordered from least to most significant.
 type BID_UINT192 struct {
-	w [3]uint64
+	w0 uint64
+	w1 uint64
+	w2 uint64
 }
 
-// BID_UINT256 represents a 256-bit unsigned integer
+// BID_UINT256 represents a 256-bit unsigned integer.
+// w0 through w3 are ordered from least to most significant.
 type BID_UINT256 struct {
-	w [4]uint64
+	w0 uint64
+	w1 uint64
+	w2 uint64
+	w3 uint64
 }
 
-// BID_UINT320 represents a 320-bit unsigned integer
+// BID_UINT320 represents a 320-bit unsigned integer.
+// w0 through w4 are ordered from least to most significant.
 type BID_UINT320 struct {
-	w [5]uint64
+	w0 uint64
+	w1 uint64
+	w2 uint64
+	w3 uint64
+	w4 uint64
 }
 
-// BID_UINT384 represents a 384-bit unsigned integer
+// BID_UINT384 represents a 384-bit unsigned integer.
+// w0 through w5 are ordered from least to most significant.
 type BID_UINT384 struct {
-	w [6]uint64
+	w0 uint64
+	w1 uint64
+	w2 uint64
+	w3 uint64
+	w4 uint64
+	w5 uint64
 }
 
-// BID_UINT512 represents a 512-bit unsigned integer
+// BID_UINT512 represents a 512-bit unsigned integer.
+// w0 through w7 are ordered from least to most significant.
 type BID_UINT512 struct {
-	w [8]uint64
+	w0 uint64
+	w1 uint64
+	w2 uint64
+	w3 uint64
+	w4 uint64
+	w5 uint64
+	w6 uint64
+	w7 uint64
 }
 
 // Constants from bid_internal.h
@@ -244,10 +270,10 @@ func __mul_64x128_to_192(a uint64, b BID_UINT128) BID_UINT192 {
 	albh := __mul_64x64_to_128(a, b.hi)
 	albl := __mul_64x64_to_128(a, b.lo)
 
-	q.w[0] = albl.lo
+	q.w0 = albl.lo
 	qm2 := __add_128_64(albh, albl.hi)
-	q.w[1] = qm2.lo
-	q.w[2] = qm2.hi
+	q.w1 = qm2.lo
+	q.w2 = qm2.hi
 	return q
 }
 
@@ -259,10 +285,10 @@ func __mul_128x128_to_256(a, b BID_UINT128) BID_UINT256 {
 	phl, qll := __mul_64x128_full(a.lo, b)
 	phh, qlh := __mul_64x128_full(a.hi, b)
 
-	p256.w[0] = qll.lo
-	p256.w[1], cy1 = __add_carry_out(qlh.lo, qll.hi)
-	p256.w[2], cy2 = __add_carry_in_out(qlh.hi, phl, cy1)
-	p256.w[3] = phh + cy2
+	p256.w0 = qll.lo
+	p256.w1, cy1 = __add_carry_out(qlh.lo, qll.hi)
+	p256.w2, cy2 = __add_carry_in_out(qlh.hi, phl, cy1)
+	p256.w3 = phh + cy2
 	return p256
 }
 
@@ -1068,102 +1094,102 @@ func __mul_192x192_to_384(a, b BID_UINT192) BID_UINT384 {
 	var p BID_UINT384
 	var cy uint64
 
-	p00 := __mul_64x64_to_128(a.w[0], b.w[0])
-	p01 := __mul_64x64_to_128(a.w[0], b.w[1])
-	p02 := __mul_64x64_to_128(a.w[0], b.w[2])
-	p10 := __mul_64x64_to_128(a.w[1], b.w[0])
-	p11 := __mul_64x64_to_128(a.w[1], b.w[1])
-	p12 := __mul_64x64_to_128(a.w[1], b.w[2])
-	p20 := __mul_64x64_to_128(a.w[2], b.w[0])
-	p21 := __mul_64x64_to_128(a.w[2], b.w[1])
-	p22 := __mul_64x64_to_128(a.w[2], b.w[2])
+	p00 := __mul_64x64_to_128(a.w0, b.w0)
+	p01 := __mul_64x64_to_128(a.w0, b.w1)
+	p02 := __mul_64x64_to_128(a.w0, b.w2)
+	p10 := __mul_64x64_to_128(a.w1, b.w0)
+	p11 := __mul_64x64_to_128(a.w1, b.w1)
+	p12 := __mul_64x64_to_128(a.w1, b.w2)
+	p20 := __mul_64x64_to_128(a.w2, b.w0)
+	p21 := __mul_64x64_to_128(a.w2, b.w1)
+	p22 := __mul_64x64_to_128(a.w2, b.w2)
 
-	p.w[0] = p00.lo
+	p.w0 = p00.lo
 
 	// w[1] = p00.w[1] + p01.w[0] + p10.w[0]
-	p.w[1] = p00.hi + p01.lo
+	p.w1 = p00.hi + p01.lo
 	cy = 0
-	if p.w[1] < p00.hi {
+	if p.w1 < p00.hi {
 		cy++
 	}
-	tmp := p.w[1]
-	p.w[1] += p10.lo
-	if p.w[1] < tmp {
+	tmp := p.w1
+	p.w1 += p10.lo
+	if p.w1 < tmp {
 		cy++
 	}
 
 	// w[2] = cy + p01.w[1] + p02.w[0] + p10.w[1] + p11.w[0] + p20.w[0]
-	p.w[2] = cy + p01.hi
+	p.w2 = cy + p01.hi
 	cy = 0
-	if p.w[2] < p01.hi {
+	if p.w2 < p01.hi {
 		cy++
 	}
-	tmp = p.w[2]
-	p.w[2] += p02.lo
-	if p.w[2] < tmp {
+	tmp = p.w2
+	p.w2 += p02.lo
+	if p.w2 < tmp {
 		cy++
 	}
-	tmp = p.w[2]
-	p.w[2] += p10.hi
-	if p.w[2] < tmp {
+	tmp = p.w2
+	p.w2 += p10.hi
+	if p.w2 < tmp {
 		cy++
 	}
-	tmp = p.w[2]
-	p.w[2] += p11.lo
-	if p.w[2] < tmp {
+	tmp = p.w2
+	p.w2 += p11.lo
+	if p.w2 < tmp {
 		cy++
 	}
-	tmp = p.w[2]
-	p.w[2] += p20.lo
-	if p.w[2] < tmp {
+	tmp = p.w2
+	p.w2 += p20.lo
+	if p.w2 < tmp {
 		cy++
 	}
 
 	// w[3] = cy + p02.w[1] + p11.w[1] + p12.w[0] + p20.w[1] + p21.w[0]
-	p.w[3] = cy + p02.hi
+	p.w3 = cy + p02.hi
 	cy = 0
-	if p.w[3] < p02.hi {
+	if p.w3 < p02.hi {
 		cy++
 	}
-	tmp = p.w[3]
-	p.w[3] += p11.hi
-	if p.w[3] < tmp {
+	tmp = p.w3
+	p.w3 += p11.hi
+	if p.w3 < tmp {
 		cy++
 	}
-	tmp = p.w[3]
-	p.w[3] += p12.lo
-	if p.w[3] < tmp {
+	tmp = p.w3
+	p.w3 += p12.lo
+	if p.w3 < tmp {
 		cy++
 	}
-	tmp = p.w[3]
-	p.w[3] += p20.hi
-	if p.w[3] < tmp {
+	tmp = p.w3
+	p.w3 += p20.hi
+	if p.w3 < tmp {
 		cy++
 	}
-	tmp = p.w[3]
-	p.w[3] += p21.lo
-	if p.w[3] < tmp {
+	tmp = p.w3
+	p.w3 += p21.lo
+	if p.w3 < tmp {
 		cy++
 	}
 
 	// w[4] = cy + p12.w[1] + p21.w[1] + p22.w[0]
-	p.w[4] = cy + p12.hi
+	p.w4 = cy + p12.hi
 	cy = 0
-	if p.w[4] < p12.hi {
+	if p.w4 < p12.hi {
 		cy++
 	}
-	tmp = p.w[4]
-	p.w[4] += p21.hi
-	if p.w[4] < tmp {
+	tmp = p.w4
+	p.w4 += p21.hi
+	if p.w4 < tmp {
 		cy++
 	}
-	tmp = p.w[4]
-	p.w[4] += p22.lo
-	if p.w[4] < tmp {
+	tmp = p.w4
+	p.w4 += p22.lo
+	if p.w4 < tmp {
 		cy++
 	}
 
-	p.w[5] = cy + p22.hi
+	p.w5 = cy + p22.hi
 
 	return p
 }
@@ -1174,10 +1200,10 @@ func __mul_256x256_to_512(a, b BID_UINT256) BID_UINT512 {
 	// a = aH * 2^128 + aL, b = bH * 2^128 + bL
 	// a*b = aH*bH*2^256 + (aH*bL + aL*bH)*2^128 + aL*bL
 	var p BID_UINT512
-	aL := BID_UINT128{lo: a.w[0], hi: a.w[1]}
-	aH := BID_UINT128{lo: a.w[2], hi: a.w[3]}
-	bL := BID_UINT128{lo: b.w[0], hi: b.w[1]}
-	bH := BID_UINT128{lo: b.w[2], hi: b.w[3]}
+	aL := BID_UINT128{lo: a.w0, hi: a.w1}
+	aH := BID_UINT128{lo: a.w2, hi: a.w3}
+	bL := BID_UINT128{lo: b.w0, hi: b.w1}
+	bH := BID_UINT128{lo: b.w2, hi: b.w3}
 
 	p0 := __mul_128x128_to_256(aL, bL) // aL * bL
 	p1 := __mul_128x128_to_256(aH, bL) // aH * bL
@@ -1185,74 +1211,74 @@ func __mul_256x256_to_512(a, b BID_UINT256) BID_UINT512 {
 	p3 := __mul_128x128_to_256(aH, bH) // aH * bH
 
 	// p = p0 + (p1+p2)<<128 + p3<<256
-	p.w[0] = p0.w[0]
-	p.w[1] = p0.w[1]
+	p.w0 = p0.w0
+	p.w1 = p0.w1
 
 	var cy uint64
 	// Add p1 shifted by 128 bits
-	p.w[2] = p0.w[2] + p1.w[0]
+	p.w2 = p0.w2 + p1.w0
 	cy = 0
-	if p.w[2] < p0.w[2] {
+	if p.w2 < p0.w2 {
 		cy = 1
 	}
 
-	p.w[3] = p0.w[3] + p1.w[1] + cy
+	p.w3 = p0.w3 + p1.w1 + cy
 	cy = 0
-	if p.w[3] < p1.w[1] || (cy == 0 && p.w[3] < p0.w[3]) {
+	if p.w3 < p1.w1 || (cy == 0 && p.w3 < p0.w3) {
 		cy = 1
 	}
 
-	c4 := p1.w[2] + cy
+	c4 := p1.w2 + cy
 	cy = 0
-	if c4 < p1.w[2] {
+	if c4 < p1.w2 {
 		cy = 1
 	}
-	c5 := p1.w[3] + cy
+	c5 := p1.w3 + cy
 
 	// Add p2 shifted by 128 bits
-	tmp := p.w[2]
-	p.w[2] += p2.w[0]
+	tmp := p.w2
+	p.w2 += p2.w0
 	cy = 0
-	if p.w[2] < tmp {
+	if p.w2 < tmp {
 		cy = 1
 	}
 
-	tmp = p.w[3]
-	p.w[3] += p2.w[1] + cy
+	tmp = p.w3
+	p.w3 += p2.w1 + cy
 	cy = 0
-	if p.w[3] < tmp || (p.w[3] == tmp && cy > 0) {
+	if p.w3 < tmp || (p.w3 == tmp && cy > 0) {
 		cy = 1
 	}
 
 	tmp = c4
-	c4 += p2.w[2] + cy
+	c4 += p2.w2 + cy
 	cy = 0
 	if c4 < tmp || (c4 == tmp && cy > 0) {
 		cy = 1
 	}
 
-	c5 += p2.w[3] + cy
+	c5 += p2.w3 + cy
 
 	// Add p3 shifted by 256 bits
-	p.w[4] = c4 + p3.w[0]
+	p.w4 = c4 + p3.w0
 	cy = 0
-	if p.w[4] < c4 {
+	if p.w4 < c4 {
 		cy = 1
 	}
 
-	p.w[5] = c5 + p3.w[1] + cy
+	p.w5 = c5 + p3.w1 + cy
 	cy = 0
-	if p.w[5] < c5 || (p.w[5] == c5 && cy > 0) {
+	if p.w5 < c5 || (p.w5 == c5 && cy > 0) {
 		cy = 1
 	}
 
-	p.w[6] = p3.w[2] + cy
+	p.w6 = p3.w2 + cy
 	cy = 0
-	if p.w[6] < p3.w[2] {
+	if p.w6 < p3.w2 {
 		cy = 1
 	}
 
-	p.w[7] = p3.w[3] + cy
+	p.w7 = p3.w3 + cy
 
 	return p
 }
@@ -1270,13 +1296,13 @@ func __mul_64x128_to_128(a uint64, b BID_UINT128) BID_UINT128 {
 func __mul_64x192_to_256(A uint64, B BID_UINT192) BID_UINT256 {
 	var P BID_UINT256
 	var c uint64
-	lP0 := __mul_64x64_to_128(A, B.w[0])
-	lP1 := __mul_64x64_to_128(A, B.w[1])
-	lP2 := __mul_64x64_to_128(A, B.w[2])
-	P.w[0] = lP0.lo
-	P.w[1], c = __add_carry_out(lP1.lo, lP0.hi)
-	P.w[2], c = __add_carry_in_out(lP2.lo, lP1.hi, c)
-	P.w[3] = lP2.hi + c
+	lP0 := __mul_64x64_to_128(A, B.w0)
+	lP1 := __mul_64x64_to_128(A, B.w1)
+	lP2 := __mul_64x64_to_128(A, B.w2)
+	P.w0 = lP0.lo
+	P.w1, c = __add_carry_out(lP1.lo, lP0.hi)
+	P.w2, c = __add_carry_in_out(lP2.lo, lP1.hi, c)
+	P.w3 = lP2.hi + c
 	return P
 }
 
@@ -1285,15 +1311,15 @@ func __mul_64x192_to_256(A uint64, B BID_UINT192) BID_UINT256 {
 func __mul_64x256_to_320(A uint64, B BID_UINT256) BID_UINT320 {
 	var P BID_UINT320
 	var c uint64
-	lP0 := __mul_64x64_to_128(A, B.w[0])
-	lP1 := __mul_64x64_to_128(A, B.w[1])
-	lP2 := __mul_64x64_to_128(A, B.w[2])
-	lP3 := __mul_64x64_to_128(A, B.w[3])
-	P.w[0] = lP0.lo
-	P.w[1], c = __add_carry_out(lP1.lo, lP0.hi)
-	P.w[2], c = __add_carry_in_out(lP2.lo, lP1.hi, c)
-	P.w[3], c = __add_carry_in_out(lP3.lo, lP2.hi, c)
-	P.w[4] = lP3.hi + c
+	lP0 := __mul_64x64_to_128(A, B.w0)
+	lP1 := __mul_64x64_to_128(A, B.w1)
+	lP2 := __mul_64x64_to_128(A, B.w2)
+	lP3 := __mul_64x64_to_128(A, B.w3)
+	P.w0 = lP0.lo
+	P.w1, c = __add_carry_out(lP1.lo, lP0.hi)
+	P.w2, c = __add_carry_in_out(lP2.lo, lP1.hi, c)
+	P.w3, c = __add_carry_in_out(lP3.lo, lP2.hi, c)
+	P.w4 = lP3.hi + c
 	return P
 }
 
@@ -1302,17 +1328,17 @@ func __mul_64x256_to_320(A uint64, B BID_UINT256) BID_UINT320 {
 func __mul_64x320_to_384(A uint64, B BID_UINT320) BID_UINT384 {
 	var P BID_UINT384
 	var c uint64
-	lP0 := __mul_64x64_to_128(A, B.w[0])
-	lP1 := __mul_64x64_to_128(A, B.w[1])
-	lP2 := __mul_64x64_to_128(A, B.w[2])
-	lP3 := __mul_64x64_to_128(A, B.w[3])
-	lP4 := __mul_64x64_to_128(A, B.w[4])
-	P.w[0] = lP0.lo
-	P.w[1], c = __add_carry_out(lP1.lo, lP0.hi)
-	P.w[2], c = __add_carry_in_out(lP2.lo, lP1.hi, c)
-	P.w[3], c = __add_carry_in_out(lP3.lo, lP2.hi, c)
-	P.w[4], c = __add_carry_in_out(lP4.lo, lP3.hi, c)
-	P.w[5] = lP4.hi + c
+	lP0 := __mul_64x64_to_128(A, B.w0)
+	lP1 := __mul_64x64_to_128(A, B.w1)
+	lP2 := __mul_64x64_to_128(A, B.w2)
+	lP3 := __mul_64x64_to_128(A, B.w3)
+	lP4 := __mul_64x64_to_128(A, B.w4)
+	P.w0 = lP0.lo
+	P.w1, c = __add_carry_out(lP1.lo, lP0.hi)
+	P.w2, c = __add_carry_in_out(lP2.lo, lP1.hi, c)
+	P.w3, c = __add_carry_in_out(lP3.lo, lP2.hi, c)
+	P.w4, c = __add_carry_in_out(lP4.lo, lP3.hi, c)
+	P.w5 = lP4.hi + c
 	return P
 }
 
@@ -1328,10 +1354,10 @@ func __sqr128_to_256(A BID_UINT128) BID_UINT256 {
 	Qlh.lo += Qlh.lo
 	Qll := __mul_64x64_to_128(A.lo, A.lo)
 
-	P256.w[1], c1 = __add_carry_out(Qlh.lo, Qll.hi)
-	P256.w[0] = Qll.lo
-	P256.w[2], c2 = __add_carry_in_out(Qlh.hi, Qhh.lo, c1)
-	P256.w[3] = Qhh.hi + c2
+	P256.w1, c1 = __add_carry_out(Qlh.lo, Qll.hi)
+	P256.w0 = Qll.lo
+	P256.w2, c2 = __add_carry_in_out(Qlh.hi, Qhh.lo, c1)
+	P256.w3 = Qhh.hi + c2
 	return P256
 }
 

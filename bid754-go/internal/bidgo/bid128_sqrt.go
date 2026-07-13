@@ -33,22 +33,22 @@ func short_sqrt128(A10 BID_UINT128) uint64 {
 	k := (ey << 1) + 104 - 64
 	if k >= 128 {
 		if k > 128 {
-			ES = (ARS.w[2] >> uint(k-128)) | (ARS.w[3] << uint(192-k))
+			ES = (ARS.w2 >> uint(k-128)) | (ARS.w3 << uint(192-k))
 		} else {
-			ES = ARS.w[2]
+			ES = ARS.w2
 		}
 	} else {
 		if k >= 64 {
-			ARS.w[0] = ARS.w[1]
-			ARS.w[1] = ARS.w[2]
+			ARS.w0 = ARS.w1
+			ARS.w1 = ARS.w2
 			k -= 64
 		}
 		if k != 0 {
-			ARS_128 := __shr_128(BID_UINT128{lo: ARS.w[0], hi: ARS.w[1]}, uint(k))
-			ARS.w[0] = ARS_128.lo
-			ARS.w[1] = ARS_128.hi
+			ARS_128 := __shr_128(BID_UINT128{lo: ARS.w0, hi: ARS.w1}, uint(k))
+			ARS.w0 = ARS_128.lo
+			ARS.w1 = ARS_128.hi
 		}
-		ES = ARS.w[0]
+		ES = ARS.w0
 	}
 
 	ES = uint64(int64(ES) >> 1)
@@ -59,46 +59,46 @@ func short_sqrt128(A10 BID_UINT128) uint64 {
 		// A*RS*eps (scaled by 2^64)
 		AE0 = __mul_64x192_to_256(ES, ARS0)
 
-		AE.w[0] = AE0.w[1]
-		AE.w[1] = AE0.w[2]
-		AE.w[2] = AE0.w[3]
+		AE.w0 = AE0.w1
+		AE.w1 = AE0.w2
+		AE.w2 = AE0.w3
 
-		S.w[0], CY = __add_carry_out(ARS0.w[0], AE.w[0])
-		S.w[1], CY = __add_carry_in_out(ARS0.w[1], AE.w[1], CY)
-		S.w[2] = ARS0.w[2] + AE.w[2] + CY
+		S.w0, CY = __add_carry_out(ARS0.w0, AE.w0)
+		S.w1, CY = __add_carry_in_out(ARS0.w1, AE.w1, CY)
+		S.w2 = ARS0.w2 + AE.w2 + CY
 	} else {
 		// A*RS*eps (scaled by 2^64)
 		AE0 = __mul_64x192_to_256(ES, ARS0)
 
-		AE.w[0] = AE0.w[1]
-		AE.w[1] = AE0.w[2]
-		AE.w[2] = AE0.w[3]
+		AE.w0 = AE0.w1
+		AE.w1 = AE0.w2
+		AE.w2 = AE0.w3
 
-		S.w[0], CY = __sub_borrow_out(ARS0.w[0], AE.w[0])
-		S.w[1], CY = __sub_borrow_in_out(ARS0.w[1], AE.w[1], CY)
-		S.w[2] = ARS0.w[2] - AE.w[2] - CY
+		S.w0, CY = __sub_borrow_out(ARS0.w0, AE.w0)
+		S.w1, CY = __sub_borrow_in_out(ARS0.w1, AE.w1, CY)
+		S.w2 = ARS0.w2 - AE.w2 - CY
 	}
 
 	k = ey + 51
 
 	if k >= 64 {
 		if k >= 128 {
-			S.w[0] = S.w[2]
-			S.w[1] = 0
+			S.w0 = S.w2
+			S.w1 = 0
 			k -= 128
 		} else {
-			S.w[0] = S.w[1]
-			S.w[1] = S.w[2]
+			S.w0 = S.w1
+			S.w1 = S.w2
 		}
 		k -= 64
 	}
 	if k != 0 {
-		S_128 := __shr_128(BID_UINT128{lo: S.w[0], hi: S.w[1]}, uint(k))
-		S.w[0] = S_128.lo
-		S.w[1] = S_128.hi
+		S_128 := __shr_128(BID_UINT128{lo: S.w0, hi: S.w1}, uint(k))
+		S.w0 = S_128.lo
+		S.w1 = S_128.hi
 	}
 
-	return (S.w[0] + 1) >> 1
+	return (S.w0 + 1) >> 1
 }
 
 // bid_long_sqrt128 computes the approximate 128-bit integer square root of a 256-bit value.
@@ -114,12 +114,12 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	l64 := math.Float64frombits(0x43f0000000000000)
 
 	l128 := l64 * l64
-	lx := float64(C256.w[3]) * l64 * l128
-	l2 := float64(C256.w[2]) * l128
+	lx := float64(C256.w3) * l64 * l128
+	l2 := float64(C256.w2) * l128
 	lx = lx + l2
-	l1 := float64(C256.w[1]) * l64
+	l1 := float64(C256.w1) * l64
 	lx = lx + l1
-	l0 := float64(C256.w[0])
+	l0 := float64(C256.w0)
 	lx = lx + l0
 	// sqrt(C256)
 	ly_d := 1.0 / math.Sqrt(lx)
@@ -135,19 +135,19 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	// shr by k=(2*ey+104)-128-192
 	k := (ey << 1) + 104 - 128 - 192
 	k2 := 64 - k
-	ES.lo = (ARS.w[3] >> uint(k+1)) | (ARS.w[4] << uint(k2-1))
-	ES.hi = (ARS.w[4] >> uint(k)) | (ARS.w[5] << uint(k2))
+	ES.lo = (ARS.w3 >> uint(k+1)) | (ARS.w4 << uint(k2-1))
+	ES.hi = (ARS.w4 >> uint(k)) | (ARS.w5 << uint(k2))
 	ES.hi = uint64(int64(ES.hi) >> 1)
 
 	// A*RS >> 192 (for error term computation)
-	ARS1.lo = ARS0.w[3]
-	ARS1.hi = ARS0.w[4]
+	ARS1.lo = ARS0.w3
+	ARS1.hi = ARS0.w4
 
 	// A*RS>>64
-	ARS00.w[0] = ARS0.w[1]
-	ARS00.w[1] = ARS0.w[2]
-	ARS00.w[2] = ARS0.w[3]
-	ARS00.w[3] = ARS0.w[4]
+	ARS00.w0 = ARS0.w1
+	ARS00.w1 = ARS0.w2
+	ARS00.w2 = ARS0.w3
+	ARS00.w3 = ARS0.w4
 
 	if int64(ES.hi) < 0 {
 		ES.lo = -ES.lo
@@ -159,18 +159,18 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 		// A*RS*eps
 		AE = __mul_128x128_to_256(ES, ARS1)
 
-		S.w[0], CY = __add_carry_out(ARS00.w[0], AE.w[0])
-		S.w[1], CY = __add_carry_in_out(ARS00.w[1], AE.w[1], CY)
-		S.w[2], CY = __add_carry_in_out(ARS00.w[2], AE.w[2], CY)
-		S.w[3] = ARS00.w[3] + AE.w[3] + CY
+		S.w0, CY = __add_carry_out(ARS00.w0, AE.w0)
+		S.w1, CY = __add_carry_in_out(ARS00.w1, AE.w1, CY)
+		S.w2, CY = __add_carry_in_out(ARS00.w2, AE.w2, CY)
+		S.w3 = ARS00.w3 + AE.w3 + CY
 	} else {
 		// A*RS*eps
 		AE = __mul_128x128_to_256(ES, ARS1)
 
-		S.w[0], CY = __sub_borrow_out(ARS00.w[0], AE.w[0])
-		S.w[1], CY = __sub_borrow_in_out(ARS00.w[1], AE.w[1], CY)
-		S.w[2], CY = __sub_borrow_in_out(ARS00.w[2], AE.w[2], CY)
-		S.w[3] = ARS00.w[3] - AE.w[3] - CY
+		S.w0, CY = __sub_borrow_out(ARS00.w0, AE.w0)
+		S.w1, CY = __sub_borrow_in_out(ARS00.w1, AE.w1, CY)
+		S.w2, CY = __sub_borrow_in_out(ARS00.w2, AE.w2, CY)
+		S.w3 = ARS00.w3 - AE.w3 - CY
 	}
 
 	// 3/2*eps^2, scaled by 2^128
@@ -180,26 +180,26 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	AE2 = __mul_128x128_to_256(ES2, ARS1)
 
 	// result, scaled by 2^(ey+52-64)
-	S.w[0], CY = __add_carry_out(S.w[0], AE2.w[0])
-	S.w[1], CY = __add_carry_in_out(S.w[1], AE2.w[1], CY)
-	S.w[2], CY = __add_carry_in_out(S.w[2], AE2.w[2], CY)
-	S.w[3] = S.w[3] + AE2.w[3] + CY
+	S.w0, CY = __add_carry_out(S.w0, AE2.w0)
+	S.w1, CY = __add_carry_in_out(S.w1, AE2.w1, CY)
+	S.w2, CY = __add_carry_in_out(S.w2, AE2.w2, CY)
+	S.w3 = S.w3 + AE2.w3 + CY
 
 	// k in (0, 64)
 	k = ey + 51 - 128
 	k2 = 64 - k
-	S.w[0] = (S.w[1] >> uint(k)) | (S.w[2] << uint(k2))
-	S.w[1] = (S.w[2] >> uint(k)) | (S.w[3] << uint(k2))
+	S.w0 = (S.w1 >> uint(k)) | (S.w2 << uint(k2))
+	S.w1 = (S.w2 >> uint(k)) | (S.w3 << uint(k2))
 
 	// round to nearest
-	S.w[0]++
-	if S.w[0] == 0 {
-		S.w[1]++
+	S.w0++
+	if S.w0 == 0 {
+		S.w1++
 	}
 
 	var CS BID_UINT128
-	CS.lo = (S.w[1] << 63) | (S.w[0] >> 1)
-	CS.hi = S.w[1] >> 1
+	CS.lo = (S.w1 << 63) | (S.w0 >> 1)
+	CS.hi = S.w1 >> 1
 
 	return CS
 }
@@ -305,10 +305,10 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	}
 
 	// 4*C256
-	C4.w[3] = (C256.w[3] << 2) | (C256.w[2] >> 62)
-	C4.w[2] = (C256.w[2] << 2) | (C256.w[1] >> 62)
-	C4.w[1] = (C256.w[1] << 2) | (C256.w[0] >> 62)
-	C4.w[0] = C256.w[0] << 2
+	C4.w3 = (C256.w3 << 2) | (C256.w2 >> 62)
+	C4.w2 = (C256.w2 << 2) | (C256.w1 >> 62)
+	C4.w1 = (C256.w1 << 2) | (C256.w0 >> 62)
+	C4.w0 = C256.w0 << 2
 
 	CS = bid_long_sqrt128(C256)
 
@@ -319,35 +319,35 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 		// CSM^2
 		M256 = __sqr128_to_256(CSM)
 
-		if C4.w[3] > M256.w[3] ||
-			(C4.w[3] == M256.w[3] &&
-				(C4.w[2] > M256.w[2] ||
-					(C4.w[2] == M256.w[2] &&
-						(C4.w[1] > M256.w[1] ||
-							(C4.w[1] == M256.w[1] &&
-								C4.w[0] > M256.w[0]))))) {
+		if C4.w3 > M256.w3 ||
+			(C4.w3 == M256.w3 &&
+				(C4.w2 > M256.w2 ||
+					(C4.w2 == M256.w2 &&
+						(C4.w1 > M256.w1 ||
+							(C4.w1 == M256.w1 &&
+								C4.w0 > M256.w0))))) {
 			// round up
 			CS.lo++
 			if CS.lo == 0 {
 				CS.hi++
 			}
 		} else {
-			C8.w[1] = (CS.hi << 3) | (CS.lo >> 61)
-			C8.w[0] = CS.lo << 3
+			C8.w1 = (CS.hi << 3) | (CS.lo >> 61)
+			C8.w0 = CS.lo << 3
 			// M256 - 8*CSM
-			M256.w[0], Carry = __sub_borrow_out(M256.w[0], C8.w[0])
-			M256.w[1], Carry = __sub_borrow_in_out(M256.w[1], C8.w[1], Carry)
-			M256.w[2], Carry = __sub_borrow_in_out(M256.w[2], 0, Carry)
-			M256.w[3] = M256.w[3] - Carry
+			M256.w0, Carry = __sub_borrow_out(M256.w0, C8.w0)
+			M256.w1, Carry = __sub_borrow_in_out(M256.w1, C8.w1, Carry)
+			M256.w2, Carry = __sub_borrow_in_out(M256.w2, 0, Carry)
+			M256.w3 = M256.w3 - Carry
 
 			// if CSM' > C256, round up
-			if M256.w[3] > C4.w[3] ||
-				(M256.w[3] == C4.w[3] &&
-					(M256.w[2] > C4.w[2] ||
-						(M256.w[2] == C4.w[2] &&
-							(M256.w[1] > C4.w[1] ||
-								(M256.w[1] == C4.w[1] &&
-									M256.w[0] > C4.w[0]))))) {
+			if M256.w3 > C4.w3 ||
+				(M256.w3 == C4.w3 &&
+					(M256.w2 > C4.w2 ||
+						(M256.w2 == C4.w2 &&
+							(M256.w1 > C4.w1 ||
+								(M256.w1 == C4.w1 &&
+									M256.w0 > C4.w0))))) {
 				// round down
 				if CS.lo == 0 {
 					CS.hi--
@@ -357,26 +357,26 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 		}
 	} else {
 		M256 = __sqr128_to_256(CS)
-		C8.w[1] = (CS.hi << 1) | (CS.lo >> 63)
-		C8.w[0] = CS.lo << 1
-		if M256.w[3] > C256.w[3] ||
-			(M256.w[3] == C256.w[3] &&
-				(M256.w[2] > C256.w[2] ||
-					(M256.w[2] == C256.w[2] &&
-						(M256.w[1] > C256.w[1] ||
-							(M256.w[1] == C256.w[1] &&
-								M256.w[0] > C256.w[0]))))) {
-			M256.w[0], Carry = __sub_borrow_out(M256.w[0], C8.w[0])
-			M256.w[1], Carry = __sub_borrow_in_out(M256.w[1], C8.w[1], Carry)
-			M256.w[2], Carry = __sub_borrow_in_out(M256.w[2], 0, Carry)
-			M256.w[3] = M256.w[3] - Carry
-			M256.w[0]++
-			if M256.w[0] == 0 {
-				M256.w[1]++
-				if M256.w[1] == 0 {
-					M256.w[2]++
-					if M256.w[2] == 0 {
-						M256.w[3]++
+		C8.w1 = (CS.hi << 1) | (CS.lo >> 63)
+		C8.w0 = CS.lo << 1
+		if M256.w3 > C256.w3 ||
+			(M256.w3 == C256.w3 &&
+				(M256.w2 > C256.w2 ||
+					(M256.w2 == C256.w2 &&
+						(M256.w1 > C256.w1 ||
+							(M256.w1 == C256.w1 &&
+								M256.w0 > C256.w0))))) {
+			M256.w0, Carry = __sub_borrow_out(M256.w0, C8.w0)
+			M256.w1, Carry = __sub_borrow_in_out(M256.w1, C8.w1, Carry)
+			M256.w2, Carry = __sub_borrow_in_out(M256.w2, 0, Carry)
+			M256.w3 = M256.w3 - Carry
+			M256.w0++
+			if M256.w0 == 0 {
+				M256.w1++
+				if M256.w1 == 0 {
+					M256.w2++
+					if M256.w2 == 0 {
+						M256.w3++
 					}
 				}
 			}
@@ -386,13 +386,13 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 			}
 			CS.lo--
 
-			if M256.w[3] > C256.w[3] ||
-				(M256.w[3] == C256.w[3] &&
-					(M256.w[2] > C256.w[2] ||
-						(M256.w[2] == C256.w[2] &&
-							(M256.w[1] > C256.w[1] ||
-								(M256.w[1] == C256.w[1] &&
-									M256.w[0] > C256.w[0]))))) {
+			if M256.w3 > C256.w3 ||
+				(M256.w3 == C256.w3 &&
+					(M256.w2 > C256.w2 ||
+						(M256.w2 == C256.w2 &&
+							(M256.w1 > C256.w1 ||
+								(M256.w1 == C256.w1 &&
+									M256.w0 > C256.w0))))) {
 
 				if CS.lo == 0 {
 					CS.hi--
@@ -400,27 +400,27 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 				CS.lo--
 			}
 		} else {
-			M256.w[0], Carry = __add_carry_out(M256.w[0], C8.w[0])
-			M256.w[1], Carry = __add_carry_in_out(M256.w[1], C8.w[1], Carry)
-			M256.w[2], Carry = __add_carry_in_out(M256.w[2], 0, Carry)
-			M256.w[3] = M256.w[3] + Carry
-			M256.w[0]++
-			if M256.w[0] == 0 {
-				M256.w[1]++
-				if M256.w[1] == 0 {
-					M256.w[2]++
-					if M256.w[2] == 0 {
-						M256.w[3]++
+			M256.w0, Carry = __add_carry_out(M256.w0, C8.w0)
+			M256.w1, Carry = __add_carry_in_out(M256.w1, C8.w1, Carry)
+			M256.w2, Carry = __add_carry_in_out(M256.w2, 0, Carry)
+			M256.w3 = M256.w3 + Carry
+			M256.w0++
+			if M256.w0 == 0 {
+				M256.w1++
+				if M256.w1 == 0 {
+					M256.w2++
+					if M256.w2 == 0 {
+						M256.w3++
 					}
 				}
 			}
-			if M256.w[3] < C256.w[3] ||
-				(M256.w[3] == C256.w[3] &&
-					(M256.w[2] < C256.w[2] ||
-						(M256.w[2] == C256.w[2] &&
-							(M256.w[1] < C256.w[1] ||
-								(M256.w[1] == C256.w[1] &&
-									M256.w[0] <= C256.w[0]))))) {
+			if M256.w3 < C256.w3 ||
+				(M256.w3 == C256.w3 &&
+					(M256.w2 < C256.w2 ||
+						(M256.w2 == C256.w2 &&
+							(M256.w1 < C256.w1 ||
+								(M256.w1 == C256.w1 &&
+									M256.w0 <= C256.w0))))) {
 
 				CS.lo++
 				if CS.lo == 0 {
