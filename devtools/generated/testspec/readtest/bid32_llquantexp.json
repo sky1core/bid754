@@ -12,13 +12,13 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid32_llquantexp_84957","line":127070,"operands":["[3400007B]"],"expected":"3","status":"00","rounding":0},
-    {"id":"bid32_llquantexp_84958","line":127071,"operands":["[B400007B]"],"expected":"3","status":"00","rounding":0},
-    {"id":"bid32_llquantexp_84959","line":127072,"operands":["[34800000]"],"expected":"4","status":"00","rounding":0},
-    {"id":"bid32_llquantexp_84960","line":127073,"operands":["[B4800000]"],"expected":"4","status":"00","rounding":0},
-    {"id":"bid32_llquantexp_84961","line":127074,"operands":["[5F8F4240]"],"expected":"90","status":"00","rounding":0},
-    {"id":"bid32_llquantexp_84962","line":127075,"operands":["[DF8F4240]"],"expected":"90","status":"00","rounding":0},
-    {"id":"bid32_llquantexp_84963","line":127076,"operands":["[00000001]"],"expected":"-101","status":"00","rounding":0},
-    {"id":"bid32_llquantexp_84964","line":127077,"operands":["[80000001]"],"expected":"-101","status":"00","rounding":0}
+    {"id":"bid32_llquantexp_line_127070","line":127070,"operands":["[3400007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid32_llquantexp_line_127071","line":127071,"operands":["[B400007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid32_llquantexp_line_127072","line":127072,"operands":["[34800000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid32_llquantexp_line_127073","line":127073,"operands":["[B4800000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid32_llquantexp_line_127074","line":127074,"operands":["[5F8F4240]"],"expected":"90","status":"00","rounding":0},
+    {"id":"bid32_llquantexp_line_127075","line":127075,"operands":["[DF8F4240]"],"expected":"90","status":"00","rounding":0},
+    {"id":"bid32_llquantexp_line_127076","line":127076,"operands":["[00000001]"],"expected":"-101","status":"00","rounding":0},
+    {"id":"bid32_llquantexp_line_127077","line":127077,"operands":["[80000001]"],"expected":"-101","status":"00","rounding":0}
   ]
 }

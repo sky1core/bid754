@@ -12,16 +12,16 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86210","line":6,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":0},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86211","line":7,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":2},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86212","line":8,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":4},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86213","line":9,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":0},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86214","line":10,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":1},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86215","line":11,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":4},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86216","line":12,"operands":["1E100"],"expected":"[78000000]","status":"28","rounding":0},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86217","line":13,"operands":["1E100"],"expected":"[77f8967f]","status":"28","rounding":1},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86218","line":14,"operands":["1E100"],"expected":"[77f8967f]","status":"28","rounding":3},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86219","line":15,"operands":["-1E100"],"expected":"[f7f8967f]","status":"28","rounding":2},
-    {"id":"bid32_from_string_ieee754_overflow_cmatch_86220","line":16,"operands":["-1E100"],"expected":"[f7f8967f]","status":"28","rounding":3}
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_6","line":6,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":0},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_7","line":7,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":2},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_8","line":8,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[78000000]","status":"28","rounding":4},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_9","line":9,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":0},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_10","line":10,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":1},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_11","line":11,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f8000000]","status":"28","rounding":4},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_12","line":12,"operands":["1E100"],"expected":"[78000000]","status":"28","rounding":0},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_13","line":13,"operands":["1E100"],"expected":"[77f8967f]","status":"28","rounding":1},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_14","line":14,"operands":["1E100"],"expected":"[77f8967f]","status":"28","rounding":3},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_15","line":15,"operands":["-1E100"],"expected":"[f7f8967f]","status":"28","rounding":2},
+    {"id":"bid32_from_string_ieee754_overflow_cmatch_line_16","line":16,"operands":["-1E100"],"expected":"[f7f8967f]","status":"28","rounding":3}
   ]
 }

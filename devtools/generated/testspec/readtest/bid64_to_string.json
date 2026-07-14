@@ -12,17 +12,17 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid64_to_string_4928","line":82838,"operands":["[31c0000000000037]"],"expected":"+55E+0","status":"00","rounding":0},
-    {"id":"bid64_to_string_4929","line":82839,"operands":["[64ff55cb7bb8be2b]"],"expected":"+0E-239","status":"00","rounding":0},
-    {"id":"bid64_to_string_4930","line":82840,"operands":["[69dbb75d7734cd9e]"],"expected":"+0E-83","status":"00","rounding":0},
-    {"id":"bid64_to_string_4931","line":82841,"operands":["[6ddd5f2bc961d9c6]"],"expected":"+0E+45","status":"00","rounding":0},
-    {"id":"bid64_to_string_4932","line":82842,"operands":["[7933324ba39af65d]"],"expected":"+Inf","status":"00","rounding":0},
-    {"id":"bid64_to_string_4933","line":82843,"operands":["[7c03ffffffffffff]"],"expected":"+NaN","status":"00","rounding":0},
-    {"id":"bid64_to_string_4934","line":82844,"operands":["[7e00000000000000]"],"expected":"+SNaN","status":"00","rounding":0},
-    {"id":"bid64_to_string_4935","line":82845,"operands":["[be20000000000014]"],"expected":"-20E+99","status":"00","rounding":0},
-    {"id":"bid64_to_string_4936","line":82846,"operands":["[ff9ef506fff9e3bf]"],"expected":"-SNaN","status":"00","rounding":0},
-    {"id":"bid64_to_string_4937","line":82847,"operands":["[ffdbb3ffaefefdff]"],"expected":"-SNaN","status":"00","rounding":0},
-    {"id":"bid64_to_string_4938","line":82848,"operands":["[f8f0000000000001]"],"expected":"-Inf","status":"00","rounding":3},
-    {"id":"bid64_to_string_4939","line":82849,"operands":["[fcf0000000000000]"],"expected":"-NaN","status":"00","rounding":3}
+    {"id":"bid64_to_string_line_82838","line":82838,"operands":["[31c0000000000037]"],"expected":"+55E+0","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82839","line":82839,"operands":["[64ff55cb7bb8be2b]"],"expected":"+0E-239","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82840","line":82840,"operands":["[69dbb75d7734cd9e]"],"expected":"+0E-83","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82841","line":82841,"operands":["[6ddd5f2bc961d9c6]"],"expected":"+0E+45","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82842","line":82842,"operands":["[7933324ba39af65d]"],"expected":"+Inf","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82843","line":82843,"operands":["[7c03ffffffffffff]"],"expected":"+NaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82844","line":82844,"operands":["[7e00000000000000]"],"expected":"+SNaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82845","line":82845,"operands":["[be20000000000014]"],"expected":"-20E+99","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82846","line":82846,"operands":["[ff9ef506fff9e3bf]"],"expected":"-SNaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82847","line":82847,"operands":["[ffdbb3ffaefefdff]"],"expected":"-SNaN","status":"00","rounding":0},
+    {"id":"bid64_to_string_line_82848","line":82848,"operands":["[f8f0000000000001]"],"expected":"-Inf","status":"00","rounding":3},
+    {"id":"bid64_to_string_line_82849","line":82849,"operands":["[fcf0000000000000]"],"expected":"-NaN","status":"00","rounding":3}
   ]
 }

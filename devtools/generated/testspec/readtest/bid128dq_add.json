@@ -13,13 +13,13 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128dq_add_12765","line":1498,"operands":["[0000000200008101]","[acb07ad703d23f84,e19e20e7061ad484]"],"expected":"[2cf5a784a2533da093128b0ea1000000]","status":"20","rounding":0},
-    {"id":"bid128dq_add_12766","line":1499,"operands":["[04000008004000c0]","[ad35948f51a72cfe,8a42fe8464bf5416]"],"expected":"[2d3680f8a632199242064b9209201131]","status":"00","rounding":0},
-    {"id":"bid128dq_add_12767","line":1500,"operands":["16","5E-33"],"expected":"[30004ee2d6d415b85acef81000000000]","status":"20","rounding":0},
-    {"id":"bid128dq_add_12768","line":1501,"operands":["[3574817b9554ede2]","[b09a57e5b0d7630f,a5aee4c5d4f64d48]"],"expected":"[b09a57e5b0d7630fa5aee4c5d4f64d47]","status":"20","rounding":0},
-    {"id":"bid128dq_add_12769","line":1502,"operands":["[4db49fffc0a5b7f0]","[b19633605aace164,ffdbdcffbeede1e7]"],"expected":"[31db1e3ab4ca2a8ffd37988969c00000]","status":"20","rounding":0},
-    {"id":"bid128dq_add_12770","line":1503,"operands":["16","5E-33"],"expected":"[30004ee2d6d415b85acef81000000001]","status":"20","rounding":4},
-    {"id":"bid128dq_add_12771","line":94784,"operands":["[1e559ead54514c1b]","[2f29020980c0ba51,ffffffffffffffff]"],"expected":"[2f29020980c0ba520000000000000000]","status":"20","rounding":0},
-    {"id":"bid128dq_add_12772","line":95668,"operands":["[1e559ead54514c1b]","[2f29020980c0ba51,ffffffffffffffff]"],"expected":"[2f29020980c0ba520000000000000000]","status":"20","rounding":0}
+    {"id":"bid128dq_add_line_1498","line":1498,"operands":["[0000000200008101]","[acb07ad703d23f84,e19e20e7061ad484]"],"expected":"[2cf5a784a2533da093128b0ea1000000]","status":"20","rounding":0},
+    {"id":"bid128dq_add_line_1499","line":1499,"operands":["[04000008004000c0]","[ad35948f51a72cfe,8a42fe8464bf5416]"],"expected":"[2d3680f8a632199242064b9209201131]","status":"00","rounding":0},
+    {"id":"bid128dq_add_line_1500","line":1500,"operands":["16","5E-33"],"expected":"[30004ee2d6d415b85acef81000000000]","status":"20","rounding":0},
+    {"id":"bid128dq_add_line_1501","line":1501,"operands":["[3574817b9554ede2]","[b09a57e5b0d7630f,a5aee4c5d4f64d48]"],"expected":"[b09a57e5b0d7630fa5aee4c5d4f64d47]","status":"20","rounding":0},
+    {"id":"bid128dq_add_line_1502","line":1502,"operands":["[4db49fffc0a5b7f0]","[b19633605aace164,ffdbdcffbeede1e7]"],"expected":"[31db1e3ab4ca2a8ffd37988969c00000]","status":"20","rounding":0},
+    {"id":"bid128dq_add_line_1503","line":1503,"operands":["16","5E-33"],"expected":"[30004ee2d6d415b85acef81000000001]","status":"20","rounding":4},
+    {"id":"bid128dq_add_line_94784","line":94784,"operands":["[1e559ead54514c1b]","[2f29020980c0ba51,ffffffffffffffff]"],"expected":"[2f29020980c0ba520000000000000000]","status":"20","rounding":0},
+    {"id":"bid128dq_add_line_95668","line":95668,"operands":["[1e559ead54514c1b]","[2f29020980c0ba51,ffffffffffffffff]"],"expected":"[2f29020980c0ba520000000000000000]","status":"20","rounding":0}
   ]
 }

@@ -12,13 +12,13 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid64_llquantexp_84965","line":127078,"operands":["[322000000000007B]"],"expected":"3","status":"00","rounding":0},
-    {"id":"bid64_llquantexp_84966","line":127079,"operands":["[B22000000000007B]"],"expected":"3","status":"00","rounding":0},
-    {"id":"bid64_llquantexp_84967","line":127080,"operands":["[3240000000000000]"],"expected":"4","status":"00","rounding":0},
-    {"id":"bid64_llquantexp_84968","line":127081,"operands":["[B240000000000000]"],"expected":"4","status":"00","rounding":0},
-    {"id":"bid64_llquantexp_84969","line":127082,"operands":["[5FE38D7EA4C68000]"],"expected":"369","status":"00","rounding":0},
-    {"id":"bid64_llquantexp_84970","line":127083,"operands":["[DFE38D7EA4C68000]"],"expected":"369","status":"00","rounding":0},
-    {"id":"bid64_llquantexp_84971","line":127084,"operands":["[0000000000000001]"],"expected":"-398","status":"00","rounding":0},
-    {"id":"bid64_llquantexp_84972","line":127085,"operands":["[8000000000000001]"],"expected":"-398","status":"00","rounding":0}
+    {"id":"bid64_llquantexp_line_127078","line":127078,"operands":["[322000000000007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_line_127079","line":127079,"operands":["[B22000000000007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_line_127080","line":127080,"operands":["[3240000000000000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_line_127081","line":127081,"operands":["[B240000000000000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_line_127082","line":127082,"operands":["[5FE38D7EA4C68000]"],"expected":"369","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_line_127083","line":127083,"operands":["[DFE38D7EA4C68000]"],"expected":"369","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_line_127084","line":127084,"operands":["[0000000000000001]"],"expected":"-398","status":"00","rounding":0},
+    {"id":"bid64_llquantexp_line_127085","line":127085,"operands":["[8000000000000001]"],"expected":"-398","status":"00","rounding":0}
   ]
 }

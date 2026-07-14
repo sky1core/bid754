@@ -406,7 +406,7 @@
     "unary_with_flags_no_round": 600
   },
   "verification_artifact_sha256": {
-    "testspec_tree": "b4449cd6fa1a5aaf40cee23a2ba966bd5f15ffac9fc8dddab1134ef008f4588e",
+    "testspec_tree": "cb29b5eb97f6ad0a8be6b1088a9497874e52b409dafefe1bce333a1e552c6739",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "92f35356a1519af4bcd27eb4c6e104a9c4d664e5dfb771f053d10b6fb758f2e2",
     "goport_verification_runners": "583becf7ef760c9e85844b9ad0b09a3a4e9a26d180d5c017ad1662bbff2d8cbe",

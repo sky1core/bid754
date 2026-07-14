@@ -13,11 +13,11 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128dq_sub_12788","line":1677,"operands":["[0c0b13932a0b19d7]","[59e221e523b840a8,f49fe2ddb7e7b3d9]"],"expected":"[d9e152f3653286998e3edca92f0d067a]","status":"20","rounding":0},
-    {"id":"bid128dq_sub_12789","line":1678,"operands":["1.000000000000000","1E-34"],"expected":"[2ffded09bead87c0378d8e63ffffffff]","status":"00","rounding":0},
-    {"id":"bid128dq_sub_12790","line":1679,"operands":["[d34194c558b05502]","[32781e688cc74f94,b70218eeed0ab00c]"],"expected":"[b27730157fc91bcf2614f955426ae078]","status":"20","rounding":0},
-    {"id":"bid128dq_sub_12791","line":95768,"operands":["16","5E-33"],"expected":"[30004ee2d6d415b85acef80fffffffff]","status":"20","rounding":1},
-    {"id":"bid128dq_sub_12792","line":95769,"operands":["32768","1.000000000000000000000000000000000E+38"],"expected":"[b049ed09bead87c0378d8e63fffffffd]","status":"20","rounding":0},
-    {"id":"bid128dq_sub_12793","line":95770,"operands":["32768","1.000000000000000000000000000000000E+38"],"expected":"[b049ed09bead87c0378d8e63fffffffc]","status":"20","rounding":2}
+    {"id":"bid128dq_sub_line_1677","line":1677,"operands":["[0c0b13932a0b19d7]","[59e221e523b840a8,f49fe2ddb7e7b3d9]"],"expected":"[d9e152f3653286998e3edca92f0d067a]","status":"20","rounding":0},
+    {"id":"bid128dq_sub_line_1678","line":1678,"operands":["1.000000000000000","1E-34"],"expected":"[2ffded09bead87c0378d8e63ffffffff]","status":"00","rounding":0},
+    {"id":"bid128dq_sub_line_1679","line":1679,"operands":["[d34194c558b05502]","[32781e688cc74f94,b70218eeed0ab00c]"],"expected":"[b27730157fc91bcf2614f955426ae078]","status":"20","rounding":0},
+    {"id":"bid128dq_sub_line_95768","line":95768,"operands":["16","5E-33"],"expected":"[30004ee2d6d415b85acef80fffffffff]","status":"20","rounding":1},
+    {"id":"bid128dq_sub_line_95769","line":95769,"operands":["32768","1.000000000000000000000000000000000E+38"],"expected":"[b049ed09bead87c0378d8e63fffffffd]","status":"20","rounding":0},
+    {"id":"bid128dq_sub_line_95770","line":95770,"operands":["32768","1.000000000000000000000000000000000E+38"],"expected":"[b049ed09bead87c0378d8e63fffffffc]","status":"20","rounding":2}
   ]
 }

@@ -523,12 +523,14 @@ func appendGeneratedReadCases(repoRoot string, spec *SharedSpec, read ReadTestSp
 	}
 	for _, tc := range cases {
 		spec.ReadCases = append(spec.ReadCases, GeneratedReadCase{
-			Suite:                   read.Name,
-			Group:                   read.Group,
-			Format:                  read.Format,
-			Header:                  filepath.ToSlash(read.Header),
-			Source:                  filepath.ToSlash(read.Source),
-			ID:                      fmt.Sprintf("%s_%03d", read.Name, len(spec.ReadCases)+1),
+			Suite:  read.Name,
+			Group:  read.Group,
+			Format: read.Format,
+			Header: filepath.ToSlash(read.Header),
+			Source: filepath.ToSlash(read.Source),
+			// Keep IDs tied to the pinned source row, not global append order,
+			// so adding an unrelated suite does not renumber existing cases.
+			ID:                      fmt.Sprintf("%s_line_%d", read.Name, tc.Line),
 			Line:                    tc.Line,
 			Function:                tc.Function,
 			Kind:                    read.Kind,

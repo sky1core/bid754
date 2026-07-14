@@ -12,10 +12,10 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid_getDecimalRoundingDirection_75641","line":91611,"operands":["0"],"expected":"0","status":"00","rounding":0},
-    {"id":"bid_getDecimalRoundingDirection_75642","line":91612,"operands":["0"],"expected":"1","status":"00","rounding":1},
-    {"id":"bid_getDecimalRoundingDirection_75643","line":91613,"operands":["0"],"expected":"2","status":"00","rounding":2},
-    {"id":"bid_getDecimalRoundingDirection_75644","line":91614,"operands":["0"],"expected":"3","status":"00","rounding":3},
-    {"id":"bid_getDecimalRoundingDirection_75645","line":91615,"operands":["0"],"expected":"4","status":"00","rounding":4}
+    {"id":"bid_getDecimalRoundingDirection_line_91611","line":91611,"operands":["0"],"expected":"0","status":"00","rounding":0},
+    {"id":"bid_getDecimalRoundingDirection_line_91612","line":91612,"operands":["0"],"expected":"1","status":"00","rounding":1},
+    {"id":"bid_getDecimalRoundingDirection_line_91613","line":91613,"operands":["0"],"expected":"2","status":"00","rounding":2},
+    {"id":"bid_getDecimalRoundingDirection_line_91614","line":91614,"operands":["0"],"expected":"3","status":"00","rounding":3},
+    {"id":"bid_getDecimalRoundingDirection_line_91615","line":91615,"operands":["0"],"expected":"4","status":"00","rounding":4}
   ]
 }

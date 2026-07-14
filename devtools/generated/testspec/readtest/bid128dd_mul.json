@@ -13,6 +13,6 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128dd_mul_12801","line":1169,"operands":["[2978d47a99fd0931]","[b1972c61346f63a7]"],"expected":"[afb6023f64f6809e5caa17ad3eddf1f7]","status":"00","rounding":0}
+    {"id":"bid128dd_mul_line_1169","line":1169,"operands":["[2978d47a99fd0931]","[b1972c61346f63a7]"],"expected":"[afb6023f64f6809e5caa17ad3eddf1f7]","status":"00","rounding":0}
   ]
 }

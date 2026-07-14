@@ -224,10 +224,18 @@ func verifyShardFileName(label, name string) error {
 func groupReadtestShards(cases []GeneratedReadCase) ([]ReadtestShard, error) {
 	var shards []ReadtestShard
 	seen := map[string]struct{}{}
+	seenCaseIDs := make(map[string]struct{}, len(cases))
 	for _, tc := range cases {
 		if err := verifyShardFileName("readtest suite", tc.Suite); err != nil {
 			return nil, err
 		}
+		if tc.ID == "" {
+			return nil, fmt.Errorf("readtest suite %q has an empty case ID", tc.Suite)
+		}
+		if _, dup := seenCaseIDs[tc.ID]; dup {
+			return nil, fmt.Errorf("duplicate readtest case ID %q", tc.ID)
+		}
+		seenCaseIDs[tc.ID] = struct{}{}
 		if len(shards) > 0 && shards[len(shards)-1].Suite == tc.Suite {
 			current := &shards[len(shards)-1]
 			if err := verifyReadtestShardConstants(current.ReadtestShardHeader, tc); err != nil {

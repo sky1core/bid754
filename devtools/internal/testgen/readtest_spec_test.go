@@ -4,8 +4,65 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
+
+func TestAppendGeneratedReadCasesUsesSourceLocalStableIDs(t *testing.T) {
+	repoRoot := t.TempDir()
+	header := "readtest.h"
+	source := "readtest.in"
+	if err := os.WriteFile(filepath.Join(repoRoot, header), []byte(`if (!strcmp(func, "bid32_add")) {}`), 0o600); err != nil {
+		t.Fatalf("write readtest header: %v", err)
+	}
+	input := "" +
+		"-- pinned source comment\n" +
+		"bid32_add 0 1 2 [32800003] 00\n" +
+		"bid64_add 0 1 2 [31c0000000000003] 00\n" +
+		"bid32_add 0 3 4 [32800007] 00\n"
+	if err := os.WriteFile(filepath.Join(repoRoot, source), []byte(input), 0o600); err != nil {
+		t.Fatalf("write readtest source: %v", err)
+	}
+
+	read := ReadTestSpec{
+		Name:          "bid32_add",
+		Function:      "bid32_add",
+		Format:        "decimal32",
+		Header:        header,
+		Source:        source,
+		Kind:          "binary_op",
+		OutputType:    "OP_DEC32",
+		InputTypes:    []string{"OP_DEC32", "OP_DEC32"},
+		CompareGroup:  "CMP_FUZZYSTATUS",
+		Statuses:      []string{"00"},
+		RoundingModes: []int{0},
+	}
+	spec := SharedSpec{ReadCases: []GeneratedReadCase{{ID: "unrelated_existing_case"}}}
+	count, skips, err := appendGeneratedReadCases(repoRoot, &spec, read)
+	if err != nil {
+		t.Fatalf("appendGeneratedReadCases: %v", err)
+	}
+	if count != 2 || len(skips) != 0 {
+		t.Fatalf("accepted/skipped = %d/%v, want 2/none", count, skips)
+	}
+
+	got := []string{spec.ReadCases[1].ID, spec.ReadCases[2].ID}
+	want := []string{"bid32_add_line_2", "bid32_add_line_4"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("generated IDs = %v, want source-local IDs %v", got, want)
+	}
+}
+
+func TestGroupReadtestShardsRejectsDuplicateCaseIDs(t *testing.T) {
+	cases := []GeneratedReadCase{
+		{Suite: "bid32_add", ID: "bid32_add_line_2"},
+		{Suite: "bid32_add", ID: "bid32_add_line_2"},
+	}
+	_, err := groupReadtestShards(cases)
+	if err == nil || !strings.Contains(err.Error(), `duplicate readtest case ID "bid32_add_line_2"`) {
+		t.Fatalf("duplicate readtest case ID error = %v", err)
+	}
+}
 
 func TestParseReadtestSubsetAcceptsIntelQNaNLiteral(t *testing.T) {
 	cases, skips := parseBid32AddReadtestRows(t, "bid32_add 0 QNaN 1 [7c000000] 00\n")

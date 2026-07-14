@@ -13,7 +13,7 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128qd_sub_12794","line":11715,"operands":["[2cd398ae140c0d8b,a380021000119204]","[01c0080000000000]"],"expected":"[ad17b1ae4d6e2ef4ffffffffffffffff]","status":"20","rounding":0},
-    {"id":"bid128qd_sub_12795","line":11716,"operands":["[3217d3a678a8e588,57cf24a7a5e4e8a7]","[5184564c1a1c1581]"],"expected":"[b216863e3a72a0c317c98551e0031759]","status":"00","rounding":0}
+    {"id":"bid128qd_sub_line_11715","line":11715,"operands":["[2cd398ae140c0d8b,a380021000119204]","[01c0080000000000]"],"expected":"[ad17b1ae4d6e2ef4ffffffffffffffff]","status":"20","rounding":0},
+    {"id":"bid128qd_sub_line_11716","line":11716,"operands":["[3217d3a678a8e588,57cf24a7a5e4e8a7]","[5184564c1a1c1581]"],"expected":"[b216863e3a72a0c317c98551e0031759]","status":"00","rounding":0}
   ]
 }

@@ -13,8 +13,8 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128qd_add_12773","line":11529,"operands":["[2f21e335f02b4a01,33bffbfffdb739a9]","[2650cb47e64a71f4]"],"expected":"[2f64e91081e985175be1ab06af500001]","status":"20","rounding":0},
-    {"id":"bid128qd_add_12774","line":11530,"operands":["[3201ea9e5cc9c4e9,348a3fc83e99f0c1]","[cda00caaf90c2299]"],"expected":"[3201ea9e5cc9c4e9348a3e83f27f207e]","status":"20","rounding":0},
-    {"id":"bid128qd_add_12775","line":11531,"operands":["[ad81b612b82b2bdb,0000000000000000]","[03d9f57455344fe9]"],"expected":"[ad81b612b82b2bdaffffffffffffffff]","status":"20","rounding":0}
+    {"id":"bid128qd_add_line_11529","line":11529,"operands":["[2f21e335f02b4a01,33bffbfffdb739a9]","[2650cb47e64a71f4]"],"expected":"[2f64e91081e985175be1ab06af500001]","status":"20","rounding":0},
+    {"id":"bid128qd_add_line_11530","line":11530,"operands":["[3201ea9e5cc9c4e9,348a3fc83e99f0c1]","[cda00caaf90c2299]"],"expected":"[3201ea9e5cc9c4e9348a3e83f27f207e]","status":"20","rounding":0},
+    {"id":"bid128qd_add_line_11531","line":11531,"operands":["[ad81b612b82b2bdb,0000000000000000]","[03d9f57455344fe9]"],"expected":"[ad81b612b82b2bdaffffffffffffffff]","status":"20","rounding":0}
   ]
 }

@@ -12,7 +12,7 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid32_radix_75672","line":96154,"operands":["[00000000]"],"expected":"10","status":"00","rounding":0},
-    {"id":"bid32_radix_75673","line":96155,"operands":["1.0"],"expected":"10","status":"00","rounding":0}
+    {"id":"bid32_radix_line_96154","line":96154,"operands":["[00000000]"],"expected":"10","status":"00","rounding":0},
+    {"id":"bid32_radix_line_96155","line":96155,"operands":["1.0"],"expected":"10","status":"00","rounding":0}
   ]
 }
