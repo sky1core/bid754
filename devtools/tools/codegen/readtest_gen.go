@@ -969,6 +969,7 @@ func generateReadtestRust(projectRoot string) {
 	sb.WriteString("}\n\n")
 
 	// Runner
+	sb.WriteString(readtestSuiteMatcher())
 	sb.WriteString(readtestRunner())
 
 	// Tests: pin per-suite expected passed-case counts derived from the pinned
@@ -1401,6 +1402,9 @@ func bid128InputConversionLines(argIdx int, kind byte) ([]string, bool) {
 }
 
 func generateMixedBidViaBid128DispatchCase(spec ReadtestSpec) string {
+	if specHasNativeRustFunc(spec) {
+		return ""
+	}
 	if code := generateMixedBidBinaryViaBid128DispatchCase(spec); code != "" {
 		return code
 	}
@@ -1804,7 +1808,6 @@ func generateCustomDispatchCase(spec ReadtestSpec) string {
 		"bid_is754R",
 		"bid64ddq_fma",
 		"bid64dqd_fma",
-		"bid64dq_add",
 		"bid_feclearexcept",
 		"bid_fegetexceptflag",
 		"bid_feraiseexcept",
@@ -1936,12 +1939,8 @@ enum CmpMode { CmpFuzzy, CmpEqual, CmpRelativeErr }
 enum DispatchResult { Pass, Fail(String), Skip }
 
 fn parse_bid64(s: &str) -> Option<u64> {
-    if let Some(inner) = strip_brackets(s) {
-        if let Some((hi, _lo)) = inner.split_once(',') {
-            if hi.len() > 16 { return None; }
-            return u64::from_str_radix(hi, 16).ok();
-        }
-        return parse_bracketed_hex_u64(s);
+    if s.starts_with('[') {
+        return parse_bid64_scanned_bits(s);
     }
     Some(bid64_from_string_via_c_readtest(s, 0).0)
 }
@@ -1992,14 +1991,24 @@ fn parse_bid32_expected(s: &str, rm: i64) -> Option<u32> {
 }
 
 fn parse_bid64_expected(s: &str, rm: i64) -> Option<u64> {
-    if let Some(inner) = strip_brackets(s) {
-        if let Some((hi, _lo)) = inner.split_once(',') {
-            if hi.len() > 16 { return None; }
-            return u64::from_str_radix(hi, 16).ok();
-        }
-        return parse_bracketed_hex_u64(s);
+    if s.starts_with('[') {
+        return parse_bid64_scanned_bits(s);
     }
     Some(bid64_from_string_via_c_readtest(s, rm).0)
+}
+
+// Intel readtest.c getop64 uses sscanf(op+1, "%016llx", ...). It consumes
+// at most the first 16 hexadecimal digits after '[' and does not require a
+// closing bracket. This intentionally accepts the pinned bid128qd_div row
+// whose Decimal64 operand is missing ']'.
+fn parse_bid64_scanned_bits(s: &str) -> Option<u64> {
+    let digits: String = s.strip_prefix('[')?
+        .chars()
+        .take_while(|c| c.is_ascii_hexdigit())
+        .take(16)
+        .collect();
+    if digits.is_empty() { return None; }
+    u64::from_str_radix(&digits, 16).ok()
 }
 
 fn parse_bid128_expected(s: &str, rm: i64) -> Option<BID_UINT128> {
@@ -3009,7 +3018,8 @@ struct RunSummary {
 }
 
 // NOTE: the line-selection rules below (trim, comment skip, parts.len() < 4
-// skip, filter-prefix match, supported_readtest_func, longintsize=32 skip)
+// skip, generated suite-prefix match, supported_readtest_func,
+// longintsize=32 skip)
 // are mirrored by countExpectedReadtestPasses in
 // devtools/tools/codegen/readtest_gen.go, which derives the expected
 // passed-case counts pinned by the generated tests. Keep both in sync.
@@ -3017,8 +3027,6 @@ fn run_readtest(filter: &str) -> RunSummary {
     let path = find_readtest_in();
     let f = File::open(&path).expect("open readtest.in");
     let reader = BufReader::new(f);
-    let filter_prefix = format!("{}_", filter);
-
     let mut summary = RunSummary {
         passed: 0, failed: 0, skipped: 0,
         by_func: BTreeMap::new(),
@@ -3033,7 +3041,7 @@ fn run_readtest(filter: &str) -> RunSummary {
         if parts.len() < 4 { continue; }
 
         let func_name = parts[0];
-        if !func_name.starts_with(&filter_prefix) { continue; }
+        if !readtest_suite_matches(filter, func_name) { continue; }
         if !supported_readtest_func(func_name) { continue; }
         if line.contains("longintsize=32") { continue; }
 
@@ -3079,24 +3087,57 @@ fn run_readtest(filter: &str) -> RunSummary {
 }
 
 // readtestSuiteFilters lists the generated #[test] suites in emission order.
-// Filter is the readtest function-name prefix (without the trailing "_")
-// passed to run_readtest by the generated test of the same name.
-var readtestSuiteFilters = []struct {
+// Prefixes are the complete Intel function-name prefixes assigned to each
+// result-width suite, including the D/Q mixed-width families.
+type readtestSuiteFilter struct {
 	TestName string
 	Display  string
 	Filter   string
-}{
-	{TestName: "decimal64", Display: "decimal64", Filter: "bid64"},
-	{TestName: "decimal32", Display: "decimal32", Filter: "bid32"},
-	{TestName: "status_control", Display: "status-control", Filter: "bid"},
-	{TestName: "decimal128", Display: "decimal128", Filter: "bid128"},
+	Prefixes []string
+}
+
+var readtestSuiteFilters = []readtestSuiteFilter{
+	{TestName: "decimal64", Display: "decimal64", Filter: "bid64", Prefixes: []string{"bid64_", "bid64dq_", "bid64qd_", "bid64qq_"}},
+	{TestName: "decimal32", Display: "decimal32", Filter: "bid32", Prefixes: []string{"bid32_"}},
+	{TestName: "status_control", Display: "status-control", Filter: "bid", Prefixes: []string{"bid_"}},
+	{TestName: "decimal128", Display: "decimal128", Filter: "bid128", Prefixes: []string{"bid128_", "bid128dd_", "bid128dq_", "bid128qd_"}},
+}
+
+func readtestSuiteMatches(suite readtestSuiteFilter, function string) bool {
+	for _, prefix := range suite.Prefixes {
+		if strings.HasPrefix(function, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func readtestSuiteMatcher() string {
+	var sb strings.Builder
+	sb.WriteString("fn readtest_suite_matches(filter: &str, func_name: &str) -> bool {\n")
+	sb.WriteString("    match filter {\n")
+	for _, suite := range readtestSuiteFilters {
+		sb.WriteString(fmt.Sprintf("        %q => ", suite.Filter))
+		for i, prefix := range suite.Prefixes {
+			if i > 0 {
+				sb.WriteString(" || ")
+			}
+			sb.WriteString(fmt.Sprintf("func_name.starts_with(%q)", prefix))
+		}
+		sb.WriteString(",\n")
+	}
+	sb.WriteString("        _ => false,\n")
+	sb.WriteString("    }\n")
+	sb.WriteString("}\n\n")
+	return sb.String()
 }
 
 // countExpectedReadtestPasses derives, per suite filter, how many readtest.in
 // lines the generated run_readtest loop selects for dispatch. It must apply
 // exactly the same line-selection rules as the Rust loop emitted by
-// readtestRunner (trim, comment skip, parts.len() < 4 skip, filter-prefix
-// match, supported_readtest_func, longintsize=32 skip). dispatchedFuncs is
+// readtestRunner (trim, comment skip, parts.len() < 4 skip, generated
+// suite-prefix match, supported_readtest_func, longintsize=32 skip).
+// dispatchedFuncs is
 // the same set used to emit supported_readtest_func. Because the generated
 // tests also assert failed == 0 and skipped == 0, the selected-line count is
 // the expected passed count.
@@ -3123,7 +3164,7 @@ func countExpectedReadtestPasses(readtestInPath string, dispatchedFuncs map[stri
 			continue
 		}
 		for _, suite := range readtestSuiteFilters {
-			if strings.HasPrefix(funcName, suite.Filter+"_") {
+			if readtestSuiteMatches(suite, funcName) {
 				counts[suite.Filter]++
 			}
 		}

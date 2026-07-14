@@ -19,8 +19,8 @@ dependency, or a `git` dependency pinned to a commit).
 ## Public API
 
 The generated public API surface covers fixed-width `Decimal32`,
-`Decimal64`, and `Decimal128` value types with a complete, parity-verified
-operation set: 337 wrapper methods/constructors and 12 associated constants
+`Decimal64`, and `Decimal128` value types with 361 parity-verified wrapper
+methods/constructors and 12 associated constants
 across the three widths (`devtools/generated/testspec/rust_api_surface_inventory.json`
 is the generated machine-readable Go-symbol-to-Rust-symbol map; the
 repository-level `rust_public_api_parity_wrappers`/`rust_public_api_constants_total`
@@ -54,7 +54,10 @@ anchors in `devtools/verification_anchors.json` pin those two counts).
   (ties-to-even default) plus `*_with_flags` pairs, `fma`, `sqrt`,
   `remainder`, `fmod`, `quantize`/`quantize_with_flags`, `reduce` (width 64
   only, matching the Go surface), `min_num`/`max_num`/`min_num_mag`/`max_num_mag`,
-  and the seven `round_integral_*` variants.
+  and the seven `round_integral_*` variants. Intel's Tier 1 D/Q mixed-width
+  arithmetic is exposed with an explicit rounding mode: Decimal64 has
+  `{add,sub,mul,div}_{dq,qd,qq}_with_mode`, and Decimal128 has
+  `{add,sub,mul,div}_{dd,dq,qd}_with_mode`.
 - **Comparison** — `quiet_eq`/`quiet_lt`/`quiet_le`/... and
   `signaling_eq`/`signaling_lt`/... pairs returning `(bool, ExceptionFlags)`,
   plus `total_cmp`/`total_cmp_mag -> core::cmp::Ordering`. `==`, `<`, and `>`
@@ -195,7 +198,7 @@ make verify-rust-package
 
 `make test-rust` (`cargo test --locked` in this crate) runs the fixed-vector
 codec/string tests, the **public API parity gate**
-(`tests/public_parity_generated.rs`: every one of the 337 wrapper symbols,
+(`tests/public_parity_generated.rs`: every one of the 361 wrapper symbols,
 bit-compared against an independent direct call into the same
 `crate::generated::*` port function the wrapper itself calls, with the
 flag/rounding mapping re-derived from independent numeric literals so a
@@ -211,7 +214,7 @@ and a `[dependencies]` pin/FFI-absence check.
 The FFI verification harness against the Intel BID C oracle lives in the
 repo-internal `ffi-verify/` crate (`bid754-ffi-verify`, `publish = false`),
 so this crate carries no FFI dependency. With native Intel BID prerequisites
-present, the generated readtest runner (521 dispatched functions, 0 skips)
+present, the generated readtest runner (545 dispatched functions, 0 skips)
 is `make test-rust-native` from the repository root, and the optional
 randomized Rust vs C fuzz complement can be run with:
 

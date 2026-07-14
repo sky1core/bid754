@@ -141,6 +141,21 @@ func TestParseReadtestSubsetDropsOnlyHeaderIgnoredOperands(t *testing.T) {
 	}
 }
 
+func TestRepairKnownReadtestOperandsKeepsIntelScanfAcceptedRow(t *testing.T) {
+	got := repairKnownReadtestOperands(
+		"bid128qd_div",
+		11608,
+		[]string{"[80000000000000000000000000000001]", "[2fe0000000000005"},
+	)
+	want := []string{"[80000000000000000000000000000001]", "[2fe0000000000005]"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("repaired operands = %v, want %v", got, want)
+	}
+	if !supportsReadtestValue("OP_DEC64", got[1], false) {
+		t.Fatalf("repaired Decimal64 operand %q is not executable by generated runners", got[1])
+	}
+}
+
 func TestReadtestValueSupportMatchesPinnedCInputForms(t *testing.T) {
 	for _, tc := range []struct {
 		kind  string

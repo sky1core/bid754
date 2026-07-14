@@ -743,6 +743,29 @@ func bid_get_BID128(sgn uint64, expon int, coeff BID_UINT128,
 	return res
 }
 
+// Bid128ddDiv is ported from bid128_div.c: bid128dd_div. BID64 operands are
+// widened exactly before the existing BID128 division core.
+func Bid128ddDiv(x, y uint64, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	y1, flagsY := Bid64ToBid128(y)
+	res, opFlags := Bid128Div(x1, y1, rnd_mode)
+	return res, flagsX | flagsY | opFlags
+}
+
+// Bid128dqDiv is ported from bid128_div.c: bid128dq_div.
+func Bid128dqDiv(x uint64, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flags := Bid64ToBid128(x)
+	res, opFlags := Bid128Div(x1, y, rnd_mode)
+	return res, flags | opFlags
+}
+
+// Bid128qdDiv is ported from bid128_div.c: bid128qd_div.
+func Bid128qdDiv(x BID_UINT128, y uint64, rnd_mode int) (BID_UINT128, uint32) {
+	y1, flags := Bid64ToBid128(y)
+	res, opFlags := Bid128Div(x, y1, rnd_mode)
+	return res, flags | opFlags
+}
+
 // Bid128Div divides x by y (BID128).
 // Ported from bid128_div in bid128_div.c (line-by-line mechanical translation)
 func Bid128Div(x, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {

@@ -1091,6 +1091,174 @@ func goportReadtestGeneratedBID64(function string, rounding int, operands []stri
 		}
 		result, flags := bidgo.Bid64SubWithFlags(arg0Raw, arg1Raw, rounding)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64dq_add":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dq_add expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64dqAdd(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64dq_div":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dq_div expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64dqDiv(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64dq_mul":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dq_mul expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64dqMul(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64dq_sub":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dq_sub expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64dqSub(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qd_add":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qd_add expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qdAdd(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qd_div":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qd_div expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qdDiv(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qd_mul":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qd_mul expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qdMul(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qd_sub":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qd_sub expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qdSub(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qq_add":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qq_add expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qqAdd(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qq_div":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qq_div expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qqDiv(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qq_mul":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qq_mul expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qqMul(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qq_sub":
+		if len(operands) != 2 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qq_sub expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qqSub(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	default:
 		return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("unsupported goport readtest dec64 function %q", function)
 	}
@@ -1615,6 +1783,174 @@ func goportReadtestGeneratedBID128(function string, rounding int, operands []str
 		}
 		var flags uint32
 		result := bidgo.Bid128Sub(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), rounding, &flags)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dd_add":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dd_add expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128ddAdd(arg0Raw, arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dd_div":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dd_div expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128ddDiv(arg0Raw, arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dd_mul":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dd_mul expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128ddMul(arg0Raw, arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dd_sub":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dd_sub expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128ddSub(arg0Raw, arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dq_add":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dq_add expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dqAdd(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dq_div":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dq_div expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dqDiv(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dq_mul":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dq_mul expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dqMul(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dq_sub":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dq_sub expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dqSub(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128qd_add":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qd_add expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128qdAdd(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128qd_div":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qd_div expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128qdDiv(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128qd_mul":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qd_mul expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128qdMul(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128qd_sub":
+		if len(operands) != 2 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qd_sub expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128qdSub(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
 		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid32_to_bid128":
 		if len(operands) != 1 {

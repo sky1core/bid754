@@ -444,9 +444,89 @@ func emitParityUnitBody(b *strings.Builder, u parityUnit) error {
 		return emitFuncStringMode(b, u)
 	case shapeFuncContext:
 		return emitFuncContext(b, u)
+	case shapeFuncMixedModeBinary:
+		return emitFuncMixedModeBinary(b, u)
 	default:
 		return fmt.Errorf("no emitter for shape %d", u.Shape)
 	}
+}
+
+// emitFuncMixedModeBinary renders one Intel D/Q mixed-width public free
+// function. The routing leg resolves the same label-level pair matrix at each
+// operand's own width, so NaN/infinity/noncanonical directionality is retained
+// across unlike representations. The discriminant leg encodes each decimal
+// component at its input width and compares every rounding mode directly with
+// the mapped mechanical-port function. A final case pins the public invalid-
+// mode rejection contract without passing an out-of-domain mode to Intel.
+func emitFuncMixedModeBinary(b *strings.Builder, u parityUnit) error {
+	leftWidth, rightWidth := u.OperandWidths[0], u.OperandWidths[1]
+	disc, err := mixedModeBinaryDiscriminantOperands(u.Operation, u.Width, u.OperandWidths)
+	if err != nil {
+		return err
+	}
+
+	// Shared routing-corpus leg. The label matrix has the same length and row
+	// meaning at every width; take the left slot from the left-width row and
+	// the right slot from the right-width row.
+	fmt.Fprintf(b, "\tfor pairIndex := range %s {\n", pwPairs(leftWidth))
+	fmt.Fprintf(b, "\t\tleftPair := %s[pairIndex]\n", pwPairs(leftWidth))
+	fmt.Fprintf(b, "\t\trightPair := %s[pairIndex]\n", pwPairs(rightWidth))
+	fmt.Fprintf(b, "\t\tleftBits := %s[leftPair[0]]\n", pwCorpus(leftWidth))
+	fmt.Fprintf(b, "\t\trightBits := %s[rightPair[1]]\n", pwCorpus(rightWidth))
+	fmt.Fprintf(b, "\t\tleft := %s\n", pwPublicVal(leftWidth, "leftBits"))
+	fmt.Fprintf(b, "\t\tright := %s\n", pwPublicVal(rightWidth, "rightBits"))
+	fmt.Fprintf(b, "\t\tfor _, mode := range publicParityModes {\n")
+	fmt.Fprintf(b, "\t\t\tpv, pf := %s(left, right, mode.pub)\n", u.Func)
+	pfPort := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(leftWidth, "leftBits"), pwPortArg(rightWidth, "rightBits")}, "mode.port", true)
+	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "operands %v,%v mode %v", "leftBits, rightBits, mode.pub")
+	emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", pfPort, "operands %v,%v mode %v", "leftBits, rightBits, mode.pub")
+	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n\t}\n")
+
+	if len(disc) > 0 {
+		leftType, rightType := modeDiscGoType(leftWidth), modeDiscGoType(rightWidth)
+		fmt.Fprintf(b, "\tdiscPairs := []struct {\n\t\tleft %s\n\t\tright %s\n\t}{\n", leftType, rightType)
+		for _, pair := range disc {
+			leftLit, err := modeDiscGoLiteral(leftWidth, pair[0])
+			if err != nil {
+				return fmt.Errorf("%s: left discriminant: %w", u.Symbol, err)
+			}
+			rightLit, err := modeDiscGoLiteral(rightWidth, pair[1])
+			if err != nil {
+				return fmt.Errorf("%s: right discriminant: %w", u.Symbol, err)
+			}
+			if leftWidth == 128 {
+				leftLit = "[16]byte" + leftLit
+			}
+			if rightWidth == 128 {
+				rightLit = "[16]byte" + rightLit
+			}
+			fmt.Fprintf(b, "\t\t{%s, %s},\n", leftLit, rightLit)
+		}
+		fmt.Fprintf(b, "\t}\n")
+		fmt.Fprintf(b, "\tfor _, pair := range discPairs {\n")
+		fmt.Fprintf(b, "\t\tleft := %s\n", pwPublicVal(leftWidth, "pair.left"))
+		fmt.Fprintf(b, "\t\tright := %s\n", pwPublicVal(rightWidth, "pair.right"))
+		fmt.Fprintf(b, "\t\tvar modeSeen [%d]%s\n", len(parityModeOrder), modeDiscGoType(u.Width))
+		fmt.Fprintf(b, "\t\tfor mi, mode := range publicParityModes {\n")
+		fmt.Fprintf(b, "\t\t\tpv, pf := %s(left, right, mode.pub)\n", u.Func)
+		pfDisc := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(leftWidth, "pair.left"), pwPortArg(rightWidth, "pair.right")}, "mode.port", true)
+		emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "discriminant operands %v,%v mode %v", "pair.left, pair.right, mode.pub")
+		emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", pfDisc, "discriminant operands %v,%v mode %v", "pair.left, pair.right, mode.pub")
+		fmt.Fprintf(b, "\t\t\tmodeSeen[mi] = %s\n", pubBitsExpr(u.ResultClass, "pv"))
+		fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
+		emitModeDiscAssertion(b, u.Symbol, "discriminant operands %v,%v", "pair.left, pair.right")
+		fmt.Fprintf(b, "\t}\n")
+	}
+
+	// Invalid public mode: do not call Intel with an unsupported integer.
+	fmt.Fprintf(b, "\tinvalidLeft := %s\n", pwPublicVal(leftWidth, pwCorpus(leftWidth)+"[0]"))
+	fmt.Fprintf(b, "\tinvalidRight := %s\n", pwPublicVal(rightWidth, pwCorpus(rightWidth)+"[0]"))
+	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s(invalidLeft, invalidRight, RoundingMode(99))\n", u.Func)
+	canonical := fmt.Sprintf("canonicalQNaN%dBID()", u.Width)
+	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", pubBitsExpr(u.ResultClass, "invalidValue"), pubBitsExpr(u.ResultClass, canonical))
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, pubBitsExpr(u.ResultClass, "invalidValue"))
+	fmt.Fprintf(b, "\t}\n\tcount++\n")
+	return nil
 }
 
 func emitVMUnary(b *strings.Builder, u parityUnit) error {
@@ -1480,6 +1560,8 @@ func shapeName(s parityShape) string {
 		return "func_string_mode"
 	case shapeFuncContext:
 		return "func_context"
+	case shapeFuncMixedModeBinary:
+		return "func_mixed_mode_binary"
 	default:
 		return "unknown"
 	}

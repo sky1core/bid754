@@ -12,6 +12,6 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128_inf_84502","line":2900,"operands":["0"],"expected":"[78000000000000000000000000000000]","status":"00","rounding":0}
+    {"id":"bid128_inf_86040","line":2900,"operands":["0"],"expected":"[78000000000000000000000000000000]","status":"00","rounding":0}
   ]
 }

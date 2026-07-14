@@ -5,6 +5,97 @@ package bidgo
 
 import "math"
 
+// Bid64dqAdd is ported mechanically from bid128_add.c: bid64dq_add.
+func Bid64dqAdd(x uint64, y BID_UINT128, rnd_mode int) (uint64, uint32) {
+	x1, flags := Bid64ToBid128(x)
+	res, opFlags := Bid64qqAdd(x1, y, rnd_mode)
+	return res, flags | opFlags
+}
+
+// Bid64qdAdd is ported mechanically from bid128_add.c: bid64qd_add.
+func Bid64qdAdd(x BID_UINT128, y uint64, rnd_mode int) (uint64, uint32) {
+	y1, flags := Bid64ToBid128(y)
+	res, opFlags := Bid64qqAdd(x, y1, rnd_mode)
+	return res, flags | opFlags
+}
+
+// Bid64qqAdd is ported mechanically from bid128_add.c: bid64qq_add.
+func Bid64qqAdd(x, y BID_UINT128, rnd_mode int) (uint64, uint32) {
+	one := BID_UINT128{lo: 0x0000000000000001, hi: 0x3040000000000000}
+	var flags uint32
+	return bid64qqqFma(one, x, y, rnd_mode, &flags), flags
+}
+
+// Bid128ddAdd is ported mechanically from bid128_add.c: bid128dd_add.
+func Bid128ddAdd(x, y uint64, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	y1, flagsY := Bid64ToBid128(y)
+	flags := flagsX | flagsY
+	res := Bid128Add(x1, y1, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128dqAdd is ported mechanically from bid128_add.c: bid128dq_add.
+func Bid128dqAdd(x uint64, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flags := Bid64ToBid128(x)
+	res := Bid128Add(x1, y, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128qdAdd is ported mechanically from bid128_add.c: bid128qd_add.
+func Bid128qdAdd(x BID_UINT128, y uint64, rnd_mode int) (BID_UINT128, uint32) {
+	y1, flags := Bid64ToBid128(y)
+	res := Bid128Add(x, y1, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid64dqSub is ported mechanically from bid128_add.c: bid64dq_sub.
+func Bid64dqSub(x uint64, y BID_UINT128, rnd_mode int) (uint64, uint32) {
+	x1, flags := Bid64ToBid128(x)
+	res, opFlags := Bid64qqSub(x1, y, rnd_mode)
+	return res, flags | opFlags
+}
+
+// Bid64qdSub is ported mechanically from bid128_add.c: bid64qd_sub.
+func Bid64qdSub(x BID_UINT128, y uint64, rnd_mode int) (uint64, uint32) {
+	y1, flags := Bid64ToBid128(y)
+	res, opFlags := Bid64qqSub(x, y1, rnd_mode)
+	return res, flags | opFlags
+}
+
+// Bid64qqSub is ported mechanically from bid128_add.c: bid64qq_sub.
+func Bid64qqSub(x, y BID_UINT128, rnd_mode int) (uint64, uint32) {
+	one := BID_UINT128{lo: 0x0000000000000001, hi: 0x3040000000000000}
+	if (y.hi & NAN_MASK64) != NAN_MASK64 {
+		y.hi ^= MASK_SIGN64
+	}
+	var flags uint32
+	return bid64qqqFma(one, x, y, rnd_mode, &flags), flags
+}
+
+// Bid128ddSub is ported mechanically from bid128_add.c: bid128dd_sub.
+func Bid128ddSub(x, y uint64, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	y1, flagsY := Bid64ToBid128(y)
+	flags := flagsX | flagsY
+	res := Bid128Sub(x1, y1, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128dqSub is ported mechanically from bid128_add.c: bid128dq_sub.
+func Bid128dqSub(x uint64, y BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flags := Bid64ToBid128(x)
+	res := Bid128Sub(x1, y, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128qdSub is ported mechanically from bid128_add.c: bid128qd_sub.
+func Bid128qdSub(x BID_UINT128, y uint64, rnd_mode int) (BID_UINT128, uint32) {
+	y1, flags := Bid64ToBid128(y)
+	res := Bid128Sub(x, y1, rnd_mode, &flags)
+	return res, flags
+}
+
 // Bid128Add is ported mechanically from bid128_add.c: bid128_add (= bid128qq_add).
 func Bid128Add(x, y BID_UINT128, rnd_mode int, pfpsf *uint32) BID_UINT128 {
 	var res BID_UINT128

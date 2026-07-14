@@ -23,6 +23,18 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid64ToString":     {"string64", "bid64_to_string"},
 	"Bid64Add":          {"add64", "bid64_add"},
 	"Bid64AddWithFlags": {"add64", "bid64_add_with_flags"},
+	"Bid64dqAdd":        {"bid128_add", "bid64dq_add"},
+	"Bid64qdAdd":        {"bid128_add", "bid64qd_add"},
+	"Bid64qqAdd":        {"bid128_add", "bid64qq_add"},
+	"Bid64dqSub":        {"bid128_add", "bid64dq_sub"},
+	"Bid64qdSub":        {"bid128_add", "bid64qd_sub"},
+	"Bid64qqSub":        {"bid128_add", "bid64qq_sub"},
+	"Bid64dqMul":        {"bid128_mul", "bid64dq_mul"},
+	"Bid64qdMul":        {"bid128_mul", "bid64qd_mul"},
+	"Bid64qqMul":        {"bid128_mul", "bid64qq_mul"},
+	"Bid64dqDiv":        {"div64", "bid64dq_div"},
+	"Bid64qdDiv":        {"div64", "bid64qd_div"},
+	"Bid64qqDiv":        {"div64", "bid64qq_div"},
 
 	// Decimal64 arithmetic, miscellaneous, predicate, and conversion families.
 	"Bid64Abs":                      {"noncomp64", "bid64_abs"},
@@ -364,10 +376,19 @@ var portPath = map[string]struct{ module, fn string }{
 	// portPfpsf records the latter functions explicitly.
 	"Bid128Abs":                       {"bid128_noncomp", "bid128_abs"},
 	"Bid128Add":                       {"bid128_add", "bid128_add"},
+	"Bid128ddAdd":                     {"bid128_add", "bid128dd_add"},
+	"Bid128dqAdd":                     {"bid128_add", "bid128dq_add"},
+	"Bid128qdAdd":                     {"bid128_add", "bid128qd_add"},
+	"Bid128ddSub":                     {"bid128_add", "bid128dd_sub"},
+	"Bid128dqSub":                     {"bid128_add", "bid128dq_sub"},
+	"Bid128qdSub":                     {"bid128_add", "bid128qd_sub"},
 	"Bid128Class":                     {"bid128_misc", "bid128_class"},
 	"Bid128Copy":                      {"bid128_noncomp", "bid128_copy"},
 	"Bid128CopySign":                  {"bid128_noncomp", "bid128_copy_sign"},
 	"Bid128Div":                       {"bid128_div", "bid128_div"},
+	"Bid128ddDiv":                     {"bid128_div", "bid128dd_div"},
+	"Bid128dqDiv":                     {"bid128_div", "bid128dq_div"},
+	"Bid128qdDiv":                     {"bid128_div", "bid128qd_div"},
 	"Bid128Fma":                       {"bid128_fma", "bid128_fma"},
 	"Bid128Fmod":                      {"bid128_rem", "bid128_fmod"},
 	"Bid128FromInt32":                 {"bid128_from_int", "bid128_from_int32"},
@@ -390,6 +411,9 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid128Minnum":                    {"bid128_minmax", "bid128_minnum"},
 	"Bid128MinnumMag":                 {"bid128_minmax", "bid128_minnum_mag"},
 	"Bid128Mul":                       {"bid128_mul", "bid128_mul"},
+	"Bid128ddMul":                     {"bid128_mul", "bid128dd_mul"},
+	"Bid128dqMul":                     {"bid128_mul", "bid128dq_mul"},
+	"Bid128qdMul":                     {"bid128_mul", "bid128qd_mul"},
 	"Bid128Negate":                    {"bid128_noncomp", "bid128_negate"},
 	"Bid128NextDown":                  {"bid128_next", "bid128_next_down"},
 	"Bid128NextToward":                {"bid128_next", "bid128_next_toward"},
@@ -1696,6 +1720,7 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 	var parseRawOp, displayOp decOp
 
 	var bins, binsFlags, binModeFlags []decOp
+	var mixedBinModeFlags []mixedDecOp
 	var unaryModeFlagsOps, ternaryModeFlagsOps, scalebModeOps []decOp
 	var unaryOps, predicateOps []decOp
 	var unaryFlagsNoRoundOps, unaryFlagsDefaultRoundOps []decOp
@@ -1780,6 +1805,15 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 
 		if ct, ok := convShapeTypes[r.Shape]; ok {
 			convOps = append(convOps, decConvOp{method: r.RustSurface, rustType: ct.rustType, canonical: r.BidgoFunction, exact: ct.exact})
+			continue
+		}
+		if operands, ok := mixedBinaryShapeOperands[r.Shape]; ok {
+			left, leftOK := widthSpecForOwner(strings.TrimSuffix(operands[0], "BID"))
+			right, rightOK := widthSpecForOwner(strings.TrimSuffix(operands[1], "BID"))
+			if !leftOK || !rightOK {
+				return "", fmt.Errorf("apiemit: mixed shape %q for go_symbol %q has unsupported operand types %v", r.Shape, r.GoSymbol, operands)
+			}
+			mixedBinModeFlags = append(mixedBinModeFlags, mixedDecOp{decOp: op, left: left, right: right})
 			continue
 		}
 
@@ -1950,7 +1984,7 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 	}
 
 	needFromStr := emitParse
-	needFlags := emitParseRaw || emitParseWithFlags || emitParseMode || len(binsFlags) > 0 || len(binModeFlags) > 0 ||
+	needFlags := emitParseRaw || emitParseWithFlags || emitParseMode || len(binsFlags) > 0 || len(binModeFlags) > 0 || len(mixedBinModeFlags) > 0 ||
 		len(unaryModeFlagsOps) > 0 || len(ternaryModeFlagsOps) > 0 || len(scalebModeOps) > 0 ||
 		len(unaryFlagsNoRoundOps) > 0 || len(unaryFlagsDefaultRoundOps) > 0 ||
 		len(binaryFlagsNoRoundOps) > 0 || len(compareBoolFlagsOps) > 0 ||
@@ -1959,15 +1993,15 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 		toBinary32Op != nil || toBinary64Op != nil || toBinary128Op != nil ||
 		toDecimal128Op != nil || toDecimal32Op != nil || toDecimal64Op != nil || toDecimal64ModeOp != nil ||
 		emitFromInt || emitFromI64Mode || emitFromU64Mode || emitFromI32Mode || emitFromU32Mode
-	needRoundingMode := len(convOps) > 0 || len(binModeFlags) > 0 || emitParseMode ||
+	needRoundingMode := len(convOps) > 0 || len(binModeFlags) > 0 || len(mixedBinModeFlags) > 0 || emitParseMode ||
 		len(unaryModeFlagsOps) > 0 || len(ternaryModeFlagsOps) > 0 || len(scalebModeOps) > 0 ||
 		toBinary32Op != nil || toBinary64Op != nil ||
 		toBinary128Op != nil || toDecimal32Op != nil || toDecimal64ModeOp != nil ||
 		emitFromI64Mode || emitFromU64Mode || emitFromI32Mode || emitFromU32Mode
 	needDecimalClass := classOp != nil
 	needBinary128 := toBinary128Op != nil
-	needDecimal128 := nextTowardOp != nil || toDecimal128Op != nil
-	needDecimal64 := toDecimal64Op != nil || toDecimal64ModeOp != nil
+	needDecimal128 := nextTowardOp != nil || toDecimal128Op != nil || len(mixedBinModeFlags) > 0
+	needDecimal64 := toDecimal64Op != nil || toDecimal64ModeOp != nil || len(mixedBinModeFlags) > 0
 	needDecimal32 := toDecimal32Op != nil
 	needParseError := emitParse || emitParseWithFlags || emitParseMode
 	needInexactIntegerError := emitFromInt
@@ -2249,6 +2283,9 @@ impl @SELF@ {
 `, clause, op.method, w.selfType, w.selfType, stmt, w.wrapResult("bits"))
 	}
 	if err := emitBinaryModeFlagsOps(&b, binModeFlags, w); err != nil {
+		return "", err
+	}
+	if err := emitMixedBinaryModeFlagsOps(&b, mixedBinModeFlags, w); err != nil {
 		return "", err
 	}
 	if err := emitUnaryModeFlagsOps(&b, unaryModeFlagsOps, w); err != nil {

@@ -169,6 +169,92 @@ func TestResolveClosureRejectsShapeSigParamFormMismatch(t *testing.T) {
 	}
 }
 
+func TestResolveClosureAcceptsExactMixedWidthShape(t *testing.T) {
+	inventory := &inventoryFile{
+		Total: 1, Mapped: 1,
+		Symbols: []inventorySymbol{{Symbol: "Add64DQBIDWithMode", Kind: "func", Status: "mapped", BidgoFunction: "Bid64dqAdd"}},
+	}
+	manifest := &manifestFile{
+		Emit: []emitRule{{
+			GoSymbol: "Add64DQBIDWithMode", RustOwner: "Decimal64", RustSurface: "add_dq_with_mode",
+			Shape: "mixed_binary_mode_flags_dq", BidgoFunction: "Bid64dqAdd", Reason: "test mixed wrapper",
+		}},
+		Deferred: deferredBlock{Category: "deferred"},
+	}
+	sigs := map[string]goSig{
+		"Add64DQBIDWithMode": {
+			Symbol: "Add64DQBIDWithMode", Kind: "func", Name: "Add64DQBIDWithMode",
+			Params: []string{"Decimal64BID", "Decimal128BID", "RoundingMode"}, Results: []string{"Decimal64BID", "ExceptionFlags"},
+		},
+	}
+	if _, err := resolveClosure(inventory, manifest, sigs); err != nil {
+		t.Fatalf("resolve exact mixed shape: %v", err)
+	}
+
+	sigs["Add64DQBIDWithMode"] = goSig{
+		Symbol: "Add64DQBIDWithMode", Kind: "func", Name: "Add64DQBIDWithMode",
+		Params: []string{"Decimal128BID", "Decimal64BID", "RoundingMode"}, Results: []string{"Decimal64BID", "ExceptionFlags"},
+	}
+	if _, err := resolveClosure(inventory, manifest, sigs); err == nil || !strings.Contains(err.Error(), "requires operands") {
+		t.Fatalf("mixed operand-order mismatch error = %v", err)
+	}
+}
+
+func TestResolveClosureRejectsCommonModeMixedPortMismatch(t *testing.T) {
+	for _, wrongPort := range []string{
+		"Bid64dqSub", // operation disagrees with Add64DQBIDWithMode
+		"Bid64qdAdd", // operand-width order disagrees with DQ
+	} {
+		t.Run(wrongPort, func(t *testing.T) {
+			inventory := &inventoryFile{
+				Total: 1, Mapped: 1,
+				Symbols: []inventorySymbol{{Symbol: "Add64DQBIDWithMode", Kind: "func", Status: "mapped", BidgoFunction: wrongPort}},
+			}
+			manifest := &manifestFile{
+				Emit: []emitRule{{
+					GoSymbol: "Add64DQBIDWithMode", RustOwner: "Decimal64", RustSurface: "add_dq_with_mode",
+					Shape: "mixed_binary_mode_flags_dq", BidgoFunction: wrongPort, Reason: "test common-mode mismatch",
+				}},
+				Deferred: deferredBlock{Category: "deferred"},
+			}
+			sigs := map[string]goSig{
+				"Add64DQBIDWithMode": {
+					Symbol: "Add64DQBIDWithMode", Kind: "func", Name: "Add64DQBIDWithMode",
+					Params: []string{"Decimal64BID", "Decimal128BID", "RoundingMode"}, Results: []string{"Decimal64BID", "ExceptionFlags"},
+				},
+			}
+
+			_, err := resolveClosure(inventory, manifest, sigs)
+			if err == nil || !strings.Contains(err.Error(), `requires exact port "Bid64dqAdd"`) {
+				t.Fatalf("common-mode mixed port mismatch error = %v", err)
+			}
+		})
+	}
+}
+
+func TestEmitMixedWidthShapeUsesAssociatedFunctionAndForeignConversions(t *testing.T) {
+	var b strings.Builder
+	op := mixedDecOp{
+		decOp: decOp{method: "add_dq_with_mode", module: "bid128_add", port: "bid64dq_add"},
+		left:  decimal64Width,
+		right: decimal128Width,
+	}
+	if err := emitMixedBinaryModeFlagsOps(&b, []mixedDecOp{op}, decimal64Width); err != nil {
+		t.Fatal(err)
+	}
+	got := b.String()
+	for _, want := range []string{
+		"pub fn add_dq_with_mode(left: Decimal64, right: Decimal128, mode: RoundingMode)",
+		"left.to_bits()",
+		"bid_uint128_from_le_bytes(right.to_le_bytes())",
+		"crate::generated::bid128_add::bid64dq_add",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("mixed wrapper output missing %q:\n%s", want, got)
+		}
+	}
+}
+
 // TestShapeSigsCoverManifestShapes keeps shapeSigs closed against the checked-in
 // manifest: every emit rule's shape must have a signature spec, so a new shape
 // cannot be emitted without a validator.

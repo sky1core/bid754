@@ -43,9 +43,10 @@ Selection:
 The current profile follows the normative formula in
 `TEST_GENERATION_SPEC.md`. Its exclusion classes cover unsupported binary
 formats, DPD interchange, FE APIs, version predicates satisfied on another
-surface, and optional mixed-width Intel extensions. The generated inventory, not a
-hand-written function list, answers whether a particular symbol is currently
-selected.
+surface, and the mixed-width FMA/sqrt extensions that remain optional scope
+gaps. The Tier 1 mixed-width D/Q `add`/`sub`/`mul`/`div` families are selected.
+The generated inventory, not a hand-written function list, answers whether a
+particular symbol is currently selected.
 
 Generated consumers:
 

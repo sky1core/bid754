@@ -459,8 +459,8 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.ReadCases) == 0 {
 		t.Fatal("expected generated read cases")
 	}
-	if len(spec.ReadCases) != 84712 {
-		t.Fatalf("generated read case count = %d, want pinned current-surface plus IEEE regression case count 84712", len(spec.ReadCases))
+	if len(spec.ReadCases) != 86250 {
+		t.Fatalf("generated read case count = %d, want pinned current-surface plus IEEE regression case count 86250", len(spec.ReadCases))
 	}
 	assertGeneratedReadtestProfileInventory(t, spec)
 	expectedReads := make(map[string]ReadTestSpec)
@@ -544,17 +544,17 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	}
 	assertCountMap(t, "generated readtest case compare groups", readCaseCompareCounts, map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 83685,
+		"CMP_FUZZYSTATUS": 85223,
 	})
 	assertCountMap(t, "generated readtest case formats", readCaseFormatCounts, map[string]int{
 		"decimal32":  20862,
-		"decimal64":  20234,
-		"decimal128": 43479,
+		"decimal64":  21528,
+		"decimal128": 43723,
 		"status":     137,
 	})
 	assertCountMap(t, "generated readtest case kinds", readCaseKindCounts, map[string]int{
 		"unary_op":       61299,
-		"binary_op":      21490,
+		"binary_op":      23028,
 		"ternary_op":     1445,
 		"from_string":    278,
 		"to_string":      63,
@@ -566,9 +566,9 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"decimal32_ieee754_regressions":  15,
 		"decimal64_ieee754_regressions":  15,
 		"decimal128_ieee754_regressions": 15,
-		"decimal64_operations":           20134,
+		"decimal64_operations":           21428,
 		"decimal64_strings":              85,
-		"decimal128_operations":          43363,
+		"decimal128_operations":          43607,
 		"decimal128_strings":             101,
 		"status_control_operations":      137,
 	})
@@ -1181,8 +1181,8 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	if len(reads) == 0 {
 		t.Fatal("expected mechanically selected readtest functions")
 	}
-	if len(reads) != 518 {
-		t.Fatalf("mechanically selected readtest function count = %d, want pinned current-surface count 518", len(reads))
+	if len(reads) != 542 {
+		t.Fatalf("mechanically selected readtest function count = %d, want pinned Intel Tier 1 surface count 542", len(reads))
 	}
 	allowedFormats := make(map[string]struct{}, len(profile.Formats))
 	for _, format := range profile.Formats {
@@ -1200,6 +1200,7 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	var hasBinary128 bool
 	var hasToBid128 bool
 	var hasNextToward bool
+	selectedTier1Mixed := 0
 	requiredStatusControl := map[string]bool{
 		"bid_getDecimalRoundingDirection": false,
 		"bid_lowerFlags":                  false,
@@ -1211,6 +1212,9 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 		"bid_testSavedFlags":              false,
 	}
 	for _, read := range reads {
+		if isTier1MixedWidthIntelReadtestFunction(read.Function) {
+			selectedTier1Mixed++
+		}
 		if read.OutputType == "" || len(read.InputTypes) == 0 || read.CompareGroup == "" {
 			t.Fatalf("selected readtest function %q is missing signature metadata", read.Function)
 		}
@@ -1287,24 +1291,27 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	if !hasNextToward {
 		t.Fatal("expected mechanically selected readtest surface to include nexttoward")
 	}
+	if selectedTier1Mixed != 24 {
+		t.Fatalf("selected mixed-width Intel Tier 1 functions = %d, want 24", selectedTier1Mixed)
+	}
 	for function, seen := range requiredStatusControl {
 		if !seen {
 			t.Fatalf("expected mechanically selected readtest surface to include status-control function %q", function)
 		}
 	}
 	assertCountMap(t, "readtest compare groups", compareCounts, map[string]int{
-		"CMP_FUZZYSTATUS": 506,
+		"CMP_FUZZYSTATUS": 530,
 		"CMP_EQUALSTATUS": 12,
 	})
 	assertCountMap(t, "readtest formats", formatCounts, map[string]int{
 		"decimal32":  170,
-		"decimal64":  170,
-		"decimal128": 170,
+		"decimal64":  182,
+		"decimal128": 182,
 		"status":     8,
 	})
 	assertCountMap(t, "readtest kinds", kindCounts, map[string]int{
 		"unary_op":       372,
-		"binary_op":      129,
+		"binary_op":      153,
 		"ternary_op":     3,
 		"from_string":    3,
 		"to_string":      3,
@@ -1379,8 +1386,8 @@ func assertGeneratedReadtestProfileInventory(t *testing.T, spec SharedSpec) {
 	if inventory.Profile != "intel_readtest_current_surface" {
 		t.Fatalf("readtest inventory profile = %q, want intel_readtest_current_surface", inventory.Profile)
 	}
-	if inventory.TotalFunctions != 680 || inventory.SelectedFunctions != 518 || inventory.ExcludedFunctions != 162 {
-		t.Fatalf("readtest inventory counts = total %d selected %d excluded %d, want 680/518/162", inventory.TotalFunctions, inventory.SelectedFunctions, inventory.ExcludedFunctions)
+	if inventory.TotalFunctions != 680 || inventory.SelectedFunctions != 542 || inventory.ExcludedFunctions != 138 {
+		t.Fatalf("readtest inventory counts = total %d selected %d excluded %d, want 680/542/138", inventory.TotalFunctions, inventory.SelectedFunctions, inventory.ExcludedFunctions)
 	}
 	if len(inventory.Functions) != inventory.TotalFunctions {
 		t.Fatalf("readtest inventory function entries = %d, want total %d", len(inventory.Functions), inventory.TotalFunctions)
@@ -1401,9 +1408,9 @@ func assertGeneratedReadtestProfileInventory(t *testing.T, spec SharedSpec) {
 		}
 	}
 	assertCountMap(t, "readtest inventory classifications", classificationCounts, map[string]int{
-		"selected":                  518,
+		"selected":                  542,
 		"optional_not_required":     87,
-		"optional_scope_gap":        40,
+		"optional_scope_gap":        16,
 		"out_of_scope_not_required": 35,
 	})
 	if len(unresolvedRequired) != 0 {

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "source": "generated/testspec/spec_index.json + generated/json/intel_dfp_symbols.json + bid754-go/internal/bidgo",
-  "dispatched": 510,
+  "dispatched": 534,
   "excluded_status_control": 8,
   "functions": [
     {
@@ -853,6 +853,66 @@
     {
       "function": "bid128_totalOrderMag",
       "go_function": "Bid128TotalOrderMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dd_add",
+      "go_function": "Bid128ddAdd",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dd_div",
+      "go_function": "Bid128ddDiv",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dd_mul",
+      "go_function": "Bid128ddMul",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dd_sub",
+      "go_function": "Bid128ddSub",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dq_add",
+      "go_function": "Bid128dqAdd",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dq_div",
+      "go_function": "Bid128dqDiv",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dq_mul",
+      "go_function": "Bid128dqMul",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128dq_sub",
+      "go_function": "Bid128dqSub",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128qd_add",
+      "go_function": "Bid128qdAdd",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128qd_div",
+      "go_function": "Bid128qdDiv",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128qd_mul",
+      "go_function": "Bid128qdMul",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid128qd_sub",
+      "go_function": "Bid128qdSub",
       "status": "dispatched"
     },
     {
@@ -2555,6 +2615,66 @@
     {
       "function": "bid64_totalOrderMag",
       "go_function": "Bid64TotalOrderMag",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64dq_add",
+      "go_function": "Bid64dqAdd",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64dq_div",
+      "go_function": "Bid64dqDiv",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64dq_mul",
+      "go_function": "Bid64dqMul",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64dq_sub",
+      "go_function": "Bid64dqSub",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qd_add",
+      "go_function": "Bid64qdAdd",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qd_div",
+      "go_function": "Bid64qdDiv",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qd_mul",
+      "go_function": "Bid64qdMul",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qd_sub",
+      "go_function": "Bid64qdSub",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qq_add",
+      "go_function": "Bid64qqAdd",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qq_div",
+      "go_function": "Bid64qqDiv",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qq_mul",
+      "go_function": "Bid64qqMul",
+      "status": "dispatched"
+    },
+    {
+      "function": "bid64qq_sub",
+      "go_function": "Bid64qqSub",
       "status": "dispatched"
     },
     {

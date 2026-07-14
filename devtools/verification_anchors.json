@@ -6,14 +6,14 @@
     "Regenerate first, update the affected anchors in the same change, and run make verify-generated.",
     "The public_api and rust_public_api entries are architecture checks, not additional regular verification domains."
   ],
-  "readtest_cases_total": 84712,
+  "readtest_cases_total": 86250,
   "readtest_status_control_cases": 137,
   "readtest_native_compare_skip_cases": 8,
-  "readtest_profile_rows_accepted": 84667,
+  "readtest_profile_rows_accepted": 86205,
   "readtest_profile_row_skip_reasons": {
     "longintsize32": 6652
   },
-  "goport_readtest_executed_cases": 84575,
+  "goport_readtest_executed_cases": 86113,
   "ffi_bitcompare_cases_total": 22800,
   "tier1_arithmetic_long_boundary_values_by_width": {
     "decimal32": 1144,
@@ -202,14 +202,14 @@
     "Decimal128": 2
   },
   "readtest_profile_functions_total": 680,
-  "readtest_profile_functions_selected": 518,
-  "goport_readtest_dispatched_functions": 510,
-  "rust_readtest_dispatched_functions": 521,
+  "readtest_profile_functions_selected": 542,
+  "goport_readtest_dispatched_functions": 534,
+  "rust_readtest_dispatched_functions": 545,
   "rust_readtest_suite_passes": {
-    "decimal64": 20246,
+    "decimal64": 21540,
     "decimal32": 20875,
     "status-control": 137,
-    "decimal128": 43409
+    "decimal128": 43653
   },
   "bid_codec_vectors_total": 23545,
   "bid_codec_vectors_by_width": {
@@ -323,14 +323,14 @@
       "noncanonical": 0
     }
   },
-  "public_api_symbols_total": 384,
-  "public_api_parity_wrappers": 337,
+  "public_api_symbols_total": 408,
+  "public_api_parity_wrappers": 361,
   "public_api_parity_excluded": 47,
-  "public_api_parity_cases_total": 23695,
-  "rust_public_api_parity_wrappers": 337,
-  "rust_public_api_direct_routing_wrappers": 319,
+  "public_api_parity_cases_total": 27059,
+  "rust_public_api_parity_wrappers": 361,
+  "rust_public_api_direct_routing_wrappers": 343,
   "rust_public_api_delegated_routing_wrappers": 18,
-  "rust_public_api_parity_cases_total": 23431,
+  "rust_public_api_parity_cases_total": 26771,
   "rust_public_api_constants_total": 12,
   "rust_public_api_parity_cases_by_shape": {
     "binary": 288,
@@ -355,6 +355,10 @@
     "from_u32_mode": 85,
     "from_u64_exact": 12,
     "from_u64_mode": 120,
+    "mixed_binary_mode_flags_dd": 540,
+    "mixed_binary_mode_flags_dq": 1120,
+    "mixed_binary_mode_flags_qd": 1120,
+    "mixed_binary_mode_flags_qq": 560,
     "next_toward": 360,
     "parse": 147,
     "parse_fold": 147,
@@ -402,14 +406,14 @@
     "unary_with_flags_no_round": 600
   },
   "verification_artifact_sha256": {
-    "testspec_tree": "77005cf417d9a369c1572ef22a647a43502b5abc9f985ba92e75b09fa6e49ea0",
+    "testspec_tree": "b4449cd6fa1a5aaf40cee23a2ba966bd5f15ffac9fc8dddab1134ef008f4588e",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "92f35356a1519af4bcd27eb4c6e104a9c4d664e5dfb771f053d10b6fb758f2e2",
-    "goport_verification_runners": "f177a1bbaed49de6c5f8de7018dcf5ccf86f30a4f047a328f222308dcfc678d6",
+    "goport_verification_runners": "583becf7ef760c9e85844b9ad0b09a3a4e9a26d180d5c017ad1662bbff2d8cbe",
     "dectest_executor": "b731b95adf9c7e5e9a386fb4f0e5f5e650d857e67996609d086c65d3a0721509",
     "spec_loader": "70ee64e2cd159fe5e245415f0d8009789ca1e7254f4f020f730ed551c89dffd9",
-    "rust_readtest_runner": "4add406e9cea294c08eb7b0c27a230bf1eba022dabda076eb9692286656913dc",
-    "rust_public_parity_runner": "36f904550754bf2d6d4f53bfe763a52ae249c790558ec89e39071d536b0f3308",
+    "rust_readtest_runner": "6efec41f78094d9153034b1845ff95a6af550ddfa68977925773d2c9354b7b44",
+    "rust_public_parity_runner": "b99d9904ccd70411244f288ddbb2fdfaa157885cfdbf3ff39fdbae2c643b807e",
     "rust_dectest_runner": "d69c531daf5eb2fc5405fbb2d84d401ec15277ea3309af3f47294c279338254d",
     "rust_tier1_long_runners": "674aaa1d2104aa473be89cc3e86f09eea053d60141937266d326ce45f7c5ab06"
   }

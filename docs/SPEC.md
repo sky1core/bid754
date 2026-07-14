@@ -21,6 +21,9 @@ This repository exists to implement the required IEEE 754 decimal behavior for t
 Project-level commitments:
 
 - Intel BID C is the canonical upstream source of truth
+- the supported arithmetic operation families are bounded by the pinned Intel
+  BID C BID-decimal surface; the project does not invent additional public
+  arithmetic families beyond that upstream surface
 - BID is the project encoding model
 - `Decimal32`, `Decimal64`, and `Decimal128` remain fixed-width value types (the public Go types are `Decimal32BID`, `Decimal64BID`, and `Decimal128BID`; `types_layout_check.go` pins the 4/8/16-byte layout at compile time)
 - extracted/generated artifacts must come from C or other authoritative official inputs

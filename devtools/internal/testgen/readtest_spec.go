@@ -207,6 +207,26 @@ func isMixedWidthIntelReadtestExtension(name string) bool {
 		strings.HasPrefix(name, "bid128d_")
 }
 
+// isTier1MixedWidthIntelReadtestFunction is the closed Intel BID C surface
+// selected by the project's Tier 1 arithmetic contract.  Keep this list
+// explicit: Decimal32-destination combinations do not exist upstream, while
+// the remaining mixed FMA/sqrt functions are Tier 2 and stay excluded.
+func isTier1MixedWidthIntelReadtestFunction(name string) bool {
+	switch name {
+	case "bid64dq_add", "bid64qd_add", "bid64qq_add",
+		"bid64dq_sub", "bid64qd_sub", "bid64qq_sub",
+		"bid64dq_mul", "bid64qd_mul", "bid64qq_mul",
+		"bid64dq_div", "bid64qd_div", "bid64qq_div",
+		"bid128dd_add", "bid128dq_add", "bid128qd_add",
+		"bid128dd_sub", "bid128dq_sub", "bid128qd_sub",
+		"bid128dd_mul", "bid128dq_mul", "bid128qd_mul",
+		"bid128dd_div", "bid128dq_div", "bid128qd_div":
+		return true
+	default:
+		return false
+	}
+}
+
 func buildProfileReadTest(profile ReadTestProfileSpec, fn readtestFunctionSpec, allowedFormats map[string]struct{}) (ReadTestSpec, bool) {
 	if profile.Selection != "repo_supported_surface" {
 		return ReadTestSpec{}, false
@@ -381,6 +401,10 @@ func isSupportedReadtestInput(input string) bool {
 
 func readtestFormatFromFunctionName(name string) (format string, opToken string, ok bool) {
 	switch {
+	case isTier1MixedWidthIntelReadtestFunction(name) && strings.HasPrefix(name, "bid64"):
+		return "decimal64", "OP_DEC64", true
+	case isTier1MixedWidthIntelReadtestFunction(name) && strings.HasPrefix(name, "bid128"):
+		return "decimal128", "OP_DEC128", true
 	case strings.HasPrefix(name, "bid32_"):
 		return "decimal32", "OP_DEC32", true
 	case strings.HasPrefix(name, "bid64_"):
@@ -418,8 +442,7 @@ func isHistoricalReadtestSkipFunction(name string) bool {
 		"bid_dpd_to_bid32", "bid_dpd_to_bid64", "bid_dpd_to_bid128",
 		"bid_feclearexcept", "bid_fegetexceptflag", "bid_feraiseexcept", "bid_fesetexceptflag", "bid_fetestexcept",
 		"bid_is754", "bid_is754R",
-		"bid64ddq_fma", "bid64dqd_fma", "bid64dq_add", "bid64dq_sub", "bid64qd_add", "bid64qd_sub",
-		"bid64qq_add", "bid64qq_sub", "bid64qq_mul", "bid64qq_div", "bid64qq_fma", "bid64qqq_fma":
+		"bid64ddq_fma", "bid64dqd_fma", "bid64qq_fma", "bid64qqq_fma":
 		return true
 	default:
 		return false
@@ -663,6 +686,7 @@ func parseReadtestSubset(path string, spec ReadTestSpec) ([]parsedReadtestCase, 
 		if len(spec.InputTypes) > 0 && len(operands) > len(spec.InputTypes) {
 			operands = operands[:len(spec.InputTypes)]
 		}
+		operands = repairKnownReadtestOperands(spec.Function, lineNo, operands)
 		result = repairKnownReadtestResult(spec.Function, lineNo, operands, result)
 		if !supportsReadtestCase(spec, operands, result) {
 			rowSkips[readtestRowSkipUnsupportedResult]++
@@ -686,6 +710,24 @@ func parseReadtestSubset(path string, spec ReadTestSpec) ([]parsedReadtestCase, 
 	}
 
 	return cases, rowSkips, nil
+}
+
+func repairKnownReadtestOperands(function string, line int, operands []string) []string {
+	// Intel's published readtest.in has one bid128qd_div row whose Decimal64
+	// operand is missing the closing bracket. The canonical getop64 macro still
+	// executes it because sscanf consumes the 16 hex digits after '[' without
+	// requiring ']'. Normalize only that pinned upstream defect to the same bits
+	// so generated runners exercise the row instead of silently dropping it.
+	if function == "bid128qd_div" &&
+		line == 11608 &&
+		len(operands) == 2 &&
+		strings.EqualFold(strings.TrimSpace(operands[0]), "[80000000000000000000000000000001]") &&
+		strings.EqualFold(strings.TrimSpace(operands[1]), "[2fe0000000000005") {
+		repaired := append([]string(nil), operands...)
+		repaired[1] = "[2fe0000000000005]"
+		return repaired
+	}
+	return operands
 }
 
 func repairKnownReadtestResult(function string, line int, operands []string, result string) string {

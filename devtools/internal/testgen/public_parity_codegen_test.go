@@ -188,3 +188,45 @@ func TestPublicParityStringCorpusMetadataMatchesIndependentOracles(t *testing.T)
 		t.Fatal(err)
 	}
 }
+
+func TestResolveParityUnitClassifiesMixedArithmeticExactly(t *testing.T) {
+	sym := publicAPISymbol{
+		Symbol:  "Add64DQBIDWithMode",
+		Kind:    "func",
+		Name:    "Add64DQBIDWithMode",
+		Params:  []string{"Decimal64BID", "Decimal128BID", "RoundingMode"},
+		Results: []string{"Decimal64BID", "ExceptionFlags"},
+	}
+	sigs := map[string]bidgoFuncSig{
+		"Bid64dqAdd": {
+			Name:    "Bid64dqAdd",
+			Params:  []bidgoParam{{Name: "x", Type: "uint64"}, {Name: "y", Type: "BID_UINT128"}, {Name: "rnd", Type: "int"}},
+			Results: []bidgoParam{{Type: "uint64"}, {Type: "uint32"}},
+		},
+	}
+	unit, err := resolveParityUnit(sym, "Bid64dqAdd", sigs, publicParityCorpus{})
+	if err != nil {
+		t.Fatalf("resolve mixed parity unit: %v", err)
+	}
+	if unit.Shape != shapeFuncMixedModeBinary || unit.Width != 64 || unit.OperandWidths != [2]int{64, 128} || unit.Operation != "Add" {
+		t.Fatalf("mixed parity unit = %+v", unit)
+	}
+	wantCases := (len(parityLabelPairs)+4)*len(parityModeOrder) + 1
+	if unit.Cases != wantCases {
+		t.Fatalf("mixed parity cases = %d, want %d", unit.Cases, wantCases)
+	}
+}
+
+func TestResolveParityUnitRejectsMixedSuffixSignatureMismatch(t *testing.T) {
+	sym := publicAPISymbol{
+		Symbol:  "Div128QDBIDWithMode",
+		Kind:    "func",
+		Name:    "Div128QDBIDWithMode",
+		Params:  []string{"Decimal64BID", "Decimal128BID", "RoundingMode"},
+		Results: []string{"Decimal128BID", "ExceptionFlags"},
+	}
+	_, err := resolveParityUnit(sym, "Bid128qdDiv", nil, publicParityCorpus{})
+	if err == nil || !strings.Contains(err.Error(), "want Decimal128BID from suffix QD") {
+		t.Fatalf("suffix/signature mismatch error = %v", err)
+	}
+}

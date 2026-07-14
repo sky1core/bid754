@@ -2,13 +2,13 @@
   "version": "1.0",
   "source": "tools/registry/readtest_specs.json + generated/testspec/spec_index.json",
   "skip_manifest": "tools/registry/rust_readtest_skip_manifest.json",
-  "dispatched": 521,
+  "dispatched": 545,
   "skipped": 0,
   "suite_expected_passes": [
     {
       "suite": "decimal64",
       "filter": "bid64",
-      "expected_passes": 20246
+      "expected_passes": 21540
     },
     {
       "suite": "decimal32",
@@ -23,7 +23,7 @@
     {
       "suite": "decimal128",
       "filter": "bid128",
-      "expected_passes": 43409
+      "expected_passes": 43653
     }
   ],
   "functions": [
@@ -1135,6 +1135,90 @@
       "rust_function": "bid128_total_order_mag"
     },
     {
+      "function": "bid128dd_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dd_add"
+    },
+    {
+      "function": "bid128dd_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dd_div"
+    },
+    {
+      "function": "bid128dd_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dd_mul"
+    },
+    {
+      "function": "bid128dd_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dd_sub"
+    },
+    {
+      "function": "bid128dq_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dq_add"
+    },
+    {
+      "function": "bid128dq_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dq_div"
+    },
+    {
+      "function": "bid128dq_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dq_mul"
+    },
+    {
+      "function": "bid128dq_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128dq_sub"
+    },
+    {
+      "function": "bid128qd_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128qd_add"
+    },
+    {
+      "function": "bid128qd_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128qd_div"
+    },
+    {
+      "function": "bid128qd_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128qd_mul"
+    },
+    {
+      "function": "bid128qd_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid128qd_sub"
+    },
+    {
       "function": "bid32_abs",
       "compare": "CMP_FUZZYSTATUS",
       "status": "dispatched",
@@ -1192,14 +1276,14 @@
     },
     {
       "function": "bid32_fmod",
-      "compare": "CMP_FUZZYSTATUS",
+      "compare": "CMP_RELATIVEERR",
       "status": "dispatched",
       "route": "generic",
       "rust_function": "bid32_fmod"
     },
     {
       "function": "bid32_fmod",
-      "compare": "CMP_RELATIVEERR",
+      "compare": "CMP_FUZZYSTATUS",
       "status": "dispatched",
       "route": "generic",
       "rust_function": "bid32_fmod"
@@ -3520,6 +3604,90 @@
       "status": "dispatched",
       "route": "generic",
       "rust_function": "bid64_total_order_mag"
+    },
+    {
+      "function": "bid64dq_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64dq_add"
+    },
+    {
+      "function": "bid64dq_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64dq_div"
+    },
+    {
+      "function": "bid64dq_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64dq_mul"
+    },
+    {
+      "function": "bid64dq_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64dq_sub"
+    },
+    {
+      "function": "bid64qd_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qd_add"
+    },
+    {
+      "function": "bid64qd_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qd_div"
+    },
+    {
+      "function": "bid64qd_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qd_mul"
+    },
+    {
+      "function": "bid64qd_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qd_sub"
+    },
+    {
+      "function": "bid64qq_add",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qq_add"
+    },
+    {
+      "function": "bid64qq_div",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qq_div"
+    },
+    {
+      "function": "bid64qq_mul",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qq_mul"
+    },
+    {
+      "function": "bid64qq_sub",
+      "compare": "CMP_FUZZYSTATUS",
+      "status": "dispatched",
+      "route": "generic",
+      "rust_function": "bid64qq_sub"
     },
     {
       "function": "bid_getDecimalRoundingDirection",

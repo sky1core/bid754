@@ -6,6 +6,8 @@
 
 package bidgo
 
+import "math"
+
 const P34 = 34
 
 // MASK aliases for bid128 (same values as 64-bit, operating on w[1])
@@ -671,4 +673,269 @@ func Bid128Fma(x, y, z BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	var pfpsf uint32
 	res, _, _, _, _ := bid128_ext_fma(x, y, z, rnd_mode, &pfpsf)
 	return res, pfpsf
+}
+
+// bid64qqqFma is ported mechanically from bid128_fma.c: bid64qqq_fma.
+// It rounds the exact mixed-width FMA result directly to BID64, including the
+// Intel double-rounding corrections required for nearest-even and ties-away.
+func bid64qqqFma(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) uint64 {
+	var isMidpointLtEven0, isMidpointGtEven0 int
+	var isInexactLtMidpoint0, isInexactGtMidpoint0 int
+	var isMidpointLtEven, isMidpointGtEven int
+	var isInexactLtMidpoint, isInexactGtMidpoint int
+	var res BID_UINT128
+	incrExp := 0
+	res1 := uint64(0xbaddbaddbaddbadd)
+	saveFpsf := *pfpsf
+	*pfpsf = 0
+
+	res, isMidpointLtEven0, isMidpointGtEven0,
+		isInexactLtMidpoint0, isInexactGtMidpoint0 =
+		bid128_ext_fma(x, y, z, rnd_mode, pfpsf)
+
+	if rnd_mode == BID_ROUNDING_DOWN || rnd_mode == BID_ROUNDING_UP ||
+		rnd_mode == BID_ROUNDING_TO_ZERO ||
+		(res.hi&MASK_NAN_128) == MASK_NAN_128 ||
+		(res.hi&MASK_ANY_INF_128) == MASK_INF_128 {
+		var flags uint32
+		res1, flags = Bid128ToBid64(res, rnd_mode)
+		*pfpsf |= flags
+		unbexp := int((res1>>53)&0x3ff) - 398
+		if (res1 & MASK_NAN64) != MASK_NAN64 {
+			if unbexp == -398 && (res1&MASK_BINARY_SIG1) < 1000000000000000 &&
+				(isInexactLtMidpoint0 != 0 || isInexactGtMidpoint0 != 0 ||
+					isMidpointLtEven0 != 0 || isMidpointGtEven0 != 0) {
+				*pfpsf |= BID_INEXACT_EXCEPTION | BID_UNDERFLOW_EXCEPTION
+			} else if isInexactLtMidpoint0 != 0 || isInexactGtMidpoint0 != 0 ||
+				isMidpointLtEven0 != 0 || isMidpointGtEven0 != 0 {
+				*pfpsf |= BID_INEXACT_EXCEPTION
+			}
+			// DECIMAL_TINY_DETECTION_AFTER_ROUNDING is disabled in the pinned build.
+			if (res1&0x7fffffffffffffff) == 1000000000000000 &&
+				(((rnd_mode == BID_ROUNDING_TO_NEAREST || rnd_mode == BID_ROUNDING_TIES_AWAY) &&
+					(isMidpointLtEven != 0 || isInexactGtMidpoint != 0)) ||
+					(((rnd_mode == BID_ROUNDING_UP && (res1&MASK_SIGN64) == 0) ||
+						(rnd_mode == BID_ROUNDING_DOWN && (res1&MASK_SIGN64) != 0)) &&
+						(isMidpointLtEven != 0 || isMidpointGtEven != 0 ||
+							isInexactLtMidpoint != 0 || isInexactGtMidpoint != 0))) {
+				*pfpsf |= BID_UNDERFLOW_EXCEPTION
+			}
+		}
+		*pfpsf |= saveFpsf
+		return res1
+	}
+
+	sign := res.hi & MASK_SIGN64
+	exp := res.hi & MASK_EXP_128
+	unbexp := int(exp>>49) - 6176
+	C := BID_UINT128{lo: res.lo, hi: res.hi & MASK_COEFF_128}
+	if (C.hi == 0 && C.lo == 0) || unbexp <= -433 || unbexp >= 385 {
+		var flags uint32
+		res1, flags = Bid128ToBid64(res, rnd_mode)
+		*pfpsf |= flags | saveFpsf
+		return res1
+	}
+
+	// The Intel source checks the second-round midpoint state here. It is still
+	// zero at this point; retain that ordering exactly.
+	if rnd_mode == BID_ROUNDING_TIES_AWAY && isMidpointGtEven != 0 {
+		res1--
+	}
+
+	var nrBits int
+	if C.hi == 0 {
+		if C.lo >= 0x0020000000000000 {
+			tmp := math.Float64bits(float64(C.lo >> 32))
+			nrBits = 33 + int((tmp>>52)&0x7ff) - 0x3ff
+		} else {
+			tmp := math.Float64bits(float64(C.lo))
+			nrBits = 1 + int((tmp>>52)&0x7ff) - 0x3ff
+		}
+	} else {
+		tmp := math.Float64bits(float64(C.hi))
+		nrBits = 65 + int((tmp>>52)&0x7ff) - 0x3ff
+	}
+	q := int(bid_nr_digits[nrBits-1].digits)
+	if q == 0 {
+		q = int(bid_nr_digits[nrBits-1].digits1)
+		if C.hi > bid_nr_digits[nrBits-1].threshold_hi ||
+			(C.hi == bid_nr_digits[nrBits-1].threshold_hi &&
+				C.lo >= bid_nr_digits[nrBits-1].threshold_lo) {
+			q++
+		}
+	}
+
+	if q > 16 {
+		x0 := q - 16
+		if q <= 18 {
+			res1 = bid_round64_2_18(q, x0, C.lo, &incrExp,
+				&isMidpointLtEven, &isMidpointGtEven,
+				&isInexactLtMidpoint, &isInexactGtMidpoint)
+		} else {
+			res128, nextIncrExp, nextMidpointLtEven, nextMidpointGtEven,
+				nextInexactLtMidpoint, nextInexactGtMidpoint :=
+				bid_round128_19_38(q, x0, C)
+			res1 = res128.lo
+			incrExp = nextIncrExp
+			isMidpointLtEven = nextMidpointLtEven
+			isMidpointGtEven = nextMidpointGtEven
+			isInexactLtMidpoint = nextInexactLtMidpoint
+			isInexactGtMidpoint = nextInexactGtMidpoint
+		}
+		unbexp += x0
+		if incrExp != 0 {
+			unbexp++
+		}
+		q = 16
+	} else {
+		res1 = C.lo
+	}
+
+	if (isInexactGtMidpoint0 != 0 || isMidpointLtEven0 != 0) && isMidpointLtEven != 0 {
+		res1--
+		isMidpointLtEven = 0
+		isInexactLtMidpoint = 1
+		if res1 == 0x00038d7ea4c67fff {
+			res1 = 0x002386f26fc0ffff
+			unbexp--
+		}
+	} else if (isInexactLtMidpoint0 != 0 || isMidpointGtEven0 != 0) && isMidpointGtEven != 0 {
+		res1++
+		isMidpointGtEven = 0
+		isInexactGtMidpoint = 1
+	} else if isMidpointLtEven == 0 && isMidpointGtEven == 0 &&
+		isInexactLtMidpoint == 0 && isInexactGtMidpoint == 0 {
+		if isInexactGtMidpoint0 != 0 || isMidpointLtEven0 != 0 {
+			isInexactGtMidpoint = 1
+		}
+		if isInexactLtMidpoint0 != 0 || isMidpointGtEven0 != 0 {
+			isInexactLtMidpoint = 1
+		}
+	} else if isMidpointGtEven != 0 &&
+		(isInexactGtMidpoint0 != 0 || isMidpointLtEven0 != 0) {
+		isInexactLtMidpoint = 1
+		isInexactGtMidpoint = 0
+		isMidpointLtEven = 0
+		isMidpointGtEven = 0
+	} else if isMidpointLtEven != 0 &&
+		(isInexactLtMidpoint0 != 0 || isMidpointGtEven0 != 0) {
+		isInexactLtMidpoint = 0
+		isInexactGtMidpoint = 1
+		isMidpointLtEven = 0
+		isMidpointGtEven = 0
+	}
+
+	if q+unbexp > 16+369 {
+		res1 = sign | INFINITY_MASK64
+		*pfpsf |= BID_INEXACT_EXCEPTION | BID_OVERFLOW_EXCEPTION | saveFpsf
+		return res1
+	} else if unbexp > 369 {
+		scale := unbexp - 369
+		res1 *= bid_ten2k64[scale]
+		unbexp = 369
+	}
+
+	if q+unbexp < 16-398 {
+		if unbexp < -398 {
+			x0 := -398 - unbexp
+			isInexactLtMidpoint0 = isInexactLtMidpoint
+			isInexactGtMidpoint0 = isInexactGtMidpoint
+			isMidpointLtEven0 = isMidpointLtEven
+			isMidpointGtEven0 = isMidpointGtEven
+			isInexactLtMidpoint = 0
+			isInexactGtMidpoint = 0
+			isMidpointLtEven = 0
+			isMidpointGtEven = 0
+			if x0 < q {
+				res1 = bid_round64_2_18(q, x0, res1, &incrExp,
+					&isMidpointLtEven, &isMidpointGtEven,
+					&isInexactLtMidpoint, &isInexactGtMidpoint)
+				if incrExp != 0 {
+					res1 = bid_ten2k64[q-x0]
+				}
+				unbexp += x0
+			} else if x0 == q {
+				var ltHalfUlp, eqHalfUlp bool
+				if res1 < bid_midpoint64[q-1] {
+					ltHalfUlp = true
+					isInexactLtMidpoint = 1
+				} else if res1 == bid_midpoint64[q-1] {
+					eqHalfUlp = true
+					isMidpointGtEven = 1
+				} else {
+					isInexactGtMidpoint = 1
+				}
+				if ltHalfUlp || eqHalfUlp {
+					res1 = 0
+				} else {
+					res1 = 1
+				}
+				unbexp = -398
+			} else {
+				res1 = 0
+				unbexp = -398
+				isInexactLtMidpoint = 1
+			}
+
+			if (isInexactGtMidpoint0 != 0 || isMidpointLtEven0 != 0) && isMidpointLtEven != 0 {
+				res1--
+				isMidpointLtEven = 0
+				isInexactLtMidpoint = 1
+			} else if (isInexactLtMidpoint0 != 0 || isMidpointGtEven0 != 0) && isMidpointGtEven != 0 {
+				res1++
+				isMidpointGtEven = 0
+				isInexactGtMidpoint = 1
+			} else if isMidpointLtEven == 0 && isMidpointGtEven == 0 &&
+				isInexactLtMidpoint == 0 && isInexactGtMidpoint == 0 {
+				if isInexactGtMidpoint0 != 0 || isMidpointLtEven0 != 0 {
+					isInexactGtMidpoint = 1
+				}
+				if isInexactLtMidpoint0 != 0 || isMidpointGtEven0 != 0 {
+					isInexactLtMidpoint = 1
+				}
+			} else if isMidpointGtEven != 0 &&
+				(isInexactGtMidpoint0 != 0 || isMidpointLtEven0 != 0) {
+				isInexactLtMidpoint = 1
+				isInexactGtMidpoint = 0
+				isMidpointLtEven = 0
+				isMidpointGtEven = 0
+			} else if isMidpointLtEven != 0 &&
+				(isInexactLtMidpoint0 != 0 || isMidpointGtEven0 != 0) {
+				isInexactLtMidpoint = 0
+				isInexactGtMidpoint = 1
+				isMidpointLtEven = 0
+				isMidpointGtEven = 0
+			}
+		}
+		if isInexactLtMidpoint != 0 || isInexactGtMidpoint != 0 ||
+			isMidpointLtEven != 0 || isMidpointGtEven != 0 ||
+			isInexactLtMidpoint0 != 0 || isInexactGtMidpoint0 != 0 ||
+			isMidpointLtEven0 != 0 || isMidpointGtEven0 != 0 {
+			*pfpsf |= BID_INEXACT_EXCEPTION | BID_UNDERFLOW_EXCEPTION
+		}
+	} else if isInexactLtMidpoint != 0 || isInexactGtMidpoint != 0 ||
+		isMidpointLtEven != 0 || isMidpointGtEven != 0 {
+		*pfpsf |= BID_INEXACT_EXCEPTION
+	}
+
+	if rnd_mode == BID_ROUNDING_TIES_AWAY && isMidpointGtEven != 0 {
+		res1++
+	}
+	if res1 < 0x0020000000000000 {
+		res1 = sign | (uint64(unbexp+398) << 53) | res1
+	} else {
+		res1 = sign | SPECIAL_ENCODING_MASK64 |
+			(uint64(unbexp+398) << 51) | (res1 & MASK_BINARY_SIG2)
+	}
+	if (res1&0x7fffffffffffffff) == 1000000000000000 &&
+		(((rnd_mode == BID_ROUNDING_TO_NEAREST || rnd_mode == BID_ROUNDING_TIES_AWAY) &&
+			(isMidpointLtEven != 0 || isInexactGtMidpoint != 0)) ||
+			(((rnd_mode == BID_ROUNDING_UP && (res1&MASK_SIGN64) == 0) ||
+				(rnd_mode == BID_ROUNDING_DOWN && (res1&MASK_SIGN64) != 0)) &&
+				(isMidpointLtEven != 0 || isMidpointGtEven != 0 ||
+					isInexactLtMidpoint != 0 || isInexactGtMidpoint != 0))) {
+		*pfpsf |= BID_UNDERFLOW_EXCEPTION
+	}
+	*pfpsf |= saveFpsf
+	return res1
 }

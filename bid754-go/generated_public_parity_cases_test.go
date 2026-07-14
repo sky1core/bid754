@@ -12,14 +12,15 @@ import "testing"
 // Case counts are pinned here at generation time so a generator regression that
 // shrinks the corpus cannot silently re-pin a smaller surface.
 const (
-	expectedPublicParityWrappers = 337
-	expectedPublicParityCases    = 23695
+	expectedPublicParityWrappers = 361
+	expectedPublicParityCases    = 27059
 )
 
 var expectedPublicParityCasesByShape = map[string]int{
 	"func_context":           720,
 	"func_from_int":          55,
 	"func_int_ctor":          585,
+	"func_mixed_mode_binary": 3364,
 	"func_string":            588,
 	"func_string_mode":       795,
 	"vm_binary":              2760,

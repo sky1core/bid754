@@ -688,3 +688,286 @@ func Bid64DivWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 		return res, pfpsf
 	}
 }
+
+// Bid64dqDiv is ported from bid64_div.c: bid64dq_div. The BID64 operand is
+// widened exactly before entering the shared direct-to-BID64 128/128 core.
+func Bid64dqDiv(x uint64, y BID_UINT128, rnd_mode int) (uint64, uint32) {
+	x1, flags := Bid64ToBid128(x)
+	res, opFlags := Bid64qqDiv(x1, y, rnd_mode)
+	return res, flags | opFlags
+}
+
+// Bid64qdDiv is ported from bid64_div.c: bid64qd_div. The BID64 operand is
+// widened exactly before entering the shared direct-to-BID64 128/128 core.
+func Bid64qdDiv(x BID_UINT128, y uint64, rnd_mode int) (uint64, uint32) {
+	y1, flags := Bid64ToBid128(y)
+	res, opFlags := Bid64qqDiv(x, y1, rnd_mode)
+	return res, flags | opFlags
+}
+
+// Bid64qqDiv is ported mechanically from bid64_div.c: bid64qq_div.
+// Unlike BID128 division followed by conversion, this computes and rounds the
+// quotient directly at BID64 precision, avoiding nearest-mode double rounding.
+func Bid64qqDiv(x, y BID_UINT128, rnd_mode int) (uint64, uint32) {
+	var CA4, CA4r, P256 BID_UINT256
+	var CX, CY, T128, CQ, CQ2, CR, CA, TP128, Qh, Ql, Tmp BID_UINT128
+	var signX, signY, T, carry64, D, QLow, QX, PD, res uint64
+	var QX32, digit, digitH, digitLow uint32
+	var tdigit [3]uint32
+	var exponentX, exponentY, binIndex, binExpon, diffExpon, ed2,
+		digitsQ, amount int
+	var nzeros, i, j, k, d5 int
+	var rmode uint
+	done := false
+	var flags uint32
+
+	signY, exponentY, CY, validY := unpack_BID128_value(y)
+	signX, exponentX, CX, validX := unpack_BID128_value(x)
+	if !validX {
+		if (x.hi & 0x7c00000000000000) == 0x7c00000000000000 {
+			if (x.hi&0x7e00000000000000) == 0x7e00000000000000 ||
+				(y.hi&0x7e00000000000000) == 0x7e00000000000000 {
+				flags |= BID_INVALID_EXCEPTION
+			}
+			Tmp.hi = CX.hi & 0x00003fffffffffff
+			Tmp.lo = CX.lo
+			TP128 = bid_reciprocals10_128[18]
+			Qh, Ql = __mul_128x128_full(Tmp, TP128)
+			amount = bid_recip_scale[18]
+			Tmp = __shr_128(Qh, uint(amount))
+			res = (CX.hi & 0xfc00000000000000) | Tmp.lo
+			_ = Ql
+			return res, flags
+		}
+		if (x.hi & 0x7800000000000000) == 0x7800000000000000 {
+			if (y.hi & 0x7c00000000000000) == 0x7800000000000000 {
+				flags |= BID_INVALID_EXCEPTION
+				return 0x7c00000000000000, flags
+			}
+			if (y.hi & 0x7c00000000000000) != 0x7c00000000000000 {
+				return ((x.hi ^ y.hi) & MASK_SIGN64) | INFINITY_MASK64, flags
+			}
+		}
+		if (y.hi & 0x7800000000000000) != 0x7800000000000000 {
+			if CY.lo == 0 && (CY.hi&0x0001ffffffffffff) == 0 {
+				flags |= BID_INVALID_EXCEPTION
+				return 0x7c00000000000000, flags
+			}
+			res = (x.hi ^ y.hi) & MASK_SIGN64
+			exponentX = exponentX - exponentY + DECIMAL_EXPONENT_BIAS
+			if exponentX > DECIMAL_MAX_EXPON_64 {
+				exponentX = DECIMAL_MAX_EXPON_64
+			} else if exponentX < 0 {
+				exponentX = 0
+			}
+			return res | (uint64(exponentX) << 53), flags
+		}
+	}
+	if !validY {
+		if (y.hi & 0x7c00000000000000) == 0x7c00000000000000 {
+			if (y.hi & 0x7e00000000000000) == 0x7e00000000000000 {
+				flags |= BID_INVALID_EXCEPTION
+			}
+			Tmp.hi = CY.hi & 0x00003fffffffffff
+			Tmp.lo = CY.lo
+			TP128 = bid_reciprocals10_128[18]
+			Qh, Ql = __mul_128x128_full(Tmp, TP128)
+			amount = bid_recip_scale[18]
+			Tmp = __shr_128(Qh, uint(amount))
+			res = (CY.hi & 0xfc00000000000000) | Tmp.lo
+			_ = Ql
+			return res, flags
+		}
+		if (y.hi & 0x7800000000000000) == 0x7800000000000000 {
+			return signX ^ signY, flags
+		}
+		flags |= BID_ZERO_DIVIDE_EXCEPTION
+		return ((x.hi ^ y.hi) & MASK_SIGN64) | INFINITY_MASK64, flags
+	}
+
+	diffExpon = exponentX - exponentY + DECIMAL_EXPONENT_BIAS
+	if __unsigned_compare_gt_128(CY, CX) {
+		f64d := math.Float32frombits(0x5f800000)
+		fx := noFmaMulAddF32(float32(CX.hi), f64d, float32(CX.lo))
+		fy := noFmaMulAddF32(float32(CY.hi), f64d, float32(CY.lo))
+		binIndex = int((math.Float32bits(fy) - math.Float32bits(fx)) >> 23)
+		if CX.hi != 0 {
+			T = bid_power10_index_binexp_128[binIndex].lo
+			CA = __mul_64x128_short(T, CX)
+		} else {
+			T128 = bid_power10_index_binexp_128[binIndex]
+			CA = __mul_64x128_short(CX.lo, T128)
+		}
+		ed2 = 15
+		if __unsigned_compare_gt_128(CY, CA) {
+			ed2++
+		}
+		T128 = bid_power10_table_128[ed2]
+		CA4 = __mul_128x128_to_256(CA, T128)
+		ed2 += bid_estimate_decimal_digits[binIndex]
+		CQ = BID_UINT128{lo: 0, hi: 0}
+		diffExpon -= ed2
+	} else {
+		CQ, CR = bid___div_128_by_128(CX, CY)
+		f64d := math.Float32frombits(0x5f800000)
+		fx := noFmaMulAddF32(float32(CQ.hi), f64d, float32(CQ.lo))
+		binExpon = int((math.Float32bits(fx) - 0x3f800000) >> 23)
+		digitsQ = bid_estimate_decimal_digits[binExpon]
+		TP128 = bid_power10_index_binexp_128[binExpon]
+		if __unsigned_compare_ge_128(CQ, TP128) {
+			digitsQ++
+		}
+		if digitsQ <= 16 {
+			if CR.hi == 0 && CR.lo == 0 {
+				res, packFlags := get_BID64_flags(signX^signY, diffExpon, CQ.lo, rnd_mode)
+				return res, flags | packFlags
+			}
+			ed2 = 16 - digitsQ
+			T128 = bid_power10_table_128[ed2]
+			product := __mul_64x128_to_192(T128.lo, CR)
+			CA4 = BID_UINT256{w0: product.w0, w1: product.w1, w2: product.w2}
+			diffExpon -= ed2
+			CQ.lo *= T128.lo
+		} else {
+			ed2 = digitsQ - 16
+			diffExpon += ed2
+			T128 = bid_reciprocals10_128[ed2]
+			P256 = __mul_128x128_to_256(CQ, T128)
+			amount = bid_recip_scale[ed2]
+			CQ.lo = (P256.w2 >> uint(amount)) | (P256.w3 << uint(64-amount))
+			CQ.hi = 0
+			CQ2 = __mul_64x64_to_128(CQ.lo, bid_power10_table_128[ed2].lo)
+			qb := __mul_64x64_to_128(CQ2.lo, CY.lo)
+			qb.hi += CQ2.lo*CY.hi + CQ2.hi*CY.lo
+			CA4.w1 = CX.hi - qb.hi
+			CA4.w0 = CX.lo - qb.lo
+			if CX.lo < qb.lo {
+				CA4.w1--
+			}
+			done = true
+			if (CA4.w1 | CA4.w0) != 0 {
+				CY = __mul_64x128_to_128(bid_power10_table_128[ed2].lo, CY)
+			}
+		}
+	}
+
+	if !done {
+		bid___div_256_by_128(&CQ, &CA4, CY)
+	}
+	if CA4.w0 != 0 || CA4.w1 != 0 {
+		flags |= BID_INEXACT_EXCEPTION
+	} else {
+		if !done {
+			if CX.hi == 0 && CY.hi == 0 && CX.lo <= 1024 && CY.lo <= 1024 {
+				i = int(CY.lo) - 1
+				j = int(CX.lo) - 1
+				nzeros = ed2 - int(bid_factors[i][0]) + int(bid_factors[j][0])
+				d5 = ed2 - int(bid_factors[i][1]) + int(bid_factors[j][1])
+				if d5 < nzeros {
+					nzeros = d5
+				}
+				Qh, Ql = __mul_128x128_full(CQ, bid_reciprocals10_128[nzeros])
+				amount = bid_recip_scale[nzeros]
+				CQ = __shr_128_long(Qh, uint(amount))
+				_ = Ql
+				diffExpon += nzeros
+			} else {
+				QLow = CQ.lo
+				tdigit[0] = uint32(QLow) & 0x3ffffff
+				tdigit[1] = 0
+				QX = QLow >> 26
+				QX32 = uint32(QX)
+				nzeros = 0
+				for j = 0; QX32 != 0; j, QX32 = j+1, QX32>>7 {
+					k = int(QX32 & 127)
+					tdigit[0] += bid_convert_table[j][k][0]
+					tdigit[1] += bid_convert_table[j][k][1]
+					if tdigit[0] >= 100000000 {
+						tdigit[0] -= 100000000
+						tdigit[1]++
+					}
+				}
+				digit = tdigit[0]
+				if digit == 0 && tdigit[1] == 0 {
+					nzeros += 16
+				} else {
+					if digit == 0 {
+						nzeros += 8
+						digit = tdigit[1]
+					}
+					PD = uint64(digit) * 0x068db8bb
+					digitH = uint32(PD >> 40)
+					digitLow = digit - digitH*10000
+					if digitLow == 0 {
+						nzeros += 4
+					} else {
+						digitH = digitLow
+					}
+					if (digitH & 1) == 0 {
+						nzeros += int(3 & uint32(bid_packed_10000_zeros[digitH>>3]>>(digitH&7)))
+					}
+				}
+				if nzeros != 0 {
+					Qh, Ql = __mul_128x128_full(CQ, bid_reciprocals10_128[nzeros])
+					amount = bid_recip_scale[nzeros]
+					CQ = __shr_128(Qh, uint(amount))
+					_ = Ql
+				}
+				diffExpon += nzeros
+			}
+		}
+		if diffExpon >= 0 {
+			res, packFlags := fast_get_BID64_check_OF_flags(signX^signY, diffExpon, CQ.lo, rnd_mode)
+			return res, flags | packFlags
+		}
+	}
+
+	if diffExpon >= 0 {
+		rmode = uint(rnd_mode)
+		if (signX^signY) != 0 && uint(rmode-1) < 2 {
+			rmode = 3 - rmode
+		}
+		switch rmode {
+		case BID_ROUNDING_TO_NEAREST:
+			CA4r.w1 = (CA4.w1 + CA4.w1) | (CA4.w0 >> 63)
+			CA4r.w0 = CA4.w0 + CA4.w0
+			CA4r.w0, carry64 = __sub_borrow_out(CA4r.w0, CY.lo)
+			CA4r.w1 = CA4r.w1 - CY.hi - carry64
+			if (CA4r.w1 | CA4r.w0) != 0 {
+				D = 1
+			}
+			carry64 = uint64(1+(int64(CA4r.w1)>>63)) & (CQ.lo | D)
+			CQ.lo += carry64
+			if CQ.lo < carry64 {
+				CQ.hi++
+			}
+		case BID_ROUNDING_TIES_AWAY:
+			CA4r.w1 = (CA4.w1 + CA4.w1) | (CA4.w0 >> 63)
+			CA4r.w0 = CA4.w0 + CA4.w0
+			CA4r.w0, carry64 = __sub_borrow_out(CA4r.w0, CY.lo)
+			CA4r.w1 = CA4r.w1 - CY.hi - carry64
+			if (CA4r.w1 | CA4r.w0) == 0 {
+				D = 1
+			}
+			carry64 = uint64(1+(int64(CA4r.w1)>>63)) | D
+			CQ.lo += carry64
+			if CQ.lo < carry64 {
+				CQ.hi++
+			}
+		case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
+		default:
+			CQ.lo++
+			if CQ.lo == 0 {
+				CQ.hi++
+			}
+		}
+		res, packFlags := fast_get_BID64_check_OF_flags(signX^signY, diffExpon, CQ.lo, rnd_mode)
+		return res, flags | packFlags
+	}
+	if diffExpon+16 < 0 {
+		flags |= BID_INEXACT_EXCEPTION
+	}
+	res = get_BID64_UF_withFlags(signX^signY, diffExpon, CQ.lo,
+		CA4.w1|CA4.w0, rnd_mode, &flags)
+	return res, flags
+}

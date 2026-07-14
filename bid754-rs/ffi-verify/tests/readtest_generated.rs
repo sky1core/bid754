@@ -21,12 +21,8 @@ enum CmpMode { CmpFuzzy, CmpEqual, CmpRelativeErr }
 enum DispatchResult { Pass, Fail(String), Skip }
 
 fn parse_bid64(s: &str) -> Option<u64> {
-    if let Some(inner) = strip_brackets(s) {
-        if let Some((hi, _lo)) = inner.split_once(',') {
-            if hi.len() > 16 { return None; }
-            return u64::from_str_radix(hi, 16).ok();
-        }
-        return parse_bracketed_hex_u64(s);
+    if s.starts_with('[') {
+        return parse_bid64_scanned_bits(s);
     }
     Some(bid64_from_string_via_c_readtest(s, 0).0)
 }
@@ -77,14 +73,24 @@ fn parse_bid32_expected(s: &str, rm: i64) -> Option<u32> {
 }
 
 fn parse_bid64_expected(s: &str, rm: i64) -> Option<u64> {
-    if let Some(inner) = strip_brackets(s) {
-        if let Some((hi, _lo)) = inner.split_once(',') {
-            if hi.len() > 16 { return None; }
-            return u64::from_str_radix(hi, 16).ok();
-        }
-        return parse_bracketed_hex_u64(s);
+    if s.starts_with('[') {
+        return parse_bid64_scanned_bits(s);
     }
     Some(bid64_from_string_via_c_readtest(s, rm).0)
+}
+
+// Intel readtest.c getop64 uses sscanf(op+1, "%016llx", ...). It consumes
+// at most the first 16 hexadecimal digits after '[' and does not require a
+// closing bracket. This intentionally accepts the pinned bid128qd_div row
+// whose Decimal64 operand is missing ']'.
+fn parse_bid64_scanned_bits(s: &str) -> Option<u64> {
+    let digits: String = s.strip_prefix('[')?
+        .chars()
+        .take_while(|c| c.is_ascii_hexdigit())
+        .take(16)
+        .collect();
+    if digits.is_empty() { return None; }
+    u64::from_str_radix(&digits, 16).ok()
 }
 
 fn parse_bid128_expected(s: &str, rm: i64) -> Option<BID_UINT128> {
@@ -2843,6 +2849,138 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
         },
+        "bid128dd_add" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dd_add(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128dd_div" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dd_div(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128dd_mul" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dd_mul(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128dd_sub" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dd_sub(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128dq_add" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dq_add(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128dq_div" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dq_div(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128dq_mul" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dq_mul(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128dq_sub" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128dq_sub(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128qd_add" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128qd_add(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128qd_div" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128qd_div(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128qd_mul" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128qd_mul(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid128qd_sub" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid128_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid128qd_sub(a0, a1, rm);
+            let result = compare_bid128(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
         "bid32_abs" => {
             if parts.len() <= 4 { return DispatchResult::Skip; }
             let Some(a0) = parse_bid32(parts[2]) else { return DispatchResult::Skip };
@@ -2940,9 +3078,9 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(expected) = parse_bid32_expected(parts[4], rm) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[5]);
             let (got, flags) = bid32_fmod(a0, a1);
-            let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
-            if !matches!(result, DispatchResult::Pass) { return result; }
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpRelativeErr, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
         },
@@ -6383,6 +6521,138 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
         },
+        "bid64dq_add" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64dq_add(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64dq_div" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64dq_div(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64dq_mul" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64dq_mul(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64dq_sub" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid64(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64dq_sub(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qd_add" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qd_add(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qd_div" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qd_div(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qd_mul" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qd_mul(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qd_sub" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid64(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qd_sub(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qq_add" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qq_add(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qq_div" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qq_div(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qq_mul" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qq_mul(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
+        "bid64qq_sub" => {
+            if parts.len() <= 5 { return DispatchResult::Skip; }
+            let Some(a0) = parse_bid128(parts[2]) else { return DispatchResult::Skip };
+            let Some(a1) = parse_bid128(parts[3]) else { return DispatchResult::Skip };
+            let Some(expected) = parse_bid64_expected(parts[4], rm) else { return DispatchResult::Skip };
+            let expected_flags = parse_flags(parts[5]);
+            let (got, flags) = bid64qq_sub(a0, a1, rm);
+            let result = compare_u64(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
+            if !matches!(result, DispatchResult::Pass) { return result; }
+            DispatchResult::Pass
+        },
         "bid_getDecimalRoundingDirection" => {
             if parts.len() <= 4 { return DispatchResult::Skip; }
             let Some(a0) = parse_u32(parts[2]) else { return DispatchResult::Skip };
@@ -6655,6 +6925,18 @@ fn supported_readtest_func(func_name: &str) -> bool {
         "bid128_to_uint8_xrninta" |
         "bid128_totalOrder" |
         "bid128_totalOrderMag" |
+        "bid128dd_add" |
+        "bid128dd_div" |
+        "bid128dd_mul" |
+        "bid128dd_sub" |
+        "bid128dq_add" |
+        "bid128dq_div" |
+        "bid128dq_mul" |
+        "bid128dq_sub" |
+        "bid128qd_add" |
+        "bid128qd_div" |
+        "bid128qd_mul" |
+        "bid128qd_sub" |
         "bid32_abs" |
         "bid32_add" |
         "bid32_class" |
@@ -6995,6 +7277,18 @@ fn supported_readtest_func(func_name: &str) -> bool {
         "bid64_to_uint8_xrninta" |
         "bid64_totalOrder" |
         "bid64_totalOrderMag" |
+        "bid64dq_add" |
+        "bid64dq_div" |
+        "bid64dq_mul" |
+        "bid64dq_sub" |
+        "bid64qd_add" |
+        "bid64qd_div" |
+        "bid64qd_mul" |
+        "bid64qd_sub" |
+        "bid64qq_add" |
+        "bid64qq_div" |
+        "bid64qq_mul" |
+        "bid64qq_sub" |
         "bid_getDecimalRoundingDirection" |
         "bid_lowerFlags" |
         "bid_restoreFlags" |
@@ -7005,6 +7299,16 @@ fn supported_readtest_func(func_name: &str) -> bool {
         "bid_testSavedFlags" |
         ""
     )
+}
+
+fn readtest_suite_matches(filter: &str, func_name: &str) -> bool {
+    match filter {
+        "bid64" => func_name.starts_with("bid64_") || func_name.starts_with("bid64dq_") || func_name.starts_with("bid64qd_") || func_name.starts_with("bid64qq_"),
+        "bid32" => func_name.starts_with("bid32_"),
+        "bid" => func_name.starts_with("bid_"),
+        "bid128" => func_name.starts_with("bid128_") || func_name.starts_with("bid128dd_") || func_name.starts_with("bid128dq_") || func_name.starts_with("bid128qd_"),
+        _ => false,
+    }
 }
 
 
@@ -7028,7 +7332,8 @@ struct RunSummary {
 }
 
 // NOTE: the line-selection rules below (trim, comment skip, parts.len() < 4
-// skip, filter-prefix match, supported_readtest_func, longintsize=32 skip)
+// skip, generated suite-prefix match, supported_readtest_func,
+// longintsize=32 skip)
 // are mirrored by countExpectedReadtestPasses in
 // devtools/tools/codegen/readtest_gen.go, which derives the expected
 // passed-case counts pinned by the generated tests. Keep both in sync.
@@ -7036,8 +7341,6 @@ fn run_readtest(filter: &str) -> RunSummary {
     let path = find_readtest_in();
     let f = File::open(&path).expect("open readtest.in");
     let reader = BufReader::new(f);
-    let filter_prefix = format!("{}_", filter);
-
     let mut summary = RunSummary {
         passed: 0, failed: 0, skipped: 0,
         by_func: BTreeMap::new(),
@@ -7052,7 +7355,7 @@ fn run_readtest(filter: &str) -> RunSummary {
         if parts.len() < 4 { continue; }
 
         let func_name = parts[0];
-        if !func_name.starts_with(&filter_prefix) { continue; }
+        if !readtest_suite_matches(filter, func_name) { continue; }
         if !supported_readtest_func(func_name) { continue; }
         if line.contains("longintsize=32") { continue; }
 
@@ -7106,7 +7409,7 @@ fn test_readtest_generated_decimal64() {
     }
     assert_eq!(s.failed, 0, "decimal64 readtest failures");
     assert_eq!(s.skipped, 0, "decimal64 readtest skips");
-    assert_eq!(s.passed, 20246, "decimal64 readtest passed-case count derived from readtest.in at generation time");
+    assert_eq!(s.passed, 21540, "decimal64 readtest passed-case count derived from readtest.in at generation time");
 }
 
 #[test]
@@ -7148,5 +7451,5 @@ fn test_readtest_generated_decimal128() {
     }
     assert_eq!(s.failed, 0, "decimal128 readtest failures");
     assert_eq!(s.skipped, 0, "decimal128 readtest skips");
-    assert_eq!(s.passed, 43409, "decimal128 readtest passed-case count derived from readtest.in at generation time");
+    assert_eq!(s.passed, 43653, "decimal128 readtest passed-case count derived from readtest.in at generation time");
 }

@@ -979,6 +979,8 @@ func emitRustParityUnit(b *strings.Builder, row rustParityInventoryRow, corpus p
 		return emitSimpleOp(b, row, corpus, w, 2, true, true, false, resultDec64)
 	case "binary_mode_flags":
 		return emitModeBinary(b, row, corpus, w)
+	case "mixed_binary_mode_flags_dd", "mixed_binary_mode_flags_dq", "mixed_binary_mode_flags_qd", "mixed_binary_mode_flags_qq":
+		return emitMixedModeBinary(b, row, corpus, w)
 	case "unary_mode_flags":
 		return emitModeUnaryArith(b, row, corpus, w)
 	case "ternary_mode_flags":
@@ -1063,6 +1065,110 @@ func emitRustParityUnit(b *strings.Builder, row rustParityInventoryRow, corpus p
 		}
 		return "", 0, fmt.Errorf("rust public parity: no emitter for shape %q (go_symbol %q)", row.Shape, row.GoSymbol)
 	}
+}
+
+var rustMixedShapeWidths = map[string][2]parityWidth{
+	"mixed_binary_mode_flags_dd": {decimal64ParityWidth, decimal64ParityWidth},
+	"mixed_binary_mode_flags_dq": {decimal64ParityWidth, decimal128ParityWidth},
+	"mixed_binary_mode_flags_qd": {decimal128ParityWidth, decimal64ParityWidth},
+	"mixed_binary_mode_flags_qq": {decimal128ParityWidth, decimal128ParityWidth},
+}
+
+func rustMixedOperation(goSymbol string) (string, error) {
+	for _, op := range []string{"Add", "Sub", "Mul", "Div"} {
+		if strings.HasPrefix(goSymbol, op) {
+			return op, nil
+		}
+	}
+	return "", fmt.Errorf("rust public parity: mixed-width go_symbol %q has no supported Add/Sub/Mul/Div prefix", goSymbol)
+}
+
+// emitMixedModeBinary independently exercises one generated Rust associated
+// function for Intel's D/Q mixed-width arithmetic. It uses the source-width
+// pair table and value conversion for each operand, while result comparison is
+// normalized by the destination width resolved from the census port name.
+func emitMixedModeBinary(b *strings.Builder, row rustParityInventoryRow, corpus publicParityCorpus, result parityWidth) (string, int, error) {
+	operands, ok := rustMixedShapeWidths[row.Shape]
+	if !ok {
+		return "", 0, fmt.Errorf("rust public parity: mixed-width shape %q has no independent operand-width mapping", row.Shape)
+	}
+	left, right := operands[0], operands[1]
+	op, err := rustMixedOperation(row.GoSymbol)
+	if err != nil {
+		return "", 0, err
+	}
+	disc, err := mixedModeBinaryDiscriminantOperands(op, parityWidthDigits(result), [2]int{parityWidthDigits(left), parityWidthDigits(right)})
+	if err != nil {
+		return "", 0, err
+	}
+	module, fn, err := resolvePort(row.BidgoFunction, row.GoSymbol)
+	if err != nil {
+		return "", 0, err
+	}
+	funcName := normalizeRustFnName(row.GoSymbol)
+	cases := (len(parityLabelPairs) + len(disc)) * len(publicParityModeOrderNames)
+	pubBits, portBits := result.pubBitsExpr("pv"), result.portBitsExpr("pr")
+
+	fmt.Fprintf(b, "fn %s(failures: &mut Vec<String>) -> usize {\n", funcName)
+	b.WriteString("    let mut count = 0usize;\n")
+	fmt.Fprintf(b, "    for pair_index in 0..%s.len() {\n", left.pairs)
+	fmt.Fprintf(b, "        let left_pair = %s[pair_index];\n", left.pairs)
+	fmt.Fprintf(b, "        let right_pair = %s[pair_index];\n", right.pairs)
+	fmt.Fprintf(b, "        let left_bits = %s[left_pair.0];\n", left.corpus)
+	fmt.Fprintf(b, "        let right_bits = %s[right_pair.1];\n", right.corpus)
+	b.WriteString("        for &(mode, port_mode) in PARITY_MODES {\n")
+	indent := "            "
+	fmt.Fprintf(b, "%slet (pv, pf) = %s::%s(%s, %s, mode);\n", indent, result.selfType, row.RustSurface, left.pubFrom("left_bits"), right.pubFrom("right_bits"))
+	b.WriteString(indent + portCallStmt(row.BidgoFunction, module, fn, []string{left.portArg("left_bits"), right.portArg("right_bits"), "port_mode"}) + "\n")
+	ctxFmt := "operands " + left.opFmtSpec() + "," + right.opFmtSpec() + " mode {:?}"
+	ctxArgs := "left_bits, right_bits, mode"
+	fmt.Fprintf(b, "%sif %s != %s {\n", indent, pubBits, portBits)
+	fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: result mismatch public=%s port=%s\", %s, %s, %s));\n", indent, row.GoSymbol, ctxFmt, result.resultFmtSpec(), result.resultFmtSpec(), ctxArgs, pubBits, portBits)
+	fmt.Fprintf(b, "%s}\n", indent)
+	fmt.Fprintf(b, "%sif pf.bits() != map_port_flags(praw) {\n", indent)
+	fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: flag mismatch public={:#x} port={:#x}\", %s, pf.bits(), map_port_flags(praw)));\n", indent, row.GoSymbol, ctxFmt, ctxArgs)
+	fmt.Fprintf(b, "%s}\n", indent)
+	fmt.Fprintf(b, "%scount += 1;\n", indent)
+	b.WriteString("        }\n    }\n")
+
+	if len(disc) > 0 {
+		leftType, _ := rustModeDiscTypes(left)
+		rightType, _ := rustModeDiscTypes(right)
+		_, seenInit := rustModeDiscTypes(result)
+		fmt.Fprintf(b, "    let disc_pairs: &[(%s, %s)] = &[\n", leftType, rightType)
+		for _, pair := range disc {
+			leftLit, err := modeDiscRustLiteral(parityWidthDigits(left), pair[0])
+			if err != nil {
+				return "", 0, fmt.Errorf("%s left discriminant: %w", row.GoSymbol, err)
+			}
+			rightLit, err := modeDiscRustLiteral(parityWidthDigits(right), pair[1])
+			if err != nil {
+				return "", 0, fmt.Errorf("%s right discriminant: %w", row.GoSymbol, err)
+			}
+			fmt.Fprintf(b, "        (%s, %s),\n", leftLit, rightLit)
+		}
+		b.WriteString("    ];\n")
+		b.WriteString("    for &(left_bits, right_bits) in disc_pairs {\n")
+		fmt.Fprintf(b, "        let mut mode_seen = %s;\n", seenInit)
+		b.WriteString("        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {\n")
+		fmt.Fprintf(b, "%slet (pv, pf) = %s::%s(%s, %s, mode);\n", indent, result.selfType, row.RustSurface, left.pubFrom("left_bits"), right.pubFrom("right_bits"))
+		b.WriteString(indent + portCallStmt(row.BidgoFunction, module, fn, []string{left.portArg("left_bits"), right.portArg("right_bits"), "port_mode"}) + "\n")
+		discCtxFmt := "discriminant operands " + left.opFmtSpec() + "," + right.opFmtSpec() + " mode {:?}"
+		fmt.Fprintf(b, "%sif %s != %s {\n", indent, pubBits, portBits)
+		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: result mismatch public=%s port=%s\", left_bits, right_bits, mode, %s, %s));\n", indent, row.GoSymbol, discCtxFmt, result.resultFmtSpec(), result.resultFmtSpec(), pubBits, portBits)
+		fmt.Fprintf(b, "%s}\n", indent)
+		fmt.Fprintf(b, "%sif pf.bits() != map_port_flags(praw) {\n", indent)
+		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: flag mismatch public={:#x} port={:#x}\", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));\n", indent, row.GoSymbol, discCtxFmt)
+		fmt.Fprintf(b, "%s}\n", indent)
+		fmt.Fprintf(b, "%smode_seen[mi] = %s;\n", indent, pubBits)
+		fmt.Fprintf(b, "%scount += 1;\n", indent)
+		b.WriteString("        }\n")
+		fmt.Fprintf(b, "        if mode_seen.iter().all(|s| *s == mode_seen[0]) {\n")
+		fmt.Fprintf(b, "            failures.push(format!(\"public parity %s: discriminant operands %s,%s: every rounding mode produced the same result\", left_bits, right_bits));\n", row.GoSymbol, left.opFmtSpec(), right.opFmtSpec())
+		b.WriteString("        }\n    }\n")
+	}
+	b.WriteString("    count\n}\n\n")
+	return funcName, cases, nil
 }
 
 type simpleOpResultKind int

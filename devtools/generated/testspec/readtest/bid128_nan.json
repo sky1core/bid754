@@ -12,8 +12,8 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128_nan_83494","line":11104,"operands":["0"],"expected":"[7c000000000000000000000000000000]","status":"00","rounding":0},
-    {"id":"bid128_nan_83495","line":11105,"operands":["1"],"expected":"[7c000000000000000000000000000001]","status":"00","rounding":0},
-    {"id":"bid128_nan_83496","line":125997,"operands":["NULL"],"expected":"[7c000000000000000000000000000000]","status":"00","rounding":0}
+    {"id":"bid128_nan_85032","line":11104,"operands":["0"],"expected":"[7c000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128_nan_85033","line":11105,"operands":["1"],"expected":"[7c000000000000000000000000000001]","status":"00","rounding":0},
+    {"id":"bid128_nan_85034","line":125997,"operands":["NULL"],"expected":"[7c000000000000000000000000000000]","status":"00","rounding":0}
   ]
 }

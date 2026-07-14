@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "source": "bid754-go module-root package bid754 (all non-test files, generated included) + bid754-go/internal/bidgo + devtools/testgen_manifest.json public_api",
-  "total": 384,
-  "mapped": 337,
+  "total": 408,
+  "mapped": 361,
   "excluded": 47,
   "excluded_by_class": {
     "composition_plumbing": 6,
@@ -22,6 +22,27 @@
       "reason": "context add routes through Bid128Add (pointer-flags form) and accumulates the mapped flags into the context"
     },
     {
+      "symbol": "Add128DDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128ddAdd",
+      "reason": "Intel mixed-width bid128dd_add: two Decimal64 operands producing Decimal128"
+    },
+    {
+      "symbol": "Add128DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dqAdd",
+      "reason": "Intel mixed-width bid128dq_add: Decimal64 plus Decimal128 producing Decimal128"
+    },
+    {
+      "symbol": "Add128QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128qdAdd",
+      "reason": "Intel mixed-width bid128qd_add: Decimal128 plus Decimal64 producing Decimal128"
+    },
+    {
       "symbol": "Add32BIDWithContext",
       "kind": "func",
       "status": "mapped",
@@ -34,6 +55,27 @@
       "status": "mapped",
       "bidgo_function": "Bid64AddWithFlags",
       "reason": "context add routes through Bid64AddWithFlags and accumulates the mapped flags into the context"
+    },
+    {
+      "symbol": "Add64DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64dqAdd",
+      "reason": "Intel mixed-width bid64dq_add: Decimal64 plus Decimal128 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Add64QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qdAdd",
+      "reason": "Intel mixed-width bid64qd_add: Decimal128 plus Decimal64 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Add64QQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qqAdd",
+      "reason": "Intel mixed-width bid64qq_add: two Decimal128 operands rounded directly to Decimal64"
     },
     {
       "symbol": "AddSlice128BID",
@@ -2119,6 +2161,48 @@
       "reason": "snapshots the global default rounding into a new context; IEEE 754 5.7.4 flag/context plumbing with no port counterpart"
     },
     {
+      "symbol": "Div128DDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128ddDiv",
+      "reason": "Intel mixed-width bid128dd_div: two Decimal64 operands producing Decimal128"
+    },
+    {
+      "symbol": "Div128DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dqDiv",
+      "reason": "Intel mixed-width bid128dq_div: Decimal64 divided by Decimal128 producing Decimal128"
+    },
+    {
+      "symbol": "Div128QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128qdDiv",
+      "reason": "Intel mixed-width bid128qd_div: Decimal128 divided by Decimal64 producing Decimal128"
+    },
+    {
+      "symbol": "Div64DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64dqDiv",
+      "reason": "Intel mixed-width bid64dq_div: Decimal64 divided by Decimal128 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Div64QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qdDiv",
+      "reason": "Intel mixed-width bid64qd_div: Decimal128 divided by Decimal64 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Div64QQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qqDiv",
+      "reason": "Intel mixed-width bid64qq_div: two Decimal128 operands rounded directly to Decimal64"
+    },
+    {
       "symbol": "E128BID",
       "kind": "func",
       "status": "excluded_constant_accessor",
@@ -2183,6 +2267,48 @@
       "kind": "func",
       "status": "excluded_string_util_plumbing",
       "reason": "decimal-literal syntax check helper, not an IEEE operation"
+    },
+    {
+      "symbol": "Mul128DDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128ddMul",
+      "reason": "Intel mixed-width bid128dd_mul: two Decimal64 operands producing an exact Decimal128 product"
+    },
+    {
+      "symbol": "Mul128DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dqMul",
+      "reason": "Intel mixed-width bid128dq_mul: Decimal64 times Decimal128 producing Decimal128"
+    },
+    {
+      "symbol": "Mul128QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128qdMul",
+      "reason": "Intel mixed-width bid128qd_mul: Decimal128 times Decimal64 producing Decimal128"
+    },
+    {
+      "symbol": "Mul64DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64dqMul",
+      "reason": "Intel mixed-width bid64dq_mul: Decimal64 times Decimal128 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Mul64QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qdMul",
+      "reason": "Intel mixed-width bid64qd_mul: Decimal128 times Decimal64 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Mul64QQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qqMul",
+      "reason": "Intel mixed-width bid64qq_mul: two Decimal128 operands rounded directly to Decimal64"
     },
     {
       "symbol": "NativeBackendEnabled",
@@ -2453,6 +2579,48 @@
       "kind": "func",
       "status": "excluded_context_flag_plumbing",
       "reason": "stores the global default rounding mode; IEEE 754 attribute plumbing with no port counterpart"
+    },
+    {
+      "symbol": "Sub128DDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128ddSub",
+      "reason": "Intel mixed-width bid128dd_sub: two Decimal64 operands producing Decimal128"
+    },
+    {
+      "symbol": "Sub128DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dqSub",
+      "reason": "Intel mixed-width bid128dq_sub: Decimal64 minus Decimal128 producing Decimal128"
+    },
+    {
+      "symbol": "Sub128QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128qdSub",
+      "reason": "Intel mixed-width bid128qd_sub: Decimal128 minus Decimal64 producing Decimal128"
+    },
+    {
+      "symbol": "Sub64DQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64dqSub",
+      "reason": "Intel mixed-width bid64dq_sub: Decimal64 minus Decimal128 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Sub64QDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qdSub",
+      "reason": "Intel mixed-width bid64qd_sub: Decimal128 minus Decimal64 rounded directly to Decimal64"
+    },
+    {
+      "symbol": "Sub64QQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qqSub",
+      "reason": "Intel mixed-width bid64qq_sub: two Decimal128 operands rounded directly to Decimal64"
     },
     {
       "symbol": "Zero128BID",

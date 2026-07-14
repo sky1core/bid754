@@ -606,3 +606,217 @@ pub fn bid128_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_UINT128, mu
     let (mut res, _, _, _, _) = bid128_ext_fma(x, y, z, rnd_mode, (&mut pfpsf));
     return (res, pfpsf);
 }
+
+pub(crate) fn bid64qqq_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> u64 {
+    let mut isMidpointLtEven0: i64 = 0;
+    let mut isMidpointGtEven0: i64 = 0;
+    let mut isInexactLtMidpoint0: i64 = 0;
+    let mut isInexactGtMidpoint0: i64 = 0;
+    let mut isMidpointLtEven: i64 = 0;
+    let mut isMidpointGtEven: i64 = 0;
+    let mut isInexactLtMidpoint: i64 = 0;
+    let mut isInexactGtMidpoint: i64 = 0;
+    let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut incrExp: i64 = 0;
+    let mut res1: u64 = (0xbaddbaddbaddbadd as u64);
+    let mut saveFpsf = (*pfpsf);
+    (*pfpsf) = 0;
+    (res, isMidpointLtEven0, isMidpointGtEven0, isInexactLtMidpoint0, isInexactGtMidpoint0) = bid128_ext_fma(x, y, z, rnd_mode, pfpsf);
+    if (((((rnd_mode == 1) || (rnd_mode == 2)) || (rnd_mode == 3)) || ((res.hi & 0x7c00000000000000) == 0x7c00000000000000)) || ((res.hi & 0x7c00000000000000) == 0x7800000000000000)) {
+        let mut flags: u32 = 0;
+        (res1, flags) = bid128_to_bid64(res, rnd_mode);
+        (*pfpsf) |= flags;
+        let mut unbexp = (((((go_checked_shr_u64(res1, go_shift_count_u64((53) as u64)))) & 0x3ff) as i64).wrapping_sub(398));
+        if ((res1 & 0x7c00000000000000) != 0x7c00000000000000) {
+            if (((unbexp == (-398)) && ((res1 & 0x1fffffffffffff) < 1000000000000000)) && (((((isInexactLtMidpoint0 != 0) || (isInexactGtMidpoint0 != 0)) || (isMidpointLtEven0 != 0)) || (isMidpointGtEven0 != 0)))) {
+                (*pfpsf) |= (32 | 16);
+            } else if ((((isInexactLtMidpoint0 != 0) || (isInexactGtMidpoint0 != 0)) || (isMidpointLtEven0 != 0)) || (isMidpointGtEven0 != 0)) {
+                (*pfpsf) |= 32;
+            }
+            if (((res1 & 0x7fffffffffffffff) == 1000000000000000) && (((((((rnd_mode == 0) || (rnd_mode == 4))) && (((isMidpointLtEven != 0) || (isInexactGtMidpoint != 0))))) || (((((((rnd_mode == 2) && ((res1 & 0x8000000000000000) == 0))) || (((rnd_mode == 1) && ((res1 & 0x8000000000000000) != 0))))) && (((((isMidpointLtEven != 0) || (isMidpointGtEven != 0)) || (isInexactLtMidpoint != 0)) || (isInexactGtMidpoint != 0)))))))) {
+                (*pfpsf) |= 16;
+            }
+        }
+        (*pfpsf) |= saveFpsf;
+        return res1;
+    }
+    let mut sign = (res.hi & 0x8000000000000000);
+    let mut exp = (res.hi & 0x7ffe000000000000);
+    let mut unbexp = (((go_checked_shr_u64(exp, go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
+    let mut C = BID_UINT128 { lo: res.lo, hi: (res.hi & 0x1ffffffffffff), ..Default::default() };
+    if (((((C.hi == 0) && (C.lo == 0))) || (unbexp <= (-433))) || (unbexp >= 385)) {
+        let mut flags: u32 = 0;
+        (res1, flags) = bid128_to_bid64(res, rnd_mode);
+        (*pfpsf) |= (flags | saveFpsf);
+        return res1;
+    }
+    if ((rnd_mode == 4) && (isMidpointGtEven != 0)) {
+        res1 = res1.wrapping_sub(1);
+    }
+    let mut nrBits: i64 = 0;
+    if (C.hi == 0) {
+        if (C.lo >= 0x0020000000000000) {
+            let mut tmp = (((go_checked_shr_u64(C.lo, go_shift_count_u64((32) as u64))) as f64)).to_bits();
+            nrBits = (((33 as i64).wrapping_add(((((go_checked_shr_u64(tmp, go_shift_count_u64((52) as u64)))) & 0x7ff) as i64))).wrapping_sub(0x3ff));
+        } else {
+            let mut tmp = (C.lo as f64).to_bits();
+            nrBits = (((1 as i64).wrapping_add(((((go_checked_shr_u64(tmp, go_shift_count_u64((52) as u64)))) & 0x7ff) as i64))).wrapping_sub(0x3ff));
+        }
+    } else {
+        let mut tmp = (C.hi as f64).to_bits();
+        nrBits = (((65 as i64).wrapping_add(((((go_checked_shr_u64(tmp, go_shift_count_u64((52) as u64)))) & 0x7ff) as i64))).wrapping_sub(0x3ff));
+    }
+    let mut q = (bid_nr_digits[(nrBits.wrapping_sub(1)) as usize].digits as i64);
+    if (q == 0) {
+        q = (bid_nr_digits[(nrBits.wrapping_sub(1)) as usize].digits1 as i64);
+        if ((C.hi > bid_nr_digits[(nrBits.wrapping_sub(1)) as usize].threshold_hi) || (((C.hi == bid_nr_digits[(nrBits.wrapping_sub(1)) as usize].threshold_hi) && (C.lo >= bid_nr_digits[(nrBits.wrapping_sub(1)) as usize].threshold_lo)))) {
+            q = q.wrapping_add(1);
+        }
+    }
+    if (q > 16) {
+        let mut x0 = (q.wrapping_sub(16));
+        if (q <= 18) {
+            res1 = bid_round64_2_18(q, x0, C.lo, (&mut incrExp), (&mut isMidpointLtEven), (&mut isMidpointGtEven), (&mut isInexactLtMidpoint), (&mut isInexactGtMidpoint));
+        } else {
+            let (mut res128, mut nextIncrExp, mut nextMidpointLtEven, mut nextMidpointGtEven, mut nextInexactLtMidpoint, mut nextInexactGtMidpoint) = bid_round128_19_38(q, x0, C);
+            res1 = res128.lo;
+            incrExp = nextIncrExp;
+            isMidpointLtEven = nextMidpointLtEven;
+            isMidpointGtEven = nextMidpointGtEven;
+            isInexactLtMidpoint = nextInexactLtMidpoint;
+            isInexactGtMidpoint = nextInexactGtMidpoint;
+        }
+        unbexp = unbexp.wrapping_add(x0);
+        if (incrExp != 0) {
+            unbexp = unbexp.wrapping_add(1);
+        }
+        q = 16;
+    } else {
+        res1 = C.lo;
+    }
+    if ((((isInexactGtMidpoint0 != 0) || (isMidpointLtEven0 != 0))) && (isMidpointLtEven != 0)) {
+        res1 = res1.wrapping_sub(1);
+        isMidpointLtEven = 0;
+        isInexactLtMidpoint = 1;
+        if (res1 == 0x00038d7ea4c67fff) {
+            res1 = 0x002386f26fc0ffff;
+            unbexp = unbexp.wrapping_sub(1);
+        }
+    } else if ((((isInexactLtMidpoint0 != 0) || (isMidpointGtEven0 != 0))) && (isMidpointGtEven != 0)) {
+        res1 = res1.wrapping_add(1);
+        isMidpointGtEven = 0;
+        isInexactGtMidpoint = 1;
+    } else if ((((isMidpointLtEven == 0) && (isMidpointGtEven == 0)) && (isInexactLtMidpoint == 0)) && (isInexactGtMidpoint == 0)) {
+        if ((isInexactGtMidpoint0 != 0) || (isMidpointLtEven0 != 0)) {
+            isInexactGtMidpoint = 1;
+        }
+        if ((isInexactLtMidpoint0 != 0) || (isMidpointGtEven0 != 0)) {
+            isInexactLtMidpoint = 1;
+        }
+    } else if ((isMidpointGtEven != 0) && (((isInexactGtMidpoint0 != 0) || (isMidpointLtEven0 != 0)))) {
+        isInexactLtMidpoint = 1;
+        isInexactGtMidpoint = 0;
+        isMidpointLtEven = 0;
+        isMidpointGtEven = 0;
+    } else if ((isMidpointLtEven != 0) && (((isInexactLtMidpoint0 != 0) || (isMidpointGtEven0 != 0)))) {
+        isInexactLtMidpoint = 0;
+        isInexactGtMidpoint = 1;
+        isMidpointLtEven = 0;
+        isMidpointGtEven = 0;
+    }
+    if ((q.wrapping_add(unbexp)) > (16 + 369)) {
+        res1 = (sign | 0x7800000000000000);
+        (*pfpsf) |= ((32 | 8) | saveFpsf);
+        return res1;
+    } else if (unbexp > 369) {
+        let mut scale = (unbexp.wrapping_sub(369));
+        res1 = res1.wrapping_mul(bid_ten2k64[scale as usize]);
+        unbexp = 369;
+    }
+    if ((q.wrapping_add(unbexp)) < (16 - 398)) {
+        if (unbexp < (-398)) {
+            let mut x0 = (((-398) as i64).wrapping_sub(unbexp));
+            isInexactLtMidpoint0 = isInexactLtMidpoint;
+            isInexactGtMidpoint0 = isInexactGtMidpoint;
+            isMidpointLtEven0 = isMidpointLtEven;
+            isMidpointGtEven0 = isMidpointGtEven;
+            isInexactLtMidpoint = 0;
+            isInexactGtMidpoint = 0;
+            isMidpointLtEven = 0;
+            isMidpointGtEven = 0;
+            if (x0 < q) {
+                res1 = bid_round64_2_18(q, x0, res1, (&mut incrExp), (&mut isMidpointLtEven), (&mut isMidpointGtEven), (&mut isInexactLtMidpoint), (&mut isInexactGtMidpoint));
+                if (incrExp != 0) {
+                    res1 = bid_ten2k64[(q.wrapping_sub(x0)) as usize];
+                }
+                unbexp = unbexp.wrapping_add(x0);
+            } else if (x0 == q) {
+                let mut ltHalfUlp: bool = false;
+                let mut eqHalfUlp: bool = false;
+                if (res1 < bid_midpoint64[(q.wrapping_sub(1)) as usize]) {
+                    ltHalfUlp = true;
+                    isInexactLtMidpoint = 1;
+                } else if (res1 == bid_midpoint64[(q.wrapping_sub(1)) as usize]) {
+                    eqHalfUlp = true;
+                    isMidpointGtEven = 1;
+                } else {
+                    isInexactGtMidpoint = 1;
+                }
+                if (ltHalfUlp || eqHalfUlp) {
+                    res1 = 0;
+                } else {
+                    res1 = 1;
+                }
+                unbexp = (-398);
+            } else {
+                res1 = 0;
+                unbexp = (-398);
+                isInexactLtMidpoint = 1;
+            }
+            if ((((isInexactGtMidpoint0 != 0) || (isMidpointLtEven0 != 0))) && (isMidpointLtEven != 0)) {
+                res1 = res1.wrapping_sub(1);
+                isMidpointLtEven = 0;
+                isInexactLtMidpoint = 1;
+            } else if ((((isInexactLtMidpoint0 != 0) || (isMidpointGtEven0 != 0))) && (isMidpointGtEven != 0)) {
+                res1 = res1.wrapping_add(1);
+                isMidpointGtEven = 0;
+                isInexactGtMidpoint = 1;
+            } else if ((((isMidpointLtEven == 0) && (isMidpointGtEven == 0)) && (isInexactLtMidpoint == 0)) && (isInexactGtMidpoint == 0)) {
+                if ((isInexactGtMidpoint0 != 0) || (isMidpointLtEven0 != 0)) {
+                    isInexactGtMidpoint = 1;
+                }
+                if ((isInexactLtMidpoint0 != 0) || (isMidpointGtEven0 != 0)) {
+                    isInexactLtMidpoint = 1;
+                }
+            } else if ((isMidpointGtEven != 0) && (((isInexactGtMidpoint0 != 0) || (isMidpointLtEven0 != 0)))) {
+                isInexactLtMidpoint = 1;
+                isInexactGtMidpoint = 0;
+                isMidpointLtEven = 0;
+                isMidpointGtEven = 0;
+            } else if ((isMidpointLtEven != 0) && (((isInexactLtMidpoint0 != 0) || (isMidpointGtEven0 != 0)))) {
+                isInexactLtMidpoint = 0;
+                isInexactGtMidpoint = 1;
+                isMidpointLtEven = 0;
+                isMidpointGtEven = 0;
+            }
+        }
+        if ((((((((isInexactLtMidpoint != 0) || (isInexactGtMidpoint != 0)) || (isMidpointLtEven != 0)) || (isMidpointGtEven != 0)) || (isInexactLtMidpoint0 != 0)) || (isInexactGtMidpoint0 != 0)) || (isMidpointLtEven0 != 0)) || (isMidpointGtEven0 != 0)) {
+            (*pfpsf) |= (32 | 16);
+        }
+    } else if ((((isInexactLtMidpoint != 0) || (isInexactGtMidpoint != 0)) || (isMidpointLtEven != 0)) || (isMidpointGtEven != 0)) {
+        (*pfpsf) |= 32;
+    }
+    if ((rnd_mode == 4) && (isMidpointGtEven != 0)) {
+        res1 = res1.wrapping_add(1);
+    }
+    if (res1 < 0x0020000000000000) {
+        res1 = ((sign | ((go_checked_shl_u64(((unbexp.wrapping_add(398)) as u64), go_shift_count_u64((53) as u64))))) | res1);
+    } else {
+        res1 = (((sign | 0x6000000000000000) | ((go_checked_shl_u64(((unbexp.wrapping_add(398)) as u64), go_shift_count_u64((51) as u64))))) | (res1 & 0x7ffffffffffff));
+    }
+    if (((res1 & 0x7fffffffffffffff) == 1000000000000000) && (((((((rnd_mode == 0) || (rnd_mode == 4))) && (((isMidpointLtEven != 0) || (isInexactGtMidpoint != 0))))) || (((((((rnd_mode == 2) && ((res1 & 0x8000000000000000) == 0))) || (((rnd_mode == 1) && ((res1 & 0x8000000000000000) != 0))))) && (((((isMidpointLtEven != 0) || (isMidpointGtEven != 0)) || (isInexactLtMidpoint != 0)) || (isInexactGtMidpoint != 0)))))))) {
+        (*pfpsf) |= 16;
+    }
+    (*pfpsf) |= saveFpsf;
+    return res1;
+}

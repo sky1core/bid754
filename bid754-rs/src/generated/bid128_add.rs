@@ -28,6 +28,85 @@
 
 use super::prelude::*;
 
+pub fn bid64dq_add(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut x1, mut flags) = bid64_to_bid128(x);
+    let (mut res, mut opFlags) = bid64qq_add(x1, y, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid64qd_add(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut y1, mut flags) = bid64_to_bid128(y);
+    let (mut res, mut opFlags) = bid64qq_add(x, y1, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid64qq_add(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let mut one = BID_UINT128 { lo: 0x0000000000000001, hi: 0x3040000000000000, ..Default::default() };
+    let mut flags: u32 = 0;
+    return (bid64qqq_fma(one, x, y, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid128dd_add(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let mut flags = (flagsX | flagsY);
+    let mut res = bid128_add(x1, y1, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128dq_add(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flags) = bid64_to_bid128(x);
+    let mut res = bid128_add(x1, y, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128qd_add(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut y1, mut flags) = bid64_to_bid128(y);
+    let mut res = bid128_add(x, y1, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid64dq_sub(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut x1, mut flags) = bid64_to_bid128(x);
+    let (mut res, mut opFlags) = bid64qq_sub(x1, y, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid64qd_sub(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut y1, mut flags) = bid64_to_bid128(y);
+    let (mut res, mut opFlags) = bid64qq_sub(x, y1, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid64qq_sub(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let mut one = BID_UINT128 { lo: 0x0000000000000001, hi: 0x3040000000000000, ..Default::default() };
+    if ((y.hi & 0x7c00000000000000) != 0x7c00000000000000) {
+        y.hi ^= 0x8000000000000000;
+    }
+    let mut flags: u32 = 0;
+    return (bid64qqq_fma(one, x, y, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid128dd_sub(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let mut flags = (flagsX | flagsY);
+    let mut res = bid128_sub(x1, y1, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128dq_sub(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flags) = bid64_to_bid128(x);
+    let mut res = bid128_sub(x1, y, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128qd_sub(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut y1, mut flags) = bid64_to_bid128(y);
+    let mut res = bid128_sub(x, y1, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
 pub fn bid128_add(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
     let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     res.lo = 0xbaddbaddbaddbadd;

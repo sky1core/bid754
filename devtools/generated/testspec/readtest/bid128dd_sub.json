@@ -1,0 +1,22 @@
+{
+  "suite": "bid128dd_sub",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128dd_sub",
+  "kind": "binary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC64",
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128dd_sub_12796","line":1172,"operands":["[0000000000000002]","[0000000000000002]"],"expected":"[2d240000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128dd_sub_12797","line":1173,"operands":["[0000000000000005]","[e099249c0ce9fc9b]"],"expected":"[2d27cbf39c7c64b061338190c98c0000]","status":"20","rounding":0},
+    {"id":"bid128dd_sub_12798","line":1174,"operands":["[40a0fd1d31281dc0]","[fcf479199bebfa4e]"],"expected":"[fc00069099c09b21c6eb5100a8780000]","status":"00","rounding":0},
+    {"id":"bid128dd_sub_12799","line":1175,"operands":["[0000000000000002]","[0000000000000002]"],"expected":"[ad240000000000000000000000000000]","status":"00","rounding":1},
+    {"id":"bid128dd_sub_12800","line":1176,"operands":["[04a8000000000000]","[007080e0343101a4]"],"expected":"[2d4a6f05b59d3b1fffffffffffffffff]","status":"20","rounding":1}
+  ]
+}

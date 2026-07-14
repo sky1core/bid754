@@ -415,6 +415,207 @@ func publicParity_Add128BIDWithContext(t *testing.T) int {
 	return count
 }
 
+func publicParity_Add128DDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Add128DDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128ddAdd(leftBits, rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Add128DDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add128DDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right uint64
+	}{
+		{0x31c0000000000001, 0x2d80000000000005},
+		{0x31c0000000000001, 0x2d80000000000001},
+		{0x31c0000000000001, 0x2d80000000000009},
+		{0xb1c0000000000001, 0xad80000000000001},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Add128DDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128ddAdd(pair.left, pair.right, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Add128DDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add128DDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Add128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Add128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Add128DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Add128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqAdd(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Add128DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add128DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31c0000000000001, [16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f}},
+		{0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f}},
+		{0x31c0000000000001, [16]byte{0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f}},
+		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Add128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqAdd(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Add128DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add128DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Add128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Add128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Add128QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Add128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdAdd(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Add128QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add128QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2d80000000000005},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2d80000000000001},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2d80000000000009},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0xad80000000000001},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Add128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdAdd(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Add128QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add128QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Add128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Add128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
 func publicParity_Add32BIDWithContext(t *testing.T) int {
 	count := 0
 	prevDefaultRounding := DefaultArithmeticContext().RoundingMode
@@ -480,6 +681,207 @@ func publicParity_Add64BIDWithContext(t *testing.T) int {
 		}
 	}
 	SetDefaultRounding(prevDefaultRounding)
+	return count
+}
+
+func publicParity_Add64DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Add64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqAdd(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Add64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31c0000000000001, [16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{0x31c0000000000001, [16]byte{0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Add64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqAdd(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Add64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Add64QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Add64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdAdd(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Add64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2fc0000000000005},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2fc0000000000001},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2fc0000000000009},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0xafc0000000000001},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Add64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdAdd(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Add64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Add64QQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Add64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqAdd(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Add64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right [16]byte
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Add64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqAdd(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Add64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -7611,6 +8013,774 @@ func publicParity_Decimal64BID_ToDecimal32(t *testing.T) int {
 	return count
 }
 
+func publicParity_Div128DDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Div128DDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128ddDiv(leftBits, rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Div128DDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div128DDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right uint64
+	}{
+		{0x31c0000000000001, 0x31c0000000000003},
+		{0x31c0000000000002, 0x31c0000000000003},
+		{0x31c0000000000001, 0x31c0000000000007},
+		{0x31c0000000000005, 0x31c0000000000007},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Div128DDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128ddDiv(pair.left, pair.right, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Div128DDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div128DDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Div128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Div128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Div128DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Div128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqDiv(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Div128DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div128DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31c0000000000001, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c0000000000002, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c0000000000001, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c0000000000005, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Div128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqDiv(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Div128DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div128DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Div128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Div128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Div128QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Div128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdDiv(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Div128QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div128QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000003},
+		{[16]byte{0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000003},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000007},
+		{[16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000007},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Div128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdDiv(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Div128QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div128QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Div128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Div128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Div64DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Div64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqDiv(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Div64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31c0000000000001, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c0000000000002, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c0000000000001, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c0000000000005, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Div64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqDiv(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Div64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Div64QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Div64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdDiv(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Div64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000003},
+		{[16]byte{0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000003},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000007},
+		{[16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000007},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Div64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdDiv(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Div64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Div64QQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Div64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqDiv(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Div64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right [16]byte
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{[16]byte{0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{[16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Div64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqDiv(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Div64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Mul128DDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Mul128DDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128ddMul(leftBits, rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Mul128DDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul128DDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Mul128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Mul128DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Mul128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqMul(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Mul128DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul128DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31dff973cafa7fff, [16]byte{0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31df9465b8ab8e39, [16]byte{0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31dba1d901961c71, [16]byte{0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c462d53c8abac1, [16]byte{0xb1, 0x0c, 0xb7, 0xe3, 0xb8, 0x87, 0x10, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Mul128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqMul(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Mul128DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul128DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Mul128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Mul128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Mul128QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Mul128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdMul(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Mul128QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul128QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31dff973cafa7fff},
+		{[16]byte{0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31df9465b8ab8e39},
+		{[16]byte{0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31dba1d901961c71},
+		{[16]byte{0xb1, 0x0c, 0xb7, 0xe3, 0xb8, 0x87, 0x10, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c462d53c8abac1},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Mul128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdMul(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Mul128QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul128QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Mul128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Mul128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Mul64DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Mul64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqMul(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Mul64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31cbd7a625405556, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c7e5196e2ae38f, [16]byte{0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31cbd7a625405555, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{0x31c3f28cb71571c7, [16]byte{0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Mul64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqMul(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Mul64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Mul64QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Mul64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdMul(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Mul64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0x56, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000003},
+		{[16]byte{0x8f, 0xe3, 0x2a, 0x6e, 0x19, 0xe5, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000009},
+		{[16]byte{0x55, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000007},
+		{[16]byte{0xc7, 0x71, 0x15, 0xb7, 0x8c, 0xf2, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c000000000004d},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Mul64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdMul(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Mul64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Mul64QQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Mul64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqMul(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Mul64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right [16]byte
+	}{
+		{[16]byte{0x56, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{[16]byte{0x8f, 0xe3, 0x2a, 0x6e, 0x19, 0xe5, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{[16]byte{0x55, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+		{[16]byte{0xc7, 0x71, 0x15, 0xb7, 0x8c, 0xf2, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Mul64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqMul(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Mul64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
 func publicParity_NewDecimal128(t *testing.T) int {
 	count := 0
 	for _, sc := range publicParityStringCases {
@@ -8916,14 +10086,422 @@ func publicParity_ParseDecimal64BIDRaw(t *testing.T) int {
 	return count
 }
 
+func publicParity_Sub128DDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Sub128DDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128ddSub(leftBits, rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Sub128DDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub128DDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right uint64
+	}{
+		{0x31c0000000000001, 0x2d60000000000001},
+		{0x31c0000000000001, 0x2d60000000000005},
+		{0x31c0000000000002, 0x2d80000000000001},
+		{0xb1c0000000000001, 0x2d60000000000001},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Sub128DDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128ddSub(pair.left, pair.right, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Sub128DDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub128DDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Sub128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Sub128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Sub128DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Sub128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqSub(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Sub128DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub128DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f}},
+		{0x31c0000000000001, [16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f}},
+		{0x31c0000000000002, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f}},
+		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Sub128DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128dqSub(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Sub128DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub128DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Sub128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Sub128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Sub128QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Sub128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdSub(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Sub128QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub128QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2d60000000000001},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2d60000000000005},
+		{[16]byte{0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2d80000000000001},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x2d60000000000001},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := Sub128QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid128qdSub(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Sub128QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub128QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Sub128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Sub128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Sub64DQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs64 {
+		leftPair := publicParityBinaryPairs64[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus64[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal64BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Sub64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqSub(leftBits, publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Sub64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  uint64
+		right [16]byte
+	}{
+		{0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
+		{0x31c0000000000001, [16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
+		{0x31c0000000000002, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal64BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Sub64DQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64dqSub(pair.left, publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Sub64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Sub64QDBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs64[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus64[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal64BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Sub64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdSub(publicParityToBidgo128(leftBits), rightBits, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Sub64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right uint64
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2fa0000000000001},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2fa0000000000005},
+		{[16]byte{0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x2fc0000000000001},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x2fa0000000000001},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal64BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Sub64QDBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qdSub(publicParityToBidgo128(pair.left), pair.right, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidValue, invalidFlags := Sub64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
+func publicParity_Sub64QQBIDWithMode(t *testing.T) int {
+	count := 0
+	for pairIndex := range publicParityBinaryPairs128 {
+		leftPair := publicParityBinaryPairs128[pairIndex]
+		rightPair := publicParityBinaryPairs128[pairIndex]
+		leftBits := publicParityCorpus128[leftPair[0]]
+		rightBits := publicParityCorpus128[rightPair[1]]
+		left := Decimal128BID(leftBits)
+		right := Decimal128BID(rightBits)
+		for _, mode := range publicParityModes {
+			pv, pf := Sub64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqSub(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Sub64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discPairs := []struct {
+		left  [16]byte
+		right [16]byte
+	}{
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
+		{[16]byte{0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30}},
+		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
+	}
+	for _, pair := range discPairs {
+		left := Decimal128BID(pair.left)
+		right := Decimal128BID(pair.right)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := Sub64QQBIDWithMode(left, right, mode.pub)
+			pr, prf := bidgo.Bid64qqSub(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
+		}
+	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[0])
+	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidValue, invalidFlags := Sub64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
+	return count
+}
+
 var publicParityUnits = []struct {
 	name  string
 	shape string
 	run   func(*testing.T) int
 }{
 	{"Add128BIDWithContext", "func_context", publicParity_Add128BIDWithContext},
+	{"Add128DDBIDWithMode", "func_mixed_mode_binary", publicParity_Add128DDBIDWithMode},
+	{"Add128DQBIDWithMode", "func_mixed_mode_binary", publicParity_Add128DQBIDWithMode},
+	{"Add128QDBIDWithMode", "func_mixed_mode_binary", publicParity_Add128QDBIDWithMode},
 	{"Add32BIDWithContext", "func_context", publicParity_Add32BIDWithContext},
 	{"Add64BIDWithContext", "func_context", publicParity_Add64BIDWithContext},
+	{"Add64DQBIDWithMode", "func_mixed_mode_binary", publicParity_Add64DQBIDWithMode},
+	{"Add64QDBIDWithMode", "func_mixed_mode_binary", publicParity_Add64QDBIDWithMode},
+	{"Add64QQBIDWithMode", "func_mixed_mode_binary", publicParity_Add64QQBIDWithMode},
 	{"Decimal128BID.Abs", "vm_unary", publicParity_Decimal128BID_Abs},
 	{"Decimal128BID.Add", "vm_binary", publicParity_Decimal128BID_Add},
 	{"Decimal128BID.AddWithFlags", "vm_binary", publicParity_Decimal128BID_AddWithFlags},
@@ -9228,6 +10806,18 @@ var publicParityUnits = []struct {
 	{"Decimal64BID.ToBinary64", "vm_mode_unary", publicParity_Decimal64BID_ToBinary64},
 	{"Decimal64BID.ToDecimal128", "vm_unary", publicParity_Decimal64BID_ToDecimal128},
 	{"Decimal64BID.ToDecimal32", "vm_mode_unary", publicParity_Decimal64BID_ToDecimal32},
+	{"Div128DDBIDWithMode", "func_mixed_mode_binary", publicParity_Div128DDBIDWithMode},
+	{"Div128DQBIDWithMode", "func_mixed_mode_binary", publicParity_Div128DQBIDWithMode},
+	{"Div128QDBIDWithMode", "func_mixed_mode_binary", publicParity_Div128QDBIDWithMode},
+	{"Div64DQBIDWithMode", "func_mixed_mode_binary", publicParity_Div64DQBIDWithMode},
+	{"Div64QDBIDWithMode", "func_mixed_mode_binary", publicParity_Div64QDBIDWithMode},
+	{"Div64QQBIDWithMode", "func_mixed_mode_binary", publicParity_Div64QQBIDWithMode},
+	{"Mul128DDBIDWithMode", "func_mixed_mode_binary", publicParity_Mul128DDBIDWithMode},
+	{"Mul128DQBIDWithMode", "func_mixed_mode_binary", publicParity_Mul128DQBIDWithMode},
+	{"Mul128QDBIDWithMode", "func_mixed_mode_binary", publicParity_Mul128QDBIDWithMode},
+	{"Mul64DQBIDWithMode", "func_mixed_mode_binary", publicParity_Mul64DQBIDWithMode},
+	{"Mul64QDBIDWithMode", "func_mixed_mode_binary", publicParity_Mul64QDBIDWithMode},
+	{"Mul64QQBIDWithMode", "func_mixed_mode_binary", publicParity_Mul64QQBIDWithMode},
 	{"NewDecimal128", "func_string", publicParity_NewDecimal128},
 	{"NewDecimal128BIDDirect", "func_string", publicParity_NewDecimal128BIDDirect},
 	{"NewDecimal128FromInt", "func_from_int", publicParity_NewDecimal128FromInt},
@@ -9258,4 +10848,10 @@ var publicParityUnits = []struct {
 	{"ParseDecimal128BIDRaw", "func_string", publicParity_ParseDecimal128BIDRaw},
 	{"ParseDecimal32BIDRaw", "func_string", publicParity_ParseDecimal32BIDRaw},
 	{"ParseDecimal64BIDRaw", "func_string", publicParity_ParseDecimal64BIDRaw},
+	{"Sub128DDBIDWithMode", "func_mixed_mode_binary", publicParity_Sub128DDBIDWithMode},
+	{"Sub128DQBIDWithMode", "func_mixed_mode_binary", publicParity_Sub128DQBIDWithMode},
+	{"Sub128QDBIDWithMode", "func_mixed_mode_binary", publicParity_Sub128QDBIDWithMode},
+	{"Sub64DQBIDWithMode", "func_mixed_mode_binary", publicParity_Sub64DQBIDWithMode},
+	{"Sub64QDBIDWithMode", "func_mixed_mode_binary", publicParity_Sub64QDBIDWithMode},
+	{"Sub64QQBIDWithMode", "func_mixed_mode_binary", publicParity_Sub64QQBIDWithMode},
 }

@@ -656,6 +656,55 @@ func modeBinaryDiscriminantOperands(op string, width int) ([][2]modeDiscOperand,
 	return pairs, nil
 }
 
+// mixedModeBinaryDiscriminantOperands returns mode-sensitive inputs for the
+// Intel D/Q mixed-width arithmetic families. The result precision selects the
+// rounding boundary, while each operand is later encoded at its own declared
+// width. Decimal128 DD multiplication is the deliberate empty exception:
+// multiplying two 16-digit Decimal64 coefficients produces at most 32 digits
+// and their exponent ranges also remain inside Decimal128, so every finite DD
+// product is exact and no input can distinguish rounding modes. Its routing
+// corpus is still compared against the port under all five modes.
+func mixedModeBinaryDiscriminantOperands(op string, resultWidth int, operandWidths [2]int) ([][2]modeDiscOperand, error) {
+	if resultWidth == 128 && op == "Mul" && operandWidths == [2]int{64, 64} {
+		return nil, nil
+	}
+	if resultWidth == 128 && op == "Mul" {
+		// One 16-digit Decimal64 coefficient times one 19-digit Decimal128
+		// coefficient yields a 35-digit exact product, one digit beyond
+		// Decimal128 precision. Every product ends in a nonzero digit so the
+		// discarded digit is provably significant.
+		pairs := [][2]modeDiscOperand{
+			{mdo(8_999_999_999_999_999, 0), mdo(9_999_999_999_999_999_999, 0)},
+			{mdo(8_888_888_888_888_889, 0), mdo(9_999_999_999_999_999_999, 0)},
+			{mdo(7_777_777_777_777_777, 0), mdo(9_999_999_999_999_999_999, 0)},
+			{mdo(1_234_567_890_123_457, 0), mdo(9_876_543_210_987_654_321, 0)},
+		}
+		switch operandWidths {
+		case [2]int{64, 128}:
+			return pairs, nil
+		case [2]int{128, 64}:
+			for i := range pairs {
+				pairs[i][0], pairs[i][1] = pairs[i][1], pairs[i][0]
+			}
+			return pairs, nil
+		default:
+			return nil, fmt.Errorf("public parity: unsupported Decimal128 mixed multiplication operand widths %v", operandWidths)
+		}
+	}
+	pairs, err := modeBinaryDiscriminantOperands(op, resultWidth)
+	if err != nil {
+		return nil, err
+	}
+	for i, pair := range pairs {
+		for j, operand := range pair {
+			if _, err := modeDiscGoLiteral(operandWidths[j], operand); err != nil {
+				return nil, fmt.Errorf("public parity: mixed %s result width %d pair %d operand %d cannot be encoded at width %d: %w", op, resultWidth, i, j, operandWidths[j], err)
+			}
+		}
+	}
+	return pairs, nil
+}
+
 // modeUnaryDiscriminants is the discriminant corpus for the unary mode-shape
 // wrappers (SqrtWithMode): single operands whose result is irrational, so
 // every finite precision rounds and the five directions cannot all agree.
@@ -1228,24 +1277,27 @@ const (
 	shapeFuncString                             // string constructors / raw parsers
 	shapeFuncStringMode                         // NewDecimal*WithMode(s, mode) explicit-mode string constructors
 	shapeFuncContext                            // Add*BIDWithContext
+	shapeFuncMixedModeBinary                    // Intel mixed-width {Add,Sub,Mul,Div} free functions
 )
 
 type parityUnit struct {
-	Symbol      string
-	FuncName    string
-	Shape       parityShape
-	Width       int    // receiver / target width
-	Method      string // public method name (value methods)
-	Func        string // public function name (funcs)
-	BidgoFn     string // resolved port function (verification)
-	Port        parityPortPlan
-	ResultClass string // dec32/dec64/dec128/bool/int/class/string/f32/f64/bin128/intn/uintn
-	HasFlags    bool
-	HasMode     bool
-	HasErr      bool   // string/from-int funcs return an error
-	IntParam    string // int32/uint32/int64/uint64 for scalar ctors
-	StringKind  string // "raw" | "direct" | "withflags" for shapeFuncString
-	Cases       int    // pinned per-unit case count
+	Symbol        string
+	FuncName      string
+	Shape         parityShape
+	Width         int    // receiver / target width
+	Method        string // public method name (value methods)
+	Func          string // public function name (funcs)
+	BidgoFn       string // resolved port function (verification)
+	Port          parityPortPlan
+	ResultClass   string // dec32/dec64/dec128/bool/int/class/string/f32/f64/bin128/intn/uintn
+	HasFlags      bool
+	HasMode       bool
+	HasErr        bool   // string/from-int funcs return an error
+	IntParam      string // int32/uint32/int64/uint64 for scalar ctors
+	StringKind    string // "raw" | "direct" | "withflags" for shapeFuncString
+	OperandWidths [2]int // mixed-width free-function operand widths; zero for every other shape
+	Operation     string // Add/Sub/Mul/Div for mixed-width mode discrimination
+	Cases         int    // pinned per-unit case count
 }
 
 type parityPortPlan struct {
@@ -1293,6 +1345,7 @@ func widthOfRecv(recv string) int {
 var newDecimalWidthRe = regexp.MustCompile(`^NewDecimal(32|64|128)`)
 var parseDecimalWidthRe = regexp.MustCompile(`^ParseDecimal(32|64|128)BIDRaw$`)
 var contextWidthRe = regexp.MustCompile(`^Add(32|64|128)BIDWithContext$`)
+var mixedArithmeticRe = regexp.MustCompile(`^(Add|Sub|Mul|Div)(64|128)(DD|DQ|QD|QQ)BIDWithMode$`)
 
 func symbolContainsFlags(results []string) bool {
 	for _, r := range results {
@@ -1338,6 +1391,25 @@ func resolveParityUnit(sym publicAPISymbol, bidgoFn string, sigs map[string]bidg
 	// Package functions.
 	u.Func = sym.Name
 	switch {
+	case mixedArithmeticRe.MatchString(sym.Name):
+		m := mixedArithmeticRe.FindStringSubmatch(sym.Name)
+		u.Operation = m[1]
+		u.Width, _ = strconv.Atoi(m[2])
+		u.Shape = shapeFuncMixedModeBinary
+		u.ResultClass = decClass(u.Width)
+		if err := validateMixedArithmeticSignature(sym, u.Width, m[3]); err != nil {
+			return u, err
+		}
+		u.OperandWidths = [2]int{widthOfRecv(sym.Params[0]), widthOfRecv(sym.Params[1])}
+		disc, err := mixedModeBinaryDiscriminantOperands(u.Operation, u.Width, u.OperandWidths)
+		if err != nil {
+			return u, err
+		}
+		// Each shared routing pair and discriminant pair runs under all five
+		// rounding modes. One final case pins invalid-mode rejection through
+		// the public flag channel (Intel itself only accepts the five modes).
+		u.Cases = (len(parityLabelPairs)+len(disc))*len(parityModeOrder) + 1
+		return u, nil
 	case contextWidthRe.MatchString(sym.Name):
 		m := contextWidthRe.FindStringSubmatch(sym.Name)
 		u.Width, _ = strconv.Atoi(m[1])
@@ -1408,6 +1480,32 @@ func resolveParityUnit(sym publicAPISymbol, bidgoFn string, sigs map[string]bidg
 	default:
 		return u, fmt.Errorf("public parity: unclassified mapped function %q", sym.Symbol)
 	}
+}
+
+func validateMixedArithmeticSignature(sym publicAPISymbol, resultWidth int, operandCode string) error {
+	if len(sym.Params) != 3 || len(sym.Results) != 2 {
+		return fmt.Errorf("public parity: mixed arithmetic function %q has signature params=%v results=%v, want two decimal operands plus RoundingMode and (Decimal%dBID, ExceptionFlags)", sym.Symbol, sym.Params, sym.Results, resultWidth)
+	}
+	wantOperandWidths := [2]int{}
+	for i, code := range operandCode {
+		switch code {
+		case 'D':
+			wantOperandWidths[i] = 64
+		case 'Q':
+			wantOperandWidths[i] = 128
+		default:
+			return fmt.Errorf("public parity: mixed arithmetic function %q has unsupported operand code %q", sym.Symbol, operandCode)
+		}
+	}
+	for i, want := range wantOperandWidths {
+		if got := widthOfRecv(sym.Params[i]); got != want {
+			return fmt.Errorf("public parity: mixed arithmetic function %q operand %d is %q, want Decimal%dBID from suffix %s", sym.Symbol, i, sym.Params[i], want, operandCode)
+		}
+	}
+	if sym.Params[2] != "RoundingMode" || sym.Results[0] != fmt.Sprintf("Decimal%dBID", resultWidth) || sym.Results[1] != "ExceptionFlags" {
+		return fmt.Errorf("public parity: mixed arithmetic function %q has signature params=%v results=%v inconsistent with its name", sym.Symbol, sym.Params, sym.Results)
+	}
+	return nil
 }
 
 var parityModeOrder = []string{"RoundNearestEven", "RoundNearestAway", "RoundTowardZero", "RoundTowardPositive", "RoundTowardNegative"}

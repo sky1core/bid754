@@ -13,9 +13,9 @@
   "compare_group": "CMP_FUZZYSTATUS",
   "native_compare_skip_reason": "pinned Intel BID C bid32_from_string ignores rnd_mode on the no-exponent overflow path (always Inf); these rows pin the IEEE 754 directed-overflow behavior that intentionally diverges from pinned C",
   "cases": [
-    {"id":"bid32_from_string_ieee754_overflow_cdiverge_84668","line":7,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[77f8967f]","status":"28","rounding":1},
-    {"id":"bid32_from_string_ieee754_overflow_cdiverge_84669","line":8,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[77f8967f]","status":"28","rounding":3},
-    {"id":"bid32_from_string_ieee754_overflow_cdiverge_84670","line":9,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f7f8967f]","status":"28","rounding":2},
-    {"id":"bid32_from_string_ieee754_overflow_cdiverge_84671","line":10,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f7f8967f]","status":"28","rounding":3}
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_86206","line":7,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[77f8967f]","status":"28","rounding":1},
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_86207","line":8,"operands":["10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[77f8967f]","status":"28","rounding":3},
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_86208","line":9,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f7f8967f]","status":"28","rounding":2},
+    {"id":"bid32_from_string_ieee754_overflow_cdiverge_86209","line":10,"operands":["-10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"],"expected":"[f7f8967f]","status":"28","rounding":3}
   ]
 }

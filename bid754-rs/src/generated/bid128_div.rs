@@ -490,6 +490,25 @@ pub(crate) fn bid_get_bid128(mut sgn: u64, mut expon: i64, mut coeff: BID_UINT12
     return res;
 }
 
+pub fn bid128dd_div(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let (mut res, mut opFlags) = bid128_div(x1, y1, rnd_mode);
+    return (res, ((flagsX | flagsY) | opFlags));
+}
+
+pub fn bid128dq_div(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flags) = bid64_to_bid128(x);
+    let (mut res, mut opFlags) = bid128_div(x1, y, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid128qd_div(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut y1, mut flags) = bid64_to_bid128(y);
+    let (mut res, mut opFlags) = bid128_div(x, y1, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
 pub fn bid128_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let mut CA4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut CA4r: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };

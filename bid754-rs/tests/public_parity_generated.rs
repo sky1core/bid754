@@ -440,6 +440,144 @@ fn parity_add128_bidwith_context(failures: &mut Vec<String>) -> usize {
     count
 }
 
+fn parity_add128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::add_dd_with_mode(Decimal64::from_bits(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dd_add(left_bits, right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Add128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, u64)] = &[
+        (0x31c0000000000001, 0x2d80000000000005),
+        (0x31c0000000000001, 0x2d80000000000001),
+        (0x31c0000000000001, 0x2d80000000000009),
+        (0xb1c0000000000001, 0xad80000000000001),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::add_dd_with_mode(Decimal64::from_bits(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dd_add(left_bits, right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Add128DDBIDWithMode: discriminant operands {:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add128DDBIDWithMode: discriminant operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Add128DDBIDWithMode: discriminant operands {:#x},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_add128_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::add_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dq_add(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Add128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0x31c0000000000001, [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::add_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dq_add(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Add128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Add128DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_add128_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::add_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128qd_add(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Add128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000005),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000009),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0xad80000000000001),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::add_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128qd_add(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Add128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Add128QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
 fn parity_add32_bidwith_context(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &(i0, i1) in PAIRS_32 {
@@ -477,6 +615,144 @@ fn parity_add64_bidwith_context(failures: &mut Vec<String>) -> usize {
                 failures.push(format!("public parity Add64BIDWithContext: operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", v0, v1, mode, ctx.flags.bits(), map_port_flags(praw)));
             }
             count += 1;
+        }
+    }
+    count
+}
+
+fn parity_add64_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::add_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64dq_add(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Add64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0x31c0000000000001, [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::add_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64dq_add(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Add64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Add64DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_add64_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::add_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qd_add(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Add64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000005),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000009),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0xafc0000000000001),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::add_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qd_add(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Add64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Add64QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_add64_qqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::add_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qq_add(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Add64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], [u8; 16])] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::add_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qq_add(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Add64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Add64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Add64QQBIDWithMode: discriminant operands {:x?},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
         }
     }
     count
@@ -6596,6 +6872,534 @@ fn parity_decimal64_bid_to_decimal32(failures: &mut Vec<String>) -> usize {
     count
 }
 
+fn parity_div128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::div_dd_with_mode(Decimal64::from_bits(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_div::bid128dd_div(left_bits, right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Div128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, u64)] = &[
+        (0x31c0000000000001, 0x31c0000000000003),
+        (0x31c0000000000002, 0x31c0000000000003),
+        (0x31c0000000000001, 0x31c0000000000007),
+        (0x31c0000000000005, 0x31c0000000000007),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::div_dd_with_mode(Decimal64::from_bits(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_div::bid128dd_div(left_bits, right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Div128DDBIDWithMode: discriminant operands {:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div128DDBIDWithMode: discriminant operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Div128DDBIDWithMode: discriminant operands {:#x},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_div128_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::div_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_div::bid128dq_div(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Div128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31c0000000000001, [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c0000000000002, [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c0000000000001, [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c0000000000005, [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::div_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_div::bid128dq_div(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Div128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Div128DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_div128_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::div_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_div::bid128qd_div(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Div128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000003),
+        ([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000003),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000007),
+        ([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000007),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::div_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_div::bid128qd_div(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Div128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Div128QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_div64_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::div_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::div64::bid64dq_div(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Div64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31c0000000000001, [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c0000000000002, [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c0000000000001, [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c0000000000005, [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::div_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::div64::bid64dq_div(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Div64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Div64DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_div64_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::div_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::div64::bid64qd_div(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Div64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000003),
+        ([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000003),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000007),
+        ([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000007),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::div_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::div64::bid64qd_div(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Div64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Div64QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_div64_qqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::div_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::div64::bid64qq_div(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Div64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], [u8; 16])] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        ([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        ([0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::div_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::div64::bid64qq_div(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Div64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Div64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Div64QQBIDWithMode: discriminant operands {:x?},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_mul128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::mul_dd_with_mode(Decimal64::from_bits(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid128dd_mul(left_bits, right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Mul128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    count
+}
+
+fn parity_mul128_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::mul_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid128dq_mul(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Mul128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31dff973cafa7fff, [0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31df9465b8ab8e39, [0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31dba1d901961c71, [0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c462d53c8abac1, [0xb1, 0x0c, 0xb7, 0xe3, 0xb8, 0x87, 0x10, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::mul_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid128dq_mul(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Mul128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Mul128DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_mul128_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::mul_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid128qd_mul(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Mul128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31dff973cafa7fff),
+        ([0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31df9465b8ab8e39),
+        ([0xff, 0xff, 0xe7, 0x89, 0x04, 0x23, 0xc7, 0x8a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31dba1d901961c71),
+        ([0xb1, 0x0c, 0xb7, 0xe3, 0xb8, 0x87, 0x10, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c462d53c8abac1),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::mul_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid128qd_mul(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Mul128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Mul128QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_mul64_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::mul_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid64dq_mul(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Mul64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31cbd7a625405556, [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c7e5196e2ae38f, [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31cbd7a625405555, [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        (0x31c3f28cb71571c7, [0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::mul_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid64dq_mul(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Mul64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Mul64DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_mul64_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::mul_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid64qd_mul(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Mul64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0x56, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000003),
+        ([0x8f, 0xe3, 0x2a, 0x6e, 0x19, 0xe5, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000009),
+        ([0x55, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000007),
+        ([0xc7, 0x71, 0x15, 0xb7, 0x8c, 0xf2, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c000000000004d),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::mul_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid64qd_mul(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Mul64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Mul64QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_mul64_qqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::mul_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid64qq_mul(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Mul64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], [u8; 16])] = &[
+        ([0x56, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        ([0x8f, 0xe3, 0x2a, 0x6e, 0x19, 0xe5, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        ([0x55, 0x55, 0x40, 0x25, 0xa6, 0xd7, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+        ([0xc7, 0x71, 0x15, 0xb7, 0x8c, 0xf2, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::mul_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_mul::bid64qq_mul(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Mul64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Mul64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Mul64QQBIDWithMode: discriminant operands {:x?},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
 fn parity_new_decimal128(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for sc in STRING_CASES {
@@ -7937,6 +8741,282 @@ fn parity_parse_decimal64_bidraw(failures: &mut Vec<String>) -> usize {
     count
 }
 
+fn parity_sub128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::sub_dd_with_mode(Decimal64::from_bits(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dd_sub(left_bits, right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sub128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub128DDBIDWithMode: operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, u64)] = &[
+        (0x31c0000000000001, 0x2d60000000000001),
+        (0x31c0000000000001, 0x2d60000000000005),
+        (0x31c0000000000002, 0x2d80000000000001),
+        (0xb1c0000000000001, 0x2d60000000000001),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::sub_dd_with_mode(Decimal64::from_bits(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dd_sub(left_bits, right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sub128DDBIDWithMode: discriminant operands {:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub128DDBIDWithMode: discriminant operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sub128DDBIDWithMode: discriminant operands {:#x},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_sub128_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::sub_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dq_sub(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sub128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub128DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f]),
+        (0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f]),
+        (0x31c0000000000002, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::sub_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128dq_sub(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sub128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub128DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sub128DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_sub128_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::sub_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128qd_sub(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sub128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub128QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d60000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d60000000000005),
+        ([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0x2d60000000000001),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::sub_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid128qd_sub(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sub128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", left_bits, right_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub128QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sub128QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_sub64_dqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_64.len() {
+        let left_pair = PAIRS_64[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_64[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::sub_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64dq_sub(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sub64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub64DQBIDWithMode: operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[(u64, [u8; 16])] = &[
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30]),
+        (0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30]),
+        (0x31c0000000000002, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::sub_dq_with_mode(Decimal64::from_bits(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64dq_sub(left_bits, to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sub64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub64DQBIDWithMode: discriminant operands {:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sub64DQBIDWithMode: discriminant operands {:#x},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_sub64_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_64[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_64[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::sub_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qd_sub(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sub64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub64QDBIDWithMode: operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fa0000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fa0000000000005),
+        ([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0x2fa0000000000001),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::sub_qd_with_mode(Decimal128::from_le_bytes(left_bits), Decimal64::from_bits(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qd_sub(to_port128(left_bits), right_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sub64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub64QDBIDWithMode: discriminant operands {:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sub64QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
+fn parity_sub64_qqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for pair_index in 0..PAIRS_128.len() {
+        let left_pair = PAIRS_128[pair_index];
+        let right_pair = PAIRS_128[pair_index];
+        let left_bits = CORPUS_128[left_pair.0];
+        let right_bits = CORPUS_128[right_pair.1];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::sub_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qq_sub(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sub64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub64QQBIDWithMode: operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_pairs: &[([u8; 16], [u8; 16])] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30]),
+        ([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30]),
+    ];
+    for &(left_bits, right_bits) in disc_pairs {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::sub_qq_with_mode(Decimal128::from_le_bytes(left_bits), Decimal128::from_le_bytes(right_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_add::bid64qq_sub(to_port128(left_bits), to_port128(right_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sub64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sub64QQBIDWithMode: discriminant operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", left_bits, right_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sub64QQBIDWithMode: discriminant operands {:x?},{:x?}: every rounding mode produced the same result", left_bits, right_bits));
+        }
+    }
+    count
+}
+
 /// One driver-table row: the verified go_symbol (for diagnostics), the
 /// apiemit shape tag (for the by-shape case-count accounting), and the
 /// generated per-row check function.
@@ -7948,8 +9028,14 @@ struct ParityUnit {
 
 const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Add128BIDWithContext", shape: "context_binary_with_flags", run: parity_add128_bidwith_context },
+    ParityUnit { go_symbol: "Add128DDBIDWithMode", shape: "mixed_binary_mode_flags_dd", run: parity_add128_ddbidwith_mode },
+    ParityUnit { go_symbol: "Add128DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_add128_dqbidwith_mode },
+    ParityUnit { go_symbol: "Add128QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_add128_qdbidwith_mode },
     ParityUnit { go_symbol: "Add32BIDWithContext", shape: "context_binary_with_flags", run: parity_add32_bidwith_context },
     ParityUnit { go_symbol: "Add64BIDWithContext", shape: "context_binary_with_flags", run: parity_add64_bidwith_context },
+    ParityUnit { go_symbol: "Add64DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_add64_dqbidwith_mode },
+    ParityUnit { go_symbol: "Add64QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_add64_qdbidwith_mode },
+    ParityUnit { go_symbol: "Add64QQBIDWithMode", shape: "mixed_binary_mode_flags_qq", run: parity_add64_qqbidwith_mode },
     ParityUnit { go_symbol: "Decimal128BID.Abs", shape: "unary", run: parity_decimal128_bid_abs },
     ParityUnit { go_symbol: "Decimal128BID.Add", shape: "binary", run: parity_decimal128_bid_add },
     ParityUnit { go_symbol: "Decimal128BID.AddWithFlags", shape: "binary_with_flags", run: parity_decimal128_bid_add_with_flags },
@@ -8254,6 +9340,18 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal64BID.ToBinary64", shape: "to_binary64", run: parity_decimal64_bid_to_binary64 },
     ParityUnit { go_symbol: "Decimal64BID.ToDecimal128", shape: "to_decimal128", run: parity_decimal64_bid_to_decimal128 },
     ParityUnit { go_symbol: "Decimal64BID.ToDecimal32", shape: "to_decimal32", run: parity_decimal64_bid_to_decimal32 },
+    ParityUnit { go_symbol: "Div128DDBIDWithMode", shape: "mixed_binary_mode_flags_dd", run: parity_div128_ddbidwith_mode },
+    ParityUnit { go_symbol: "Div128DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_div128_dqbidwith_mode },
+    ParityUnit { go_symbol: "Div128QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_div128_qdbidwith_mode },
+    ParityUnit { go_symbol: "Div64DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_div64_dqbidwith_mode },
+    ParityUnit { go_symbol: "Div64QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_div64_qdbidwith_mode },
+    ParityUnit { go_symbol: "Div64QQBIDWithMode", shape: "mixed_binary_mode_flags_qq", run: parity_div64_qqbidwith_mode },
+    ParityUnit { go_symbol: "Mul128DDBIDWithMode", shape: "mixed_binary_mode_flags_dd", run: parity_mul128_ddbidwith_mode },
+    ParityUnit { go_symbol: "Mul128DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_mul128_dqbidwith_mode },
+    ParityUnit { go_symbol: "Mul128QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_mul128_qdbidwith_mode },
+    ParityUnit { go_symbol: "Mul64DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_mul64_dqbidwith_mode },
+    ParityUnit { go_symbol: "Mul64QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_mul64_qdbidwith_mode },
+    ParityUnit { go_symbol: "Mul64QQBIDWithMode", shape: "mixed_binary_mode_flags_qq", run: parity_mul64_qqbidwith_mode },
     ParityUnit { go_symbol: "NewDecimal128", shape: "parse", run: parity_new_decimal128 },
     ParityUnit { go_symbol: "NewDecimal128BIDDirect", shape: "parse_fold", run: parity_new_decimal128_biddirect },
     ParityUnit { go_symbol: "NewDecimal128FromInt", shape: "from_i64_exact_or_error", run: parity_new_decimal128_from_int },
@@ -8284,6 +9382,12 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "ParseDecimal128BIDRaw", shape: "parse_raw", run: parity_parse_decimal128_bidraw },
     ParityUnit { go_symbol: "ParseDecimal32BIDRaw", shape: "parse_raw", run: parity_parse_decimal32_bidraw },
     ParityUnit { go_symbol: "ParseDecimal64BIDRaw", shape: "parse_raw", run: parity_parse_decimal64_bidraw },
+    ParityUnit { go_symbol: "Sub128DDBIDWithMode", shape: "mixed_binary_mode_flags_dd", run: parity_sub128_ddbidwith_mode },
+    ParityUnit { go_symbol: "Sub128DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_sub128_dqbidwith_mode },
+    ParityUnit { go_symbol: "Sub128QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_sub128_qdbidwith_mode },
+    ParityUnit { go_symbol: "Sub64DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_sub64_dqbidwith_mode },
+    ParityUnit { go_symbol: "Sub64QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_sub64_qdbidwith_mode },
+    ParityUnit { go_symbol: "Sub64QQBIDWithMode", shape: "mixed_binary_mode_flags_qq", run: parity_sub64_qqbidwith_mode },
 ];
 
 /// The public-API parity gate exercises every emitted public wrapper against
@@ -8294,8 +9398,8 @@ const PARITY_UNITS: &[ParityUnit] = &[
 /// regular verification domain (same framing as the Go leg). Case counts are
 /// pinned here at generation time so a generator regression that shrinks the
 /// corpus cannot silently re-pin a smaller surface.
-pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 337;
-pub(crate) const EXPECTED_PARITY_CASES: usize = 23431;
+pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 361;
+pub(crate) const EXPECTED_PARITY_CASES: usize = 26771;
 
 const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("binary", 288),
@@ -8320,6 +9424,10 @@ const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("from_u32_mode", 85),
     ("from_u64_exact", 12),
     ("from_u64_mode", 120),
+    ("mixed_binary_mode_flags_dd", 540),
+    ("mixed_binary_mode_flags_dq", 1120),
+    ("mixed_binary_mode_flags_qd", 1120),
+    ("mixed_binary_mode_flags_qq", 560),
     ("next_toward", 360),
     ("parse", 147),
     ("parse_fold", 147),

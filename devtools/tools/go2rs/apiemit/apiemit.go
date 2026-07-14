@@ -296,6 +296,14 @@ var shapeSigs = map[string]shapeSig{
 	"binary_with_flags": {method: true, params: []sigForm{formValue}, results: []sigForm{formValue, formFlags}},
 	// binary op with an explicit rounding mode and flags: (recv) OpWithMode(other Decimal<w>BID, mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
 	"binary_mode_flags": {method: true, params: []sigForm{formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	// Intel mixed-width arithmetic is exposed as a destination-owner associated
+	// function in Rust, so the Go source is a free function with two explicitly
+	// typed D/Q operands. The four shape names keep that operand order in the
+	// manifest instead of inferring it from a surface-name convention.
+	"mixed_binary_mode_flags_dd": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_binary_mode_flags_dq": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_binary_mode_flags_qd": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_binary_mode_flags_qq": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
 	// unary op with an explicit rounding mode and flags: (recv) SqrtWithMode(mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
 	"unary_mode_flags": {method: true, params: []sigForm{formRoundingMode}, results: []sigForm{formValue, formFlags}},
 	// ternary op with an explicit rounding mode and flags: (recv) FMAWithMode(mul, add Decimal<w>BID, mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
@@ -469,6 +477,45 @@ func validateShapeSig(goSymbol, shape string, spec shapeSig, sig goSig) error {
 		if !f.matches(sig.Results[i]) {
 			return fmt.Errorf("apiemit: emit go_symbol %q shape %q expects result %d to be %s but the Go signature has %q", goSymbol, shape, i, f, sig.Results[i])
 		}
+	}
+	return nil
+}
+
+var mixedBinaryShapeOperands = map[string][2]string{
+	"mixed_binary_mode_flags_dd": {"Decimal64BID", "Decimal64BID"},
+	"mixed_binary_mode_flags_dq": {"Decimal64BID", "Decimal128BID"},
+	"mixed_binary_mode_flags_qd": {"Decimal128BID", "Decimal64BID"},
+	"mixed_binary_mode_flags_qq": {"Decimal128BID", "Decimal128BID"},
+}
+
+func validateMixedBinaryShape(r emitRule, sig goSig) error {
+	wantOperands, mixed := mixedBinaryShapeOperands[r.Shape]
+	if !mixed {
+		return nil
+	}
+	if sig.Params[0] != wantOperands[0] || sig.Params[1] != wantOperands[1] {
+		return fmt.Errorf("apiemit: emit go_symbol %q shape %q requires operands (%s, %s), got (%s, %s)", r.GoSymbol, r.Shape, wantOperands[0], wantOperands[1], sig.Params[0], sig.Params[1])
+	}
+	wantResult := r.RustOwner + "BID"
+	if sig.Results[0] != wantResult {
+		return fmt.Errorf("apiemit: emit go_symbol %q shape %q owner %q requires result %s, got %s", r.GoSymbol, r.Shape, r.RustOwner, wantResult, sig.Results[0])
+	}
+	code := strings.TrimPrefix(r.Shape, "mixed_binary_mode_flags_")
+	digits := strings.TrimPrefix(r.RustOwner, "Decimal")
+	publicSuffix := digits + strings.ToUpper(code) + "BIDWithMode"
+	operation := ""
+	for _, candidate := range []string{"Add", "Sub", "Mul", "Div"} {
+		if r.GoSymbol == candidate+publicSuffix {
+			operation = candidate
+			break
+		}
+	}
+	if operation == "" {
+		return fmt.Errorf("apiemit: emit go_symbol %q shape %q owner %q must name its mixed operation and operand widths as <Add|Sub|Mul|Div>%s", r.GoSymbol, r.Shape, r.RustOwner, publicSuffix)
+	}
+	wantPort := "Bid" + digits + code + operation
+	if r.BidgoFunction != wantPort {
+		return fmt.Errorf("apiemit: emit go_symbol %q shape %q owner %q requires exact port %q, got %q", r.GoSymbol, r.Shape, r.RustOwner, wantPort, r.BidgoFunction)
 	}
 	return nil
 }
@@ -921,6 +968,9 @@ func resolveClosure(inventory *inventoryFile, manifest *manifestFile, sigs map[s
 		// rounding parameter): without it, generation would keep emitting a stale
 		// wrapper against a changed port-facing signature.
 		if err := validateShapeSig(r.GoSymbol, r.Shape, spec, sig); err != nil {
+			return nil, err
+		}
+		if err := validateMixedBinaryShape(r, sig); err != nil {
 			return nil, err
 		}
 		emitByGo[r.GoSymbol] = r

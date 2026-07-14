@@ -12,13 +12,13 @@
   ],
   "compare_group": "CMP_FUZZYSTATUS",
   "cases": [
-    {"id":"bid128_llquantexp_83435","line":127086,"operands":["[3046000000000000000000000000007B]"],"expected":"3","status":"00","rounding":0},
-    {"id":"bid128_llquantexp_83436","line":127087,"operands":["[B046000000000000000000000000007B]"],"expected":"3","status":"00","rounding":0},
-    {"id":"bid128_llquantexp_83437","line":127088,"operands":["[30480000000000000000000000000000]"],"expected":"4","status":"00","rounding":0},
-    {"id":"bid128_llquantexp_83438","line":127089,"operands":["[B0480000000000000000000000000000]"],"expected":"4","status":"00","rounding":0},
-    {"id":"bid128_llquantexp_83439","line":127090,"operands":["[5FFE314DC6448D9338C15B0A00000000]"],"expected":"6111","status":"00","rounding":0},
-    {"id":"bid128_llquantexp_83440","line":127091,"operands":["[DFFE314DC6448D9338C15B0A00000000]"],"expected":"6111","status":"00","rounding":0},
-    {"id":"bid128_llquantexp_83441","line":127092,"operands":["[00000000000000000000000000000001]"],"expected":"-6176","status":"00","rounding":0},
-    {"id":"bid128_llquantexp_83442","line":127093,"operands":["[80000000000000000000000000000001]"],"expected":"-6176","status":"00","rounding":0}
+    {"id":"bid128_llquantexp_84973","line":127086,"operands":["[3046000000000000000000000000007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid128_llquantexp_84974","line":127087,"operands":["[B046000000000000000000000000007B]"],"expected":"3","status":"00","rounding":0},
+    {"id":"bid128_llquantexp_84975","line":127088,"operands":["[30480000000000000000000000000000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid128_llquantexp_84976","line":127089,"operands":["[B0480000000000000000000000000000]"],"expected":"4","status":"00","rounding":0},
+    {"id":"bid128_llquantexp_84977","line":127090,"operands":["[5FFE314DC6448D9338C15B0A00000000]"],"expected":"6111","status":"00","rounding":0},
+    {"id":"bid128_llquantexp_84978","line":127091,"operands":["[DFFE314DC6448D9338C15B0A00000000]"],"expected":"6111","status":"00","rounding":0},
+    {"id":"bid128_llquantexp_84979","line":127092,"operands":["[00000000000000000000000000000001]"],"expected":"-6176","status":"00","rounding":0},
+    {"id":"bid128_llquantexp_84980","line":127093,"operands":["[80000000000000000000000000000001]"],"expected":"-6176","status":"00","rounding":0}
   ]
 }

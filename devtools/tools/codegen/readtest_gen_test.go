@@ -22,8 +22,8 @@ func TestRustReadtestDispatchInventoryIsManifestBacked(t *testing.T) {
 	if inventory.SkipManifest != filepath.Join("tools", "registry", "rust_readtest_skip_manifest.json") {
 		t.Fatalf("skip manifest = %q", inventory.SkipManifest)
 	}
-	if inventory.Dispatched != 521 || inventory.Skipped != 0 {
-		t.Fatalf("Rust readtest dispatch counts = dispatched %d skipped %d, want 521/0", inventory.Dispatched, inventory.Skipped)
+	if inventory.Dispatched != 545 || inventory.Skipped != 0 {
+		t.Fatalf("Rust readtest dispatch counts = dispatched %d skipped %d, want 545/0", inventory.Dispatched, inventory.Skipped)
 	}
 	skipped := 0
 	for _, row := range inventory.Functions {
@@ -61,6 +61,44 @@ func TestRustReadtestDispatchInventoryIsManifestBacked(t *testing.T) {
 		if row.ExpectedPasses <= 0 {
 			t.Fatalf("inventory suite pass row %d has non-positive expected passes: %+v", i, row)
 		}
+	}
+}
+
+func TestCountExpectedReadtestPassesIncludesIntelMixedWidthPrefixes(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "readtest.in")
+	input := strings.Join([]string{
+		"bid64_add 0 1 1 2 00",
+		"bid64dq_add 0 1 1 2 00",
+		"bid32_add 0 1 1 2 00",
+		"bid_saveFlags 0 00 00",
+		"bid128_add 0 1 1 2 00",
+		"bid128qd_div 0 1 1 1 00",
+	}, "\n") + "\n"
+	if err := os.WriteFile(path, []byte(input), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	dispatched := map[string]bool{
+		"bid64_add": true, "bid64dq_add": true, "bid32_add": true,
+		"bid_saveFlags": true, "bid128_add": true, "bid128qd_div": true,
+	}
+	got, err := countExpectedReadtestPasses(path, dispatched)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]int{"bid64": 2, "bid32": 1, "bid": 1, "bid128": 2}
+	for filter, count := range want {
+		if got[filter] != count {
+			t.Errorf("suite %q passes = %d, want %d", filter, got[filter], count)
+		}
+	}
+}
+
+func TestRustReadtestParserMirrorsIntelGetop64MissingBracket(t *testing.T) {
+	generated := readtestParsers()
+	if !strings.Contains(generated, "fn parse_bid64_scanned_bits") ||
+		!strings.Contains(generated, "s.strip_prefix('[')?") ||
+		!strings.Contains(generated, ".take(16)") {
+		t.Fatal("generated Rust Decimal64 parser does not mirror Intel getop64 scanning")
 	}
 }
 

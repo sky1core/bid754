@@ -151,10 +151,13 @@ runners may additionally apply the duplicate Intel `CMP_RELATIVEERR` rows for
 already selected by the `CMP_FUZZYSTATUS` surface.
 
 Unsupported binary formats, DPD interchange, FE APIs, version-predicate
-helpers, and mixed-width Intel extensions are classified by the selection code,
-not by a prose function list. The exact current decisions and reasons are owned
-by `devtools/internal/testgen/readtest_spec.go` and the generated readtest
-profile inventory.
+helpers, and Intel extensions are classified by the selection code, not by a
+prose function list. Mixed-width arithmetic is not one optional bucket: the
+Tier 1 D/Q `add`/`sub`/`mul`/`div` families producing Decimal64 or Decimal128
+are selected, while the remaining mixed-width FMA/sqrt families stay
+`optional_scope_gap`. The exact current decisions and reasons are owned by
+`devtools/internal/testgen/readtest_spec.go` and the generated readtest profile
+inventory.
 
 Function-group membership is extracted mechanically from pinned Intel headers.
 Each discovered group carries an IEEE scope classification, and mandatory

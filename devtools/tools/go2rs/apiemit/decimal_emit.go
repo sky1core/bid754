@@ -31,6 +31,12 @@ type decOp struct {
 	pfpsf    bool
 }
 
+type mixedDecOp struct {
+	decOp
+	left  widthSpec
+	right widthSpec
+}
+
 // flagsCallStmt renders the Rust statement(s) that bind valueVar (the port
 // call's raw result) and flagsVar (the raised-flags u32) from one
 // crate::generated::* port call, dispatching on op.pfpsf: the
@@ -229,10 +235,46 @@ var modeMethodDocSentences = map[string]string{
 	"scaleb_with_mode":   "Scales self by ten to the integer exponent, rounding at the overflow/underflow range boundary with an explicit rounding mode, also returning the raised flags.",
 }
 
+var mixedModeMethodDocSentences = map[string]string{
+	"Decimal64.add_dq_with_mode":  "Adds a Decimal64 left operand and Decimal128 right operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.add_qd_with_mode":  "Adds a Decimal128 left operand and Decimal64 right operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.add_qq_with_mode":  "Adds two Decimal128 operands, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.sub_dq_with_mode":  "Subtracts a Decimal128 right operand from a Decimal64 left operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.sub_qd_with_mode":  "Subtracts a Decimal64 right operand from a Decimal128 left operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.sub_qq_with_mode":  "Subtracts two Decimal128 operands, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.mul_dq_with_mode":  "Multiplies a Decimal64 left operand by a Decimal128 right operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.mul_qd_with_mode":  "Multiplies a Decimal128 left operand by a Decimal64 right operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.mul_qq_with_mode":  "Multiplies two Decimal128 operands, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.div_dq_with_mode":  "Divides a Decimal64 left operand by a Decimal128 right operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.div_qd_with_mode":  "Divides a Decimal128 left operand by a Decimal64 right operand, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal64.div_qq_with_mode":  "Divides two Decimal128 operands, rounding directly to Decimal64 with an explicit rounding mode and returning the raised flags.",
+	"Decimal128.add_dd_with_mode": "Adds two Decimal64 operands to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.add_dq_with_mode": "Adds a Decimal64 left operand and Decimal128 right operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.add_qd_with_mode": "Adds a Decimal128 left operand and Decimal64 right operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.sub_dd_with_mode": "Subtracts two Decimal64 operands to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.sub_dq_with_mode": "Subtracts a Decimal128 right operand from a Decimal64 left operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.sub_qd_with_mode": "Subtracts a Decimal64 right operand from a Decimal128 left operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.mul_dd_with_mode": "Multiplies two Decimal64 operands to produce an exact Decimal128 result and returns the raised flags.",
+	"Decimal128.mul_dq_with_mode": "Multiplies a Decimal64 left operand by a Decimal128 right operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.mul_qd_with_mode": "Multiplies a Decimal128 left operand by a Decimal64 right operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.div_dd_with_mode": "Divides two Decimal64 operands to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.div_dq_with_mode": "Divides a Decimal64 left operand by a Decimal128 right operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+	"Decimal128.div_qd_with_mode": "Divides a Decimal128 left operand by a Decimal64 right operand to produce Decimal128 with an explicit rounding mode and returns the raised flags.",
+}
+
 func modeMethodDocSentence(method string) (string, error) {
 	doc, ok := modeMethodDocSentences[method]
 	if !ok {
 		return "", fmt.Errorf("apiemit: no rustdoc sentence for mode-shape method %q; add an accurate one to modeMethodDocSentences (public docs must state the operation, not a generic fallback)", method)
+	}
+	return doc, nil
+}
+
+func mixedModeMethodDocSentence(owner, method string) (string, error) {
+	key := owner + "." + method
+	doc, ok := mixedModeMethodDocSentences[key]
+	if !ok {
+		return "", fmt.Errorf("apiemit: no rustdoc sentence for mixed mode-shape method %q; add an exact owner+method entry to mixedModeMethodDocSentences", key)
 	}
 	return doc, nil
 }
@@ -260,6 +302,30 @@ func emitBinaryModeFlagsOps(b *strings.Builder, ops []decOp, w widthSpec) error 
         (%s, ExceptionFlags::from_bidgo(raw))
     }
 `, doc, op.method, w.selfType, w.selfType, stmt, w.wrapResult("bits"))
+	}
+	return nil
+}
+
+// emitMixedBinaryModeFlagsOps renders destination-owner associated functions
+// for the Intel D/Q mixed-width families. They are not receiver methods: the
+// first operand is not necessarily the result width. Both operands therefore
+// use the public cross-module bit accessors, and the result is wrapped in the
+// destination module exactly once.
+func emitMixedBinaryModeFlagsOps(b *strings.Builder, ops []mixedDecOp, result widthSpec) error {
+	sort.Slice(ops, func(i, j int) bool { return ops[i].method < ops[j].method })
+	for _, op := range ops {
+		doc, err := mixedModeMethodDocSentence(result.selfType, op.method)
+		if err != nil {
+			return err
+		}
+		stmt := flagsCallStmt(op.decOp, []string{op.left.crossModuleArg("left"), op.right.crossModuleArg("right"), "super::types::to_bidgo_rounding(mode)"}, "bits", "raw")
+		fmt.Fprintf(b, `
+    /// %s
+    pub fn %s(left: %s, right: %s, mode: RoundingMode) -> (%s, ExceptionFlags) {
+        %s
+        (%s, ExceptionFlags::from_bidgo(raw))
+    }
+`, doc, op.method, op.left.selfType, op.right.selfType, result.selfType, stmt, result.wrapResult("bits"))
 	}
 	return nil
 }

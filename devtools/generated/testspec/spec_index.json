@@ -2389,9 +2389,9 @@
       "source": "third_party/intel_dfp/TESTS/readtest.in",
       "selection": "repo_supported_surface",
       "total_functions": 680,
-      "selected_functions": 518,
-      "excluded_functions": 162,
-      "rows_accepted": 84667,
+      "selected_functions": 542,
+      "excluded_functions": 138,
+      "rows_accepted": 86205,
       "row_skip_reasons": {
         "longintsize32": 6652
       },
@@ -2449,9 +2449,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qd_add",
@@ -2461,9 +2464,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qq_add",
@@ -2473,9 +2479,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64dq_sub",
@@ -2485,9 +2494,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qd_sub",
@@ -2497,9 +2509,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qq_sub",
@@ -2509,9 +2524,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64dq_mul",
@@ -2521,9 +2539,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qd_mul",
@@ -2533,9 +2554,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qq_mul",
@@ -2545,9 +2569,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64_div",
@@ -2572,9 +2599,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qd_div",
@@ -2584,9 +2614,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qq_div",
@@ -2596,9 +2629,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64_rem",
@@ -4266,9 +4302,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128qd_add",
@@ -4278,9 +4317,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dd_add",
@@ -4290,9 +4332,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dq_sub",
@@ -4302,9 +4347,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128qd_sub",
@@ -4314,9 +4362,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dd_sub",
@@ -4326,9 +4377,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dd_mul",
@@ -4338,9 +4392,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dq_mul",
@@ -4350,9 +4407,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128qd_mul",
@@ -4362,9 +4422,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128_div",
@@ -4389,9 +4452,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128qd_div",
@@ -4401,9 +4467,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dd_div",
@@ -4413,9 +4482,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128_fma",
@@ -13826,7 +13898,19 @@
     "readtest/bid64_add.json",
     "readtest/bid64_sub.json",
     "readtest/bid64_mul.json",
+    "readtest/bid64dq_add.json",
+    "readtest/bid64qd_add.json",
+    "readtest/bid64qq_add.json",
+    "readtest/bid64dq_sub.json",
+    "readtest/bid64qd_sub.json",
+    "readtest/bid64qq_sub.json",
+    "readtest/bid64dq_mul.json",
+    "readtest/bid64qd_mul.json",
+    "readtest/bid64qq_mul.json",
     "readtest/bid64_div.json",
+    "readtest/bid64dq_div.json",
+    "readtest/bid64qd_div.json",
+    "readtest/bid64qq_div.json",
     "readtest/bid64_rem.json",
     "readtest/bid64_fmod.json",
     "readtest/bid32_minnum.json",
@@ -13928,7 +14012,19 @@
     "readtest/bid128_add.json",
     "readtest/bid128_sub.json",
     "readtest/bid128_mul.json",
+    "readtest/bid128dq_add.json",
+    "readtest/bid128qd_add.json",
+    "readtest/bid128dd_add.json",
+    "readtest/bid128dq_sub.json",
+    "readtest/bid128qd_sub.json",
+    "readtest/bid128dd_sub.json",
+    "readtest/bid128dd_mul.json",
+    "readtest/bid128dq_mul.json",
+    "readtest/bid128qd_mul.json",
     "readtest/bid128_div.json",
+    "readtest/bid128dq_div.json",
+    "readtest/bid128qd_div.json",
+    "readtest/bid128dd_div.json",
     "readtest/bid128_fma.json",
     "readtest/bid128_rem.json",
     "readtest/bid128_fmod.json",

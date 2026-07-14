@@ -28,6 +28,82 @@
 
 use super::prelude::*;
 
+pub fn bid64dq_mul(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut x1, mut flags) = bid64_to_bid128(x);
+    let (mut res, mut opFlags) = bid64qq_mul(x1, y, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid64qd_mul(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut y1, mut flags) = bid64_to_bid128(y);
+    let (mut res, mut opFlags) = bid64qq_mul(x, y1, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid64qq_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let mut z = BID_UINT128 { lo: 0x0000000000000000, hi: 0x5ffe000000000000, ..Default::default() };
+    if (!(((((((x.hi & 0x7c00000000000000) == 0x7c00000000000000)) || (((y.hi & 0x7c00000000000000) == 0x7c00000000000000))) || (((x.hi & 0x7c00000000000000) == 0x7800000000000000))) || (((y.hi & 0x7c00000000000000) == 0x7800000000000000))))) {
+        let mut xSign = (x.hi & 0x8000000000000000);
+        let mut C1 = BID_UINT128 { lo: x.lo, hi: (x.hi & 0x1ffffffffffff), ..Default::default() };
+        let mut xExp: u64 = 0;
+        if ((x.hi & 0x6000000000000000) == 0x6000000000000000) {
+            xExp = (((go_checked_shl_u64(x.hi, go_shift_count_u64((2) as u64)))) & 0x7ffe000000000000);
+            C1 = BID_UINT128 { lo: 0, hi: 0, ..Default::default() };
+        } else {
+            xExp = (x.hi & 0x7ffe000000000000);
+            if ((C1.hi > 0x0001ed09bead87c0) || (((C1.hi == 0x0001ed09bead87c0) && (C1.lo > 0x378d8e63ffffffff)))) {
+                C1 = BID_UINT128 { lo: 0, hi: 0, ..Default::default() };
+            }
+        }
+        let mut ySign = (y.hi & 0x8000000000000000);
+        let mut C2 = BID_UINT128 { lo: y.lo, hi: (y.hi & 0x1ffffffffffff), ..Default::default() };
+        let mut yExp: u64 = 0;
+        if ((y.hi & 0x6000000000000000) == 0x6000000000000000) {
+            yExp = (((go_checked_shl_u64(y.hi, go_shift_count_u64((2) as u64)))) & 0x7ffe000000000000);
+            C2 = BID_UINT128 { lo: 0, hi: 0, ..Default::default() };
+        } else {
+            yExp = (y.hi & 0x7ffe000000000000);
+            if ((C2.hi > 0x0001ed09bead87c0) || (((C2.hi == 0x0001ed09bead87c0) && (C2.lo > 0x378d8e63ffffffff)))) {
+                C2 = BID_UINT128 { lo: 0, hi: 0, ..Default::default() };
+            }
+        }
+        let mut pSign = (xSign ^ ySign);
+        let mut truePExp = (((((go_checked_shr_u64(xExp, go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176)).wrapping_add(((go_checked_shr_u64(yExp, go_shift_count_u64((49) as u64))) as i64))).wrapping_sub(6176));
+        let mut pExp: u64 = 0;
+        if (truePExp < (-398)) {
+            pExp = 0;
+        } else if (truePExp > 369) {
+            pExp = (((369 + 398) as u64) << 53);
+        } else {
+            pExp = (go_checked_shl_u64(((truePExp.wrapping_add(398)) as u64), go_shift_count_u64((53) as u64)));
+        }
+        if ((((C1.hi == 0) && (C1.lo == 0))) || (((C2.hi == 0) && (C2.lo == 0)))) {
+            return ((pSign | pExp), 0);
+        }
+    }
+    let mut flags: u32 = 0;
+    return (bid64qqq_fma(y, x, z, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid128dd_mul(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let (mut res, mut opFlags) = bid128_mul(x1, y1, rnd_mode);
+    return (res, ((flagsX | flagsY) | opFlags));
+}
+
+pub fn bid128dq_mul(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flags) = bid64_to_bid128(x);
+    let (mut res, mut opFlags) = bid128_mul(x1, y, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
+pub fn bid128qd_mul(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut y1, mut flags) = bid64_to_bid128(y);
+    let (mut res, mut opFlags) = bid128_mul(x, y1, rnd_mode);
+    return (res, (flags | opFlags));
+}
+
 pub fn bid128_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut x_sign: u64 = 0;
