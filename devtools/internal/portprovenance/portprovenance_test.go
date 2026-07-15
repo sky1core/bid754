@@ -3,7 +3,7 @@
 // exported function in bid754-go/internal/bidgo must either trace back to the
 // pinned Intel BID C tree or carry a documented non-Intel-origin reason.
 //
-// Two checks, both exhaustive in the tablecrosscheck style (no empty
+// Four checks, all exhaustive in the tablecrosscheck style (no empty
 // reasons, no unused exclusion entries):
 //
 //  1. File provenance: every non-test bidgo .go file must reference at least
@@ -24,6 +24,14 @@
 //     with a concrete reason. This makes "add a new hand-written Rust-style
 //     alternate implementation surface inside bidgo" impossible without
 //     leaving a documented trace.
+//
+//  3. Exported-type census: the exact exported type names and declaration
+//     files are pinned. A convenience value type cannot grow inside the
+//     C-shaped port boundary unnoticed.
+//
+//  4. Receiver-method absence: every non-test implementation declaration is
+//     scanned and any receiver method fails. Mechanical-port operations stay
+//     package-level functions that go2rs can translate without dropping API.
 //
 // The Intel source tree itself is downloaded (not committed); when it is
 // absent the existence check is skipped with a reason while the reference
@@ -59,7 +67,7 @@ const (
 // entry that gained references must be removed so the references get
 // verified), and must carry a non-empty reason.
 var nonIntelOriginFiles = map[string]string{
-	"bid32_exports.go":         "pure Go exported wrapper glue: one-line Bid32* wrappers routing to the ported bid32_*_pure functions defined in files that carry the Intel references",
+	"bid32_exports.go":         "bid754-authored exported wrapper glue around the mechanically ported bid32 functions defined in files that carry the Intel references",
 	"tables_round_const128.go": "bid754-authored init-time construction of bid_round_const_table_128 from bid_power10_table_128; the value surface is anchored by the tablecrosscheck exclusion entry for bid_round_const_table_128",
 	"types.go":                 "Go-side type and rounding-mode constant definitions for the bidgo package; no ported Intel logic",
 }
@@ -70,19 +78,27 @@ var nonIntelOriginFiles = map[string]string{
 // match an Intel extern (a stale entry that started matching must be
 // removed), and must carry a non-empty reason.
 var nonIntelExportedFunctions = map[string]string{
-	"BID_normalize":               "ported from the static helper BID_normalize in Intel bid_inline_add.h; internal static helpers are not extern declarations in bid_functions.h",
-	"Bid32FromStringRaw":          "raw-uint32 naming variant of the ported bid32_from_string (the unsuffixed Go name is used by the Decimal32Pure plumbing)",
-	"Bid32ToStringRaw":            "raw-uint32 naming variant of the ported bid32_to_string",
-	"Bid32IsInf32":                "uint32-typed naming variant of the ported bid32_isInf",
-	"Bid32IsNaN32":                "uint32-typed naming variant of the ported bid32_isNaN",
-	"Bid32IsZero32":               "uint32-typed naming variant of the ported bid32_isZero",
-	"NewDecimal64PureFromFloat64": "Go-side Decimal64Pure constructor plumbing around the ported binary64_to_bid64 path",
-	"NewDecimal64PureFromInt64":   "Go-side Decimal64Pure constructor plumbing around the ported bid64_from_int64 path",
-	"ParseDecimal32Pure":          "Go-side Decimal32Pure constructor plumbing around the ported bid32_from_string path",
-	"ParseDecimal32PureWithMode":  "Go-side Decimal32Pure constructor plumbing around the ported bid32_from_string path",
-	"ParseDecimal64Pure":          "Go-side Decimal64Pure constructor plumbing around the ported bid64_from_string path",
-	"ParseDecimal64PureWithFlags": "Go-side Decimal64Pure constructor plumbing around the ported bid64_from_string path",
-	"ParseDecimal64PureWithMode":  "Go-side Decimal64Pure constructor plumbing around the ported bid64_from_string path",
+	"BID_normalize":      "ported from the static helper BID_normalize in Intel bid_inline_add.h; internal static helpers are not extern declarations in bid_functions.h",
+	"Bid32FromStringRaw": "raw-uint32 and explicit-status naming variant of the mechanically ported bid32_from_string; Bid32FromString is reserved for the one-result wrapper",
+	"Bid32ToStringRaw":   "raw-uint32 naming variant of the ported bid32_to_string",
+	"Bid32IsInf32":       "uint32-typed naming variant of the ported bid32_isInf",
+	"Bid32IsNaN32":       "uint32-typed naming variant of the ported bid32_isNaN",
+	"Bid32IsZero32":      "uint32-typed naming variant of the ported bid32_isZero",
+}
+
+// exportedBidgoTypes is a deliberately small closed-world set. The bidgo
+// package is the C-shaped mechanical-port boundary, so adding another exported
+// value/helper type is an architecture change rather than an incidental Go API
+// choice.
+var expectedExportedBidgoTypes = map[string]string{
+	"BID_UINT128":  "internal.go",
+	"BID_UINT192":  "internal.go",
+	"BID_UINT256":  "internal.go",
+	"BID_UINT320":  "internal.go",
+	"BID_UINT384":  "internal.go",
+	"BID_UINT512":  "internal.go",
+	"DEC_DIGITS":   "tables_intconv.go",
+	"RoundingMode": "types.go",
 }
 
 // bidgoSubdirExclusions lists subdirectories under bid754-go/internal/bidgo
@@ -346,10 +362,10 @@ func intelExternFunctionNames(t *testing.T) map[string]bool {
 	return names
 }
 
-// exportedBidgoFunctions returns the exported package-level (receiver-less)
-// function names declared in the non-test bidgo files. Methods on the pure
-// convenience types are Go API surface, not the C-shaped port surface the
-// census pins, so the scope is package-level functions.
+// exportedBidgoFunctions returns the exported package-level function names
+// declared in the non-test bidgo files. Receiver methods are rejected by the
+// separate zero-method census below rather than being accepted outside this
+// function census.
 func exportedBidgoFunctions(t *testing.T) map[string]string {
 	t.Helper()
 	fset := token.NewFileSet()
@@ -371,6 +387,76 @@ func exportedBidgoFunctions(t *testing.T) map[string]string {
 		t.Fatal("no exported bidgo functions found; wrong path?")
 	}
 	return names
+}
+
+func exportedBidgoTypes(t *testing.T) map[string]string {
+	t.Helper()
+	fset := token.NewFileSet()
+	types := map[string]string{}
+	for _, fileName := range bidgoImplementationFiles(t) {
+		file, err := parser.ParseFile(fset, filepath.Join(bidgoDirRel, fileName), nil, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatalf("parse %s: %v", fileName, err)
+		}
+		for _, decl := range file.Decls {
+			gen, ok := decl.(*ast.GenDecl)
+			if !ok || gen.Tok != token.TYPE {
+				continue
+			}
+			for _, spec := range gen.Specs {
+				typeSpec, ok := spec.(*ast.TypeSpec)
+				if ok && typeSpec.Name.IsExported() {
+					types[typeSpec.Name.Name] = fileName
+				}
+			}
+		}
+	}
+	return types
+}
+
+func receiverMethods(t *testing.T) []string {
+	t.Helper()
+	fset := token.NewFileSet()
+	var methods []string
+	for _, fileName := range bidgoImplementationFiles(t) {
+		file, err := parser.ParseFile(fset, filepath.Join(bidgoDirRel, fileName), nil, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatalf("parse %s: %v", fileName, err)
+		}
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if ok && fn.Recv != nil {
+				methods = append(methods, fn.Name.Name+" ("+fileName+")")
+			}
+		}
+	}
+	sort.Strings(methods)
+	return methods
+}
+
+func TestBidgoExportedTypesMatchClosedWorld(t *testing.T) {
+	actual := exportedBidgoTypes(t)
+	for name, wantFile := range expectedExportedBidgoTypes {
+		gotFile, ok := actual[name]
+		if !ok {
+			t.Errorf("required exported bidgo type %s is missing", name)
+			continue
+		}
+		if gotFile != wantFile {
+			t.Errorf("exported bidgo type %s is declared in %s, want %s", name, gotFile, wantFile)
+		}
+	}
+	for name, fileName := range actual {
+		if _, ok := expectedExportedBidgoTypes[name]; !ok {
+			t.Errorf("unexpected exported bidgo type %s (%s); the mechanical-port boundary has a closed-world type census", name, fileName)
+		}
+	}
+}
+
+func TestBidgoDeclaresNoReceiverMethods(t *testing.T) {
+	for _, method := range receiverMethods(t) {
+		t.Errorf("bidgo receiver method %s is outside the C-shaped mechanical-port boundary", method)
+	}
 }
 
 func TestBidgoExportedFunctionsMatchIntelExterns(t *testing.T) {

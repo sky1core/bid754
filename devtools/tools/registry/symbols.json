@@ -172,18 +172,6 @@
       "go_file": "tables_intconv.go",
       "exported": true
     },
-    "Decimal32Pure": {
-      "fields": null,
-      "alias_of": "u32",
-      "go_file": "bid32.go",
-      "exported": true
-    },
-    "Decimal64Pure": {
-      "fields": null,
-      "alias_of": "u64",
-      "go_file": "decimal64.go",
-      "exported": true
-    },
     "RoundingMode": {
       "fields": null,
       "alias_of": "i32",
@@ -1047,300 +1035,6 @@
       "group": "internal",
       "exported": true
     },
-    "bid32ExponentBias": {
-      "value": "101",
-      "type": "i32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32ExponentMask": {
-      "value": "255",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32InfinityMask": {
-      "value": "0x78000000",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32LargeCoeffHighBit": {
-      "value": "0x800000",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32LargeCoeffMask": {
-      "value": "0x7fffff",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32LargeExpShift": {
-      "value": "21",
-      "type": "u64",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32LargestBID32": {
-      "value": "0x77f8967f",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32MaxCoefficient": {
-      "value": "0x98967f",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32MaxExponent": {
-      "value": "191",
-      "type": "i32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32NaNMask": {
-      "value": "0x7c000000",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32QuietMask": {
-      "value": "0xfdffffff",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32SNaNMask": {
-      "value": "0x7e000000",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32SignMask": {
-      "value": "0x80000000",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32SmallCoeffMask": {
-      "value": "0x1fffff",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32SmallExpShift": {
-      "value": "23",
-      "type": "u64",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid32SpecialEncodingMask": {
-      "value": "0x60000000",
-      "type": "u32",
-      "go_file": "bid32.go",
-      "group": "bid32",
-      "exported": false
-    },
-    "bid64BinaryExp1Mask": {
-      "value": "0x7fe0000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64BinaryExp2Mask": {
-      "value": "0x1ff8000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64BinaryOr2": {
-      "value": "0x20000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64BinarySig1Mask": {
-      "value": "0x1fffffffffffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64BinarySig2Mask": {
-      "value": "0x7ffffffffffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64Emin": {
-      "value": "0xfffffffffffffe81",
-      "type": "i32",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64Etiny": {
-      "value": "0xfffffffffffffe72",
-      "type": "i32",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64ExponentBias": {
-      "value": "0x18e",
-      "type": "i32",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64ExponentMask": {
-      "value": "0x3ff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64InfMask": {
-      "value": "0x7800000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64InfinityMask": {
-      "value": "0x7800000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64LargeCoeffHighBit": {
-      "value": "0x20000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64LargeCoeffMask": {
-      "value": "0x7ffffffffffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64LargeExpShift": {
-      "value": "51",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64LargestBID64": {
-      "value": "0x77fb86f26fc0ffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "bid64MaxCoefficient": {
-      "value": "0x2386f26fc0ffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64MaxExponent": {
-      "value": "0x2ff",
-      "type": "i32",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64MinExponent": {
-      "value": "0",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64NaNMask": {
-      "value": "0x7c00000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64QuietBit": {
-      "value": "0x200000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64SNaNMask": {
-      "value": "0x7e00000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64SignMask": {
-      "value": "0x8000000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64SmallCoeffMask": {
-      "value": "0x1fffffffffffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64SmallExpShift": {
-      "value": "53",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64SpecialEncodingMask": {
-      "value": "0x6000000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
-    "bid64SteeringBitsMask": {
-      "value": "0x6000000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
     "bid64ToInt16InvalidRes": {
       "value": "0x8000",
       "type": "u64",
@@ -1460,90 +1154,6 @@
       "group": "bid128",
       "exported": false
     },
-    "maskBINARYEXP1_64": {
-      "value": "0x7fe0000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskBINARYEXP2_64": {
-      "value": "0x1ff8000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskBINARYOR2_64": {
-      "value": "0x20000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskBINARYSIG1_64": {
-      "value": "0x1fffffffffffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskBINARYSIG2_64": {
-      "value": "0x7ffffffffffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskINF64": {
-      "value": "0x7800000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskNAN64": {
-      "value": "0x7c00000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskSIGN64": {
-      "value": "0x8000000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskSNAN64": {
-      "value": "0x7e00000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maskSTEERINGBITS64": {
-      "value": "0x6000000000000000",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maxCoeff64": {
-      "value": "0x2386f26fc0ffff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "bid64",
-      "exported": false
-    },
-    "maxCoeff64Minus1": {
-      "value": "0x38d7ea4c67fff",
-      "type": "u64",
-      "go_file": "decimal64.go",
-      "group": "misc",
-      "exported": false
-    },
     "negativeInfinity": {
       "value": "2",
       "type": "u64",
@@ -1634,36 +1244,6 @@
       "element_type": "u64",
       "length": 7,
       "go_file": "bid32_noncomp.go",
-      "exported": false
-    },
-    "bid64MultFactor": {
-      "element_type": "u64",
-      "length": 16,
-      "go_file": "decimal64.go",
-      "exported": false
-    },
-    "bid64Reciprocals10": {
-      "element_type": "u64",
-      "length": 18,
-      "go_file": "decimal64.go",
-      "exported": false
-    },
-    "bid64RoundConstTable": {
-      "element_type": "[u64; 18]",
-      "length": 6,
-      "go_file": "decimal64.go",
-      "exported": false
-    },
-    "bid64ShortRecipScale": {
-      "element_type": "u32",
-      "length": 18,
-      "go_file": "decimal64.go",
-      "exported": false
-    },
-    "bidMultFactor64": {
-      "element_type": "u64",
-      "length": 16,
-      "go_file": "decimal64.go",
       "exported": false
     },
     "bid_Ex128m128": {
@@ -2119,22 +1699,10 @@
       "go_file": "tables_round.go",
       "exported": false
     },
-    "errInvalidFormat32": {
-      "element_type": "error",
-      "length": 0,
-      "go_file": "bid32.go",
-      "exported": false
-    },
     "mod10_18_tbl": {
       "element_type": "[u64; 128]",
       "length": 9,
       "go_file": "tables_tostring.go",
-      "exported": false
-    },
-    "pow10": {
-      "element_type": "u64",
-      "length": 20,
-      "go_file": "decimal64.go",
       "exported": false
     }
   },
@@ -12088,129 +11656,6 @@
       "exported": true,
       "group": "bid64"
     },
-    "NewDecimal64PureFromFloat64": {
-      "params": [
-        {
-          "name": "x",
-          "type": "f64"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "NewDecimal64PureFromFloat64",
-      "exported": true,
-      "group": "misc"
-    },
-    "NewDecimal64PureFromInt64": {
-      "params": [
-        {
-          "name": "x",
-          "type": "i64"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "NewDecimal64PureFromInt64",
-      "exported": true,
-      "group": "misc"
-    },
-    "ParseDecimal32Pure": {
-      "params": [
-        {
-          "name": "s",
-          "type": "String"
-        }
-      ],
-      "returns": [
-        "Decimal32Pure",
-        "error"
-      ],
-      "go_file": "bid32.go",
-      "go_name": "ParseDecimal32Pure",
-      "exported": true,
-      "group": "misc"
-    },
-    "ParseDecimal32PureWithMode": {
-      "params": [
-        {
-          "name": "s",
-          "type": "String"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal32Pure",
-        "error"
-      ],
-      "go_file": "bid32.go",
-      "go_name": "ParseDecimal32PureWithMode",
-      "exported": true,
-      "group": "misc"
-    },
-    "ParseDecimal64Pure": {
-      "params": [
-        {
-          "name": "s",
-          "type": "String"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure",
-        "error"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "ParseDecimal64Pure",
-      "exported": true,
-      "group": "misc"
-    },
-    "ParseDecimal64PureWithFlags": {
-      "params": [
-        {
-          "name": "s",
-          "type": "String"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure",
-        "u32",
-        "error"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "ParseDecimal64PureWithFlags",
-      "exported": true,
-      "group": "misc"
-    },
-    "ParseDecimal64PureWithMode": {
-      "params": [
-        {
-          "name": "s",
-          "type": "String"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure",
-        "error"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "ParseDecimal64PureWithMode",
-      "exported": true,
-      "group": "misc"
-    },
     "__add_128_128": {
       "params": [
         {
@@ -13028,34 +12473,6 @@
       "exported": false,
       "group": "internal_helpers"
     },
-    "add128": {
-      "params": [
-        {
-          "name": "hiA",
-          "type": "u64"
-        },
-        {
-          "name": "loA",
-          "type": "u64"
-        },
-        {
-          "name": "hiB",
-          "type": "u64"
-        },
-        {
-          "name": "loB",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "add128",
-      "exported": false,
-      "group": "misc"
-    },
     "add_zero32": {
       "params": [
         {
@@ -13127,60 +12544,6 @@
       ],
       "go_file": "inline_round64.go",
       "go_name": "add_zero64",
-      "exported": false,
-      "group": "misc"
-    },
-    "adjustForTinyContribution": {
-      "params": [
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "exp",
-          "type": "i32"
-        },
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "adjustForTinyContribution",
-      "exported": false,
-      "group": "misc"
-    },
-    "adjustForTinyContributionAdd": {
-      "params": [
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "exp",
-          "type": "i32"
-        },
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "adjustForTinyContributionAdd",
       "exported": false,
       "group": "misc"
     },
@@ -14572,21 +13935,6 @@
       "exported": false,
       "group": "bid64"
     },
-    "bid64CountDigits": {
-      "params": [
-        {
-          "name": "coeff",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "i32"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "bid64CountDigits",
-      "exported": false,
-      "group": "bid64"
-    },
     "bid64DecodeForCompare": {
       "params": [
         {
@@ -14682,24 +14030,6 @@
       "exported": false,
       "group": "bid64"
     },
-    "bid64Unpack": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "i32",
-        "i32",
-        "u64",
-        "bool"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "bid64Unpack",
-      "exported": false,
-      "group": "bid64"
-    },
     "bid64UnpackFiniteForRoundLocal": {
       "params": [
         {
@@ -14714,52 +14044,6 @@
       ],
       "go_file": "modf64.go",
       "go_name": "bid64UnpackFiniteForRoundLocal",
-      "exported": false,
-      "group": "bid64"
-    },
-    "bid64VeryFast": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "exp",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "bid64VeryFast",
-      "exported": false,
-      "group": "bid64"
-    },
-    "bid64VeryFastSmallMantissa": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "exp",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "bid64VeryFastSmallMantissa",
       "exported": false,
       "group": "bid64"
     },
@@ -16155,21 +15439,6 @@
       "exported": false,
       "group": "misc"
     },
-    "canonicalizeNonSpecial64": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "canonicalizeNonSpecial64",
-      "exported": false,
-      "group": "misc"
-    },
     "clz128_nz": {
       "params": [
         {
@@ -16216,199 +15485,6 @@
       ],
       "go_file": "bid128_to_binary.go",
       "go_name": "clz64_nz",
-      "exported": false,
-      "group": "misc"
-    },
-    "cmp128": {
-      "params": [
-        {
-          "name": "hiA",
-          "type": "u64"
-        },
-        {
-          "name": "loA",
-          "type": "u64"
-        },
-        {
-          "name": "hiB",
-          "type": "u64"
-        },
-        {
-          "name": "loB",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "i32"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "cmp128",
-      "exported": false,
-      "group": "misc"
-    },
-    "countDigits": {
-      "params": [
-        {
-          "name": "n",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "i32"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "countDigits",
-      "exported": false,
-      "group": "misc"
-    },
-    "decodeBID64": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "i32",
-        "i32",
-        "u64",
-        "bool",
-        "bool",
-        "bool"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "decodeBID64",
-      "exported": false,
-      "group": "misc"
-    },
-    "divideAndRound128": {
-      "params": [
-        {
-          "name": "hi",
-          "type": "u64"
-        },
-        {
-          "name": "lo",
-          "type": "u64"
-        },
-        {
-          "name": "divisor",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "divideAndRound128",
-      "exported": false,
-      "group": "misc"
-    },
-    "encodeBID32": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "exponent",
-          "type": "i32"
-        },
-        {
-          "name": "coefficient",
-          "type": "u32"
-        }
-      ],
-      "returns": [
-        "u32"
-      ],
-      "go_file": "bid32.go",
-      "go_name": "encodeBID32",
-      "exported": false,
-      "group": "misc"
-    },
-    "encodeBID64": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "exponent",
-          "type": "i32"
-        },
-        {
-          "name": "coefficient",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "encodeBID64",
-      "exported": false,
-      "group": "misc"
-    },
-    "encodeBID64WithMode": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "exponent",
-          "type": "i32"
-        },
-        {
-          "name": "coefficient",
-          "type": "u64"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "encodeBID64WithMode",
-      "exported": false,
-      "group": "misc"
-    },
-    "encodeInfinity64": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "encodeInfinity64",
-      "exported": false,
-      "group": "misc"
-    },
-    "encodeNaN64": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "signaling",
-          "type": "bool"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "encodeNaN64",
       "exported": false,
       "group": "misc"
     },
@@ -16566,40 +15642,6 @@
       "exported": false,
       "group": "misc"
     },
-    "formatFloat": {
-      "params": [
-        {
-          "name": "f",
-          "type": "f64"
-        }
-      ],
-      "returns": [
-        "String"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "formatFloat",
-      "exported": false,
-      "group": "misc"
-    },
-    "fromDecimal64": {
-      "params": [
-        {
-          "name": "d",
-          "type": "Decimal64Pure"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal32Pure"
-      ],
-      "go_file": "bid32.go",
-      "go_name": "fromDecimal64",
-      "exported": false,
-      "group": "misc"
-    },
     "getBinaryExponent": {
       "params": [
         {
@@ -16612,44 +15654,6 @@
       ],
       "go_file": "internal.go",
       "go_name": "getBinaryExponent",
-      "exported": false,
-      "group": "misc"
-    },
-    "getOverflowResult": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "getOverflowResult",
-      "exported": false,
-      "group": "misc"
-    },
-    "getUnderflowResult": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        }
-      ],
-      "returns": [
-        "Decimal64Pure"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "getUnderflowResult",
       "exported": false,
       "group": "misc"
     },
@@ -17208,76 +16212,6 @@
       "exported": false,
       "group": "misc"
     },
-    "maximizeCoefficient": {
-      "params": [
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "exp",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64",
-        "i32"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "maximizeCoefficient",
-      "exported": false,
-      "group": "misc"
-    },
-    "mul64by64": {
-      "params": [
-        {
-          "name": "a",
-          "type": "u64"
-        },
-        {
-          "name": "b",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "mul64by64",
-      "exported": false,
-      "group": "misc"
-    },
-    "naN": {
-      "params": null,
-      "returns": [
-        "f64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "naN",
-      "exported": false,
-      "group": "misc"
-    },
-    "negInf": {
-      "params": null,
-      "returns": [
-        "f64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "negInf",
-      "exported": false,
-      "group": "misc"
-    },
-    "negZero": {
-      "params": null,
-      "returns": [
-        "f64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "negZero",
-      "exported": false,
-      "group": "misc"
-    },
     "noFmaMulAddF32": {
       "params": [
         {
@@ -17321,138 +16255,6 @@
       ],
       "go_file": "internal.go",
       "go_name": "noFmaMulAddF64",
-      "exported": false,
-      "group": "misc"
-    },
-    "normalize128to64": {
-      "params": [
-        {
-          "name": "hi",
-          "type": "u64"
-        },
-        {
-          "name": "lo",
-          "type": "u64"
-        },
-        {
-          "name": "exp",
-          "type": "i32",
-          "pointer": true
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "normalize128to64",
-      "exported": false,
-      "group": "misc"
-    },
-    "normalize128to64WithMode": {
-      "params": [
-        {
-          "name": "hi",
-          "type": "u64"
-        },
-        {
-          "name": "lo",
-          "type": "u64"
-        },
-        {
-          "name": "exp",
-          "type": "i32",
-          "pointer": true
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        },
-        {
-          "name": "negative",
-          "type": "bool"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "normalize128to64WithMode",
-      "exported": false,
-      "group": "misc"
-    },
-    "normalizeCoefficient": {
-      "params": [
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "exp",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64",
-        "i32"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "normalizeCoefficient",
-      "exported": false,
-      "group": "misc"
-    },
-    "posInf": {
-      "params": null,
-      "returns": [
-        "f64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "posInf",
-      "exported": false,
-      "group": "misc"
-    },
-    "quietNaN64": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "quietNaN64",
-      "exported": false,
-      "group": "misc"
-    },
-    "rescaleToSmaller": {
-      "params": [
-        {
-          "name": "original",
-          "type": "u64"
-        },
-        {
-          "name": "sign",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "currentExp",
-          "type": "i32"
-        },
-        {
-          "name": "targetExp",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "rescaleToSmaller",
       "exported": false,
       "group": "misc"
     },
@@ -17532,60 +16334,6 @@
       "exported": false,
       "group": "misc"
     },
-    "roundToNearestEven": {
-      "params": [
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "remainder",
-          "type": "u64"
-        },
-        {
-          "name": "divisor",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "roundToNearestEven",
-      "exported": false,
-      "group": "misc"
-    },
-    "roundWithMode": {
-      "params": [
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "remainder",
-          "type": "u64"
-        },
-        {
-          "name": "divisor",
-          "type": "u64"
-        },
-        {
-          "name": "mode",
-          "type": "RoundingMode"
-        },
-        {
-          "name": "negative",
-          "type": "bool"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "roundWithMode",
-      "exported": false,
-      "group": "misc"
-    },
     "roundingModeToBID": {
       "params": [
         {
@@ -17598,26 +16346,6 @@
       ],
       "go_file": "internal.go",
       "go_name": "roundingModeToBID",
-      "exported": false,
-      "group": "misc"
-    },
-    "scaleUp128": {
-      "params": [
-        {
-          "name": "val",
-          "type": "u64"
-        },
-        {
-          "name": "n",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "scaleUp128",
       "exported": false,
       "group": "misc"
     },
@@ -17684,21 +16412,6 @@
       "exported": false,
       "group": "misc"
     },
-    "sqrtFloat": {
-      "params": [
-        {
-          "name": "x",
-          "type": "f64"
-        }
-      ],
-      "returns": [
-        "f64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "sqrtFloat",
-      "exported": false,
-      "group": "misc"
-    },
     "srl256_short": {
       "params": [
         {
@@ -17733,34 +16446,6 @@
       "exported": false,
       "group": "misc"
     },
-    "sub128": {
-      "params": [
-        {
-          "name": "hiA",
-          "type": "u64"
-        },
-        {
-          "name": "loA",
-          "type": "u64"
-        },
-        {
-          "name": "hiB",
-          "type": "u64"
-        },
-        {
-          "name": "loB",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64"
-      ],
-      "go_file": "decimal64.go",
-      "go_name": "sub128",
-      "exported": false,
-      "group": "misc"
-    },
     "tolower_macro": {
       "params": [
         {
@@ -17773,21 +16458,6 @@
       ],
       "go_file": "bid64_from_string.go",
       "go_name": "tolower_macro",
-      "exported": false,
-      "group": "misc"
-    },
-    "uitoa32": {
-      "params": [
-        {
-          "name": "n",
-          "type": "u32"
-        }
-      ],
-      "returns": [
-        "String"
-      ],
-      "go_file": "bid32.go",
-      "go_name": "uitoa32",
       "exported": false,
       "group": "misc"
     },
@@ -17840,7 +16510,7 @@
         "u32",
         "bool"
       ],
-      "go_file": "bid32.go",
+      "go_file": "bid32_internal.go",
       "go_name": "unpack_BID32",
       "exported": false,
       "group": "misc"
@@ -17860,24 +16530,6 @@
       ],
       "go_file": "bid32_add.go",
       "go_name": "unpack_BID32_add",
-      "exported": false,
-      "group": "misc"
-    },
-    "unpack_BID32_intel": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u32"
-        }
-      ],
-      "returns": [
-        "u32",
-        "i32",
-        "u32",
-        "bool"
-      ],
-      "go_file": "bid32_internal.go",
-      "go_name": "unpack_BID32_intel",
       "exported": false,
       "group": "misc"
     },
@@ -18078,22 +16730,6 @@
       "SNAN_MASK32",
       "SPECIAL_ENCODING_MASK32",
       "SSNAN_MASK32",
-      "bid32ExponentBias",
-      "bid32ExponentMask",
-      "bid32InfinityMask",
-      "bid32LargeCoeffHighBit",
-      "bid32LargeCoeffMask",
-      "bid32LargeExpShift",
-      "bid32LargestBID32",
-      "bid32MaxCoefficient",
-      "bid32MaxExponent",
-      "bid32NaNMask",
-      "bid32QuietMask",
-      "bid32SNaNMask",
-      "bid32SignMask",
-      "bid32SmallCoeffMask",
-      "bid32SmallExpShift",
-      "bid32SpecialEncodingMask",
       "bid64ToInt16SizeMaskInt32",
       "bid64ToInt8SizeMaskInt32",
       "bid64ToUint16SizeMaskUint32",
@@ -18127,18 +16763,6 @@
       "SNAN_MASK64",
       "SPECIAL_ENCODING_MASK64",
       "SSNAN_MASK64",
-      "bid64LargestBID64",
-      "maskBINARYEXP1_64",
-      "maskBINARYEXP2_64",
-      "maskBINARYOR2_64",
-      "maskBINARYSIG1_64",
-      "maskBINARYSIG2_64",
-      "maskINF64",
-      "maskNAN64",
-      "maskSIGN64",
-      "maskSNAN64",
-      "maskSTEERINGBITS64",
-      "maxCoeff64",
       "negativeInfinity",
       "negativeNormal",
       "negativeSubnormal",
@@ -18182,31 +16806,6 @@
       "RoundTowardNegative",
       "RoundTowardPositive",
       "RoundTowardZero",
-      "bid64BinaryExp1Mask",
-      "bid64BinaryExp2Mask",
-      "bid64BinaryOr2",
-      "bid64BinarySig1Mask",
-      "bid64BinarySig2Mask",
-      "bid64Emin",
-      "bid64Etiny",
-      "bid64ExponentBias",
-      "bid64ExponentMask",
-      "bid64InfMask",
-      "bid64InfinityMask",
-      "bid64LargeCoeffHighBit",
-      "bid64LargeCoeffMask",
-      "bid64LargeExpShift",
-      "bid64MaxCoefficient",
-      "bid64MaxExponent",
-      "bid64MinExponent",
-      "bid64NaNMask",
-      "bid64QuietBit",
-      "bid64SNaNMask",
-      "bid64SignMask",
-      "bid64SmallCoeffMask",
-      "bid64SmallExpShift",
-      "bid64SpecialEncodingMask",
-      "bid64SteeringBitsMask",
       "bid64ToInt16InvalidRes",
       "bid64ToInt8InvalidRes",
       "bid64ToUint16InvalidRes",
@@ -18218,7 +16817,6 @@
       "bid_Twoto30_m_10to9",
       "bid_Twoto60",
       "bid_Twoto60_m_10to18",
-      "maxCoeff64Minus1",
       "tostring_DECIMAL_EXPONENT_BIAS",
       "tostring_MAX_FORMAT_DIGITS"
     ],

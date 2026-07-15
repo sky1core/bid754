@@ -169,7 +169,7 @@ func Bid32Copy(x uint32) uint32 {
 }
 
 // Bid32Negate returns -x.
-// Already in bid32_exports.go via Decimal32Pure.Neg but re-implementing mechanically.
+// The exported wrapper is defined in bid32_exports.go.
 
 // Bid32CopySign returns x with the sign of y.
 func Bid32CopySign(x, y uint32) uint32 {

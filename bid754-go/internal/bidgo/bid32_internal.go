@@ -480,10 +480,10 @@ func get_BID32_UF(sgn uint32, expon int, coeff uint64, R uint32, rmode int, pfps
 	return r
 }
 
-// unpack_BID32_intel unpacks a BID32 value into sign, exponent, and coefficient
-// Returns valid=false if the value is NaN or Infinity
-// Ported from Intel BID library bid_internal.h (same as existing unpack_BID32 but returns uint32 types)
-func unpack_BID32_intel(x uint32) (sign uint32, exponent int, coefficient uint32, valid bool) {
+// unpack_BID32 unpacks a BID32 value into sign, exponent, and coefficient.
+// It is ported from Intel BID library bid_internal.h and returns valid=false
+// for NaN, infinity, zero, and non-canonical finite encodings.
+func unpack_BID32(x uint32) (sign uint32, exponent int, coefficient uint32, valid bool) {
 	sign = x & 0x80000000
 
 	if (x & SPECIAL_ENCODING_MASK32) == SPECIAL_ENCODING_MASK32 {

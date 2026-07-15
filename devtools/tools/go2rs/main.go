@@ -172,7 +172,10 @@ func main() {
 		targets = append(targets, f)
 	}
 	sort.Strings(targets)
-	activeSourceFunctions = collectSourceFunctionNames(targets)
+	activeSourceFunctions, err = collectSourceFunctionNames(targets)
+	if err != nil {
+		fatal("%v", err)
+	}
 	packageFset, parsedTargets, typeInfo := parseTypeCheckedPackage(srcDir, targets)
 	activeTypeInfo = typeInfo
 
@@ -246,22 +249,25 @@ func main() {
 	fmt.Printf("\nDone. %d files converted.\n", len(converted))
 }
 
-func collectSourceFunctionNames(files []string) map[string]bool {
+func collectSourceFunctionNames(files []string) (map[string]bool, error) {
 	names := make(map[string]bool)
 	for _, path := range files {
 		fset := token.NewFileSet()
 		f, err := parser.ParseFile(fset, path, nil, 0)
 		if err != nil {
-			fatal("parse %s for function names: %v", path, err)
+			return nil, fmt.Errorf("parse %s for function names: %w", path, err)
+		}
+		if err := rejectReceiverMethods(fset, f, path); err != nil {
+			return nil, err
 		}
 		for _, decl := range f.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
-			if ok && fn.Recv == nil {
+			if ok {
 				names[fn.Name.Name] = true
 			}
 		}
 	}
-	return names
+	return names, nil
 }
 
 func parseTypeCheckedPackage(srcDir string, targets []string) (*token.FileSet, map[string]*ast.File, *types.Info) {
@@ -379,11 +385,6 @@ func shouldConvertFile(name string) bool {
 		return false
 	}
 	if strings.HasPrefix(name, "tables") {
-		return false
-	}
-	// decimal64.go is a pure-Go wrapper rather than the mechanical port surface
-	// used as the Rust generation source.
-	if name == "decimal64.go" {
 		return false
 	}
 	return true
@@ -856,12 +857,15 @@ func convertFile(path string, reg *Registry) (string, error) {
 }
 
 func convertParsedFile(fset *token.FileSet, f *ast.File, path string, reg *Registry) (string, error) {
+	if err := rejectReceiverMethods(fset, f, path); err != nil {
+		return "", err
+	}
 	if activeSourceFunctions == nil {
 		activeSourceFunctions = make(map[string]bool)
 	}
 	for _, decl := range f.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
-		if ok && fn.Recv == nil {
+		if ok {
 			activeSourceFunctions[fn.Name.Name] = true
 		}
 	}
@@ -884,7 +888,10 @@ func convertParsedFile(fset *token.FileSet, f *ast.File, path string, reg *Regis
 			if emitted[rsName] {
 				continue
 			}
-			code := convertFuncDecl(fset, d, path)
+			code, err := convertFuncDecl(fset, d, path)
+			if err != nil {
+				return "", err
+			}
 			if code != "" {
 				emitted[rsName] = true
 				body.WriteString(code)
@@ -912,6 +919,18 @@ func convertParsedFile(fset *token.FileSet, f *ast.File, path string, reg *Regis
 	sb.WriteString("use super::prelude::*;\n\n")
 	sb.WriteString(body.String())
 	return sb.String(), nil
+}
+
+func rejectReceiverMethods(fset *token.FileSet, f *ast.File, path string) error {
+	for _, decl := range f.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Recv == nil {
+			continue
+		}
+		pos := fset.Position(fn.Pos())
+		return fmt.Errorf("go2rs input %s:%d declares receiver method %s; the C-shaped mechanical-port source must contain package-level functions only", filepath.Base(path), pos.Line, fn.Name.Name)
+	}
+	return nil
 }
 
 // comparisonOperandsRe captures the two bare operands (identifier or integer
@@ -1210,10 +1229,9 @@ func structContainsNonCopyField(t *ast.StructType) bool {
 // Function conversion
 // -------------------------------------------------------
 
-func convertFuncDecl(fset *token.FileSet, d *ast.FuncDecl, filePath string) string {
+func convertFuncDecl(fset *token.FileSet, d *ast.FuncDecl, filePath string) (string, error) {
 	if d.Recv != nil {
-		// Method - skip for now (BID types don't have methods in bid-go)
-		return ""
+		return "", fmt.Errorf("go2rs input %s declares receiver method %s; receiver methods cannot be converted as mechanical-port functions", filepath.Base(filePath), d.Name.Name)
 	}
 
 	name := d.Name.Name
@@ -1250,7 +1268,7 @@ func convertFuncDecl(fset *token.FileSet, d *ast.FuncDecl, filePath string) stri
 	sb.WriteString(body)
 	sb.WriteString("}\n")
 
-	return sb.String()
+	return sb.String(), nil
 }
 
 func collectStringParamNames(fields *ast.FieldList) map[string]bool {

@@ -407,7 +407,7 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
     return r;
 }
 
-pub(crate) fn unpack_bid32_intel(mut x: u32) -> (u32, i64, u32, bool) {
+pub(crate) fn unpack_bid32(mut x: u32) -> (u32, i64, u32, bool) {
     let mut sign: u32 = 0;
     let mut exponent: i64 = 0;
     let mut coefficient: u32 = 0;

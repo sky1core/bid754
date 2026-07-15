@@ -136,65 +136,33 @@ func bidgoTableMappings() map[string]tableMapping {
 		"bid_maskhigh128_round64":   {goName: "BidMaskHigh128", generated: generatedtables.BidMaskHigh128, pinnedGeneratedLeaves: 34, pinnedBidgoLeaves: 22},
 		// Intel declares bid_mult_factor in four C files; bidgo ports each one
 		// under a distinct name.
-		"bid_mult_factor":        {goName: "BidMultFactor", generated: generatedtables.BidMultFactor},
-		"bid32_mult_factor":      {goName: "Bid32MultFactor", generated: generatedtables.Bid32MultFactor},
-		"bid_mult_factor_minmax": {goName: "BidMultFactorMinmax", generated: generatedtables.BidMultFactorMinmax},
-		"bid_mult_factor32":      {goName: "BidMultFactor32", generated: generatedtables.BidMultFactor32},
-		// bid64MultFactor and bidMultFactor64 in decimal64.go are two more
-		// hand-ported copies of the Intel bid64_minmax.c bid_mult_factor
-		// table (used by the Decimal64Pure Min/Max and MinNum/MaxNum paths).
-		"bid64MultFactor":              {goName: "BidMultFactorMinmax", generated: generatedtables.BidMultFactorMinmax},
-		"bidMultFactor64":              {goName: "BidMultFactorMinmax", generated: generatedtables.BidMultFactorMinmax},
+		"bid_mult_factor":              {goName: "BidMultFactor", generated: generatedtables.BidMultFactor},
+		"bid32_mult_factor":            {goName: "Bid32MultFactor", generated: generatedtables.Bid32MultFactor},
+		"bid_mult_factor_minmax":       {goName: "BidMultFactorMinmax", generated: generatedtables.BidMultFactorMinmax},
+		"bid_mult_factor32":            {goName: "BidMultFactor32", generated: generatedtables.BidMultFactor32},
 		"bid_packed_10000_zeros":       {goName: "BidPacked10000Zeros", generated: generatedtables.BidPacked10000Zeros},
 		"bid_power10_index_binexp":     {goName: "BidPower10IndexBinExp", generated: generatedtables.BidPower10IndexBinExp},
 		"bid_power10_index_binexp_128": {goName: "BidPower10IndexBinExp128", generated: generatedtables.BidPower10IndexBinExp128},
 		"bid_power10_table_128":        {goName: "BidPower10Table128", generated: generatedtables.BidPower10Table128},
 		"bid_reciprocals10_128":        {goName: "BidReciprocals10_128", generated: generatedtables.BidReciprocals10_128},
 		"bid_reciprocals10_64":         {goName: "BidReciprocals10_64", generated: generatedtables.BidReciprocals10_64},
-		// bid64Reciprocals10 in decimal64.go is a second hand-ported copy of
-		// Intel's bid_reciprocals10_64 (used by the Decimal64Pure quantize
-		// path).
-		"bid64Reciprocals10": {goName: "BidReciprocals10_64", generated: generatedtables.BidReciprocals10_64},
-		"bid_recip_scale":    {goName: "BidRecipScale", generated: generatedtables.BidRecipScale},
+		"bid_recip_scale":              {goName: "BidRecipScale", generated: generatedtables.BidRecipScale},
 		// bidgo declares one extra trailing rounding-mode row.
 		"bid_round_const_table": {goName: "BidRoundConstTable", generated: generatedtables.BidRoundConstTable, pinnedGeneratedLeaves: 95, pinnedBidgoLeaves: 114},
-		// bid64RoundConstTable in decimal64.go copies Intel's
-		// bid_round_const_table with 18-wide rows (extra-digits 0..17; the
-		// quantize path never rounds off more than 17 digits) and one extra
-		// trailing rounding-mode row, so the rows must be compared pairwise:
-		// generated [5][19] vs bidgo [6][18], common 5x18 prefix. The 19th
-		// generated column is fully covered by the bid_round_const_table
-		// entry above.
-		"bid64RoundConstTable": {
-			goName:                "BidRoundConstTable",
-			generated:             generatedtables.BidRoundConstTable,
-			pinnedGeneratedLeaves: 95,
-			pinnedBidgoLeaves:     108,
-			pinnedGeneratedRowLen: 19,
-			pinnedBidgoRowLen:     18,
-		},
 		"bid_round_const_table_128": {
 			goName:         "BidRoundConstTable128",
 			excludedReason: "bidgo computes this table at init via make_bid_round_const_table_128(); there is no static literal to extract. Its only input, bid_power10_table_128, is value-compared above.",
 		},
 		"bid_shiftright128":     {goName: "BidShiftRight128", generated: generatedtables.BidShiftRight128},
 		"bid_short_recip_scale": {goName: "BidShortRecipScale", generated: generatedtables.BidShortRecipScale},
-		// bid64ShortRecipScale in decimal64.go is a second hand-ported copy
-		// of Intel's bid_short_recip_scale.
-		"bid64ShortRecipScale": {goName: "BidShortRecipScale", generated: generatedtables.BidShortRecipScale},
-		"bid_ten2k64":          {goName: "BidTen2K64", generated: generatedtables.BidTen2K64},
-		// pow10 in decimal64.go is a Go-side powers-of-ten table rather than
-		// a labeled Intel transcription, but its content is exactly Intel's
-		// bid_ten2k64 (10^0..10^19), so it is anchored to the same generated
-		// table to check against digit typos.
-		"pow10":              {goName: "BidTen2K64", generated: generatedtables.BidTen2K64},
-		"bid_ten2k256":       {goName: "BidTen2K256", generated: generatedtables.BidTen2K256},
-		"bid_ten2mxtrunc128": {goName: "BidTen2MxTrunc128", generated: generatedtables.BidTen2MxTrunc128},
-		"bid_ten2mxtrunc192": {goName: "BidTen2MxTrunc192", generated: generatedtables.BidTen2MxTrunc192},
-		"bid_ten2mxtrunc256": {goName: "BidTen2MxTrunc256", generated: generatedtables.BidTen2MxTrunc256},
-		"bid_ten2mxtrunc64":  {goName: "BidTen2MxTrunc64", generated: generatedtables.BidTen2MxTrunc64},
-		"bid_ten2mk128":      {goName: "BidTen2MK128", generated: generatedtables.BidTen2MK128},
-		"bid_ten2mk128trunc": {goName: "BidTen2MK128Trunc", generated: generatedtables.BidTen2MK128Trunc},
+		"bid_ten2k64":           {goName: "BidTen2K64", generated: generatedtables.BidTen2K64},
+		"bid_ten2k256":          {goName: "BidTen2K256", generated: generatedtables.BidTen2K256},
+		"bid_ten2mxtrunc128":    {goName: "BidTen2MxTrunc128", generated: generatedtables.BidTen2MxTrunc128},
+		"bid_ten2mxtrunc192":    {goName: "BidTen2MxTrunc192", generated: generatedtables.BidTen2MxTrunc192},
+		"bid_ten2mxtrunc256":    {goName: "BidTen2MxTrunc256", generated: generatedtables.BidTen2MxTrunc256},
+		"bid_ten2mxtrunc64":     {goName: "BidTen2MxTrunc64", generated: generatedtables.BidTen2MxTrunc64},
+		"bid_ten2mk128":         {goName: "BidTen2MK128", generated: generatedtables.BidTen2MK128},
+		"bid_ten2mk128trunc":    {goName: "BidTen2MK128Trunc", generated: generatedtables.BidTen2MK128Trunc},
 		// bid_ten2mk64 in tables_intconv.go is declared as an alias of
 		// bid_ten2mk64_round64; comparing the literal here anchors both
 		// names.

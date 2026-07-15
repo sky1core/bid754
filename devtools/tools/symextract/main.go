@@ -83,7 +83,11 @@ func main() {
 	projectRoot := findProjectRoot()
 	bidGoDir := filepath.Join(projectRoot, "..", "bid754-go", "internal", "bidgo")
 
-	reg := extractSymbols(bidGoDir)
+	reg, err := extractSymbols(bidGoDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "symbol extraction: %v\n", err)
+		os.Exit(1)
+	}
 
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
@@ -108,7 +112,7 @@ func findProjectRoot() string {
 	}
 }
 
-func extractSymbols(srcDir string) *Registry {
+func extractSymbols(srcDir string) (*Registry, error) {
 	fset := token.NewFileSet()
 
 	filter := func(fi os.FileInfo) bool {
@@ -118,8 +122,7 @@ func extractSymbols(srcDir string) *Registry {
 
 	pkgs, err := parser.ParseDir(fset, srcDir, filter, parser.ParseComments)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "parse error: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("parse %s: %w", srcDir, err)
 	}
 
 	var pkg *ast.Package
@@ -128,8 +131,10 @@ func extractSymbols(srcDir string) *Registry {
 		break
 	}
 	if pkg == nil {
-		fmt.Fprintln(os.Stderr, "no package found")
-		os.Exit(1)
+		return nil, fmt.Errorf("no package found in %s", srcDir)
+	}
+	if err := rejectReceiverMethods(pkg, fset); err != nil {
+		return nil, err
 	}
 
 	// Collect files
@@ -167,8 +172,10 @@ func extractSymbols(srcDir string) *Registry {
 
 	if tpkg == nil {
 		fmt.Fprintln(os.Stderr, "warning: type checking failed, falling back to AST-only analysis")
-		extractFromAST(reg, pkg, fset, srcDir)
-		return reg
+		if err := extractFromAST(reg, pkg, fset, srcDir); err != nil {
+			return nil, err
+		}
+		return reg, nil
 	}
 
 	scope := tpkg.Scope()
@@ -188,7 +195,9 @@ func extractSymbols(srcDir string) *Registry {
 			extractVar(reg, o, goFile, exported)
 
 		case *types.Func:
-			extractFunc(reg, o, goFile, exported)
+			if err := extractFunc(reg, o, goFile, exported); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -198,7 +207,21 @@ func extractSymbols(srcDir string) *Registry {
 	// Assign groups
 	assignGroups(reg)
 
-	return reg
+	return reg, nil
+}
+
+func rejectReceiverMethods(pkg *ast.Package, fset *token.FileSet) error {
+	for fileName, file := range pkg.Files {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv == nil {
+				continue
+			}
+			pos := fset.Position(fn.Pos())
+			return fmt.Errorf("symextract input %s:%d declares receiver method %s; the C-shaped mechanical-port registry accepts package-level functions only", filepath.Base(fileName), pos.Line, fn.Name.Name)
+		}
+	}
+	return nil
 }
 
 func extractType(reg *Registry, obj *types.TypeName, goFile string, exported bool) {
@@ -306,12 +329,11 @@ func extractVar(reg *Registry, obj *types.Var, goFile string, exported bool) {
 	}
 }
 
-func extractFunc(reg *Registry, obj *types.Func, goFile string, exported bool) {
+func extractFunc(reg *Registry, obj *types.Func, goFile string, exported bool) error {
 	sig := obj.Type().(*types.Signature)
 
-	// Skip methods (have receiver)
 	if sig.Recv() != nil {
-		return
+		return fmt.Errorf("symextract cannot register receiver method %s", obj.FullName())
 	}
 
 	fd := FuncDef{
@@ -344,6 +366,7 @@ func extractFunc(reg *Registry, obj *types.Func, goFile string, exported bool) {
 	}
 
 	reg.Functions[obj.Name()] = fd
+	return nil
 }
 
 func formatType(t types.Type) string {
@@ -490,7 +513,7 @@ func assignGroups(reg *Registry) {
 }
 
 // Fallback: AST-only extraction when type checking fails
-func extractFromAST(reg *Registry, pkg *ast.Package, fset *token.FileSet, bidGoDir string) {
+func extractFromAST(reg *Registry, pkg *ast.Package, fset *token.FileSet, bidGoDir string) error {
 	for fileName, file := range pkg.Files {
 		goFile := filepath.Base(fileName)
 
@@ -535,7 +558,7 @@ func extractFromAST(reg *Registry, pkg *ast.Package, fset *token.FileSet, bidGoD
 
 			case *ast.FuncDecl:
 				if d.Recv != nil {
-					continue // skip methods
+					return fmt.Errorf("symextract AST fallback cannot register receiver method %s", d.Name.Name)
 				}
 				reg.Functions[d.Name.Name] = FuncDef{
 					GoFile:   goFile,
@@ -545,6 +568,7 @@ func extractFromAST(reg *Registry, pkg *ast.Package, fset *token.FileSet, bidGoD
 			}
 		}
 	}
+	return nil
 }
 
 func exprToString(e ast.Expr) string {

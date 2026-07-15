@@ -68,10 +68,6 @@ pub struct DEC_DIGITS {
     pub digits1: u32,
 }
 
-pub type Decimal32Pure = u32;
-
-pub type Decimal64Pure = u64;
-
 pub type RoundingMode = i32;
 
 // skipped struct bid128Decoded (contains unsupported Rust target field types)

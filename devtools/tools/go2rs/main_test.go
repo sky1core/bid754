@@ -304,7 +304,11 @@ func convertTypeCheckedTestFile(t *testing.T, name, src string) string {
 		Functions: map[string]FuncDef{},
 	}
 	activeRegistry = reg
-	activeSourceFunctions = collectSourceFunctionNames([]string{path})
+	var err error
+	activeSourceFunctions, err = collectSourceFunctionNames([]string{path})
+	if err != nil {
+		t.Fatalf("collectSourceFunctionNames: %v", err)
+	}
 	fset, parsedTargets, info := parseTypeCheckedPackage(dir, []string{path})
 	oldTypeInfo := activeTypeInfo
 	activeTypeInfo = info
@@ -647,10 +651,40 @@ func TestRegistryUnsupportedRustTypeDoesNotOwnGo2rsType(t *testing.T) {
 }
 
 func TestShouldConvertFileIncludesFormerAlternateGeneratedFiles(t *testing.T) {
-	for _, name := range []string{"nexttoward64.go", "to_binary64.go"} {
+	for _, name := range []string{"decimal64.go", "nexttoward64.go", "to_binary64.go"} {
 		if !shouldConvertFile(name) {
 			t.Fatalf("shouldConvertFile(%q) = false, want true for go2rs source conversion", name)
 		}
+	}
+}
+
+func TestConvertFileRejectsReceiverMethods(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "receiver.go")
+	src := []byte(`package bidgo
+
+type decimal uint64
+
+func (d decimal) bits() uint64 { return uint64(d) }
+`)
+	if err := os.WriteFile(path, src, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	reg := &Registry{
+		Types:     map[string]TypeDef{},
+		Constants: map[string]ConstDef{},
+		Tables:    map[string]TableDef{},
+		Functions: map[string]FuncDef{},
+	}
+	if names, err := collectSourceFunctionNames([]string{path}); err == nil {
+		t.Fatalf("collectSourceFunctionNames silently accepted a receiver method: %#v", names)
+	} else if !strings.Contains(err.Error(), "receiver method bits") {
+		t.Fatalf("collectSourceFunctionNames error = %q, want receiver method identity", err)
+	}
+	if code, err := convertFile(path, reg); err == nil {
+		t.Fatalf("convertFile silently accepted a receiver method; generated code:\n%s", code)
+	} else if !strings.Contains(err.Error(), "receiver method bits") {
+		t.Fatalf("convertFile error = %q, want receiver method identity", err)
 	}
 }
 

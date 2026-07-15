@@ -710,33 +710,3 @@ func bid32_quantum_pure(x uint32) uint32 {
 	// Using format: sign=0, exp=int_exp+101, sig=1
 	return uint32((int_exp+101)<<23) + 1
 }
-
-// MinNum returns the smaller of a and b
-func (a Decimal32Pure) MinNum(b Decimal32Pure) Decimal32Pure {
-	return Decimal32Pure(bid32_minnum_pure(uint32(a), uint32(b)))
-}
-
-// MaxNum returns the larger of a and b
-func (a Decimal32Pure) MaxNum(b Decimal32Pure) Decimal32Pure {
-	return Decimal32Pure(bid32_maxnum_pure(uint32(a), uint32(b)))
-}
-
-// MinNumMag returns the number with smaller magnitude
-func (a Decimal32Pure) MinNumMag(b Decimal32Pure) Decimal32Pure {
-	return Decimal32Pure(bid32_minnum_mag_pure(uint32(a), uint32(b)))
-}
-
-// MaxNumMag returns the number with larger magnitude
-func (a Decimal32Pure) MaxNumMag(b Decimal32Pure) Decimal32Pure {
-	return Decimal32Pure(bid32_maxnum_mag_pure(uint32(a), uint32(b)))
-}
-
-// SameQuantum returns true if a and b have the same quantum (exponent)
-func (a Decimal32Pure) SameQuantum(b Decimal32Pure) bool {
-	return bid32_sameQuantum_pure(uint32(a), uint32(b))
-}
-
-// Quantum returns the quantum (10^exponent) of the number
-func (d Decimal32Pure) Quantum() Decimal32Pure {
-	return Decimal32Pure(bid32_quantum_pure(uint32(d)))
-}
