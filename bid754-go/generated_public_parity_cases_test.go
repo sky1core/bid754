@@ -12,8 +12,8 @@ import "testing"
 // Case counts are pinned here at generation time so a generator regression that
 // shrinks the corpus cannot silently re-pin a smaller surface.
 const (
-	expectedPublicParityWrappers = 361
-	expectedPublicParityCases    = 27059
+	expectedPublicParityWrappers = 360
+	expectedPublicParityCases    = 27035
 )
 
 var expectedPublicParityCasesByShape = map[string]int{
@@ -40,7 +40,7 @@ var expectedPublicParityCasesByShape = map[string]int{
 	"vm_signaling_not_equal": 72,
 	"vm_string":              57,
 	"vm_ternary":             42,
-	"vm_unary":               1752,
+	"vm_unary":               1728,
 }
 
 func TestGeneratedPublicAPIParity(t *testing.T) {

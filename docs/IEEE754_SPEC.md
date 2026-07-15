@@ -336,7 +336,7 @@ IBM decTest contains General Decimal Arithmetic operations that are similar in n
 - `canonical`: includes DPD/encoding canonicalization tagged literal (`#...`) verification, so it is not automatically placed into the BID-only current surface
 - `and`, `or`, `xor`, `invert`, `rotate`, `shift`: GDA decimal logical/digit operations; since there is currently no public Go BID mechanical-port path, they are not used as evidence that current mandatory BID verification is complete
 - `divideInt`: a GDA integer-quotient divide operation; since there is currently no adapter fixed to the Intel BID/Go mechanical-port combination, it is not treated as identical to `divide` verification
-- `reduce`: the trailing-zero reduction operation of decTest; the mere existence of a Decimal64 helper is not taken to mean a Decimal128 public BID path exists
+- `reduce`: the trailing-zero reduction operation of decTest is a GDA operation with no canonical `bid*_reduce` predecessor in pinned Intel BID C, so it is outside the public BID arithmetic surface at every width
 
 Therefore, when expanding decTest files, IEEE sign-bit quiet operations are not considered verified based on operation names alone. A file is placed into the current supported subset only when the result values, sNaN handling, flags, and tagged literal encoding scope match the support surface of the public BID path.
 

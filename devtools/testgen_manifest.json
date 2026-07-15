@@ -46,7 +46,6 @@
         "nexttoward",
         "nextplus",
         "nextminus",
-        "reduce",
         "copy",
         "copyAbs",
         "copyNegate",

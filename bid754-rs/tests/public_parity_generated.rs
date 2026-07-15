@@ -6207,22 +6207,6 @@ fn parity_decimal64_bid_radix(failures: &mut Vec<String>) -> usize {
     1
 }
 
-fn parity_decimal64_bid_reduce(failures: &mut Vec<String>) -> usize {
-    let mut count = 0usize;
-    for &v0 in CORPUS_64 {
-        let (pv, pf) = Decimal64::from_bits(v0).reduce();
-        let (pr, praw) = bid754::generated::reduce64::bid64_reduce(v0);
-        if pv.to_bits() != pr {
-            failures.push(format!("public parity Decimal64BID.Reduce: operand {:#x}: result mismatch public={:#x} port={:#x}", v0, pv.to_bits(), pr));
-        }
-        if pf.bits() != map_port_flags(praw) {
-            failures.push(format!("public parity Decimal64BID.Reduce: operand {:#x}: flag mismatch public={:#x} port={:#x}", v0, pf.bits(), map_port_flags(praw)));
-        }
-        count += 1;
-    }
-    count
-}
-
 fn parity_decimal64_bid_remainder(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &(i0, i1) in PAIRS_64 {
@@ -9306,7 +9290,6 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal64BID.QuietOrdered", shape: "compare_bool_flags", run: parity_decimal64_bid_quiet_ordered },
     ParityUnit { go_symbol: "Decimal64BID.QuietUnordered", shape: "compare_bool_flags", run: parity_decimal64_bid_quiet_unordered },
     ParityUnit { go_symbol: "Decimal64BID.Radix", shape: "radix_const", run: parity_decimal64_bid_radix },
-    ParityUnit { go_symbol: "Decimal64BID.Reduce", shape: "unary_with_flags_no_round", run: parity_decimal64_bid_reduce },
     ParityUnit { go_symbol: "Decimal64BID.Remainder", shape: "binary_flags_no_round", run: parity_decimal64_bid_remainder },
     ParityUnit { go_symbol: "Decimal64BID.RoundIntegralExact", shape: "unary_mode_drop_flags", run: parity_decimal64_bid_round_integral_exact },
     ParityUnit { go_symbol: "Decimal64BID.RoundIntegralExactWithFlags", shape: "unary_with_flags_default_round", run: parity_decimal64_bid_round_integral_exact_with_flags },
@@ -9398,8 +9381,8 @@ const PARITY_UNITS: &[ParityUnit] = &[
 /// regular verification domain (same framing as the Go leg). Case counts are
 /// pinned here at generation time so a generator regression that shrinks the
 /// corpus cannot silently re-pin a smaller surface.
-pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 361;
-pub(crate) const EXPECTED_PARITY_CASES: usize = 26771;
+pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 360;
+pub(crate) const EXPECTED_PARITY_CASES: usize = 26747;
 
 const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("binary", 288),
@@ -9472,7 +9455,7 @@ const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("unary_mode_drop_flags", 72),
     ("unary_mode_flags", 420),
     ("unary_with_flags_default_round", 144),
-    ("unary_with_flags_no_round", 600),
+    ("unary_with_flags_no_round", 576),
 ];
 
 #[test]

@@ -580,24 +580,6 @@ func TestDecimalBIDSqrtPorts(t *testing.T) {
 	}
 }
 
-func TestDecimal64BIDReducePort(t *testing.T) {
-	d, err := NewDecimal64BIDDirect("120.00")
-	if err != nil {
-		t.Fatalf("NewDecimal64BIDDirect(120.00): %v", err)
-	}
-	got, gotFlags := d.Reduce()
-	want, wantFlags := bidgo.Bid64Reduce(d.ToUint64())
-	if gotFlags != bidgoExceptionFlags(wantFlags) {
-		t.Fatalf("Decimal64BID.Reduce flags=%s want=%02x", gotFlags, wantFlags)
-	}
-	if got.ToUint64() != want {
-		t.Fatalf("Decimal64BID.Reduce bits=%016x want=%016x", got.ToUint64(), want)
-	}
-	if !compareDecimalResults(got.String(), "1.2E+2") {
-		t.Fatalf("Decimal64BID.Reduce string=%s want value 1.2E+2", got.String())
-	}
-}
-
 func TestDecimalBIDWidthConversionPorts(t *testing.T) {
 	d32, err := NewDecimal32BIDDirect("123.45")
 	if err != nil {

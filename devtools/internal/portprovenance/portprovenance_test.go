@@ -60,7 +60,6 @@ const (
 // verified), and must carry a non-empty reason.
 var nonIntelOriginFiles = map[string]string{
 	"bid32_exports.go":         "pure Go exported wrapper glue: one-line Bid32* wrappers routing to the ported bid32_*_pure functions defined in files that carry the Intel references",
-	"reduce64.go":              "bid754-authored implementation (per its header): the Intel BID library has no reduce operation; implements the decTest trailing-zero reduction",
 	"tables_round_const128.go": "bid754-authored init-time construction of bid_round_const_table_128 from bid_power10_table_128; the value surface is anchored by the tablecrosscheck exclusion entry for bid_round_const_table_128",
 	"types.go":                 "Go-side type and rounding-mode constant definitions for the bidgo package; no ported Intel logic",
 }
@@ -77,7 +76,6 @@ var nonIntelExportedFunctions = map[string]string{
 	"Bid32IsInf32":                "uint32-typed naming variant of the ported bid32_isInf",
 	"Bid32IsNaN32":                "uint32-typed naming variant of the ported bid32_isNaN",
 	"Bid32IsZero32":               "uint32-typed naming variant of the ported bid32_isZero",
-	"Bid64Reduce":                 "bid754-authored decTest reduce operation (see reduce64.go header); the Intel BID library has no reduce",
 	"NewDecimal64PureFromFloat64": "Go-side Decimal64Pure constructor plumbing around the ported binary64_to_bid64 path",
 	"NewDecimal64PureFromInt64":   "Go-side Decimal64Pure constructor plumbing around the ported bid64_from_int64 path",
 	"ParseDecimal32Pure":          "Go-side Decimal32Pure constructor plumbing around the ported bid32_from_string path",

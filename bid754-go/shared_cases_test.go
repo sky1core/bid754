@@ -18,7 +18,7 @@ func TestGeneratedDectestSuiteSelection(t *testing.T) {
 		want    int
 	}{
 		{pattern: "ds*.decTest", want: 1},
-		{pattern: "dd*.decTest", want: 33},
+		{pattern: "dd*.decTest", want: 32},
 		{pattern: "dq*.decTest", want: 33},
 		{pattern: "*.decTest", want: 10},
 	}
@@ -59,7 +59,7 @@ func TestGeneratedDectestSuiteSelection(t *testing.T) {
 	assertGeneratedSuiteContains(t, spec, "dd*.decTest", "tests/ddNextToward.decTest")
 	assertGeneratedSuiteContains(t, spec, "dd*.decTest", "tests/ddNextPlus.decTest")
 	assertGeneratedSuiteContains(t, spec, "dd*.decTest", "tests/ddNextMinus.decTest")
-	assertGeneratedSuiteContains(t, spec, "dd*.decTest", "tests/ddReduce.decTest")
+	assertGeneratedSuiteMissing(t, spec, "dd*.decTest", "tests/ddReduce.decTest")
 	assertGeneratedSuiteContains(t, spec, "dq*.decTest", "tests/dqQuantize.decTest")
 	assertGeneratedSuiteContains(t, spec, "dq*.decTest", "tests/dqToIntegral.decTest")
 	assertGeneratedSuiteContains(t, spec, "dq*.decTest", "tests/dqCopySign.decTest")

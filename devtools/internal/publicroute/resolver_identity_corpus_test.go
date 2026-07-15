@@ -19,11 +19,7 @@
 //     helper; new resolves the call to the local var
 //  4. same-named local in a bidgo body — old recorded a false callee; new
 //     excludes the local by object identity
-//  5. foreign receiver         — old accepted a foreign type's same-named
-//     method; new types the receiver via Selections
-//  6. operand-flag provenance  — only a generated direct mechanical-port
-//     operand loader may supplement an adapter's operation flags
-//  7. honest control           — the real plumbing shape; must still resolve to
+//  5. honest control           — the real plumbing shape; must still resolve to
 //     exactly {Bid64Div}
 //
 // The snippets are self-contained valid Go so the strict type-check accepts
@@ -39,7 +35,7 @@ import (
 	"testing"
 )
 
-// bidgoImport is the real Go mechanical port, imported so that cases 1/3/7
+// bidgoImport is the real Go mechanical port, imported so that cases 1/3/5
 // resolve to genuine bidgo *types.Func objects (identity against
 // bidgoImportPath is the whole point).
 const bidgoImport = `"` + bidgoImportPath + `"`
@@ -201,314 +197,10 @@ func Bid64Add(x, y uint64) uint64 {
 		}
 	})
 
-	// --- Case 5: foreign receiver -----------------------------------------
-	// A decTest port-mode adapter returns a value produced by `.Reduce()`, but on
-	// a FOREIGN type that merely exposes a same-named method rather than the
-	// module-root value type. The retired resolver accepted it (the receiver name
-	// was not "C"); the new resolver types the receiver through Selections and
-	// rejects a non-value-type receiver. The honest sub-case proves the new
-	// resolver still ACCEPTS the real value-type method (no false positive).
-	t.Run("5_foreign_receiver", func(t *testing.T) {
-		src := `package corpus
-type Decimal64BID uint64
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-type Foreign uint64
-func (f Foreign) Reduce() (Decimal64BID, uint32) { return Decimal64BID(f), 0 }
-type decTestExecResult struct {
-	Result string
-	Flags  uint32
-}
-func foreignReceiverAdapter(y Foreign) (decTestExecResult, error) {
-	result, flags := y.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags}, nil
-}
-func honestAdapter(d Decimal64BID) (decTestExecResult, error) {
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags}, nil
-}
-`
-		pkg, info, file := env.typecheck("case5", src)
-		res := env.newResolver(pkg, info, file)
-		fields := []string{"Result", "Flags"}
-		foreignReceiverVerdict := res.adapterReturnsPortMethodValue(findDecl(t, file, "foreignReceiverAdapter"), "Decimal64BID", "Reduce", fields)
-		honest := res.adapterReturnsPortMethodValue(findDecl(t, file, "honestAdapter"), "Decimal64BID", "Reduce", fields)
-		t.Logf("new(go/types) foreign-receiver verdict=%q  honest verdict=%q (retired go/ast accepted the foreign-receiver value)", verdictLabel(foreignReceiverVerdict), verdictLabel(honest))
-		if foreignReceiverVerdict == "" {
-			t.Errorf("foreign-receiver value not rejected: new resolver accepted a foreign-type .Reduce()")
-		}
-		if honest != "" {
-			t.Errorf("honest value-type method rejected (false positive): %q", honest)
-		}
-	})
-
-	t.Run("5_wrong_width_value_type", func(t *testing.T) {
-		src := `package corpus
-type Decimal32BID uint32
-type Decimal64BID uint64
-func (d Decimal32BID) Reduce() (Decimal32BID, uint32) { return d, 0 }
-func (d Decimal32BID) String() string { return "" }
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal32BID) (decTestExecResult, error) {
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags}, nil
-}
-`
-		pkg, info, file := env.typecheck("case5_wrong_width", src)
-		verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-		if verdict == "" {
-			t.Error("Decimal32BID.Reduce was accepted as Decimal64BID.Reduce evidence")
-		}
-	})
-
-	// --- Case 6: decTest operand-flag provenance ---------------------------
-	// Compared operation flags may be ORed with flags from the generated
-	// mechanical-port operand loader. The loader name alone is insufficient:
-	// its complete multi-result return must directly delegate to the exact
-	// width-matched parseDecimal*BIDPortMode function with the original operand
-	// and rounding inputs. Only the loader's ExceptionFlags result may
-	// supplement operation flags. This accepts the real adapter shape while
-	// rejecting alternate delegates, hard-coded inputs, use of a value result as
-	// flags, and a parser for the wrong BID width.
-	t.Run("6_operand_flag_provenance", func(t *testing.T) {
-		t.Run("direct_mechanical_delegate", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(input), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, input string, rnd int) (decTestExecResult, error) {
-	_, parseFlags := parseDecTestDecimal64Operand(input, rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_honest", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict != "" {
-				t.Errorf("direct mechanical operand-loader flags rejected: %q", verdict)
-			}
-		})
-
-		t.Run("same_named_alternate_delegate", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func alternateParse(input string, rnd int) (Decimal64BID, uint32) { return 0, 2 }
-func decTestOperandString(input string) string { return input }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return alternateParse(decTestOperandString(input), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, input string, rnd int) (decTestExecResult, error) {
-	_, parseFlags := parseDecTestDecimal64Operand(input, rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_alternate", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("same-named operand loader backed by an alternate delegate was accepted")
-			}
-		})
-
-		t.Run("wrong_delegate_operand_object", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-var wrongInput string
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(wrongInput), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, input string, rnd int) (decTestExecResult, error) {
-	_, parseFlags := parseDecTestDecimal64Operand(input, rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_wrong_delegate_operand_object", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("operand loader forwarding a same-typed foreign operand object was accepted")
-			}
-		})
-
-		t.Run("wrong_delegate_rounding_object", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-var wrongRnd int
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(input), wrongRnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, input string, rnd int) (decTestExecResult, error) {
-	_, parseFlags := parseDecTestDecimal64Operand(input, rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_wrong_delegate_rounding_object", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("operand loader forwarding a same-typed foreign rounding object was accepted")
-			}
-		})
-
-		t.Run("hardcoded_adapter_operand", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-type decTestCase struct { Operands []string }
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func decTestCaseRoundingMode(tc decTestCase) (int, error) { return 0, nil }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(input), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, tc decTestCase) (decTestExecResult, error) {
-	rnd, err := decTestCaseRoundingMode(tc)
-	if err != nil { return decTestExecResult{}, err }
-	_, parseFlags := parseDecTestDecimal64Operand("0", rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_hardcoded_adapter_operand", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("adapter with a hard-coded operand-loader operand was accepted")
-			}
-		})
-
-		t.Run("wrong_adapter_rounding_object", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-type decTestCase struct { Operands []string }
-var wrongRnd int
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func decTestCaseRoundingMode(tc decTestCase) (int, error) { return 0, nil }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(input), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, tc decTestCase) (decTestExecResult, error) {
-	rnd, err := decTestCaseRoundingMode(tc)
-	if err != nil { return decTestExecResult{}, err }
-	_ = rnd
-	_, parseFlags := parseDecTestDecimal64Operand(tc.Operands[0], wrongRnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_wrong_adapter_rounding_object", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("adapter forwarding a same-typed non-case rounding object was accepted")
-			}
-		})
-
-		t.Run("wrong_case_operand_index", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-type decTestCase struct { Operands []string }
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func decTestCaseRoundingMode(tc decTestCase) (int, error) { return 0, nil }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(input), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, tc decTestCase) (decTestExecResult, error) {
-	rnd, err := decTestCaseRoundingMode(tc)
-	if err != nil { return decTestExecResult{}, err }
-	_, parseFlags := parseDecTestDecimal64Operand(tc.Operands[1], rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_wrong_operand_index", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("nonzero decTest operand index was accepted as unary Reduce input")
-			}
-		})
-
-		t.Run("operand_value_as_flags", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func parseDecTestDecimal64Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(input), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, input string, rnd int) (decTestExecResult, error) {
-	operand, _ := parseDecTestDecimal64Operand(input, rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | uint32(operand)}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_operand_value", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("operand Decimal result used as compared flags was accepted")
-			}
-		})
-
-		t.Run("wrong_width_parser_object", func(t *testing.T) {
-			src := `package corpus
-type Decimal64BID uint64
-func (d Decimal64BID) Reduce() (Decimal64BID, uint32) { return d, 0 }
-func (d Decimal64BID) String() string { return "" }
-func parseDecimal64BIDPortMode(input string, rnd int) (Decimal64BID, uint32) { return 0, 1 }
-func decTestOperandString(input string) string { return input }
-func parseDecTestDecimal32Operand(input string, rnd int) (Decimal64BID, uint32) {
-	return parseDecimal64BIDPortMode(decTestOperandString(input), rnd)
-}
-type decTestExecResult struct { Result string; Flags uint32 }
-func adapter(d Decimal64BID, input string, rnd int) (decTestExecResult, error) {
-	_, parseFlags := parseDecTestDecimal32Operand(input, rnd)
-	result, flags := d.Reduce()
-	return decTestExecResult{Result: result.String(), Flags: flags | parseFlags}, nil
-}
-`
-			pkg, info, file := env.typecheck("case6_wrong_width_parser_object", src)
-			verdict := env.newResolver(pkg, info, file).adapterReturnsPortMethodValue(findDecl(t, file, "adapter"), "Decimal64BID", "Reduce", []string{"Result", "Flags"})
-			if verdict == "" {
-				t.Error("wrong-width-named operand parser object was accepted for Decimal64BID.Reduce")
-			}
-		})
-	})
-
-	// --- Case 7: honest control -------------------------------------------
+	// --- Case 5: honest control -------------------------------------------
 	// The real plumbing shape (method -> ...Port helper -> bidgo.Fn) must resolve
 	// to exactly {Bid64Div}: the promotion must not regress honest routing.
-	t.Run("7_honest_control", func(t *testing.T) {
+	t.Run("5_honest_control", func(t *testing.T) {
 		src := `package corpus
 import ` + bidgoImport + `
 type Decimal64BID uint64
@@ -518,7 +210,7 @@ func decimal64BIDDivPort(d, other Decimal64BID) Decimal64BID {
 }
 func (d Decimal64BID) Div(other Decimal64BID) Decimal64BID { return decimal64BIDDivPort(d, other) }
 `
-		pkg, info, file := env.typecheck("case7", src)
+		pkg, info, file := env.typecheck("case5", src)
 		entry := findDecl(t, file, "Div")
 		reach := env.newResolver(pkg, info, file).reachablePortFuncs(entry)
 		t.Logf("new(go/types) reachable=%v", sortedSet(reach))
@@ -526,11 +218,4 @@ func (d Decimal64BID) Div(other Decimal64BID) Decimal64BID { return decimal64BID
 			t.Errorf("honest routing regressed: reachable=%v, want exactly {Bid64Div}", sortedSet(reach))
 		}
 	})
-}
-
-func verdictLabel(v string) string {
-	if v == "" {
-		return "ACCEPT"
-	}
-	return v
 }

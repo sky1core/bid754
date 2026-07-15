@@ -389,6 +389,8 @@ func unsupportedDectestReason(op string, suite DectestSuiteSpec) string {
 			return "general GDA operation has no current BID fixed-width public surface"
 		case "squareroot":
 			return "general arbitrary-precision square root is not the fixed-width BID sqrt verification path"
+		case "reduce":
+			return "IBM GDA reduce has no canonical Intel BID predecessor and is outside the strict Intel BID surface"
 		default:
 			return "general arbitrary-precision decTest operation is not selected for the current BID fixed-width surface"
 		}
@@ -402,7 +404,7 @@ func unsupportedDectestReason(op string, suite DectestSuiteSpec) string {
 	case "divideint":
 		return "integer-quotient divide operation has no current Go BID mechanical-port adapter"
 	case "reduce":
-		return "Decimal128 reduce has no current Go BID mechanical-port public path"
+		return "IBM GDA reduce has no canonical Intel BID predecessor and is outside the strict Intel BID surface"
 	default:
 		return "operation is not in the current generated decTest supported surface"
 	}
@@ -423,10 +425,8 @@ func unsupportedDectestClassification(op string, suite DectestSuiteSpec) string 
 	switch op {
 	case "canonical":
 		return "out_of_scope_not_required"
-	case "and", "or", "xor", "invert", "rotate", "shift", "divideint":
+	case "and", "or", "xor", "invert", "rotate", "shift", "divideint", "reduce":
 		return "out_of_scope_not_required"
-	case "reduce":
-		return "optional_scope_gap"
 	default:
 		return "unsupported_unclassified"
 	}

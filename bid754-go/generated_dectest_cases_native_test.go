@@ -27,8 +27,8 @@ var expectedGeneratedDectestSuiteCoverage = []generatedDectestSuiteCoverage{
 	},
 	{
 		Name:  "Decimal64",
-		Files: 33,
-		Cases: 12074,
+		Files: 32,
+		Cases: 11940,
 		SkipReasons: map[string]int{
 			"fma_nan_payload_precedence":                              13,
 			"fma_unsupported_rounding":                                58,

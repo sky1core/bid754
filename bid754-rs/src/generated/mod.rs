@@ -73,7 +73,6 @@ pub mod next64;
 pub mod nexttoward64;
 pub mod noncomp64;
 pub mod quantize64;
-pub mod reduce64;
 pub mod rem64;
 pub mod round_integral64;
 pub mod scalb64;

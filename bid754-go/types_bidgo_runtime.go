@@ -654,11 +654,6 @@ func decimal64BIDScaleBPortModeFlags(d Decimal64BID, exponent int, rndMode int) 
 	return Decimal64BID(result), bidgoExceptionFlags(flags)
 }
 
-func decimal64BIDReducePort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
-	result, flags := bidgo.Bid64Reduce(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
-}
-
 func decimal64BIDCopyPort(d Decimal64BID) Decimal64BID {
 	return Decimal64BID(bidgo.Bid64Copy(d.ToUint64()))
 }

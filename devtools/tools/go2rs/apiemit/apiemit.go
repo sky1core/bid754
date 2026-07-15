@@ -347,7 +347,7 @@ var shapeSigs = map[string]shapeSig{
 	// Quantize(other) Decimal<w>BID -- value-only wrapper dropping the port's flags
 	"binary_drop_flags": {method: true, params: []sigForm{formValue}, results: []sigForm{formValue}},
 
-	// 1-operand ops with flags, no rounding mode: LogB/Reduce/NextMinus/NextPlus/RoundIntegralNearestAway/
+	// 1-operand ops with flags, no rounding mode: LogB/NextMinus/NextPlus/RoundIntegralNearestAway/
 	// RoundIntegralNearestEven/RoundIntegralNegative/RoundIntegralPositive/RoundIntegralZero
 	"unary_with_flags_no_round": {method: true, params: nil, results: []sigForm{formValue, formFlags}},
 	// 1-operand ops with flags, default (nearest-even) rounding: Sqrt, RoundIntegralExactWithFlags

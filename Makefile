@@ -33,7 +33,6 @@ DECTEST_EXECUTOR_OUTPUTS = \
 	dectest_native_stub.go \
 	dectest_next.go \
 	dectest_nexttoward.go \
-	dectest_reduce.go \
 	dectest_remainder.go \
 	dectest_remaindernear.go \
 	dectest_samequantum.go \

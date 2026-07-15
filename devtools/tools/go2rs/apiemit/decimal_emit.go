@@ -144,7 +144,7 @@ func emitPredicateOps(b *strings.Builder, ops []decOp, w widthSpec) {
 
 // emitUnaryFlagsNoRoundOps renders unary ops returning (Decimal<w>,
 // ExceptionFlags) whose port call takes no rounding-mode argument (LogB,
-// Reduce, NextMinus/NextPlus, the 5 non-exact RoundIntegral* variants).
+// NextMinus/NextPlus, the 5 non-exact RoundIntegral* variants).
 func emitUnaryFlagsNoRoundOps(b *strings.Builder, ops []decOp, w widthSpec) {
 	sortDecOps(ops)
 	for _, op := range ops {

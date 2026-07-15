@@ -46,7 +46,6 @@
         "tests/ddNextToward.decTest",
         "tests/ddPlus.decTest",
         "tests/ddQuantize.decTest",
-        "tests/ddReduce.decTest",
         "tests/ddRemainder.decTest",
         "tests/ddRemainderNear.decTest",
         "tests/ddSameQuantum.decTest",
@@ -81,7 +80,6 @@
         "nexttoward",
         "nextplus",
         "nextminus",
-        "reduce",
         "copy",
         "copyAbs",
         "copyNegate",
@@ -808,9 +806,21 @@
       "operations": [
         "reduce"
       ],
-      "selected_suites": [
-        "Decimal64"
-      ]
+      "unsupported_by_suite": {
+        "Decimal64": [
+          "reduce"
+        ]
+      },
+      "unsupported_reasons_by_suite": {
+        "Decimal64": {
+          "reduce": "IBM GDA reduce has no canonical Intel BID predecessor and is outside the strict Intel BID surface"
+        }
+      },
+      "unsupported_classifications_by_suite": {
+        "Decimal64": {
+          "reduce": "out_of_scope_not_required"
+        }
+      }
     },
     {
       "file": "tests/ddRemainder.decTest",
@@ -1347,12 +1357,12 @@
       },
       "unsupported_reasons_by_suite": {
         "Decimal128": {
-          "reduce": "Decimal128 reduce has no current Go BID mechanical-port public path"
+          "reduce": "IBM GDA reduce has no canonical Intel BID predecessor and is outside the strict Intel BID surface"
         }
       },
       "unsupported_classifications_by_suite": {
         "Decimal128": {
-          "reduce": "optional_scope_gap"
+          "reduce": "out_of_scope_not_required"
         }
       }
     },
@@ -2001,7 +2011,7 @@
       },
       "unsupported_reasons_by_suite": {
         "General": {
-          "reduce": "general arbitrary-precision decTest operation is not selected for the current BID fixed-width surface"
+          "reduce": "IBM GDA reduce has no canonical Intel BID predecessor and is outside the strict Intel BID surface"
         }
       },
       "unsupported_classifications_by_suite": {
@@ -2283,7 +2293,7 @@
     },
     {
       "suite": "Decimal64",
-      "cases": 12074,
+      "cases": 11940,
       "skip_reasons": {
         "fma_nan_payload_precedence": 13,
         "fma_unsupported_rounding": 58,
@@ -2339,9 +2349,9 @@
     },
     {
       "suite": "Decimal64",
-      "cases": 12074,
+      "cases": 11940,
       "skip_reasons": {
-        "adapter_operation_out_of_leg": 6286,
+        "adapter_operation_out_of_leg": 6152,
         "binary_op_nan_payload_precedence": 16,
         "compare_nan_operand": 118,
         "conversion_syntax_divergence": 99,

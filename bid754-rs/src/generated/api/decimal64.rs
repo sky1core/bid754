@@ -453,11 +453,6 @@ impl Decimal64 {
         (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
     }
 
-    pub fn reduce(self) -> (Decimal64, ExceptionFlags) {
-        let (bits, raw) = crate::generated::reduce64::bid64_reduce(self.0);
-        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
-    }
-
     pub fn round_integral_nearest_away(self) -> (Decimal64, ExceptionFlags) {
         let (bits, raw) = crate::generated::round_integral64::bid64_round_integral_nearest_away(self.0);
         (Decimal64(bits), ExceptionFlags::from_bidgo(raw))

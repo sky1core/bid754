@@ -500,11 +500,6 @@ func (d Decimal64BID) ScaleBWithMode(exponent int, mode RoundingMode) (Decimal64
 	return decimal64BIDScaleBModeFlags(d, exponent, mode)
 }
 
-// Reduce returns d in reduced Decimal64BID form and the exception flags raised by the operation.
-func (d Decimal64BID) Reduce() (Decimal64BID, ExceptionFlags) {
-	return decimal64BIDReducePort(d)
-}
-
 // Copy returns a Decimal64BID copy of d.
 func (d Decimal64BID) Copy() Decimal64BID { return decimal64BIDCopyPort(d) }
 

@@ -67,7 +67,6 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid64NextToward":               {"nexttoward64", "bid64_next_toward"},
 	"Bid64Quantize":                 {"quantize64", "bid64_quantize"},
 	"Bid64Radix":                    {"noncomp64", "bid64_radix"},
-	"Bid64Reduce":                   {"reduce64", "bid64_reduce"},
 	"Bid64Rem":                      {"rem64", "bid64_rem"},
 	"Bid64RoundIntegralExact":       {"round_integral64", "bid64_round_integral_exact"},
 	"Bid64RoundIntegralNearestAway": {"round_integral64", "bid64_round_integral_nearest_away"},

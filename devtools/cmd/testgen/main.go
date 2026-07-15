@@ -49,6 +49,18 @@ func main() {
 	if err := testgen.WriteReadtestGoportOutputs(repoRoot, manifest, spec); err != nil {
 		log.Fatalf("write generated readtest goport outputs: %v", err)
 	}
+	// Write the decTest executor/dispatch set before generators that compile the
+	// sibling bid754-go module. Removing a generated executor and its dispatch
+	// row must be able to bootstrap from the previous checked-in artifact set.
+	if err := testgen.WriteDectestTestOutputs(repoRoot, spec); err != nil {
+		log.Fatalf("write generated dectest test: %v", err)
+	}
+	if err := testgen.WriteDectestGoportOutputs(repoRoot, spec); err != nil {
+		log.Fatalf("write generated dectest goport outputs: %v", err)
+	}
+	if err := testgen.WriteDectestRustOutputs(repoRoot, spec); err != nil {
+		log.Fatalf("write generated dectest rust outputs: %v", err)
+	}
 	if err := testgen.WritePublicParityOutputs(repoRoot, manifest); err != nil {
 		log.Fatalf("write generated public parity outputs: %v", err)
 	}
@@ -63,15 +75,6 @@ func main() {
 	}
 	if err := testgen.WriteTier1CompareConversionLongOutputs(repoRoot); err != nil {
 		log.Fatalf("write generated Tier 1 compare/conversion long test: %v", err)
-	}
-	if err := testgen.WriteDectestTestOutputs(repoRoot, spec); err != nil {
-		log.Fatalf("write generated dectest test: %v", err)
-	}
-	if err := testgen.WriteDectestGoportOutputs(repoRoot, spec); err != nil {
-		log.Fatalf("write generated dectest goport outputs: %v", err)
-	}
-	if err := testgen.WriteDectestRustOutputs(repoRoot, spec); err != nil {
-		log.Fatalf("write generated dectest rust outputs: %v", err)
 	}
 	if err := testgen.WriteBidCodecVectorDataOutput(repoRoot, *manifest.BidCodecVectors); err != nil {
 		log.Fatalf("write generated BID codec vectors: %v", err)

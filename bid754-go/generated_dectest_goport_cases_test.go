@@ -41,10 +41,10 @@ var expectedGoportDectestSuiteCoverage = []goportDectestSuiteCoverage{
 	},
 	{
 		Name:     "Decimal64",
-		Cases:    12074,
+		Cases:    11940,
 		Executed: 5297,
 		SkipReasons: map[string]int{
-			"adapter_operation_out_of_leg":     6286,
+			"adapter_operation_out_of_leg":     6152,
 			"binary_op_nan_payload_precedence": 16,
 			"compare_nan_operand":              118,
 			"conversion_syntax_divergence":     99,

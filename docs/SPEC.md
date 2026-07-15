@@ -178,6 +178,7 @@ Current phase notes:
 - one-way BID decimal -> `binary32` / `binary64` / `binary128` conversion helpers are part of the current supported surface
 - the six BID width conversions (`bid32<->bid64<->bid128`, widening and narrowing) are part of the current supported surface
 - `bid32_nexttoward`, `bid64_nexttoward`, and `bid128_nexttoward` are part of the current supported surface; `bid*_nextafter` is covered by the generated readtest verification surface without a public Go wrapper
+- IBM GDA `reduce` is outside the public arithmetic surface because pinned Intel BID C has no canonical `bid*_reduce` predecessor
 - this does not by itself redefine the repository as a full binary arithmetic implementation
 - reverse binary -> BID conversion, `binary80` support, and any still-undocumented binary interchange surface do not become supported merely because one-way BID -> binary helpers exist
 

@@ -864,41 +864,15 @@ func TestRunDecTestCaseV2SupportsNextPlusMinusOperation(t *testing.T) {
 	}
 }
 
-func TestRunDecTestCaseV2SupportsReduceOperation(t *testing.T) {
-	testCases := []decTestCase{
-		{
-			ID:        "reduce_normal64",
-			Operation: "reduce",
-			Operands:  []string{"'120.00'"},
-			Result:    "1.2E+2",
-		},
-		{
-			ID:        "reduce_subnormal64",
-			Operation: "reduce",
-			Operands:  []string{"'2.000E-395'"},
-			Result:    "2E-395",
-			Flags:     []string{"Subnormal"},
-		},
-		{
-			ID:        "reduce_snan64",
-			Operation: "reduce",
-			Operands:  []string{"'sNaN010'"},
-			Result:    "NaN10",
-			Flags:     []string{"Invalid_operation"},
-		},
-		{
-			ID:        "reduce_invalid64",
-			Operation: "reduce",
-			Operands:  []string{"#"},
-			Result:    "NaN",
-			Flags:     []string{"Invalid_operation"},
-		},
+func TestRunDecTestCaseV2RejectsOutOfScopeReduceOperation(t *testing.T) {
+	tc := decTestCase{
+		ID:        "reduce_out_of_scope",
+		Operation: "reduce",
+		Operands:  []string{"'120.00'"},
+		Result:    "1.2E+2",
 	}
-
-	for _, tc := range testCases {
-		if err := runDecTestCaseV2(tc, "decimal64"); err != nil {
-			t.Fatalf("runDecTestCaseV2(%s) error: %v", tc.ID, err)
-		}
+	if err := runDecTestCaseV2(tc, "decimal64"); !errors.Is(err, errUnsupportedDecTestOperation) {
+		t.Fatalf("runDecTestCaseV2(reduce) error = %v, want errUnsupportedDecTestOperation", err)
 	}
 }
 

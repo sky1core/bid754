@@ -268,7 +268,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	}
 	wantSuiteFiles := map[string]int{
 		"ds*.decTest": 1,
-		"dd*.decTest": 33,
+		"dd*.decTest": 32,
 		"dq*.decTest": 33,
 		"*.decTest":   10,
 	}
@@ -310,7 +310,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	assertSuiteContainsFile(t, spec.DectestSuites, "dd*.decTest", "tests/ddNextToward.decTest")
 	assertSuiteContainsFile(t, spec.DectestSuites, "dd*.decTest", "tests/ddNextPlus.decTest")
 	assertSuiteContainsFile(t, spec.DectestSuites, "dd*.decTest", "tests/ddNextMinus.decTest")
-	assertSuiteContainsFile(t, spec.DectestSuites, "dd*.decTest", "tests/ddReduce.decTest")
+	assertSuiteMissingFile(t, spec.DectestSuites, "dd*.decTest", "tests/ddReduce.decTest")
 	assertSuiteContainsFile(t, spec.DectestSuites, "dq*.decTest", "tests/dqQuantize.decTest")
 	assertSuiteContainsFile(t, spec.DectestSuites, "dq*.decTest", "tests/dqToIntegral.decTest")
 	assertSuiteContainsFile(t, spec.DectestSuites, "dq*.decTest", "tests/dqCopySign.decTest")
@@ -386,20 +386,23 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 			}
 		}
 	}
-	if selectedDectestInventoryFiles != 77 {
-		t.Fatalf("generated dectest selected inventory file count = %d, want current subset count 77", selectedDectestInventoryFiles)
+	if selectedDectestInventoryFiles != 76 {
+		t.Fatalf("generated dectest selected inventory file count = %d, want current subset count 76", selectedDectestInventoryFiles)
 	}
-	if unsupportedDectestInventoryFiles != 60 {
-		t.Fatalf("generated dectest unsupported inventory file count = %d, want current unsupported count 60", unsupportedDectestInventoryFiles)
+	if unsupportedDectestInventoryFiles != 61 {
+		t.Fatalf("generated dectest unsupported inventory file count = %d, want current unsupported count 61", unsupportedDectestInventoryFiles)
 	}
 	if zeroOperationInventoryFiles != 4 {
 		t.Fatalf("generated dectest zero-operation inventory file count = %d, want current metadata-file count 4", zeroOperationInventoryFiles)
 	}
 	assertCountMap(t, "generated dectest unsupported classifications", unsupportedDectestClassifications, map[string]int{
-		"out_of_scope_not_required": 56,
+		"out_of_scope_not_required": 58,
 		"optional_not_required":     9,
-		"optional_scope_gap":        1,
 	})
+	const reduceReason = "IBM GDA reduce has no canonical Intel BID predecessor and is outside the strict Intel BID surface"
+	assertDectestUnsupportedOperation(t, spec.DectestFileInventories, "tests/ddReduce.decTest", "Decimal64", "reduce", reduceReason, "out_of_scope_not_required")
+	assertDectestUnsupportedOperation(t, spec.DectestFileInventories, "tests/dqReduce.decTest", "Decimal128", "reduce", reduceReason, "out_of_scope_not_required")
+	assertDectestUnsupportedOperation(t, spec.DectestFileInventories, "tests/reduce.decTest", "General", "reduce", reduceReason, "out_of_scope_not_required")
 	for file := range selectedDectestFiles {
 		if _, ok := inventoriedFiles[file]; !ok {
 			t.Fatalf("generated dectest selected file %q is missing from inventory", file)
@@ -413,7 +416,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		dectestRuntimeSkipInventory[inventory.Suite] = inventory
 	}
 	assertGeneratedDectestRuntimeSkipInventory(t, dectestRuntimeSkipInventory, "Decimal32", 909, map[string]int{})
-	assertGeneratedDectestRuntimeSkipInventory(t, dectestRuntimeSkipInventory, "Decimal64", 12074, map[string]int{
+	assertGeneratedDectestRuntimeSkipInventory(t, dectestRuntimeSkipInventory, "Decimal64", 11940, map[string]int{
 		"fma_nan_payload_precedence":                              13,
 		"fma_unsupported_rounding":                                58,
 		"ignored_operation_apply":                                 4,
@@ -1146,6 +1149,29 @@ func assertSuiteMissingFile(t *testing.T, suites []GeneratedDectestSuite, patter
 	}
 
 	t.Fatalf("generated suite %q not found", pattern)
+}
+
+func assertDectestUnsupportedOperation(
+	t *testing.T,
+	inventories []GeneratedDectestFileInventory,
+	file, suite, operation, wantReason, wantClassification string,
+) {
+	t.Helper()
+
+	for _, inventory := range inventories {
+		if inventory.File != file {
+			continue
+		}
+		if got := inventory.UnsupportedReasonsBySuite[suite][operation]; got != wantReason {
+			t.Fatalf("generated dectest inventory %q suite %q operation %q reason = %q, want %q", file, suite, operation, got, wantReason)
+		}
+		if got := inventory.UnsupportedClassificationsBySuite[suite][operation]; got != wantClassification {
+			t.Fatalf("generated dectest inventory %q suite %q operation %q classification = %q, want %q", file, suite, operation, got, wantClassification)
+		}
+		return
+	}
+
+	t.Fatalf("generated dectest inventory %q not found", file)
 }
 
 func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {

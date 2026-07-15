@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "source": "bid754-go module-root package bid754 (all non-test files, generated included) + bid754-go/internal/bidgo + devtools/testgen_manifest.json public_api",
-  "total": 408,
-  "mapped": 361,
+  "total": 407,
+  "mapped": 360,
   "excluded": 47,
   "excluded_by_class": {
     "composition_plumbing": 6,
@@ -1925,12 +1925,6 @@
       "kind": "method",
       "status": "mapped",
       "bidgo_function": "Bid64Radix"
-    },
-    {
-      "symbol": "Decimal64BID.Reduce",
-      "kind": "method",
-      "status": "mapped",
-      "bidgo_function": "Bid64Reduce"
     },
     {
       "symbol": "Decimal64BID.Remainder",

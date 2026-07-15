@@ -19,7 +19,7 @@ dependency, or a `git` dependency pinned to a commit).
 ## Public API
 
 The generated public API surface covers fixed-width `Decimal32`,
-`Decimal64`, and `Decimal128` value types with 361 parity-verified wrapper
+`Decimal64`, and `Decimal128` value types with 360 parity-verified wrapper
 methods/constructors and 12 associated constants
 across the three widths (`devtools/generated/testspec/rust_api_surface_inventory.json`
 is the generated machine-readable Go-symbol-to-Rust-symbol map; the
@@ -52,8 +52,8 @@ anchors in `devtools/verification_anchors.json` pin those two counts).
   an error on the `Result` APIs.
 - **Arithmetic and transcendental-adjacent ops** — `add`/`sub`/`mul`/`div`
   (ties-to-even default) plus `*_with_flags` pairs, `fma`, `sqrt`,
-  `remainder`, `fmod`, `quantize`/`quantize_with_flags`, `reduce` (width 64
-  only, matching the Go surface), `min_num`/`max_num`/`min_num_mag`/`max_num_mag`,
+  `remainder`, `fmod`, `quantize`/`quantize_with_flags`,
+  `min_num`/`max_num`/`min_num_mag`/`max_num_mag`,
   and the seven `round_integral_*` variants. Intel's Tier 1 D/Q mixed-width
   arithmetic is exposed with an explicit rounding mode: Decimal64 has
   `{add,sub,mul,div}_{dq,qd,qq}_with_mode`, and Decimal128 has
@@ -198,7 +198,7 @@ make verify-rust-package
 
 `make test-rust` (`cargo test --locked` in this crate) runs the fixed-vector
 codec/string tests, the **public API parity gate**
-(`tests/public_parity_generated.rs`: every one of the 361 wrapper symbols,
+(`tests/public_parity_generated.rs`: every one of the 360 wrapper symbols,
 bit-compared against an independent direct call into the same
 `crate::generated::*` port function the wrapper itself calls, with the
 flag/rounding mapping re-derived from independent numeric literals so a

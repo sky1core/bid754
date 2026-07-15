@@ -239,7 +239,6 @@ pub use super::next64::*;
 pub use super::nexttoward64::*;
 pub use super::noncomp64::*;
 pub use super::quantize64::*;
-pub use super::reduce64::*;
 pub use super::rem64::*;
 pub use super::round_integral64::*;
 pub use super::scalb64::*;

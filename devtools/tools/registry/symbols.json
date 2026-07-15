@@ -9957,22 +9957,6 @@
       "exported": true,
       "group": "bid64"
     },
-    "Bid64Reduce": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u32"
-      ],
-      "go_file": "reduce64.go",
-      "go_name": "Bid64Reduce",
-      "exported": true,
-      "group": "bid64"
-    },
     "Bid64Rem": {
       "params": [
         {

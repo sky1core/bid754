@@ -3852,33 +3852,3 @@ func (x Decimal64Pure) SameQuantum(y Decimal64Pure) bool {
 	}
 	return expX == expY
 }
-
-// Reduce removes trailing zeros from the coefficient and adjusts the exponent.
-// For zero, returns 0 with exponent 0 (preserving sign).
-// For NaN and Infinity, returns the value unchanged.
-func (d Decimal64Pure) Reduce() Decimal64Pure {
-	sign, exp, coeff, isInf, isNaN, _ := decodeBID64(uint64(d))
-
-	// NaN and Infinity are unchanged
-	if isNaN || isInf {
-		return d
-	}
-
-	// Zero: return canonical zero (exponent 0 = biased 398)
-	if coeff == 0 {
-		return Decimal64Pure(encodeBID64(sign, bid64ExponentBias, 0))
-	}
-
-	// Remove trailing zeros
-	for coeff%10 == 0 && coeff > 0 {
-		coeff /= 10
-		exp++
-	}
-
-	// Check for exponent overflow (should not happen with valid input)
-	if exp > bid64MaxExponent {
-		exp = bid64MaxExponent
-	}
-
-	return Decimal64Pure(encodeBID64(sign, exp, coeff))
-}

@@ -2194,14 +2194,6 @@
       "reason": "IEEE 754-2019 decimal radix is fixed at 10 for every conforming BID width; emitted as an associated const rather than a runtime port call"
     },
     {
-      "go_symbol": "Decimal64BID.Reduce",
-      "rust_owner": "Decimal64",
-      "rust_surface": "reduce",
-      "shape": "unary_with_flags_no_round",
-      "bidgo_function": "Bid64Reduce",
-      "reason": "reduced form (Decimal64-only optional-scope operation); no rounding mode"
-    },
-    {
       "go_symbol": "Decimal64BID.Remainder",
       "rust_owner": "Decimal64",
       "rust_surface": "remainder",

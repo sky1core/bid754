@@ -7270,23 +7270,6 @@ func publicParity_Decimal64BID_Radix(t *testing.T) int {
 	return count
 }
 
-func publicParity_Decimal64BID_Reduce(t *testing.T) int {
-	count := 0
-	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
-		pv, pf := a.Reduce()
-		pr, prf := bidgo.Bid64Reduce(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Reduce: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
-		}
-		if pf != mapPortFlagsForParity(prf) {
-			t.Errorf("public parity Decimal64BID.Reduce: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
-		}
-		count++
-	}
-	return count
-}
-
 func publicParity_Decimal64BID_Remainder(t *testing.T) int {
 	count := 0
 	for _, pair := range publicParityBinaryPairs64 {
@@ -10772,7 +10755,6 @@ var publicParityUnits = []struct {
 	{"Decimal64BID.QuietOrdered", "vm_binary", publicParity_Decimal64BID_QuietOrdered},
 	{"Decimal64BID.QuietUnordered", "vm_binary", publicParity_Decimal64BID_QuietUnordered},
 	{"Decimal64BID.Radix", "vm_nullary", publicParity_Decimal64BID_Radix},
-	{"Decimal64BID.Reduce", "vm_unary", publicParity_Decimal64BID_Reduce},
 	{"Decimal64BID.Remainder", "vm_binary", publicParity_Decimal64BID_Remainder},
 	{"Decimal64BID.RoundIntegralExact", "vm_unary", publicParity_Decimal64BID_RoundIntegralExact},
 	{"Decimal64BID.RoundIntegralExactWithFlags", "vm_unary", publicParity_Decimal64BID_RoundIntegralExactWithFlags},

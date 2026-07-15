@@ -1419,9 +1419,9 @@ const EXPECTED_COVERAGE: &[SuiteCoverage] = &[
     },
     SuiteCoverage {
         name: "Decimal64",
-        cases: 12074,
+        cases: 11940,
         executed: 5297,
-        skip_reasons: &[("adapter_operation_out_of_leg", 6286), ("binary_op_nan_payload_precedence", 16), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("ignored_operation_apply", 4), ("tagged_literal", 16), ("unsupported_rounding", 238)],
+        skip_reasons: &[("adapter_operation_out_of_leg", 6152), ("binary_op_nan_payload_precedence", 16), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("ignored_operation_apply", 4), ("tagged_literal", 16), ("unsupported_rounding", 238)],
         flag_exempt: &[("from_string_zero_low_clamp_divergence", 2)],
     },
     SuiteCoverage {
