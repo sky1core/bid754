@@ -21,6 +21,91 @@ func TestTopLevelPassEvidenceRejectsIndentedSubtestUnderFailingParent(t *testing
 	}
 }
 
+func TestNativeReadtestEvidencePinsCompactLifecycleCounts(t *testing.T) {
+	required, err := nativeReadtestEvidence(anchors{
+		ReadtestCasesTotal:             10,
+		ReadtestNativeCompareSkipCases: 2,
+	})
+	if err != nil {
+		t.Fatalf("nativeReadtestEvidence: %v", err)
+	}
+	log := strings.Split(
+		"--- PASS: TestGeneratedReadCases (1.00s)\n"+
+			"testlogcompact: suppressed 20 subtest lifecycle lines (run=10 pass=8 skip=2) for TestGeneratedReadCases\n",
+		"\n",
+	)
+	if missing := missingEvidence(log, required); len(missing) != 0 {
+		t.Fatalf("valid compact native readtest evidence missing=%v", missing)
+	}
+
+	wrong := strings.Split(
+		"--- PASS: TestGeneratedReadCases (1.00s)\n"+
+			"testlogcompact: suppressed 18 subtest lifecycle lines (run=9 pass=7 skip=2) for TestGeneratedReadCases\n",
+		"\n",
+	)
+	if missing := missingEvidence(wrong, required); len(missing) != 1 {
+		t.Fatalf("reduced compact native readtest evidence missing=%v, want one count line", missing)
+	}
+}
+
+func TestNativeReadtestEvidenceRejectsQuotedOrDuplicateCompactSummary(t *testing.T) {
+	required, err := nativeReadtestEvidence(anchors{
+		ReadtestCasesTotal:             10,
+		ReadtestNativeCompareSkipCases: 2,
+	})
+	if err != nil {
+		t.Fatalf("nativeReadtestEvidence: %v", err)
+	}
+	wantSummary := "testlogcompact: suppressed 20 subtest lifecycle lines (run=10 pass=8 skip=2) for TestGeneratedReadCases"
+
+	quoted := strings.Split(
+		"--- PASS: TestGeneratedReadCases (1.00s)\n"+
+			"testlogcompact: suppressed 18 subtest lifecycle lines (run=9 pass=7 skip=2) for TestGeneratedReadCases\n"+
+			"diagnostic: expected "+wantSummary+"\n",
+		"\n",
+	)
+	if missing := missingEvidence(quoted, required); len(missing) != 1 {
+		t.Fatalf("quoted expected summary satisfied compact evidence: missing=%v", missing)
+	}
+
+	duplicate := strings.Split(
+		"--- PASS: TestGeneratedReadCases (1.00s)\n"+wantSummary+"\n"+wantSummary+"\n",
+		"\n",
+	)
+	if missing := missingEvidence(duplicate, required); len(missing) != 1 {
+		t.Fatalf("duplicate compact summaries satisfied unique evidence: missing=%v", missing)
+	}
+}
+
+func TestNativeReadtestEvidenceRejectsImpossibleAnchors(t *testing.T) {
+	for _, a := range []anchors{
+		{},
+		{ReadtestCasesTotal: 1, ReadtestNativeCompareSkipCases: 2},
+	} {
+		if _, err := nativeReadtestEvidence(a); err == nil {
+			t.Fatalf("nativeReadtestEvidence(%+v) accepted impossible anchors", a)
+		}
+	}
+}
+
+func TestNativeFFIEvidencePinsCompactLifecycleCounts(t *testing.T) {
+	required, err := nativeFFIEvidence(anchors{FFIBitcompareCasesTotal: 10})
+	if err != nil {
+		t.Fatalf("nativeFFIEvidence: %v", err)
+	}
+	log := strings.Split(
+		"--- PASS: TestGeneratedFFIBitCompareSubset (1.00s)\n"+
+			"testlogcompact: suppressed 20 subtest lifecycle lines (run=10 pass=10 skip=0) for TestGeneratedFFIBitCompareSubset\n",
+		"\n",
+	)
+	if missing := missingEvidence(log, required); len(missing) != 0 {
+		t.Fatalf("valid compact native FFI evidence missing=%v", missing)
+	}
+	if _, err := nativeFFIEvidence(anchors{}); err == nil {
+		t.Fatal("nativeFFIEvidence accepted a zero FFI case anchor")
+	}
+}
+
 func TestCountEvidenceRequiresExactTotalBoundary(t *testing.T) {
 	want := countLine("decimal32 structured exact comparisons: 1108658/1108658")
 	longer := strings.Split("    x_test.go:1: decimal32 structured exact comparisons: 1108658/11086589\n", "\n")

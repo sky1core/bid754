@@ -58,9 +58,10 @@ additionally re-checked by `devtools/cmd/verifylog`: the canonical-full Tier 1
 targets must carry the anchored executed/total comparison counts, the
 routing-sentinel full-count lines (row counts pinned in
 `devtools/verification_sentinels.json`), and top-level PASS evidence
-(including the Rust runners' exact passed-test counts), and the FFI,
-readtest, and decTest targets must carry
-top-level PASS evidence — a zero-test or reduced-corpus run cannot report
+(including the Rust runners' exact passed-test counts). The native FFI and
+readtest targets must additionally carry one exact compact summary whose
+run/pass/skip totals match `devtools/verification_anchors.json`; decTest must
+carry top-level PASS evidence. A zero-test or reduced-corpus run cannot report
 green. The native gates
 are required by default: when `.env.sh`, Intel BID `libbid.a`, or IBM
 decNumber are missing, the target fails; set

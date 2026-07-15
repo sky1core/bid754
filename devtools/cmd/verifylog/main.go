@@ -26,6 +26,9 @@ type anchors struct {
 	Tier1CCComparisonRandom         map[string]uint64 `json:"tier1_compare_conversion_long_comparison_random_by_width"`
 	Tier1CCConversionStructured     uint64            `json:"tier1_compare_conversion_long_conversion_structured"`
 	Tier1CCConversionRandom         uint64            `json:"tier1_compare_conversion_long_conversion_random"`
+	ReadtestCasesTotal              uint64            `json:"readtest_cases_total"`
+	ReadtestNativeCompareSkipCases  uint64            `json:"readtest_native_compare_skip_cases"`
+	FFIBitcompareCasesTotal         uint64            `json:"ffi_bitcompare_cases_total"`
 }
 
 // sentinels mirrors the routing-sentinel row pin file; the row counts are
@@ -39,7 +42,7 @@ func main() {
 	anchorsPath := flag.String("anchors", "verification_anchors.json", "path to verification_anchors.json")
 	sentinelsPath := flag.String("sentinels", "verification_sentinels.json", "path to verification_sentinels.json (routing-sentinel row pins)")
 	logPath := flag.String("log", "", "path to the captured gate log")
-	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust")
+	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, native-readtest, native-ffi")
 	passes := flag.String("passes", "", "comma-separated top-level Go test names that must have '--- PASS:' evidence")
 	flag.Parse()
 	if *logPath == "" || (*domain == "" && *passes == "") {
@@ -135,6 +138,18 @@ func main() {
 					countLine(fmt.Sprintf("Rust Decimal%s random compare/minmax: %d/%d", w, random, random)),
 				)
 			}
+		case "native-readtest":
+			nativeEvidence, err := nativeReadtestEvidence(a)
+			if err != nil {
+				fail("native readtest evidence: %v", err)
+			}
+			required = append(required, nativeEvidence...)
+		case "native-ffi":
+			nativeEvidence, err := nativeFFIEvidence(a)
+			if err != nil {
+				fail("native FFI evidence: %v", err)
+			}
+			required = append(required, nativeEvidence...)
 		default:
 			fail("unknown domain %q", *domain)
 		}
@@ -154,14 +169,60 @@ func main() {
 // evidence is one required log line. kind "pass" requires an unindented
 // top-level `--- PASS: <name> (` line so an indented subtest PASS under a
 // failing parent cannot satisfy it; kind "count" requires the literal followed
-// by a non-digit so an anchored total cannot match a longer number.
+// by a non-digit so an anchored total cannot match a longer number; kind
+// "compact-summary" requires exactly one complete summary line for its root.
 type evidence struct {
-	kind    string
-	literal string
+	kind     string
+	literal  string
+	rootTest string
 }
 
 func topLevelPass(name string) evidence { return evidence{kind: "pass", literal: name} }
 func countLine(literal string) evidence { return evidence{kind: "count", literal: literal} }
+func compactSummary(rootTest, literal string) evidence {
+	return evidence{kind: "compact-summary", literal: literal, rootTest: rootTest}
+}
+
+func nativeReadtestEvidence(a anchors) ([]evidence, error) {
+	return compactGoSubtestEvidence(
+		"TestGeneratedReadCases",
+		"native readtest",
+		a.ReadtestCasesTotal,
+		a.ReadtestNativeCompareSkipCases,
+	)
+}
+
+func nativeFFIEvidence(a anchors) ([]evidence, error) {
+	return compactGoSubtestEvidence(
+		"TestGeneratedFFIBitCompareSubset",
+		"native FFI",
+		a.FFIBitcompareCasesTotal,
+		0,
+	)
+}
+
+func compactGoSubtestEvidence(rootTest, label string, total, skips uint64) ([]evidence, error) {
+	if total == 0 {
+		return nil, fmt.Errorf("%s total cases must be positive", label)
+	}
+	if skips > total {
+		return nil, fmt.Errorf("%s skipped cases %d exceeds total %d", label, skips, total)
+	}
+	passes := total - skips
+	suppressed := total + passes + skips
+	summary := fmt.Sprintf(
+		"testlogcompact: suppressed %d subtest lifecycle lines (run=%d pass=%d skip=%d) for %s",
+		suppressed,
+		total,
+		passes,
+		skips,
+		rootTest,
+	)
+	return []evidence{
+		topLevelPass(rootTest),
+		compactSummary(rootTest, summary),
+	}, nil
+}
 
 // loadSentinels reads the routing-sentinel row pin file for the count
 // evidence below.
@@ -210,6 +271,8 @@ func (e evidence) matchesLine(line string) bool {
 	switch e.kind {
 	case "pass":
 		return strings.HasPrefix(line, "--- PASS: "+e.literal+" (")
+	case "compact-summary":
+		return line == e.literal
 	default:
 		idx := strings.Index(line, e.literal)
 		if idx < 0 {
@@ -220,17 +283,34 @@ func (e evidence) matchesLine(line string) bool {
 	}
 }
 
+func (e evidence) isSatisfiedBy(logLines []string) bool {
+	if e.kind != "compact-summary" {
+		for _, line := range logLines {
+			if e.matchesLine(line) {
+				return true
+			}
+		}
+		return false
+	}
+
+	candidates := 0
+	exact := 0
+	suffix := " for " + e.rootTest
+	for _, line := range logLines {
+		if strings.HasPrefix(line, "testlogcompact: suppressed ") && strings.HasSuffix(line, suffix) {
+			candidates++
+			if e.matchesLine(line) {
+				exact++
+			}
+		}
+	}
+	return candidates == 1 && exact == 1
+}
+
 func missingEvidence(logLines []string, required []evidence) []string {
 	missing := []string{}
 	for _, want := range required {
-		found := false
-		for _, line := range logLines {
-			if want.matchesLine(line) {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if !want.isSatisfiedBy(logLines) {
 			missing = append(missing, want.String())
 		}
 	}
