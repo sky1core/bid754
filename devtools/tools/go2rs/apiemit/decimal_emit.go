@@ -225,14 +225,15 @@ func emitCopySignOp(b *strings.Builder, op decOp, w widthSpec) {
 // method missing here fails generation (modeMethodDocSentence) instead of
 // emitting a generic fallback sentence that misdescribes the operation.
 var modeMethodDocSentences = map[string]string{
-	"add_with_mode":      "Adds two decimals with an explicit rounding mode, also returning the raised flags.",
-	"sub_with_mode":      "Subtracts two decimals with an explicit rounding mode, also returning the raised flags.",
-	"mul_with_mode":      "Multiplies two decimals with an explicit rounding mode, also returning the raised flags.",
-	"div_with_mode":      "Divides two decimals with an explicit rounding mode, also returning the raised flags.",
-	"quantize_with_mode": "Rescales self to the quantum (target exponent) of rhs with an explicit rounding mode, also returning the raised flags.",
-	"sqrt_with_mode":     "Computes the square root of self with an explicit rounding mode, also returning the raised flags.",
-	"fma_with_mode":      "Computes the fused multiply-add self * mul + add with a single rounding at an explicit rounding mode, also returning the raised flags.",
-	"scaleb_with_mode":   "Scales self by ten to the integer exponent, rounding at the overflow/underflow range boundary with an explicit rounding mode, also returning the raised flags.",
+	"add_with_mode":                  "Adds two decimals with an explicit rounding mode, also returning the raised flags.",
+	"sub_with_mode":                  "Subtracts two decimals with an explicit rounding mode, also returning the raised flags.",
+	"mul_with_mode":                  "Multiplies two decimals with an explicit rounding mode, also returning the raised flags.",
+	"div_with_mode":                  "Divides two decimals with an explicit rounding mode, also returning the raised flags.",
+	"quantize_with_mode":             "Rescales self to the quantum (target exponent) of rhs with an explicit rounding mode, also returning the raised flags.",
+	"sqrt_with_mode":                 "Computes the square root of self with an explicit rounding mode, also returning the raised flags.",
+	"round_integral_exact_with_mode": "Rounds self to an integral decimal with an explicit rounding mode, also returning the raised flags including inexact.",
+	"fma_with_mode":                  "Computes the fused multiply-add self * mul + add with a single rounding at an explicit rounding mode, also returning the raised flags.",
+	"scaleb_with_mode":               "Scales self by ten to the integer exponent, rounding at the overflow/underflow range boundary with an explicit rounding mode, also returning the raised flags.",
 }
 
 var mixedModeMethodDocSentences = map[string]string{
@@ -333,8 +334,8 @@ func emitMixedBinaryModeFlagsOps(b *strings.Builder, ops []mixedDecOp, result wi
 // emitUnaryModeFlagsOps renders "unary_mode_flags" shape wrappers: (recv)
 // OpWithMode(mode) (Decimal<w>, ExceptionFlags) -- the receiver is the only
 // operand and the port's rounding argument comes from the explicit
-// RoundingMode via super::types::to_bidgo_rounding (Sqrt). Same mechanical
-// pattern as emitBinaryModeFlagsOps at arity 1.
+// RoundingMode via super::types::to_bidgo_rounding. Same mechanical pattern as
+// emitBinaryModeFlagsOps at arity 1.
 func emitUnaryModeFlagsOps(b *strings.Builder, ops []decOp, w widthSpec) error {
 	sortDecOps(ops)
 	for _, op := range ops {

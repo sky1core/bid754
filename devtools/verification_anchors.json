@@ -323,14 +323,14 @@
       "noncanonical": 0
     }
   },
-  "public_api_symbols_total": 407,
-  "public_api_parity_wrappers": 360,
+  "public_api_symbols_total": 410,
+  "public_api_parity_wrappers": 363,
   "public_api_parity_excluded": 47,
-  "public_api_parity_cases_total": 27035,
-  "rust_public_api_parity_wrappers": 360,
-  "rust_public_api_direct_routing_wrappers": 342,
+  "public_api_parity_cases_total": 27455,
+  "rust_public_api_parity_wrappers": 363,
+  "rust_public_api_direct_routing_wrappers": 345,
   "rust_public_api_delegated_routing_wrappers": 18,
-  "rust_public_api_parity_cases_total": 26747,
+  "rust_public_api_parity_cases_total": 27167,
   "rust_public_api_constants_total": 12,
   "rust_public_api_parity_cases_by_shape": {
     "binary": 288,
@@ -400,20 +400,20 @@
     "total_cmp": 72,
     "total_cmp_mag": 72,
     "unary": 144,
-    "unary_mode_flags": 420,
+    "unary_mode_flags": 840,
     "unary_mode_drop_flags": 72,
     "unary_with_flags_default_round": 144,
     "unary_with_flags_no_round": 576
   },
   "verification_artifact_sha256": {
-    "testspec_tree": "9c1becd08edd113544b5c983a649c17da5d405781bfd1ffbb825984b8426b9dd",
+    "testspec_tree": "f8d1b1c88b4a9c6d6b69bdc7b81ec446e7d8f061a937101cc0017a18e0e34d18",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "e3c98f5af677e7ae01eec630a48c9d84635058b0de96c1b429d1bab449b3a3cb",
-    "goport_verification_runners": "15aab38fbdfd28ff94f667b55f60e54456566a57fcd299830b852b3d3a095fca",
+    "goport_verification_runners": "efdbac2affcb923f6a768a3eb4742e7c93138fd95830d7c4cb14b88a60840fb4",
     "dectest_executor": "74b2874c2978245f51464e79618d8ce976b8996cade2dd1068deb53db91625fd",
     "spec_loader": "70ee64e2cd159fe5e245415f0d8009789ca1e7254f4f020f730ed551c89dffd9",
     "rust_readtest_runner": "6efec41f78094d9153034b1845ff95a6af550ddfa68977925773d2c9354b7b44",
-    "rust_public_parity_runner": "70740ea4cb61d8bd31d3a1915b4710739dc81044e984ca50e563596e33704816",
+    "rust_public_parity_runner": "0b1b66d68929a67d6e388033970be34d203192f9dfaf8ea01e58a0cdb02749b2",
     "rust_dectest_runner": "d24e687c18929322d79943ec07b9507697bc605e320381e3dbced6dc356cdc5a",
     "rust_tier1_long_runners": "674aaa1d2104aa473be89cc3e86f09eea053d60141937266d326ce45f7c5ab06"
   }

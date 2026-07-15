@@ -602,6 +602,14 @@
       "reason": "width-parameterized reuse of the existing 'unary_with_flags_default_round' shape template; routes through the Go mechanical port bidgo function 'Bid128RoundIntegralExact'."
     },
     {
+      "go_symbol": "Decimal128BID.RoundIntegralExactWithMode",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_exact_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid128RoundIntegralExact",
+      "reason": "explicit-rounding-mode roundToIntegralExact wrapper over the generated Go mechanical-port function, preserving value and exception flags"
+    },
+    {
       "go_symbol": "Decimal128BID.RoundIntegralNearestAway",
       "rust_owner": "Decimal128",
       "rust_surface": "round_integral_nearest_away",
@@ -1410,6 +1418,14 @@
       "reason": "width-parameterized reuse of the Decimal64 'unary_with_flags_default_round' shape template; routes through the Go mechanical port bidgo function 'Bid32RoundIntegralExact'."
     },
     {
+      "go_symbol": "Decimal32BID.RoundIntegralExactWithMode",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_exact_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid32RoundIntegralExact",
+      "reason": "explicit-rounding-mode roundToIntegralExact wrapper over the generated Go mechanical-port function, preserving value and exception flags"
+    },
+    {
       "go_symbol": "Decimal32BID.RoundIntegralNearestAway",
       "rust_owner": "Decimal32",
       "rust_surface": "round_integral_nearest_away",
@@ -2216,6 +2232,14 @@
       "shape": "unary_with_flags_default_round",
       "bidgo_function": "Bid64RoundIntegralExact",
       "reason": "round-to-nearest-even to an integral value with flags (does not consult SetDefaultRounding)"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralExactWithMode",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_exact_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid64RoundIntegralExact",
+      "reason": "explicit-rounding-mode roundToIntegralExact wrapper over the generated Go mechanical-port function, preserving value and exception flags"
     },
     {
       "go_symbol": "Decimal64BID.RoundIntegralNearestAway",

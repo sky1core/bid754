@@ -304,7 +304,7 @@ var shapeSigs = map[string]shapeSig{
 	"mixed_binary_mode_flags_dq": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
 	"mixed_binary_mode_flags_qd": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
 	"mixed_binary_mode_flags_qq": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
-	// unary op with an explicit rounding mode and flags: (recv) SqrtWithMode(mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
+	// unary op with an explicit rounding mode and flags: (recv) OpWithMode(mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
 	"unary_mode_flags": {method: true, params: []sigForm{formRoundingMode}, results: []sigForm{formValue, formFlags}},
 	// ternary op with an explicit rounding mode and flags: (recv) FMAWithMode(mul, add Decimal<w>BID, mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
 	"ternary_mode_flags": {method: true, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},

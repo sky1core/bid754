@@ -19,7 +19,7 @@ dependency, or a `git` dependency pinned to a commit).
 ## Public API
 
 The generated public API surface covers fixed-width `Decimal32`,
-`Decimal64`, and `Decimal128` value types with 360 parity-verified wrapper
+`Decimal64`, and `Decimal128` value types with 363 parity-verified wrapper
 methods/constructors and 12 associated constants
 across the three widths (`devtools/generated/testspec/rust_api_surface_inventory.json`
 is the generated machine-readable Go-symbol-to-Rust-symbol map; the
@@ -146,7 +146,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (rounded, flags) = a.round_integral_exact_with_flags();
     assert_eq!(rounded.to_string(), "+2E+0");
     assert!(flags.contains(ExceptionFlags::INEXACT));
-    let _ = RoundingMode::NearestEven; // closed enum; no invalid-mode case exists
+    let (toward_zero, flags) = a.round_integral_exact_with_mode(RoundingMode::TowardZero);
+    assert_eq!(toward_zero.to_string(), "+1E+0");
+    assert!(flags.contains(ExceptionFlags::INEXACT));
     Ok(())
 }
 ```
@@ -198,7 +200,7 @@ make verify-rust-package
 
 `make test-rust` (`cargo test --locked` in this crate) runs the fixed-vector
 codec/string tests, the **public API parity gate**
-(`tests/public_parity_generated.rs`: every one of the 360 wrapper symbols,
+(`tests/public_parity_generated.rs`: every one of the 363 wrapper symbols,
 bit-compared against an independent direct call into the same
 `crate::generated::*` port function the wrapper itself calls, with the
 flag/rounding mapping re-derived from independent numeric literals so a

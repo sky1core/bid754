@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "source": "bid754-go module-root package bid754 (all non-test files, generated included) + bid754-go/internal/bidgo + devtools/testgen_manifest.json public_api",
-  "total": 407,
-  "mapped": 360,
+  "total": 410,
+  "mapped": 363,
   "excluded": 47,
   "excluded_by_class": {
     "composition_plumbing": 6,
@@ -630,6 +630,13 @@
       "kind": "method",
       "status": "mapped",
       "bidgo_function": "Bid128RoundIntegralExact"
+    },
+    {
+      "symbol": "Decimal128BID.RoundIntegralExactWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128RoundIntegralExact",
+      "reason": "explicit-rounding-mode roundToIntegralExact; the caller's RoundingMode is carried into the same flags-exposing Intel bid\u003cw\u003e_round_integral_exact port entrypoint instead of the default ties-to-even"
     },
     {
       "symbol": "Decimal128BID.RoundIntegralNearestAway",
@@ -1290,6 +1297,13 @@
       "bidgo_function": "Bid32RoundIntegralExact"
     },
     {
+      "symbol": "Decimal32BID.RoundIntegralExactWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32RoundIntegralExact",
+      "reason": "explicit-rounding-mode roundToIntegralExact; the caller's RoundingMode is carried into the same flags-exposing Intel bid\u003cw\u003e_round_integral_exact port entrypoint instead of the default ties-to-even"
+    },
+    {
       "symbol": "Decimal32BID.RoundIntegralNearestAway",
       "kind": "method",
       "status": "mapped",
@@ -1945,6 +1959,13 @@
       "kind": "method",
       "status": "mapped",
       "bidgo_function": "Bid64RoundIntegralExact"
+    },
+    {
+      "symbol": "Decimal64BID.RoundIntegralExactWithMode",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64RoundIntegralExact",
+      "reason": "explicit-rounding-mode roundToIntegralExact; the caller's RoundingMode is carried into the same flags-exposing Intel bid\u003cw\u003e_round_integral_exact port entrypoint instead of the default ties-to-even"
     },
     {
       "symbol": "Decimal64BID.RoundIntegralNearestAway",

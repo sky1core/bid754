@@ -752,8 +752,8 @@ func emitModeDiscAssertion(b *strings.Builder, symbol, ctxFmt, ctxArgs string) {
 	fmt.Fprintf(b, "\t\t}\n")
 }
 
-// emitVMModeUnaryArith renders the SqrtWithMode parity body: the receiver is
-// the only operand, always returning flags. Two legs run under every mode:
+// emitVMModeUnaryArith renders unary explicit-mode parity bodies: the receiver
+// is the only operand, always returning flags. Two legs run under every mode:
 // the shared per-width corpus (routing probes), then the per-operation unary
 // mode-discriminant table (irrational-result operands) with the per-case
 // discrimination assertion, so a wrapper that drops its mode argument fails

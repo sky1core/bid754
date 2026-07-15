@@ -2,8 +2,8 @@
   "version": "1.0",
   "kind": "rust_api_surface_inventory",
   "source": "devtools/generated/testspec/public_api_routing_inventory.json (mapped + excluded_constant_accessor) + devtools/tools/registry/rust_api_manifest.json + bid754-go module-root signatures/literals",
-  "mapped_total": 360,
-  "emitted": 360,
+  "mapped_total": 363,
+  "emitted": 363,
   "deferred": 0,
   "rows": [
     {
@@ -644,6 +644,14 @@
       "rust_owner": "Decimal128",
       "rust_surface": "round_integral_exact_with_flags",
       "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid128RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal128BID.RoundIntegralExactWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "round_integral_exact_with_mode",
+      "shape": "unary_mode_flags",
       "bidgo_function": "Bid128RoundIntegralExact"
     },
     {
@@ -1455,6 +1463,14 @@
       "bidgo_function": "Bid32RoundIntegralExact"
     },
     {
+      "go_symbol": "Decimal32BID.RoundIntegralExactWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal32",
+      "rust_surface": "round_integral_exact_with_mode",
+      "shape": "unary_mode_flags",
+      "bidgo_function": "Bid32RoundIntegralExact"
+    },
+    {
       "go_symbol": "Decimal32BID.RoundIntegralNearestAway",
       "status": "emitted",
       "rust_owner": "Decimal32",
@@ -2260,6 +2276,14 @@
       "rust_owner": "Decimal64",
       "rust_surface": "round_integral_exact_with_flags",
       "shape": "unary_with_flags_default_round",
+      "bidgo_function": "Bid64RoundIntegralExact"
+    },
+    {
+      "go_symbol": "Decimal64BID.RoundIntegralExactWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "round_integral_exact_with_mode",
+      "shape": "unary_mode_flags",
       "bidgo_function": "Bid64RoundIntegralExact"
     },
     {

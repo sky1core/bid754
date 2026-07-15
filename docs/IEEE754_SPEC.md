@@ -91,6 +91,16 @@ Public Go BID methods use the following flag policy:
 - every public BID operation that can raise IEEE exception flags must expose a
   flag-returning public path, either as the primary method signature or as a
   `WithFlags` peer for an existing value-only method
+- `RoundIntegralExact()` and `RoundIntegralExactWithFlags()` are fixed
+  round-to-nearest-even compatibility paths; `RoundIntegralExactWithMode()`
+  carries any of the five public IEEE rounding modes into the same Intel
+  `bid<w>_round_integral_exact` mechanical-port entrypoint and returns its
+  exception flags
+- a Go `RoundIntegralExactWithMode()` call with a value outside the five
+  defined `RoundingMode` constants must be rejected before the raw Intel-port
+  call with the target width's canonical quiet NaN and
+  `FlagInvalidOperation`; the raw Intel function does not define this public
+  invalid-input contract
 - context-based operations accumulate flags into `ArithmeticContext.Flags` using
   sticky OR semantics
 - `DefaultArithmeticContext()` returns a snapshot of the atomic default

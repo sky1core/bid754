@@ -347,6 +347,13 @@ impl Decimal128 {
         (Decimal128(super::types::bid_uint128_to_le_bytes(bits)), ExceptionFlags::from_bidgo(raw))
     }
 
+    /// Rounds self to an integral decimal with an explicit rounding mode, also returning the raised flags including inexact.
+    pub fn round_integral_exact_with_mode(self, mode: RoundingMode) -> (Decimal128, ExceptionFlags) {
+        let mut raw = 0u32;
+        let bits = crate::generated::bid128_round_integral::bid128_round_integral_exact(super::types::bid_uint128_from_le_bytes(self.0), super::types::to_bidgo_rounding(mode), &mut raw);
+        (Decimal128(super::types::bid_uint128_to_le_bytes(bits)), ExceptionFlags::from_bidgo(raw))
+    }
+
     /// Computes the square root of self with an explicit rounding mode, also returning the raised flags.
     pub fn sqrt_with_mode(self, mode: RoundingMode) -> (Decimal128, ExceptionFlags) {
         let (bits, raw) = crate::generated::bid128_sqrt::bid128_sqrt(super::types::bid_uint128_from_le_bytes(self.0), super::types::to_bidgo_rounding(mode));

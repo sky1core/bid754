@@ -706,14 +706,20 @@ func mixedModeBinaryDiscriminantOperands(op string, resultWidth int, operandWidt
 }
 
 // modeUnaryDiscriminants is the discriminant corpus for the unary mode-shape
-// wrappers (SqrtWithMode): single operands whose result is irrational, so
-// every finite precision rounds and the five directions cannot all agree.
-// The same integer components are exact operands at every width.
+// wrappers (SqrtWithMode and RoundIntegralExactWithMode): single operands
+// whose result depends on the rounding direction. Sqrt uses irrational
+// results; roundIntegralExact uses positive and negative half ties. The same
+// integer components are exact operands at every width.
 var modeUnaryDiscriminants = map[string]map[int][]modeDiscOperand{
 	"Sqrt": {
 		32:  {mdo(2, 0), mdo(3, 0), mdo(5, 0), mdo(7, 0)},
 		64:  {mdo(2, 0), mdo(3, 0), mdo(5, 0), mdo(7, 0)},
 		128: {mdo(2, 0), mdo(3, 0), mdo(5, 0), mdo(7, 0)},
+	},
+	"RoundIntegralExact": {
+		32:  {mdo(25, -1), mdo(35, -1), mdoNeg(25, -1), mdoNeg(35, -1)},
+		64:  {mdo(25, -1), mdo(35, -1), mdoNeg(25, -1), mdoNeg(35, -1)},
+		128: {mdo(25, -1), mdo(35, -1), mdoNeg(25, -1), mdoNeg(35, -1)},
 	},
 }
 
@@ -1260,7 +1266,7 @@ const (
 	shapeVMScaleB                               // ScaleB(int)
 	shapeVMNextToward                           // NextToward(Decimal128BID)
 	shapeVMModeUnary                            // ToBinary*/ToDecimal* with a RoundingMode
-	shapeVMModeUnaryArith                       // SqrtWithMode: no operand args, a RoundingMode, same-width result
+	shapeVMModeUnaryArith                       // unary same-width arithmetic: no operand args, a RoundingMode, same-width result
 	shapeVMModeBinary                           // {Add,Sub,Mul,Div,Quantize}WithMode: one same-width operand + a RoundingMode
 	shapeVMModeTernary                          // FMAWithMode: two same-width operands + a RoundingMode
 	shapeVMModeScaleB                           // ScaleBWithMode: int exponent + a RoundingMode
@@ -1599,7 +1605,7 @@ func resolveValueMethodUnit(u parityUnit, sym publicAPISymbol, corpus publicPari
 	switch {
 	case len(sym.Params) == 1 && sym.Params[0] == "RoundingMode":
 		if sym.Results[0] == sym.Recv {
-			// Same-width mode-taking arithmetic (SqrtWithMode) carries a
+			// Same-width mode-taking unary arithmetic carries a
 			// required discriminant table; the format conversions
 			// (ToBinary*/ToDecimal*) stay on the plain mode-unary shape.
 			u.Shape = shapeVMModeUnaryArith

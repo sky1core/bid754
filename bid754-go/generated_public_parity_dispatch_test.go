@@ -2583,6 +2583,59 @@ func publicParity_Decimal128BID_RoundIntegralExactWithFlags(t *testing.T) int {
 	return count
 }
 
+func publicParity_Decimal128BID_RoundIntegralExactWithMode(t *testing.T) int {
+	count := 0
+	for _, elem := range publicParityCorpus128 {
+		a := Decimal128BID(elem)
+		for _, mode := range publicParityModes {
+			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
+			var prf uint32
+			pr := bidgo.Bid128RoundIntegralExact(publicParityToBidgo128(elem), mode.port, &prf)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discVals := [][16]byte{
+		{0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0x30},
+		{0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0x30},
+		{0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xb0},
+		{0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xb0},
+	}
+	for _, dv := range discVals {
+		a := Decimal128BID(dv)
+		var modeSeen [5][16]byte
+		for mi, mode := range publicParityModes {
+			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
+			var prf uint32
+			pr := bidgo.Bid128RoundIntegralExact(publicParityToBidgo128(dv), mode.port, &prf)
+			if pv.ToBytes() != publicParityFromBidgo128(pr) {
+				t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = pv.ToBytes()
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
+		}
+	}
+	return count
+}
+
 func publicParity_Decimal128BID_RoundIntegralNearestAway(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
@@ -4961,6 +5014,57 @@ func publicParity_Decimal32BID_RoundIntegralExactWithFlags(t *testing.T) int {
 	return count
 }
 
+func publicParity_Decimal32BID_RoundIntegralExactWithMode(t *testing.T) int {
+	count := 0
+	for _, elem := range publicParityCorpus32 {
+		a := Decimal32BID(elem)
+		for _, mode := range publicParityModes {
+			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
+			pr, prf := bidgo.Bid32RoundIntegralExact(elem, mode.port)
+			if uint32(pv) != pr {
+				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint32(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discVals := []uint32{
+		0x32000019,
+		0x32000023,
+		0xb2000019,
+		0xb2000023,
+	}
+	for _, dv := range discVals {
+		a := Decimal32BID(dv)
+		var modeSeen [5]uint32
+		for mi, mode := range publicParityModes {
+			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
+			pr, prf := bidgo.Bid32RoundIntegralExact(dv, mode.port)
+			if uint32(pv) != pr {
+				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, uint32(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint32(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
+		}
+	}
+	return count
+}
+
 func publicParity_Decimal32BID_RoundIntegralNearestAway(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
@@ -7317,6 +7421,57 @@ func publicParity_Decimal64BID_RoundIntegralExactWithFlags(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.RoundIntegralExactWithFlags: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
 		}
 		count++
+	}
+	return count
+}
+
+func publicParity_Decimal64BID_RoundIntegralExactWithMode(t *testing.T) int {
+	count := 0
+	for _, elem := range publicParityCorpus64 {
+		a := Decimal64BID(elem)
+		for _, mode := range publicParityModes {
+			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
+			pr, prf := bidgo.Bid64RoundIntegralExact(elem, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			count++
+		}
+	}
+	discVals := []uint64{
+		0x31a0000000000019,
+		0x31a0000000000023,
+		0xb1a0000000000019,
+		0xb1a0000000000023,
+	}
+	for _, dv := range discVals {
+		a := Decimal64BID(dv)
+		var modeSeen [5]uint64
+		for mi, mode := range publicParityModes {
+			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
+			pr, prf := bidgo.Bid64RoundIntegralExact(dv, mode.port)
+			if uint64(pv) != pr {
+				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, uint64(pv), pr)
+			}
+			if pf != mapPortFlagsForParity(prf) {
+				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
+			}
+			modeSeen[mi] = uint64(pv)
+			count++
+		}
+		modeInsensitive := true
+		for mi := 1; mi < len(modeSeen); mi++ {
+			if modeSeen[mi] != modeSeen[0] {
+				modeInsensitive = false
+				break
+			}
+		}
+		if modeInsensitive {
+			t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
+		}
 	}
 	return count
 }
@@ -10556,6 +10711,7 @@ var publicParityUnits = []struct {
 	{"Decimal128BID.Remainder", "vm_binary", publicParity_Decimal128BID_Remainder},
 	{"Decimal128BID.RoundIntegralExact", "vm_unary", publicParity_Decimal128BID_RoundIntegralExact},
 	{"Decimal128BID.RoundIntegralExactWithFlags", "vm_unary", publicParity_Decimal128BID_RoundIntegralExactWithFlags},
+	{"Decimal128BID.RoundIntegralExactWithMode", "vm_mode_unary_arith", publicParity_Decimal128BID_RoundIntegralExactWithMode},
 	{"Decimal128BID.RoundIntegralNearestAway", "vm_unary", publicParity_Decimal128BID_RoundIntegralNearestAway},
 	{"Decimal128BID.RoundIntegralNearestEven", "vm_unary", publicParity_Decimal128BID_RoundIntegralNearestEven},
 	{"Decimal128BID.RoundIntegralNegative", "vm_unary", publicParity_Decimal128BID_RoundIntegralNegative},
@@ -10657,6 +10813,7 @@ var publicParityUnits = []struct {
 	{"Decimal32BID.Remainder", "vm_binary", publicParity_Decimal32BID_Remainder},
 	{"Decimal32BID.RoundIntegralExact", "vm_unary", publicParity_Decimal32BID_RoundIntegralExact},
 	{"Decimal32BID.RoundIntegralExactWithFlags", "vm_unary", publicParity_Decimal32BID_RoundIntegralExactWithFlags},
+	{"Decimal32BID.RoundIntegralExactWithMode", "vm_mode_unary_arith", publicParity_Decimal32BID_RoundIntegralExactWithMode},
 	{"Decimal32BID.RoundIntegralNearestAway", "vm_unary", publicParity_Decimal32BID_RoundIntegralNearestAway},
 	{"Decimal32BID.RoundIntegralNearestEven", "vm_unary", publicParity_Decimal32BID_RoundIntegralNearestEven},
 	{"Decimal32BID.RoundIntegralNegative", "vm_unary", publicParity_Decimal32BID_RoundIntegralNegative},
@@ -10758,6 +10915,7 @@ var publicParityUnits = []struct {
 	{"Decimal64BID.Remainder", "vm_binary", publicParity_Decimal64BID_Remainder},
 	{"Decimal64BID.RoundIntegralExact", "vm_unary", publicParity_Decimal64BID_RoundIntegralExact},
 	{"Decimal64BID.RoundIntegralExactWithFlags", "vm_unary", publicParity_Decimal64BID_RoundIntegralExactWithFlags},
+	{"Decimal64BID.RoundIntegralExactWithMode", "vm_mode_unary_arith", publicParity_Decimal64BID_RoundIntegralExactWithMode},
 	{"Decimal64BID.RoundIntegralNearestAway", "vm_unary", publicParity_Decimal64BID_RoundIntegralNearestAway},
 	{"Decimal64BID.RoundIntegralNearestEven", "vm_unary", publicParity_Decimal64BID_RoundIntegralNearestEven},
 	{"Decimal64BID.RoundIntegralNegative", "vm_unary", publicParity_Decimal64BID_RoundIntegralNegative},

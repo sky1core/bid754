@@ -2194,6 +2194,50 @@ fn parity_decimal128_bid_round_integral_exact_with_flags(failures: &mut Vec<Stri
     count
 }
 
+fn parity_decimal128_bid_round_integral_exact_with_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &v0 in CORPUS_128 {
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::from_le_bytes(v0).round_integral_exact_with_mode(mode);
+            let mut praw = 0u32;
+        let pr = bid754::generated::bid128_round_integral::bid128_round_integral_exact(to_port128(v0), port_mode, &mut praw);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Decimal128BID.RoundIntegralExactWithMode: operand {:x?} mode {:?}: result mismatch public={:?} port={:?}", v0, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Decimal128BID.RoundIntegralExactWithMode: operand {:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", v0, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_vals: &[[u8; 16]] = &[
+        [0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0x30],
+        [0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0x30],
+        [0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xb0],
+        [0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xb0],
+    ];
+    for &dv in disc_vals {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::from_le_bytes(dv).round_integral_exact_with_mode(mode);
+            let mut praw = 0u32;
+        let pr = bid754::generated::bid128_round_integral::bid128_round_integral_exact(to_port128(dv), port_mode, &mut praw);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand {:x?} mode {:?}: result mismatch public={:?} port={:?}", dv, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand {:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", dv, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand {:x?}: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv));
+        }
+    }
+    count
+}
+
 fn parity_decimal128_bid_round_integral_nearest_away(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &v0 in CORPUS_128 {
@@ -4234,6 +4278,48 @@ fn parity_decimal32_bid_round_integral_exact_with_flags(failures: &mut Vec<Strin
     count
 }
 
+fn parity_decimal32_bid_round_integral_exact_with_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &v0 in CORPUS_32 {
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal32::from_bits(v0).round_integral_exact_with_mode(mode);
+            let (pr, praw) = bid754::generated::bid32_round_integral::bid32_round_integral_exact(v0, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Decimal32BID.RoundIntegralExactWithMode: operand {:#x} mode {:?}: result mismatch public={:#x} port={:#x}", v0, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Decimal32BID.RoundIntegralExactWithMode: operand {:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", v0, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_vals: &[u32] = &[
+        0x32000019,
+        0x32000023,
+        0xb2000019,
+        0xb2000023,
+    ];
+    for &dv in disc_vals {
+        let mut mode_seen = [0u32; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal32::from_bits(dv).round_integral_exact_with_mode(mode);
+            let (pr, praw) = bid754::generated::bid32_round_integral::bid32_round_integral_exact(dv, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand {:#x} mode {:?}: result mismatch public={:#x} port={:#x}", dv, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand {:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", dv, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand {:#x}: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv));
+        }
+    }
+    count
+}
+
 fn parity_decimal32_bid_round_integral_nearest_away(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &v0 in CORPUS_32 {
@@ -6251,6 +6337,48 @@ fn parity_decimal64_bid_round_integral_exact_with_flags(failures: &mut Vec<Strin
             failures.push(format!("public parity Decimal64BID.RoundIntegralExactWithFlags: operand {:#x}: flag mismatch public={:#x} port={:#x}", v0, pf.bits(), map_port_flags(praw)));
         }
         count += 1;
+    }
+    count
+}
+
+fn parity_decimal64_bid_round_integral_exact_with_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &v0 in CORPUS_64 {
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::from_bits(v0).round_integral_exact_with_mode(mode);
+            let (pr, praw) = bid754::generated::round_integral64::bid64_round_integral_exact(v0, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Decimal64BID.RoundIntegralExactWithMode: operand {:#x} mode {:?}: result mismatch public={:#x} port={:#x}", v0, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Decimal64BID.RoundIntegralExactWithMode: operand {:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", v0, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_vals: &[u64] = &[
+        0x31a0000000000019,
+        0x31a0000000000023,
+        0xb1a0000000000019,
+        0xb1a0000000000023,
+    ];
+    for &dv in disc_vals {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::from_bits(dv).round_integral_exact_with_mode(mode);
+            let (pr, praw) = bid754::generated::round_integral64::bid64_round_integral_exact(dv, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand {:#x} mode {:?}: result mismatch public={:#x} port={:#x}", dv, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand {:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", dv, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand {:#x}: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv));
+        }
     }
     count
 }
@@ -9091,6 +9219,7 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal128BID.Remainder", shape: "binary_flags_no_round", run: parity_decimal128_bid_remainder },
     ParityUnit { go_symbol: "Decimal128BID.RoundIntegralExact", shape: "unary_mode_drop_flags", run: parity_decimal128_bid_round_integral_exact },
     ParityUnit { go_symbol: "Decimal128BID.RoundIntegralExactWithFlags", shape: "unary_with_flags_default_round", run: parity_decimal128_bid_round_integral_exact_with_flags },
+    ParityUnit { go_symbol: "Decimal128BID.RoundIntegralExactWithMode", shape: "unary_mode_flags", run: parity_decimal128_bid_round_integral_exact_with_mode },
     ParityUnit { go_symbol: "Decimal128BID.RoundIntegralNearestAway", shape: "unary_with_flags_no_round", run: parity_decimal128_bid_round_integral_nearest_away },
     ParityUnit { go_symbol: "Decimal128BID.RoundIntegralNearestEven", shape: "unary_with_flags_no_round", run: parity_decimal128_bid_round_integral_nearest_even },
     ParityUnit { go_symbol: "Decimal128BID.RoundIntegralNegative", shape: "unary_with_flags_no_round", run: parity_decimal128_bid_round_integral_negative },
@@ -9192,6 +9321,7 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal32BID.Remainder", shape: "binary_flags_no_round", run: parity_decimal32_bid_remainder },
     ParityUnit { go_symbol: "Decimal32BID.RoundIntegralExact", shape: "unary_mode_drop_flags", run: parity_decimal32_bid_round_integral_exact },
     ParityUnit { go_symbol: "Decimal32BID.RoundIntegralExactWithFlags", shape: "unary_with_flags_default_round", run: parity_decimal32_bid_round_integral_exact_with_flags },
+    ParityUnit { go_symbol: "Decimal32BID.RoundIntegralExactWithMode", shape: "unary_mode_flags", run: parity_decimal32_bid_round_integral_exact_with_mode },
     ParityUnit { go_symbol: "Decimal32BID.RoundIntegralNearestAway", shape: "unary_with_flags_no_round", run: parity_decimal32_bid_round_integral_nearest_away },
     ParityUnit { go_symbol: "Decimal32BID.RoundIntegralNearestEven", shape: "unary_with_flags_no_round", run: parity_decimal32_bid_round_integral_nearest_even },
     ParityUnit { go_symbol: "Decimal32BID.RoundIntegralNegative", shape: "unary_with_flags_no_round", run: parity_decimal32_bid_round_integral_negative },
@@ -9293,6 +9423,7 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal64BID.Remainder", shape: "binary_flags_no_round", run: parity_decimal64_bid_remainder },
     ParityUnit { go_symbol: "Decimal64BID.RoundIntegralExact", shape: "unary_mode_drop_flags", run: parity_decimal64_bid_round_integral_exact },
     ParityUnit { go_symbol: "Decimal64BID.RoundIntegralExactWithFlags", shape: "unary_with_flags_default_round", run: parity_decimal64_bid_round_integral_exact_with_flags },
+    ParityUnit { go_symbol: "Decimal64BID.RoundIntegralExactWithMode", shape: "unary_mode_flags", run: parity_decimal64_bid_round_integral_exact_with_mode },
     ParityUnit { go_symbol: "Decimal64BID.RoundIntegralNearestAway", shape: "unary_with_flags_no_round", run: parity_decimal64_bid_round_integral_nearest_away },
     ParityUnit { go_symbol: "Decimal64BID.RoundIntegralNearestEven", shape: "unary_with_flags_no_round", run: parity_decimal64_bid_round_integral_nearest_even },
     ParityUnit { go_symbol: "Decimal64BID.RoundIntegralNegative", shape: "unary_with_flags_no_round", run: parity_decimal64_bid_round_integral_negative },
@@ -9381,8 +9512,8 @@ const PARITY_UNITS: &[ParityUnit] = &[
 /// regular verification domain (same framing as the Go leg). Case counts are
 /// pinned here at generation time so a generator regression that shrinks the
 /// corpus cannot silently re-pin a smaller surface.
-pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 360;
-pub(crate) const EXPECTED_PARITY_CASES: usize = 26747;
+pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 363;
+pub(crate) const EXPECTED_PARITY_CASES: usize = 27167;
 
 const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("binary", 288),
@@ -9453,7 +9584,7 @@ const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("total_cmp_mag", 72),
     ("unary", 144),
     ("unary_mode_drop_flags", 72),
-    ("unary_mode_flags", 420),
+    ("unary_mode_flags", 840),
     ("unary_with_flags_default_round", 144),
     ("unary_with_flags_no_round", 576),
 ];

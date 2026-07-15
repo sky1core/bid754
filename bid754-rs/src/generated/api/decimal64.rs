@@ -367,6 +367,12 @@ impl Decimal64 {
         (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
     }
 
+    /// Rounds self to an integral decimal with an explicit rounding mode, also returning the raised flags including inexact.
+    pub fn round_integral_exact_with_mode(self, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::round_integral64::bid64_round_integral_exact(self.0, super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
     /// Computes the square root of self with an explicit rounding mode, also returning the raised flags.
     pub fn sqrt_with_mode(self, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
         let (bits, raw) = crate::generated::sqrt64::bid64_sqrt(self.0, super::types::to_bidgo_rounding(mode));

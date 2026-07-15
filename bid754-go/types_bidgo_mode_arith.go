@@ -2,7 +2,7 @@ package bid754
 
 // Explicit-rounding-mode arithmetic port wrappers.
 //
-// The public {Add,Sub,Mul,Div}WithMode value-type methods route through these
+// The public arithmetic WithMode value-type methods route through these
 // thin wrappers, which accept a public RoundingMode, reject an out-of-range
 // mode through the flag channel (strict, no panic/trap -- docs/SPEC.md:
 // no public API path may panic/trap on unsupported input), and otherwise
@@ -73,6 +73,14 @@ func decimal32BIDSqrtModeFlags(d Decimal32BID, mode RoundingMode) (Decimal32BID,
 	return decimal32BIDSqrtPortModeFlags(d, rnd)
 }
 
+func decimal32BIDRoundIntegralExactModeFlags(d Decimal32BID, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
+	rnd, ok := bidgoRoundingMode(mode)
+	if !ok {
+		return canonicalQNaN32BID(), FlagInvalidOperation
+	}
+	return decimal32BIDRoundIntegralExactPortModeFlags(d, rnd)
+}
+
 func decimal32BIDScaleBModeFlags(d Decimal32BID, exponent int, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
 	rnd, ok := bidgoRoundingMode(mode)
 	if !ok {
@@ -137,6 +145,14 @@ func decimal64BIDSqrtModeFlags(d Decimal64BID, mode RoundingMode) (Decimal64BID,
 	return decimal64BIDSqrtPortModeFlags(d, rnd)
 }
 
+func decimal64BIDRoundIntegralExactModeFlags(d Decimal64BID, mode RoundingMode) (Decimal64BID, ExceptionFlags) {
+	rnd, ok := bidgoRoundingMode(mode)
+	if !ok {
+		return canonicalQNaN64BID(), FlagInvalidOperation
+	}
+	return decimal64BIDRoundIntegralExactPortModeFlags(d, rnd)
+}
+
 func decimal64BIDScaleBModeFlags(d Decimal64BID, exponent int, mode RoundingMode) (Decimal64BID, ExceptionFlags) {
 	rnd, ok := bidgoRoundingMode(mode)
 	if !ok {
@@ -199,6 +215,14 @@ func decimal128BIDSqrtModeFlags(d Decimal128BID, mode RoundingMode) (Decimal128B
 		return canonicalQNaN128BID(), FlagInvalidOperation
 	}
 	return decimal128BIDSqrtPortModeFlags(d, rnd)
+}
+
+func decimal128BIDRoundIntegralExactModeFlags(d Decimal128BID, mode RoundingMode) (Decimal128BID, ExceptionFlags) {
+	rnd, ok := bidgoRoundingMode(mode)
+	if !ok {
+		return canonicalQNaN128BID(), FlagInvalidOperation
+	}
+	return decimal128BIDRoundIntegralExactPortModeFlags(d, rnd)
 }
 
 func decimal128BIDScaleBModeFlags(d Decimal128BID, exponent int, mode RoundingMode) (Decimal128BID, ExceptionFlags) {

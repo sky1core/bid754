@@ -154,6 +154,14 @@ func (d Decimal32BID) RoundIntegralExactWithFlags() (Decimal32BID, ExceptionFlag
 	return decimal32BIDRoundIntegralExactPortFlags(d)
 }
 
+// RoundIntegralExactWithMode returns d rounded to an integral Decimal32BID
+// value with mode and the exception flags raised by the operation.
+// A RoundingMode outside the defined constants raises FlagInvalidOperation
+// and returns a canonical quiet NaN, instead of panicking.
+func (d Decimal32BID) RoundIntegralExactWithMode(mode RoundingMode) (Decimal32BID, ExceptionFlags) {
+	return decimal32BIDRoundIntegralExactModeFlags(d, mode)
+}
+
 // RoundIntegralNearestEven implements IEEE roundToIntegralTiesToEven.
 func (d Decimal32BID) RoundIntegralNearestEven() (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDRoundIntegralNearestEvenPort(d)
@@ -456,6 +464,14 @@ func (d Decimal64BID) RoundIntegralExact() Decimal64BID { return decimal64BIDRou
 // RoundIntegralExactWithFlags returns d rounded to an integral Decimal64BID value using round-to-nearest-even (it does not consult SetDefaultRounding) and the exception flags raised by the operation.
 func (d Decimal64BID) RoundIntegralExactWithFlags() (Decimal64BID, ExceptionFlags) {
 	return decimal64BIDRoundIntegralExactPortFlags(d)
+}
+
+// RoundIntegralExactWithMode returns d rounded to an integral Decimal64BID
+// value with mode and the exception flags raised by the operation.
+// A RoundingMode outside the defined constants raises FlagInvalidOperation
+// and returns a canonical quiet NaN, instead of panicking.
+func (d Decimal64BID) RoundIntegralExactWithMode(mode RoundingMode) (Decimal64BID, ExceptionFlags) {
+	return decimal64BIDRoundIntegralExactModeFlags(d, mode)
 }
 
 // RoundIntegralNearestEven implements IEEE roundToIntegralTiesToEven.
@@ -780,6 +796,14 @@ func (d Decimal128BID) RoundIntegralExact() Decimal128BID {
 // RoundIntegralExactWithFlags returns d rounded to an integral Decimal128BID value using round-to-nearest-even (it does not consult SetDefaultRounding) and the exception flags raised by the operation.
 func (d Decimal128BID) RoundIntegralExactWithFlags() (Decimal128BID, ExceptionFlags) {
 	return decimal128BIDRoundIntegralExactPortFlags(d)
+}
+
+// RoundIntegralExactWithMode returns d rounded to an integral Decimal128BID
+// value with mode and the exception flags raised by the operation.
+// A RoundingMode outside the defined constants raises FlagInvalidOperation
+// and returns a canonical quiet NaN, instead of panicking.
+func (d Decimal128BID) RoundIntegralExactWithMode(mode RoundingMode) (Decimal128BID, ExceptionFlags) {
+	return decimal128BIDRoundIntegralExactModeFlags(d, mode)
 }
 
 // RoundIntegralNearestEven implements IEEE roundToIntegralTiesToEven.

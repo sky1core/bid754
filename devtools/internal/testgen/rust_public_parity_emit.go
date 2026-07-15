@@ -1676,8 +1676,8 @@ func rustModeDiscTypes(w parityWidth) (elemType, seenInit string) {
 	}
 }
 
-// emitModeUnaryArith renders the unary_mode_flags shape (SqrtWithMode): the
-// shared corpus leg plus the unary mode-discriminant leg
+// emitModeUnaryArith renders the unary_mode_flags shape: the shared corpus leg
+// plus the unary mode-discriminant leg
 // (modeUnaryDiscriminants, the same generation-time source the Go leg uses)
 // with the per-case not-all-identical assertion, both cycled through
 // PARITY_MODES against the port called at port_mode.
