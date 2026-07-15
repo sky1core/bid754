@@ -204,11 +204,13 @@ The native decNumber-oracle runner and the portable implementation runners have
 different evidentiary meanings:
 
 - native decNumber execution validates the IBM input/expected-value wiring for
-  operations dispatched to decNumber;
+  operations dispatched to decNumber, including exact comparison of the full
+  parsed GDA condition set;
 - operation-adapter cases execute the Go mechanical port against IBM expected
-  values; and
+  values and compare the Intel BID five-flag surface; and
 - portable Go and generated Rust legs independently cross-check the supported
-  fixed-width operation set against IBM expected values.
+  fixed-width operation set against IBM expected values on that same five-flag
+  surface.
 
 Reports must identify which executor ran. A decNumber-oracle result must not be
 reported as direct Go-port verification.
@@ -228,14 +230,20 @@ Operation-family mappings and skip/exemption decisions belong in generator
 code and generated tests. The current locations are indexed in
 `VERIFICATION_REFERENCE.md`.
 
-### Portable Comparison Strength
+### Go-Port Comparison Strength
 
-Executed portable fixed-width cases compare:
+Executed operation-adapter cases in the generated native runner compare the
+normalized decimal result value and the BID five-flag surface: invalid,
+division-by-zero, overflow, underflow, and inexact. Their value comparator
+collapses numerically equal finite cohorts; it does not independently establish
+exact quantum/cohort identity.
 
-- result value;
-- exact quantum/cohort identity where the official operation preserves it; and
-- the BID five-flag surface: invalid, division-by-zero, overflow, underflow,
-  and inexact.
+The portable fixed-width Go and generated Rust legs compare:
+
+- normalized result value;
+- exact quantum/cohort identity for operations whose generated runner marks as
+  cohort-preserving; and
+- the same BID five-flag surface.
 
 Expected decTest `Conditions` are fully parsed and then projected onto that
 same five-flag surface. `Division_undefined`, `Division_impossible`,
@@ -245,6 +253,20 @@ rather than being adjusted case by case. Actual case flags accumulate operand
 parse flags and operation flags. An unrecognized condition token fails the
 harness before the exemption classifier for every executed case. Operation-
 scope skip classification occurs before execution and is accounted separately.
+
+The generated native runner therefore has two explicit flag-check modes. A row
+dispatched to decNumber uses the exact GDA-condition comparator. A row executed
+by a Go mechanical-port operation adapter uses the BID five-flag projection;
+the projection is not applied globally to native decNumber results. FMA,
+`scaleB`, and remainder-family rows are not skipped merely because their
+official conditions contain only `Rounded`, `Subnormal`, or `Clamped`.
+
+The remaining `remainder_gda_division_impossible_context_semantics` and
+`remaindernear_gda_division_impossible_context_semantics` classes are value
+semantic divergences, not status gaps: the affected finite IBM GDA rows expect
+a NaN under `Division_impossible`, while the pinned Intel remainder operations
+produce a finite signed zero. These cases stay explicitly classified before
+execution and counted in the generated inventory.
 
 `toeng` is value-compared because engineering rendering can deliberately choose
 a different cohort representation. A flag exemption is allowed only as a named

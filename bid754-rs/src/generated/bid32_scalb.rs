@@ -76,6 +76,6 @@ pub fn bid32_scalbn(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
         }
     }
     rmode = rnd_mode;
-    res = get_bid32(sign_x, exponent_x, (coefficient_x as u64), rmode);
+    res = get_bid32_flags(sign_x, exponent_x, (coefficient_x as u64), rmode, (&mut pfpsf));
     return (res, pfpsf);
 }

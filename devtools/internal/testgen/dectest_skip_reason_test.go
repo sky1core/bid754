@@ -140,7 +140,7 @@ func TestGeneratedDectestRemainderNaNPrecedenceSkipsOnlyDivergentIdentities(t *t
 	}
 }
 
-func TestGeneratedDectestRequiresExactRemainderStatusGapShape(t *testing.T) {
+func TestGeneratedDectestKeepsOnlyRemainderGDADivisionImpossibleValueDivergence(t *testing.T) {
 	testCases := []struct {
 		name       string
 		tc         parsedCase
@@ -154,7 +154,7 @@ func TestGeneratedDectestRequiresExactRemainderStatusGapShape(t *testing.T) {
 				Result:    "NaN",
 				Flags:     []string{"Division_impossible"},
 			},
-			wantReason: "remainder_division_impossible_status_gap",
+			wantReason: "remainder_gda_division_impossible_context_semantics",
 		},
 		{
 			name: "clamped finite operands and result",
@@ -164,7 +164,6 @@ func TestGeneratedDectestRequiresExactRemainderStatusGapShape(t *testing.T) {
 				Result:    "0E+6111",
 				Flags:     []string{"Clamped"},
 			},
-			wantReason: "remaindernear_clamped_status_gap",
 		},
 		{name: "division impossible extra condition", tc: parsedCase{Operation: "remainder", Operands: []string{"1", "1"}, Result: "NaN", Flags: []string{"Division_impossible", "Rounded"}}},
 		{name: "clamped extra condition", tc: parsedCase{Operation: "remainder", Operands: []string{"1", "1"}, Result: "0", Flags: []string{"Clamped", "Rounded"}}},
@@ -232,15 +231,15 @@ func TestGeneratedDectestSkipsOnlyAuthoritativeFMANaNIdentityDivergences(t *test
 	}
 }
 
-func TestGeneratedDectestRequiresExactFMAStatusGapShape(t *testing.T) {
+func TestGeneratedDectestDoesNotSkipFMAForNonBIDStatusConditions(t *testing.T) {
 	testCases := []struct {
 		name       string
 		tc         parsedCase
 		wantReason string
 	}{
-		{name: "rounded only finite", tc: parsedCase{Operation: "fma", Operands: []string{"1.23456789", "1.00000000", "0e+384"}, Result: "1.234567890000000", Flags: []string{"Rounded"}, RoundingMode: "half_even"}, wantReason: "fma_rounded_only_status_gap"},
-		{name: "subnormal rounded finite", tc: parsedCase{Operation: "fma", Operands: []string{"1.0E-394", "1e-4", "0e+384"}, Result: "1E-398", Flags: []string{"Subnormal", "Rounded"}, RoundingMode: "half_even"}, wantReason: "fma_rounded_only_status_gap"},
-		{name: "clamped only finite", tc: parsedCase{Operation: "fma", Operands: []string{"100E+260", "0E+260", "0e+384"}, Result: "0E+369", Flags: []string{"Clamped"}, RoundingMode: "half_even"}, wantReason: "fma_clamped_status_gap"},
+		{name: "rounded only finite", tc: parsedCase{Operation: "fma", Operands: []string{"1.23456789", "1.00000000", "0e+384"}, Result: "1.234567890000000", Flags: []string{"Rounded"}, RoundingMode: "half_even"}},
+		{name: "subnormal rounded finite", tc: parsedCase{Operation: "fma", Operands: []string{"1.0E-394", "1e-4", "0e+384"}, Result: "1E-398", Flags: []string{"Subnormal", "Rounded"}, RoundingMode: "half_even"}},
+		{name: "clamped only finite", tc: parsedCase{Operation: "fma", Operands: []string{"100E+260", "0E+260", "0e+384"}, Result: "0E+369", Flags: []string{"Clamped"}, RoundingMode: "half_even"}},
 		{name: "rounded extra condition", tc: parsedCase{Operation: "fma", Operands: []string{"1", "1", "0"}, Result: "1", Flags: []string{"Rounded", "Invalid_operation"}, RoundingMode: "half_even"}},
 		{name: "clamped extra condition", tc: parsedCase{Operation: "fma", Operands: []string{"1", "1", "0"}, Result: "1", Flags: []string{"Clamped", "Invalid_operation"}, RoundingMode: "half_even"}},
 		{name: "rounded NaN operands", tc: parsedCase{Operation: "fma", Operands: []string{"NaN2", "NaN3", "NaN5"}, Result: "NaN2", Flags: []string{"Rounded"}, RoundingMode: "half_even"}},
@@ -260,15 +259,15 @@ func TestGeneratedDectestRequiresExactFMAStatusGapShape(t *testing.T) {
 	}
 }
 
-func TestGeneratedDectestRequiresExactScaleBStatusGapShape(t *testing.T) {
+func TestGeneratedDectestDoesNotSkipScaleBForNonBIDStatusConditions(t *testing.T) {
 	testCases := []struct {
 		name       string
 		tc         parsedCase
 		wantReason string
 	}{
-		{name: "rounded only finite", tc: parsedCase{Operation: "scaleb", Operands: []string{"1.0", "-1"}, Result: "0.10", Flags: []string{"Rounded"}}, wantReason: "scaleb_rounded_only_status_gap"},
-		{name: "subnormal rounded finite", tc: parsedCase{Operation: "scaleb", Operands: []string{"1.000000000000000E-383", "-1"}, Result: "1.00000000000000E-384", Flags: []string{"Subnormal", "Rounded"}}, wantReason: "scaleb_rounded_only_status_gap"},
-		{name: "clamped only finite", tc: parsedCase{Operation: "scaleb", Operands: []string{"1000E+369", "+1"}, Result: "1.0000E+373", Flags: []string{"Clamped"}}, wantReason: "scaleb_clamped_status_gap"},
+		{name: "rounded only finite", tc: parsedCase{Operation: "scaleb", Operands: []string{"1.0", "-1"}, Result: "0.10", Flags: []string{"Rounded"}}},
+		{name: "subnormal rounded finite", tc: parsedCase{Operation: "scaleb", Operands: []string{"1.000000000000000E-383", "-1"}, Result: "1.00000000000000E-384", Flags: []string{"Subnormal", "Rounded"}}},
+		{name: "clamped only finite", tc: parsedCase{Operation: "scaleb", Operands: []string{"1000E+369", "+1"}, Result: "1.0000E+373", Flags: []string{"Clamped"}}},
 		{name: "rounded extra condition", tc: parsedCase{Operation: "scaleb", Operands: []string{"1", "1"}, Result: "1E+1", Flags: []string{"Rounded", "Invalid_operation"}}},
 		{name: "clamped extra condition", tc: parsedCase{Operation: "scaleb", Operands: []string{"1", "1"}, Result: "1E+1", Flags: []string{"Clamped", "Invalid_operation"}}},
 		{name: "rounded NaN operand", tc: parsedCase{Operation: "scaleb", Operands: []string{"NaN", "1"}, Result: "NaN", Flags: []string{"Rounded"}}},

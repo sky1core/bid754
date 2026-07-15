@@ -1,15 +1,18 @@
-// bid754-authored helper (no originating Intel C file): exposes the status-aware
-// BID32 arithmetic cores and composes status for operations whose current port
-// still routes through the corresponding BID64 operation.
+// bid754-authored status-aware wrapper glue around the BID32 mechanical ports.
+// The min/max status projection factorizes the identical signaling-NaN side
+// effect from bid32_minmax.c; scale wrappers return the flags produced by
+// bid32_scalb.c, bid32_scalbl.c, and bid32_ldexp.c directly.
 
 package bidgo
 
-func bid32_flags_via_bid64_binary_nornd(x, y uint32, op64 func(uint64, uint64) (uint64, uint32)) uint32 {
-	x64, f1 := Bid32ToBid64(x)
-	y64, f2 := Bid32ToBid64(y)
-	r64, f3 := op64(x64, y64)
-	_, f4 := Bid64ToBid32(r64, 0)
-	return f1 | f2 | f3 | f4
+// bid32_minmax_flags is the common status projection of the four canonical
+// min/max operations: each raises invalid exactly when either operand is a
+// signaling NaN. The result/cohort logic remains in the line-for-line ports.
+func bid32_minmax_flags(x, y uint32) uint32 {
+	if (x&MASK_SNAN32) == MASK_SNAN32 || (y&MASK_SNAN32) == MASK_SNAN32 {
+		return BID_INVALID_EXCEPTION
+	}
+	return 0
 }
 
 func Bid32AddWithFlags(x, y uint32, rndMode int) (uint32, uint32) {
@@ -29,41 +32,29 @@ func Bid32DivWithFlags(x, y uint32, rndMode int) (uint32, uint32) {
 }
 
 func Bid32MinNumWithFlags(x, y uint32) (uint32, uint32) {
-	return bid32_minnum_pure(x, y), bid32_flags_via_bid64_binary_nornd(x, y, Bid64MinNum)
+	return bid32_minnum_pure(x, y), bid32_minmax_flags(x, y)
 }
 
 func Bid32MaxNumWithFlags(x, y uint32) (uint32, uint32) {
-	return bid32_maxnum_pure(x, y), bid32_flags_via_bid64_binary_nornd(x, y, Bid64MaxNum)
+	return bid32_maxnum_pure(x, y), bid32_minmax_flags(x, y)
 }
 
 func Bid32MinNumMagWithFlags(x, y uint32) (uint32, uint32) {
-	return bid32_minnum_mag_pure(x, y), bid32_flags_via_bid64_binary_nornd(x, y, Bid64MinNumMag)
+	return bid32_minnum_mag_pure(x, y), bid32_minmax_flags(x, y)
 }
 
 func Bid32MaxNumMagWithFlags(x, y uint32) (uint32, uint32) {
-	return bid32_maxnum_mag_pure(x, y), bid32_flags_via_bid64_binary_nornd(x, y, Bid64MaxNumMag)
+	return bid32_maxnum_mag_pure(x, y), bid32_minmax_flags(x, y)
 }
 
 func Bid32ScalbnWithFlags(x uint32, n int, rndMode int) (uint32, uint32) {
-	res, f0 := Bid32Scalbn(x, n, rndMode)
-	x64, f1 := Bid32ToBid64(x)
-	r64, f2 := Bid64Scalbn(x64, n, rndMode)
-	_, f3 := Bid64ToBid32(r64, rndMode)
-	return res, f0 | f1 | f2 | f3
+	return Bid32Scalbn(x, n, rndMode)
 }
 
 func Bid32ScalblnWithFlags(x uint32, n int64, rndMode int) (uint32, uint32) {
-	res, f0 := Bid32Scalbln(x, n, rndMode)
-	x64, f1 := Bid32ToBid64(x)
-	r64, f2 := Bid64Scalbln(x64, n, rndMode)
-	_, f3 := Bid64ToBid32(r64, rndMode)
-	return res, f0 | f1 | f2 | f3
+	return Bid32Scalbln(x, n, rndMode)
 }
 
 func Bid32LdexpWithFlags(x uint32, n int, rndMode int) (uint32, uint32) {
-	res, f0 := Bid32Ldexp(x, n, rndMode)
-	x64, f1 := Bid32ToBid64(x)
-	r64, f2 := Bid64Ldexp(x64, n, rndMode)
-	_, f3 := Bid64ToBid32(r64, rndMode)
-	return res, f0 | f1 | f2 | f3
+	return Bid32Ldexp(x, n, rndMode)
 }

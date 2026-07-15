@@ -14204,29 +14204,6 @@
       "exported": false,
       "group": "bid32"
     },
-    "bid32_flags_via_bid64_binary_nornd": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u32"
-        },
-        {
-          "name": "y",
-          "type": "u32"
-        },
-        {
-          "name": "op64",
-          "type": "func(uint64, uint64) (uint64, uint32)"
-        }
-      ],
-      "returns": [
-        "u32"
-      ],
-      "go_file": "bid32_status.go",
-      "go_name": "bid32_flags_via_bid64_binary_nornd",
-      "exported": false,
-      "group": "bid32"
-    },
     "bid32_maxnum_mag_pure": {
       "params": [
         {
@@ -14262,6 +14239,25 @@
       ],
       "go_file": "bid32_minmax.go",
       "go_name": "bid32_maxnum_pure",
+      "exported": false,
+      "group": "bid32"
+    },
+    "bid32_minmax_flags": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u32"
+        },
+        {
+          "name": "y",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "go_file": "bid32_status.go",
+      "go_name": "bid32_minmax_flags",
       "exported": false,
       "group": "bid32"
     },

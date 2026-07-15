@@ -252,9 +252,6 @@ func generatedDectestCaseSkipReason(tc parsedCase, testType string) (string, boo
 	if reason, ok := generatedDectestFMAReason(tc, testType); ok {
 		return reason, true
 	}
-	if reason, ok := generatedDectestScaleBReason(tc); ok {
-		return reason, true
-	}
 	if reason, ok := generatedDectestRemainderFamilyReason(tc, "remainder", testType); ok {
 		return reason, true
 	}
@@ -295,36 +292,6 @@ func generatedDectestFMAReason(tc parsedCase, testType string) (string, bool) {
 	if generatedDectestFMANaNPayloadPrecedenceCase(tc, testType) {
 		return "fma_nan_payload_precedence", true
 	}
-	if !generatedDectestHasOnlyFiniteOperands(tc, 3) || !generatedDectestFiniteValue(tc.Result) {
-		return "", false
-	}
-	if generatedDectestHasOnlyCondition(tc.Flags, "clamped") {
-		return "fma_clamped_status_gap", true
-	}
-	if generatedDectestHasOnlyRoundedStatusGapConditions(tc.Flags) {
-		return "fma_rounded_only_status_gap", true
-	}
-	return "", false
-}
-
-func generatedDectestHasOnlyRoundedStatusGapConditions(flags []string) bool {
-	return generatedDectestHasOnlyConditions(flags, "rounded") ||
-		generatedDectestHasOnlyConditions(flags, "subnormal", "rounded")
-}
-
-func generatedDectestScaleBReason(tc parsedCase) (string, bool) {
-	if normalizeDecTestOperation(tc.Operation) != "scaleb" {
-		return "", false
-	}
-	if !generatedDectestHasOnlyFiniteOperands(tc, 2) || !generatedDectestFiniteValue(tc.Result) {
-		return "", false
-	}
-	if generatedDectestHasOnlyCondition(tc.Flags, "clamped") {
-		return "scaleb_clamped_status_gap", true
-	}
-	if generatedDectestHasOnlyRoundedStatusGapConditions(tc.Flags) {
-		return "scaleb_rounded_only_status_gap", true
-	}
 	return "", false
 }
 
@@ -339,10 +306,7 @@ func generatedDectestRemainderFamilyReason(tc parsedCase, operation, testType st
 		return "", false
 	}
 	if generatedDectestHasOnlyCondition(tc.Flags, "divisionimpossible") && generatedDectestDefaultQuietNaN(tc.Result) {
-		return operation + "_division_impossible_status_gap", true
-	}
-	if generatedDectestHasOnlyCondition(tc.Flags, "clamped") && generatedDectestFiniteValue(tc.Result) {
-		return operation + "_clamped_status_gap", true
+		return operation + "_gda_division_impossible_context_semantics", true
 	}
 	return "", false
 }

@@ -60,7 +60,6 @@ const (
 // verified), and must carry a non-empty reason.
 var nonIntelOriginFiles = map[string]string{
 	"bid32_exports.go":         "pure Go exported wrapper glue: one-line Bid32* wrappers routing to the ported bid32_*_pure functions defined in files that carry the Intel references",
-	"bid32_status.go":          "bid754-authored helper (per its header): exposes status-aware BID32 arithmetic cores and retains BID64 status composition only for the remaining non-arithmetic wrappers; no originating Intel C file",
 	"reduce64.go":              "bid754-authored implementation (per its header): the Intel BID library has no reduce operation; implements the decTest trailing-zero reduction",
 	"tables_round_const128.go": "bid754-authored init-time construction of bid_round_const_table_128 from bid_power10_table_128; the value surface is anchored by the tablecrosscheck exclusion entry for bid_round_const_table_128",
 	"types.go":                 "Go-side type and rounding-mode constant definitions for the bidgo package; no ported Intel logic",

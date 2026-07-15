@@ -123,12 +123,27 @@ func TestShouldSkipDecTestCaseAllowsCopyFamilyNaNPayloadEdges(t *testing.T) {
 	}
 }
 
-func TestCompareDecTestFlagsNormalizesAliasesAndOrder(t *testing.T) {
-	expected := []string{"Rounded", "Division_by_zero", "inexact"}
-	actual := FlagInexact | FlagRounded | FlagDivisionByZero
+func TestCompareDecTestFlagsKeepsNativeGDAConditionsExact(t *testing.T) {
+	expected := []string{"Rounded", "Subnormal", "Clamped", "Division_by_zero", "inexact"}
+	actual := FlagInexact | FlagDivisionByZero
 
-	if !compareDecTestFlags(expected, actual) {
-		t.Fatalf("expected flags %v to match %s", expected, actual.String())
+	if compareDecTestFlags(expected, actual) {
+		t.Fatalf("expected native comparison to retain GDA conditions in %v", expected)
+	}
+	if !compareDecTestFlags(expected, actual|FlagRounded|FlagSubnormal|FlagClamped) {
+		t.Fatalf("expected exact GDA condition match for %v", expected)
+	}
+}
+
+func TestCompareDecTestBIDFiveFlagsProjectsOutGDAConditions(t *testing.T) {
+	expected := []string{"Rounded", "Subnormal", "Clamped", "Division_by_zero", "inexact"}
+	actual := FlagInexact | FlagDivisionByZero
+
+	if !compareDecTestBIDFiveFlags(expected, actual) {
+		t.Fatalf("expected Intel five-flag projection of %v to match %s", expected, actual.String())
+	}
+	if !compareDecTestBIDFiveFlags(expected, actual|FlagRounded|FlagSubnormal|FlagClamped) {
+		t.Fatal("expected GDA-only actual conditions to remain outside the BID comparison mask")
 	}
 }
 
@@ -459,52 +474,6 @@ func TestDecTestSkipReasonReportsSpecificReasons(t *testing.T) {
 			want:     "fma_nan_payload_precedence",
 		},
 		{
-			name: "fma rounded only",
-			tc: decTestCase{
-				Operation:    "fma",
-				Operands:     []string{"1.23456789", "1.00000000", "0e+384"},
-				Result:       "1.234567890000000",
-				Flags:        []string{"Rounded"},
-				RoundingMode: "half_even",
-			},
-			testType: "decimal64",
-			want:     "fma_rounded_only_status_gap",
-		},
-		{
-			name: "fma clamped only",
-			tc: decTestCase{
-				Operation:    "fma",
-				Operands:     []string{"100E+260", "0E+260", "0e+384"},
-				Result:       "0E+369",
-				Flags:        []string{"Clamped"},
-				RoundingMode: "half_even",
-			},
-			testType: "decimal64",
-			want:     "fma_clamped_status_gap",
-		},
-		{
-			name: "scaleb rounded only",
-			tc: decTestCase{
-				Operation: "scaleb",
-				Operands:  []string{"1.000000000000000E-383", "-1"},
-				Result:    "1.00000000000000E-384",
-				Flags:     []string{"Subnormal", "Rounded"},
-			},
-			testType: "decimal64",
-			want:     "scaleb_rounded_only_status_gap",
-		},
-		{
-			name: "scaleb clamped only",
-			tc: decTestCase{
-				Operation: "scaleb",
-				Operands:  []string{"1000E+369", "+1"},
-				Result:    "1.0000E+373",
-				Flags:     []string{"Clamped"},
-			},
-			testType: "decimal64",
-			want:     "scaleb_clamped_status_gap",
-		},
-		{
 			name: "remainder division impossible",
 			tc: decTestCase{
 				Operation: "remainder",
@@ -513,7 +482,7 @@ func TestDecTestSkipReasonReportsSpecificReasons(t *testing.T) {
 				Flags:     []string{"Division_impossible"},
 			},
 			testType: "decimal64",
-			want:     "remainder_division_impossible_status_gap",
+			want:     "remainder_gda_division_impossible_context_semantics",
 		},
 		{
 			name: "remaindernear nan payload",
@@ -1463,7 +1432,7 @@ func TestShouldSkipDecTestCaseSkipsOnlyDivergentRemainderNaNIdentities(t *testin
 	}
 }
 
-func TestShouldSkipDecTestCaseRequiresExactRemainderStatusGapShape(t *testing.T) {
+func TestShouldSkipDecTestCaseKeepsOnlyRemainderGDADivisionImpossibleValueDivergence(t *testing.T) {
 	testCases := []struct {
 		name       string
 		tc         decTestCase
@@ -1477,7 +1446,7 @@ func TestShouldSkipDecTestCaseRequiresExactRemainderStatusGapShape(t *testing.T)
 				Result:    "NaN",
 				Flags:     []string{"Division_impossible"},
 			},
-			wantReason: "remainder_division_impossible_status_gap",
+			wantReason: "remainder_gda_division_impossible_context_semantics",
 		},
 		{
 			name: "clamped finite operands and result",
@@ -1487,7 +1456,6 @@ func TestShouldSkipDecTestCaseRequiresExactRemainderStatusGapShape(t *testing.T)
 				Result:    "0E+6111",
 				Flags:     []string{"Clamped"},
 			},
-			wantReason: "remaindernear_clamped_status_gap",
 		},
 		{name: "division impossible extra condition", tc: decTestCase{Operation: "remainder", Operands: []string{"1", "1"}, Result: "NaN", Flags: []string{"Division_impossible", "Rounded"}}},
 		{name: "clamped extra condition", tc: decTestCase{Operation: "remainder", Operands: []string{"1", "1"}, Result: "0", Flags: []string{"Clamped", "Rounded"}}},
@@ -1552,15 +1520,15 @@ func TestShouldSkipDecTestCaseSkipsOnlyAuthoritativeFMANaNIdentityDivergences(t 
 	}
 }
 
-func TestShouldSkipDecTestCaseRequiresExactFMAStatusGapShape(t *testing.T) {
+func TestShouldSkipDecTestCaseDoesNotSkipFMAForNonBIDStatusConditions(t *testing.T) {
 	testCases := []struct {
 		name       string
 		tc         decTestCase
 		wantReason string
 	}{
-		{name: "rounded only finite", tc: decTestCase{Operation: "fma", Operands: []string{"1.23456789", "1.00000000", "0e+384"}, Result: "1.234567890000000", Flags: []string{"Rounded"}, RoundingMode: "half_even"}, wantReason: "fma_rounded_only_status_gap"},
-		{name: "subnormal rounded finite", tc: decTestCase{Operation: "fma", Operands: []string{"1.0E-394", "1e-4", "0e+384"}, Result: "1E-398", Flags: []string{"Subnormal", "Rounded"}, RoundingMode: "half_even"}, wantReason: "fma_rounded_only_status_gap"},
-		{name: "clamped only finite", tc: decTestCase{Operation: "fma", Operands: []string{"100E+260", "0E+260", "0e+384"}, Result: "0E+369", Flags: []string{"Clamped"}, RoundingMode: "half_even"}, wantReason: "fma_clamped_status_gap"},
+		{name: "rounded only finite", tc: decTestCase{Operation: "fma", Operands: []string{"1.23456789", "1.00000000", "0e+384"}, Result: "1.234567890000000", Flags: []string{"Rounded"}, RoundingMode: "half_even"}},
+		{name: "subnormal rounded finite", tc: decTestCase{Operation: "fma", Operands: []string{"1.0E-394", "1e-4", "0e+384"}, Result: "1E-398", Flags: []string{"Subnormal", "Rounded"}, RoundingMode: "half_even"}},
+		{name: "clamped only finite", tc: decTestCase{Operation: "fma", Operands: []string{"100E+260", "0E+260", "0e+384"}, Result: "0E+369", Flags: []string{"Clamped"}, RoundingMode: "half_even"}},
 		{name: "rounded extra condition", tc: decTestCase{Operation: "fma", Operands: []string{"1", "1", "0"}, Result: "1", Flags: []string{"Rounded", "Invalid_operation"}, RoundingMode: "half_even"}},
 		{name: "clamped extra condition", tc: decTestCase{Operation: "fma", Operands: []string{"1", "1", "0"}, Result: "1", Flags: []string{"Clamped", "Invalid_operation"}, RoundingMode: "half_even"}},
 		{name: "rounded NaN operands", tc: decTestCase{Operation: "fma", Operands: []string{"NaN2", "NaN3", "NaN5"}, Result: "NaN2", Flags: []string{"Rounded"}, RoundingMode: "half_even"}},
@@ -1580,15 +1548,15 @@ func TestShouldSkipDecTestCaseRequiresExactFMAStatusGapShape(t *testing.T) {
 	}
 }
 
-func TestShouldSkipDecTestCaseRequiresExactScaleBStatusGapShape(t *testing.T) {
+func TestShouldSkipDecTestCaseDoesNotSkipScaleBForNonBIDStatusConditions(t *testing.T) {
 	testCases := []struct {
 		name       string
 		tc         decTestCase
 		wantReason string
 	}{
-		{name: "rounded only finite", tc: decTestCase{Operation: "scaleb", Operands: []string{"1.0", "-1"}, Result: "0.10", Flags: []string{"Rounded"}}, wantReason: "scaleb_rounded_only_status_gap"},
-		{name: "subnormal rounded finite", tc: decTestCase{Operation: "scaleb", Operands: []string{"1.000000000000000E-383", "-1"}, Result: "1.00000000000000E-384", Flags: []string{"Subnormal", "Rounded"}}, wantReason: "scaleb_rounded_only_status_gap"},
-		{name: "clamped only finite", tc: decTestCase{Operation: "scaleb", Operands: []string{"1000E+369", "+1"}, Result: "1.0000E+373", Flags: []string{"Clamped"}}, wantReason: "scaleb_clamped_status_gap"},
+		{name: "rounded only finite", tc: decTestCase{Operation: "scaleb", Operands: []string{"1.0", "-1"}, Result: "0.10", Flags: []string{"Rounded"}}},
+		{name: "subnormal rounded finite", tc: decTestCase{Operation: "scaleb", Operands: []string{"1.000000000000000E-383", "-1"}, Result: "1.00000000000000E-384", Flags: []string{"Subnormal", "Rounded"}}},
+		{name: "clamped only finite", tc: decTestCase{Operation: "scaleb", Operands: []string{"1000E+369", "+1"}, Result: "1.0000E+373", Flags: []string{"Clamped"}}},
 		{name: "rounded extra condition", tc: decTestCase{Operation: "scaleb", Operands: []string{"1", "1"}, Result: "1E+1", Flags: []string{"Rounded", "Invalid_operation"}}},
 		{name: "clamped extra condition", tc: decTestCase{Operation: "scaleb", Operands: []string{"1", "1"}, Result: "1E+1", Flags: []string{"Clamped", "Invalid_operation"}}},
 		{name: "rounded NaN operand", tc: decTestCase{Operation: "scaleb", Operands: []string{"NaN", "1"}, Result: "NaN", Flags: []string{"Rounded"}}},
@@ -1717,43 +1685,56 @@ func TestShouldSkipDecTestCaseSkipsOnlyDivergentMinMaxNaNIdentities(t *testing.T
 	}
 }
 
-func TestShouldSkipDecTestCaseSkipsFMASubsetEdges(t *testing.T) {
-	testCases := []decTestCase{
+func TestShouldSkipDecTestCaseClassifiesFMASubsetEdges(t *testing.T) {
+	testCases := []struct {
+		caseData decTestCase
+		wantSkip bool
+	}{
 		{
-			ID:           "fma_nan_payload_precedence",
-			Operation:    "fma",
-			Operands:     []string{"NaN2", "NaN3", "NaN5"},
-			Result:       "NaN2",
-			RoundingMode: "half_even",
+			caseData: decTestCase{
+				ID:           "fma_nan_payload_precedence",
+				Operation:    "fma",
+				Operands:     []string{"NaN2", "NaN3", "NaN5"},
+				Result:       "NaN2",
+				RoundingMode: "half_even",
+			},
+			wantSkip: true,
 		},
 		{
-			ID:           "fma_unsupported_rounding",
-			Operation:    "fma",
-			Operands:     []string{"1", "0", "0E-19"},
-			Result:       "0E-19",
-			RoundingMode: "up",
+			caseData: decTestCase{
+				ID:           "fma_unsupported_rounding",
+				Operation:    "fma",
+				Operands:     []string{"1", "0", "0E-19"},
+				Result:       "0E-19",
+				RoundingMode: "up",
+			},
+			wantSkip: true,
 		},
 		{
-			ID:           "fma_rounded_only_status",
-			Operation:    "fma",
-			Operands:     []string{"1.23456789", "1.00000000", "0e+384"},
-			Result:       "1.234567890000000",
-			Flags:        []string{"Rounded"},
-			RoundingMode: "half_even",
+			caseData: decTestCase{
+				ID:           "fma_rounded_only_status",
+				Operation:    "fma",
+				Operands:     []string{"1.23456789", "1.00000000", "0e+384"},
+				Result:       "1.234567890000000",
+				Flags:        []string{"Rounded"},
+				RoundingMode: "half_even",
+			},
 		},
 		{
-			ID:           "fma_clamped_only_status",
-			Operation:    "fma",
-			Operands:     []string{"100E+260", "0E+260", "0e+384"},
-			Result:       "0E+369",
-			Flags:        []string{"Clamped"},
-			RoundingMode: "half_even",
+			caseData: decTestCase{
+				ID:           "fma_clamped_only_status",
+				Operation:    "fma",
+				Operands:     []string{"100E+260", "0E+260", "0e+384"},
+				Result:       "0E+369",
+				Flags:        []string{"Clamped"},
+				RoundingMode: "half_even",
+			},
 		},
 	}
 
 	for _, tc := range testCases {
-		if !shouldSkipDecTestCase(tc, "decimal64") {
-			t.Fatalf("expected %s to be skipped", tc.ID)
+		if got := shouldSkipDecTestCase(tc.caseData, "decimal64"); got != tc.wantSkip {
+			t.Fatalf("shouldSkipDecTestCase(%s) = %v, want %v", tc.caseData.ID, got, tc.wantSkip)
 		}
 	}
 
@@ -1770,34 +1751,45 @@ func TestShouldSkipDecTestCaseSkipsFMASubsetEdges(t *testing.T) {
 	}
 }
 
-func TestShouldSkipDecTestCaseSkipsRemainderNearSubsetEdges(t *testing.T) {
-	testCases := []decTestCase{
+func TestShouldSkipDecTestCaseClassifiesRemainderNearSubsetEdges(t *testing.T) {
+	testCases := []struct {
+		caseData decTestCase
+		wantSkip bool
+	}{
 		{
-			ID:        "remaindernear_division_impossible",
-			Operation: "remaindernear",
-			Operands:  []string{"1", "0"},
-			Result:    "NaN",
-			Flags:     []string{"Division_impossible"},
+			caseData: decTestCase{
+				ID:        "remaindernear_division_impossible",
+				Operation: "remaindernear",
+				Operands:  []string{"1", "0"},
+				Result:    "NaN",
+				Flags:     []string{"Division_impossible"},
+			},
+			wantSkip: true,
 		},
 		{
-			ID:        "remaindernear_clamped_only_status",
-			Operation: "remaindernear",
-			Operands:  []string{"1E-383", "1E-383"},
-			Result:    "0E-398",
-			Flags:     []string{"Clamped"},
+			caseData: decTestCase{
+				ID:        "remaindernear_clamped_only_status",
+				Operation: "remaindernear",
+				Operands:  []string{"1E-383", "1E-383"},
+				Result:    "0E-398",
+				Flags:     []string{"Clamped"},
+			},
 		},
 		{
-			ID:        "remaindernear_nan_payload_precedence",
-			Operation: "remaindernear",
-			Operands:  []string{"NaN3", "sNaN9"},
-			Result:    "NaN9",
-			Flags:     []string{"Invalid_operation"},
+			caseData: decTestCase{
+				ID:        "remaindernear_nan_payload_precedence",
+				Operation: "remaindernear",
+				Operands:  []string{"NaN3", "sNaN9"},
+				Result:    "NaN9",
+				Flags:     []string{"Invalid_operation"},
+			},
+			wantSkip: true,
 		},
 	}
 
 	for _, tc := range testCases {
-		if !shouldSkipDecTestCase(tc, "decimal64") {
-			t.Fatalf("expected %s to be skipped", tc.ID)
+		if got := shouldSkipDecTestCase(tc.caseData, "decimal64"); got != tc.wantSkip {
+			t.Fatalf("shouldSkipDecTestCase(%s) = %v, want %v", tc.caseData.ID, got, tc.wantSkip)
 		}
 	}
 
@@ -1811,34 +1803,45 @@ func TestShouldSkipDecTestCaseSkipsRemainderNearSubsetEdges(t *testing.T) {
 	}
 }
 
-func TestShouldSkipDecTestCaseSkipsRemainderSubsetEdges(t *testing.T) {
-	testCases := []decTestCase{
+func TestShouldSkipDecTestCaseClassifiesRemainderSubsetEdges(t *testing.T) {
+	testCases := []struct {
+		caseData decTestCase
+		wantSkip bool
+	}{
 		{
-			ID:        "remainder_division_impossible",
-			Operation: "remainder",
-			Operands:  []string{"1", "0"},
-			Result:    "NaN",
-			Flags:     []string{"Division_impossible"},
+			caseData: decTestCase{
+				ID:        "remainder_division_impossible",
+				Operation: "remainder",
+				Operands:  []string{"1", "0"},
+				Result:    "NaN",
+				Flags:     []string{"Division_impossible"},
+			},
+			wantSkip: true,
 		},
 		{
-			ID:        "remainder_clamped_only_status",
-			Operation: "remainder",
-			Operands:  []string{"1E-383", "1E-383"},
-			Result:    "0E-398",
-			Flags:     []string{"Clamped"},
+			caseData: decTestCase{
+				ID:        "remainder_clamped_only_status",
+				Operation: "remainder",
+				Operands:  []string{"1E-383", "1E-383"},
+				Result:    "0E-398",
+				Flags:     []string{"Clamped"},
+			},
 		},
 		{
-			ID:        "remainder_nan_payload_precedence",
-			Operation: "remainder",
-			Operands:  []string{"NaN3", "sNaN9"},
-			Result:    "NaN9",
-			Flags:     []string{"Invalid_operation"},
+			caseData: decTestCase{
+				ID:        "remainder_nan_payload_precedence",
+				Operation: "remainder",
+				Operands:  []string{"NaN3", "sNaN9"},
+				Result:    "NaN9",
+				Flags:     []string{"Invalid_operation"},
+			},
+			wantSkip: true,
 		},
 	}
 
 	for _, tc := range testCases {
-		if !shouldSkipDecTestCase(tc, "decimal64") {
-			t.Fatalf("expected %s to be skipped", tc.ID)
+		if got := shouldSkipDecTestCase(tc.caseData, "decimal64"); got != tc.wantSkip {
+			t.Fatalf("shouldSkipDecTestCase(%s) = %v, want %v", tc.caseData.ID, got, tc.wantSkip)
 		}
 	}
 

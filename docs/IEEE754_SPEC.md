@@ -227,20 +227,33 @@ Non-IEEE modes are handled separately as distinct support. If unsupported, they 
 
 ## Exception flags
 
-Mandatory exception categories:
+Mandatory IEEE exception categories within the supported BID decimal scope:
 
 - invalid
 - division by zero
 - overflow
 - underflow
 - inexact
-- rounded
-- subnormal
-- clamped
 
-If the implementation has not yet fully verified a particular flag, this must be explicitly stated in the documentation as "not implemented" or "verification incomplete".
+The public Go `ExceptionFlags` type also carries `Rounded`, `Subnormal`, and
+`Clamped` for IBM GDA/decTest verification plumbing. Those names are GDA
+conditions, not additional IEEE exception categories, and the public
+arithmetic runtime does not synthesize them. The pinned Intel BID C arithmetic
+`_IDEC_flags` path reports the five categories above. Intel separately defines
+the IA-specific `DEC_FE_UNNORMAL` / `BID_DENORMAL_EXCEPTION` bit and sets it for
+subnormal binary operands in binary-to-decimal conversion and through
+`bid_feraiseexcept`; that bit is not the IBM GDA `Subnormal` result condition
+and is not mapped onto the public decimal exception surface. The Go mechanical
+port and generated Rust therefore preserve the Intel five-flag decimal runtime
+surface rather than inventing status behavior with no canonical predecessor.
 
-Current status statement: `rounded`, `subnormal`, and `clamped` exist in the public `ExceptionFlags` type but are **not implemented**. Rationale: the `_IDEC_flags` arithmetic path of the pinned Intel BID C upstream sets only 5 kinds (invalid, zero-divide, overflow, underflow, inexact) with no rounded/clamped bits, and denormal(0x02) is only defined with no setting path. Under the mechanical port principle, statuses that the upstream does not report are not synthesized. The corresponding status comparisons in decTest are handled as documented status gap skips.
+decTest handling is executor-specific: rows dispatched to native decNumber
+compare the complete parsed GDA condition set exactly, while cases executed by
+Go mechanical-port operation adapters and the portable Go/Rust legs project
+conditions onto the Intel BID five-flag surface. `Rounded`, `Subnormal`, and
+`Clamped` alone are not implementation-gap skip reasons. The exact comparison
+and remaining value-semantic divergence rules are defined in
+`TEST_GENERATION_SPEC.md`.
 
 ## Special values
 

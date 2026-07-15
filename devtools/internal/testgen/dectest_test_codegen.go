@@ -80,77 +80,77 @@ var dectestDispatchSpecs = []dectestDispatchSpec{
 		Arity:         -1,
 		Executor:      "executeDecTestNextTowardOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"nextplus", "nextminus"},
 		Arity:         -1,
 		Executor:      "executeDecTestNextOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"min", "max", "minmag", "maxmag"},
 		Arity:         -1,
 		Executor:      "executeDecTestMinMaxOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"comparetotal", "comparetotmag"},
 		Arity:         -1,
 		Executor:      "executeDecTestCompareTotalOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"abs", "plus", "minus"},
 		Arity:         -1,
 		Executor:      "executeDecTestUnaryOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"fma"},
 		Arity:         -1,
 		Executor:      "executeDecTestFMAOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"logb"},
 		Arity:         -1,
 		Executor:      "executeDecTestLogBOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"scaleb"},
 		Arity:         -1,
 		Executor:      "executeDecTestScaleBOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"remaindernear"},
 		Arity:         -1,
 		Executor:      "executeDecTestRemainderNearOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"remainder"},
 		Arity:         -1,
 		Executor:      "executeDecTestRemainderOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"reduce"},
 		Arity:         -1,
 		Executor:      "executeDecTestReduceOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckAlways",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"copy", "copyabs", "copynegate", "copysign"},
@@ -331,7 +331,7 @@ type generatedDectestFlagCheckMode int
 
 const (
 	generatedDectestFlagCheckNone generatedDectestFlagCheckMode = iota
-	generatedDectestFlagCheckAlways
+	generatedDectestFlagCheckBIDFive
 	generatedDectestFlagCheckNative
 )
 
@@ -496,8 +496,8 @@ func runGeneratedDectestCase(
 	switch flagCheck {
 	case generatedDectestFlagCheckNone:
 		return nil
-	case generatedDectestFlagCheckAlways:
-		if !compareDecTestFlags(tc.Flags, execResult.Flags) {
+	case generatedDectestFlagCheckBIDFive:
+		if !compareDecTestBIDFiveFlags(tc.Flags, execResult.Flags) {
 			return fmt.Errorf("flag mismatch: expected %v, got %s", tc.Flags, execResult.Flags.String())
 		}
 	case generatedDectestFlagCheckNative:

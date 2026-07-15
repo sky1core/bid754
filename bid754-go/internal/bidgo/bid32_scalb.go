@@ -52,6 +52,6 @@ func Bid32Scalbn(x uint32, n int, rnd_mode int) (uint32, uint32) {
 		}
 	}
 	rmode = rnd_mode
-	res = get_BID32(sign_x, exponent_x, uint64(coefficient_x), rmode)
+	res = get_BID32_flags(sign_x, exponent_x, uint64(coefficient_x), rmode, &pfpsf)
 	return res, pfpsf
 }

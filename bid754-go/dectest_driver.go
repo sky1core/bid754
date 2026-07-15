@@ -424,9 +424,6 @@ func decTestCaseSkipReason(tc decTestCase, testType string) (string, bool) {
 	if reason, ok := unsupportedFMADecTestReason(tc, testType); ok {
 		return reason, true
 	}
-	if reason, ok := unsupportedScaleBDecTestReason(tc); ok {
-		return reason, true
-	}
 	if reason, ok := unsupportedRemainderFamilyDecTestReason(tc, "remainder", testType); ok {
 		return reason, true
 	}
@@ -467,21 +464,7 @@ func unsupportedFMADecTestReason(tc decTestCase, testType string) (string, bool)
 	if isUnsupportedFMANaNPayloadPrecedenceCase(tc, testType) {
 		return "fma_nan_payload_precedence", true
 	}
-	if !hasOnlyFiniteDecTestOperands(tc, 3) || !isFiniteDecTestValue(tc.Result) {
-		return "", false
-	}
-	if hasOnlyDecTestCondition(tc.Flags, "clamped") {
-		return "fma_clamped_status_gap", true
-	}
-	if hasOnlyRoundedStatusGapConditions(tc.Flags) {
-		return "fma_rounded_only_status_gap", true
-	}
 	return "", false
-}
-
-func hasOnlyRoundedStatusGapConditions(flags []string) bool {
-	return hasOnlyDecTestConditions(flags, "rounded") ||
-		hasOnlyDecTestConditions(flags, "subnormal", "rounded")
 }
 
 func hasDecTestFlag(flags []string, want string) bool {
@@ -492,22 +475,6 @@ func hasDecTestFlag(flags []string, want string) bool {
 		}
 	}
 	return false
-}
-
-func unsupportedScaleBDecTestReason(tc decTestCase) (string, bool) {
-	if normalizeDecTestOperation(tc.Operation) != "scaleb" {
-		return "", false
-	}
-	if !hasOnlyFiniteDecTestOperands(tc, 2) || !isFiniteDecTestValue(tc.Result) {
-		return "", false
-	}
-	if hasOnlyDecTestCondition(tc.Flags, "clamped") {
-		return "scaleb_clamped_status_gap", true
-	}
-	if hasOnlyRoundedStatusGapConditions(tc.Flags) {
-		return "scaleb_rounded_only_status_gap", true
-	}
-	return "", false
 }
 
 func unsupportedRemainderFamilyDecTestReason(tc decTestCase, operation, testType string) (string, bool) {
@@ -521,10 +488,7 @@ func unsupportedRemainderFamilyDecTestReason(tc decTestCase, operation, testType
 		return "", false
 	}
 	if hasOnlyDecTestCondition(tc.Flags, "divisionimpossible") && isDefaultQuietDecTestNaN(tc.Result) {
-		return operation + "_division_impossible_status_gap", true
-	}
-	if hasOnlyDecTestCondition(tc.Flags, "clamped") && isFiniteDecTestValue(tc.Result) {
-		return operation + "_clamped_status_gap", true
+		return operation + "_gda_division_impossible_context_semantics", true
 	}
 	return "", false
 }
@@ -976,6 +940,18 @@ func compareDecTestFlags(expected []string, actual ExceptionFlags) bool {
 		return false
 	}
 	return expectedFlags == actual
+}
+
+func compareDecTestBIDFiveFlags(expected []string, actual ExceptionFlags) bool {
+	expectedFlags, ok := parseDecTestFlags(expected)
+	if !ok {
+		return false
+	}
+	// Intel BID exposes only these five exception flags. IBM GDA conditions
+	// such as Rounded, Subnormal, and Clamped are parsed for validation but are
+	// outside this differential comparison surface.
+	const bidFlagMask = FlagInvalidOperation | FlagDivisionByZero | FlagOverflow | FlagUnderflow | FlagInexact
+	return expectedFlags&bidFlagMask == actual&bidFlagMask
 }
 
 func parseDecTestFlags(flags []string) (ExceptionFlags, bool) {

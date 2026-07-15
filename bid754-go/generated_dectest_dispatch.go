@@ -19,7 +19,7 @@ type generatedDectestFlagCheckMode int
 
 const (
 	generatedDectestFlagCheckNone generatedDectestFlagCheckMode = iota
-	generatedDectestFlagCheckAlways
+	generatedDectestFlagCheckBIDFive
 	generatedDectestFlagCheckNative
 )
 
@@ -81,27 +81,27 @@ func runDecTestCaseV2(tc decTestCase, testType string) error {
 	case "samequantum":
 		return runGeneratedDectestCase(tc, testType, -1, executeDecTestSameQuantumOperation, generatedDectestCompareTokenResult, generatedDectestFlagCheckNone)
 	case "nexttoward":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestNextTowardOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestNextTowardOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "nextplus", "nextminus":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestNextOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestNextOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "min", "max", "minmag", "maxmag":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestMinMaxOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestMinMaxOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "comparetotal", "comparetotmag":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestCompareTotalOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestCompareTotalOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "abs", "plus", "minus":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestUnaryOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestUnaryOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "fma":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestFMAOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestFMAOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "logb":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestLogBOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestLogBOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "scaleb":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestScaleBOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestScaleBOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "remaindernear":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestRemainderNearOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestRemainderNearOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "remainder":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestRemainderOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestRemainderOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "reduce":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestReduceOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckAlways)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestReduceOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "copy", "copyabs", "copynegate", "copysign":
 		return runGeneratedDectestCase(tc, testType, -1, executeDecTestCopyOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckNone)
 	case "add", "subtract", "multiply", "divide", "quantize":
@@ -139,8 +139,8 @@ func runGeneratedDectestCase(
 	switch flagCheck {
 	case generatedDectestFlagCheckNone:
 		return nil
-	case generatedDectestFlagCheckAlways:
-		if !compareDecTestFlags(tc.Flags, execResult.Flags) {
+	case generatedDectestFlagCheckBIDFive:
+		if !compareDecTestBIDFiveFlags(tc.Flags, execResult.Flags) {
 			return fmt.Errorf("flag mismatch: expected %v, got %s", tc.Flags, execResult.Flags.String())
 		}
 	case generatedDectestFlagCheckNative:
