@@ -38,10 +38,13 @@ Important:
 - do not confuse the table generation path with the implementation generation path
 - tables are generated from C to both Go and Rust
 - the Go implementation is a direct mechanical port path of the C implementation
+- Go optimization may improve representation, lowering, and language/runtime overhead only while each optimized region remains mechanically traceable to the corresponding pinned Intel BID C algorithm and preserves its special-case, rounding, and status semantics, except for deviations that satisfy the IEEE `shall`, native-compare skip-reason, and checked-in regression-vector requirements of `SPEC.md` and `IEEE754_SPEC.md`
 - the Rust implementation is generated from the Go implementation
 - the full Rust implementation artifacts in `bid754-rs/src/generated` must be `devtools/tools/go2rs` output
 - Rust implementation quality, Rust idiom, and performance optimization improvements are made only by fixing `devtools/tools/go2rs` or its support/prelude generation rules and regenerating
-- semantic regression checks for `devtools/tools/go2rs` changes are the post-regeneration generated Rust verification (pinned vectors + native readtest) and the go2rs golden tests themselves. Changing go2rs requires passing these gates
+- generated Rust optimization is bound by the same mechanical-lineage rule against the Go port; neither Go nor Rust may introduce an independently designed decimal algorithm, approximation, alternate backend, or fast path that cannot be mechanically traced to its canonical predecessor
+- mechanical traceability is a reviewable provenance condition: an independent reviewer must be able to map an optimized Go region to the corresponding pinned Intel function or source region through an explicitly registered IEEE-deviation step when applicable and then a finite sequence of local semantics-preserving transformations, or map an optimized Rust emission rule to the corresponding Go region through such local transformations; provenance annotations and equal outputs are necessary evidence but do not prove this lineage by themselves
+- semantic regression checks for `devtools/tools/go2rs` changes are the full applicable generated differential gates required by `TEST_GENERATION_SPEC.md`, including the post-regeneration pinned vectors and native readtest, plus the go2rs golden tests themselves. The applicable gate set is resolved from the affected operation/path in the generated inventories and the current `Makefile` execution graph owned by the `TEST_GENERATION_SPEC.md` document boundary, never from a hand-picked reduced subset. Changing go2rs requires passing these gates
 - a separate Go->Rust converter, a C->Rust implementation generator, a hand-written Rust replacement implementation, and direct edits to generated Rust are not permitted
 - the public Rust API layer — the value-type entrypoints, methods, constructors, associated constants, and the crate-root re-export in `bid754-rs/src/lib.rs` — is generated from the Go mechanical port by the `devtools/tools/go2rs` apiemit subpass into `bid754-rs/src/generated/api/`. Because this implementation path is declared generated, its entrypoints, wrappers, and glue are part of the generated path; they are not hand-written or edited directly
 - public Go value-type entrypoints, methods, and constructors are not a separate implementation path but API routing/plumbing, and must be connected through the Go mechanical port path
@@ -89,7 +92,7 @@ Required:
 
 Auxiliary/optional artifacts:
 
-- additional optimization paths
+- profiling and code-generation optimization tooling that does not become an additional Decimal implementation path
 - per-language auxiliary libraries that are not full Decimal arithmetic implementations
 
 Auxiliary/optional items may exist, but if they are absent from the current tree, they are not described in documents as if implemented.
@@ -99,6 +102,13 @@ path of the target structure above, so it is not classified as an optional artif
 ## Relationship to the Current Tree
 
 If hand-written Go code or transitional glue code remains in the current tree, that means the target structure has not yet been achieved. Such a state is not documented as part of the target structure.
+
+A Decimal operation body admitted by a portprovenance non-Intel-origin exclusion
+has no canonical predecessor and is transitional debt, not an additional
+implementation or optimization category. It may receive correctness maintenance
+while its compatibility boundary is resolved, but it is not expanded,
+performance-specialized as an independent path, or used as precedent for another
+implementation.
 
 In particular, do not confuse the following.
 
