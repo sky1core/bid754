@@ -197,8 +197,14 @@ make bench
 `make bench` 는 Intel BID C direct, `bid754-go` public Go API native-tag,
 Go mechanical-port (`internal/bidgo`) direct, generated Rust Criterion benchmark 를 실행합니다.
 공정한 cross-implementation matrix 는 Intel C, Go 기계 포트, generated Rust 에 대해
-`bid32`/`bid64`/`bid128` × `add`/`mul`/`div`/`parse`/`to_string` 입니다. Public
-Go API benchmark 는 Go 기계 포트 위의 추가 wrapper/API 표면으로 보고됩니다.
+`bid32`/`bid64`/`bid128`의 동일 폭 산술, remainder/fmod, quantize/scaleB,
+quiet 비교, MinNum/MaxNum, 대표 signed integer 변환, 6개 BID 폭 변환 전체,
+parse, string formatting 을 포함합니다. 또한 Decimal64/Decimal128 Tier 1
+`add`/`sub`/`mul`/`div` 혼합 변형 24개 전체를 포함합니다. Intel C, Go 기계
+포트, generated Rust 는 동일한 exact operand contract 를 사용합니다. Public Go API
+benchmark 는 Go 기계 포트 위의 추가 wrapper/API 표면으로 보고됩니다. 공유 contract 는
+Intel C leg 가 C `int`로 변환하기 전에 `scale_exponent`가 signed 32-bit 범위에
+들어갈 것도 요구합니다.
 Intel C native benchmark 실행은 dependency-spec 빌드 플래그(`CFLAGS_OPT=-O3
 -ffp-contract=off` 포함)로 소스에서 빌드한 pinned `libbid.a` 가 필요합니다. setup
 스크립트는 무시되는 build-flag stamp 를 기록하고 stale 한 로컬 라이브러리를

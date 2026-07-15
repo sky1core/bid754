@@ -7,238 +7,40 @@ import "testing"
 
 // Layer: public Go API (module root), measured on the shared exact-operand
 // contract (testdata/benchmark_inputs.json). Matrix mapping:
-//   BenchmarkAlignedBID*  -> public Go API        (this file)
-//   BenchmarkFairBID*     -> Go mechanical port   (internal/bidgo/bench_fair_test.go)
-//   BenchmarkIntelCBID*   -> Intel C direct       (c_bid_benchmark_test.go, cgo-amortized)
-//   bid*/op (Criterion)   -> generated Rust       (bid754-rs/benches/core.rs)
 //
-// bid32 asymmetry: the value-only public methods (Add/Mul/Div) route to the
-// separate pure port bodies, while the *WithFlags rows route to the
-// status-aware port bodies that BenchmarkFairBID32 measures. Compare
-// add<->add_pure and add_with_flags<->FairBID32/add; do not read
-// AlignedBID32/add as a wrapper over FairBID32/add. For 64/128 the value-only
-// methods wrap the status-aware bodies, so both rows share one implementation.
-// fma/sqrt have no value-only public variants: FMA and Sqrt always return
-// flags and route to the status-aware port bodies on every width, so compare
-// them 1:1 with the FairBID*/fma and FairBID*/sqrt rows. fma consumes the
-// contract's z operand as the addend (x*y + z); sqrt reuses the non-negative
-// x operand.
+//	BenchmarkAlignedBID*  -> public Go API
+//	BenchmarkFairBID*     -> Go mechanical port
+//	BenchmarkIntelCBID*   -> Intel C direct (cgo-amortized)
+//	bid*/op (Criterion)   -> generated Rust
+//
+// bid32 asymmetry: value-only Add/Sub/Mul/Div use separate pure-port bodies,
+// while the *WithFlags rows route to the status-aware bodies measured by
+// BenchmarkFairBID32. For 64/128 the value-only methods wrap the status-aware
+// bodies. FMA and Sqrt always return flags. FMA consumes z as x*y+z; Sqrt
+// reuses the non-negative x operand.
 
 var (
 	alignedSink32     Decimal32BID
 	alignedSink64     Decimal64BID
 	alignedSink128    Decimal128BID
 	alignedSinkString string
+	alignedSinkInt64  int64
+	alignedSinkBool   bool
 	alignedSinkErr    error
 	alignedSinkFlags  ExceptionFlags
 )
 
 func BenchmarkAlignedBID32(b *testing.B) {
 	requireNativeBenchmark(b)
-	inputs := loadBenchmarkInputs(b)
-
-	x := exactBenchmarkDecimal32(b, inputs.Decimal32.X)
-	y := exactBenchmarkDecimal32(b, inputs.Decimal32.Y)
-	z := exactBenchmarkDecimal32(b, inputs.Decimal32.Z)
-
-	b.Run("add", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32 = x.Add(y)
-		}
-	})
-	b.Run("mul", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32 = x.Mul(y)
-		}
-	})
-	b.Run("div", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32 = x.Div(y)
-		}
-	})
-	b.Run("add_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32, alignedSinkFlags = x.AddWithFlags(y)
-		}
-	})
-	b.Run("mul_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32, alignedSinkFlags = x.MulWithFlags(y)
-		}
-	})
-	b.Run("div_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32, alignedSinkFlags = x.DivWithFlags(y)
-		}
-	})
-	b.Run("fma", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32, alignedSinkFlags = x.FMA(y, z)
-		}
-	})
-	b.Run("sqrt", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32, alignedSinkFlags = x.Sqrt()
-		}
-	})
-	b.Run("parse", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink32, alignedSinkErr = NewDecimal32BIDDirect(inputs.Decimal32.X)
-		}
-	})
-	b.Run("to_string", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSinkString = x.String()
-		}
-	})
+	runAlignedBenchmarkRows(b, alignedBID32BenchmarkRows(b))
 }
 
 func BenchmarkAlignedBID64(b *testing.B) {
 	requireNativeBenchmark(b)
-	inputs := loadBenchmarkInputs(b)
-
-	x := exactBenchmarkDecimal64(b, inputs.Decimal64.X)
-	y := exactBenchmarkDecimal64(b, inputs.Decimal64.Y)
-	z := exactBenchmarkDecimal64(b, inputs.Decimal64.Z)
-
-	b.Run("add", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64 = x.Add(y)
-		}
-	})
-	b.Run("mul", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64 = x.Mul(y)
-		}
-	})
-	b.Run("div", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64 = x.Div(y)
-		}
-	})
-	b.Run("add_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64, alignedSinkFlags = x.AddWithFlags(y)
-		}
-	})
-	b.Run("mul_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64, alignedSinkFlags = x.MulWithFlags(y)
-		}
-	})
-	b.Run("div_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64, alignedSinkFlags = x.DivWithFlags(y)
-		}
-	})
-	b.Run("fma", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64, alignedSinkFlags = x.FMA(y, z)
-		}
-	})
-	b.Run("sqrt", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64, alignedSinkFlags = x.Sqrt()
-		}
-	})
-	b.Run("parse", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink64, alignedSinkErr = NewDecimal64BIDDirect(inputs.Decimal64.X)
-		}
-	})
-	b.Run("to_string", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSinkString = x.String()
-		}
-	})
+	runAlignedBenchmarkRows(b, alignedBID64BenchmarkRows(b))
 }
 
 func BenchmarkAlignedBID128(b *testing.B) {
 	requireNativeBenchmark(b)
-	inputs := loadBenchmarkInputs(b)
-
-	x := exactBenchmarkDecimal128(b, inputs.Decimal128.X)
-	y := exactBenchmarkDecimal128(b, inputs.Decimal128.Y)
-	z := exactBenchmarkDecimal128(b, inputs.Decimal128.Z)
-
-	b.Run("add", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128 = x.Add(y)
-		}
-	})
-	b.Run("mul", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128 = x.Mul(y)
-		}
-	})
-	b.Run("div", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128 = x.Div(y)
-		}
-	})
-	b.Run("add_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128, alignedSinkFlags = x.AddWithFlags(y)
-		}
-	})
-	b.Run("mul_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128, alignedSinkFlags = x.MulWithFlags(y)
-		}
-	})
-	b.Run("div_with_flags", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128, alignedSinkFlags = x.DivWithFlags(y)
-		}
-	})
-	b.Run("fma", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128, alignedSinkFlags = x.FMA(y, z)
-		}
-	})
-	b.Run("sqrt", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128, alignedSinkFlags = x.Sqrt()
-		}
-	})
-	b.Run("parse", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSink128, alignedSinkErr = NewDecimal128BIDDirect(inputs.Decimal128.X)
-		}
-	})
-	b.Run("to_string", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			alignedSinkString = x.String()
-		}
-	})
+	runAlignedBenchmarkRows(b, alignedBID128BenchmarkRows(b))
 }

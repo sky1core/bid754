@@ -30,10 +30,9 @@
 // Add*BIDWithContext accumulates FlagInvalidOperation into the context and
 // returns a canonical quiet NaN.
 //
-// String formatting follows the Intel BID to_string output of each width:
-// Decimal64 and Decimal128 use the coefficient-exponent form, e.g.
-// "+12400E-2", while Decimal32 uses the Intel bid32_to_string format, e.g.
-// "+1.5" or "+9.999999e96". See the package examples for typical usage.
+// String formatting follows the Intel BID to_string coefficient-exponent
+// output for every width, e.g. "+15E-1" or "+12400E-2". See the package
+// examples for typical usage.
 package bid754
 
 // Version and Name identify this library build.

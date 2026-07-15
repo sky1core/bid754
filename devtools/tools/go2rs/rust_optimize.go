@@ -19,7 +19,6 @@ func finalizeRustGenerated(projectRoot string) {
 func applyRustGeneratedRewrites(generatedDir string) {
 	optimizeByteCursorParser(filepath.Join(generatedDir, "bid64_from_string.rs"), "pub(crate) fn bid64_from_string")
 	optimizeByteCursorParser(filepath.Join(generatedDir, "bid128_string.rs"), "pub fn bid128_from_string")
-	optimizeBid32String(filepath.Join(generatedDir, "bid32_string.rs"))
 	optimizeBid32MiscAliases(filepath.Join(generatedDir, "bid32_misc.rs"))
 	optimizeBid64NextTowardAlias(filepath.Join(generatedDir, "nexttoward64.rs"))
 	optimizeBid128Misc(filepath.Join(generatedDir, "bid128_misc.rs"))
@@ -76,115 +75,6 @@ func optimizeByteCursorParser(path string, fnSignature string) {
 
 	writeFile(path, src)
 	fmt.Printf("  optimized %s: byte-cursor parser lowering\n", filepath.Base(path))
-}
-
-func optimizeBid32String(path string) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fatal("read %s: %v", path, err)
-	}
-	src := string(data)
-
-	if strings.Contains(src, "String::with_capacity(digits.len() + 12)") &&
-		(strings.Contains(src, `let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes().to_vec();`) ||
-			(strings.Contains(src, `let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();`) &&
-				strings.Contains(src, `s.eq_ignore_ascii_case(b"inf")`))) {
-		fmt.Printf("  optimized %s: string assembly lowering already applied\n", filepath.Base(path))
-		return
-	}
-
-	if !strings.Contains(src, "use core::fmt::Write as _;") {
-		src = mustReplaceString(src, "use super::prelude::*;\n", "use super::prelude::*;\nuse core::fmt::Write as _;\n", path)
-	}
-
-	oldBlocks := []string{
-		`    let mut digits = go_string_from_bytes(&mut ps[1 as usize..istart as usize]);
-    let mut adjustedExp = (((exponent_x.wrapping_sub(101)).wrapping_add((digits.len() as i64))).wrapping_sub(1));
-    let mut out = (go_string_from_bytes(&mut ps[..1 as usize]) + &mut digits[..1 as usize]);
-    if ((digits.len() as i64) > 1) {
-        out += ("." + &mut digits[1 as usize..]);
-    }
-    if (adjustedExp != 0) {
-        out += ("e" + format!("{}", adjustedExp));
-    }
-    return out;
-`,
-		`    let mut digits = go_string_from_bytes(&mut ps[1 as usize..istart as usize]);
-    let mut adjustedExp = (((exponent_x - 101) + (digits.len() as i64)) - 1);
-    let mut out = (go_string_from_bytes(&mut ps[..1 as usize]) + &mut digits[..1 as usize]);
-    if ((digits.len() as i64) > 1) {
-        out += ("." + &mut digits[1 as usize..]);
-    }
-    if (adjustedExp != 0) {
-        out += ("e" + format!("{}", adjustedExp));
-    }
-    return out;
-`,
-		`    let mut digits = go_string_from_bytes(&mut ps[1 as usize..istart as usize]);
-    let mut adjustedExp = (((exponent_x - 101) + (digits.len() as i64)) - 1);
-    let mut out = (go_string_from_bytes(&mut ps[..1 as usize]) + &mut digits[..1 as usize]);
-    if ((digits.len() as i64) > 1) {
-        out += &(".".to_string() + &digits[1 as usize..]);
-    }
-    if (adjustedExp != 0) {
-        out += &format!("e{}", adjustedExp);
-    }
-    return out;
-`,
-	}
-	newBlock := `    let mut digits = go_string_from_bytes(&mut ps[1 as usize..istart as usize]);
-    let mut adjustedExp = (((exponent_x - 101) + (digits.len() as i64)) - 1);
-    let mut out = String::with_capacity(digits.len() + 12);
-    out.push(ps[0] as char);
-    out.push_str(&digits[..1 as usize]);
-    if ((digits.len() as i64) > 1) {
-        out.push('.');
-        out.push_str(&digits[1 as usize..]);
-    }
-    if (adjustedExp != 0) {
-        out.push('e');
-        let _ = write!(&mut out, "{}", adjustedExp);
-    }
-    return out;
-`
-	replaced := false
-	for _, oldBlock := range oldBlocks {
-		if strings.Contains(src, oldBlock) {
-			src = strings.Replace(src, oldBlock, newBlock, 1)
-			replaced = true
-			break
-		}
-	}
-	if !replaced {
-		fatal("rewrite %s: expected bid32 string assembly pattern not found", path)
-	}
-
-	parserHeaderRe := regexp.MustCompile(`(?m)^    let mut s = \(ps\)\.trim_start_matches\(\|c\| " \\t"\.contains\(c\)\)\.to_string\(\);\n    if \(\(s\.len\(\) as i64\) == 0\) \{\n        return \(0x7c000000, 0\);\n    \}\n    let mut c = s\[0\];\n`)
-	parserHeaderNew := `    let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes().to_vec();
-    if ((s.len() as i64) == 0) {
-        return (0x7c000000, 0);
-    }
-    let mut c = s[0];
-`
-	if !parserHeaderRe.MatchString(src) {
-		if strings.Contains(src, `let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();`) &&
-			strings.Contains(src, `s.eq_ignore_ascii_case(b"inf")`) {
-			writeFile(path, src)
-			fmt.Printf("  optimized %s: string assembly lowering\n", filepath.Base(path))
-			return
-		}
-		fatal("rewrite %s: expected bid32 parser header not found", path)
-	}
-	src = parserHeaderRe.ReplaceAllString(src, parserHeaderNew)
-	src = mustReplaceString(src, `    let mut sl = (s).to_ascii_lowercase();
-`, `    let mut sl = String::from_utf8_lossy(&s).to_ascii_lowercase();
-`, path)
-	src = mustReplaceString(src, `        let mut sl1 = (&mut s[1 as usize..]).to_ascii_lowercase();
-`, `        let mut sl1 = String::from_utf8_lossy(&s[1 as usize..]).to_ascii_lowercase();
-`, path)
-
-	writeFile(path, src)
-	fmt.Printf("  optimized %s: string assembly lowering\n", filepath.Base(path))
 }
 
 func optimizeBid32MiscAliases(path string) {

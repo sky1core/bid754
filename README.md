@@ -205,10 +205,15 @@ make bench
 native-tag benchmarks, Go mechanical-port (`internal/bidgo`) direct
 benchmarks, and generated Rust
 Criterion benchmarks. The fair cross-implementation matrix is
-`bid32`/`bid64`/`bid128` across `add`, `mul`, `div`, `parse`, and `to_string`
-for Intel C, the Go mechanical port, and generated Rust. Public Go API
-benchmarks are
-reported as an additional wrapper/API surface over the Go mechanical port.
+`bid32`/`bid64`/`bid128` across same-width arithmetic, remainder/fmod,
+quantize/scaleB, a quiet comparison, MinNum/MaxNum, representative signed
+integer conversions, all six BID-width conversions, parsing, and formatting.
+It also includes all 24 Tier 1 mixed Decimal64/Decimal128
+`add`/`sub`/`mul`/`div` variants. Intel C, the Go mechanical port, and
+generated Rust use the same exact operand contract; public Go API benchmarks
+are reported as an additional wrapper/API surface over the Go mechanical
+port. The shared contract also requires `scale_exponent` to fit signed 32-bit
+before the Intel C leg converts it to C `int`.
 Intel C native benchmark runs require the pinned source-built `libbid.a` with
 the dependency-spec build flags, including `CFLAGS_OPT=-O3 -ffp-contract=off`; setup scripts
 record an ignored build-flag stamp and rebuild stale local libraries.

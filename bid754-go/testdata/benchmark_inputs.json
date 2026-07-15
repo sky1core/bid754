@@ -1,5 +1,7 @@
 {
-  "format_version": 1,
+  "format_version": 2,
+  "integer_operand": 1234567,
+  "scale_exponent": 3,
   "decimal32": {
     "x": "123.456",
     "y": "789.012",

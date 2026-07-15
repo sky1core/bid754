@@ -408,8 +408,8 @@
   "verification_artifact_sha256": {
     "testspec_tree": "cb29b5eb97f6ad0a8be6b1088a9497874e52b409dafefe1bce333a1e552c6739",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
-    "bidcodec_harnesses": "92f35356a1519af4bcd27eb4c6e104a9c4d664e5dfb771f053d10b6fb758f2e2",
-    "goport_verification_runners": "583becf7ef760c9e85844b9ad0b09a3a4e9a26d180d5c017ad1662bbff2d8cbe",
+    "bidcodec_harnesses": "e3c98f5af677e7ae01eec630a48c9d84635058b0de96c1b429d1bab449b3a3cb",
+    "goport_verification_runners": "245e1f053f14134116fd9d2d5db0614408ba47788e7e3382a93758b797926b39",
     "dectest_executor": "b731b95adf9c7e5e9a386fb4f0e5f5e650d857e67996609d086c65d3a0721509",
     "spec_loader": "70ee64e2cd159fe5e245415f0d8009789ca1e7254f4f020f730ed551c89dffd9",
     "rust_readtest_runner": "6efec41f78094d9153034b1845ff95a6af550ddfa68977925773d2c9354b7b44",

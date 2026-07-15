@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -70,6 +70,16 @@ test-go-modules:
 		echo "==> go test $$module"; \
 		(cd "$$module" && $(GOENV) go test -count=1 ./...); \
 	done | tee test_results/latest_go_modules_test_results.txt'
+	@$(MAKE) verify-go-benchmark-registry-portable
+
+verify-go-benchmark-registry:
+	@bash ./devtools/scripts/verify_go_benchmark_registry.sh all
+
+verify-go-benchmark-registry-portable:
+	@bash ./devtools/scripts/verify_go_benchmark_registry.sh portable
+
+verify-go-benchmark-registry-native:
+	@bash ./devtools/scripts/verify_go_benchmark_registry.sh native
 
 # Go race detector gate. Exercises the public concurrent-use contract of the
 # runtime modules: value-type copy safety under contention, atomicity of the
@@ -108,6 +118,10 @@ test-rust:
 	@echo "🧪 Rust portable 테스트 실행 (Intel BID 불요, 고정 벡터)..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-rs && cargo test --locked) | tee test_results/latest_rust_test_results.txt'
+	@$(MAKE) verify-rust-benchmark-registry
+
+verify-rust-benchmark-registry:
+	@bash ./devtools/scripts/verify_rust_benchmark_registry.sh
 
 test-rust-native:
 	@echo "🦀 Rust native 테스트 실행 (Intel BID C oracle 필요: readtest)..."
@@ -172,7 +186,7 @@ verify-all:
 	fi
 
 _verify-all:
-	@echo "Full verification: shell script syntax, generated artifacts (inputs first, so no later gate silently skips on missing pinned inputs), portable modules, Go dependency hygiene, zero-dependency and portable cgo-purity contracts, package manifest versions, BID codec packages, vector consumers and Decimal64/128 long verification, Rust package publish-readiness verification, BID string vectors, Rust policy, and available native gates"
+	@echo "Full verification: shell script syntax, generated artifacts (inputs first, so no later gate silently skips on missing pinned inputs), portable modules, Go dependency hygiene, zero-dependency and portable cgo-purity contracts, package manifest versions, BID codec packages, vector consumers and Decimal64/128 long verification, Go and Rust benchmark registries, Rust package publish-readiness verification, BID string vectors, Rust policy, and available native gates"
 	@$(MAKE) check-scripts
 	@$(MAKE) verify-generated
 	@$(MAKE) test-go-modules
@@ -343,6 +357,8 @@ check-scripts:
 		devtools/scripts/verify_intel_bid_v20u4_diff.sh \
 		devtools/scripts/verify_bidcodec_packages.sh \
 		devtools/scripts/verify_rust_package.sh \
+		devtools/scripts/verify_go_benchmark_registry.sh \
+		devtools/scripts/verify_rust_benchmark_registry.sh \
 		devtools/scripts/verify_package_versions.sh \
 		devtools/scripts/verify_rust_overflow_policy.sh \
 		devtools/scripts/test_bidcodec.sh \
@@ -370,6 +386,7 @@ test-native-smoke:
 	@echo "🧪 native smoke 테스트 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -short ./...) | tee test_results/latest_native_smoke_results.txt'
+	@$(MAKE) verify-go-benchmark-registry-native
 
 test-native-ffi:
 	@echo "🧬 generated FFI bit-compare native non-short 검증 실행..."
@@ -432,7 +449,7 @@ test:
 bench-quick:
 	@echo "⚡ native 빠른 벤치마크 실행 (public API 계층, count=1 스모크)..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '( echo "BENCH-META target=bench-quick count=1 tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="BenchmarkAlignedBID" -benchmem -run=^$$ -timeout 300s ) | tee test_results/quick_benchmark_results.txt'
+	@bash -o pipefail -lc '( echo "BENCH-META target=bench-quick count=1 tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="^BenchmarkAligned" -benchmem -run=^$$ -timeout 300s ) | tee test_results/quick_benchmark_results.txt'
 
 # 전체 벤치마크: Intel C, root public API, Go mechanical port, and generated Rust.
 bench:
@@ -796,10 +813,10 @@ summary:
 				echo "(no rows — this layer was not measured in the source file; run make bench)" >> $$out; \
 			fi; \
 		}; \
-		section "Intel C direct (BenchmarkIntelCBID*, cgo-amortized)" "BenchmarkIntelCBID.*-([0-9]+|[0-9]+\\s)"; \
-		section "Public Go API (BenchmarkAlignedBID*)" "BenchmarkAlignedBID.*-([0-9]+|[0-9]+\\s)"; \
-		section "Go mechanical port direct (BenchmarkFairBID*)" "BenchmarkFairBID.*-([0-9]+|[0-9]+\\s)"; \
-		section "generated Rust (Criterion, vs pinned baseline)" "^(bid32|bid64|bid128)/(add|mul|div|fma|sqrt|parse|to_string)"; \
+		section "Intel C direct (BenchmarkIntelC{BID,MixedBID}*, cgo-amortized)" "BenchmarkIntelC(BID|MixedBID).*-([0-9]+|[0-9]+\\s)"; \
+		section "Public Go API (BenchmarkAligned{BID,MixedBID}*)" "BenchmarkAligned(BID|MixedBID).*-([0-9]+|[0-9]+\\s)"; \
+		section "Go mechanical port direct (BenchmarkFair{BID,MixedBID}*)" "BenchmarkFair(BID|MixedBID).*-([0-9]+|[0-9]+\\s)"; \
+		section "generated Rust (Criterion, vs pinned baseline)" "^(bid32|bid64|bid128|bid64_mixed|bid128_mixed)/"; \
 		echo "✅ 성능 요약이 test_results/latest_performance_summary.txt에 저장됨"; \
 	else \
 		echo "❌ 벤치마크 결과가 없어 요약을 생성할 수 없음"; \
@@ -834,6 +851,9 @@ help:
 	@echo "특수 테스트:"
 	@echo "  make test-portable  portable 기본 검증"
 	@echo "  make test-go-modules active Go 모듈 검증"
+	@echo "  make verify-go-benchmark-registry Go 실제 벤치 바이너리 등록 목록 검증 (portable+native)"
+	@echo "  make verify-go-benchmark-registry-portable Go port 실제 벤치 등록 85행 검증"
+	@echo "  make verify-go-benchmark-registry-native public Go+Intel C 실제 벤치 등록 174행 검증"
 	@echo "  make test-race      Go race detector 동시성 검증 (bid754-go + bid754-codec-go)"
 	@echo "  make vet-go-modules active Go 모듈 vet 검증"
 	@echo "  make verify-go-modules active Go 모듈 dependency hygiene 검증"

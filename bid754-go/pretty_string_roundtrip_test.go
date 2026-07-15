@@ -9,7 +9,7 @@ import (
 func TestPrettyStringReparsesExpandedIntegerRegressions(t *testing.T) {
 	t.Run("decimal32", func(t *testing.T) {
 		d := Decimal32BID(0x399de940)
-		if got, want := d.PrettyString(), "1.960256e20"; got != want {
+		if got, want := d.PrettyString(), "1960256E+14"; got != want {
 			t.Fatalf("PrettyString() = %q, want %q", got, want)
 		}
 		assertPrettyStringRoundTrips32(t, d)

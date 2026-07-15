@@ -112,11 +112,11 @@ func TestAdd32BIDWithContextUsesRoundingMode(t *testing.T) {
 	nearest := Add32BIDWithContext(a, b, &ArithmeticContext{RoundingMode: RoundNearestEven})
 	toZero := Add32BIDWithContext(a, b, &ArithmeticContext{RoundingMode: RoundTowardZero})
 
-	if got := nearest.String(); got != "+2.000000e1" {
-		t.Fatalf("nearest-even result = %q, want %q", got, "+2.000000e1")
+	if got := nearest.String(); got != "+2000000E-5" {
+		t.Fatalf("nearest-even result = %q, want %q", got, "+2000000E-5")
 	}
-	if got := toZero.String(); got != "+1.999999e1" {
-		t.Fatalf("toward-zero result = %q, want %q", got, "+1.999999e1")
+	if got := toZero.String(); got != "+1999999E-5" {
+		t.Fatalf("toward-zero result = %q, want %q", got, "+1999999E-5")
 	}
 }
 

@@ -248,12 +248,12 @@ func TestGeneratedBIDStringVectors(t *testing.T) {
 						t.Fatalf("%s line %d: bits got %s, want %s", tc.Function, tc.Line, gotBits, tc.Expected)
 					}
 				} else {
-					rendered, err := generatedBIDStringRenderBits(tc.Format, gotBits)
+					equal, err := generatedBIDStringDecimalRowEqual(tc.Format, tc.Expected, gotBits, tc.Rounding)
 					if err != nil {
-						t.Fatalf("render from_string result: %v", err)
+						t.Fatalf("compare from_string decimal result: %v", err)
 					}
-					if normalizeGeneratedBIDDecimalString(rendered) != normalizeGeneratedBIDDecimalString(tc.Expected) {
-						t.Fatalf("%s line %d: rendered got %q, want %q", tc.Function, tc.Line, rendered, tc.Expected)
+					if !equal {
+						t.Fatalf("%s line %d: bits got %s, want exact cohort parsed from %q", tc.Function, tc.Line, gotBits, tc.Expected)
 					}
 				}
 				if normalizeGeneratedBIDStringStatus(flags) != normalizeGeneratedBIDStringStatus(tc.Status) {
@@ -264,8 +264,16 @@ func TestGeneratedBIDStringVectors(t *testing.T) {
 				if err != nil {
 					t.Fatalf("to_string dispatch: %v", err)
 				}
-				if normalizeGeneratedBIDDecimalString(got) != normalizeGeneratedBIDDecimalString(tc.Expected) {
-					t.Fatalf("%s line %d: got %q, want %q", tc.Function, tc.Line, got, tc.Expected)
+				equal, roundTripStatus, err := generatedBIDStringToStringRowEqual(tc.Format, tc.Expected, got, tc.Rounding)
+				if err != nil {
+					t.Fatalf("compare to_string result: %v", err)
+				}
+				if !equal {
+					t.Fatalf("%s line %d: got %q, want exact cohort parsed from %q", tc.Function, tc.Line, got, tc.Expected)
+				}
+				flags, err = combineGeneratedBIDStringStatus(flags, roundTripStatus)
+				if err != nil {
+					t.Fatalf("combine to_string status: %v", err)
 				}
 				if normalizeGeneratedBIDStringStatus(flags) != normalizeGeneratedBIDStringStatus(tc.Status) {
 					t.Fatalf("%s line %d: status got %s, want %s", tc.Function, tc.Line, normalizeGeneratedBIDStringStatus(flags), normalizeGeneratedBIDStringStatus(tc.Status))
@@ -275,6 +283,49 @@ func TestGeneratedBIDStringVectors(t *testing.T) {
 	}
 	if counts != expectedGeneratedBIDStringCounts {
 		t.Fatalf("generated BID string read case counts changed: got %+v, want %+v", counts, expectedGeneratedBIDStringCounts)
+	}
+}
+
+// TestGeneratedBIDStringToStringComparatorStrength anchors the generated
+// comparator to Intel readtest.c: expected and produced strings are parsed by
+// the backend at the row rounding mode and compared as exact BID cohorts, and
+// flags from parsing the produced string are accumulated into operation flags.
+func TestGeneratedBIDStringToStringComparatorStrength(t *testing.T) {
+	equal, _, err := generatedBIDStringToStringRowEqual("decimal64", "+15E+0", "+150E-1", 0)
+	if err != nil {
+		t.Fatalf("wrong-cohort comparison: %v", err)
+	}
+	if equal {
+		t.Fatal("wrong-cohort string accepted: +150E-1 must not match +15E+0")
+	}
+
+	equal, status, err := generatedBIDStringToStringRowEqual("decimal64", "15", "+15E+0", 0)
+	if err != nil {
+		t.Fatalf("exact-cohort spelling comparison: %v", err)
+	}
+	if !equal {
+		t.Fatal("exact-cohort spelling variant rejected")
+	}
+	if normalizeGeneratedBIDStringStatus(status) != "00" {
+		t.Fatalf("exact-cohort round-trip status = %q, want 00", status)
+	}
+
+	equal, status, err = generatedBIDStringToStringRowEqual("decimal64", "5000000000000000E-15", "5.0000000000000000001", 0)
+	if err != nil {
+		t.Fatalf("inexact round-trip comparison: %v", err)
+	}
+	if !equal {
+		t.Fatal("inexact produced string did not round to the expected cohort")
+	}
+	if normalizeGeneratedBIDStringStatus(status) != "20" {
+		t.Fatalf("inexact round-trip status = %q, want 20", status)
+	}
+	combined, err := combineGeneratedBIDStringStatus("01", status)
+	if err != nil {
+		t.Fatalf("combine status: %v", err)
+	}
+	if normalizeGeneratedBIDStringStatus(combined) != "21" {
+		t.Fatalf("combined status = %q, want 21", combined)
 	}
 }
 
@@ -350,18 +401,22 @@ func generatedBIDStringFromString(tc generatedStringReadCase) (string, string, e
 	if len(tc.Operands) != 1 {
 		return "", "", fmt.Errorf("%s expects 1 operand, got %d", tc.Function, len(tc.Operands))
 	}
-	switch tc.Format {
+	return generatedBIDStringParseValue(tc.Format, tc.Operands[0], tc.Rounding)
+}
+
+func generatedBIDStringParseValue(format, input string, rounding int) (string, string, error) {
+	switch format {
 	case "decimal32":
-		got, flags := Bid32FromStringRaw(tc.Operands[0], tc.Rounding)
+		got, flags := Bid32FromStringRaw(input, rounding)
 		return fmt.Sprintf("[%08x]", got), fmt.Sprintf("%02X", flags), nil
 	case "decimal64":
-		got, flags := Bid64FromString(tc.Operands[0], tc.Rounding)
+		got, flags := Bid64FromString(input, rounding)
 		return fmt.Sprintf("[%016x]", got), fmt.Sprintf("%02X", flags), nil
 	case "decimal128":
-		got, flags := Bid128FromString(tc.Operands[0], tc.Rounding)
+		got, flags := Bid128FromString(input, rounding)
 		return formatGeneratedBIDStringBits128(got), fmt.Sprintf("%02X", flags), nil
 	default:
-		return "", "", fmt.Errorf("unsupported format %q", tc.Format)
+		return "", "", fmt.Errorf("unsupported format %q", format)
 	}
 }
 
@@ -393,29 +448,36 @@ func generatedBIDStringToString(tc generatedStringReadCase) (string, string, err
 	}
 }
 
-func generatedBIDStringRenderBits(format, bits string) (string, error) {
-	switch format {
-	case "decimal32":
-		raw, err := parseGeneratedBIDStringUintBits(bits, 32)
-		if err != nil {
-			return "", err
-		}
-		return Bid32ToString(uint32(raw)), nil
-	case "decimal64":
-		raw, err := parseGeneratedBIDStringUintBits(bits, 64)
-		if err != nil {
-			return "", err
-		}
-		return Bid64ToString(raw), nil
-	case "decimal128":
-		raw, err := parseGeneratedBIDStringBits128(bits)
-		if err != nil {
-			return "", err
-		}
-		return Bid128ToString(raw), nil
-	default:
-		return "", fmt.Errorf("unsupported format %q", format)
+func generatedBIDStringDecimalRowEqual(format, expected, gotBits string, rounding int) (bool, error) {
+	expectedBits, _, err := generatedBIDStringParseValue(format, expected, rounding)
+	if err != nil {
+		return false, err
 	}
+	return normalizeGeneratedBIDStringBits(expectedBits) == normalizeGeneratedBIDStringBits(gotBits), nil
+}
+
+func generatedBIDStringToStringRowEqual(format, expected, got string, rounding int) (bool, string, error) {
+	expectedBits, _, err := generatedBIDStringParseValue(format, expected, rounding)
+	if err != nil {
+		return false, "", err
+	}
+	gotBits, roundTripStatus, err := generatedBIDStringParseValue(format, got, rounding)
+	if err != nil {
+		return false, "", err
+	}
+	return normalizeGeneratedBIDStringBits(expectedBits) == normalizeGeneratedBIDStringBits(gotBits), roundTripStatus, nil
+}
+
+func combineGeneratedBIDStringStatus(a, b string) (string, error) {
+	flagsA, err := strconv.ParseUint(normalizeGeneratedBIDStringStatus(a), 16, 32)
+	if err != nil {
+		return "", fmt.Errorf("parse status %q: %w", a, err)
+	}
+	flagsB, err := strconv.ParseUint(normalizeGeneratedBIDStringStatus(b), 16, 32)
+	if err != nil {
+		return "", fmt.Errorf("parse status %q: %w", b, err)
+	}
+	return fmt.Sprintf("%02X", uint32(flagsA|flagsB)), nil
 }
 
 func parseGeneratedBIDStringUintBits(input string, bits int) (uint64, error) {
@@ -478,46 +540,6 @@ func normalizeGeneratedBIDStringStatus(input string) string {
 		trimmed = "0" + trimmed
 	}
 	return trimmed
-}
-
-func normalizeGeneratedBIDDecimalString(input string) string {
-	s := strings.Trim(strings.TrimSpace(input), "'\"")
-	if s == "" {
-		return s
-	}
-	sign := "+"
-	if s[0] == '+' {
-		s = s[1:]
-	} else if s[0] == '-' {
-		sign = "-"
-		s = s[1:]
-	}
-	lower := strings.ToLower(s)
-	switch {
-	case lower == "inf" || lower == "infinity":
-		return sign + "Inf"
-	case strings.HasPrefix(lower, "snan"):
-		return sign + "SNaN" + normalizeGeneratedBIDPayload(s[4:])
-	case strings.HasPrefix(lower, "nan"):
-		return sign + "NaN" + normalizeGeneratedBIDPayload(s[3:])
-	}
-	parts := strings.FieldsFunc(s, func(r rune) bool { return r == 'e' || r == 'E' })
-	if len(parts) == 1 {
-		return sign + parts[0] + "E+0"
-	}
-	exp, err := strconv.Atoi(strings.TrimPrefix(parts[1], "+"))
-	if err != nil {
-		return sign + strings.ToUpper(s)
-	}
-	return fmt.Sprintf("%s%sE%+d", sign, parts[0], exp)
-}
-
-func normalizeGeneratedBIDPayload(payload string) string {
-	payload = strings.TrimLeft(payload, "0")
-	if payload == "" {
-		return ""
-	}
-	return payload
 }
 `, "@@STRING_SHARD_FILES@@", goBidStringShardFilesLiteral(shardFiles), 1)
 	return replaceBidStringCountPlaceholders(src, counts)
@@ -619,13 +641,18 @@ fn test_generated_bid_string_vectors() {
                         tc.line
                     );
                 } else {
-                    let rendered = render_bits(&tc.format, &got_bits);
-                    assert_eq!(
-                        normalize_decimal(&rendered),
-                        normalize_decimal(&tc.expected),
-                        "{} line {} rendered",
+                    assert!(
+                        bid_string_decimal_row_equal(
+                            &tc.format,
+                            &tc.expected,
+                            &got_bits,
+                            tc.rounding
+                        ),
+                        "{} line {} bits {:?}, want exact cohort parsed from {:?}",
                         tc.function,
-                        tc.line
+                        tc.line,
+                        got_bits,
+                        tc.expected
                     );
                 }
                 assert_eq!(
@@ -638,15 +665,22 @@ fn test_generated_bid_string_vectors() {
             }
             "to_string" => {
                 let (got, flags) = bid_string_to_string(tc);
-                assert_eq!(
-                    normalize_decimal(&got),
-                    normalize_decimal(&tc.expected),
-                    "{} line {} result",
+                let (equal, round_trip_status) = bid_string_to_string_row_equal(
+                    &tc.format,
+                    &tc.expected,
+                    &got,
+                    tc.rounding,
+                );
+                assert!(
+                    equal,
+                    "{} line {} result {:?}, want exact cohort parsed from {:?}",
                     tc.function,
-                    tc.line
+                    tc.line,
+                    got,
+                    tc.expected
                 );
                 assert_eq!(
-                    normalize_status(&flags),
+                    normalize_status(&combine_bid_string_status(&flags, &round_trip_status)),
                     normalize_status(&tc.status),
                     "{} line {} status",
                     tc.function,
@@ -659,6 +693,41 @@ fn test_generated_bid_string_vectors() {
     assert_eq!(
         counts, EXPECTED_GENERATED_BID_STRING_COUNTS,
         "generated BID string read case counts changed"
+    );
+}
+
+/// Anchors the generated comparator to Intel readtest.c: expected and produced
+/// strings are parsed by the backend at the row rounding mode and compared as
+/// exact BID cohorts, and produced-string parse flags accumulate into the
+/// operation flags.
+#[test]
+fn test_bid_string_to_string_comparator_strength() {
+    let (equal, _) =
+        bid_string_to_string_row_equal("decimal64", "+15E+0", "+150E-1", 0);
+    assert!(
+        !equal,
+        "wrong-cohort string accepted: +150E-1 must not match +15E+0"
+    );
+
+    let (equal, status) = bid_string_to_string_row_equal("decimal64", "15", "+15E+0", 0);
+    assert!(equal, "exact-cohort spelling variant rejected");
+    assert_eq!(normalize_status(&status), "00", "exact-cohort round-trip status");
+
+    let (equal, status) = bid_string_to_string_row_equal(
+        "decimal64",
+        "5000000000000000E-15",
+        "5.0000000000000000001",
+        0,
+    );
+    assert!(
+        equal,
+        "inexact produced string did not round to the expected cohort"
+    );
+    assert_eq!(normalize_status(&status), "20", "inexact round-trip status");
+    assert_eq!(
+        normalize_status(&combine_bid_string_status("01", &status)),
+        "21",
+        "combined status"
     );
 }
 
@@ -730,17 +799,22 @@ fn load_string_read_cases() -> Vec<ReadCase> {
 
 fn bid_string_from_string(tc: &ReadCase) -> (String, String) {
     assert_eq!(tc.operands.len(), 1, "{} expects one operand", tc.id);
-    match tc.format.as_str() {
+    bid_string_parse_value(&tc.format, &tc.operands[0], tc.rounding)
+}
+
+fn bid_string_parse_value(format: &str, input: &str, rounding: i64) -> (String, String) {
+    match format {
         "decimal32" => {
-            let (got, flags) = bid32_from_string_raw(tc.operands[0].clone(), tc.rounding);
+            let (got, flags) = bid32_from_string_raw(input, rounding);
             (format!("[{got:08x}]"), format!("{flags:02X}"))
         }
         "decimal64" => {
-            let (got, flags) = bid64_from_string_raw(tc.operands[0].clone(), tc.rounding as i32);
+            let rounding = i32::try_from(rounding).expect("decimal64 rounding mode fits i32");
+            let (got, flags) = bid64_from_string_raw(input, rounding);
             (format!("[{got:016x}]"), format!("{flags:02X}"))
         }
         "decimal128" => {
-            let (got, flags) = bid128_from_string(tc.operands[0].clone(), tc.rounding);
+            let (got, flags) = bid128_from_string(input, rounding);
             (format_bits128(got), format!("{flags:02X}"))
         }
         other => panic!("unsupported format {other}"),
@@ -757,13 +831,36 @@ fn bid_string_to_string(tc: &ReadCase) -> (String, String) {
     }
 }
 
-fn render_bits(format: &str, bits: &str) -> String {
-    match format {
-        "decimal32" => bid32_to_string_raw(parse_u32_bits(bits)),
-        "decimal64" => bid64_to_string(parse_u64_bits(bits)),
-        "decimal128" => bid128_to_string(parse_bits128(bits)),
-        other => panic!("unsupported format {other}"),
-    }
+fn bid_string_decimal_row_equal(
+    format: &str,
+    expected: &str,
+    got_bits: &str,
+    rounding: i64,
+) -> bool {
+    let (expected_bits, _) = bid_string_parse_value(format, expected, rounding);
+    normalize_bits(&expected_bits) == normalize_bits(got_bits)
+}
+
+fn bid_string_to_string_row_equal(
+    format: &str,
+    expected: &str,
+    got: &str,
+    rounding: i64,
+) -> (bool, String) {
+    let (expected_bits, _) = bid_string_parse_value(format, expected, rounding);
+    let (got_bits, round_trip_status) = bid_string_parse_value(format, got, rounding);
+    (
+        normalize_bits(&expected_bits) == normalize_bits(&got_bits),
+        round_trip_status,
+    )
+}
+
+fn combine_bid_string_status(a: &str, b: &str) -> String {
+    let flags_a = u32::from_str_radix(&normalize_status(a), 16)
+        .unwrap_or_else(|err| panic!("parse status {a:?}: {err}"));
+    let flags_b = u32::from_str_radix(&normalize_status(b), 16)
+        .unwrap_or_else(|err| panic!("parse status {b:?}: {err}"));
+    format!("{:02X}", flags_a | flags_b)
 }
 
 fn parse_u32_bits(input: &str) -> u32 {
@@ -810,48 +907,6 @@ fn normalize_status(input: &str) -> String {
         s = format!("0{s}");
     }
     s
-}
-
-fn normalize_decimal(input: &str) -> String {
-    let mut s = input.trim().trim_matches(|c| c == '\'' || c == '"').to_string();
-    if s.is_empty() {
-        return s;
-    }
-    let mut sign = "+";
-    if let Some(rest) = s.strip_prefix('+') {
-        s = rest.to_string();
-    } else if let Some(rest) = s.strip_prefix('-') {
-        sign = "-";
-        s = rest.to_string();
-    }
-    let lower = s.to_ascii_lowercase();
-    if lower == "inf" || lower == "infinity" {
-        return format!("{sign}Inf");
-    }
-    if lower.starts_with("snan") {
-        return format!("{sign}SNaN{}", normalize_payload(&s[4..]));
-    }
-    if lower.starts_with("nan") {
-        return format!("{sign}NaN{}", normalize_payload(&s[3..]));
-    }
-    let parts: Vec<&str> = s.split(['e', 'E']).collect();
-    if parts.len() == 1 {
-        return format!("{sign}{}E+0", parts[0]);
-    }
-    let exp = parts[1].trim_start_matches('+').parse::<i32>();
-    match exp {
-        Ok(exp) => format!("{sign}{}E{exp:+}", parts[0]),
-        Err(_) => format!("{sign}{}", s.to_ascii_uppercase()),
-    }
-}
-
-fn normalize_payload(input: &str) -> String {
-    let stripped = input.trim_start_matches('0');
-    if stripped.is_empty() {
-        String::new()
-    } else {
-        stripped.to_string()
-    }
 }
 `, "@@STRING_SHARD_FILES@@", rustBidStringShardFilesLiteral(shardFiles), 1)
 	return replaceBidStringCountPlaceholders(src, counts)

@@ -58,12 +58,12 @@ cp "$bench_output" "$results_dir/latest_benchmark_results.txt"
   echo "Generated: $(date)"
   echo
 
-  if grep -Eq '^(Benchmark|bid(32|64|128)/(add|mul|div|parse|to_string))' "$bench_output"; then
+  if grep -Eq '^(Benchmark|bid(32|64|128)(_mixed)?/)' "$bench_output"; then
     echo "=== C/Go benchmark matrix ==="
-    grep -E "Benchmark(IntelCBID|AlignedBID|FairBID).*-([0-9]+|[0-9]+\\s)" "$bench_output" || true
+    grep -E "Benchmark(IntelC|Aligned|Fair)(BID|MixedBID).*-([0-9]+|[0-9]+\\s)" "$bench_output" || true
     echo
     echo "=== Rust Criterion matrix ==="
-    grep -E "^(bid32|bid64|bid128)/(add|mul|div|parse|to_string)" "$bench_output" || true
+    grep -E "^bid(32|64|128)(_mixed)?/" "$bench_output" || true
   else
     echo "No benchmark measurements were produced."
   fi

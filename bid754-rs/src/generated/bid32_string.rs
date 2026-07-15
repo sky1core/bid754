@@ -27,7 +27,6 @@
 )]
 
 use super::prelude::*;
-use core::fmt::Write as _;
 
 pub fn bid32_to_string_raw(mut x: u32) -> String {
     let mut CT: u64 = 0;
@@ -124,45 +123,29 @@ pub fn bid32_to_string_raw(mut x: u32) -> String {
             istart = istart.wrapping_add(1);
         }
     }
-    if (!valid) {
-        ps[istart as usize] = b'E';
+    ps[istart as usize] = b'E';
+    istart = istart.wrapping_add(1);
+    exponent_x = exponent_x.wrapping_sub(101);
+    if (exponent_x < 0) {
+        ps[istart as usize] = b'-';
         istart = istart.wrapping_add(1);
-        exponent_x = exponent_x.wrapping_sub(101);
-        if (exponent_x < 0) {
-            ps[istart as usize] = b'-';
-            istart = istart.wrapping_add(1);
-            exponent_x = (exponent_x.wrapping_neg());
-        } else {
-            ps[istart as usize] = b'+';
-            istart = istart.wrapping_add(1);
-        }
-        istart0 = istart;
-        ps[istart as usize] = bid_midi_tbl[exponent_x as usize][0];
-        if (ps[istart as usize] != b'0') {
-            istart = istart.wrapping_add(1);
-        }
-        ps[istart as usize] = bid_midi_tbl[exponent_x as usize][1];
-        if ((ps[istart as usize] != b'0') || (istart != istart0)) {
-            istart = istart.wrapping_add(1);
-        }
-        ps[istart as usize] = bid_midi_tbl[exponent_x as usize][2];
+        exponent_x = (exponent_x.wrapping_neg());
+    } else {
+        ps[istart as usize] = b'+';
         istart = istart.wrapping_add(1);
-        return go_string_from_bytes(&mut ps[..istart as usize]);
     }
-    let mut digits = go_string_from_bytes(&mut ps[1 as usize..istart as usize]);
-    let mut adjustedExp = (((exponent_x - 101) + (digits.len() as i64)) - 1);
-    let mut out = String::with_capacity(digits.len() + 12);
-    out.push(ps[0] as char);
-    out.push_str(&digits[..1 as usize]);
-    if ((digits.len() as i64) > 1) {
-        out.push('.');
-        out.push_str(&digits[1 as usize..]);
+    istart0 = istart;
+    ps[istart as usize] = bid_midi_tbl[exponent_x as usize][0];
+    if (ps[istart as usize] != b'0') {
+        istart = istart.wrapping_add(1);
     }
-    if (adjustedExp != 0) {
-        out.push('e');
-        let _ = write!(&mut out, "{}", adjustedExp);
+    ps[istart as usize] = bid_midi_tbl[exponent_x as usize][1];
+    if ((ps[istart as usize] != b'0') || (istart != istart0)) {
+        istart = istart.wrapping_add(1);
     }
-    return out;
+    ps[istart as usize] = bid_midi_tbl[exponent_x as usize][2];
+    istart = istart.wrapping_add(1);
+    return go_string_from_bytes(&mut ps[..istart as usize]);
 }
 
 pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {

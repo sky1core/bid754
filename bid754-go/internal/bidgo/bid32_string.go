@@ -8,7 +8,6 @@
 package bidgo
 
 import (
-	"strconv"
 	"strings"
 )
 
@@ -115,45 +114,32 @@ func Bid32ToStringRaw(x uint32) string {
 		}
 	}
 
-	if !valid {
-		ps[istart] = 'E'
+	ps[istart] = 'E'
+	istart++
+
+	exponent_x -= DECIMAL_EXPONENT_BIAS_32
+	if exponent_x < 0 {
+		ps[istart] = '-'
 		istart++
-
-		exponent_x -= DECIMAL_EXPONENT_BIAS_32
-		if exponent_x < 0 {
-			ps[istart] = '-'
-			istart++
-			exponent_x = -exponent_x
-		} else {
-			ps[istart] = '+'
-			istart++
-		}
-
-		istart0 = istart
-		ps[istart] = bid_midi_tbl[exponent_x][0]
-		if ps[istart] != '0' {
-			istart++
-		}
-		ps[istart] = bid_midi_tbl[exponent_x][1]
-		if ps[istart] != '0' || istart != istart0 {
-			istart++
-		}
-		ps[istart] = bid_midi_tbl[exponent_x][2]
+		exponent_x = -exponent_x
+	} else {
+		ps[istart] = '+'
 		istart++
-
-		return string(ps[:istart])
 	}
 
-	digits := string(ps[1:istart])
-	adjustedExp := exponent_x - DECIMAL_EXPONENT_BIAS_32 + len(digits) - 1
-	out := string(ps[:1]) + digits[:1]
-	if len(digits) > 1 {
-		out += "." + digits[1:]
+	istart0 = istart
+	ps[istart] = bid_midi_tbl[exponent_x][0]
+	if ps[istart] != '0' {
+		istart++
 	}
-	if adjustedExp != 0 {
-		out += "e" + strconv.Itoa(adjustedExp)
+	ps[istart] = bid_midi_tbl[exponent_x][1]
+	if ps[istart] != '0' || istart != istart0 {
+		istart++
 	}
-	return out
+	ps[istart] = bid_midi_tbl[exponent_x][2]
+	istart++
+
+	return string(ps[:istart])
 }
 
 // Bid32FromStringRaw is ported mechanically from bid32_string.c: bid32_from_string.

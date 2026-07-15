@@ -85,27 +85,57 @@ This runs Intel BID C direct benchmarks, the `bid754-go` public Go API with
 the native tag, direct Go mechanical-port (`bid754-go/internal/bidgo`) calls,
 and generated Rust Criterion
 benches. The fair cross-implementation matrix is `bid32`/`bid64`/`bid128` by
-`add`, `mul`, `div`, `fma`, `sqrt`, `parse`, and `to_string` for Intel C, the
-Go mechanical port, and
-generated Rust (`fma` consumes the shared contract's third `z` operand as the
-addend `x*y + z`; `sqrt` reuses the non-negative `x` operand). Public Go API
-benchmarks are reported as an additional
-wrapper/API surface. `bench-native`, `bench-bidgo`, and `bench-rust` run those
-surfaces individually.
+`add`, `sub`, `mul`, `div`, `fma`, `sqrt`, `remainder`, `fmod`, `quantize`,
+`scaleb`, `quiet_equal`, `minnum`, `maxnum`, `from_int64`, `to_int64`,
+`parse`, and `to_string`, plus all six BID-width conversion directions. The
+matrix also covers all 24 Tier 1 mixed Decimal64/Decimal128
+`add`/`sub`/`mul`/`div` variants. Intel C, the Go mechanical port, and
+generated Rust use the shared format-2 exact-operand contract (`x`, `y`, `z`,
+`integer_operand`, and `scale_exponent`); `fma` consumes `z` as the addend,
+`sqrt` reuses non-negative `x`, remainder/fmod use `y op x`, and mixed rows
+use the source-width mapping documented beside their benchmark functions.
+The contract rejects a `scale_exponent` outside signed 32-bit range before the
+Intel C leg converts it to C `int`, so every layer receives the same exponent.
+Public Go API benchmarks are reported as an additional wrapper/API surface.
+`bench-native`, `bench-bidgo`, and `bench-rust` run those surfaces
+individually.
+
+`make verify-go-benchmark-registry` executes each registered Go subbenchmark
+once and discards the timing output, then exact-compares normalized full names
+against independent closed-world lists: 85 direct mechanical-port rows and
+174 public-Go-plus-Intel-C rows. The portable half is part of
+`make test-go-modules`; the native half is part of `make test-native-smoke`,
+so the corresponding portable and native CI jobs enforce both actual Go test
+binary registries. The one-iteration execution is only a registration and
+wiring gate, never performance evidence. The halves can also be run directly
+with `make verify-go-benchmark-registry-portable` and
+`make verify-go-benchmark-registry-native` (the latter requires `.env.sh` and
+the native dependencies).
+
+`make verify-rust-benchmark-registry` asks the actual Criterion bench binary
+to list its registry without measuring timings, then exact-compares the
+closed-world set of 81 required group/name rows. This catches missing or
+misnamed outer registrations that a shared row-macro test alone cannot see;
+the gate is part of `make test-rust`, so the portable CI and `make verify-all`
+paths both enforce it.
 
 Benchmark name to layer mapping (`make summary` groups by these):
 
-- `BenchmarkIntelCBID*`: Intel C called directly (the `b.N` loop runs inside
-  C, so per-call cgo overhead is amortized)
-- `BenchmarkAlignedBID*`: public Go API. For `bid32` the value-only
-  `add`/`mul`/`div` rows measure the separate pure port bodies and the
+- `BenchmarkIntelCBID*` and `BenchmarkIntelCMixedBID*`: Intel C called
+  directly (the `b.N` loop runs inside C, so per-call cgo overhead is
+  amortized)
+- `BenchmarkAlignedBID*` and `BenchmarkAlignedMixedBID*`: public Go API. For
+  `bid32` the value-only `add`/`sub`/`mul`/`div` rows measure the separate pure
+  port bodies and the
   `*_with_flags` rows measure the status-aware bodies; compare
   `add_with_flags` with `FairBID32/add` (same implementation), and `add` with
   `FairBID32/add_pure` — the two bid32 row families are different
   implementations, not a wrapper-versus-port pair
-- `BenchmarkFairBID*`: Go mechanical port called directly (status-aware
-  bodies; `bid32` also carries `*_pure` rows for the value-only bodies)
-- Criterion `bid32/…`, `bid64/…`, `bid128/…`: generated Rust public API.
+- `BenchmarkFairBID*` and `BenchmarkFairMixedBID*`: Go mechanical port called
+  directly (status-aware bodies; `bid32` also carries `*_pure` rows for the
+  value-only bodies)
+- Criterion `bid32/…`, `bid64/…`, `bid128/…`, and the two `*_mixed/…`
+  groups: generated Rust implementation called directly.
   `make bench-rust` reports change percentages against the saved `pinned`
   Criterion baseline only (first run creates it); refresh the baseline
   deliberately with `make bench-rust-baseline` — never read change% from
@@ -319,6 +349,7 @@ portable, smoke, full, or sharded:
 | Target | Current execution boundary |
 | --- | --- |
 | `make verify-all` | top-level reproducible project verification |
+| `make verify-rust-benchmark-registry` | exact-set check of all 81 registered Rust Criterion rows (no timing measurement) |
 | `make verify-generated` | regenerate and byte-compare all declared generated artifacts |
 | `make test-native-readtest` | native Intel readtest runner, non-short |
 | `make test-portable-readtest` | direct Go mechanical-port readtest runner |

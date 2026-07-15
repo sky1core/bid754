@@ -104,13 +104,18 @@ fn test_generated_bid_string_vectors() {
                         tc.line
                     );
                 } else {
-                    let rendered = render_bits(&tc.format, &got_bits);
-                    assert_eq!(
-                        normalize_decimal(&rendered),
-                        normalize_decimal(&tc.expected),
-                        "{} line {} rendered",
+                    assert!(
+                        bid_string_decimal_row_equal(
+                            &tc.format,
+                            &tc.expected,
+                            &got_bits,
+                            tc.rounding
+                        ),
+                        "{} line {} bits {:?}, want exact cohort parsed from {:?}",
                         tc.function,
-                        tc.line
+                        tc.line,
+                        got_bits,
+                        tc.expected
                     );
                 }
                 assert_eq!(
@@ -123,15 +128,22 @@ fn test_generated_bid_string_vectors() {
             }
             "to_string" => {
                 let (got, flags) = bid_string_to_string(tc);
-                assert_eq!(
-                    normalize_decimal(&got),
-                    normalize_decimal(&tc.expected),
-                    "{} line {} result",
+                let (equal, round_trip_status) = bid_string_to_string_row_equal(
+                    &tc.format,
+                    &tc.expected,
+                    &got,
+                    tc.rounding,
+                );
+                assert!(
+                    equal,
+                    "{} line {} result {:?}, want exact cohort parsed from {:?}",
                     tc.function,
-                    tc.line
+                    tc.line,
+                    got,
+                    tc.expected
                 );
                 assert_eq!(
-                    normalize_status(&flags),
+                    normalize_status(&combine_bid_string_status(&flags, &round_trip_status)),
                     normalize_status(&tc.status),
                     "{} line {} status",
                     tc.function,
@@ -144,6 +156,41 @@ fn test_generated_bid_string_vectors() {
     assert_eq!(
         counts, EXPECTED_GENERATED_BID_STRING_COUNTS,
         "generated BID string read case counts changed"
+    );
+}
+
+/// Anchors the generated comparator to Intel readtest.c: expected and produced
+/// strings are parsed by the backend at the row rounding mode and compared as
+/// exact BID cohorts, and produced-string parse flags accumulate into the
+/// operation flags.
+#[test]
+fn test_bid_string_to_string_comparator_strength() {
+    let (equal, _) =
+        bid_string_to_string_row_equal("decimal64", "+15E+0", "+150E-1", 0);
+    assert!(
+        !equal,
+        "wrong-cohort string accepted: +150E-1 must not match +15E+0"
+    );
+
+    let (equal, status) = bid_string_to_string_row_equal("decimal64", "15", "+15E+0", 0);
+    assert!(equal, "exact-cohort spelling variant rejected");
+    assert_eq!(normalize_status(&status), "00", "exact-cohort round-trip status");
+
+    let (equal, status) = bid_string_to_string_row_equal(
+        "decimal64",
+        "5000000000000000E-15",
+        "5.0000000000000000001",
+        0,
+    );
+    assert!(
+        equal,
+        "inexact produced string did not round to the expected cohort"
+    );
+    assert_eq!(normalize_status(&status), "20", "inexact round-trip status");
+    assert_eq!(
+        normalize_status(&combine_bid_string_status("01", &status)),
+        "21",
+        "combined status"
     );
 }
 
@@ -215,17 +262,22 @@ fn load_string_read_cases() -> Vec<ReadCase> {
 
 fn bid_string_from_string(tc: &ReadCase) -> (String, String) {
     assert_eq!(tc.operands.len(), 1, "{} expects one operand", tc.id);
-    match tc.format.as_str() {
+    bid_string_parse_value(&tc.format, &tc.operands[0], tc.rounding)
+}
+
+fn bid_string_parse_value(format: &str, input: &str, rounding: i64) -> (String, String) {
+    match format {
         "decimal32" => {
-            let (got, flags) = bid32_from_string_raw(tc.operands[0].clone(), tc.rounding);
+            let (got, flags) = bid32_from_string_raw(input, rounding);
             (format!("[{got:08x}]"), format!("{flags:02X}"))
         }
         "decimal64" => {
-            let (got, flags) = bid64_from_string_raw(tc.operands[0].clone(), tc.rounding as i32);
+            let rounding = i32::try_from(rounding).expect("decimal64 rounding mode fits i32");
+            let (got, flags) = bid64_from_string_raw(input, rounding);
             (format!("[{got:016x}]"), format!("{flags:02X}"))
         }
         "decimal128" => {
-            let (got, flags) = bid128_from_string(tc.operands[0].clone(), tc.rounding);
+            let (got, flags) = bid128_from_string(input, rounding);
             (format_bits128(got), format!("{flags:02X}"))
         }
         other => panic!("unsupported format {other}"),
@@ -242,13 +294,36 @@ fn bid_string_to_string(tc: &ReadCase) -> (String, String) {
     }
 }
 
-fn render_bits(format: &str, bits: &str) -> String {
-    match format {
-        "decimal32" => bid32_to_string_raw(parse_u32_bits(bits)),
-        "decimal64" => bid64_to_string(parse_u64_bits(bits)),
-        "decimal128" => bid128_to_string(parse_bits128(bits)),
-        other => panic!("unsupported format {other}"),
-    }
+fn bid_string_decimal_row_equal(
+    format: &str,
+    expected: &str,
+    got_bits: &str,
+    rounding: i64,
+) -> bool {
+    let (expected_bits, _) = bid_string_parse_value(format, expected, rounding);
+    normalize_bits(&expected_bits) == normalize_bits(got_bits)
+}
+
+fn bid_string_to_string_row_equal(
+    format: &str,
+    expected: &str,
+    got: &str,
+    rounding: i64,
+) -> (bool, String) {
+    let (expected_bits, _) = bid_string_parse_value(format, expected, rounding);
+    let (got_bits, round_trip_status) = bid_string_parse_value(format, got, rounding);
+    (
+        normalize_bits(&expected_bits) == normalize_bits(&got_bits),
+        round_trip_status,
+    )
+}
+
+fn combine_bid_string_status(a: &str, b: &str) -> String {
+    let flags_a = u32::from_str_radix(&normalize_status(a), 16)
+        .unwrap_or_else(|err| panic!("parse status {a:?}: {err}"));
+    let flags_b = u32::from_str_radix(&normalize_status(b), 16)
+        .unwrap_or_else(|err| panic!("parse status {b:?}: {err}"));
+    format!("{:02X}", flags_a | flags_b)
 }
 
 fn parse_u32_bits(input: &str) -> u32 {
@@ -295,46 +370,4 @@ fn normalize_status(input: &str) -> String {
         s = format!("0{s}");
     }
     s
-}
-
-fn normalize_decimal(input: &str) -> String {
-    let mut s = input.trim().trim_matches(|c| c == '\'' || c == '"').to_string();
-    if s.is_empty() {
-        return s;
-    }
-    let mut sign = "+";
-    if let Some(rest) = s.strip_prefix('+') {
-        s = rest.to_string();
-    } else if let Some(rest) = s.strip_prefix('-') {
-        sign = "-";
-        s = rest.to_string();
-    }
-    let lower = s.to_ascii_lowercase();
-    if lower == "inf" || lower == "infinity" {
-        return format!("{sign}Inf");
-    }
-    if lower.starts_with("snan") {
-        return format!("{sign}SNaN{}", normalize_payload(&s[4..]));
-    }
-    if lower.starts_with("nan") {
-        return format!("{sign}NaN{}", normalize_payload(&s[3..]));
-    }
-    let parts: Vec<&str> = s.split(['e', 'E']).collect();
-    if parts.len() == 1 {
-        return format!("{sign}{}E+0", parts[0]);
-    }
-    let exp = parts[1].trim_start_matches('+').parse::<i32>();
-    match exp {
-        Ok(exp) => format!("{sign}{}E{exp:+}", parts[0]),
-        Err(_) => format!("{sign}{}", s.to_ascii_uppercase()),
-    }
-}
-
-fn normalize_payload(input: &str) -> String {
-    let stripped = input.trim_start_matches('0');
-    if stripped.is_empty() {
-        String::new()
-    } else {
-        stripped.to_string()
-    }
 }
