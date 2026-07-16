@@ -210,7 +210,7 @@ func isMixedWidthIntelReadtestExtension(name string) bool {
 // isTier1MixedWidthIntelReadtestFunction is the closed Intel BID C surface
 // selected by the project's Tier 1 arithmetic contract.  Keep this list
 // explicit: Decimal32-destination combinations do not exist upstream, while
-// the remaining mixed FMA/sqrt functions are Tier 2 and stay excluded.
+// the mixed FMA/sqrt functions are the separately enumerated Tier 2 surface.
 func isTier1MixedWidthIntelReadtestFunction(name string) bool {
 	switch name {
 	case "bid64dq_add", "bid64qd_add", "bid64qq_add",
@@ -343,6 +343,9 @@ func classifySupportedReadtestSurface(fn readtestFunctionSpec) (format string, k
 		return format, "binary_op", true
 	case len(fn.Inputs) == 3 && fn.Inputs[0] == opToken && fn.Inputs[1] == opToken && fn.Inputs[2] == opToken && fn.Output == opToken:
 		return format, "ternary_op", true
+	case isTier2MixedWidthIntelReadtestFunction(fn.Name) && len(fn.Inputs) == 3 && fn.Output == opToken &&
+		isSupportedReadtestInput(fn.Inputs[0]) && isSupportedReadtestInput(fn.Inputs[1]) && isSupportedReadtestInput(fn.Inputs[2]):
+		return format, "ternary_op", true
 	default:
 		return "", "", false
 	}
@@ -405,6 +408,10 @@ func readtestFormatFromFunctionName(name string) (format string, opToken string,
 		return "decimal64", "OP_DEC64", true
 	case isTier1MixedWidthIntelReadtestFunction(name) && strings.HasPrefix(name, "bid128"):
 		return "decimal128", "OP_DEC128", true
+	case isTier2MixedWidthIntelReadtestFunction(name) && strings.HasPrefix(name, "bid64"):
+		return "decimal64", "OP_DEC64", true
+	case isTier2MixedWidthIntelReadtestFunction(name) && strings.HasPrefix(name, "bid128"):
+		return "decimal128", "OP_DEC128", true
 	case strings.HasPrefix(name, "bid32_"):
 		return "decimal32", "OP_DEC32", true
 	case strings.HasPrefix(name, "bid64_"):
@@ -442,7 +449,20 @@ func isHistoricalReadtestSkipFunction(name string) bool {
 		"bid_dpd_to_bid32", "bid_dpd_to_bid64", "bid_dpd_to_bid128",
 		"bid_feclearexcept", "bid_fegetexceptflag", "bid_feraiseexcept", "bid_fesetexceptflag", "bid_fetestexcept",
 		"bid_is754", "bid_is754R",
-		"bid64ddq_fma", "bid64dqd_fma", "bid64qq_fma", "bid64qqq_fma":
+		"bid64qq_fma":
+		return true
+	default:
+		return false
+	}
+}
+
+func isTier2MixedWidthIntelReadtestFunction(name string) bool {
+	switch name {
+	case "bid64ddq_fma", "bid64dqd_fma", "bid64dqq_fma",
+		"bid64qdd_fma", "bid64qdq_fma", "bid64qqd_fma", "bid64qqq_fma",
+		"bid128ddd_fma", "bid128ddq_fma", "bid128dqd_fma", "bid128dqq_fma",
+		"bid128qdd_fma", "bid128qdq_fma", "bid128qqd_fma",
+		"bid64q_sqrt", "bid128d_sqrt":
 		return true
 	default:
 		return false

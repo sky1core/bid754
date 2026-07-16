@@ -1408,12 +1408,6 @@ func generateMixedBidViaBid128DispatchCase(spec ReadtestSpec) string {
 	if code := generateMixedBidBinaryViaBid128DispatchCase(spec); code != "" {
 		return code
 	}
-	if code := generateMixedBidFmaViaBid128DispatchCase(spec); code != "" {
-		return code
-	}
-	if code := generateMixedBidSqrtViaBid128DispatchCase(spec); code != "" {
-		return code
-	}
 	return ""
 }
 
@@ -1501,109 +1495,6 @@ func generateMixedBidBinaryViaBid128DispatchCase(spec ReadtestSpec) string {
 		return ""
 	}
 	return buildProgrammableDispatchCase(inputParsers, expectedParse, cmp, bodyLines)
-}
-
-func generateMixedBidFmaViaBid128DispatchCase(spec ReadtestSpec) string {
-	var prefix string
-	outputToBid64 := false
-	switch {
-	case strings.HasPrefix(spec.Name, "bid64") && strings.HasSuffix(spec.Name, "_fma"):
-		prefix = "bid64"
-		outputToBid64 = true
-	case strings.HasPrefix(spec.Name, "bid128") && strings.HasSuffix(spec.Name, "_fma"):
-		// Mixed BID64/BID128 FMA를 bid128_fma 하나로 합성하면 readtest 기대 비트와 어긋나는 케이스가 있다.
-		// bit-exact mixed FMA 구현이 생기기 전까지는 생성하지 않고 skip한다.
-		return ""
-	default:
-		return ""
-	}
-	if !rustFuncImplemented("bid128_fma") {
-		return ""
-	}
-	if outputToBid64 && !rustFuncImplemented("bid128_to_bid64") {
-		return ""
-	}
-
-	kinds := strings.TrimSuffix(strings.TrimPrefix(spec.Name, prefix), "_fma")
-	if len(kinds) != 3 || len(spec.Inputs) != 3 {
-		return ""
-	}
-
-	inputParsers := make([]string, 0, 3)
-	bodyLines := make([]string, 0, 10)
-	for i, inp := range spec.Inputs {
-		parser := parseFunc(inp)
-		if parser == "" {
-			return ""
-		}
-		inputParsers = append(inputParsers, parser)
-		lines, ok := bid128InputConversionLines(i, kinds[i])
-		if !ok {
-			return ""
-		}
-		bodyLines = append(bodyLines, lines...)
-	}
-
-	bodyLines = append(bodyLines, "let (tmp, op_flags) = bid128_fma(x0, x1, x2, rm);")
-	if outputToBid64 {
-		bodyLines = append(bodyLines,
-			"let (got, out_flags) = bid128_to_bid64(tmp, rm);",
-			"let flags = f0 | f1 | f2 | op_flags | out_flags;",
-		)
-	} else {
-		bodyLines = append(bodyLines,
-			"let got = tmp;",
-			"let flags = f0 | f1 | f2 | op_flags;",
-		)
-	}
-
-	expectedParse := parseFunc(spec.Output)
-	cmp := compareFunc(spec.Output)
-	if expectedParse == "" || cmp == "" {
-		return ""
-	}
-	return buildProgrammableDispatchCase(inputParsers, expectedParse, cmp, bodyLines)
-}
-
-func generateMixedBidSqrtViaBid128DispatchCase(spec ReadtestSpec) string {
-	switch spec.Name {
-	case "bid64q_sqrt":
-		if !rustFuncImplemented("bid128_sqrt") || !rustFuncImplemented("bid128_to_bid64") {
-			return ""
-		}
-		parser := parseFunc(spec.Inputs[0])
-		expectedParse := parseFunc(spec.Output)
-		cmp := compareFunc(spec.Output)
-		if parser == "" || expectedParse == "" || cmp == "" {
-			return ""
-		}
-		bodyLines := []string{
-			"let x0 = a0;",
-			"let f0: u32 = 0;",
-			"let (tmp, op_flags) = bid128_sqrt(x0, rm);",
-			"let (got, out_flags) = bid128_to_bid64(tmp, rm);",
-			"let flags = f0 | op_flags | out_flags;",
-		}
-		return buildProgrammableDispatchCase([]string{parser}, expectedParse, cmp, bodyLines)
-	case "bid128d_sqrt":
-		if !rustFuncImplemented("bid128_sqrt") || !rustFuncImplemented("bid64_to_bid128") {
-			return ""
-		}
-		parser := parseFunc(spec.Inputs[0])
-		expectedParse := parseFunc(spec.Output)
-		cmp := compareFunc(spec.Output)
-		if parser == "" || expectedParse == "" || cmp == "" {
-			return ""
-		}
-		bodyLines := []string{
-			"let (x0, f0) = bid64_to_bid128(a0);",
-			"let (got, op_flags) = bid128_sqrt(x0, rm);",
-			"let flags = f0 | op_flags;",
-		}
-		return buildProgrammableDispatchCase([]string{parser}, expectedParse, cmp, bodyLines)
-	default:
-		return ""
-	}
 }
 
 func generateCustomDispatchCase(spec ReadtestSpec) string {
@@ -1806,8 +1697,6 @@ func generateCustomDispatchCase(spec ReadtestSpec) string {
 		"bid_dpd_to_bid128",
 		"bid_is754",
 		"bid_is754R",
-		"bid64ddq_fma",
-		"bid64dqd_fma",
 		"bid_feclearexcept",
 		"bid_fegetexceptflag",
 		"bid_feraiseexcept",
@@ -3097,10 +2986,10 @@ type readtestSuiteFilter struct {
 }
 
 var readtestSuiteFilters = []readtestSuiteFilter{
-	{TestName: "decimal64", Display: "decimal64", Filter: "bid64", Prefixes: []string{"bid64_", "bid64dq_", "bid64qd_", "bid64qq_"}},
+	{TestName: "decimal64", Display: "decimal64", Filter: "bid64", Prefixes: []string{"bid64_", "bid64dq_", "bid64qd_", "bid64qq_", "bid64ddq_", "bid64dqd_", "bid64dqq_", "bid64qdd_", "bid64qdq_", "bid64qqd_", "bid64qqq_", "bid64q_"}},
 	{TestName: "decimal32", Display: "decimal32", Filter: "bid32", Prefixes: []string{"bid32_"}},
 	{TestName: "status_control", Display: "status-control", Filter: "bid", Prefixes: []string{"bid_"}},
-	{TestName: "decimal128", Display: "decimal128", Filter: "bid128", Prefixes: []string{"bid128_", "bid128dd_", "bid128dq_", "bid128qd_"}},
+	{TestName: "decimal128", Display: "decimal128", Filter: "bid128", Prefixes: []string{"bid128_", "bid128dd_", "bid128dq_", "bid128qd_", "bid128ddd_", "bid128ddq_", "bid128dqd_", "bid128dqq_", "bid128qdd_", "bid128qdq_", "bid128qqd_", "bid128d_"}},
 }
 
 func readtestSuiteMatches(suite readtestSuiteFilter, function string) bool {

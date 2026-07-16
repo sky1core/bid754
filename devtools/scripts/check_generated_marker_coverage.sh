@@ -3,8 +3,8 @@
 #
 # verify-generated mirrors its cp/cmp file list by hand, so a new generated
 # artifact that never gets added to that list remains outside reproducibility
-# verification. This script ensures every tracked file that carries a
-# standard generated-code marker line must be either
+# verification. This script ensures every tracked or untracked non-ignored file
+# that carries a standard generated-code marker line must be either
 #   (a) actually compared by the verify-generated recipe (a cmp/diff line, not
 #       merely a cp backup — a cp without a paired compare verifies nothing), or
 #   (b) listed in devtools/scripts/generated_marker_exceptions.txt with a
@@ -24,9 +24,9 @@ fail() {
     exit 1
 }
 
-# --- 1. tracked files carrying a generated-code marker ---
-marked_files=$(git grep -lIE "$marker_regex" -- . || true)
-[ -n "$marked_files" ] || fail "no tracked files with a generated-code marker found; the marker regex is broken"
+# --- 1. Git-visible files carrying a generated-code marker ---
+marked_files=$(git grep --untracked -lIE "$marker_regex" -- . || true)
+[ -n "$marked_files" ] || fail "no tracked or untracked non-ignored files with a generated-code marker found; the marker regex is broken"
 
 # --- 2. file set compared by the verify-generated recipe ---
 recipe=$(make -s -n verify-generated 2>/dev/null) || fail "cannot expand the verify-generated recipe via make -n"
@@ -45,11 +45,11 @@ printf '%s\n' "$recipe" \
         if ($3 ~ /^\$tmpdir\//) { print $4 } else if ($4 ~ /^\$tmpdir\//) { print $3 }
     }' >> "$compared_tmp"
 
-# recursive directory compares: diff -r[u] <a> <b> -> every tracked file below
-# the non-$tmpdir operand
+# recursive directory compares: diff -r[u] <a> <b> -> every tracked or
+# untracked non-ignored file below the non-$tmpdir operand
 while IFS= read -r dir; do
     [ -n "$dir" ] || continue
-    git ls-files -- "$dir" >> "$compared_tmp"
+    git ls-files --cached --others --exclude-standard -- "$dir" >> "$compared_tmp"
 done < <(printf '%s\n' "$recipe" \
     | sed -E 's/^[[:space:]]+//' \
     | awk '$1 == "diff" && $2 ~ /^-r/ {

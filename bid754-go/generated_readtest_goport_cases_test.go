@@ -30,15 +30,15 @@ type goportReadCaseCounts struct {
 }
 
 var expectedGoportReadCaseCounts = goportReadCaseCounts{
-	Total:         86250,
+	Total:         86689,
 	Decimal32:     20862,
-	Decimal64:     21528,
-	Decimal128:    43723,
+	Decimal64:     21710,
+	Decimal128:    43980,
 	FromString:    278,
 	ToString:      63,
-	UnaryOp:       61299,
+	UnaryOp:       61366,
 	BinaryOp:      23028,
-	TernaryOp:     1445,
+	TernaryOp:     1817,
 	StatusControl: 137,
 	Functions: map[string]int{
 		"bid128_abs":                         21,
@@ -211,18 +211,26 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid128_to_uint8_xrninta":            51,
 		"bid128_totalOrder":                  103,
 		"bid128_totalOrderMag":               82,
+		"bid128d_sqrt":                       21,
 		"bid128dd_add":                       12,
 		"bid128dd_div":                       35,
 		"bid128dd_mul":                       1,
 		"bid128dd_sub":                       5,
+		"bid128ddd_fma":                      4,
+		"bid128ddq_fma":                      2,
 		"bid128dq_add":                       8,
 		"bid128dq_div":                       33,
 		"bid128dq_mul":                       11,
 		"bid128dq_sub":                       6,
+		"bid128dqd_fma":                      15,
+		"bid128dqq_fma":                      130,
 		"bid128qd_add":                       3,
 		"bid128qd_div":                       36,
 		"bid128qd_mul":                       92,
 		"bid128qd_sub":                       2,
+		"bid128qdd_fma":                      60,
+		"bid128qdq_fma":                      16,
+		"bid128qqd_fma":                      9,
 		"bid32_abs":                          23,
 		"bid32_add":                          60,
 		"bid32_class":                        69,
@@ -563,18 +571,26 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid64_to_uint8_xrninta":             41,
 		"bid64_totalOrder":                   69,
 		"bid64_totalOrderMag":                54,
+		"bid64ddq_fma":                       15,
 		"bid64dq_add":                        121,
 		"bid64dq_div":                        35,
 		"bid64dq_mul":                        52,
 		"bid64dq_sub":                        8,
+		"bid64dqd_fma":                       9,
+		"bid64dqq_fma":                       14,
+		"bid64q_sqrt":                        46,
 		"bid64qd_add":                        9,
 		"bid64qd_div":                        36,
 		"bid64qd_mul":                        16,
 		"bid64qd_sub":                        68,
+		"bid64qdd_fma":                       7,
+		"bid64qdq_fma":                       8,
 		"bid64qq_add":                        72,
 		"bid64qq_div":                        75,
 		"bid64qq_mul":                        40,
 		"bid64qq_sub":                        762,
+		"bid64qqd_fma":                       72,
+		"bid64qqq_fma":                       11,
 		"bid_getDecimalRoundingDirection":    5,
 		"bid_lowerFlags":                     17,
 		"bid_restoreFlags":                   14,
@@ -586,19 +602,19 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 	},
 	Groups: map[string]int{
 		"decimal128_ieee754_regressions": 15,
-		"decimal128_operations":          43607,
+		"decimal128_operations":          43864,
 		"decimal128_strings":             101,
 		"decimal32_ieee754_regressions":  15,
 		"decimal32_operations":           20737,
 		"decimal32_strings":              110,
 		"decimal64_ieee754_regressions":  15,
-		"decimal64_operations":           21428,
+		"decimal64_operations":           21610,
 		"decimal64_strings":              85,
 		"status_control_operations":      137,
 	},
 	CompareGroups: map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 85223,
+		"CMP_FUZZYSTATUS": 85662,
 	},
 }
 
@@ -609,7 +625,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 // readtest gates. Rows carrying a native-compare skip reason (cdiverge) pin
 // intended IEEE behavior, so they must execute and pass here.
 const (
-	expectedGoportExecutedReadCases              = 86113
+	expectedGoportExecutedReadCases              = 86552
 	expectedGoportExcludedStatusControlReadCases = 137
 	expectedGoportCDivergeExecutedReadCases      = 8
 )

@@ -1,6 +1,7 @@
 package apiemit
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -243,14 +244,250 @@ func TestEmitMixedWidthShapeUsesAssociatedFunctionAndForeignConversions(t *testi
 		t.Fatal(err)
 	}
 	got := b.String()
-	for _, want := range []string{
-		"pub fn add_dq_with_mode(left: Decimal64, right: Decimal128, mode: RoundingMode)",
+	params, body := rustGeneratedFunction(t, got, "add_dq_with_mode")
+	assertRustStringList(t, "add_dq_with_mode params", params, []string{
+		"left: Decimal64", "right: Decimal128", "mode: RoundingMode",
+	})
+	assertRustGeneratedBoundCall(t, body, "(bits, raw)", "crate::generated::bid128_add::bid64dq_add", [][]string{{
 		"left.to_bits()",
-		"bid_uint128_from_le_bytes(right.to_le_bytes())",
-		"crate::generated::bid128_add::bid64dq_add",
-	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("mixed wrapper output missing %q:\n%s", want, got)
+		"super::types::bid_uint128_from_le_bytes(right.to_le_bytes())",
+		"super::types::to_bidgo_rounding(mode)",
+	}})
+}
+
+func TestResolveClosureAcceptsExactMixedFMAAndSqrtShapes(t *testing.T) {
+	tests := []struct {
+		name       string
+		symbol     string
+		owner      string
+		surface    string
+		shape      string
+		port       string
+		params     []string
+		results    []string
+		wrongParam []string
+	}{
+		{
+			name: "fma", symbol: "FMA64DQQBIDWithMode", owner: "Decimal64", surface: "fma_dqq_with_mode",
+			shape: "mixed_ternary_mode_flags_dqq", port: "Bid64dqqFma",
+			params: []string{"Decimal64BID", "Decimal128BID", "Decimal128BID", "RoundingMode"}, results: []string{"Decimal64BID", "ExceptionFlags"},
+			wrongParam: []string{"Decimal128BID", "Decimal64BID", "Decimal128BID", "RoundingMode"},
+		},
+		{
+			name: "sqrt", symbol: "Sqrt128DBIDWithMode", owner: "Decimal128", surface: "sqrt_d_with_mode",
+			shape: "mixed_unary_mode_flags_d", port: "Bid128dSqrt",
+			params: []string{"Decimal64BID", "RoundingMode"}, results: []string{"Decimal128BID", "ExceptionFlags"},
+			wrongParam: []string{"Decimal128BID", "RoundingMode"},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			inventory := &inventoryFile{Total: 1, Mapped: 1, Symbols: []inventorySymbol{{Symbol: tc.symbol, Kind: "func", Status: "mapped", BidgoFunction: tc.port}}}
+			manifest := &manifestFile{Emit: []emitRule{{GoSymbol: tc.symbol, RustOwner: tc.owner, RustSurface: tc.surface, Shape: tc.shape, BidgoFunction: tc.port, Reason: "test mixed extension"}}, Deferred: deferredBlock{Category: "deferred"}}
+			sigs := map[string]goSig{tc.symbol: {Symbol: tc.symbol, Kind: "func", Name: tc.symbol, Params: tc.params, Results: tc.results}}
+			if _, err := resolveClosure(inventory, manifest, sigs); err != nil {
+				t.Fatalf("resolve exact mixed extension shape: %v", err)
+			}
+			sigs[tc.symbol] = goSig{Symbol: tc.symbol, Kind: "func", Name: tc.symbol, Params: tc.wrongParam, Results: tc.results}
+			if _, err := resolveClosure(inventory, manifest, sigs); err == nil || !strings.Contains(err.Error(), "requires operand") {
+				t.Fatalf("mixed extension operand mismatch error = %v", err)
+			}
+		})
+	}
+}
+
+func TestEmitMixedFMAAndSqrtUseAssociatedFunctionsAndOrderedConversions(t *testing.T) {
+	var b strings.Builder
+	fma := mixedTernaryDecOp{
+		decOp:    decOp{method: "fma_dqq_with_mode", module: "bid128_fma", port: "bid64dqq_fma"},
+		operands: [3]widthSpec{decimal64Width, decimal128Width, decimal128Width},
+	}
+	if err := emitMixedTernaryModeFlagsOps(&b, []mixedTernaryDecOp{fma}, decimal64Width); err != nil {
+		t.Fatal(err)
+	}
+	sqrt := mixedUnaryDecOp{decOp: decOp{method: "sqrt_d_with_mode", module: "bid128_sqrt", port: "bid128d_sqrt"}, operand: decimal64Width}
+	if err := emitMixedUnaryModeFlagsOps(&b, []mixedUnaryDecOp{sqrt}, decimal128Width); err != nil {
+		t.Fatal(err)
+	}
+	got := b.String()
+	fmaParams, fmaBody := rustGeneratedFunction(t, got, "fma_dqq_with_mode")
+	assertRustStringList(t, "fma_dqq_with_mode params", fmaParams, []string{
+		"x: Decimal64", "y: Decimal128", "z: Decimal128", "mode: RoundingMode",
+	})
+	assertRustGeneratedBoundCall(t, fmaBody, "(bits, raw)", "crate::generated::bid128_fma::bid64dqq_fma", [][]string{{
+		"x.to_bits()",
+		"super::types::bid_uint128_from_le_bytes(y.to_le_bytes())",
+		"super::types::bid_uint128_from_le_bytes(z.to_le_bytes())",
+		"super::types::to_bidgo_rounding(mode)",
+	}})
+
+	sqrtParams, sqrtBody := rustGeneratedFunction(t, got, "sqrt_d_with_mode")
+	assertRustStringList(t, "sqrt_d_with_mode params", sqrtParams, []string{
+		"value: Decimal64", "mode: RoundingMode",
+	})
+	assertRustGeneratedBoundCall(t, sqrtBody, "(bits, raw)", "crate::generated::bid128_sqrt::bid128d_sqrt", [][]string{{
+		"value.to_bits()",
+		"super::types::to_bidgo_rounding(mode)",
+	}})
+}
+
+func rustGeneratedFunction(t *testing.T, source, name string) ([]string, string) {
+	t.Helper()
+	needle := "pub fn " + name + "("
+	start := strings.Index(source, needle)
+	if start < 0 {
+		t.Fatalf("generated Rust has no function %q:\n%s", name, source)
+	}
+	if strings.Index(source[start+len(needle):], needle) >= 0 {
+		t.Fatalf("generated Rust has duplicate function %q:\n%s", name, source)
+	}
+	paramsOpen := start + len(needle) - 1
+	paramsClose, err := matchingGeneratedRustDelimiter(source, paramsOpen, '(', ')')
+	if err != nil {
+		t.Fatalf("parse generated Rust function %q params: %v", name, err)
+	}
+	params, err := splitGeneratedRustArgs(source[paramsOpen+1 : paramsClose])
+	if err != nil {
+		t.Fatalf("parse generated Rust function %q params: %v", name, err)
+	}
+	bodyRel := strings.IndexByte(source[paramsClose+1:], '{')
+	if bodyRel < 0 {
+		t.Fatalf("generated Rust function %q has no body", name)
+	}
+	bodyOpen := paramsClose + 1 + bodyRel
+	bodyClose, err := matchingGeneratedRustDelimiter(source, bodyOpen, '{', '}')
+	if err != nil {
+		t.Fatalf("parse generated Rust function %q body: %v", name, err)
+	}
+	return params, source[bodyOpen+1 : bodyClose]
+}
+
+func rustGeneratedBoundCallArgs(source, binding, callee string) ([][]string, error) {
+	if strings.Contains(source, "//") || strings.Contains(source, "/*") {
+		return nil, fmt.Errorf("generated Rust function contains comments; structural call parser must be extended before accepting them")
+	}
+	needle := "let " + binding + " = " + callee + "("
+	var calls [][]string
+	for searchFrom := 0; ; {
+		rel := strings.Index(source[searchFrom:], needle)
+		if rel < 0 {
+			break
+		}
+		start := searchFrom + rel
+		lineStart := strings.LastIndex(source[:start], "\n") + 1
+		if strings.TrimSpace(source[lineStart:start]) != "" {
+			searchFrom = start + len(needle)
+			continue
+		}
+		open := start + len(needle) - 1
+		close, err := matchingGeneratedRustDelimiter(source, open, '(', ')')
+		if err != nil {
+			return nil, err
+		}
+		lineEnd := strings.IndexByte(source[close+1:], '\n')
+		if lineEnd < 0 {
+			lineEnd = len(source)
+		} else {
+			lineEnd += close + 1
+		}
+		if strings.TrimSpace(source[close+1:lineEnd]) != ";" {
+			searchFrom = close + 1
+			continue
+		}
+		args, err := splitGeneratedRustArgs(source[open+1 : close])
+		if err != nil {
+			return nil, err
+		}
+		calls = append(calls, args)
+		searchFrom = close + 1
+	}
+	return calls, nil
+}
+
+func matchingGeneratedRustDelimiter(source string, open int, left, right byte) (int, error) {
+	depth := 0
+	for i := open; i < len(source); i++ {
+		switch source[i] {
+		case left:
+			depth++
+		case right:
+			depth--
+			if depth == 0 {
+				return i, nil
+			}
+		}
+	}
+	return 0, fmt.Errorf("unbalanced %c%c delimiters", left, right)
+}
+
+func splitGeneratedRustArgs(source string) ([]string, error) {
+	if strings.TrimSpace(source) == "" {
+		return nil, nil
+	}
+	var args []string
+	start := 0
+	paren, bracket, brace := 0, 0, 0
+	for i := 0; i < len(source); i++ {
+		switch source[i] {
+		case '(':
+			paren++
+		case ')':
+			paren--
+		case '[':
+			bracket++
+		case ']':
+			bracket--
+		case '{':
+			brace++
+		case '}':
+			brace--
+		case ',':
+			if paren == 0 && bracket == 0 && brace == 0 {
+				args = append(args, strings.TrimSpace(source[start:i]))
+				start = i + 1
+			}
+		}
+		if paren < 0 || bracket < 0 || brace < 0 {
+			return nil, fmt.Errorf("unbalanced nested delimiters in %q", source)
+		}
+	}
+	if paren != 0 || bracket != 0 || brace != 0 {
+		return nil, fmt.Errorf("unbalanced nested delimiters in %q", source)
+	}
+	args = append(args, strings.TrimSpace(source[start:]))
+	return args, nil
+}
+
+func assertRustGeneratedBoundCall(t *testing.T, source, binding, callee string, want [][]string) {
+	t.Helper()
+	if total := strings.Count(source, "let "+binding+" = "); total != len(want) {
+		t.Fatalf("generated Rust binding %s call count = %d, want %d; every bound call must use %s", binding, total, len(want), callee)
+	}
+	got, err := rustGeneratedBoundCallArgs(source, binding, callee)
+	if err != nil {
+		t.Fatalf("parse generated Rust call %s: %v", callee, err)
+	}
+	assertRustStringMatrix(t, callee+" args", got, want)
+}
+
+func assertRustStringMatrix(t *testing.T, label string, got, want [][]string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("%s row count = %d, want %d; got %v", label, len(got), len(want), got)
+	}
+	for i := range want {
+		assertRustStringList(t, fmt.Sprintf("%s[%d]", label, i), got[i], want[i])
+	}
+}
+
+func assertRustStringList(t *testing.T, label string, got, want []string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("%s length = %d, want %d; got %v", label, len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("%s[%d] = %q, want %q", label, i, got[i], want[i])
 		}
 	}
 }

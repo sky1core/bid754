@@ -125,3 +125,263 @@ pub fn bid64_sqrt(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     res = fast_get_bid64(0, exponent_q, Q);
     return (res, pfpsf);
 }
+
+pub fn bid64q_sqrt(mut x: BID_UINT128, mut rndMode: i64) -> (u64, u32) {
+    let mut M256: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut C4: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut C8: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut A10: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut S2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut T128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CS: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CSM: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CS2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut C256: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CS1: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut mulFactor2Long: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut QH: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut Tmp: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut TP128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut Qh: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut signX: u64 = 0;
+    let mut carry: u64 = 0;
+    let mut B10: u64 = 0;
+    let mut res: u64 = 0;
+    let mut mulFactor: u64 = 0;
+    let mut mulFactor2: u64 = 0;
+    let mut CS0: u64 = 0;
+    let mut D: i64 = 0;
+    let mut exponentX: i64 = 0;
+    let mut binExponentCX: i64 = 0;
+    let mut digits: i64 = 0;
+    let mut scale: i64 = 0;
+    let mut exponentQ: i64 = 0;
+    let mut amount: i64 = 0;
+    let mut extraDigits: i64 = 0;
+    let mut done: bool = false;
+    let mut exact = true;
+    let mut pfpsf: u32 = 0;
+    let (mut signX, mut exponentX, mut CX, mut valid) = unpack_bid128_value(x);
+    if (!valid) {
+        res = CX.hi;
+        if ((x.hi & 0x7c00000000000000) == 0x7c00000000000000) {
+            if ((x.hi & 0x7e00000000000000) == 0x7e00000000000000) {
+                pfpsf |= 1;
+            }
+            Tmp.hi = (CX.hi & 0x00003fffffffffff);
+            Tmp.lo = CX.lo;
+            TP128 = bid_reciprocals10_128[18];
+            (Qh, _) = __mul_128x128_full(Tmp, TP128);
+            amount = (bid_recip_scale[18] as i64);
+            Tmp = __shr_128(Qh, (amount as u64));
+            res = ((CX.hi & 0xfc00000000000000) | Tmp.lo);
+            return (res, pfpsf);
+        }
+        if ((x.hi & 0x7800000000000000) == 0x7800000000000000) {
+            if (signX != 0) {
+                res = 0x7c00000000000000;
+                pfpsf |= 1;
+            }
+            return (res, pfpsf);
+        }
+        exponentX = (((go_checked_shr_i64(((exponentX.wrapping_sub(0x1820))), go_shift_count_u64((1) as u64)))).wrapping_add(0x18e));
+        if (exponentX < 0) {
+            exponentX = 0;
+        }
+        if (exponentX > 0x2ff) {
+            exponentX = 0x2ff;
+        }
+        let (mut res, mut flags) = get_bid64_flags(signX, exponentX, 0, rndMode);
+        pfpsf |= flags;
+        return (res, pfpsf);
+    }
+    if (signX != 0) {
+        res = 0x7c00000000000000;
+        pfpsf |= 1;
+        return (res, pfpsf);
+    }
+    let mut f64 = f32::from_bits(0x5f800000);
+    let mut fx = no_fma_mul_add_f32((CX.hi as f32), f64, (CX.lo as f32));
+    binExponentCX = (((((go_checked_shr_u32((fx as f32).to_bits(), go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(0x7f));
+    digits = (bid_estimate_decimal_digits[binExponentCX as usize] as i64);
+    A10 = CX;
+    if ((exponentX & 1) != 0) {
+        A10.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((61) as u64)))));
+        A10.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((3) as u64)));
+        CX2.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((63) as u64)))));
+        CX2.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((1) as u64)));
+        A10 = __add_128_128(A10, CX2);
+    }
+    C256 = A10;
+    CS.lo = short_sqrt128(A10);
+    CS.hi = 0;
+    mulFactor = 0;
+    if (CS.lo < 10000000000000000) {
+        if ((CS.lo.wrapping_mul(CS.lo)) == A10.lo) {
+            S2 = __mul_64x64_to_128_fast(CS.lo, CS.lo);
+            if (S2.hi == A10.hi) {
+                let (mut res, mut flags) = get_bid64_flags(0, (((go_checked_shr_i64(((exponentX.wrapping_sub(0x1820))), go_shift_count_u64((1) as u64)))).wrapping_add(0x18e)), CS.lo, rndMode);
+                pfpsf |= flags;
+                return (res, pfpsf);
+            }
+        }
+        if (CS.lo >= 1000000000000000) {
+            done = true;
+            exponentQ = exponentX;
+            C256 = A10;
+        }
+        pfpsf |= 32;
+        exact = false;
+    } else {
+        B10 = 0x3333333333333334;
+        CS2 = __mul_64x64_to_128(CS.lo, B10);
+        CS0 = (go_checked_shr_u64(CS2.hi, go_shift_count_u64((1) as u64)));
+        if (CS.lo != (((go_checked_shl_u64(CS0, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(CS0, go_shift_count_u64((1) as u64))))))) {
+            pfpsf |= 32;
+            exact = false;
+        }
+        done = true;
+        CS.lo = CS0;
+        exponentQ = (exponentX.wrapping_add(2));
+        mulFactor = 10;
+        mulFactor2 = 100;
+        if (CS.lo >= 10000000000000000) {
+            CS2 = __mul_64x64_to_128(CS.lo, B10);
+            CS0 = (go_checked_shr_u64(CS2.hi, go_shift_count_u64((1) as u64)));
+            if (CS.lo != (((go_checked_shl_u64(CS0, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(CS0, go_shift_count_u64((1) as u64))))))) {
+                pfpsf |= 32;
+                exact = false;
+            }
+            exponentQ = exponentQ.wrapping_add(2);
+            CS.lo = CS0;
+            mulFactor = 100;
+            mulFactor2 = 10000;
+        }
+        if exact {
+            CS0 = (CS.lo.wrapping_mul(mulFactor));
+            CS1 = __mul_64x64_to_128_fast(CS0, CS0);
+            if ((CS1.lo != A10.lo) || (CS1.hi != A10.hi)) {
+                pfpsf |= 32;
+                exact = false;
+            }
+        }
+    }
+    if (!done) {
+        D = ((CX.hi as i64).wrapping_sub(bid_power10_index_binexp_128[binExponentCX as usize].hi as i64));
+        if ((D > 0) || (((D == 0) && (CX.lo >= bid_power10_index_binexp_128[binExponentCX as usize].lo)))) {
+            digits = digits.wrapping_add(1);
+        }
+        scale = ((31 as i64).wrapping_sub(digits));
+        exponentQ = (exponentX.wrapping_sub(scale));
+        scale = scale.wrapping_add(exponentQ & 1);
+        T128 = bid_power10_table_128[scale as usize];
+        C256 = __mul_128x128_low(CX, T128);
+        CS.lo = short_sqrt128(C256);
+    }
+    exponentQ = (((go_checked_shr_i64(((exponentQ.wrapping_sub(0x1820))), go_shift_count_u64((1) as u64)))).wrapping_add(0x18e));
+    if ((exponentQ < 0) && ((exponentQ.wrapping_add(16)) >= 0)) {
+        extraDigits = (exponentQ.wrapping_neg());
+        exponentQ = 0;
+        QH = __mul_64x64_to_128(CS.lo, bid_reciprocals10_64[extraDigits as usize]);
+        amount = (bid_short_recip_scale[extraDigits as usize] as i64);
+        CS0 = (go_checked_shr_u64(QH.hi, go_shift_count_u64((amount as u64) as u64)));
+        if exact {
+            if (CS.lo != (CS0.wrapping_mul(bid_power10_table_128[extraDigits as usize].lo))) {
+                exact = false;
+            }
+        }
+        if (!exact) {
+            pfpsf |= (16 | 32);
+        }
+        CS.lo = CS0;
+        if (mulFactor == 0) {
+            mulFactor = 1;
+        }
+        mulFactor = mulFactor.wrapping_mul(bid_power10_table_128[extraDigits as usize].lo);
+        mulFactor2Long = __mul_64x64_to_128(mulFactor, mulFactor);
+        if (mulFactor2Long.hi != 0) {
+            mulFactor2 = 0;
+        } else {
+            mulFactor2 = mulFactor2Long.lo;
+        }
+    }
+    C4.hi = (((go_checked_shl_u64(C256.hi, go_shift_count_u64((2) as u64)))) | ((go_checked_shr_u64(C256.lo, go_shift_count_u64((62) as u64)))));
+    C4.lo = (go_checked_shl_u64(C256.lo, go_shift_count_u64((2) as u64)));
+    if ((rndMode & 3) == 0) {
+        CSM.lo = (((CS.lo.wrapping_add(CS.lo))) | 1);
+        if (mulFactor != 0) {
+            CSM.lo = CSM.lo.wrapping_mul(mulFactor);
+        }
+        M256 = __mul_64x64_to_128(CSM.lo, CSM.lo);
+        if ((C4.hi > M256.hi) || (((C4.hi == M256.hi) && (C4.lo > M256.lo)))) {
+            CS.lo = CS.lo.wrapping_add(1);
+        } else {
+            C8.lo = (go_checked_shl_u64(CS.lo, go_shift_count_u64((3) as u64)));
+            C8.hi = 0;
+            if (mulFactor != 0) {
+                if (mulFactor2 != 0) {
+                    C8 = __mul_64x64_to_128(C8.lo, mulFactor2);
+                } else {
+                    C8 = __mul_64x128_to_128(C8.lo, mulFactor2Long);
+                }
+            }
+            (M256.lo, carry) = __sub_borrow_out(M256.lo, C8.lo);
+            M256.hi = ((M256.hi.wrapping_sub(C8.hi)).wrapping_sub(carry));
+            if ((M256.hi > C4.hi) || (((M256.hi == C4.hi) && (M256.lo > C4.lo)))) {
+                if (CS.lo != 0) {
+                    CS.lo = CS.lo.wrapping_sub(1);
+                }
+            }
+        }
+    } else {
+        CS.lo = CS.lo.wrapping_add(1);
+        CSM.lo = CS.lo;
+        C8.lo = (go_checked_shl_u64(CSM.lo, go_shift_count_u64((1) as u64)));
+        if (mulFactor != 0) {
+            CSM.lo = CSM.lo.wrapping_mul(mulFactor);
+        }
+        M256 = __mul_64x64_to_128(CSM.lo, CSM.lo);
+        C8.hi = 0;
+        if (mulFactor != 0) {
+            if (mulFactor2 != 0) {
+                C8 = __mul_64x64_to_128(C8.lo, mulFactor2);
+            } else {
+                C8 = __mul_64x128_to_128(C8.lo, mulFactor2Long);
+            }
+        }
+        if ((M256.hi > C256.hi) || (((M256.hi == C256.hi) && (M256.lo > C256.lo)))) {
+            (M256.lo, carry) = __sub_borrow_out(M256.lo, C8.lo);
+            M256.hi = ((M256.hi.wrapping_sub(carry)).wrapping_sub(C8.hi));
+            M256.lo = M256.lo.wrapping_add(1);
+            if (M256.lo == 0) {
+                M256.hi = M256.hi.wrapping_add(1);
+            }
+            if ((((M256.hi > C256.hi) || (((M256.hi == C256.hi) && (M256.lo > C256.lo))))) && (CS.lo > 1)) {
+                CS.lo = CS.lo.wrapping_sub(1);
+                if (CS.lo > 1) {
+                    (M256.lo, carry) = __sub_borrow_out(M256.lo, C8.lo);
+                    M256.hi = ((M256.hi.wrapping_sub(carry)).wrapping_sub(C8.hi));
+                    M256.lo = M256.lo.wrapping_add(1);
+                    if (M256.lo == 0) {
+                        M256.hi = M256.hi.wrapping_add(1);
+                    }
+                    if ((M256.hi > C256.hi) || (((M256.hi == C256.hi) && (M256.lo > C256.lo)))) {
+                        CS.lo = CS.lo.wrapping_sub(1);
+                    }
+                }
+            }
+        } else {
+            CS.lo = CS.lo.wrapping_add(1);
+        }
+        if ((rndMode != 2) || exact) {
+            if (CS.lo != 0) {
+                CS.lo = CS.lo.wrapping_sub(1);
+            }
+        }
+    }
+    let (mut res, mut flags) = get_bid64_flags(0, exponentQ, CS.lo, rndMode);
+    pfpsf |= flags;
+    return (res, pfpsf);
+}

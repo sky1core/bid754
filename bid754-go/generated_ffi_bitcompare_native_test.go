@@ -4,6 +4,8 @@
 package bid754
 
 import (
+	"encoding/hex"
+	"fmt"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -13,9 +15,9 @@ import (
 )
 
 var expectedGeneratedFFIFormatCounts = map[string]int{
-	"decimal128": 7600,
+	"decimal128": 8031,
 	"decimal32":  7600,
-	"decimal64":  7600,
+	"decimal64":  8031,
 }
 
 var expectedGeneratedFFIOperationCounts = map[string]int{
@@ -25,7 +27,7 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"copy":                        144,
 	"copySign":                    144,
 	"div":                         324,
-	"fma":                         144,
+	"fma":                         900,
 	"fmod":                        144,
 	"from_int32":                  144,
 	"from_int64":                  144,
@@ -81,7 +83,7 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"signaling_less_unordered":    144,
 	"signaling_not_greater":       144,
 	"signaling_not_less":          144,
-	"sqrt":                        144,
+	"sqrt":                        250,
 	"sub":                         324,
 	"to_bid128":                   96,
 	"to_bid32":                    96,
@@ -325,6 +327,14 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_to_uint8_xrninta":            48,
 	"bid128_totalOrder":                  48,
 	"bid128_totalOrderMag":               48,
+	"bid128d_sqrt":                       53,
+	"bid128ddd_fma":                      54,
+	"bid128ddq_fma":                      54,
+	"bid128dqd_fma":                      54,
+	"bid128dqq_fma":                      54,
+	"bid128qdd_fma":                      54,
+	"bid128qdq_fma":                      54,
+	"bid128qqd_fma":                      54,
 	"bid32_abs":                          48,
 	"bid32_add":                          108,
 	"bid32_class":                        48,
@@ -627,14 +637,364 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid64_to_uint8_xrninta":             48,
 	"bid64_totalOrder":                   48,
 	"bid64_totalOrderMag":                48,
+	"bid64ddq_fma":                       54,
+	"bid64dqd_fma":                       54,
+	"bid64dqq_fma":                       54,
+	"bid64q_sqrt":                        53,
+	"bid64qdd_fma":                       54,
+	"bid64qdq_fma":                       54,
+	"bid64qqd_fma":                       54,
+	"bid64qqq_fma":                       54,
 }
 
 var expectedGeneratedFFIRoundingCounts = map[int]int{
-	0: 20016,
-	1: 720,
-	2: 720,
-	3: 672,
-	4: 672,
+	0: 20206,
+	1: 896,
+	2: 896,
+	3: 832,
+	4: 832,
+}
+
+const generatedFFIRoundingDiscriminantProbe = "rounding-discriminant"
+const generatedFFIFusednessProbe = "fusedness"
+
+var mixedFMAFusednessSentinelRows = []string{
+	"bid64ddq_fma x=31c0000000000001 y=31c0000000000001 z=2ffc000000000000:4563918244f40001 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+	"bid64dqd_fma x=31c0000000000003 y=2ffca45894e48295:7efb0aa216fc0001 z=31c0000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+	"bid64dqq_fma x=31c0000000000003 y=2ffca45894e48295:7efb0aa216fc0001 z=3040000000000000:0000000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+	"bid64qdd_fma x=2ffca45894e48295:7efb0aa216fc0001 y=31c0000000000003 z=31c0000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+	"bid64qdq_fma x=2ffca45894e48295:7efb0aa216fc0001 y=31c0000000000003 z=3040000000000000:0000000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+	"bid64qqd_fma x=2ffca45894e48295:7efb0aa216fc0001 y=3040000000000000:0000000000000003 z=31c0000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+	"bid64qqq_fma x=2ffca45894e48295:7efb0aa216fc0001 y=3040000000000000:0000000000000003 z=3040000000000000:0000000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+	"bid128ddd_fma x=0000000000000000 y=7800000000000000 z=7c00000000000001 m=0 -> 7c00000000000000:0de0b6b3a7640000/00000000 forbidden=7c00000000000000:0000000000000000/00000001",
+	"bid128ddq_fma x=0000000000000000 y=7800000000000000 z=7c00000000000000:0000000000000001 m=0 -> 7c00000000000000:0000000000000001/00000000 forbidden=7c00000000000000:0000000000000000/00000001",
+	"bid128dqd_fma x=2fe38d7ea4c68001 y=2ffded09bead87c0:378d8e63ffffffff z=afe38d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+	"bid128dqq_fma x=2fe38d7ea4c68001 y=2ffded09bead87c0:378d8e63ffffffff z=b022000000000000:00038d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+	"bid128qdd_fma x=2ffded09bead87c0:378d8e63ffffffff y=2fe38d7ea4c68001 z=afe38d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+	"bid128qdq_fma x=2ffded09bead87c0:378d8e63ffffffff y=2fe38d7ea4c68001 z=b022000000000000:00038d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+	"bid128qqd_fma x=3022000000000000:00038d7ea4c68001 y=2ffded09bead87c0:378d8e63ffffffff z=afe38d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+}
+
+type generatedFFIFusednessPin struct {
+	operands  []string
+	rounding  int
+	expected  string
+	forbidden string
+}
+
+var expectedGeneratedFFIFusednessPins = map[string]generatedFFIFusednessPin{
+	"bid64ddq_fma":  {operands: []string{"31c0000000000001", "31c0000000000001", "0100f44482916345000000000000fc2f"}, rounding: 0, expected: "2fe38d7ea4c68001/00000020", forbidden: "2fe38d7ea4c68000/00000020"},
+	"bid64dqd_fma":  {operands: []string{"31c0000000000003", "0100fc16a20afb7e9582e49458a4fc2f", "31c0000000000000"}, rounding: 0, expected: "2fe38d7ea4c68001/00000020", forbidden: "2fe38d7ea4c68000/00000020"},
+	"bid64dqq_fma":  {operands: []string{"31c0000000000003", "0100fc16a20afb7e9582e49458a4fc2f", "00000000000000000000000000004030"}, rounding: 0, expected: "2fe38d7ea4c68001/00000020", forbidden: "2fe38d7ea4c68000/00000020"},
+	"bid64qdd_fma":  {operands: []string{"0100fc16a20afb7e9582e49458a4fc2f", "31c0000000000003", "31c0000000000000"}, rounding: 0, expected: "2fe38d7ea4c68001/00000020", forbidden: "2fe38d7ea4c68000/00000020"},
+	"bid64qdq_fma":  {operands: []string{"0100fc16a20afb7e9582e49458a4fc2f", "31c0000000000003", "00000000000000000000000000004030"}, rounding: 0, expected: "2fe38d7ea4c68001/00000020", forbidden: "2fe38d7ea4c68000/00000020"},
+	"bid64qqd_fma":  {operands: []string{"0100fc16a20afb7e9582e49458a4fc2f", "03000000000000000000000000004030", "31c0000000000000"}, rounding: 0, expected: "2fe38d7ea4c68001/00000020", forbidden: "2fe38d7ea4c68000/00000020"},
+	"bid64qqq_fma":  {operands: []string{"0100fc16a20afb7e9582e49458a4fc2f", "03000000000000000000000000004030", "00000000000000000000000000004030"}, rounding: 0, expected: "2fe38d7ea4c68001/00000020", forbidden: "2fe38d7ea4c68000/00000020"},
+	"bid128ddd_fma": {operands: []string{"0000000000000000", "7800000000000000", "7c00000000000001"}, rounding: 0, expected: "000064a7b3b6e00d000000000000007c/00000000", forbidden: "0000000000000000000000000000007c/00000001"},
+	"bid128ddq_fma": {operands: []string{"0000000000000000", "7800000000000000", "0100000000000000000000000000007c"}, rounding: 0, expected: "0100000000000000000000000000007c/00000000", forbidden: "0000000000000000000000000000007c/00000001"},
+	"bid128dqd_fma": {operands: []string{"2fe38d7ea4c68001", "ffffffff638e8d37c087adbe09edfd2f", "afe38d7ea4c68001"}, rounding: 0, expected: "0180c6a47e8d0300000000000000deaf/00000000", forbidden: "0000000000000000000000000000fe2f/00000020"},
+	"bid128dqq_fma": {operands: []string{"2fe38d7ea4c68001", "ffffffff638e8d37c087adbe09edfd2f", "0180c6a47e8d030000000000000022b0"}, rounding: 0, expected: "0180c6a47e8d0300000000000000deaf/00000000", forbidden: "0000000000000000000000000000fe2f/00000020"},
+	"bid128qdd_fma": {operands: []string{"ffffffff638e8d37c087adbe09edfd2f", "2fe38d7ea4c68001", "afe38d7ea4c68001"}, rounding: 0, expected: "0180c6a47e8d0300000000000000deaf/00000000", forbidden: "0000000000000000000000000000fe2f/00000020"},
+	"bid128qdq_fma": {operands: []string{"ffffffff638e8d37c087adbe09edfd2f", "2fe38d7ea4c68001", "0180c6a47e8d030000000000000022b0"}, rounding: 0, expected: "0180c6a47e8d0300000000000000deaf/00000000", forbidden: "0000000000000000000000000000fe2f/00000020"},
+	"bid128qqd_fma": {operands: []string{"0180c6a47e8d03000000000000002230", "ffffffff638e8d37c087adbe09edfd2f", "afe38d7ea4c68001"}, rounding: 0, expected: "0180c6a47e8d0300000000000000deaf/00000000", forbidden: "0000000000000000000000000000fe2f/00000020"},
+}
+
+type generatedFFIRoundingProbeGroup struct {
+	function         string
+	operands         string
+	modes            [5]bool
+	nativeResultBits map[string]struct{}
+}
+
+type generatedFFIRoundingProbeTracker map[string]*generatedFFIRoundingProbeGroup
+
+func validateGeneratedFFIProbeContract(cases []testspec.GeneratedFFICase) (generatedFFIRoundingProbeTracker, error) {
+	tracker := generatedFFIRoundingProbeTracker{}
+	groupsPerFunction := map[string]int{}
+	fusednessSeen := map[string]string{}
+	for _, tc := range cases {
+		if tc.Probe == "" {
+			if tc.ProbeGroup != "" {
+				return nil, fmt.Errorf("generated FFI case %s has probe_group %q without a probe", tc.ID, tc.ProbeGroup)
+			}
+			if tc.Expected != "" || tc.Forbidden != "" {
+				return nil, fmt.Errorf("generated FFI case %s has expected/forbidden without a probe", tc.ID)
+			}
+			continue
+		}
+		if !generatedFFIMixedDecimalFunction(tc.Function) {
+			return nil, fmt.Errorf("generated FFI probe %s targets non-mixed function %q", tc.ID, tc.Function)
+		}
+		if tc.ProbeGroup == "" {
+			return nil, fmt.Errorf("generated FFI probe %s has no probe_group", tc.ID)
+		}
+		switch tc.Probe {
+		case generatedFFIRoundingDiscriminantProbe:
+			if tc.Expected != "" || tc.Forbidden != "" {
+				return nil, fmt.Errorf("generated FFI rounding probe %s unexpectedly carries expected/forbidden", tc.ID)
+			}
+			if tc.Rounding < 0 || tc.Rounding >= 5 {
+				return nil, fmt.Errorf("generated FFI rounding probe %s has mode %d outside 0..4", tc.ID, tc.Rounding)
+			}
+			operandKey := strings.Join(tc.Operands, "\x00")
+			group := tracker[tc.ProbeGroup]
+			if group == nil {
+				group = &generatedFFIRoundingProbeGroup{
+					function:         tc.Function,
+					operands:         operandKey,
+					nativeResultBits: map[string]struct{}{},
+				}
+				tracker[tc.ProbeGroup] = group
+				groupsPerFunction[tc.Function]++
+			} else if group.function != tc.Function || group.operands != operandKey {
+				return nil, fmt.Errorf("generated FFI rounding probe group %q mixes function/operands: first=(%s,%q) case %s=(%s,%q)", tc.ProbeGroup, group.function, group.operands, tc.ID, tc.Function, operandKey)
+			}
+			if group.modes[tc.Rounding] {
+				return nil, fmt.Errorf("generated FFI rounding probe group %q repeats mode %d", tc.ProbeGroup, tc.Rounding)
+			}
+			group.modes[tc.Rounding] = true
+		case generatedFFIFusednessProbe:
+			pin, ok := expectedGeneratedFFIFusednessPins[tc.Function]
+			if !ok {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s targets function %q outside the closed pin census", tc.ID, tc.Function)
+			}
+			if prior := fusednessSeen[tc.Function]; prior != "" {
+				return nil, fmt.Errorf("generated FFI fusedness function %s repeats in cases %s and %s", tc.Function, prior, tc.ID)
+			}
+			fusednessSeen[tc.Function] = tc.ID
+			if tc.ProbeGroup != tc.Function+"/fusedness" {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s group = %q, want %q", tc.ID, tc.ProbeGroup, tc.Function+"/fusedness")
+			}
+			if tc.Expected == "" || tc.Forbidden == "" {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s is missing expected or forbidden outcome", tc.ID)
+			}
+			if strings.Join(tc.Operands, "\x00") != strings.Join(pin.operands, "\x00") || tc.Rounding != pin.rounding || tc.Expected != pin.expected || tc.Forbidden != pin.forbidden {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s payload drift: operands=%v mode=%d expected=%q forbidden=%q, want operands=%v mode=%d expected=%q forbidden=%q", tc.ID, tc.Operands, tc.Rounding, tc.Expected, tc.Forbidden, pin.operands, pin.rounding, pin.expected, pin.forbidden)
+			}
+			if tc.Expected == tc.Forbidden {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s expected equals forbidden outcome %q", tc.ID, tc.Expected)
+			}
+		default:
+			return nil, fmt.Errorf("generated FFI case %s has unknown probe %q", tc.ID, tc.Probe)
+		}
+	}
+	for groupName, group := range tracker {
+		for mode, present := range group.modes {
+			if !present {
+				return nil, fmt.Errorf("generated FFI rounding probe group %q is missing mode %d", groupName, mode)
+			}
+		}
+	}
+	for function := range expectedGeneratedFFIFunctionCounts {
+		if generatedFFIMixedDecimalFunction(function) && groupsPerFunction[function] != 1 {
+			return nil, fmt.Errorf("generated mixed FFI function %s has %d rounding-discriminant probe groups, want 1", function, groupsPerFunction[function])
+		}
+	}
+	if len(fusednessSeen) != len(expectedGeneratedFFIFusednessPins) {
+		return nil, fmt.Errorf("generated FFI fusedness function census = %d, want %d", len(fusednessSeen), len(expectedGeneratedFFIFusednessPins))
+	}
+	for function := range expectedGeneratedFFIFusednessPins {
+		if fusednessSeen[function] == "" {
+			return nil, fmt.Errorf("generated FFI fusedness pin %s has no case", function)
+		}
+	}
+	return tracker, nil
+}
+
+func (tracker generatedFFIRoundingProbeTracker) recordCanonicalResult(tc testspec.GeneratedFFICase, native string) error {
+	if tc.Probe != generatedFFIRoundingDiscriminantProbe {
+		return nil
+	}
+	group := tracker[tc.ProbeGroup]
+	if group == nil {
+		return fmt.Errorf("generated FFI rounding probe %s references unknown group %q", tc.ID, tc.ProbeGroup)
+	}
+	resultBits, status, ok := strings.Cut(native, "/")
+	if !ok || len(resultBits) != tc.ResultBits/4 || len(status) != 8 {
+		return fmt.Errorf("generated FFI rounding probe %s native result %q is not %d-bit-result/32-bit-status hex", tc.ID, native, tc.ResultBits)
+	}
+	if _, err := hex.DecodeString(resultBits); err != nil {
+		return fmt.Errorf("generated FFI rounding probe %s native result bits %q: %w", tc.ID, resultBits, err)
+	}
+	if _, err := hex.DecodeString(status); err != nil {
+		return fmt.Errorf("generated FFI rounding probe %s native status %q: %w", tc.ID, status, err)
+	}
+	group.nativeResultBits[resultBits] = struct{}{}
+	return nil
+}
+
+func (tracker generatedFFIRoundingProbeTracker) validateCanonicalDiscrimination() error {
+	for groupName, group := range tracker {
+		if len(group.nativeResultBits) < 2 {
+			return fmt.Errorf("generated FFI rounding probe group %q (%s operands %q): canonical Intel C produced %d distinct result bit patterns across modes 0..4, want at least 2", groupName, group.function, group.operands, len(group.nativeResultBits))
+		}
+	}
+	return nil
+}
+
+func cloneGeneratedFFICases(cases []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+	cloned := append([]testspec.GeneratedFFICase(nil), cases...)
+	for i := range cloned {
+		cloned[i].OperandBits = append([]int(nil), cloned[i].OperandBits...)
+		cloned[i].Operands = append([]string(nil), cloned[i].Operands...)
+	}
+	return cloned
+}
+
+func testGeneratedFFIProbeValidatorRejectsMutations(t *testing.T, cases []testspec.GeneratedFFICase) {
+	t.Helper()
+	firstRounding := -1
+	firstFusedness := -1
+	firstBaseline := -1
+	for i, tc := range cases {
+		switch tc.Probe {
+		case generatedFFIRoundingDiscriminantProbe:
+			if firstRounding < 0 {
+				firstRounding = i
+			}
+		case generatedFFIFusednessProbe:
+			if firstFusedness < 0 {
+				firstFusedness = i
+			}
+		case "":
+			if firstBaseline < 0 {
+				firstBaseline = i
+			}
+		}
+	}
+	if firstRounding < 0 || firstFusedness < 0 || firstBaseline < 0 {
+		t.Fatalf("generated FFI mutation fixtures missing: rounding=%d fusedness=%d baseline=%d", firstRounding, firstFusedness, firstBaseline)
+	}
+	roundingFunction := cases[firstRounding].Function
+	roundingGroup := cases[firstRounding].ProbeGroup
+	var roundingGroupIndices []int
+	for i, tc := range cases {
+		if tc.Probe == generatedFFIRoundingDiscriminantProbe && tc.ProbeGroup == roundingGroup {
+			roundingGroupIndices = append(roundingGroupIndices, i)
+		}
+	}
+	if len(roundingGroupIndices) != 5 {
+		t.Fatalf("generated FFI rounding mutation group %q has %d cases, want 5", roundingGroup, len(roundingGroupIndices))
+	}
+
+	type mutation struct {
+		name    string
+		wantErr string
+		apply   func([]testspec.GeneratedFFICase) []testspec.GeneratedFFICase
+	}
+	mutations := []mutation{
+		{name: "unknown probe", wantErr: "unknown probe", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].Probe = "unknown-probe"
+			return got
+		}},
+		{name: "orphan group", wantErr: "without a probe", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstBaseline].ProbeGroup = "orphan/group"
+			return got
+		}},
+		{name: "empty group", wantErr: "has no probe_group", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].ProbeGroup = ""
+			return got
+		}},
+		{name: "non-mixed target", wantErr: "targets non-mixed function", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].Function = "bid64_add"
+			return got
+		}},
+		{name: "mode out of range", wantErr: "outside 0..4", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].Rounding = 5
+			return got
+		}},
+		{name: "duplicate mode", wantErr: "repeats mode", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[roundingGroupIndices[4]].Rounding = got[roundingGroupIndices[0]].Rounding
+			return got
+		}},
+		{name: "missing mode", wantErr: "is missing mode", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			index := roundingGroupIndices[4]
+			return append(got[:index], got[index+1:]...)
+		}},
+		{name: "mixed function", wantErr: "mixes function/operands", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[roundingGroupIndices[4]].Function = "bid128d_sqrt"
+			return got
+		}},
+		{name: "mixed operands", wantErr: "mixes function/operands", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[roundingGroupIndices[4]].Operands[0] = strings.Repeat("0", len(got[roundingGroupIndices[4]].Operands[0]))
+			return got
+		}},
+		{name: "required function probe missing", wantErr: "rounding-discriminant probe groups, want 1", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			filtered := got[:0]
+			for _, tc := range got {
+				if tc.Function != roundingFunction || tc.Probe != generatedFFIRoundingDiscriminantProbe {
+					filtered = append(filtered, tc)
+				}
+			}
+			return filtered
+		}},
+		{name: "fused expected drift", wantErr: "payload drift", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Expected = "0000000000000000/00000000"
+			return got
+		}},
+		{name: "fused forbidden drift", wantErr: "payload drift", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Forbidden = "0000000000000000/00000000"
+			return got
+		}},
+		{name: "fused expected missing", wantErr: "missing expected or forbidden", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Expected = ""
+			return got
+		}},
+		{name: "fused forbidden missing", wantErr: "missing expected or forbidden", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Forbidden = ""
+			return got
+		}},
+		{name: "fusedness probe missing", wantErr: "fusedness function census", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			return append(got[:firstFusedness], got[firstFusedness+1:]...)
+		}},
+	}
+	for _, mutation := range mutations {
+		mutation := mutation
+		t.Run(mutation.name, func(t *testing.T) {
+			mutated := mutation.apply(cloneGeneratedFFICases(cases))
+			_, err := validateGeneratedFFIProbeContract(mutated)
+			if err == nil || !strings.Contains(err.Error(), mutation.wantErr) {
+				t.Fatalf("validateGeneratedFFIProbeContract error = %v, want rejection containing %q", err, mutation.wantErr)
+			}
+		})
+	}
+
+	t.Run("malformed native result", func(t *testing.T) {
+		tracker, err := validateGeneratedFFIProbeContract(cases)
+		if err != nil {
+			t.Fatalf("validateGeneratedFFIProbeContract(valid): %v", err)
+		}
+		if err := tracker.recordCanonicalResult(cases[firstRounding], "malformed"); err == nil {
+			t.Fatal("recordCanonicalResult accepted malformed native result")
+		}
+	})
+
+	t.Run("canonical result does not discriminate", func(t *testing.T) {
+		tracker, err := validateGeneratedFFIProbeContract(cases)
+		if err != nil {
+			t.Fatalf("validateGeneratedFFIProbeContract(valid): %v", err)
+		}
+		for _, tc := range cases {
+			if tc.Probe != generatedFFIRoundingDiscriminantProbe {
+				continue
+			}
+			native := strings.Repeat("0", tc.ResultBits/4) + "/00000000"
+			if err := tracker.recordCanonicalResult(tc, native); err != nil {
+				t.Fatalf("recordCanonicalResult(%s): %v", tc.ID, err)
+			}
+		}
+		if err := tracker.validateCanonicalDiscrimination(); err == nil {
+			t.Fatal("validateCanonicalDiscrimination accepted one C result bit pattern per group")
+		}
+	})
+}
+
+func TestGeneratedFFIProbeValidatorRejectsMutations(t *testing.T) {
+	spec := loadGeneratedFFISpecForTest(t)
+	if len(spec.FFICases) == 0 {
+		t.Fatal("expected generated ffi cases")
+	}
+	testGeneratedFFIProbeValidatorRejectsMutations(t, spec.FFICases)
 }
 
 func TestGeneratedFFIBitCompareSubset(t *testing.T) {
@@ -647,22 +1007,48 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 22800 {
-		t.Fatalf("generated ffi case count = %d, want 22800", len(spec.FFICases))
+	if len(spec.FFICases) != 23662 {
+		t.Fatalf("generated ffi case count = %d, want 23662", len(spec.FFICases))
 	}
 	assertGeneratedFFICoverage(t, spec.FFICases)
+	probeTracker, err := validateGeneratedFFIProbeContract(spec.FFICases)
+	if err != nil {
+		t.Fatalf("validate generated FFI probe contract: %v", err)
+	}
 
 	for _, tc := range spec.FFICases {
 		tc := tc
 		t.Run(tc.ID, func(t *testing.T) {
-			gotNative, gotExposed, err := runGeneratedFFICase(generatedFFICase(tc))
+			generated := generatedFFICase(tc)
+			gotNative, gotExposed, err := runGeneratedFFICase(generated)
 			if err != nil {
 				t.Fatalf("runGeneratedFFICase(%s): %v", tc.ID, err)
 			}
 			if gotNative != gotExposed {
 				t.Fatalf("%s %s(%s): C=%s exposed=%s", tc.Declaration, tc.Function, strings.Join(tc.Operands, ", "), gotNative, gotExposed)
 			}
+			if tc.Probe == generatedFFIFusednessProbe {
+				if gotNative != tc.Expected || gotExposed != tc.Expected {
+					t.Fatalf("fusedness sentinel %s direct mismatch: pinned=%s C=%s Go-port=%s", tc.Function, tc.Expected, gotNative, gotExposed)
+				}
+				gotComposed, err := runGeneratedFFIMixedFMAComposed(generated)
+				if err != nil {
+					t.Fatalf("runGeneratedFFIMixedFMAComposed(%s): %v", tc.ID, err)
+				}
+				if gotComposed != tc.Forbidden {
+					t.Fatalf("fusedness sentinel %s sequential composition drift: pinned forbidden=%s composed=%s", tc.Function, tc.Forbidden, gotComposed)
+				}
+				if gotComposed == gotNative {
+					t.Fatalf("fusedness sentinel %s no longer discriminates direct FMA from sequential composition: %s", tc.Function, gotNative)
+				}
+			}
+			if err := probeTracker.recordCanonicalResult(tc, gotNative); err != nil {
+				t.Fatalf("record canonical FFI probe result: %v", err)
+			}
 		})
+	}
+	if err := probeTracker.validateCanonicalDiscrimination(); err != nil {
+		t.Fatal(err)
 	}
 }
 

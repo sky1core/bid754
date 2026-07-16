@@ -48,6 +48,33 @@ func TestNativeReadtestEvidencePinsCompactLifecycleCounts(t *testing.T) {
 	}
 }
 
+func TestGoportReadtestEvidencePinsCompactLifecycleCounts(t *testing.T) {
+	required, err := goportReadtestEvidence(anchors{GoportReadtestExecutedCases: 10})
+	if err != nil {
+		t.Fatalf("goportReadtestEvidence: %v", err)
+	}
+	log := strings.Split(
+		"--- PASS: TestGeneratedReadCasesGoPort (1.00s)\n"+
+			"testlogcompact: suppressed 20 subtest lifecycle lines (run=10 pass=10 skip=0) for TestGeneratedReadCasesGoPort\n",
+		"\n",
+	)
+	if missing := missingEvidence(log, required); len(missing) != 0 {
+		t.Fatalf("valid compact Go-port readtest evidence missing=%v", missing)
+	}
+
+	wrong := strings.Split(
+		"--- PASS: TestGeneratedReadCasesGoPort (1.00s)\n"+
+			"testlogcompact: suppressed 18 subtest lifecycle lines (run=9 pass=9 skip=0) for TestGeneratedReadCasesGoPort\n",
+		"\n",
+	)
+	if missing := missingEvidence(wrong, required); len(missing) != 1 {
+		t.Fatalf("reduced compact Go-port readtest evidence missing=%v, want one count line", missing)
+	}
+	if _, err := goportReadtestEvidence(anchors{}); err == nil {
+		t.Fatal("goportReadtestEvidence accepted a zero executed-case anchor")
+	}
+}
+
 func TestNativeReadtestEvidenceRejectsQuotedOrDuplicateCompactSummary(t *testing.T) {
 	required, err := nativeReadtestEvidence(anchors{
 		ReadtestCasesTotal:             10,

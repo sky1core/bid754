@@ -82,7 +82,7 @@ pub fn bid64qq_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) ->
         }
     }
     let mut flags: u32 = 0;
-    return (bid64qqq_fma(y, x, z, rnd_mode, (&mut flags)), flags);
+    return (bid64qqq_fma_core(y, x, z, rnd_mode, (&mut flags)), flags);
 }
 
 pub fn bid128dd_mul(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {

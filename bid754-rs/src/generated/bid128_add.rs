@@ -43,7 +43,7 @@ pub fn bid64qd_add(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u
 pub fn bid64qq_add(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
     let mut one = BID_UINT128 { lo: 0x0000000000000001, hi: 0x3040000000000000, ..Default::default() };
     let mut flags: u32 = 0;
-    return (bid64qqq_fma(one, x, y, rnd_mode, (&mut flags)), flags);
+    return (bid64qqq_fma_core(one, x, y, rnd_mode, (&mut flags)), flags);
 }
 
 pub fn bid128dd_add(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
@@ -84,7 +84,7 @@ pub fn bid64qq_sub(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) ->
         y.hi ^= 0x8000000000000000;
     }
     let mut flags: u32 = 0;
-    return (bid64qqq_fma(one, x, y, rnd_mode, (&mut flags)), flags);
+    return (bid64qqq_fma_core(one, x, y, rnd_mode, (&mut flags)), flags);
 }
 
 pub fn bid128dd_sub(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {

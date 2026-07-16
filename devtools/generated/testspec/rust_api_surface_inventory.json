@@ -2,8 +2,8 @@
   "version": "1.0",
   "kind": "rust_api_surface_inventory",
   "source": "devtools/generated/testspec/public_api_routing_inventory.json (mapped + excluded_constant_accessor) + devtools/tools/registry/rust_api_manifest.json + bid754-go module-root signatures/literals",
-  "mapped_total": 363,
-  "emitted": 363,
+  "mapped_total": 379,
+  "emitted": 379,
   "deferred": 0,
   "rows": [
     {
@@ -2575,6 +2575,118 @@
       "bidgo_function": "Bid64qqDiv"
     },
     {
+      "go_symbol": "FMA128DDDBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_ddd_with_mode",
+      "shape": "mixed_ternary_mode_flags_ddd",
+      "bidgo_function": "Bid128dddFma"
+    },
+    {
+      "go_symbol": "FMA128DDQBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_ddq_with_mode",
+      "shape": "mixed_ternary_mode_flags_ddq",
+      "bidgo_function": "Bid128ddqFma"
+    },
+    {
+      "go_symbol": "FMA128DQDBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_dqd_with_mode",
+      "shape": "mixed_ternary_mode_flags_dqd",
+      "bidgo_function": "Bid128dqdFma"
+    },
+    {
+      "go_symbol": "FMA128DQQBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_dqq_with_mode",
+      "shape": "mixed_ternary_mode_flags_dqq",
+      "bidgo_function": "Bid128dqqFma"
+    },
+    {
+      "go_symbol": "FMA128QDDBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_qdd_with_mode",
+      "shape": "mixed_ternary_mode_flags_qdd",
+      "bidgo_function": "Bid128qddFma"
+    },
+    {
+      "go_symbol": "FMA128QDQBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_qdq_with_mode",
+      "shape": "mixed_ternary_mode_flags_qdq",
+      "bidgo_function": "Bid128qdqFma"
+    },
+    {
+      "go_symbol": "FMA128QQDBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "fma_qqd_with_mode",
+      "shape": "mixed_ternary_mode_flags_qqd",
+      "bidgo_function": "Bid128qqdFma"
+    },
+    {
+      "go_symbol": "FMA64DDQBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_ddq_with_mode",
+      "shape": "mixed_ternary_mode_flags_ddq",
+      "bidgo_function": "Bid64ddqFma"
+    },
+    {
+      "go_symbol": "FMA64DQDBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_dqd_with_mode",
+      "shape": "mixed_ternary_mode_flags_dqd",
+      "bidgo_function": "Bid64dqdFma"
+    },
+    {
+      "go_symbol": "FMA64DQQBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_dqq_with_mode",
+      "shape": "mixed_ternary_mode_flags_dqq",
+      "bidgo_function": "Bid64dqqFma"
+    },
+    {
+      "go_symbol": "FMA64QDDBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_qdd_with_mode",
+      "shape": "mixed_ternary_mode_flags_qdd",
+      "bidgo_function": "Bid64qddFma"
+    },
+    {
+      "go_symbol": "FMA64QDQBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_qdq_with_mode",
+      "shape": "mixed_ternary_mode_flags_qdq",
+      "bidgo_function": "Bid64qdqFma"
+    },
+    {
+      "go_symbol": "FMA64QQDBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_qqd_with_mode",
+      "shape": "mixed_ternary_mode_flags_qqd",
+      "bidgo_function": "Bid64qqdFma"
+    },
+    {
+      "go_symbol": "FMA64QQQBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "fma_qqq_with_mode",
+      "shape": "mixed_ternary_mode_flags_qqq",
+      "bidgo_function": "Bid64qqqFma"
+    },
+    {
       "go_symbol": "Mul128DDBIDWithMode",
       "status": "emitted",
       "rust_owner": "Decimal128",
@@ -2861,6 +2973,22 @@
       "rust_surface": "parse_raw",
       "shape": "parse_raw",
       "bidgo_function": "Bid64FromString"
+    },
+    {
+      "go_symbol": "Sqrt128DBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal128",
+      "rust_surface": "sqrt_d_with_mode",
+      "shape": "mixed_unary_mode_flags_d",
+      "bidgo_function": "Bid128dSqrt"
+    },
+    {
+      "go_symbol": "Sqrt64QBIDWithMode",
+      "status": "emitted",
+      "rust_owner": "Decimal64",
+      "rust_surface": "sqrt_q_with_mode",
+      "shape": "mixed_unary_mode_flags_q",
+      "bidgo_function": "Bid64qSqrt"
     },
     {
       "go_symbol": "Sub128DDBIDWithMode",

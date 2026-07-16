@@ -1,0 +1,22 @@
+{
+  "suite": "bid128ddd_fma",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128ddd_fma",
+  "kind": "ternary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC64",
+    "OP_DEC64",
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128ddd_fma_line_1130","line":1130,"operands":["[0000000000000200]","[1a13bc50c402d5c3]","[4c31067288024880]"],"expected":"[31c2ec459ba7304fe49a4fafd2000000]","status":"20","rounding":0},
+    {"id":"bid128ddd_fma_line_1131","line":1131,"operands":["[1739a39084f14140]","[926a2b0a0b343625]","[0000000000000001]"],"expected":"[2ce2314dc6448d9338c15b0a00000000]","status":"20","rounding":0},
+    {"id":"bid128ddd_fma_line_1132","line":1132,"operands":["[2000a080a0205904]","[fffffffffffeffff]","[c10282f50825c160]"],"expected":"[fc000000000000000000000000000000]","status":"01","rounding":0},
+    {"id":"bid128ddd_fma_line_1133","line":1133,"operands":["[d6df8feb53d2d16e]","[0080000000002000]","[4589aa10001a14d1]"],"expected":"[3158861e83b104da4f3a31e778a40000]","status":"20","rounding":0}
+  ]
+}

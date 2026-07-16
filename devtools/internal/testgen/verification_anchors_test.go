@@ -142,7 +142,7 @@ func loadVerificationAnchors(t *testing.T) verificationAnchors {
 }
 
 // verificationSentinels mirrors devtools/verification_sentinels.json, the
-// hand-maintained routing-sentinel row pin that lives outside every
+// hand-maintained known-answer row pin that lives outside every
 // generation path (GUARDRAILS: no generator reads or writes it). The rows
 // are the anchor payload themselves — not counts — so the comparison below
 // requires exact, ordered, byte-equal row sets across the pin file and both
@@ -151,6 +151,7 @@ type verificationSentinels struct {
 	Comment                           []string `json:"comment"`
 	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
 	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
+	MixedFMAFusednessRows             []string `json:"mixed_fma_fusedness_rows"`
 }
 
 func loadVerificationSentinels(t *testing.T) verificationSentinels {
@@ -213,33 +214,31 @@ func loadGeneratedGoStringSliceLiteral(t *testing.T, path, varName string) []str
 	return nil
 }
 
-var rustRoutingSentinelHeaderRe = regexp.MustCompile(`^const ROUTING_SENTINEL_ROWS: \[&str; (\d+)\] = \[$`)
 var rustRoutingSentinelRowRe = regexp.MustCompile(`^\s*"([ -~]+)",$`)
 
-// loadRustRoutingSentinelRows extracts the ordered ROUTING_SENTINEL_ROWS
-// literal from a generated Rust Tier 1 runner and requires the declared
-// array length to match the extracted row count.
-func loadRustRoutingSentinelRows(t *testing.T, filename string) []string {
+// loadRustStringArrayLiteral extracts an ordered generated Rust [&str; N]
+// literal and requires its declared length to match the extracted row count.
+func loadRustStringArrayLiteral(t *testing.T, path, constName string) []string {
 	t.Helper()
-	path := filepath.Join("..", "..", "..", "bid754-rs", "ffi-verify", "tests", filename)
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("read generated Rust Tier 1 long harness %s: %v", filename, err)
+		t.Fatalf("read generated Rust artifact %s: %v", path, err)
 	}
+	headerRe := regexp.MustCompile(`^const ` + regexp.QuoteMeta(constName) + `: \[&str; (\d+)\] = \[$`)
 	lines := strings.Split(string(raw), "\n")
 	declared := -1
 	rows := []string(nil)
 	for i := 0; i < len(lines); i++ {
-		header := rustRoutingSentinelHeaderRe.FindStringSubmatch(lines[i])
+		header := headerRe.FindStringSubmatch(lines[i])
 		if header == nil {
 			continue
 		}
 		if declared >= 0 {
-			t.Fatalf("generated %s: ROUTING_SENTINEL_ROWS declared twice", filename)
+			t.Fatalf("generated %s: %s declared twice", path, constName)
 		}
 		count, err := strconv.Atoi(header[1])
 		if err != nil {
-			t.Fatalf("generated %s: bad ROUTING_SENTINEL_ROWS length %q: %v", filename, header[1], err)
+			t.Fatalf("generated %s: bad %s length %q: %v", path, constName, header[1], err)
 		}
 		declared = count
 		rows = []string{}
@@ -254,18 +253,27 @@ func loadRustRoutingSentinelRows(t *testing.T, filename string) []string {
 			}
 			match := rustRoutingSentinelRowRe.FindStringSubmatch(lines[i])
 			if match == nil {
-				t.Fatalf("generated %s: unparseable ROUTING_SENTINEL_ROWS line %q", filename, lines[i])
+				t.Fatalf("generated %s: unparseable %s line %q", path, constName, lines[i])
 			}
 			rows = append(rows, match[1])
 		}
 	}
 	if declared < 0 {
-		t.Fatalf("generated %s: ROUTING_SENTINEL_ROWS block not found", filename)
+		t.Fatalf("generated %s: %s block not found", path, constName)
 	}
 	if len(rows) != declared {
-		t.Fatalf("generated %s: ROUTING_SENTINEL_ROWS declares %d rows but carries %d", filename, declared, len(rows))
+		t.Fatalf("generated %s: %s declares %d rows but carries %d", path, constName, declared, len(rows))
 	}
 	return rows
+}
+
+// loadRustRoutingSentinelRows extracts the Tier 1 routing rows from their
+// fixed generated ffi-verify location.
+func loadRustRoutingSentinelRows(t *testing.T, filename string) []string {
+	t.Helper()
+	return loadRustStringArrayLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-rs", "ffi-verify", "tests", filename),
+		"ROUTING_SENTINEL_ROWS")
 }
 
 // firstSentinelRowDivergence renders the first index where two sentinel row
@@ -959,6 +967,25 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	// generator cannot touch the pin file, so a selection change (or a hand
 	// edit to either runner) fails here until a human re-audits and re-pins.
 	sentinels := loadVerificationSentinels(t)
+	if len(sentinels.MixedFMAFusednessRows) == 0 {
+		t.Errorf("verification_sentinels.json pins no mixed FMA fusedness rows")
+	}
+	goFusednessRows := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_ffi_bitcompare_native_test.go"),
+		"mixedFMAFusednessSentinelRows")
+	if !reflect.DeepEqual(goFusednessRows, sentinels.MixedFMAFusednessRows) {
+		t.Errorf("generated Go mixed FMA fusedness rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(goFusednessRows), len(sentinels.MixedFMAFusednessRows),
+			firstSentinelRowDivergence(goFusednessRows, sentinels.MixedFMAFusednessRows))
+	}
+	rustFusednessRows := loadRustStringArrayLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-rs", "tests", "public_parity_generated.rs"),
+		"MIXED_FMA_FUSEDNESS_SENTINEL_ROWS")
+	if !reflect.DeepEqual(rustFusednessRows, sentinels.MixedFMAFusednessRows) {
+		t.Errorf("generated Rust mixed FMA fusedness rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(rustFusednessRows), len(sentinels.MixedFMAFusednessRows),
+			firstSentinelRowDivergence(rustFusednessRows, sentinels.MixedFMAFusednessRows))
+	}
 	if len(sentinels.Tier1ArithmeticRoutingRows) == 0 {
 		t.Errorf("verification_sentinels.json pins no Tier 1 arithmetic routing sentinel rows")
 	}
@@ -1899,8 +1926,8 @@ func loadRustConstParityRunnerConstants(t *testing.T) map[string]int {
 
 // generatedMarkerRegexp mirrors the marker line that
 // devtools/scripts/check_generated_marker_coverage.sh discovers generated
-// artifacts with. TestVerificationArtifactContentHashes reuses the same tracked
-// marker set as the exhaustive universe it must classify.
+// artifacts with. TestVerificationArtifactContentHashes reuses the same
+// Git-visible marker set as the exhaustive universe it must classify.
 const generatedMarkerRegexp = `^(//|#) Code generated .* DO NOT EDIT\.$`
 
 // verificationArtifactDigestListingCap bounds how many per-file digest lines a
@@ -1966,7 +1993,8 @@ func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 		"bid754-codec-swift/Sources/BidCodecVectorRunner/main.swift":
 		return "bidcodec_harnesses", ""
 	case "bid754-go/internal/testspec/spec.go",
-		"bid754-go/internal/testspec/spec_io.go":
+		"bid754-go/internal/testspec/spec_io.go",
+		"bid754-go/internal/testspec/spec_io_strict_test.go":
 		return "spec_loader", ""
 	case "bid754-rs/ffi-verify/tests/readtest_generated.rs":
 		return "rust_readtest_runner", ""
@@ -2055,11 +2083,12 @@ func TestVerificationArtifactContentHashes(t *testing.T) {
 
 	// The shared verification spec tree and the BID codec vectors file are JSON
 	// artifacts with no generated-code marker line, so they join the hashed set
-	// explicitly rather than through the marker universe. The spec tree is
-	// enumerated from the git-tracked set (like the marker buckets), so an
-	// untracked stray file dropped under it cannot perturb the hash; the codec
-	// vectors file is a single fixed tracked path.
-	bucketFiles["testspec_tree"] = trackedFilesUnder(t, repoRoot, "devtools/generated/testspec")
+	// explicitly rather than through the marker universe. The generated spec
+	// tree includes both tracked files and untracked non-ignored candidates: a
+	// newly generated shard must move the external hash before it is staged,
+	// rather than disappearing from this gate until Git happens to track it.
+	// The codec vectors file is a single fixed tracked path.
+	bucketFiles["testspec_tree"] = trackedAndUntrackedNonIgnoredFilesUnder(t, repoRoot, "devtools/generated/testspec")
 	bucketFiles["bidcodec_vectors"] = []string{"bid754-codec-vectors/vectors.json"}
 
 	unusedAnchors := map[string]bool{}
@@ -2103,14 +2132,14 @@ func verificationRepoRoot(t *testing.T) string {
 	return root
 }
 
-// markerArtifactUniverse returns the tracked generated-marker files minus the
-// documented marker exceptions, i.e. exactly the marker-bearing files that
-// verify-generated is expected to compare. git is required: the marker set is
-// the independent exhaustive universe, and silently skipping it would disable
-// the check.
+// markerArtifactUniverse returns the tracked and untracked non-ignored
+// generated-marker files minus the documented marker exceptions, i.e. exactly
+// the marker-bearing files that verify-generated is expected to compare. git is
+// required: the marker set is the independent exhaustive universe, and silently
+// skipping it would disable the check.
 func markerArtifactUniverse(t *testing.T, repoRoot string) []string {
 	t.Helper()
-	cmd := exec.Command("git", "-C", repoRoot, "grep", "-lIE", generatedMarkerRegexp, "--", ".")
+	cmd := exec.Command("git", "-C", repoRoot, "grep", "--untracked", "-lIE", generatedMarkerRegexp, "--", ".")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("git grep for generated markers failed (git is required to enumerate the exhaustive universe): %v", err)
@@ -2129,6 +2158,40 @@ func markerArtifactUniverse(t *testing.T, repoRoot string) []string {
 	}
 	sort.Strings(universe)
 	return universe
+}
+
+func TestMarkerArtifactUniverseIncludesUntrackedNonIgnoredFiles(t *testing.T) {
+	repoRoot := t.TempDir()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repoRoot}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+	}
+	runGit("init", "-q")
+	for relative, data := range map[string]string{
+		".gitignore": "ignored.go\n",
+		"devtools/scripts/generated_marker_exceptions.txt": "",
+		"tracked.go":   "// Code generated by test; DO NOT EDIT.\n",
+		"untracked.go": "// Code generated by test; DO NOT EDIT.\n",
+		"ignored.go":   "// Code generated by test; DO NOT EDIT.\n",
+	} {
+		fullPath := filepath.Join(repoRoot, filepath.FromSlash(relative))
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(fullPath, []byte(data), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runGit("add", "--", ".gitignore", "tracked.go")
+
+	got := markerArtifactUniverse(t, repoRoot)
+	want := []string{"tracked.go", "untracked.go"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Git-visible generated-marker files = %v, want %v", got, want)
+	}
 }
 
 // readMarkerExceptions parses devtools/scripts/generated_marker_exceptions.txt the
@@ -2153,15 +2216,15 @@ func readMarkerExceptions(t *testing.T, repoRoot string) map[string]bool {
 	return allow
 }
 
-// trackedFilesUnder returns the git-tracked files under relDir as sorted
-// repo-relative slash paths. Using the tracked set (not a filesystem walk) keeps
-// an untracked stray file dropped into the generated spec tree from perturbing
-// the content hash, and matches the tracked-only universe the marker buckets use.
-func trackedFilesUnder(t *testing.T, repoRoot, relDir string) []string {
+// trackedAndUntrackedNonIgnoredFilesUnder returns the Git-visible candidate
+// files under relDir as sorted repo-relative slash paths. Including cached and
+// untracked non-ignored files closes the pre-staging gap: a newly generated
+// shard participates in the hash as soon as it appears in the working tree.
+func trackedAndUntrackedNonIgnoredFilesUnder(t *testing.T, repoRoot, relDir string) []string {
 	t.Helper()
-	out, err := exec.Command("git", "-C", repoRoot, "ls-files", "-z", "--", relDir).Output()
+	out, err := exec.Command("git", "-C", repoRoot, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", relDir).Output()
 	if err != nil {
-		t.Fatalf("git ls-files under %s failed (git is required to enumerate the tracked spec tree): %v", relDir, err)
+		t.Fatalf("git ls-files under %s failed (git is required to enumerate the generated spec tree): %v", relDir, err)
 	}
 	var files []string
 	// git ls-files -z emits each path verbatim terminated by NUL, so split on
@@ -2173,10 +2236,42 @@ func trackedFilesUnder(t *testing.T, repoRoot, relDir string) []string {
 		}
 	}
 	if len(files) == 0 {
-		t.Fatalf("no tracked files under %s; the verification spec tree is empty", relDir)
+		t.Fatalf("no tracked or untracked non-ignored files under %s; the verification spec tree is empty", relDir)
 	}
 	sort.Strings(files)
 	return files
+}
+
+func TestTrackedAndUntrackedNonIgnoredFilesUnder(t *testing.T) {
+	repoRoot := t.TempDir()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repoRoot}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+	}
+	runGit("init", "-q")
+	if err := os.MkdirAll(filepath.Join(repoRoot, "tree"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for rel, data := range map[string]string{
+		".gitignore":          "tree/ignored.json\n",
+		"tree/tracked.json":   "tracked\n",
+		"tree/untracked.json": "untracked\n",
+		"tree/ignored.json":   "ignored\n",
+	} {
+		if err := os.WriteFile(filepath.Join(repoRoot, filepath.FromSlash(rel)), []byte(data), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runGit("add", "--", ".gitignore", "tree/tracked.json")
+
+	got := trackedAndUntrackedNonIgnoredFilesUnder(t, repoRoot, "tree")
+	want := []string{"tree/tracked.json", "tree/untracked.json"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Git-visible generated files = %v, want %v", got, want)
+	}
 }
 
 // verificationTreeHash computes the bucket content hash as the sha256 of the

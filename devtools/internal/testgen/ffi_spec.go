@@ -1,6 +1,7 @@
 package testgen
 
 import (
+	"encoding/binary"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -10,6 +11,68 @@ import (
 )
 
 const ffiRoundingModeCount = 5
+
+const ffiProbeRoundingDiscriminant = "rounding-discriminant"
+
+type ffiMixedDecimalShape struct {
+	format       string
+	operation    string
+	resultBits   int
+	operandBits  [3]int
+	operandCount int
+}
+
+func (s ffiMixedDecimalShape) operandWidths() []int {
+	return append([]int(nil), s.operandBits[:s.operandCount]...)
+}
+
+// ffiMixedDecimalShapeFor is the closed-world registry for Intel extension
+// entrypoints whose decimal operand widths differ from the result width. The
+// D/Q letters describe x, y, and z in order; keeping the widths explicit here
+// prevents a result-width inference from silently swapping or truncating an
+// operand when the extracted C declaration changes.
+func ffiMixedDecimalShapeFor(function string) (ffiMixedDecimalShape, bool) {
+	const (
+		d = 64
+		q = 128
+	)
+	switch function {
+	case "bid64ddq_fma":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, d, q}, operandCount: 3}, true
+	case "bid64dqd_fma":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, q, d}, operandCount: 3}, true
+	case "bid64dqq_fma":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, q, q}, operandCount: 3}, true
+	case "bid64qdd_fma":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, d, d}, operandCount: 3}, true
+	case "bid64qdq_fma":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, d, q}, operandCount: 3}, true
+	case "bid64qqd_fma":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, q, d}, operandCount: 3}, true
+	case "bid64qqq_fma":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, q, q}, operandCount: 3}, true
+	case "bid128ddd_fma":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, d, d}, operandCount: 3}, true
+	case "bid128ddq_fma":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, d, q}, operandCount: 3}, true
+	case "bid128dqd_fma":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, q, d}, operandCount: 3}, true
+	case "bid128dqq_fma":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, q, q}, operandCount: 3}, true
+	case "bid128qdd_fma":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, d, d}, operandCount: 3}, true
+	case "bid128qdq_fma":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, d, q}, operandCount: 3}, true
+	case "bid128qqd_fma":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, q, d}, operandCount: 3}, true
+	case "bid64q_sqrt":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sqrt", resultBits: d, operandBits: [3]int{q}, operandCount: 1}, true
+	case "bid128d_sqrt":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sqrt", resultBits: q, operandBits: [3]int{d}, operandCount: 1}, true
+	default:
+		return ffiMixedDecimalShape{}, false
+	}
+}
 
 func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error) {
 	symbols, err := loadSymbolFile(filepath.Join(repoRoot, spec.Symbols))
@@ -40,13 +103,27 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 		}
 
 		hasRoundingParam := ffiSymbolHasRoundingParam(symbol)
-		generator := newDeterministicFFIGenerator(spec.Seed, function, bits)
+		mixedShape, isMixedDecimal := ffiMixedDecimalShapeFor(function)
+		var generator *deterministicFFIGenerator
+		var mixedGenerator *deterministicFFIMixedDecimalGenerator
+		if isMixedDecimal {
+			mixedGenerator = newDeterministicFFIMixedDecimalGenerator(spec.Seed, function, mixedShape)
+		} else {
+			generator = newDeterministicFFIGenerator(spec.Seed, function, bits)
+		}
 		for i := 0; i < spec.CasesPerFunction; i++ {
-			operands := generator.nextOperandsForOperation(i, operation, arity)
+			var operands []string
+			if isMixedDecimal {
+				operands = mixedGenerator.nextOperands(i)
+			} else {
+				operands = generator.nextOperandsForOperation(i, operation, arity)
+			}
 			out = append(out, GeneratedFFICase{
 				Suite:       spec.Name,
 				ID:          fmt.Sprintf("%s_%s_%03d", spec.Name, function, i+1),
 				Format:      format,
+				ResultBits:  mixedShape.resultBits,
+				OperandBits: mixedShape.operandWidths(),
 				Operation:   operation,
 				Function:    function,
 				LinkName:    symbol.LinkName,
@@ -55,6 +132,66 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 				Rounding:    ffiCaseRoundingMode(i, hasRoundingParam),
 				Operands:    operands,
 			})
+		}
+		caseIndex := spec.CasesPerFunction
+		if isMixedDecimal {
+			if !hasRoundingParam {
+				return nil, fmt.Errorf("ffi suite %q: mixed decimal operation %q has no rounding parameter", spec.Name, function)
+			}
+			probes, err := ffiMixedDecimalRoundingProbeOperands(mixedShape)
+			if err != nil {
+				return nil, fmt.Errorf("ffi suite %q: build rounding probes for %q: %w", spec.Name, function, err)
+			}
+			for probeIndex, operands := range probes {
+				probeGroup := fmt.Sprintf("%s/rounding/%d", function, probeIndex+1)
+				for mode := 0; mode < ffiRoundingModeCount; mode++ {
+					out = append(out, GeneratedFFICase{
+						Suite:       spec.Name,
+						ID:          fmt.Sprintf("%s_%s_%03d", spec.Name, function, caseIndex+1),
+						Format:      format,
+						ResultBits:  mixedShape.resultBits,
+						OperandBits: mixedShape.operandWidths(),
+						Operation:   operation,
+						Function:    function,
+						LinkName:    symbol.LinkName,
+						Declaration: symbol.Declaration,
+						Source:      filepath.ToSlash(spec.Symbols),
+						Probe:       ffiProbeRoundingDiscriminant,
+						ProbeGroup:  probeGroup,
+						Rounding:    mode,
+						Operands:    append([]string(nil), operands...),
+					})
+					caseIndex++
+				}
+			}
+			if operation == "fma" {
+				probe, ok := ffiMixedFMAFusednessProbeFor(function)
+				if !ok {
+					return nil, fmt.Errorf("ffi suite %q: mixed FMA %q has no closed fusedness probe", spec.Name, function)
+				}
+				if err := validateFFIFusednessProbe(probe, mixedShape); err != nil {
+					return nil, fmt.Errorf("ffi suite %q: %w", spec.Name, err)
+				}
+				out = append(out, GeneratedFFICase{
+					Suite:       spec.Name,
+					ID:          fmt.Sprintf("%s_%s_%03d", spec.Name, function, caseIndex+1),
+					Format:      format,
+					ResultBits:  mixedShape.resultBits,
+					OperandBits: mixedShape.operandWidths(),
+					Operation:   operation,
+					Function:    function,
+					LinkName:    symbol.LinkName,
+					Declaration: symbol.Declaration,
+					Source:      filepath.ToSlash(spec.Symbols),
+					Probe:       ffiProbeFusedness,
+					ProbeGroup:  function + "/fusedness",
+					Expected:    probe.expected.ffiString(),
+					Forbidden:   probe.forbidden.ffiString(),
+					Rounding:    probe.rounding,
+					Operands:    probe.ffiOperands(),
+				})
+				caseIndex++
+			}
 		}
 
 		edgeCaseCount := ffiTier1RoundingEdgeCaseCount(operation, bits)
@@ -67,10 +204,20 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 		if spec.CasesPerFunction < edgeCaseCount {
 			return nil, fmt.Errorf("ffi suite %q: Tier 1 operation %q baseline has %d cases, need at least %d edge cases", spec.Name, function, spec.CasesPerFunction, edgeCaseCount)
 		}
-		edgeGenerator := newDeterministicFFIGenerator(spec.Seed, function, bits)
-		caseIndex := spec.CasesPerFunction
+		var edgeGenerator *deterministicFFIGenerator
+		var edgeMixedGenerator *deterministicFFIMixedDecimalGenerator
+		if isMixedDecimal {
+			edgeMixedGenerator = newDeterministicFFIMixedDecimalGenerator(spec.Seed, function, mixedShape)
+		} else {
+			edgeGenerator = newDeterministicFFIGenerator(spec.Seed, function, bits)
+		}
 		for edgeIndex := 0; edgeIndex < edgeCaseCount; edgeIndex++ {
-			operands := edgeGenerator.nextOperandsForOperation(edgeIndex, operation, arity)
+			var operands []string
+			if isMixedDecimal {
+				operands = edgeMixedGenerator.nextOperands(edgeIndex)
+			} else {
+				operands = edgeGenerator.nextOperandsForOperation(edgeIndex, operation, arity)
+			}
 			baselineMode := ffiCaseRoundingMode(edgeIndex, true)
 			for mode := 0; mode < ffiRoundingModeCount; mode++ {
 				if mode == baselineMode {
@@ -80,6 +227,8 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 					Suite:       spec.Name,
 					ID:          fmt.Sprintf("%s_%s_%03d", spec.Name, function, caseIndex+1),
 					Format:      format,
+					ResultBits:  mixedShape.resultBits,
+					OperandBits: mixedShape.operandWidths(),
 					Operation:   operation,
 					Function:    function,
 					LinkName:    symbol.LinkName,
@@ -94,6 +243,91 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 	}
 
 	return out, nil
+}
+
+// ffiMixedDecimalRoundingProbeOperands returns inputs whose exact arithmetic
+// result lies on a result-width rounding boundary. Every returned operand set
+// is emitted unchanged under all five Intel rounding modes; the native runner
+// separately requires the canonical Intel C result bits to split into at
+// least two distinct values.
+func ffiMixedDecimalRoundingProbeOperands(shape ffiMixedDecimalShape) ([][]string, error) {
+	var probes [][]modeDiscOperand
+	switch shape.operation {
+	case "fma":
+		triples, err := mixedModeTernaryDiscriminantOperands("FMA", shape.resultBits, shape.operandBits)
+		if err != nil {
+			return nil, err
+		}
+		probes = make([][]modeDiscOperand, len(triples))
+		for i, triple := range triples {
+			probes[i] = append([]modeDiscOperand(nil), triple[:]...)
+		}
+	case "sqrt":
+		values, err := mixedModeUnaryDiscriminantOperands("Sqrt", shape.resultBits, shape.operandBits[0])
+		if err != nil {
+			return nil, err
+		}
+		probes = make([][]modeDiscOperand, len(values))
+		for i, value := range values {
+			probes[i] = []modeDiscOperand{value}
+		}
+	default:
+		return nil, fmt.Errorf("unsupported mixed decimal operation %q", shape.operation)
+	}
+	if len(probes) == 0 {
+		return nil, fmt.Errorf("mixed decimal operation %q has no rounding probe operands", shape.operation)
+	}
+	// The first FMA row is the result-width half-ULP tie and the first sqrt
+	// row is sqrt(2). One probe group per function is sufficient to prove the
+	// rounding argument is live; the native runner validates that Intel C
+	// actually produces at least two result bit patterns instead of assuming
+	// that every generally useful parity discriminant also discriminates every
+	// Intel mixed-width extension entrypoint.
+	probes = probes[:1]
+
+	widths := shape.operandWidths()
+	encoded := make([][]string, len(probes))
+	for probeIndex, probe := range probes {
+		if len(probe) != len(widths) {
+			return nil, fmt.Errorf("probe %d operand count = %d, want %d", probeIndex, len(probe), len(widths))
+		}
+		encoded[probeIndex] = make([]string, len(probe))
+		for operandIndex, operand := range probe {
+			bits, err := ffiModeDiscOperandBits(widths[operandIndex], operand)
+			if err != nil {
+				return nil, fmt.Errorf("probe %d operand %d width %d: %w", probeIndex, operandIndex, widths[operandIndex], err)
+			}
+			encoded[probeIndex][operandIndex] = bits
+		}
+	}
+	return encoded, nil
+}
+
+func ffiModeDiscOperandBits(width int, operand modeDiscOperand) (string, error) {
+	switch width {
+	case 32:
+		bits, err := encodeModeDiscOperand32(operand)
+		if err != nil {
+			return "", err
+		}
+		return formatFFIBits(uint64(bits), width), nil
+	case 64:
+		bits, err := encodeModeDiscOperand64(operand)
+		if err != nil {
+			return "", err
+		}
+		return formatFFIBits(bits, width), nil
+	case 128:
+		raw, err := encodeModeDiscOperand128(operand)
+		if err != nil {
+			return "", err
+		}
+		lo := binary.LittleEndian.Uint64(raw[0:8])
+		hi := binary.LittleEndian.Uint64(raw[8:16])
+		return formatFFIWideBits(hi, lo, width), nil
+	default:
+		return "", fmt.Errorf("unsupported decimal width %d", width)
+	}
 }
 
 func ffiTier1RoundingEdgeCaseCount(operation string, bits int) int {
@@ -163,6 +397,13 @@ func expandFFIFunctions(spec FFITestSpec, symbols []symbolSpec) ([]string, error
 }
 
 func verifyFFISignature(function string, symbol symbolSpec) (string, string, int, int, error) {
+	if shape, ok := ffiMixedDecimalShapeFor(function); ok {
+		if err := verifyFFIMixedDecimalSignature(function, symbol, shape); err != nil {
+			return "", "", 0, 0, err
+		}
+		return shape.format, shape.operation, shape.resultBits, shape.operandCount, nil
+	}
+
 	prefix, operation, ok := strings.Cut(function, "_")
 	if !ok {
 		return "", "", 0, 0, fmt.Errorf("ffi symbol %q: unsupported name", function)
@@ -272,6 +513,28 @@ func verifyFFISignature(function string, symbol symbolSpec) (string, string, int
 	}
 
 	return format, operation, bits, arity, nil
+}
+
+func verifyFFIMixedDecimalSignature(function string, symbol symbolSpec, shape ffiMixedDecimalShape) error {
+	returnType, ok := ffiDecimalReturnType(shape.resultBits)
+	if !ok {
+		return fmt.Errorf("ffi symbol %q: unsupported mixed decimal result width %d", function, shape.resultBits)
+	}
+	if symbol.ReturnType != returnType {
+		return fmt.Errorf("ffi symbol %q: return type = %q, want %q", function, symbol.ReturnType, returnType)
+	}
+
+	paramNames := [...]string{"x", "y", "z"}
+	expectedParams := make([]string, 0, shape.operandCount+2)
+	for i, bits := range shape.operandWidths() {
+		paramType, ok := ffiDecimalReturnType(bits)
+		if !ok {
+			return fmt.Errorf("ffi symbol %q: unsupported mixed decimal operand %d width %d", function, i, bits)
+		}
+		expectedParams = append(expectedParams, paramType+" "+paramNames[i])
+	}
+	expectedParams = append(expectedParams, "_IDEC_round rnd_mode", "_IDEC_flags*pfpsf")
+	return verifyFFIParameters(function, symbol.Parameters, expectedParams)
 }
 
 func verifyFFIBaseIntegerFromSignature(function string, symbol symbolSpec, returnType, operation string) error {
@@ -521,6 +784,69 @@ type deterministicFFIGenerator struct {
 	mask      uint64
 	edges     []uint64
 	wideEdges [][2]uint64
+}
+
+type deterministicFFIMixedDecimalGenerator struct {
+	shape      ffiMixedDecimalShape
+	generators []*deterministicFFIGenerator
+}
+
+func newDeterministicFFIMixedDecimalGenerator(seed uint64, function string, shape ffiMixedDecimalShape) *deterministicFFIMixedDecimalGenerator {
+	widths := shape.operandWidths()
+	generators := make([]*deterministicFFIGenerator, len(widths))
+	for i, bits := range widths {
+		// Salt random operands by their ordered x/y/z slot. Edge operands stay
+		// aligned by the width-specific edge tables, while equal-width random
+		// slots do not collapse to identical bit patterns.
+		generators[i] = newDeterministicFFIGenerator(seed, fmt.Sprintf("%s#operand%d", function, i), bits)
+	}
+	return &deterministicFFIMixedDecimalGenerator{shape: shape, generators: generators}
+}
+
+func (g *deterministicFFIMixedDecimalGenerator) nextOperands(index int) []string {
+	operands := make([]string, len(g.generators))
+	for position, generator := range g.generators {
+		operands[position] = generator.nextMixedDecimalOperand(index, g.shape.operandCount, position)
+	}
+	return operands
+}
+
+func (g *deterministicFFIGenerator) nextMixedDecimalOperand(index, arity, position int) string {
+	switch arity {
+	case 1:
+		if index < g.decimalEdgeCount() {
+			return g.formatDecimalEdge(index)
+		}
+	case 3:
+		if triple, ok := ffiTernaryEdgeTriple(index, g.bits, g.decimalEdgeCount()); ok {
+			return g.formatDecimalEdge(triple[position])
+		}
+	default:
+		panic("unsupported mixed decimal ffi arity")
+	}
+	return g.nextRandomDecimalOperand()
+}
+
+func (g *deterministicFFIGenerator) decimalEdgeCount() int {
+	if g.bits == 128 {
+		return len(g.wideEdges)
+	}
+	return len(g.edges)
+}
+
+func (g *deterministicFFIGenerator) formatDecimalEdge(index int) string {
+	if g.bits == 128 {
+		hi, lo := g.wideEdge(index)
+		return formatFFIWideBits(hi, lo, g.bits)
+	}
+	return formatFFIBits(g.edges[index], g.bits)
+}
+
+func (g *deterministicFFIGenerator) nextRandomDecimalOperand() string {
+	if g.bits == 128 {
+		return formatFFIWideBits(g.next(), g.next(), g.bits)
+	}
+	return formatFFIBits(g.next(), g.bits)
 }
 
 func newDeterministicFFIGenerator(seed uint64, function string, bits int) *deterministicFFIGenerator {

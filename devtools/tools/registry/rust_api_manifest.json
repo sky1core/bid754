@@ -2816,6 +2816,70 @@
     {
       "go_symbol": "Div128QDBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "div_qd_with_mode", "shape": "mixed_binary_mode_flags_qd", "bidgo_function": "Bid128qdDiv",
       "reason": "destination-owner associated function for Intel bid128qd_div with ordered Decimal128/Decimal64 operands"
+    },
+    {
+      "go_symbol": "FMA64DDQBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "fma_ddq_with_mode", "shape": "mixed_ternary_mode_flags_ddq", "bidgo_function": "Bid64ddqFma",
+      "reason": "destination-owner associated function for Intel bid64ddq_fma; D/D/Q operands are fused and rounded once directly to Decimal64"
+    },
+    {
+      "go_symbol": "FMA64DQDBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "fma_dqd_with_mode", "shape": "mixed_ternary_mode_flags_dqd", "bidgo_function": "Bid64dqdFma",
+      "reason": "destination-owner associated function for Intel bid64dqd_fma with ordered D/Q/D operands"
+    },
+    {
+      "go_symbol": "FMA64DQQBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "fma_dqq_with_mode", "shape": "mixed_ternary_mode_flags_dqq", "bidgo_function": "Bid64dqqFma",
+      "reason": "destination-owner associated function for Intel bid64dqq_fma with ordered D/Q/Q operands"
+    },
+    {
+      "go_symbol": "FMA64QDDBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "fma_qdd_with_mode", "shape": "mixed_ternary_mode_flags_qdd", "bidgo_function": "Bid64qddFma",
+      "reason": "destination-owner associated function for Intel bid64qdd_fma with ordered Q/D/D operands"
+    },
+    {
+      "go_symbol": "FMA64QDQBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "fma_qdq_with_mode", "shape": "mixed_ternary_mode_flags_qdq", "bidgo_function": "Bid64qdqFma",
+      "reason": "destination-owner associated function for Intel bid64qdq_fma with ordered Q/D/Q operands"
+    },
+    {
+      "go_symbol": "FMA64QQDBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "fma_qqd_with_mode", "shape": "mixed_ternary_mode_flags_qqd", "bidgo_function": "Bid64qqdFma",
+      "reason": "destination-owner associated function for Intel bid64qqd_fma with ordered Q/Q/D operands"
+    },
+    {
+      "go_symbol": "FMA64QQQBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "fma_qqq_with_mode", "shape": "mixed_ternary_mode_flags_qqq", "bidgo_function": "Bid64qqqFma",
+      "reason": "destination-owner associated function for Intel bid64qqq_fma; three Decimal128 operands are fused and rounded once directly to Decimal64"
+    },
+    {
+      "go_symbol": "FMA128DDDBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "fma_ddd_with_mode", "shape": "mixed_ternary_mode_flags_ddd", "bidgo_function": "Bid128dddFma",
+      "reason": "destination-owner associated function for Intel bid128ddd_fma over three Decimal64 operands"
+    },
+    {
+      "go_symbol": "FMA128DDQBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "fma_ddq_with_mode", "shape": "mixed_ternary_mode_flags_ddq", "bidgo_function": "Bid128ddqFma",
+      "reason": "destination-owner associated function for Intel bid128ddq_fma with ordered D/D/Q operands"
+    },
+    {
+      "go_symbol": "FMA128DQDBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "fma_dqd_with_mode", "shape": "mixed_ternary_mode_flags_dqd", "bidgo_function": "Bid128dqdFma",
+      "reason": "destination-owner associated function for Intel bid128dqd_fma with ordered D/Q/D operands"
+    },
+    {
+      "go_symbol": "FMA128DQQBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "fma_dqq_with_mode", "shape": "mixed_ternary_mode_flags_dqq", "bidgo_function": "Bid128dqqFma",
+      "reason": "destination-owner associated function for Intel bid128dqq_fma with ordered D/Q/Q operands"
+    },
+    {
+      "go_symbol": "FMA128QDDBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "fma_qdd_with_mode", "shape": "mixed_ternary_mode_flags_qdd", "bidgo_function": "Bid128qddFma",
+      "reason": "destination-owner associated function for Intel bid128qdd_fma with ordered Q/D/D operands"
+    },
+    {
+      "go_symbol": "FMA128QDQBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "fma_qdq_with_mode", "shape": "mixed_ternary_mode_flags_qdq", "bidgo_function": "Bid128qdqFma",
+      "reason": "destination-owner associated function for Intel bid128qdq_fma with ordered Q/D/Q operands"
+    },
+    {
+      "go_symbol": "FMA128QQDBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "fma_qqd_with_mode", "shape": "mixed_ternary_mode_flags_qqd", "bidgo_function": "Bid128qqdFma",
+      "reason": "destination-owner associated function for Intel bid128qqd_fma with ordered Q/Q/D operands"
+    },
+    {
+      "go_symbol": "Sqrt64QBIDWithMode", "rust_owner": "Decimal64", "rust_surface": "sqrt_q_with_mode", "shape": "mixed_unary_mode_flags_q", "bidgo_function": "Bid64qSqrt",
+      "reason": "destination-owner associated function for Intel bid64q_sqrt; a Decimal128 operand is rounded directly to a Decimal64 square root"
+    },
+    {
+      "go_symbol": "Sqrt128DBIDWithMode", "rust_owner": "Decimal128", "rust_surface": "sqrt_d_with_mode", "shape": "mixed_unary_mode_flags_d", "bidgo_function": "Bid128dSqrt",
+      "reason": "destination-owner associated function for Intel bid128d_sqrt over a Decimal64 operand"
     }
   ],
   "deferred": {

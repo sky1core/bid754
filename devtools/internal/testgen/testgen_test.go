@@ -450,8 +450,8 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.ReadCases) == 0 {
 		t.Fatal("expected generated read cases")
 	}
-	if len(spec.ReadCases) != 86250 {
-		t.Fatalf("generated read case count = %d, want pinned current-surface plus IEEE regression case count 86250", len(spec.ReadCases))
+	if len(spec.ReadCases) != 86689 {
+		t.Fatalf("generated read case count = %d, want pinned current-surface plus IEEE regression case count 86689", len(spec.ReadCases))
 	}
 	assertGeneratedReadtestProfileInventory(t, spec)
 	expectedReads := make(map[string]ReadTestSpec)
@@ -535,18 +535,18 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	}
 	assertCountMap(t, "generated readtest case compare groups", readCaseCompareCounts, map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 85223,
+		"CMP_FUZZYSTATUS": 85662,
 	})
 	assertCountMap(t, "generated readtest case formats", readCaseFormatCounts, map[string]int{
 		"decimal32":  20862,
-		"decimal64":  21528,
-		"decimal128": 43723,
+		"decimal64":  21710,
+		"decimal128": 43980,
 		"status":     137,
 	})
 	assertCountMap(t, "generated readtest case kinds", readCaseKindCounts, map[string]int{
-		"unary_op":       61299,
+		"unary_op":       61366,
 		"binary_op":      23028,
-		"ternary_op":     1445,
+		"ternary_op":     1817,
 		"from_string":    278,
 		"to_string":      63,
 		"status_control": 137,
@@ -557,9 +557,9 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"decimal32_ieee754_regressions":  15,
 		"decimal64_ieee754_regressions":  15,
 		"decimal128_ieee754_regressions": 15,
-		"decimal64_operations":           21428,
+		"decimal64_operations":           21610,
 		"decimal64_strings":              85,
-		"decimal128_operations":          43607,
+		"decimal128_operations":          43864,
 		"decimal128_strings":             101,
 		"status_control_operations":      137,
 	})
@@ -579,8 +579,8 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 22800 {
-		t.Fatalf("generated %d ffi cases, want 22800", len(spec.FFICases))
+	if len(spec.FFICases) != 23662 {
+		t.Fatalf("generated %d ffi cases, want 23662", len(spec.FFICases))
 	}
 	ffiSymbols, err := loadSymbolFile(filepath.Join(repoRoot, "generated", "json", "intel_dfp_symbols.json"))
 	if err != nil {
@@ -641,19 +641,25 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		ffiFormatCaseCounts[tc.Format]++
 		ffiOperationCaseCounts[tc.Operation]++
 	}
-	if len(ffiFunctionCaseCounts) != 453 {
-		t.Fatalf("generated ffi function count = %d, want 453 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
+	if len(ffiFunctionCaseCounts) != 469 {
+		t.Fatalf("generated ffi function count = %d, want 469 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
 	}
 	for function, count := range ffiFunctionCaseCounts {
 		want := 48 + 4*ffiTier1RoundingEdgeCaseCount(ffiFunctionOperations[function], ffiFunctionBits[function])
+		if shape, ok := ffiMixedDecimalShapeFor(function); ok {
+			want += ffiRoundingModeCount
+			if shape.operation == "fma" {
+				want++
+			}
+		}
 		if count != want {
 			t.Fatalf("generated ffi function %q has %d cases, want %d", function, count, want)
 		}
 	}
 	assertCountMap(t, "ffi formats", ffiFormatCaseCounts, map[string]int{
 		"decimal32":  7600,
-		"decimal64":  7600,
-		"decimal128": 7600,
+		"decimal64":  8031,
+		"decimal128": 8031,
 	})
 	expectedFFIOperations := map[string]int{
 		"abs":                         144,
@@ -662,7 +668,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"copy":                        144,
 		"copySign":                    144,
 		"div":                         324,
-		"fma":                         144,
+		"fma":                         900,
 		"fmod":                        144,
 		"from_int32":                  144,
 		"from_int64":                  144,
@@ -718,7 +724,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"signaling_less_unordered":    144,
 		"signaling_not_greater":       144,
 		"signaling_not_less":          144,
-		"sqrt":                        144,
+		"sqrt":                        250,
 		"sub":                         324,
 		"totalOrder":                  144,
 		"totalOrderMag":               144,
@@ -1195,8 +1201,8 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	if len(reads) == 0 {
 		t.Fatal("expected mechanically selected readtest functions")
 	}
-	if len(reads) != 542 {
-		t.Fatalf("mechanically selected readtest function count = %d, want pinned Intel Tier 1 surface count 542", len(reads))
+	if len(reads) != 558 {
+		t.Fatalf("mechanically selected readtest function count = %d, want pinned Intel selected surface count 558", len(reads))
 	}
 	allowedFormats := make(map[string]struct{}, len(profile.Formats))
 	for _, format := range profile.Formats {
@@ -1215,6 +1221,7 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	var hasToBid128 bool
 	var hasNextToward bool
 	selectedTier1Mixed := 0
+	selectedTier2Mixed := 0
 	requiredStatusControl := map[string]bool{
 		"bid_getDecimalRoundingDirection": false,
 		"bid_lowerFlags":                  false,
@@ -1228,6 +1235,9 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	for _, read := range reads {
 		if isTier1MixedWidthIntelReadtestFunction(read.Function) {
 			selectedTier1Mixed++
+		}
+		if isTier2MixedWidthIntelReadtestFunction(read.Function) {
+			selectedTier2Mixed++
 		}
 		if read.OutputType == "" || len(read.InputTypes) == 0 || read.CompareGroup == "" {
 			t.Fatalf("selected readtest function %q is missing signature metadata", read.Function)
@@ -1308,25 +1318,28 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	if selectedTier1Mixed != 24 {
 		t.Fatalf("selected mixed-width Intel Tier 1 functions = %d, want 24", selectedTier1Mixed)
 	}
+	if selectedTier2Mixed != 16 {
+		t.Fatalf("selected mixed-width Intel Tier 2 functions = %d, want 16", selectedTier2Mixed)
+	}
 	for function, seen := range requiredStatusControl {
 		if !seen {
 			t.Fatalf("expected mechanically selected readtest surface to include status-control function %q", function)
 		}
 	}
 	assertCountMap(t, "readtest compare groups", compareCounts, map[string]int{
-		"CMP_FUZZYSTATUS": 530,
+		"CMP_FUZZYSTATUS": 546,
 		"CMP_EQUALSTATUS": 12,
 	})
 	assertCountMap(t, "readtest formats", formatCounts, map[string]int{
 		"decimal32":  170,
-		"decimal64":  182,
-		"decimal128": 182,
+		"decimal64":  190,
+		"decimal128": 190,
 		"status":     8,
 	})
 	assertCountMap(t, "readtest kinds", kindCounts, map[string]int{
-		"unary_op":       372,
+		"unary_op":       374,
 		"binary_op":      153,
-		"ternary_op":     3,
+		"ternary_op":     17,
 		"from_string":    3,
 		"to_string":      3,
 		"status_control": 8,
@@ -1400,8 +1413,8 @@ func assertGeneratedReadtestProfileInventory(t *testing.T, spec SharedSpec) {
 	if inventory.Profile != "intel_readtest_current_surface" {
 		t.Fatalf("readtest inventory profile = %q, want intel_readtest_current_surface", inventory.Profile)
 	}
-	if inventory.TotalFunctions != 680 || inventory.SelectedFunctions != 542 || inventory.ExcludedFunctions != 138 {
-		t.Fatalf("readtest inventory counts = total %d selected %d excluded %d, want 680/542/138", inventory.TotalFunctions, inventory.SelectedFunctions, inventory.ExcludedFunctions)
+	if inventory.TotalFunctions != 680 || inventory.SelectedFunctions != 558 || inventory.ExcludedFunctions != 122 {
+		t.Fatalf("readtest inventory counts = total %d selected %d excluded %d, want 680/558/122", inventory.TotalFunctions, inventory.SelectedFunctions, inventory.ExcludedFunctions)
 	}
 	if len(inventory.Functions) != inventory.TotalFunctions {
 		t.Fatalf("readtest inventory function entries = %d, want total %d", len(inventory.Functions), inventory.TotalFunctions)
@@ -1422,9 +1435,8 @@ func assertGeneratedReadtestProfileInventory(t *testing.T, spec SharedSpec) {
 		}
 	}
 	assertCountMap(t, "readtest inventory classifications", classificationCounts, map[string]int{
-		"selected":                  542,
+		"selected":                  558,
 		"optional_not_required":     87,
-		"optional_scope_gap":        16,
 		"out_of_scope_not_required": 35,
 	})
 	if len(unresolvedRequired) != 0 {

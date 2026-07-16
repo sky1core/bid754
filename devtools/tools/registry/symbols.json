@@ -4772,6 +4772,26 @@
       "exported": true,
       "group": "bid128"
     },
+    "Bid128dSqrt": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_sqrt.go",
+      "go_name": "Bid128dSqrt",
+      "exported": true,
+      "group": "bid128"
+    },
     "Bid128ddAdd": {
       "params": [
         {
@@ -4865,6 +4885,62 @@
       ],
       "go_file": "bid128_add.go",
       "go_name": "Bid128ddSub",
+      "exported": true,
+      "group": "bid128"
+    },
+    "Bid128dddFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "z",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid128dddFma",
+      "exported": true,
+      "group": "bid128"
+    },
+    "Bid128ddqFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "z",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid128ddqFma",
       "exported": true,
       "group": "bid128"
     },
@@ -4964,6 +5040,62 @@
       "exported": true,
       "group": "bid128"
     },
+    "Bid128dqdFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "z",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid128dqdFma",
+      "exported": true,
+      "group": "bid128"
+    },
+    "Bid128dqqFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "z",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid128dqqFma",
+      "exported": true,
+      "group": "bid128"
+    },
     "Bid128qdAdd": {
       "params": [
         {
@@ -5057,6 +5189,90 @@
       ],
       "go_file": "bid128_add.go",
       "go_name": "Bid128qdSub",
+      "exported": true,
+      "group": "bid128"
+    },
+    "Bid128qddFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "z",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid128qddFma",
+      "exported": true,
+      "group": "bid128"
+    },
+    "Bid128qdqFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "z",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid128qdqFma",
+      "exported": true,
+      "group": "bid128"
+    },
+    "Bid128qqdFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "y",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "z",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "BID_UINT128",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid128qqdFma",
       "exported": true,
       "group": "bid128"
     },
@@ -11368,6 +11584,34 @@
       "exported": true,
       "group": "bid64"
     },
+    "Bid64ddqFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "z",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid64ddqFma",
+      "exported": true,
+      "group": "bid64"
+    },
     "Bid64dqAdd": {
       "params": [
         {
@@ -11461,6 +11705,82 @@
       ],
       "go_file": "bid128_add.go",
       "go_name": "Bid64dqSub",
+      "exported": true,
+      "group": "bid64"
+    },
+    "Bid64dqdFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "z",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid64dqdFma",
+      "exported": true,
+      "group": "bid64"
+    },
+    "Bid64dqqFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "z",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid64dqqFma",
+      "exported": true,
+      "group": "bid64"
+    },
+    "Bid64qSqrt": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rndMode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "sqrt64.go",
+      "go_name": "Bid64qSqrt",
       "exported": true,
       "group": "bid64"
     },
@@ -11560,6 +11880,62 @@
       "exported": true,
       "group": "bid64"
     },
+    "Bid64qddFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "z",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid64qddFma",
+      "exported": true,
+      "group": "bid64"
+    },
+    "Bid64qdqFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "z",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid64qdqFma",
+      "exported": true,
+      "group": "bid64"
+    },
     "Bid64qqAdd": {
       "params": [
         {
@@ -11653,6 +12029,62 @@
       ],
       "go_file": "bid128_add.go",
       "go_name": "Bid64qqSub",
+      "exported": true,
+      "group": "bid64"
+    },
+    "Bid64qqdFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "y",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "z",
+          "type": "u64"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid64qqdFma",
+      "exported": true,
+      "group": "bid64"
+    },
+    "Bid64qqqFma": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "y",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "z",
+          "type": "BID_UINT128"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "bid128_fma.go",
+      "go_name": "Bid64qqqFma",
       "exported": true,
       "group": "bid64"
     },
@@ -14082,7 +14514,7 @@
       "exported": false,
       "group": "bid64"
     },
-    "bid64qqqFma": {
+    "bid64qqqFmaCore": {
       "params": [
         {
           "name": "x",
@@ -14110,7 +14542,7 @@
         "u64"
       ],
       "go_file": "bid128_fma.go",
-      "go_name": "bid64qqqFma",
+      "go_name": "bid64qqqFmaCore",
       "exported": false,
       "group": "bid64"
     },

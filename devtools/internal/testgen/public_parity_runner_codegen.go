@@ -705,6 +705,60 @@ func mixedModeBinaryDiscriminantOperands(op string, resultWidth int, operandWidt
 	return pairs, nil
 }
 
+// mixedModeTernaryDiscriminantOperands returns FMA inputs that are encodable
+// at every declared D/Q operand width while still forcing one rounding at the
+// result precision. This deliberately does not reuse the same-width FMA table:
+// its Decimal128 product-overflow row contains coefficients wider than a D
+// operand can represent.
+func mixedModeTernaryDiscriminantOperands(op string, resultWidth int, operandWidths [3]int) ([][3]modeDiscOperand, error) {
+	if op != "FMA" {
+		return nil, fmt.Errorf("public parity: unsupported mixed ternary operation %q", op)
+	}
+	var triples [][3]modeDiscOperand
+	switch resultWidth {
+	case 64:
+		triples = [][3]modeDiscOperand{
+			{mdo(1, 0), mdo(1, 0), mdo(5, -16)},
+			{mdo(1, 0), mdo(1, 0), mdo(1, -16)},
+			{mdo(1, 0), mdo(1, 0), mdo(9, -16)},
+			{mdoNeg(1, 0), mdo(1, 0), mdoNeg(1, -16)},
+		}
+	case 128:
+		triples = [][3]modeDiscOperand{
+			{mdo(1, 0), mdo(1, 0), mdo(5, -34)},
+			{mdo(1, 0), mdo(1, 0), mdo(1, -34)},
+			{mdo(1, 0), mdo(1, 0), mdo(9, -34)},
+			{mdoNeg(1, 0), mdo(1, 0), mdoNeg(1, -34)},
+		}
+	default:
+		return nil, fmt.Errorf("public parity: unsupported mixed FMA result width %d", resultWidth)
+	}
+	for i, triple := range triples {
+		for j, operand := range triple {
+			if _, err := modeDiscGoLiteral(operandWidths[j], operand); err != nil {
+				return nil, fmt.Errorf("public parity: mixed %s result width %d triple %d operand %d cannot be encoded at width %d: %w", op, resultWidth, i, j, operandWidths[j], err)
+			}
+		}
+	}
+	return triples, nil
+}
+
+// mixedModeUnaryDiscriminantOperands reuses the result-width sqrt
+// discriminants only after proving that each decimal component is encodable
+// at the unlike input width.
+func mixedModeUnaryDiscriminantOperands(op string, resultWidth, operandWidth int) ([]modeDiscOperand, error) {
+	values, err := modeUnaryDiscriminantOperands(op, resultWidth)
+	if err != nil {
+		return nil, err
+	}
+	for i, operand := range values {
+		if _, err := modeDiscGoLiteral(operandWidth, operand); err != nil {
+			return nil, fmt.Errorf("public parity: mixed %s result width %d operand %d cannot be encoded at width %d: %w", op, resultWidth, i, operandWidth, err)
+		}
+	}
+	return values, nil
+}
+
 // modeUnaryDiscriminants is the discriminant corpus for the unary mode-shape
 // wrappers (SqrtWithMode and RoundIntegralExactWithMode): single operands
 // whose result depends on the rounding direction. Sqrt uses irrational
@@ -1260,30 +1314,32 @@ func fpJoin(parts ...string) string {
 type parityShape int
 
 const (
-	shapeVMUnary             parityShape = iota // value method, no operand args, generic port
-	shapeVMBinary                               // value method, one same-width operand
-	shapeVMTernary                              // FMA
-	shapeVMScaleB                               // ScaleB(int)
-	shapeVMNextToward                           // NextToward(Decimal128BID)
-	shapeVMModeUnary                            // ToBinary*/ToDecimal* with a RoundingMode
-	shapeVMModeUnaryArith                       // unary same-width arithmetic: no operand args, a RoundingMode, same-width result
-	shapeVMModeBinary                           // {Add,Sub,Mul,Div,Quantize}WithMode: one same-width operand + a RoundingMode
-	shapeVMModeTernary                          // FMAWithMode: two same-width operands + a RoundingMode
-	shapeVMModeScaleB                           // ScaleBWithMode: int exponent + a RoundingMode
-	shapeVMConvert                              // ConvertTo{Int,Uint}N[Exact] (mode-dispatched port)
-	shapeVMNullary                              // Radix
-	shapeVMCompareTotal                         // CompareTotal / CompareTotalMag (composed)
-	shapeVMSign                                 // Sign (composed)
-	shapeVMSignalingEqual                       // SignalingEqual (composed)
-	shapeVMSignalingNotEqual                    // SignalingNotEqual (composed)
-	shapeVMClass                                // Class (int -> class string)
-	shapeVMString                               // String (non-NaN only)
-	shapeFuncIntCtor                            // NewDecimal*From{Int,Uint}{32,64}
-	shapeFuncFromInt                            // NewDecimal*FromInt convenience
-	shapeFuncString                             // string constructors / raw parsers
-	shapeFuncStringMode                         // NewDecimal*WithMode(s, mode) explicit-mode string constructors
-	shapeFuncContext                            // Add*BIDWithContext
-	shapeFuncMixedModeBinary                    // Intel mixed-width {Add,Sub,Mul,Div} free functions
+	shapeVMUnary              parityShape = iota // value method, no operand args, generic port
+	shapeVMBinary                                // value method, one same-width operand
+	shapeVMTernary                               // FMA
+	shapeVMScaleB                                // ScaleB(int)
+	shapeVMNextToward                            // NextToward(Decimal128BID)
+	shapeVMModeUnary                             // ToBinary*/ToDecimal* with a RoundingMode
+	shapeVMModeUnaryArith                        // unary same-width arithmetic: no operand args, a RoundingMode, same-width result
+	shapeVMModeBinary                            // {Add,Sub,Mul,Div,Quantize}WithMode: one same-width operand + a RoundingMode
+	shapeVMModeTernary                           // FMAWithMode: two same-width operands + a RoundingMode
+	shapeVMModeScaleB                            // ScaleBWithMode: int exponent + a RoundingMode
+	shapeVMConvert                               // ConvertTo{Int,Uint}N[Exact] (mode-dispatched port)
+	shapeVMNullary                               // Radix
+	shapeVMCompareTotal                          // CompareTotal / CompareTotalMag (composed)
+	shapeVMSign                                  // Sign (composed)
+	shapeVMSignalingEqual                        // SignalingEqual (composed)
+	shapeVMSignalingNotEqual                     // SignalingNotEqual (composed)
+	shapeVMClass                                 // Class (int -> class string)
+	shapeVMString                                // String (non-NaN only)
+	shapeFuncIntCtor                             // NewDecimal*From{Int,Uint}{32,64}
+	shapeFuncFromInt                             // NewDecimal*FromInt convenience
+	shapeFuncString                              // string constructors / raw parsers
+	shapeFuncStringMode                          // NewDecimal*WithMode(s, mode) explicit-mode string constructors
+	shapeFuncContext                             // Add*BIDWithContext
+	shapeFuncMixedModeBinary                     // Intel mixed-width {Add,Sub,Mul,Div} free functions
+	shapeFuncMixedModeTernary                    // Intel mixed-width FMA free functions
+	shapeFuncMixedModeUnary                      // Intel mixed-width sqrt free functions
 )
 
 type parityUnit struct {
@@ -1302,8 +1358,12 @@ type parityUnit struct {
 	IntParam      string // int32/uint32/int64/uint64 for scalar ctors
 	StringKind    string // "raw" | "direct" | "withflags" for shapeFuncString
 	OperandWidths [2]int // mixed-width free-function operand widths; zero for every other shape
-	Operation     string // Add/Sub/Mul/Div for mixed-width mode discrimination
-	Cases         int    // pinned per-unit case count
+	// TernaryOperandWidths and UnaryOperandWidth carry the exact D/Q suffix
+	// widths for mixed FMA and sqrt free functions respectively.
+	TernaryOperandWidths [3]int
+	UnaryOperandWidth    int
+	Operation            string // Add/Sub/Mul/Div/FMA/Sqrt for mixed-width mode discrimination
+	Cases                int    // pinned per-unit case count
 }
 
 type parityPortPlan struct {
@@ -1352,6 +1412,8 @@ var newDecimalWidthRe = regexp.MustCompile(`^NewDecimal(32|64|128)`)
 var parseDecimalWidthRe = regexp.MustCompile(`^ParseDecimal(32|64|128)BIDRaw$`)
 var contextWidthRe = regexp.MustCompile(`^Add(32|64|128)BIDWithContext$`)
 var mixedArithmeticRe = regexp.MustCompile(`^(Add|Sub|Mul|Div)(64|128)(DD|DQ|QD|QQ)BIDWithMode$`)
+var mixedFMARe = regexp.MustCompile(`^FMA(64|128)([DQ]{3})BIDWithMode$`)
+var mixedSqrtRe = regexp.MustCompile(`^Sqrt(64|128)(D|Q)BIDWithMode$`)
 
 func symbolContainsFlags(results []string) bool {
 	for _, r := range results {
@@ -1397,6 +1459,54 @@ func resolveParityUnit(sym publicAPISymbol, bidgoFn string, sigs map[string]bidg
 	// Package functions.
 	u.Func = sym.Name
 	switch {
+	case mixedFMARe.MatchString(sym.Name):
+		m := mixedFMARe.FindStringSubmatch(sym.Name)
+		u.Operation = "FMA"
+		u.Width, _ = strconv.Atoi(m[1])
+		u.Shape = shapeFuncMixedModeTernary
+		u.ResultClass = decClass(u.Width)
+		if !supportedMixedFMA(u.Width, m[2]) {
+			return u, fmt.Errorf("public parity: unsupported Intel mixed FMA surface %q", sym.Symbol)
+		}
+		if err := validateMixedFMASignature(sym, u.Width, m[2]); err != nil {
+			return u, err
+		}
+		wantPort := fmt.Sprintf("Bid%d%sFma", u.Width, strings.ToLower(m[2]))
+		if bidgoFn != wantPort {
+			return u, fmt.Errorf("public parity: mixed FMA function %q must map to %s, got %s", sym.Symbol, wantPort, bidgoFn)
+		}
+		for i := range u.TernaryOperandWidths {
+			u.TernaryOperandWidths[i] = widthOfRecv(sym.Params[i])
+		}
+		disc, err := mixedModeTernaryDiscriminantOperands(u.Operation, u.Width, u.TernaryOperandWidths)
+		if err != nil {
+			return u, err
+		}
+		u.Cases = (len(parityLabelTriples)+len(disc))*len(parityModeOrder) + 1
+		return u, nil
+	case mixedSqrtRe.MatchString(sym.Name):
+		m := mixedSqrtRe.FindStringSubmatch(sym.Name)
+		u.Operation = "Sqrt"
+		u.Width, _ = strconv.Atoi(m[1])
+		u.Shape = shapeFuncMixedModeUnary
+		u.ResultClass = decClass(u.Width)
+		if !supportedMixedSqrt(u.Width, m[2]) {
+			return u, fmt.Errorf("public parity: unsupported Intel mixed sqrt surface %q", sym.Symbol)
+		}
+		if err := validateMixedSqrtSignature(sym, u.Width, m[2]); err != nil {
+			return u, err
+		}
+		wantPort := fmt.Sprintf("Bid%d%sSqrt", u.Width, strings.ToLower(m[2]))
+		if bidgoFn != wantPort {
+			return u, fmt.Errorf("public parity: mixed sqrt function %q must map to %s, got %s", sym.Symbol, wantPort, bidgoFn)
+		}
+		u.UnaryOperandWidth = widthOfRecv(sym.Params[0])
+		disc, err := mixedModeUnaryDiscriminantOperands(u.Operation, u.Width, u.UnaryOperandWidth)
+		if err != nil {
+			return u, err
+		}
+		u.Cases = (publicParityCorpusLen+len(disc))*len(parityModeOrder) + 1
+		return u, nil
 	case mixedArithmeticRe.MatchString(sym.Name):
 		m := mixedArithmeticRe.FindStringSubmatch(sym.Name)
 		u.Operation = m[1]
@@ -1510,6 +1620,68 @@ func validateMixedArithmeticSignature(sym publicAPISymbol, resultWidth int, oper
 	}
 	if sym.Params[2] != "RoundingMode" || sym.Results[0] != fmt.Sprintf("Decimal%dBID", resultWidth) || sym.Results[1] != "ExceptionFlags" {
 		return fmt.Errorf("public parity: mixed arithmetic function %q has signature params=%v results=%v inconsistent with its name", sym.Symbol, sym.Params, sym.Results)
+	}
+	return nil
+}
+
+func supportedMixedFMA(resultWidth int, operandCode string) bool {
+	switch resultWidth {
+	case 64:
+		return operandCode != "DDD"
+	case 128:
+		return operandCode != "QQQ"
+	default:
+		return false
+	}
+}
+
+func supportedMixedSqrt(resultWidth int, operandCode string) bool {
+	return (resultWidth == 64 && operandCode == "Q") || (resultWidth == 128 && operandCode == "D")
+}
+
+func mixedOperandWidth(code rune) (int, bool) {
+	switch code {
+	case 'D':
+		return 64, true
+	case 'Q':
+		return 128, true
+	default:
+		return 0, false
+	}
+}
+
+func validateMixedFMASignature(sym publicAPISymbol, resultWidth int, operandCode string) error {
+	if len(sym.Params) != 4 || len(sym.Results) != 2 {
+		return fmt.Errorf("public parity: mixed FMA function %q has signature params=%v results=%v, want three decimal operands plus RoundingMode and (Decimal%dBID, ExceptionFlags)", sym.Symbol, sym.Params, sym.Results, resultWidth)
+	}
+	for i, code := range operandCode {
+		want, ok := mixedOperandWidth(code)
+		if !ok {
+			return fmt.Errorf("public parity: mixed FMA function %q has unsupported operand code %q", sym.Symbol, operandCode)
+		}
+		if got := widthOfRecv(sym.Params[i]); got != want {
+			return fmt.Errorf("public parity: mixed FMA function %q operand %d is %q, want Decimal%dBID from suffix %s", sym.Symbol, i, sym.Params[i], want, operandCode)
+		}
+	}
+	if sym.Params[3] != "RoundingMode" || sym.Results[0] != fmt.Sprintf("Decimal%dBID", resultWidth) || sym.Results[1] != "ExceptionFlags" {
+		return fmt.Errorf("public parity: mixed FMA function %q has signature params=%v results=%v inconsistent with its name", sym.Symbol, sym.Params, sym.Results)
+	}
+	return nil
+}
+
+func validateMixedSqrtSignature(sym publicAPISymbol, resultWidth int, operandCode string) error {
+	if len(sym.Params) != 2 || len(sym.Results) != 2 {
+		return fmt.Errorf("public parity: mixed sqrt function %q has signature params=%v results=%v, want one decimal operand plus RoundingMode and (Decimal%dBID, ExceptionFlags)", sym.Symbol, sym.Params, sym.Results, resultWidth)
+	}
+	want, ok := mixedOperandWidth(rune(operandCode[0]))
+	if !ok {
+		return fmt.Errorf("public parity: mixed sqrt function %q has unsupported operand code %q", sym.Symbol, operandCode)
+	}
+	if got := widthOfRecv(sym.Params[0]); got != want {
+		return fmt.Errorf("public parity: mixed sqrt function %q operand is %q, want Decimal%dBID from suffix %s", sym.Symbol, sym.Params[0], want, operandCode)
+	}
+	if sym.Params[1] != "RoundingMode" || sym.Results[0] != fmt.Sprintf("Decimal%dBID", resultWidth) || sym.Results[1] != "ExceptionFlags" {
+		return fmt.Errorf("public parity: mixed sqrt function %q has signature params=%v results=%v inconsistent with its name", sym.Symbol, sym.Params, sym.Results)
 	}
 	return nil
 }

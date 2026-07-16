@@ -2,8 +2,10 @@
 package testspec
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -19,7 +21,7 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 		return spec, fmt.Errorf("read generated spec index %q: %w", indexPath, err)
 	}
 	var index SpecIndex
-	if err := json.Unmarshal(data, &index); err != nil {
+	if err := decodeStrictJSON(data, &index); err != nil {
 		return spec, fmt.Errorf("parse generated spec index %q: %w", indexPath, err)
 	}
 
@@ -38,7 +40,7 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 			return SharedSpec{}, fmt.Errorf("read readtest shard %q: %w", shardPath, err)
 		}
 		var shard ReadtestShard
-		if err := json.Unmarshal(shardData, &shard); err != nil {
+		if err := decodeStrictJSON(shardData, &shard); err != nil {
 			return SharedSpec{}, fmt.Errorf("parse readtest shard %q: %w", shardPath, err)
 		}
 		for _, tc := range shard.Cases {
@@ -70,7 +72,7 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 			return SharedSpec{}, fmt.Errorf("read ffi shard %q: %w", shardPath, err)
 		}
 		var shard FFIShard
-		if err := json.Unmarshal(shardData, &shard); err != nil {
+		if err := decodeStrictJSON(shardData, &shard); err != nil {
 			return SharedSpec{}, fmt.Errorf("parse ffi shard %q: %w", shardPath, err)
 		}
 		for _, tc := range shard.Cases {
@@ -78,15 +80,37 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 				Suite:       shard.Suite,
 				ID:          tc.ID,
 				Format:      shard.Format,
+				ResultBits:  shard.ResultBits,
+				OperandBits: append([]int(nil), shard.OperandBits...),
 				Operation:   shard.Operation,
 				Function:    shard.Function,
 				LinkName:    shard.LinkName,
 				Declaration: shard.Declaration,
 				Source:      shard.Source,
+				Probe:       tc.Probe,
+				ProbeGroup:  tc.ProbeGroup,
+				Expected:    tc.Expected,
+				Forbidden:   tc.Forbidden,
 				Rounding:    tc.Rounding,
 				Operands:    tc.Operands,
 			})
 		}
 	}
 	return spec, nil
+}
+
+func decodeStrictJSON(data []byte, dst any) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dst); err != nil {
+		return err
+	}
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("trailing JSON value")
+		}
+		return fmt.Errorf("trailing JSON: %w", err)
+	}
+	return nil
 }

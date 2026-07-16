@@ -53,7 +53,8 @@ test-portable:
 test-portable-readtest:
 	@echo "🔎 generated readtest goport portable 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go test -count=1 -run "^TestGeneratedReadCasesGoPort$$" -timeout 600s ./...) | tee test_results/latest_portable_readtest_results.txt'
+	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go test -count=1 -v -run "^TestGeneratedReadCasesGoPort$$" -timeout 600s .) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedReadCasesGoPort) | tee test_results/latest_portable_readtest_results.txt'
+	@cd devtools && $(GOENV) go run ./cmd/verifylog -domain goport-readtest -log ../test_results/latest_portable_readtest_results.txt
 
 # Go 기계 포트(bidgo) 직접 decTest 값 교차검증 (cgo 불요, portable). 무태그 러너라 test-go-modules(go test ./...)에도 자동 포함된다.
 test-portable-dectest:
@@ -189,6 +190,7 @@ _verify-all:
 	@$(MAKE) check-scripts
 	@$(MAKE) verify-generated
 	@$(MAKE) test-go-modules
+	@$(MAKE) test-portable-readtest
 	@$(MAKE) vet-go-modules
 	@$(MAKE) verify-go-modules
 	@$(MAKE) verify-zero-deps
@@ -601,6 +603,7 @@ verify-generated:
 		bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs \
 		bid754-go/internal/testspec/spec.go \
 		bid754-go/internal/testspec/spec_io.go \
+		bid754-go/internal/testspec/spec_io_strict_test.go \
 		bid754-rs/src/tables.rs \
 		bid754-rs/src/gen_types.rs \
 		bid754-rs/src/gen_constants.rs \
@@ -684,6 +687,7 @@ verify-generated:
 	cmp -s bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs"; \
 	cmp -s bid754-go/internal/testspec/spec.go $$tmpdir/backup/bid754-go/internal/testspec/spec.go || failed="$$failed bid754-go/internal/testspec/spec.go"; \
 	cmp -s bid754-go/internal/testspec/spec_io.go $$tmpdir/backup/bid754-go/internal/testspec/spec_io.go || failed="$$failed bid754-go/internal/testspec/spec_io.go"; \
+	cmp -s bid754-go/internal/testspec/spec_io_strict_test.go $$tmpdir/backup/bid754-go/internal/testspec/spec_io_strict_test.go || failed="$$failed bid754-go/internal/testspec/spec_io_strict_test.go"; \
 	cmp -s bid754-rs/src/tables.rs $$tmpdir/backup/bid754-rs/src/tables.rs || failed="$$failed bid754-rs/src/tables.rs"; \
 	cmp -s bid754-rs/src/gen_types.rs $$tmpdir/backup/bid754-rs/src/gen_types.rs || failed="$$failed bid754-rs/src/gen_types.rs"; \
 	cmp -s bid754-rs/src/gen_constants.rs $$tmpdir/backup/bid754-rs/src/gen_constants.rs || failed="$$failed bid754-rs/src/gen_constants.rs"; \

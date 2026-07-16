@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "source": "bid754-go module-root package bid754 (all non-test files, generated included) + bid754-go/internal/bidgo + devtools/testgen_manifest.json public_api",
-  "total": 410,
-  "mapped": 363,
+  "total": 426,
+  "mapped": 379,
   "excluded": 47,
   "excluded_by_class": {
     "composition_plumbing": 6,
@@ -2254,6 +2254,104 @@
       "reason": "human-readable flag-name rendering; no port counterpart"
     },
     {
+      "symbol": "FMA128DDDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dddFma",
+      "reason": "Intel mixed-width bid128ddd_fma: D/D/D operands fused to Decimal128"
+    },
+    {
+      "symbol": "FMA128DDQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128ddqFma",
+      "reason": "Intel mixed-width bid128ddq_fma: D/D/Q operands fused to Decimal128"
+    },
+    {
+      "symbol": "FMA128DQDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dqdFma",
+      "reason": "Intel mixed-width bid128dqd_fma: D/Q/D operands fused to Decimal128"
+    },
+    {
+      "symbol": "FMA128DQQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dqqFma",
+      "reason": "Intel mixed-width bid128dqq_fma: D/Q/Q operands fused to Decimal128"
+    },
+    {
+      "symbol": "FMA128QDDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128qddFma",
+      "reason": "Intel mixed-width bid128qdd_fma: Q/D/D operands fused to Decimal128"
+    },
+    {
+      "symbol": "FMA128QDQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128qdqFma",
+      "reason": "Intel mixed-width bid128qdq_fma: Q/D/Q operands fused to Decimal128"
+    },
+    {
+      "symbol": "FMA128QQDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128qqdFma",
+      "reason": "Intel mixed-width bid128qqd_fma: Q/Q/D operands fused to Decimal128"
+    },
+    {
+      "symbol": "FMA64DDQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64ddqFma",
+      "reason": "Intel mixed-width bid64ddq_fma: D/D/Q operands fused and rounded once to Decimal64"
+    },
+    {
+      "symbol": "FMA64DQDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64dqdFma",
+      "reason": "Intel mixed-width bid64dqd_fma: D/Q/D operands fused and rounded once to Decimal64"
+    },
+    {
+      "symbol": "FMA64DQQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64dqqFma",
+      "reason": "Intel mixed-width bid64dqq_fma: D/Q/Q operands fused and rounded once to Decimal64"
+    },
+    {
+      "symbol": "FMA64QDDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qddFma",
+      "reason": "Intel mixed-width bid64qdd_fma: Q/D/D operands fused and rounded once to Decimal64"
+    },
+    {
+      "symbol": "FMA64QDQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qdqFma",
+      "reason": "Intel mixed-width bid64qdq_fma: Q/D/Q operands fused and rounded once to Decimal64"
+    },
+    {
+      "symbol": "FMA64QQDBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qqdFma",
+      "reason": "Intel mixed-width bid64qqd_fma: Q/Q/D operands fused and rounded once to Decimal64"
+    },
+    {
+      "symbol": "FMA64QQQBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qqqFma",
+      "reason": "Intel mixed-width bid64qqq_fma: Q/Q/Q operands fused and rounded once to Decimal64"
+    },
+    {
       "symbol": "GetRequiredPrecision",
       "kind": "func",
       "status": "excluded_string_util_plumbing",
@@ -2594,6 +2692,20 @@
       "kind": "func",
       "status": "excluded_context_flag_plumbing",
       "reason": "stores the global default rounding mode; IEEE 754 attribute plumbing with no port counterpart"
+    },
+    {
+      "symbol": "Sqrt128DBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid128dSqrt",
+      "reason": "Intel mixed-width bid128d_sqrt: Decimal64 operand producing a Decimal128 square root"
+    },
+    {
+      "symbol": "Sqrt64QBIDWithMode",
+      "kind": "func",
+      "status": "mapped",
+      "bidgo_function": "Bid64qSqrt",
+      "reason": "Intel mixed-width bid64q_sqrt: Decimal128 operand rounded directly to a Decimal64 square root"
     },
     {
       "symbol": "Sub128DDBIDWithMode",

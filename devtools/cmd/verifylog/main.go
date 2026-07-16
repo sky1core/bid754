@@ -28,6 +28,7 @@ type anchors struct {
 	Tier1CCConversionRandom         uint64            `json:"tier1_compare_conversion_long_conversion_random"`
 	ReadtestCasesTotal              uint64            `json:"readtest_cases_total"`
 	ReadtestNativeCompareSkipCases  uint64            `json:"readtest_native_compare_skip_cases"`
+	GoportReadtestExecutedCases     uint64            `json:"goport_readtest_executed_cases"`
 	FFIBitcompareCasesTotal         uint64            `json:"ffi_bitcompare_cases_total"`
 }
 
@@ -42,7 +43,7 @@ func main() {
 	anchorsPath := flag.String("anchors", "verification_anchors.json", "path to verification_anchors.json")
 	sentinelsPath := flag.String("sentinels", "verification_sentinels.json", "path to verification_sentinels.json (routing-sentinel row pins)")
 	logPath := flag.String("log", "", "path to the captured gate log")
-	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, native-readtest, native-ffi")
+	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi")
 	passes := flag.String("passes", "", "comma-separated top-level Go test names that must have '--- PASS:' evidence")
 	flag.Parse()
 	if *logPath == "" || (*domain == "" && *passes == "") {
@@ -144,6 +145,12 @@ func main() {
 				fail("native readtest evidence: %v", err)
 			}
 			required = append(required, nativeEvidence...)
+		case "goport-readtest":
+			goportEvidence, err := goportReadtestEvidence(a)
+			if err != nil {
+				fail("Go-port readtest evidence: %v", err)
+			}
+			required = append(required, goportEvidence...)
 		case "native-ffi":
 			nativeEvidence, err := nativeFFIEvidence(a)
 			if err != nil {
@@ -189,6 +196,15 @@ func nativeReadtestEvidence(a anchors) ([]evidence, error) {
 		"native readtest",
 		a.ReadtestCasesTotal,
 		a.ReadtestNativeCompareSkipCases,
+	)
+}
+
+func goportReadtestEvidence(a anchors) ([]evidence, error) {
+	return compactGoSubtestEvidence(
+		"TestGeneratedReadCasesGoPort",
+		"Go-port readtest",
+		a.GoportReadtestExecutedCases,
+		0,
 	)
 }
 

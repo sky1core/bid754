@@ -1,0 +1,33 @@
+{
+  "suite": "bid64ddq_fma",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64ddq_fma",
+  "kind": "ternary_op",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64",
+    "OP_DEC64",
+    "OP_DEC128"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64ddq_fma_line_64873","line":64873,"operands":["[0200000000000005]","[416c929191326c25]","[0020000000060040,bb922c84f119c396]"],"expected":"[11c64948c8993613]","status":"20","rounding":0},
+    {"id":"bid64ddq_fma_line_64874","line":64874,"operands":["[10030d0a0c144640]","[7f14f8f02e00425f]","[7cf7b0a9e45b5b4a,688f04fc4e46fec3]"],"expected":"[7c00f8f02e00425f]","status":"01","rounding":0},
+    {"id":"bid64ddq_fma_line_64875","line":64875,"operands":["[2400000000000005]","[9febe67ff4feffff]","[8bbe5a7541cc533c,d511200780efcf82]"],"expected":"[9245f33ffa7f8000]","status":"20","rounding":0},
+    {"id":"bid64ddq_fma_line_64876","line":64876,"operands":["[9be14a651b33bb44]","[1403169120827002]","[739baffd0a43f8b5,bafb2655ff7dac82]"],"expected":"[80011f3111c9f870]","status":"30","rounding":0},
+    {"id":"bid64ddq_fma_line_64877","line":64877,"operands":["[a1c1200443484021]","[1000000000000802]","[0ce421fbc948e8c1,9600880cb779051c]"],"expected":"[80571057634922a4]","status":"20","rounding":0},
+    {"id":"bid64ddq_fma_line_64878","line":64878,"operands":["[a9fada9b66fb4ee3]","[86005804ac20302a]","[f312e7340b90daba,db7b15a9d5f606de]"],"expected":"[0002994df1c68afc]","status":"30","rounding":0},
+    {"id":"bid64ddq_fma_line_64879","line":64879,"operands":["[af9cdffff4f533b7]","[0080020000000010]","[f0110a080044140c,f3ff65a78dbae975]"],"expected":"[8000a28d4275b712]","status":"30","rounding":0},
+    {"id":"bid64ddq_fma_line_64880","line":64880,"operands":["[aff61e33a0a2e0ec]","[000049d288122150]","[7577d40cb4153757,fffffffffbf7ffff]"],"expected":"[8001cb97c45d9d90]","status":"30","rounding":0},
+    {"id":"bid64ddq_fma_line_64881","line":64881,"operands":["[d6b0fdffff7fef7b]","[88ae2bb4981317db]","[afff7f7bdff7f7df,5ff65418ed38fe46]"],"expected":"[affba04b44dc69b8]","status":"20","rounding":0},
+    {"id":"bid64ddq_fma_line_95675","line":95675,"operands":["[0000000000000012]","[d5d84338200b83db]","[0020000000000200,0b67ef407632b79d]"],"expected":"[a4445e04fb873155]","status":"20","rounding":0},
+    {"id":"bid64ddq_fma_line_125727","line":125727,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":0},
+    {"id":"bid64ddq_fma_line_125728","line":125728,"operands":["5e-101","-1e-299","1e-383"],"expected":"999999999999999E-398","status":"0X30","rounding":1},
+    {"id":"bid64ddq_fma_line_125729","line":125729,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":2},
+    {"id":"bid64ddq_fma_line_125730","line":125730,"operands":["5e-101","-1e-299","1e-383"],"expected":"999999999999999E-398","status":"0X30","rounding":3},
+    {"id":"bid64ddq_fma_line_125731","line":125731,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":4}
+  ]
+}

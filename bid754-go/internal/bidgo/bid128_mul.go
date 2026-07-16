@@ -66,7 +66,7 @@ func Bid64qqMul(x, y BID_UINT128, rnd_mode int) (uint64, uint32) {
 		}
 	}
 	var flags uint32
-	return bid64qqqFma(y, x, z, rnd_mode, &flags), flags
+	return bid64qqqFmaCore(y, x, z, rnd_mode, &flags), flags
 }
 
 // Bid128ddMul is ported mechanically from bid128_mul.c: bid128dd_mul.

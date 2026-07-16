@@ -57,6 +57,24 @@ func countFFICoverage(spec SharedSpec) ffiGeneratedCoverageCounts {
 	return counts
 }
 
+func ffiFusednessRowsGoLiteral() string {
+	var b strings.Builder
+	for _, row := range ffiMixedFMAFusednessRows() {
+		fmt.Fprintf(&b, "\t%q,\n", row)
+	}
+	return b.String()
+}
+
+func ffiFusednessPinsGoLiteral() string {
+	var b strings.Builder
+	for _, probe := range ffiMixedFMAFusednessProbes {
+		fmt.Fprintf(&b, "\t%q: {operands: %#v, rounding: %d, expected: %q, forbidden: %q},\n",
+			probe.function, probe.ffiOperands(), probe.rounding,
+			probe.expected.ffiString(), probe.forbidden.ffiString())
+	}
+	return b.String()
+}
+
 func ffiNativeTestSource(counts ffiGeneratedCoverageCounts) string {
 	return strings.NewReplacer(
 		"@@FFI_TOTAL@@", fmt.Sprint(counts.Total),
@@ -64,12 +82,16 @@ func ffiNativeTestSource(counts ffiGeneratedCoverageCounts) string {
 		"@@FFI_OPERATION_COUNTS@@", stringIntMapLiteral(counts.Operations),
 		"@@FFI_FUNCTION_COUNTS@@", stringIntMapLiteral(counts.Functions),
 		"@@FFI_ROUNDING_COUNTS@@", intIntMapLiteral(counts.Roundings),
+		"@@FFI_FUSEDNESS_ROWS@@", ffiFusednessRowsGoLiteral(),
+		"@@FFI_FUSEDNESS_PINS@@", ffiFusednessPinsGoLiteral(),
 	).Replace(genmarker.Line("testgen") + `
 //go:build cgo && bid754_native
 
 package bid754
 
 import (
+	"encoding/hex"
+	"fmt"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -94,6 +116,322 @@ var expectedGeneratedFFIRoundingCounts = map[int]int{
 @@FFI_ROUNDING_COUNTS@@
 }
 
+const generatedFFIRoundingDiscriminantProbe = "rounding-discriminant"
+const generatedFFIFusednessProbe = "fusedness"
+
+var mixedFMAFusednessSentinelRows = []string{
+@@FFI_FUSEDNESS_ROWS@@
+}
+
+type generatedFFIFusednessPin struct {
+	operands  []string
+	rounding  int
+	expected  string
+	forbidden string
+}
+
+var expectedGeneratedFFIFusednessPins = map[string]generatedFFIFusednessPin{
+@@FFI_FUSEDNESS_PINS@@
+}
+
+type generatedFFIRoundingProbeGroup struct {
+	function         string
+	operands         string
+	modes            [5]bool
+	nativeResultBits map[string]struct{}
+}
+
+type generatedFFIRoundingProbeTracker map[string]*generatedFFIRoundingProbeGroup
+
+func validateGeneratedFFIProbeContract(cases []testspec.GeneratedFFICase) (generatedFFIRoundingProbeTracker, error) {
+	tracker := generatedFFIRoundingProbeTracker{}
+	groupsPerFunction := map[string]int{}
+	fusednessSeen := map[string]string{}
+	for _, tc := range cases {
+		if tc.Probe == "" {
+			if tc.ProbeGroup != "" {
+				return nil, fmt.Errorf("generated FFI case %s has probe_group %q without a probe", tc.ID, tc.ProbeGroup)
+			}
+			if tc.Expected != "" || tc.Forbidden != "" {
+				return nil, fmt.Errorf("generated FFI case %s has expected/forbidden without a probe", tc.ID)
+			}
+			continue
+		}
+		if !generatedFFIMixedDecimalFunction(tc.Function) {
+			return nil, fmt.Errorf("generated FFI probe %s targets non-mixed function %q", tc.ID, tc.Function)
+		}
+		if tc.ProbeGroup == "" {
+			return nil, fmt.Errorf("generated FFI probe %s has no probe_group", tc.ID)
+		}
+		switch tc.Probe {
+		case generatedFFIRoundingDiscriminantProbe:
+			if tc.Expected != "" || tc.Forbidden != "" {
+				return nil, fmt.Errorf("generated FFI rounding probe %s unexpectedly carries expected/forbidden", tc.ID)
+			}
+			if tc.Rounding < 0 || tc.Rounding >= 5 {
+				return nil, fmt.Errorf("generated FFI rounding probe %s has mode %d outside 0..4", tc.ID, tc.Rounding)
+			}
+			operandKey := strings.Join(tc.Operands, "\x00")
+			group := tracker[tc.ProbeGroup]
+			if group == nil {
+				group = &generatedFFIRoundingProbeGroup{
+					function:         tc.Function,
+					operands:         operandKey,
+					nativeResultBits: map[string]struct{}{},
+				}
+				tracker[tc.ProbeGroup] = group
+				groupsPerFunction[tc.Function]++
+			} else if group.function != tc.Function || group.operands != operandKey {
+				return nil, fmt.Errorf("generated FFI rounding probe group %q mixes function/operands: first=(%s,%q) case %s=(%s,%q)", tc.ProbeGroup, group.function, group.operands, tc.ID, tc.Function, operandKey)
+			}
+			if group.modes[tc.Rounding] {
+				return nil, fmt.Errorf("generated FFI rounding probe group %q repeats mode %d", tc.ProbeGroup, tc.Rounding)
+			}
+			group.modes[tc.Rounding] = true
+		case generatedFFIFusednessProbe:
+			pin, ok := expectedGeneratedFFIFusednessPins[tc.Function]
+			if !ok {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s targets function %q outside the closed pin census", tc.ID, tc.Function)
+			}
+			if prior := fusednessSeen[tc.Function]; prior != "" {
+				return nil, fmt.Errorf("generated FFI fusedness function %s repeats in cases %s and %s", tc.Function, prior, tc.ID)
+			}
+			fusednessSeen[tc.Function] = tc.ID
+			if tc.ProbeGroup != tc.Function+"/fusedness" {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s group = %q, want %q", tc.ID, tc.ProbeGroup, tc.Function+"/fusedness")
+			}
+			if tc.Expected == "" || tc.Forbidden == "" {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s is missing expected or forbidden outcome", tc.ID)
+			}
+			if strings.Join(tc.Operands, "\x00") != strings.Join(pin.operands, "\x00") || tc.Rounding != pin.rounding || tc.Expected != pin.expected || tc.Forbidden != pin.forbidden {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s payload drift: operands=%v mode=%d expected=%q forbidden=%q, want operands=%v mode=%d expected=%q forbidden=%q", tc.ID, tc.Operands, tc.Rounding, tc.Expected, tc.Forbidden, pin.operands, pin.rounding, pin.expected, pin.forbidden)
+			}
+			if tc.Expected == tc.Forbidden {
+				return nil, fmt.Errorf("generated FFI fusedness probe %s expected equals forbidden outcome %q", tc.ID, tc.Expected)
+			}
+		default:
+			return nil, fmt.Errorf("generated FFI case %s has unknown probe %q", tc.ID, tc.Probe)
+		}
+	}
+	for groupName, group := range tracker {
+		for mode, present := range group.modes {
+			if !present {
+				return nil, fmt.Errorf("generated FFI rounding probe group %q is missing mode %d", groupName, mode)
+			}
+		}
+	}
+	for function := range expectedGeneratedFFIFunctionCounts {
+		if generatedFFIMixedDecimalFunction(function) && groupsPerFunction[function] != 1 {
+			return nil, fmt.Errorf("generated mixed FFI function %s has %d rounding-discriminant probe groups, want 1", function, groupsPerFunction[function])
+		}
+	}
+	if len(fusednessSeen) != len(expectedGeneratedFFIFusednessPins) {
+		return nil, fmt.Errorf("generated FFI fusedness function census = %d, want %d", len(fusednessSeen), len(expectedGeneratedFFIFusednessPins))
+	}
+	for function := range expectedGeneratedFFIFusednessPins {
+		if fusednessSeen[function] == "" {
+			return nil, fmt.Errorf("generated FFI fusedness pin %s has no case", function)
+		}
+	}
+	return tracker, nil
+}
+
+func (tracker generatedFFIRoundingProbeTracker) recordCanonicalResult(tc testspec.GeneratedFFICase, native string) error {
+	if tc.Probe != generatedFFIRoundingDiscriminantProbe {
+		return nil
+	}
+	group := tracker[tc.ProbeGroup]
+	if group == nil {
+		return fmt.Errorf("generated FFI rounding probe %s references unknown group %q", tc.ID, tc.ProbeGroup)
+	}
+	resultBits, status, ok := strings.Cut(native, "/")
+	if !ok || len(resultBits) != tc.ResultBits/4 || len(status) != 8 {
+		return fmt.Errorf("generated FFI rounding probe %s native result %q is not %d-bit-result/32-bit-status hex", tc.ID, native, tc.ResultBits)
+	}
+	if _, err := hex.DecodeString(resultBits); err != nil {
+		return fmt.Errorf("generated FFI rounding probe %s native result bits %q: %w", tc.ID, resultBits, err)
+	}
+	if _, err := hex.DecodeString(status); err != nil {
+		return fmt.Errorf("generated FFI rounding probe %s native status %q: %w", tc.ID, status, err)
+	}
+	group.nativeResultBits[resultBits] = struct{}{}
+	return nil
+}
+
+func (tracker generatedFFIRoundingProbeTracker) validateCanonicalDiscrimination() error {
+	for groupName, group := range tracker {
+		if len(group.nativeResultBits) < 2 {
+			return fmt.Errorf("generated FFI rounding probe group %q (%s operands %q): canonical Intel C produced %d distinct result bit patterns across modes 0..4, want at least 2", groupName, group.function, group.operands, len(group.nativeResultBits))
+		}
+	}
+	return nil
+}
+
+func cloneGeneratedFFICases(cases []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+	cloned := append([]testspec.GeneratedFFICase(nil), cases...)
+	for i := range cloned {
+		cloned[i].OperandBits = append([]int(nil), cloned[i].OperandBits...)
+		cloned[i].Operands = append([]string(nil), cloned[i].Operands...)
+	}
+	return cloned
+}
+
+func testGeneratedFFIProbeValidatorRejectsMutations(t *testing.T, cases []testspec.GeneratedFFICase) {
+	t.Helper()
+	firstRounding := -1
+	firstFusedness := -1
+	firstBaseline := -1
+	for i, tc := range cases {
+		switch tc.Probe {
+		case generatedFFIRoundingDiscriminantProbe:
+			if firstRounding < 0 {
+				firstRounding = i
+			}
+		case generatedFFIFusednessProbe:
+			if firstFusedness < 0 {
+				firstFusedness = i
+			}
+		case "":
+			if firstBaseline < 0 {
+				firstBaseline = i
+			}
+		}
+	}
+	if firstRounding < 0 || firstFusedness < 0 || firstBaseline < 0 {
+		t.Fatalf("generated FFI mutation fixtures missing: rounding=%d fusedness=%d baseline=%d", firstRounding, firstFusedness, firstBaseline)
+	}
+	roundingFunction := cases[firstRounding].Function
+	roundingGroup := cases[firstRounding].ProbeGroup
+	var roundingGroupIndices []int
+	for i, tc := range cases {
+		if tc.Probe == generatedFFIRoundingDiscriminantProbe && tc.ProbeGroup == roundingGroup {
+			roundingGroupIndices = append(roundingGroupIndices, i)
+		}
+	}
+	if len(roundingGroupIndices) != 5 {
+		t.Fatalf("generated FFI rounding mutation group %q has %d cases, want 5", roundingGroup, len(roundingGroupIndices))
+	}
+
+	type mutation struct {
+		name    string
+		wantErr string
+		apply   func([]testspec.GeneratedFFICase) []testspec.GeneratedFFICase
+	}
+	mutations := []mutation{
+		{name: "unknown probe", wantErr: "unknown probe", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].Probe = "unknown-probe"
+			return got
+		}},
+		{name: "orphan group", wantErr: "without a probe", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstBaseline].ProbeGroup = "orphan/group"
+			return got
+		}},
+		{name: "empty group", wantErr: "has no probe_group", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].ProbeGroup = ""
+			return got
+		}},
+		{name: "non-mixed target", wantErr: "targets non-mixed function", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].Function = "bid64_add"
+			return got
+		}},
+		{name: "mode out of range", wantErr: "outside 0..4", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstRounding].Rounding = 5
+			return got
+		}},
+		{name: "duplicate mode", wantErr: "repeats mode", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[roundingGroupIndices[4]].Rounding = got[roundingGroupIndices[0]].Rounding
+			return got
+		}},
+		{name: "missing mode", wantErr: "is missing mode", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			index := roundingGroupIndices[4]
+			return append(got[:index], got[index+1:]...)
+		}},
+		{name: "mixed function", wantErr: "mixes function/operands", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[roundingGroupIndices[4]].Function = "bid128d_sqrt"
+			return got
+		}},
+		{name: "mixed operands", wantErr: "mixes function/operands", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[roundingGroupIndices[4]].Operands[0] = strings.Repeat("0", len(got[roundingGroupIndices[4]].Operands[0]))
+			return got
+		}},
+		{name: "required function probe missing", wantErr: "rounding-discriminant probe groups, want 1", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			filtered := got[:0]
+			for _, tc := range got {
+				if tc.Function != roundingFunction || tc.Probe != generatedFFIRoundingDiscriminantProbe {
+					filtered = append(filtered, tc)
+				}
+			}
+			return filtered
+		}},
+		{name: "fused expected drift", wantErr: "payload drift", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Expected = "0000000000000000/00000000"
+			return got
+		}},
+		{name: "fused forbidden drift", wantErr: "payload drift", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Forbidden = "0000000000000000/00000000"
+			return got
+		}},
+		{name: "fused expected missing", wantErr: "missing expected or forbidden", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Expected = ""
+			return got
+		}},
+		{name: "fused forbidden missing", wantErr: "missing expected or forbidden", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			got[firstFusedness].Forbidden = ""
+			return got
+		}},
+		{name: "fusedness probe missing", wantErr: "fusedness function census", apply: func(got []testspec.GeneratedFFICase) []testspec.GeneratedFFICase {
+			return append(got[:firstFusedness], got[firstFusedness+1:]...)
+		}},
+	}
+	for _, mutation := range mutations {
+		mutation := mutation
+		t.Run(mutation.name, func(t *testing.T) {
+			mutated := mutation.apply(cloneGeneratedFFICases(cases))
+			_, err := validateGeneratedFFIProbeContract(mutated)
+			if err == nil || !strings.Contains(err.Error(), mutation.wantErr) {
+				t.Fatalf("validateGeneratedFFIProbeContract error = %v, want rejection containing %q", err, mutation.wantErr)
+			}
+		})
+	}
+
+	t.Run("malformed native result", func(t *testing.T) {
+		tracker, err := validateGeneratedFFIProbeContract(cases)
+		if err != nil {
+			t.Fatalf("validateGeneratedFFIProbeContract(valid): %v", err)
+		}
+		if err := tracker.recordCanonicalResult(cases[firstRounding], "malformed"); err == nil {
+			t.Fatal("recordCanonicalResult accepted malformed native result")
+		}
+	})
+
+	t.Run("canonical result does not discriminate", func(t *testing.T) {
+		tracker, err := validateGeneratedFFIProbeContract(cases)
+		if err != nil {
+			t.Fatalf("validateGeneratedFFIProbeContract(valid): %v", err)
+		}
+		for _, tc := range cases {
+			if tc.Probe != generatedFFIRoundingDiscriminantProbe {
+				continue
+			}
+			native := strings.Repeat("0", tc.ResultBits/4) + "/00000000"
+			if err := tracker.recordCanonicalResult(tc, native); err != nil {
+				t.Fatalf("recordCanonicalResult(%s): %v", tc.ID, err)
+			}
+		}
+		if err := tracker.validateCanonicalDiscrimination(); err == nil {
+			t.Fatal("validateCanonicalDiscrimination accepted one C result bit pattern per group")
+		}
+	})
+}
+
+func TestGeneratedFFIProbeValidatorRejectsMutations(t *testing.T) {
+	spec := loadGeneratedFFISpecForTest(t)
+	if len(spec.FFICases) == 0 {
+		t.Fatal("expected generated ffi cases")
+	}
+	testGeneratedFFIProbeValidatorRejectsMutations(t, spec.FFICases)
+}
+
 func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	requireNative(t)
 	if testing.Short() {
@@ -105,21 +443,47 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 		t.Fatal("expected generated ffi cases")
 	}
 	if len(spec.FFICases) != @@FFI_TOTAL@@ {
-		t.Fatalf("generated ffi case count = %d, want @@FFI_TOTAL@@", len(spec.FFICases))
+		 t.Fatalf("generated ffi case count = %d, want @@FFI_TOTAL@@", len(spec.FFICases))
 	}
 	assertGeneratedFFICoverage(t, spec.FFICases)
+	probeTracker, err := validateGeneratedFFIProbeContract(spec.FFICases)
+	if err != nil {
+		t.Fatalf("validate generated FFI probe contract: %v", err)
+	}
 
 	for _, tc := range spec.FFICases {
 		tc := tc
-		t.Run(tc.ID, func(t *testing.T) {
-			gotNative, gotExposed, err := runGeneratedFFICase(generatedFFICase(tc))
+			t.Run(tc.ID, func(t *testing.T) {
+			generated := generatedFFICase(tc)
+			gotNative, gotExposed, err := runGeneratedFFICase(generated)
 			if err != nil {
 				t.Fatalf("runGeneratedFFICase(%s): %v", tc.ID, err)
 			}
 			if gotNative != gotExposed {
 				t.Fatalf("%s %s(%s): C=%s exposed=%s", tc.Declaration, tc.Function, strings.Join(tc.Operands, ", "), gotNative, gotExposed)
 			}
+			if tc.Probe == generatedFFIFusednessProbe {
+				if gotNative != tc.Expected || gotExposed != tc.Expected {
+					t.Fatalf("fusedness sentinel %s direct mismatch: pinned=%s C=%s Go-port=%s", tc.Function, tc.Expected, gotNative, gotExposed)
+				}
+				gotComposed, err := runGeneratedFFIMixedFMAComposed(generated)
+				if err != nil {
+					t.Fatalf("runGeneratedFFIMixedFMAComposed(%s): %v", tc.ID, err)
+				}
+				if gotComposed != tc.Forbidden {
+					t.Fatalf("fusedness sentinel %s sequential composition drift: pinned forbidden=%s composed=%s", tc.Function, tc.Forbidden, gotComposed)
+				}
+				if gotComposed == gotNative {
+					t.Fatalf("fusedness sentinel %s no longer discriminates direct FMA from sequential composition: %s", tc.Function, gotNative)
+				}
+			}
+			if err := probeTracker.recordCanonicalResult(tc, gotNative); err != nil {
+				t.Fatalf("record canonical FFI probe result: %v", err)
+			}
 		})
+	}
+	if err := probeTracker.validateCanonicalDiscrimination(); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -218,16 +582,25 @@ type generatedFFICase struct {
 	Suite       string
 	ID          string
 	Format      string
+	ResultBits  int
+	OperandBits []int
 	Operation   string
 	Function    string
 	LinkName    string
 	Declaration string
 	Source      string
+	Probe       string
+	ProbeGroup  string
+	Expected    string
+	Forbidden   string
 	Rounding    int
 	Operands    []string
 }
 
 func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
+	if generatedFFIMixedDecimalFunction(tc.Function) {
+		return runGeneratedFFICaseMixedDecimal(tc)
+	}
 	if generatedFFIBaseIntegerFromOperation(tc.Operation) {
 		return runGeneratedFFICaseBaseIntegerFrom(tc)
 	}
@@ -461,6 +834,233 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		return native, exposed, nil
 	default:
 		return "", "", fmt.Errorf("unsupported generated ffi function %q", tc.Function)
+	}
+}
+
+type generatedFFIMixedDecimalShape struct {
+	format      string
+	operation   string
+	resultBits  int
+	operandBits []int
+}
+
+type generatedFFIMixedDecimalOperands struct {
+	narrow [3]uint64
+	wide   [3]Decimal128BID
+}
+
+func generatedFFIMixedDecimalShapeFor(function string) (generatedFFIMixedDecimalShape, bool) {
+	switch function {
+	case "bid64ddq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 64, 128}}, true
+	case "bid64dqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 64}}, true
+	case "bid64dqq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 128}}, true
+	case "bid64qdd_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 64}}, true
+	case "bid64qdq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 128}}, true
+	case "bid64qqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 64}}, true
+	case "bid64qqq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 128}}, true
+	case "bid128ddd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 64}}, true
+	case "bid128ddq_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 128}}, true
+	case "bid128dqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 64}}, true
+	case "bid128dqq_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 128}}, true
+	case "bid128qdd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 64}}, true
+	case "bid128qdq_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 128}}, true
+	case "bid128qqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 128, 64}}, true
+	case "bid64q_sqrt":
+		return generatedFFIMixedDecimalShape{"decimal64", "sqrt", 64, []int{128}}, true
+	case "bid128d_sqrt":
+		return generatedFFIMixedDecimalShape{"decimal128", "sqrt", 128, []int{64}}, true
+	default:
+		return generatedFFIMixedDecimalShape{}, false
+	}
+}
+
+func generatedFFIMixedDecimalFunction(function string) bool {
+	_, ok := generatedFFIMixedDecimalShapeFor(function)
+	return ok
+}
+
+func parseGeneratedFFIMixedDecimalOperands(tc generatedFFICase) (generatedFFIMixedDecimalOperands, error) {
+	shape, ok := generatedFFIMixedDecimalShapeFor(tc.Function)
+	if !ok {
+		return generatedFFIMixedDecimalOperands{}, fmt.Errorf("unsupported mixed decimal ffi function %q", tc.Function)
+	}
+	if tc.Format != shape.format || tc.Operation != shape.operation || tc.ResultBits != shape.resultBits || !equalGeneratedFFIIntSlices(tc.OperandBits, shape.operandBits) {
+		return generatedFFIMixedDecimalOperands{}, fmt.Errorf("%s mixed decimal shape = (%s, %s, %d, %v), want (%s, %s, %d, %v)", tc.Function, tc.Format, tc.Operation, tc.ResultBits, tc.OperandBits, shape.format, shape.operation, shape.resultBits, shape.operandBits)
+	}
+	if len(tc.Operands) != len(shape.operandBits) {
+		return generatedFFIMixedDecimalOperands{}, fmt.Errorf("%s expects %d operands, got %d", tc.Function, len(shape.operandBits), len(tc.Operands))
+	}
+
+	var operands generatedFFIMixedDecimalOperands
+	for i, bits := range shape.operandBits {
+		switch bits {
+		case 64:
+			value, err := strconv.ParseUint(tc.Operands[i], 16, 64)
+			if err != nil {
+				return generatedFFIMixedDecimalOperands{}, fmt.Errorf("parse operand %d as BID64 %q: %w", i, tc.Operands[i], err)
+			}
+			operands.narrow[i] = value
+		case 128:
+			value, err := parseFFIUint128Bits(tc.Operands[i])
+			if err != nil {
+				return generatedFFIMixedDecimalOperands{}, fmt.Errorf("parse operand %d as BID128 %q: %w", i, tc.Operands[i], err)
+			}
+			operands.wide[i] = value
+		default:
+			return generatedFFIMixedDecimalOperands{}, fmt.Errorf("%s operand %d has unsupported width %d", tc.Function, i, bits)
+		}
+	}
+	return operands, nil
+}
+
+func equalGeneratedFFIIntSlices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func runGeneratedFFICaseMixedDecimal(tc generatedFFICase) (string, string, error) {
+	op, err := parseGeneratedFFIMixedDecimalOperands(tc)
+	if err != nil {
+		return "", "", err
+	}
+	rounding := generatedFFICRoundingMode(tc.Rounding)
+	var flags C._IDEC_flags
+
+	switch tc.Function {
+	case "bid64ddq_fma":
+		native := uint64(C.bid64ddq_fma(C.BID_UINT64(op.narrow[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64ddqFma(op.narrow[0], op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64dqd_fma":
+		native := uint64(C.bid64dqd_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64dqdFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64dqq_fma":
+		native := uint64(C.bid64dqq_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64dqqFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qdd_fma":
+		native := uint64(C.bid64qdd_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qddFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qdq_fma":
+		native := uint64(C.bid64qdq_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qdqFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qqd_fma":
+		native := uint64(C.bid64qqd_fma(ffiUint128ToC(op.wide[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qqdFma(decimal128BIDAsBidgo(op.wide[0]), decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qqq_fma":
+		native := uint64(C.bid64qqq_fma(ffiUint128ToC(op.wide[0]), ffiUint128ToC(op.wide[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qqqFma(decimal128BIDAsBidgo(op.wide[0]), decimal128BIDAsBidgo(op.wide[1]), decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid128ddd_fma":
+		native := ffiUint128FromC(C.bid128ddd_fma(C.BID_UINT64(op.narrow[0]), C.BID_UINT64(op.narrow[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dddFma(op.narrow[0], op.narrow[1], op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128ddq_fma":
+		native := ffiUint128FromC(C.bid128ddq_fma(C.BID_UINT64(op.narrow[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128ddqFma(op.narrow[0], op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128dqd_fma":
+		native := ffiUint128FromC(C.bid128dqd_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dqdFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128dqq_fma":
+		native := ffiUint128FromC(C.bid128dqq_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dqqFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128qdd_fma":
+		native := ffiUint128FromC(C.bid128qdd_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128qddFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128qdq_fma":
+		native := ffiUint128FromC(C.bid128qdq_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128qdqFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128qqd_fma":
+		native := ffiUint128FromC(C.bid128qqd_fma(ffiUint128ToC(op.wide[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128qqdFma(decimal128BIDAsBidgo(op.wide[0]), decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid64q_sqrt":
+		native := uint64(C.bid64q_sqrt(ffiUint128ToC(op.wide[0]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qSqrt(decimal128BIDAsBidgo(op.wide[0]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid128d_sqrt":
+		native := ffiUint128FromC(C.bid128d_sqrt(C.BID_UINT64(op.narrow[0]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dSqrt(op.narrow[0], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	default:
+		return "", "", fmt.Errorf("unsupported mixed decimal ffi function %q", tc.Function)
+	}
+}
+
+func generatedFFIWidenMixedDecimalOperand(op generatedFFIMixedDecimalOperands, width, index int, flags *C._IDEC_flags) (C.BID_UINT128, error) {
+	switch width {
+	case 64:
+		return C.bid64_to_bid128(C.BID_UINT64(op.narrow[index]), flags), nil
+	case 128:
+		return ffiUint128ToC(op.wide[index]), nil
+	default:
+		var zero C.BID_UINT128
+		return zero, fmt.Errorf("mixed FMA operand %d has unsupported width %d", index, width)
+	}
+}
+
+// runGeneratedFFIMixedFMAComposed intentionally evaluates the forbidden
+// non-fused predecessor sequence. All conversions, multiply, add, and final
+// narrowing share one status word so sticky Intel BID flags are observable.
+func runGeneratedFFIMixedFMAComposed(tc generatedFFICase) (string, error) {
+	shape, ok := generatedFFIMixedDecimalShapeFor(tc.Function)
+	if !ok || shape.operation != "fma" || len(shape.operandBits) != 3 {
+		return "", fmt.Errorf("unsupported mixed FMA composition %q", tc.Function)
+	}
+	op, err := parseGeneratedFFIMixedDecimalOperands(tc)
+	if err != nil {
+		return "", err
+	}
+	rounding := generatedFFICRoundingMode(tc.Rounding)
+	var flags C._IDEC_flags
+	operands := [3]C.BID_UINT128{}
+	for i, width := range shape.operandBits {
+		operands[i], err = generatedFFIWidenMixedDecimalOperand(op, width, i, &flags)
+		if err != nil {
+			return "", err
+		}
+	}
+	product := C.bid128_mul(operands[0], operands[1], rounding, &flags)
+	sum := C.bid128_add(product, operands[2], rounding, &flags)
+	switch shape.resultBits {
+	case 64:
+		result := uint64(C.bid128_to_bid64(sum, rounding, &flags))
+		return fmt.Sprintf("%016x/%08x", result, uint32(flags)), nil
+	case 128:
+		result := ffiUint128FromC(sum)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(result), uint32(flags)), nil
+	default:
+		return "", fmt.Errorf("mixed FMA %s has unsupported result width %d", tc.Function, shape.resultBits)
 	}
 }
 

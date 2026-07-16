@@ -116,11 +116,9 @@ pub(crate) fn bid_long_sqrt128(mut C256: BID_UINT256) -> BID_UINT128 {
     let mut ES32: u64 = 0;
     let mut l64 = f64::from_bits(0x43f0000000000000);
     let mut l128 = (l64 * l64);
-    let mut lx = (((C256.w3 as f64) * l64) * l128);
-    let mut l2 = ((C256.w2 as f64) * l128);
-    lx = (lx + l2);
-    let mut l1 = ((C256.w1 as f64) * l64);
-    lx = (lx + l1);
+    let mut lx = f64::from_bits(((((C256.w3 as f64) * l64) * l128)).to_bits());
+    lx = no_fma_mul_add_f64((C256.w2 as f64), l128, lx);
+    lx = no_fma_mul_add_f64((C256.w1 as f64), l64, lx);
     let mut l0 = (C256.w0 as f64);
     lx = (lx + l0);
     let mut ly_d = (1.0 / (lx).sqrt());
@@ -232,6 +230,194 @@ pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) 
         pfpsf |= 1;
         return (res, pfpsf);
     }
+    let mut f64_i: u32 = (0x5f800000 as u32);
+    let mut f64_d = f32::from_bits(f64_i);
+    let mut fx_d = no_fma_mul_add_f32((CX.hi as f32), f64_d, (CX.lo as f32));
+    let mut fx_i = (fx_d as f32).to_bits();
+    bin_expon_cx = (((((go_checked_shr_u32(fx_i, go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(0x7f));
+    digits = (bid_estimate_decimal_digits[bin_expon_cx as usize] as i64);
+    A10 = CX;
+    if ((exponent_x & 1) != 0) {
+        A10.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((61) as u64)))));
+        A10.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((3) as u64)));
+        CX2.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((63) as u64)))));
+        CX2.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((1) as u64)));
+        A10 = __add_128_128(A10, CX2);
+    }
+    CS.lo = short_sqrt128(A10);
+    CS.hi = 0;
+    if ((CS.lo.wrapping_mul(CS.lo)) == A10.lo) {
+        S2 = __mul_64x64_to_128_fast(CS.lo, CS.lo);
+        if (S2.hi == A10.hi) {
+            res = very_fast_get_bid128(0, (go_checked_shr_i64(((exponent_x.wrapping_add(0x1820))), go_shift_count_u64((1) as u64))), CS);
+            return (res, pfpsf);
+        }
+    }
+    D = ((CX.hi as i64).wrapping_sub(bid_power10_index_binexp_128[bin_expon_cx as usize].hi as i64));
+    if ((D > 0) || (((D == 0) && (CX.lo >= bid_power10_index_binexp_128[bin_expon_cx as usize].lo)))) {
+        digits = digits.wrapping_add(1);
+    }
+    scale = ((67 as i64).wrapping_sub(digits));
+    exponent_q = (exponent_x.wrapping_sub(scale));
+    scale = scale.wrapping_add(exponent_q & 1);
+    if (scale > 38) {
+        T128 = bid_power10_table_128[(scale.wrapping_sub(37)) as usize];
+        CX1 = __mul_128x128_low(CX, T128);
+        TP128 = bid_power10_table_128[37];
+        C256 = __mul_128x128_to_256(CX1, TP128);
+    } else {
+        T128 = bid_power10_table_128[scale as usize];
+        C256 = __mul_128x128_to_256(CX, T128);
+    }
+    C4.w3 = (((go_checked_shl_u64(C256.w3, go_shift_count_u64((2) as u64)))) | ((go_checked_shr_u64(C256.w2, go_shift_count_u64((62) as u64)))));
+    C4.w2 = (((go_checked_shl_u64(C256.w2, go_shift_count_u64((2) as u64)))) | ((go_checked_shr_u64(C256.w1, go_shift_count_u64((62) as u64)))));
+    C4.w1 = (((go_checked_shl_u64(C256.w1, go_shift_count_u64((2) as u64)))) | ((go_checked_shr_u64(C256.w0, go_shift_count_u64((62) as u64)))));
+    C4.w0 = (go_checked_shl_u64(C256.w0, go_shift_count_u64((2) as u64)));
+    CS = bid_long_sqrt128(C256);
+    if ((rnd_mode & 3) == 0) {
+        CSM.hi = (((go_checked_shl_u64(CS.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CS.lo, go_shift_count_u64((63) as u64)))));
+        CSM.lo = (((CS.lo.wrapping_add(CS.lo))) | 1);
+        M256 = __sqr128_to_256(CSM);
+        if ((C4.w3 > M256.w3) || (((C4.w3 == M256.w3) && (((C4.w2 > M256.w2) || (((C4.w2 == M256.w2) && (((C4.w1 > M256.w1) || (((C4.w1 == M256.w1) && (C4.w0 > M256.w0)))))))))))) {
+            CS.lo = CS.lo.wrapping_add(1);
+            if (CS.lo == 0) {
+                CS.hi = CS.hi.wrapping_add(1);
+            }
+        } else {
+            C8.w1 = (((go_checked_shl_u64(CS.hi, go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CS.lo, go_shift_count_u64((61) as u64)))));
+            C8.w0 = (go_checked_shl_u64(CS.lo, go_shift_count_u64((3) as u64)));
+            (M256.w0, Carry) = __sub_borrow_out(M256.w0, C8.w0);
+            (M256.w1, Carry) = __sub_borrow_in_out(M256.w1, C8.w1, Carry);
+            (M256.w2, Carry) = __sub_borrow_in_out(M256.w2, 0, Carry);
+            M256.w3 = (M256.w3.wrapping_sub(Carry));
+            if ((M256.w3 > C4.w3) || (((M256.w3 == C4.w3) && (((M256.w2 > C4.w2) || (((M256.w2 == C4.w2) && (((M256.w1 > C4.w1) || (((M256.w1 == C4.w1) && (M256.w0 > C4.w0)))))))))))) {
+                if (CS.lo == 0) {
+                    CS.hi = CS.hi.wrapping_sub(1);
+                }
+                CS.lo = CS.lo.wrapping_sub(1);
+            }
+        }
+    } else {
+        M256 = __sqr128_to_256(CS);
+        C8.w1 = (((go_checked_shl_u64(CS.hi, go_shift_count_u64((1) as u64)))) | ((go_checked_shr_u64(CS.lo, go_shift_count_u64((63) as u64)))));
+        C8.w0 = (go_checked_shl_u64(CS.lo, go_shift_count_u64((1) as u64)));
+        if ((M256.w3 > C256.w3) || (((M256.w3 == C256.w3) && (((M256.w2 > C256.w2) || (((M256.w2 == C256.w2) && (((M256.w1 > C256.w1) || (((M256.w1 == C256.w1) && (M256.w0 > C256.w0)))))))))))) {
+            (M256.w0, Carry) = __sub_borrow_out(M256.w0, C8.w0);
+            (M256.w1, Carry) = __sub_borrow_in_out(M256.w1, C8.w1, Carry);
+            (M256.w2, Carry) = __sub_borrow_in_out(M256.w2, 0, Carry);
+            M256.w3 = (M256.w3.wrapping_sub(Carry));
+            M256.w0 = M256.w0.wrapping_add(1);
+            if (M256.w0 == 0) {
+                M256.w1 = M256.w1.wrapping_add(1);
+                if (M256.w1 == 0) {
+                    M256.w2 = M256.w2.wrapping_add(1);
+                    if (M256.w2 == 0) {
+                        M256.w3 = M256.w3.wrapping_add(1);
+                    }
+                }
+            }
+            if (CS.lo == 0) {
+                CS.hi = CS.hi.wrapping_sub(1);
+            }
+            CS.lo = CS.lo.wrapping_sub(1);
+            if ((M256.w3 > C256.w3) || (((M256.w3 == C256.w3) && (((M256.w2 > C256.w2) || (((M256.w2 == C256.w2) && (((M256.w1 > C256.w1) || (((M256.w1 == C256.w1) && (M256.w0 > C256.w0)))))))))))) {
+                if (CS.lo == 0) {
+                    CS.hi = CS.hi.wrapping_sub(1);
+                }
+                CS.lo = CS.lo.wrapping_sub(1);
+            }
+        } else {
+            (M256.w0, Carry) = __add_carry_out(M256.w0, C8.w0);
+            (M256.w1, Carry) = __add_carry_in_out(M256.w1, C8.w1, Carry);
+            (M256.w2, Carry) = __add_carry_in_out(M256.w2, 0, Carry);
+            M256.w3 = (M256.w3.wrapping_add(Carry));
+            M256.w0 = M256.w0.wrapping_add(1);
+            if (M256.w0 == 0) {
+                M256.w1 = M256.w1.wrapping_add(1);
+                if (M256.w1 == 0) {
+                    M256.w2 = M256.w2.wrapping_add(1);
+                    if (M256.w2 == 0) {
+                        M256.w3 = M256.w3.wrapping_add(1);
+                    }
+                }
+            }
+            if ((M256.w3 < C256.w3) || (((M256.w3 == C256.w3) && (((M256.w2 < C256.w2) || (((M256.w2 == C256.w2) && (((M256.w1 < C256.w1) || (((M256.w1 == C256.w1) && (M256.w0 <= C256.w0)))))))))))) {
+                CS.lo = CS.lo.wrapping_add(1);
+                if (CS.lo == 0) {
+                    CS.hi = CS.hi.wrapping_add(1);
+                }
+            }
+        }
+        if (rnd_mode == 2) {
+            CS.lo = CS.lo.wrapping_add(1);
+            if (CS.lo == 0) {
+                CS.hi = CS.hi.wrapping_add(1);
+            }
+        }
+    }
+    pfpsf |= 32;
+    res = bid_get_bid128_fast(0, (go_checked_shr_i64(((exponent_q.wrapping_add(0x1820))), go_shift_count_u64((1) as u64))), CS);
+    return (res, pfpsf);
+}
+
+pub fn bid128d_sqrt(mut x: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let mut M256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
+    let mut C256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
+    let mut C4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
+    let mut C8: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
+    let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX1: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CX2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut A10: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut S2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut T128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut TP128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CS: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut CSM: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+    let mut sign_x: u64 = 0;
+    let mut Carry: u64 = 0;
+    let mut D: i64 = 0;
+    let mut exponent_x: i64 = 0;
+    let mut bin_expon_cx: i64 = 0;
+    let mut digits: i64 = 0;
+    let mut scale: i64 = 0;
+    let mut exponent_q: i64 = 0;
+    let mut pfpsf: u32 = 0;
+    CX.hi = 0;
+    let mut validBool: bool = false;
+    (sign_x, exponent_x, CX.lo, validBool) = unpack_bid64(x);
+    if (!validBool) {
+        res.hi = CX.lo;
+        res.lo = 0;
+        if ((x & 0x7c00000000000000) == 0x7c00000000000000) {
+            if ((x & 0x7e00000000000000) == 0x7e00000000000000) {
+                pfpsf |= 1;
+            }
+            res.lo = (CX.lo & 0x0003ffffffffffff);
+            res = __mul_64x64_to_128(res.lo, bid_power10_table_128[18].lo);
+            res.hi |= (CX.lo & 0xfc00000000000000);
+            return (res, pfpsf);
+        }
+        if ((x & 0x7800000000000000) == 0x7800000000000000) {
+            if (sign_x != 0) {
+                res.hi = 0x7c00000000000000;
+                pfpsf |= 1;
+            }
+            return (res, pfpsf);
+        }
+        exponent_x = ((exponent_x.wrapping_sub(0x18e)).wrapping_add(0x1820));
+        res.hi = (sign_x | ((go_checked_shl_u64(((go_checked_shr_u64(((exponent_x.wrapping_add(0x1820)) as u64), go_shift_count_u64((1) as u64)))), go_shift_count_u64((49) as u64)))));
+        res.lo = 0;
+        return (res, pfpsf);
+    }
+    if (sign_x != 0) {
+        res.hi = 0x7c00000000000000;
+        res.lo = 0;
+        pfpsf |= 1;
+        return (res, pfpsf);
+    }
+    exponent_x = ((exponent_x.wrapping_sub(0x18e)).wrapping_add(0x1820));
     let mut f64_i: u32 = (0x5f800000 as u32);
     let mut f64_d = f32::from_bits(f64_i);
     let mut fx_d = no_fma_mul_add_f32((CX.hi as f32), f64_d, (CX.lo as f32));

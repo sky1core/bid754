@@ -300,10 +300,20 @@ var shapeSigs = map[string]shapeSig{
 	// function in Rust, so the Go source is a free function with two explicitly
 	// typed D/Q operands. The four shape names keep that operand order in the
 	// manifest instead of inferring it from a surface-name convention.
-	"mixed_binary_mode_flags_dd": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
-	"mixed_binary_mode_flags_dq": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
-	"mixed_binary_mode_flags_qd": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
-	"mixed_binary_mode_flags_qq": {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_binary_mode_flags_dd":   {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_binary_mode_flags_dq":   {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_binary_mode_flags_qd":   {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_binary_mode_flags_qq":   {method: false, params: []sigForm{formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_ddd": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_ddq": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_dqd": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_dqq": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_qdd": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_qdq": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_qqd": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_ternary_mode_flags_qqq": {method: false, params: []sigForm{formValue, formValue, formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_unary_mode_flags_d":     {method: false, params: []sigForm{formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
+	"mixed_unary_mode_flags_q":     {method: false, params: []sigForm{formValue, formRoundingMode}, results: []sigForm{formValue, formFlags}},
 	// unary op with an explicit rounding mode and flags: (recv) OpWithMode(mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
 	"unary_mode_flags": {method: true, params: []sigForm{formRoundingMode}, results: []sigForm{formValue, formFlags}},
 	// ternary op with an explicit rounding mode and flags: (recv) FMAWithMode(mul, add Decimal<w>BID, mode RoundingMode) (Decimal<w>BID, ExceptionFlags)
@@ -488,6 +498,22 @@ var mixedBinaryShapeOperands = map[string][2]string{
 	"mixed_binary_mode_flags_qq": {"Decimal128BID", "Decimal128BID"},
 }
 
+var mixedTernaryShapeOperands = map[string][3]string{
+	"mixed_ternary_mode_flags_ddd": {"Decimal64BID", "Decimal64BID", "Decimal64BID"},
+	"mixed_ternary_mode_flags_ddq": {"Decimal64BID", "Decimal64BID", "Decimal128BID"},
+	"mixed_ternary_mode_flags_dqd": {"Decimal64BID", "Decimal128BID", "Decimal64BID"},
+	"mixed_ternary_mode_flags_dqq": {"Decimal64BID", "Decimal128BID", "Decimal128BID"},
+	"mixed_ternary_mode_flags_qdd": {"Decimal128BID", "Decimal64BID", "Decimal64BID"},
+	"mixed_ternary_mode_flags_qdq": {"Decimal128BID", "Decimal64BID", "Decimal128BID"},
+	"mixed_ternary_mode_flags_qqd": {"Decimal128BID", "Decimal128BID", "Decimal64BID"},
+	"mixed_ternary_mode_flags_qqq": {"Decimal128BID", "Decimal128BID", "Decimal128BID"},
+}
+
+var mixedUnaryShapeOperands = map[string]string{
+	"mixed_unary_mode_flags_d": "Decimal64BID",
+	"mixed_unary_mode_flags_q": "Decimal128BID",
+}
+
 func validateMixedBinaryShape(r emitRule, sig goSig) error {
 	wantOperands, mixed := mixedBinaryShapeOperands[r.Shape]
 	if !mixed {
@@ -516,6 +542,50 @@ func validateMixedBinaryShape(r emitRule, sig goSig) error {
 	wantPort := "Bid" + digits + code + operation
 	if r.BidgoFunction != wantPort {
 		return fmt.Errorf("apiemit: emit go_symbol %q shape %q owner %q requires exact port %q, got %q", r.GoSymbol, r.Shape, r.RustOwner, wantPort, r.BidgoFunction)
+	}
+	return nil
+}
+
+func validateMixedExtensionShape(r emitRule, sig goSig) error {
+	if wantOperands, mixed := mixedTernaryShapeOperands[r.Shape]; mixed {
+		for i, want := range wantOperands {
+			if sig.Params[i] != want {
+				return fmt.Errorf("apiemit: emit go_symbol %q shape %q requires operand %d to be %s, got %s", r.GoSymbol, r.Shape, i, want, sig.Params[i])
+			}
+		}
+		wantResult := r.RustOwner + "BID"
+		if sig.Results[0] != wantResult {
+			return fmt.Errorf("apiemit: emit go_symbol %q shape %q owner %q requires result %s, got %s", r.GoSymbol, r.Shape, r.RustOwner, wantResult, sig.Results[0])
+		}
+		code := strings.TrimPrefix(r.Shape, "mixed_ternary_mode_flags_")
+		digits := strings.TrimPrefix(r.RustOwner, "Decimal")
+		wantSymbol := "FMA" + digits + strings.ToUpper(code) + "BIDWithMode"
+		wantPort := "Bid" + digits + code + "Fma"
+		wantSurface := "fma_" + code + "_with_mode"
+		if r.GoSymbol != wantSymbol || r.BidgoFunction != wantPort || r.RustSurface != wantSurface {
+			return fmt.Errorf("apiemit: mixed FMA shape %q requires go_symbol %q, rust_surface %q, and exact port %q; got %q, %q, %q", r.Shape, wantSymbol, wantSurface, wantPort, r.GoSymbol, r.RustSurface, r.BidgoFunction)
+		}
+		return nil
+	}
+
+	wantOperand, mixed := mixedUnaryShapeOperands[r.Shape]
+	if !mixed {
+		return nil
+	}
+	if sig.Params[0] != wantOperand {
+		return fmt.Errorf("apiemit: emit go_symbol %q shape %q requires operand %s, got %s", r.GoSymbol, r.Shape, wantOperand, sig.Params[0])
+	}
+	wantResult := r.RustOwner + "BID"
+	if sig.Results[0] != wantResult {
+		return fmt.Errorf("apiemit: emit go_symbol %q shape %q owner %q requires result %s, got %s", r.GoSymbol, r.Shape, r.RustOwner, wantResult, sig.Results[0])
+	}
+	code := strings.TrimPrefix(r.Shape, "mixed_unary_mode_flags_")
+	digits := strings.TrimPrefix(r.RustOwner, "Decimal")
+	wantSymbol := "Sqrt" + digits + strings.ToUpper(code) + "BIDWithMode"
+	wantPort := "Bid" + digits + code + "Sqrt"
+	wantSurface := "sqrt_" + code + "_with_mode"
+	if r.GoSymbol != wantSymbol || r.BidgoFunction != wantPort || r.RustSurface != wantSurface {
+		return fmt.Errorf("apiemit: mixed sqrt shape %q requires go_symbol %q, rust_surface %q, and exact port %q; got %q, %q, %q", r.Shape, wantSymbol, wantSurface, wantPort, r.GoSymbol, r.RustSurface, r.BidgoFunction)
 	}
 	return nil
 }
@@ -971,6 +1041,9 @@ func resolveClosure(inventory *inventoryFile, manifest *manifestFile, sigs map[s
 			return nil, err
 		}
 		if err := validateMixedBinaryShape(r, sig); err != nil {
+			return nil, err
+		}
+		if err := validateMixedExtensionShape(r, sig); err != nil {
 			return nil, err
 		}
 		emitByGo[r.GoSymbol] = r

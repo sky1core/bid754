@@ -64,11 +64,13 @@ type ReadtestShardCase struct {
 	Rounding int      `json:"rounding"`
 }
 
-// FFIShardHeader holds the seven GeneratedFFICase fields that are constant
+// FFIShardHeader holds the GeneratedFFICase fields that are constant
 // for every case of one FFI function.
 type FFIShardHeader struct {
 	Suite       string `json:"suite"`
 	Format      string `json:"format"`
+	ResultBits  int    `json:"result_bits,omitempty"`
+	OperandBits []int  `json:"operand_bits,omitempty"`
 	Operation   string `json:"operation"`
 	Function    string `json:"function"`
 	LinkName    string `json:"link_name"`
@@ -84,9 +86,13 @@ type FFIShard struct {
 
 // FFIShardCase holds the per-case GeneratedFFICase fields.
 type FFIShardCase struct {
-	ID       string   `json:"id"`
-	Rounding int      `json:"rounding"`
-	Operands []string `json:"operands"`
+	ID         string   `json:"id"`
+	Probe      string   `json:"probe,omitempty"`
+	ProbeGroup string   `json:"probe_group,omitempty"`
+	Expected   string   `json:"expected,omitempty"`
+	Forbidden  string   `json:"forbidden,omitempty"`
+	Rounding   int      `json:"rounding"`
+	Operands   []string `json:"operands"`
 }
 
 type GeneratedDectestSuite struct {
@@ -183,11 +189,17 @@ type GeneratedFFICase struct {
 	Suite       string   `json:"suite"`
 	ID          string   `json:"id"`
 	Format      string   `json:"format"`
+	ResultBits  int      `json:"result_bits,omitempty"`
+	OperandBits []int    `json:"operand_bits,omitempty"`
 	Operation   string   `json:"operation"`
 	Function    string   `json:"function"`
 	LinkName    string   `json:"link_name"`
 	Declaration string   `json:"declaration"`
 	Source      string   `json:"source"`
+	Probe       string   `json:"probe,omitempty"`
+	ProbeGroup  string   `json:"probe_group,omitempty"`
+	Expected    string   `json:"expected,omitempty"`
+	Forbidden   string   `json:"forbidden,omitempty"`
 	Rounding    int      `json:"rounding"`
 	Operands    []string `json:"operands"`
 }

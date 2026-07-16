@@ -33,16 +33,25 @@ type generatedFFICase struct {
 	Suite       string
 	ID          string
 	Format      string
+	ResultBits  int
+	OperandBits []int
 	Operation   string
 	Function    string
 	LinkName    string
 	Declaration string
 	Source      string
+	Probe       string
+	ProbeGroup  string
+	Expected    string
+	Forbidden   string
 	Rounding    int
 	Operands    []string
 }
 
 func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
+	if generatedFFIMixedDecimalFunction(tc.Function) {
+		return runGeneratedFFICaseMixedDecimal(tc)
+	}
 	if generatedFFIBaseIntegerFromOperation(tc.Operation) {
 		return runGeneratedFFICaseBaseIntegerFrom(tc)
 	}
@@ -276,6 +285,233 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		return native, exposed, nil
 	default:
 		return "", "", fmt.Errorf("unsupported generated ffi function %q", tc.Function)
+	}
+}
+
+type generatedFFIMixedDecimalShape struct {
+	format      string
+	operation   string
+	resultBits  int
+	operandBits []int
+}
+
+type generatedFFIMixedDecimalOperands struct {
+	narrow [3]uint64
+	wide   [3]Decimal128BID
+}
+
+func generatedFFIMixedDecimalShapeFor(function string) (generatedFFIMixedDecimalShape, bool) {
+	switch function {
+	case "bid64ddq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 64, 128}}, true
+	case "bid64dqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 64}}, true
+	case "bid64dqq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 128}}, true
+	case "bid64qdd_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 64}}, true
+	case "bid64qdq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 128}}, true
+	case "bid64qqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 64}}, true
+	case "bid64qqq_fma":
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 128}}, true
+	case "bid128ddd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 64}}, true
+	case "bid128ddq_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 128}}, true
+	case "bid128dqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 64}}, true
+	case "bid128dqq_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 128}}, true
+	case "bid128qdd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 64}}, true
+	case "bid128qdq_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 128}}, true
+	case "bid128qqd_fma":
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 128, 64}}, true
+	case "bid64q_sqrt":
+		return generatedFFIMixedDecimalShape{"decimal64", "sqrt", 64, []int{128}}, true
+	case "bid128d_sqrt":
+		return generatedFFIMixedDecimalShape{"decimal128", "sqrt", 128, []int{64}}, true
+	default:
+		return generatedFFIMixedDecimalShape{}, false
+	}
+}
+
+func generatedFFIMixedDecimalFunction(function string) bool {
+	_, ok := generatedFFIMixedDecimalShapeFor(function)
+	return ok
+}
+
+func parseGeneratedFFIMixedDecimalOperands(tc generatedFFICase) (generatedFFIMixedDecimalOperands, error) {
+	shape, ok := generatedFFIMixedDecimalShapeFor(tc.Function)
+	if !ok {
+		return generatedFFIMixedDecimalOperands{}, fmt.Errorf("unsupported mixed decimal ffi function %q", tc.Function)
+	}
+	if tc.Format != shape.format || tc.Operation != shape.operation || tc.ResultBits != shape.resultBits || !equalGeneratedFFIIntSlices(tc.OperandBits, shape.operandBits) {
+		return generatedFFIMixedDecimalOperands{}, fmt.Errorf("%s mixed decimal shape = (%s, %s, %d, %v), want (%s, %s, %d, %v)", tc.Function, tc.Format, tc.Operation, tc.ResultBits, tc.OperandBits, shape.format, shape.operation, shape.resultBits, shape.operandBits)
+	}
+	if len(tc.Operands) != len(shape.operandBits) {
+		return generatedFFIMixedDecimalOperands{}, fmt.Errorf("%s expects %d operands, got %d", tc.Function, len(shape.operandBits), len(tc.Operands))
+	}
+
+	var operands generatedFFIMixedDecimalOperands
+	for i, bits := range shape.operandBits {
+		switch bits {
+		case 64:
+			value, err := strconv.ParseUint(tc.Operands[i], 16, 64)
+			if err != nil {
+				return generatedFFIMixedDecimalOperands{}, fmt.Errorf("parse operand %d as BID64 %q: %w", i, tc.Operands[i], err)
+			}
+			operands.narrow[i] = value
+		case 128:
+			value, err := parseFFIUint128Bits(tc.Operands[i])
+			if err != nil {
+				return generatedFFIMixedDecimalOperands{}, fmt.Errorf("parse operand %d as BID128 %q: %w", i, tc.Operands[i], err)
+			}
+			operands.wide[i] = value
+		default:
+			return generatedFFIMixedDecimalOperands{}, fmt.Errorf("%s operand %d has unsupported width %d", tc.Function, i, bits)
+		}
+	}
+	return operands, nil
+}
+
+func equalGeneratedFFIIntSlices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func runGeneratedFFICaseMixedDecimal(tc generatedFFICase) (string, string, error) {
+	op, err := parseGeneratedFFIMixedDecimalOperands(tc)
+	if err != nil {
+		return "", "", err
+	}
+	rounding := generatedFFICRoundingMode(tc.Rounding)
+	var flags C._IDEC_flags
+
+	switch tc.Function {
+	case "bid64ddq_fma":
+		native := uint64(C.bid64ddq_fma(C.BID_UINT64(op.narrow[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64ddqFma(op.narrow[0], op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64dqd_fma":
+		native := uint64(C.bid64dqd_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64dqdFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64dqq_fma":
+		native := uint64(C.bid64dqq_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64dqqFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qdd_fma":
+		native := uint64(C.bid64qdd_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qddFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qdq_fma":
+		native := uint64(C.bid64qdq_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qdqFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qqd_fma":
+		native := uint64(C.bid64qqd_fma(ffiUint128ToC(op.wide[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qqdFma(decimal128BIDAsBidgo(op.wide[0]), decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid64qqq_fma":
+		native := uint64(C.bid64qqq_fma(ffiUint128ToC(op.wide[0]), ffiUint128ToC(op.wide[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qqqFma(decimal128BIDAsBidgo(op.wide[0]), decimal128BIDAsBidgo(op.wide[1]), decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid128ddd_fma":
+		native := ffiUint128FromC(C.bid128ddd_fma(C.BID_UINT64(op.narrow[0]), C.BID_UINT64(op.narrow[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dddFma(op.narrow[0], op.narrow[1], op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128ddq_fma":
+		native := ffiUint128FromC(C.bid128ddq_fma(C.BID_UINT64(op.narrow[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128ddqFma(op.narrow[0], op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128dqd_fma":
+		native := ffiUint128FromC(C.bid128dqd_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dqdFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128dqq_fma":
+		native := ffiUint128FromC(C.bid128dqq_fma(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dqqFma(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]), decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128qdd_fma":
+		native := ffiUint128FromC(C.bid128qdd_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128qddFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128qdq_fma":
+		native := ffiUint128FromC(C.bid128qdq_fma(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), ffiUint128ToC(op.wide[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128qdqFma(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], decimal128BIDAsBidgo(op.wide[2]), tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid128qqd_fma":
+		native := ffiUint128FromC(C.bid128qqd_fma(ffiUint128ToC(op.wide[0]), ffiUint128ToC(op.wide[1]), C.BID_UINT64(op.narrow[2]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128qqdFma(decimal128BIDAsBidgo(op.wide[0]), decimal128BIDAsBidgo(op.wide[1]), op.narrow[2], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid64q_sqrt":
+		native := uint64(C.bid64q_sqrt(ffiUint128ToC(op.wide[0]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid64qSqrt(decimal128BIDAsBidgo(op.wide[0]), tc.Rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
+	case "bid128d_sqrt":
+		native := ffiUint128FromC(C.bid128d_sqrt(C.BID_UINT64(op.narrow[0]), rounding, &flags))
+		exposed, exposedFlags := bidgo.Bid128dSqrt(op.narrow[0], tc.Rounding)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	default:
+		return "", "", fmt.Errorf("unsupported mixed decimal ffi function %q", tc.Function)
+	}
+}
+
+func generatedFFIWidenMixedDecimalOperand(op generatedFFIMixedDecimalOperands, width, index int, flags *C._IDEC_flags) (C.BID_UINT128, error) {
+	switch width {
+	case 64:
+		return C.bid64_to_bid128(C.BID_UINT64(op.narrow[index]), flags), nil
+	case 128:
+		return ffiUint128ToC(op.wide[index]), nil
+	default:
+		var zero C.BID_UINT128
+		return zero, fmt.Errorf("mixed FMA operand %d has unsupported width %d", index, width)
+	}
+}
+
+// runGeneratedFFIMixedFMAComposed intentionally evaluates the forbidden
+// non-fused predecessor sequence. All conversions, multiply, add, and final
+// narrowing share one status word so sticky Intel BID flags are observable.
+func runGeneratedFFIMixedFMAComposed(tc generatedFFICase) (string, error) {
+	shape, ok := generatedFFIMixedDecimalShapeFor(tc.Function)
+	if !ok || shape.operation != "fma" || len(shape.operandBits) != 3 {
+		return "", fmt.Errorf("unsupported mixed FMA composition %q", tc.Function)
+	}
+	op, err := parseGeneratedFFIMixedDecimalOperands(tc)
+	if err != nil {
+		return "", err
+	}
+	rounding := generatedFFICRoundingMode(tc.Rounding)
+	var flags C._IDEC_flags
+	operands := [3]C.BID_UINT128{}
+	for i, width := range shape.operandBits {
+		operands[i], err = generatedFFIWidenMixedDecimalOperand(op, width, i, &flags)
+		if err != nil {
+			return "", err
+		}
+	}
+	product := C.bid128_mul(operands[0], operands[1], rounding, &flags)
+	sum := C.bid128_add(product, operands[2], rounding, &flags)
+	switch shape.resultBits {
+	case 64:
+		result := uint64(C.bid128_to_bid64(sum, rounding, &flags))
+		return fmt.Sprintf("%016x/%08x", result, uint32(flags)), nil
+	case 128:
+		result := ffiUint128FromC(sum)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(result), uint32(flags)), nil
+	default:
+		return "", fmt.Errorf("mixed FMA %s has unsupported result width %d", tc.Function, shape.resultBits)
 	}
 }
 

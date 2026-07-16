@@ -19,7 +19,7 @@ import (
 // adapter-semantics divergence between the two legs is caught mechanically
 // instead of silently drifting.
 //
-// Unlike readtest's generated 545-function surface, decTest's oracle-dispatch set is a
+// Unlike readtest's broad generated function surface, decTest's oracle-dispatch set is a
 // small, fixed 11-operation family with no per-function resolution ambiguity
 // to score -- both legs' dispatch is a hand-authored static table/template, not
 // a generic signature-matching resolver. The two things that CAN drift between

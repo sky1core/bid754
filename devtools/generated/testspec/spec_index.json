@@ -2387,9 +2387,9 @@
       "source": "third_party/intel_dfp/TESTS/readtest.in",
       "selection": "repo_supported_surface",
       "total_functions": 680,
-      "selected_functions": 542,
-      "excluded_functions": 138,
-      "rows_accepted": 86205,
+      "selected_functions": 558,
+      "excluded_functions": 122,
+      "rows_accepted": 86644,
       "row_skip_reasons": {
         "longintsize32": 6652
       },
@@ -2806,9 +2806,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "unary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64_sqrt",
@@ -3219,9 +3222,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "ternary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64dqd_fma",
@@ -3232,9 +3238,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "ternary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64dqq_fma",
@@ -3245,9 +3254,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "ternary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qdd_fma",
@@ -3258,9 +3270,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "ternary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qdq_fma",
@@ -3271,9 +3286,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "ternary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qqd_fma",
@@ -3284,9 +3302,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "ternary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64qqq_fma",
@@ -3297,9 +3318,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "ternary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "str64",
@@ -4512,9 +4536,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "ternary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128ddq_fma",
@@ -4525,9 +4552,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "ternary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dqd_fma",
@@ -4538,9 +4568,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "ternary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128dqq_fma",
@@ -4551,9 +4584,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "ternary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128qdd_fma",
@@ -4564,9 +4600,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "ternary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128qdq_fma",
@@ -4577,9 +4616,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "ternary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128qqd_fma",
@@ -4590,9 +4632,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "ternary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128_rem",
@@ -4645,9 +4690,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_FUZZYSTATUS",
-          "selected": false,
-          "reason": "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface",
-          "classification": "optional_scope_gap"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "unary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128_minnum",
@@ -13920,6 +13968,7 @@
     "readtest/bid64_minnum_mag.json",
     "readtest/bid64_maxnum_mag.json",
     "readtest/bid64_quantize.json",
+    "readtest/bid64q_sqrt.json",
     "readtest/bid64_sqrt.json",
     "readtest/bid32_round_integral_nearest_even.json",
     "readtest/bid32_round_integral_nearest_away.json",
@@ -13948,6 +13997,13 @@
     "readtest/bid128_nextafter.json",
     "readtest/bid128_nexttoward.json",
     "readtest/bid64_fma.json",
+    "readtest/bid64ddq_fma.json",
+    "readtest/bid64dqd_fma.json",
+    "readtest/bid64dqq_fma.json",
+    "readtest/bid64qdd_fma.json",
+    "readtest/bid64qdq_fma.json",
+    "readtest/bid64qqd_fma.json",
+    "readtest/bid64qqq_fma.json",
     "readtest/bid64_from_string.json",
     "readtest/bid128_from_string.json",
     "readtest/bid64_to_string.json",
@@ -14024,9 +14080,17 @@
     "readtest/bid128qd_div.json",
     "readtest/bid128dd_div.json",
     "readtest/bid128_fma.json",
+    "readtest/bid128ddd_fma.json",
+    "readtest/bid128ddq_fma.json",
+    "readtest/bid128dqd_fma.json",
+    "readtest/bid128dqq_fma.json",
+    "readtest/bid128qdd_fma.json",
+    "readtest/bid128qdq_fma.json",
+    "readtest/bid128qqd_fma.json",
     "readtest/bid128_rem.json",
     "readtest/bid128_fmod.json",
     "readtest/bid128_sqrt.json",
+    "readtest/bid128d_sqrt.json",
     "readtest/bid128_minnum.json",
     "readtest/bid128_maxnum.json",
     "readtest/bid128_minnum_mag.json",
@@ -14514,6 +14578,13 @@
     "ffi/bid64_minnum_mag.json",
     "ffi/bid64_maxnum_mag.json",
     "ffi/bid64_fma.json",
+    "ffi/bid64ddq_fma.json",
+    "ffi/bid64dqd_fma.json",
+    "ffi/bid64dqq_fma.json",
+    "ffi/bid64qdd_fma.json",
+    "ffi/bid64qdq_fma.json",
+    "ffi/bid64qqd_fma.json",
+    "ffi/bid64qqq_fma.json",
     "ffi/bid64_rem.json",
     "ffi/bid64_fmod.json",
     "ffi/bid64_round_integral_exact.json",
@@ -14522,6 +14593,7 @@
     "ffi/bid64_abs.json",
     "ffi/bid64_copySign.json",
     "ffi/bid64_sqrt.json",
+    "ffi/bid64q_sqrt.json",
     "ffi/bid64_logb.json",
     "ffi/bid64_scalbn.json",
     "ffi/bid64_nextup.json",
@@ -14576,6 +14648,13 @@
     "ffi/bid128_minnum_mag.json",
     "ffi/bid128_maxnum_mag.json",
     "ffi/bid128_fma.json",
+    "ffi/bid128ddd_fma.json",
+    "ffi/bid128ddq_fma.json",
+    "ffi/bid128dqd_fma.json",
+    "ffi/bid128dqq_fma.json",
+    "ffi/bid128qdd_fma.json",
+    "ffi/bid128qdq_fma.json",
+    "ffi/bid128qqd_fma.json",
     "ffi/bid128_rem.json",
     "ffi/bid128_fmod.json",
     "ffi/bid128_round_integral_exact.json",
@@ -14584,6 +14663,7 @@
     "ffi/bid128_abs.json",
     "ffi/bid128_copySign.json",
     "ffi/bid128_sqrt.json",
+    "ffi/bid128d_sqrt.json",
     "ffi/bid128_logb.json",
     "ffi/bid128_scalbn.json",
     "ffi/bid128_nextup.json",

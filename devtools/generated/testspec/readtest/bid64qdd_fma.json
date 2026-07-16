@@ -1,0 +1,25 @@
+{
+  "suite": "bid64qdd_fma",
+  "group": "decimal64_operations",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid64qdd_fma",
+  "kind": "ternary_op",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC128",
+    "OP_DEC64",
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid64qdd_fma_line_72502","line":72502,"operands":["[0000010000800000,febd78267143e9ed]","[a47b9098a8368127]","[154bf00f0531cd8c]"],"expected":"[154bf00f0531cd8c]","status":"20","rounding":0},
+    {"id":"bid64qdd_fma_line_72503","line":72503,"operands":["[028018e100a28001,704d9e7428acb131]","[0800904008011001]","[63dffdfb29a11043]"],"expected":"[0000000000000000]","status":"30","rounding":0},
+    {"id":"bid64qdd_fma_line_125739","line":125739,"operands":["5e-101","1e-299","-1e-383"],"expected":"-1000000000000000E-398","status":"0X30","rounding":0},
+    {"id":"bid64qdd_fma_line_125740","line":125740,"operands":["5e-101","1e-299","-1e-383"],"expected":"-1000000000000000E-398","status":"0X30","rounding":1},
+    {"id":"bid64qdd_fma_line_125741","line":125741,"operands":["5e-101","1e-299","-1e-383"],"expected":"-999999999999999E-398","status":"0X30","rounding":2},
+    {"id":"bid64qdd_fma_line_125742","line":125742,"operands":["5e-101","1e-299","-1e-383"],"expected":"-999999999999999E-398","status":"0X30","rounding":3},
+    {"id":"bid64qdd_fma_line_125743","line":125743,"operands":["5e-101","1e-299","-1e-383"],"expected":"-1000000000000000E-398","status":"0X30","rounding":4}
+  ]
+}

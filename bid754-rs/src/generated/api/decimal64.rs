@@ -367,6 +367,54 @@ impl Decimal64 {
         (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
     }
 
+    /// Computes Decimal64 * Decimal64 + Decimal128 with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn fma_ddq_with_mode(x: Decimal64, y: Decimal64, z: Decimal128, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::bid128_fma::bid64ddq_fma(x.to_bits(), y.to_bits(), super::types::bid_uint128_from_le_bytes(z.to_le_bytes()), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
+    /// Computes Decimal64 * Decimal128 + Decimal64 with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn fma_dqd_with_mode(x: Decimal64, y: Decimal128, z: Decimal64, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::bid128_fma::bid64dqd_fma(x.to_bits(), super::types::bid_uint128_from_le_bytes(y.to_le_bytes()), z.to_bits(), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
+    /// Computes Decimal64 * Decimal128 + Decimal128 with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn fma_dqq_with_mode(x: Decimal64, y: Decimal128, z: Decimal128, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::bid128_fma::bid64dqq_fma(x.to_bits(), super::types::bid_uint128_from_le_bytes(y.to_le_bytes()), super::types::bid_uint128_from_le_bytes(z.to_le_bytes()), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
+    /// Computes Decimal128 * Decimal64 + Decimal64 with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn fma_qdd_with_mode(x: Decimal128, y: Decimal64, z: Decimal64, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::bid128_fma::bid64qdd_fma(super::types::bid_uint128_from_le_bytes(x.to_le_bytes()), y.to_bits(), z.to_bits(), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
+    /// Computes Decimal128 * Decimal64 + Decimal128 with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn fma_qdq_with_mode(x: Decimal128, y: Decimal64, z: Decimal128, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::bid128_fma::bid64qdq_fma(super::types::bid_uint128_from_le_bytes(x.to_le_bytes()), y.to_bits(), super::types::bid_uint128_from_le_bytes(z.to_le_bytes()), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
+    /// Computes Decimal128 * Decimal128 + Decimal64 with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn fma_qqd_with_mode(x: Decimal128, y: Decimal128, z: Decimal64, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::bid128_fma::bid64qqd_fma(super::types::bid_uint128_from_le_bytes(x.to_le_bytes()), super::types::bid_uint128_from_le_bytes(y.to_le_bytes()), z.to_bits(), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
+    /// Computes Decimal128 * Decimal128 + Decimal128 with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn fma_qqq_with_mode(x: Decimal128, y: Decimal128, z: Decimal128, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::bid128_fma::bid64qqq_fma(super::types::bid_uint128_from_le_bytes(x.to_le_bytes()), super::types::bid_uint128_from_le_bytes(y.to_le_bytes()), super::types::bid_uint128_from_le_bytes(z.to_le_bytes()), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
+    /// Computes the square root of a Decimal128 operand with one rounding directly to Decimal64 at an explicit rounding mode and returns the raised flags.
+    pub fn sqrt_q_with_mode(value: Decimal128, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
+        let (bits, raw) = crate::generated::sqrt64::bid64q_sqrt(super::types::bid_uint128_from_le_bytes(value.to_le_bytes()), super::types::to_bidgo_rounding(mode));
+        (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
+    }
+
     /// Rounds self to an integral decimal with an explicit rounding mode, also returning the raised flags including inexact.
     pub fn round_integral_exact_with_mode(self, mode: RoundingMode) -> (Decimal64, ExceptionFlags) {
         let (bits, raw) = crate::generated::round_integral64::bid64_round_integral_exact(self.0, super::types::to_bidgo_rounding(mode));

@@ -35,6 +35,14 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid64dqDiv":        {"div64", "bid64dq_div"},
 	"Bid64qdDiv":        {"div64", "bid64qd_div"},
 	"Bid64qqDiv":        {"div64", "bid64qq_div"},
+	"Bid64ddqFma":       {"bid128_fma", "bid64ddq_fma"},
+	"Bid64dqdFma":       {"bid128_fma", "bid64dqd_fma"},
+	"Bid64dqqFma":       {"bid128_fma", "bid64dqq_fma"},
+	"Bid64qddFma":       {"bid128_fma", "bid64qdd_fma"},
+	"Bid64qdqFma":       {"bid128_fma", "bid64qdq_fma"},
+	"Bid64qqdFma":       {"bid128_fma", "bid64qqd_fma"},
+	"Bid64qqqFma":       {"bid128_fma", "bid64qqq_fma"},
+	"Bid64qSqrt":        {"sqrt64", "bid64q_sqrt"},
 
 	// Decimal64 arithmetic, miscellaneous, predicate, and conversion families.
 	"Bid64Abs":                      {"noncomp64", "bid64_abs"},
@@ -389,6 +397,14 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid128dqDiv":                     {"bid128_div", "bid128dq_div"},
 	"Bid128qdDiv":                     {"bid128_div", "bid128qd_div"},
 	"Bid128Fma":                       {"bid128_fma", "bid128_fma"},
+	"Bid128dddFma":                    {"bid128_fma", "bid128ddd_fma"},
+	"Bid128ddqFma":                    {"bid128_fma", "bid128ddq_fma"},
+	"Bid128dqdFma":                    {"bid128_fma", "bid128dqd_fma"},
+	"Bid128dqqFma":                    {"bid128_fma", "bid128dqq_fma"},
+	"Bid128qddFma":                    {"bid128_fma", "bid128qdd_fma"},
+	"Bid128qdqFma":                    {"bid128_fma", "bid128qdq_fma"},
+	"Bid128qqdFma":                    {"bid128_fma", "bid128qqd_fma"},
+	"Bid128dSqrt":                     {"bid128_sqrt", "bid128d_sqrt"},
 	"Bid128Fmod":                      {"bid128_rem", "bid128_fmod"},
 	"Bid128FromInt32":                 {"bid128_from_int", "bid128_from_int32"},
 	"Bid128FromInt64":                 {"bid128_from_int", "bid128_from_int64"},
@@ -1720,6 +1736,8 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 
 	var bins, binsFlags, binModeFlags []decOp
 	var mixedBinModeFlags []mixedDecOp
+	var mixedTernaryModeFlags []mixedTernaryDecOp
+	var mixedUnaryModeFlags []mixedUnaryDecOp
 	var unaryModeFlagsOps, ternaryModeFlagsOps, scalebModeOps []decOp
 	var unaryOps, predicateOps []decOp
 	var unaryFlagsNoRoundOps, unaryFlagsDefaultRoundOps []decOp
@@ -1813,6 +1831,26 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 				return "", fmt.Errorf("apiemit: mixed shape %q for go_symbol %q has unsupported operand types %v", r.Shape, r.GoSymbol, operands)
 			}
 			mixedBinModeFlags = append(mixedBinModeFlags, mixedDecOp{decOp: op, left: left, right: right})
+			continue
+		}
+		if operands, ok := mixedTernaryShapeOperands[r.Shape]; ok {
+			var widths [3]widthSpec
+			for i, operand := range operands {
+				operandWidth, widthOK := widthSpecForOwner(strings.TrimSuffix(operand, "BID"))
+				if !widthOK {
+					return "", fmt.Errorf("apiemit: mixed ternary shape %q for go_symbol %q has unsupported operand type %q", r.Shape, r.GoSymbol, operand)
+				}
+				widths[i] = operandWidth
+			}
+			mixedTernaryModeFlags = append(mixedTernaryModeFlags, mixedTernaryDecOp{decOp: op, operands: widths})
+			continue
+		}
+		if operand, ok := mixedUnaryShapeOperands[r.Shape]; ok {
+			operandWidth, widthOK := widthSpecForOwner(strings.TrimSuffix(operand, "BID"))
+			if !widthOK {
+				return "", fmt.Errorf("apiemit: mixed unary shape %q for go_symbol %q has unsupported operand type %q", r.Shape, r.GoSymbol, operand)
+			}
+			mixedUnaryModeFlags = append(mixedUnaryModeFlags, mixedUnaryDecOp{decOp: op, operand: operandWidth})
 			continue
 		}
 
@@ -1983,7 +2021,7 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 	}
 
 	needFromStr := emitParse
-	needFlags := emitParseRaw || emitParseWithFlags || emitParseMode || len(binsFlags) > 0 || len(binModeFlags) > 0 || len(mixedBinModeFlags) > 0 ||
+	needFlags := emitParseRaw || emitParseWithFlags || emitParseMode || len(binsFlags) > 0 || len(binModeFlags) > 0 || len(mixedBinModeFlags) > 0 || len(mixedTernaryModeFlags) > 0 || len(mixedUnaryModeFlags) > 0 ||
 		len(unaryModeFlagsOps) > 0 || len(ternaryModeFlagsOps) > 0 || len(scalebModeOps) > 0 ||
 		len(unaryFlagsNoRoundOps) > 0 || len(unaryFlagsDefaultRoundOps) > 0 ||
 		len(binaryFlagsNoRoundOps) > 0 || len(compareBoolFlagsOps) > 0 ||
@@ -1992,15 +2030,15 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 		toBinary32Op != nil || toBinary64Op != nil || toBinary128Op != nil ||
 		toDecimal128Op != nil || toDecimal32Op != nil || toDecimal64Op != nil || toDecimal64ModeOp != nil ||
 		emitFromInt || emitFromI64Mode || emitFromU64Mode || emitFromI32Mode || emitFromU32Mode
-	needRoundingMode := len(convOps) > 0 || len(binModeFlags) > 0 || len(mixedBinModeFlags) > 0 || emitParseMode ||
+	needRoundingMode := len(convOps) > 0 || len(binModeFlags) > 0 || len(mixedBinModeFlags) > 0 || len(mixedTernaryModeFlags) > 0 || len(mixedUnaryModeFlags) > 0 || emitParseMode ||
 		len(unaryModeFlagsOps) > 0 || len(ternaryModeFlagsOps) > 0 || len(scalebModeOps) > 0 ||
 		toBinary32Op != nil || toBinary64Op != nil ||
 		toBinary128Op != nil || toDecimal32Op != nil || toDecimal64ModeOp != nil ||
 		emitFromI64Mode || emitFromU64Mode || emitFromI32Mode || emitFromU32Mode
 	needDecimalClass := classOp != nil
 	needBinary128 := toBinary128Op != nil
-	needDecimal128 := nextTowardOp != nil || toDecimal128Op != nil || len(mixedBinModeFlags) > 0
-	needDecimal64 := toDecimal64Op != nil || toDecimal64ModeOp != nil || len(mixedBinModeFlags) > 0
+	needDecimal128 := nextTowardOp != nil || toDecimal128Op != nil || len(mixedBinModeFlags) > 0 || len(mixedTernaryModeFlags) > 0 || len(mixedUnaryModeFlags) > 0
+	needDecimal64 := toDecimal64Op != nil || toDecimal64ModeOp != nil || len(mixedBinModeFlags) > 0 || len(mixedTernaryModeFlags) > 0 || len(mixedUnaryModeFlags) > 0
 	needDecimal32 := toDecimal32Op != nil
 	needParseError := emitParse || emitParseWithFlags || emitParseMode
 	needInexactIntegerError := emitFromInt
@@ -2285,6 +2323,12 @@ impl @SELF@ {
 		return "", err
 	}
 	if err := emitMixedBinaryModeFlagsOps(&b, mixedBinModeFlags, w); err != nil {
+		return "", err
+	}
+	if err := emitMixedTernaryModeFlagsOps(&b, mixedTernaryModeFlags, w); err != nil {
+		return "", err
+	}
+	if err := emitMixedUnaryModeFlagsOps(&b, mixedUnaryModeFlags, w); err != nil {
 		return "", err
 	}
 	if err := emitUnaryModeFlagsOps(&b, unaryModeFlagsOps, w); err != nil {

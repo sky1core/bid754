@@ -114,11 +114,9 @@ func bid_long_sqrt128(C256 BID_UINT256) BID_UINT128 {
 	l64 := math.Float64frombits(0x43f0000000000000)
 
 	l128 := l64 * l64
-	lx := float64(C256.w3) * l64 * l128
-	l2 := float64(C256.w2) * l128
-	lx = lx + l2
-	l1 := float64(C256.w1) * l64
-	lx = lx + l1
+	lx := math.Float64frombits(math.Float64bits(float64(C256.w3) * l64 * l128))
+	lx = noFmaMulAddF64(float64(C256.w2), l128, lx)
+	lx = noFmaMulAddF64(float64(C256.w1), l64, lx)
 	l0 := float64(C256.w0)
 	lx = lx + l0
 	// sqrt(C256)
@@ -439,5 +437,242 @@ func Bid128Sqrt(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 
 	pfpsf |= BID_INEXACT_EXCEPTION
 	res = bid_get_BID128_fast(0, (exponent_q+EXPONENT_BIAS128)>>1, CS)
+	return res, pfpsf
+}
+
+// Bid128dSqrt computes the Decimal128 square root of a BID64 value.
+// Ported mechanically from Intel bid128_sqrt.c: bid128d_sqrt.
+func Bid128dSqrt(x uint64, rnd_mode int) (BID_UINT128, uint32) {
+	var M256, C256, C4, C8 BID_UINT256
+	var CX, CX1, CX2, A10, S2, T128, TP128, CS, CSM, res BID_UINT128
+	var sign_x, Carry uint64
+	var D int64
+	var exponent_x, bin_expon_cx int
+	var digits, scale, exponent_q int
+	var pfpsf uint32
+
+	// Unpack arguments, check for NaN or Infinity.
+	CX.hi = 0
+	var validBool bool
+	sign_x, exponent_x, CX.lo, validBool = unpack_BID64(x)
+	if !validBool {
+		res.hi = CX.lo
+		res.lo = 0
+		// NaN?
+		if (x & 0x7c00000000000000) == 0x7c00000000000000 {
+			if (x & SNAN_MASK64) == SNAN_MASK64 { // sNaN
+				pfpsf |= BID_INVALID_EXCEPTION
+			}
+			res.lo = CX.lo & 0x0003ffffffffffff
+			res = __mul_64x64_to_128(res.lo, bid_power10_table_128[18].lo)
+			res.hi |= CX.lo & 0xfc00000000000000
+			return res, pfpsf
+		}
+		// Infinity?
+		if (x & 0x7800000000000000) == 0x7800000000000000 {
+			if sign_x != 0 {
+				// -Inf, return NaN.
+				res.hi = 0x7c00000000000000
+				pfpsf |= BID_INVALID_EXCEPTION
+			}
+			return res, pfpsf
+		}
+		// x is zero otherwise.
+		exponent_x = exponent_x - DECIMAL_EXPONENT_BIAS + DECIMAL_EXPONENT_BIAS_128
+		res.hi = sign_x |
+			((uint64(exponent_x+DECIMAL_EXPONENT_BIAS_128) >> 1) << 49)
+		res.lo = 0
+		return res, pfpsf
+	}
+	if sign_x != 0 {
+		res.hi = 0x7c00000000000000
+		res.lo = 0
+		pfpsf |= BID_INVALID_EXCEPTION
+		return res, pfpsf
+	}
+
+	exponent_x = exponent_x - DECIMAL_EXPONENT_BIAS + DECIMAL_EXPONENT_BIAS_128
+
+	// 2^64 and fx ~ CX.
+	f64_i := uint32(0x5f800000)
+	f64_d := math.Float32frombits(f64_i)
+	fx_d := noFmaMulAddF32(float32(CX.hi), f64_d, float32(CX.lo))
+	fx_i := math.Float32bits(fx_d)
+	bin_expon_cx = int((fx_i>>23)&0xff) - 0x7f
+	digits = bid_estimate_decimal_digits[bin_expon_cx]
+
+	A10 = CX
+	if (exponent_x & 1) != 0 {
+		A10.hi = (CX.hi << 3) | (CX.lo >> 61)
+		A10.lo = CX.lo << 3
+		CX2.hi = (CX.hi << 1) | (CX.lo >> 63)
+		CX2.lo = CX.lo << 1
+		A10 = __add_128_128(A10, CX2)
+	}
+
+	CS.lo = short_sqrt128(A10)
+	CS.hi = 0
+	// Check for an exact result.
+	if CS.lo*CS.lo == A10.lo {
+		S2 = __mul_64x64_to_128_fast(CS.lo, CS.lo)
+		if S2.hi == A10.hi {
+			res = very_fast_get_BID128(0,
+				(exponent_x+DECIMAL_EXPONENT_BIAS_128)>>1, CS)
+			return res, pfpsf
+		}
+	}
+
+	// Get the number of digits in CX.
+	D = int64(CX.hi) - int64(bid_power10_index_binexp_128[bin_expon_cx].hi)
+	if D > 0 ||
+		(D == 0 && CX.lo >= bid_power10_index_binexp_128[bin_expon_cx].lo) {
+		digits++
+	}
+
+	// Scale the coefficient so the result has Decimal128 precision.
+	scale = 67 - digits
+	exponent_q = exponent_x - scale
+	scale += exponent_q & 1 // The exponent bias is even.
+
+	if scale > 38 {
+		T128 = bid_power10_table_128[scale-37]
+		CX1 = __mul_128x128_low(CX, T128)
+
+		TP128 = bid_power10_table_128[37]
+		C256 = __mul_128x128_to_256(CX1, TP128)
+	} else {
+		T128 = bid_power10_table_128[scale]
+		C256 = __mul_128x128_to_256(CX, T128)
+	}
+
+	// 4*C256.
+	C4.w3 = (C256.w3 << 2) | (C256.w2 >> 62)
+	C4.w2 = (C256.w2 << 2) | (C256.w1 >> 62)
+	C4.w1 = (C256.w1 << 2) | (C256.w0 >> 62)
+	C4.w0 = C256.w0 << 2
+
+	CS = bid_long_sqrt128(C256)
+
+	if (rnd_mode & 3) == 0 {
+		// Compare to midpoints.
+		CSM.hi = (CS.hi << 1) | (CS.lo >> 63)
+		CSM.lo = (CS.lo + CS.lo) | 1
+		M256 = __sqr128_to_256(CSM)
+
+		if C4.w3 > M256.w3 ||
+			(C4.w3 == M256.w3 &&
+				(C4.w2 > M256.w2 ||
+					(C4.w2 == M256.w2 &&
+						(C4.w1 > M256.w1 ||
+							(C4.w1 == M256.w1 &&
+								C4.w0 > M256.w0))))) {
+			CS.lo++
+			if CS.lo == 0 {
+				CS.hi++
+			}
+		} else {
+			C8.w1 = (CS.hi << 3) | (CS.lo >> 61)
+			C8.w0 = CS.lo << 3
+			M256.w0, Carry = __sub_borrow_out(M256.w0, C8.w0)
+			M256.w1, Carry = __sub_borrow_in_out(M256.w1, C8.w1, Carry)
+			M256.w2, Carry = __sub_borrow_in_out(M256.w2, 0, Carry)
+			M256.w3 = M256.w3 - Carry
+
+			if M256.w3 > C4.w3 ||
+				(M256.w3 == C4.w3 &&
+					(M256.w2 > C4.w2 ||
+						(M256.w2 == C4.w2 &&
+							(M256.w1 > C4.w1 ||
+								(M256.w1 == C4.w1 &&
+									M256.w0 > C4.w0))))) {
+				if CS.lo == 0 {
+					CS.hi--
+				}
+				CS.lo--
+			}
+		}
+	} else {
+		M256 = __sqr128_to_256(CS)
+		C8.w1 = (CS.hi << 1) | (CS.lo >> 63)
+		C8.w0 = CS.lo << 1
+		if M256.w3 > C256.w3 ||
+			(M256.w3 == C256.w3 &&
+				(M256.w2 > C256.w2 ||
+					(M256.w2 == C256.w2 &&
+						(M256.w1 > C256.w1 ||
+							(M256.w1 == C256.w1 &&
+								M256.w0 > C256.w0))))) {
+			M256.w0, Carry = __sub_borrow_out(M256.w0, C8.w0)
+			M256.w1, Carry = __sub_borrow_in_out(M256.w1, C8.w1, Carry)
+			M256.w2, Carry = __sub_borrow_in_out(M256.w2, 0, Carry)
+			M256.w3 = M256.w3 - Carry
+			M256.w0++
+			if M256.w0 == 0 {
+				M256.w1++
+				if M256.w1 == 0 {
+					M256.w2++
+					if M256.w2 == 0 {
+						M256.w3++
+					}
+				}
+			}
+
+			if CS.lo == 0 {
+				CS.hi--
+			}
+			CS.lo--
+
+			if M256.w3 > C256.w3 ||
+				(M256.w3 == C256.w3 &&
+					(M256.w2 > C256.w2 ||
+						(M256.w2 == C256.w2 &&
+							(M256.w1 > C256.w1 ||
+								(M256.w1 == C256.w1 &&
+									M256.w0 > C256.w0))))) {
+				if CS.lo == 0 {
+					CS.hi--
+				}
+				CS.lo--
+			}
+		} else {
+			M256.w0, Carry = __add_carry_out(M256.w0, C8.w0)
+			M256.w1, Carry = __add_carry_in_out(M256.w1, C8.w1, Carry)
+			M256.w2, Carry = __add_carry_in_out(M256.w2, 0, Carry)
+			M256.w3 = M256.w3 + Carry
+			M256.w0++
+			if M256.w0 == 0 {
+				M256.w1++
+				if M256.w1 == 0 {
+					M256.w2++
+					if M256.w2 == 0 {
+						M256.w3++
+					}
+				}
+			}
+			if M256.w3 < C256.w3 ||
+				(M256.w3 == C256.w3 &&
+					(M256.w2 < C256.w2 ||
+						(M256.w2 == C256.w2 &&
+							(M256.w1 < C256.w1 ||
+								(M256.w1 == C256.w1 &&
+									M256.w0 <= C256.w0))))) {
+				CS.lo++
+				if CS.lo == 0 {
+					CS.hi++
+				}
+			}
+		}
+		// Round up?
+		if rnd_mode == BID_ROUNDING_UP {
+			CS.lo++
+			if CS.lo == 0 {
+				CS.hi++
+			}
+		}
+	}
+
+	pfpsf |= BID_INEXACT_EXCEPTION
+	res = bid_get_BID128_fast(0,
+		(exponent_q+DECIMAL_EXPONENT_BIAS_128)>>1, CS)
 	return res, pfpsf
 }

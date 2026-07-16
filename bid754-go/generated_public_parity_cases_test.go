@@ -12,35 +12,37 @@ import "testing"
 // Case counts are pinned here at generation time so a generator regression that
 // shrinks the corpus cannot silently re-pin a smaller surface.
 const (
-	expectedPublicParityWrappers = 363
-	expectedPublicParityCases    = 27455
+	expectedPublicParityWrappers = 379
+	expectedPublicParityCases    = 29011
 )
 
 var expectedPublicParityCasesByShape = map[string]int{
-	"func_context":           720,
-	"func_from_int":          55,
-	"func_int_ctor":          585,
-	"func_mixed_mode_binary": 3364,
-	"func_string":            588,
-	"func_string_mode":       795,
-	"vm_binary":              2760,
-	"vm_class":               72,
-	"vm_compare_total":       144,
-	"vm_convert":             5760,
-	"vm_mode_binary":         2100,
-	"vm_mode_scaleb":         4740,
-	"vm_mode_ternary":        270,
-	"vm_mode_unary":          1440,
-	"vm_mode_unary_arith":    840,
-	"vm_nexttoward":          240,
-	"vm_nullary":             3,
-	"vm_scaleb":              936,
-	"vm_sign":                72,
-	"vm_signaling_equal":     72,
-	"vm_signaling_not_equal": 72,
-	"vm_string":              57,
-	"vm_ternary":             42,
-	"vm_unary":               1728,
+	"func_context":            720,
+	"func_from_int":           55,
+	"func_int_ctor":           585,
+	"func_mixed_mode_binary":  3364,
+	"func_mixed_mode_ternary": 1274,
+	"func_mixed_mode_unary":   282,
+	"func_string":             588,
+	"func_string_mode":        795,
+	"vm_binary":               2760,
+	"vm_class":                72,
+	"vm_compare_total":        144,
+	"vm_convert":              5760,
+	"vm_mode_binary":          2100,
+	"vm_mode_scaleb":          4740,
+	"vm_mode_ternary":         270,
+	"vm_mode_unary":           1440,
+	"vm_mode_unary_arith":     840,
+	"vm_nexttoward":           240,
+	"vm_nullary":              3,
+	"vm_scaleb":               936,
+	"vm_sign":                 72,
+	"vm_signaling_equal":      72,
+	"vm_signaling_not_equal":  72,
+	"vm_string":               57,
+	"vm_ternary":              42,
+	"vm_unary":                1728,
 }
 
 func TestGeneratedPublicAPIParity(t *testing.T) {

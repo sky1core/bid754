@@ -285,11 +285,12 @@ generators.
 
 At the end, `make verify-generated` (also available standalone as
 `make check-generated-markers`) runs
-`devtools/scripts/check_generated_marker_coverage.sh`: every tracked file
-carrying a standard `Code generated ... DO NOT EDIT.` marker must be part of
-the comparison set above or listed with a documented reason in
+`devtools/scripts/check_generated_marker_coverage.sh`: every tracked or
+untracked non-ignored file carrying a standard
+`Code generated ... DO NOT EDIT.` marker must be part of the comparison set
+above or listed with a documented reason in
 `devtools/scripts/generated_marker_exceptions.txt`, so new generated artifacts
-cannot silently stay outside reproducibility verification.
+cannot silently stay outside reproducibility verification before staging.
 
 Two further devtools test layers cover verification counts and table values.
 `devtools/verification_anchors.json` pins the expected case counts of every
@@ -301,25 +302,34 @@ comparison is an independent value anchor for hand-ported tables; for the
 c-tablegen-owned `tables_binarydecimal.go`, it is a closed-world value census,
 while `make verify-generated` supplies byte reproducibility.
 
-The Tier 1 routing sentinels add a third hand-maintained pin:
-`devtools/verification_sentinels.json` carries the known-answer rows that
-bind the Tier 1 long runners' glue (operand slots, rounding-mode wiring,
-dispatch-row labels) to expected results computed at generation time through
-the public `bid754-go` API. `devtools` requires no public module, so the
-sentinel codegen reaches that API through the pin-time oracle subprocess: it
-runs `go run ./internal/cmd/sentineloracle` inside the sibling `bid754-go`
-module directory (a filesystem relationship, not a module dependency) and
-receives each expected result over a line protocol. Generation fails
-explicitly when the oracle is unavailable. No generator reads or writes the
-pin file. Updating the pins is a deliberate manual step:
+`devtools/verification_sentinels.json` adds two independent hand-maintained
+pin families. The Tier 1 routing arrays bind the long runners' glue (operand
+slots, rounding-mode wiring, dispatch-row labels) to expected results computed
+at generation time through the public `bid754-go` API. `devtools` requires no
+public module, so the routing-sentinel codegen reaches that API through the
+pin-time oracle subprocess: it runs `go run ./internal/cmd/sentineloracle`
+inside the sibling `bid754-go` module directory (a filesystem relationship,
+not a module dependency) and receives each expected result over a line
+protocol. Generation fails explicitly when the oracle is unavailable.
+
+The `mixed_fma_fusedness_rows` array has a different source and update path.
+Its direct expected and sequential forbidden bits/flags are audited against
+the pinned Intel BID C implementation and recorded in
+`devtools/internal/testgen/ffi_fusedness.go`; generated Go-native and Rust
+runners consume that table. The external JSON array pins the resulting row
+strings byte-for-byte. It is not produced by the public-Go sentinel oracle,
+and `-print-sentinel-anchors` does not print it. No generator reads or writes
+the external pin file.
+
+Updating Tier 1 routing pins is a deliberate manual step:
 
 1. `make generate-testspec` — the sentinel codegen re-selects the rows and
    self-asserts its sensitivity requirements (a selection that cannot
    distinguish an operand-slot swap, a rounding-mode pair, or a dispatch-row
    sibling fails the whole generation run).
 2. `cd devtools && go run ./cmd/testgen -print-sentinel-anchors` — prints the
-   proposed row arrays plus a per-row decimal interpretation. It writes no
-   file.
+   two proposed Tier 1 routing arrays plus a per-row decimal interpretation.
+   It writes no file and does not print mixed-FMA fusedness rows.
 3. Audit the printed rows and paste them into
    `devtools/verification_sentinels.json` by hand.
 4. `cd devtools && go test ./internal/testgen` — the anchor test requires the
@@ -330,9 +340,15 @@ pin file. Updating the pins is a deliberate manual step:
    `verification_artifact_sha256` in `devtools/verification_anchors.json` to
    the hashes the failing content-hash test prints, then re-run step 4.
 
-This friction is intended: a `bidgo` value-behavior change that moves a
-sentinel answer must pass through a human re-audit, and the generator cannot
-re-pin its own regression.
+Updating a mixed-FMA fusedness row instead requires a fresh pinned-Intel-C
+direct-versus-sequential audit, a reviewed edit to both
+`ffi_fusedness.go` and `verification_sentinels.json`, regeneration, the native
+exact FFI gate, the generated Rust fusedness gate, and the same anchor/hash
+checks. There is deliberately no auto-repin command for this family.
+
+This friction is intended: a value-behavior change that moves any sentinel
+answer must pass through a human re-audit, and the generator cannot re-pin its
+own regression.
 
 Generated files are reproducible artifacts. Do not edit them directly.
 `make generate-testspec` also regenerates the checked-in BID codec vector data at `bid754-codec-vectors/vectors.json`.

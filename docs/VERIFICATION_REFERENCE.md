@@ -43,10 +43,11 @@ Selection:
 The current profile follows the normative formula in
 `TEST_GENERATION_SPEC.md`. Its exclusion classes cover unsupported binary
 formats, DPD interchange, FE APIs, version predicates satisfied on another
-surface, and the mixed-width FMA/sqrt extensions that remain optional scope
-gaps. The Tier 1 mixed-width D/Q `add`/`sub`/`mul`/`div` families are selected.
-The generated inventory, not a hand-written function list, answers whether a
-particular symbol is currently selected.
+surface, and other Intel-only groups outside the declared support surface. The
+Tier 1 mixed-width D/Q `add`/`sub`/`mul`/`div` families and the pinned Intel
+mixed-width FMA/sqrt extension families are selected. The generated inventory,
+not a hand-written function list, answers whether a particular symbol is
+currently selected.
 
 Generated consumers:
 
@@ -102,6 +103,13 @@ The generated native wrapper calls pinned Intel C and compares the same inputs
 against the Go mechanical port. The profile includes decimal results, scalar
 predicates/classes, integer conversions, BID width conversions, and supported
 one-way BID-to-binary conversions according to the manifest.
+
+The selected mixed-width FMA/sqrt functions additionally carry one unchanged
+operand tuple across all five rounding modes, with a runtime assertion that
+Intel C produces more than one result bit pattern. Mixed-width FMA functions
+also carry fusedness sentinels: direct expected and sequential forbidden
+bits/flags are externally pinned in `devtools/verification_sentinels.json` and
+executed by the generated Go-native and Rust public/direct paths.
 
 The Tier 1 long Go and Rust runners are generated from shared corpus rules:
 

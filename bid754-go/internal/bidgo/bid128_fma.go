@@ -675,10 +675,10 @@ func Bid128Fma(x, y, z BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
 	return res, pfpsf
 }
 
-// bid64qqqFma is ported mechanically from bid128_fma.c: bid64qqq_fma.
+// bid64qqqFmaCore is ported mechanically from bid128_fma.c: bid64qqq_fma.
 // It rounds the exact mixed-width FMA result directly to BID64, including the
 // Intel double-rounding corrections required for nearest-even and ties-away.
-func bid64qqqFma(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) uint64 {
+func bid64qqqFmaCore(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) uint64 {
 	var isMidpointLtEven0, isMidpointGtEven0 int
 	var isInexactLtMidpoint0, isInexactGtMidpoint0 int
 	var isMidpointLtEven, isMidpointGtEven int
@@ -938,4 +938,116 @@ func bid64qqqFma(x, y, z BID_UINT128, rnd_mode int, pfpsf *uint32) uint64 {
 	}
 	*pfpsf |= saveFpsf
 	return res1
+}
+
+// Bid64qqqFma is ported mechanically from bid128_fma.c: bid64qqq_fma.
+func Bid64qqqFma(x, y, z BID_UINT128, rnd_mode int) (uint64, uint32) {
+	var flags uint32
+	return bid64qqqFmaCore(x, y, z, rnd_mode, &flags), flags
+}
+
+// Bid64ddqFma is ported mechanically from bid128_fma.c: bid64ddq_fma.
+func Bid64ddqFma(x, y uint64, z BID_UINT128, rnd_mode int) (uint64, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	y1, flagsY := Bid64ToBid128(y)
+	flags := flagsX | flagsY
+	return bid64qqqFmaCore(x1, y1, z, rnd_mode, &flags), flags
+}
+
+// Bid64dqdFma is ported mechanically from bid128_fma.c: bid64dqd_fma.
+func Bid64dqdFma(x uint64, y BID_UINT128, z uint64, rnd_mode int) (uint64, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	z1, flagsZ := Bid64ToBid128(z)
+	flags := flagsX | flagsZ
+	return bid64qqqFmaCore(x1, y, z1, rnd_mode, &flags), flags
+}
+
+// Bid64dqqFma is ported mechanically from bid128_fma.c: bid64dqq_fma.
+func Bid64dqqFma(x uint64, y, z BID_UINT128, rnd_mode int) (uint64, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	flags := flagsX
+	return bid64qqqFmaCore(x1, y, z, rnd_mode, &flags), flags
+}
+
+// Bid64qddFma is ported mechanically from bid128_fma.c: bid64qdd_fma.
+func Bid64qddFma(x BID_UINT128, y, z uint64, rnd_mode int) (uint64, uint32) {
+	y1, flagsY := Bid64ToBid128(y)
+	z1, flagsZ := Bid64ToBid128(z)
+	flags := flagsY | flagsZ
+	return bid64qqqFmaCore(x, y1, z1, rnd_mode, &flags), flags
+}
+
+// Bid64qdqFma is ported mechanically from bid128_fma.c: bid64qdq_fma.
+func Bid64qdqFma(x BID_UINT128, y uint64, z BID_UINT128, rnd_mode int) (uint64, uint32) {
+	y1, flagsY := Bid64ToBid128(y)
+	flags := flagsY
+	return bid64qqqFmaCore(x, y1, z, rnd_mode, &flags), flags
+}
+
+// Bid64qqdFma is ported mechanically from bid128_fma.c: bid64qqd_fma.
+func Bid64qqdFma(x, y BID_UINT128, z uint64, rnd_mode int) (uint64, uint32) {
+	z1, flagsZ := Bid64ToBid128(z)
+	flags := flagsZ
+	return bid64qqqFmaCore(x, y, z1, rnd_mode, &flags), flags
+}
+
+// Bid128dddFma is ported mechanically from bid128_fma.c: bid128ddd_fma.
+func Bid128dddFma(x, y, z uint64, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	y1, flagsY := Bid64ToBid128(y)
+	z1, flagsZ := Bid64ToBid128(z)
+	flags := flagsX | flagsY | flagsZ
+	res, _, _, _, _ := bid128_ext_fma(x1, y1, z1, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128ddqFma is ported mechanically from bid128_fma.c: bid128ddq_fma.
+func Bid128ddqFma(x, y uint64, z BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	y1, flagsY := Bid64ToBid128(y)
+	flags := flagsX | flagsY
+	res, _, _, _, _ := bid128_ext_fma(x1, y1, z, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128dqdFma is ported mechanically from bid128_fma.c: bid128dqd_fma.
+func Bid128dqdFma(x uint64, y BID_UINT128, z uint64, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	z1, flagsZ := Bid64ToBid128(z)
+	flags := flagsX | flagsZ
+	res, _, _, _, _ := bid128_ext_fma(x1, y, z1, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128dqqFma is ported mechanically from bid128_fma.c: bid128dqq_fma.
+func Bid128dqqFma(x uint64, y, z BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
+	x1, flagsX := Bid64ToBid128(x)
+	flags := flagsX
+	res, _, _, _, _ := bid128_ext_fma(x1, y, z, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128qddFma is ported mechanically from bid128_fma.c: bid128qdd_fma.
+func Bid128qddFma(x BID_UINT128, y, z uint64, rnd_mode int) (BID_UINT128, uint32) {
+	y1, flagsY := Bid64ToBid128(y)
+	z1, flagsZ := Bid64ToBid128(z)
+	flags := flagsY | flagsZ
+	res, _, _, _, _ := bid128_ext_fma(x, y1, z1, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128qdqFma is ported mechanically from bid128_fma.c: bid128qdq_fma.
+func Bid128qdqFma(x BID_UINT128, y uint64, z BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
+	y1, flagsY := Bid64ToBid128(y)
+	flags := flagsY
+	res, _, _, _, _ := bid128_ext_fma(x, y1, z, rnd_mode, &flags)
+	return res, flags
+}
+
+// Bid128qqdFma is ported mechanically from bid128_fma.c: bid128qqd_fma.
+func Bid128qqdFma(x, y BID_UINT128, z uint64, rnd_mode int) (BID_UINT128, uint32) {
+	z1, flagsZ := Bid64ToBid128(z)
+	flags := flagsZ
+	res, _, _, _, _ := bid128_ext_fma(x, y, z1, rnd_mode, &flags)
+	return res, flags
 }

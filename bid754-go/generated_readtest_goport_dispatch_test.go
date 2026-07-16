@@ -1091,6 +1091,24 @@ func goportReadtestGeneratedBID64(function string, rounding int, operands []stri
 		}
 		result, flags := bidgo.Bid64SubWithFlags(arg0Raw, arg1Raw, rounding)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64ddq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64ddq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64ddqFma(arg0Raw, arg1Raw, goportReadtestToBidgo128(arg2Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid64dq_add":
 		if len(operands) != 2 {
 			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dq_add expects 2 operands, got %d", len(operands))
@@ -1146,6 +1164,52 @@ func goportReadtestGeneratedBID64(function string, rounding int, operands []stri
 			return 0, readtestNoSecondaryOutput(), "", err
 		}
 		result, flags := bidgo.Bid64dqSub(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64dqd_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64dqdFma(arg0Raw, goportReadtestToBidgo128(arg1Raw), arg2Raw, rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64dqq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dqq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64dqqFma(arg0Raw, goportReadtestToBidgo128(arg1Raw), goportReadtestToBidgo128(arg2Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64q_sqrt":
+		if len(operands) != 1 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64q_sqrt expects 1 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qSqrt(goportReadtestToBidgo128(arg0Raw), rounding)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid64qd_add":
 		if len(operands) != 2 {
@@ -1203,6 +1267,42 @@ func goportReadtestGeneratedBID64(function string, rounding int, operands []stri
 		}
 		result, flags := bidgo.Bid64qdSub(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qdd_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qdd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qddFma(goportReadtestToBidgo128(arg0Raw), arg1Raw, arg2Raw, rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qdq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qdq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qdqFma(goportReadtestToBidgo128(arg0Raw), arg1Raw, goportReadtestToBidgo128(arg2Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid64qq_add":
 		if len(operands) != 2 {
 			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qq_add expects 2 operands, got %d", len(operands))
@@ -1258,6 +1358,42 @@ func goportReadtestGeneratedBID64(function string, rounding int, operands []stri
 			return 0, readtestNoSecondaryOutput(), "", err
 		}
 		result, flags := bidgo.Bid64qqSub(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qqd_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qqdFma(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), arg2Raw, rounding)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid64qqq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qqq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid64qqqFma(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), goportReadtestToBidgo128(arg2Raw), rounding)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	default:
 		return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("unsupported goport readtest dec64 function %q", function)
@@ -1784,6 +1920,16 @@ func goportReadtestGeneratedBID128(function string, rounding int, operands []str
 		var flags uint32
 		result := bidgo.Bid128Sub(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), rounding, &flags)
 		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128d_sqrt":
+		if len(operands) != 1 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128d_sqrt expects 1 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dSqrt(arg0Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid128dd_add":
 		if len(operands) != 2 {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dd_add expects 2 operands, got %d", len(operands))
@@ -1839,6 +1985,42 @@ func goportReadtestGeneratedBID128(function string, rounding int, operands []str
 			return [16]byte{}, readtestNoSecondaryOutput(), "", err
 		}
 		result, flags := bidgo.Bid128ddSub(arg0Raw, arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128ddd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128ddd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dddFma(arg0Raw, arg1Raw, arg2Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128ddq_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128ddq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128ddqFma(arg0Raw, arg1Raw, goportReadtestToBidgo128(arg2Raw), rounding)
 		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid128dq_add":
 		if len(operands) != 2 {
@@ -1896,6 +2078,42 @@ func goportReadtestGeneratedBID128(function string, rounding int, operands []str
 		}
 		result, flags := bidgo.Bid128dqSub(arg0Raw, goportReadtestToBidgo128(arg1Raw), rounding)
 		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dqd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dqdFma(arg0Raw, goportReadtestToBidgo128(arg1Raw), arg2Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128dqq_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dqq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128dqqFma(arg0Raw, goportReadtestToBidgo128(arg1Raw), goportReadtestToBidgo128(arg2Raw), rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid128qd_add":
 		if len(operands) != 2 {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qd_add expects 2 operands, got %d", len(operands))
@@ -1951,6 +2169,60 @@ func goportReadtestGeneratedBID128(function string, rounding int, operands []str
 			return [16]byte{}, readtestNoSecondaryOutput(), "", err
 		}
 		result, flags := bidgo.Bid128qdSub(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128qdd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qdd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128qddFma(goportReadtestToBidgo128(arg0Raw), arg1Raw, arg2Raw, rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128qdq_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qdq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128qdqFma(goportReadtestToBidgo128(arg0Raw), arg1Raw, goportReadtestToBidgo128(arg2Raw), rounding)
+		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
+	case "bid128qqd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		result, flags := bidgo.Bid128qqdFma(goportReadtestToBidgo128(arg0Raw), goportReadtestToBidgo128(arg1Raw), arg2Raw, rounding)
 		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid32_to_bid128":
 		if len(operands) != 1 {

@@ -27,16 +27,21 @@ with redistributions of the derived artifacts.
   `devtools/generated/go/intel_dfp_tables.go`, `bid754-rs/src/intel_dfp_tables.rs`,
   `devtools/generated/json/intel_dfp_symbols.json`, `bid754-rs/src/generated/`
   (generated from the Go port), `bid754-rs/src/tables.rs` (table data via
-  `bid754-rs/src/intel_dfp_tables.rs`), generated readtest case data under
+  `bid754-rs/src/intel_dfp_tables.rs`), generated readtest and FFI case data under
   `devtools/generated/testspec/`, the `devtools/tools/registry/*.json` extraction
   registries (the symbol inventory via the Go mechanical port, and the
   readtest-surface registries via the Intel readtest headers), the
   generated root-package
   verification dispatch/runner files (the `generated_readtest_*` files embedding
   readtest-derived cases, and the `generated_ffi_*` files exercising the
-  Intel symbol inventory), and `devtools/verification_sentinels.json`
+  Intel symbol inventory), `devtools/internal/testgen/ffi_fusedness.go`
+  (hand-declared mixed-width FMA fusedness probe rows whose expected and
+  forbidden outcomes were audited against the pinned Intel BID C library),
+  and `devtools/verification_sentinels.json`
   (hand-pinned Tier 1 routing-sentinel rows whose expected values are
-  computed through the Go mechanical port of the C sources).
+  computed through the Go mechanical port of the C sources, plus
+  hand-pinned mixed-width FMA fusedness rows audited against the pinned
+  Intel BID C library).
 - Local setup: `make setup-generation-inputs`.
 - Upgrade verification: `docs/INTEL_BID_V20U4_VERIFICATION.md` and
   `make verify-intel-bid-v20u4`.

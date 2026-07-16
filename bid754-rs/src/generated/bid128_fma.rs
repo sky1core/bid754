@@ -607,7 +607,7 @@ pub fn bid128_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_UINT128, mu
     return (res, pfpsf);
 }
 
-pub(crate) fn bid64qqq_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> u64 {
+pub(crate) fn bid64qqq_fma_core(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> u64 {
     let mut isMidpointLtEven0: i64 = 0;
     let mut isMidpointGtEven0: i64 = 0;
     let mut isInexactLtMidpoint0: i64 = 0;
@@ -819,4 +819,102 @@ pub(crate) fn bid64qqq_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_UI
     }
     (*pfpsf) |= saveFpsf;
     return res1;
+}
+
+pub fn bid64qqq_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let mut flags: u32 = 0;
+    return (bid64qqq_fma_core(x, y, z, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid64ddq_fma(mut x: u64, mut y: u64, mut z: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let mut flags = (flagsX | flagsY);
+    return (bid64qqq_fma_core(x1, y1, z, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid64dqd_fma(mut x: u64, mut y: BID_UINT128, mut z: u64, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut z1, mut flagsZ) = bid64_to_bid128(z);
+    let mut flags = (flagsX | flagsZ);
+    return (bid64qqq_fma_core(x1, y, z1, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid64dqq_fma(mut x: u64, mut y: BID_UINT128, mut z: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let mut flags = flagsX;
+    return (bid64qqq_fma_core(x1, y, z, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid64qdd_fma(mut x: BID_UINT128, mut y: u64, mut z: u64, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let (mut z1, mut flagsZ) = bid64_to_bid128(z);
+    let mut flags = (flagsY | flagsZ);
+    return (bid64qqq_fma_core(x, y1, z1, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid64qdq_fma(mut x: BID_UINT128, mut y: u64, mut z: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let mut flags = flagsY;
+    return (bid64qqq_fma_core(x, y1, z, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid64qqd_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: u64, mut rnd_mode: i64) -> (u64, u32) {
+    let (mut z1, mut flagsZ) = bid64_to_bid128(z);
+    let mut flags = flagsZ;
+    return (bid64qqq_fma_core(x, y, z1, rnd_mode, (&mut flags)), flags);
+}
+
+pub fn bid128ddd_fma(mut x: u64, mut y: u64, mut z: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let (mut z1, mut flagsZ) = bid64_to_bid128(z);
+    let mut flags = ((flagsX | flagsY) | flagsZ);
+    let (mut res, _, _, _, _) = bid128_ext_fma(x1, y1, z1, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128ddq_fma(mut x: u64, mut y: u64, mut z: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let mut flags = (flagsX | flagsY);
+    let (mut res, _, _, _, _) = bid128_ext_fma(x1, y1, z, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128dqd_fma(mut x: u64, mut y: BID_UINT128, mut z: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let (mut z1, mut flagsZ) = bid64_to_bid128(z);
+    let mut flags = (flagsX | flagsZ);
+    let (mut res, _, _, _, _) = bid128_ext_fma(x1, y, z1, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128dqq_fma(mut x: u64, mut y: BID_UINT128, mut z: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut x1, mut flagsX) = bid64_to_bid128(x);
+    let mut flags = flagsX;
+    let (mut res, _, _, _, _) = bid128_ext_fma(x1, y, z, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128qdd_fma(mut x: BID_UINT128, mut y: u64, mut z: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let (mut z1, mut flagsZ) = bid64_to_bid128(z);
+    let mut flags = (flagsY | flagsZ);
+    let (mut res, _, _, _, _) = bid128_ext_fma(x, y1, z1, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128qdq_fma(mut x: BID_UINT128, mut y: u64, mut z: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut y1, mut flagsY) = bid64_to_bid128(y);
+    let mut flags = flagsY;
+    let (mut res, _, _, _, _) = bid128_ext_fma(x, y1, z, rnd_mode, (&mut flags));
+    return (res, flags);
+}
+
+pub fn bid128qqd_fma(mut x: BID_UINT128, mut y: BID_UINT128, mut z: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    let (mut z1, mut flagsZ) = bid64_to_bid128(z);
+    let mut flags = flagsZ;
+    let (mut res, _, _, _, _) = bid128_ext_fma(x, y, z1, rnd_mode, (&mut flags));
+    return (res, flags);
 }

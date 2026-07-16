@@ -154,10 +154,12 @@ Unsupported binary formats, DPD interchange, FE APIs, version-predicate
 helpers, and Intel extensions are classified by the selection code, not by a
 prose function list. Mixed-width arithmetic is not one optional bucket: the
 Tier 1 D/Q `add`/`sub`/`mul`/`div` families producing Decimal64 or Decimal128
-are selected, while the remaining mixed-width FMA/sqrt families stay
-`optional_scope_gap`. The exact current decisions and reasons are owned by
-`devtools/internal/testgen/readtest_spec.go` and the generated readtest profile
-inventory.
+are selected. The pinned Intel mixed-width FMA/sqrt extension families are
+also selected through their direct mechanical-port entrypoints; their D/Q
+operand order and direct destination-width rounding must not be replaced by a
+widen/operate/narrow composition. The exact current decisions and reasons are
+owned by `devtools/internal/testgen/readtest_spec.go` and the generated
+readtest profile inventory.
 
 Function-group membership is extracted mechanically from pinned Intel headers.
 Each discovered group carries an IEEE scope classification, and mandatory
@@ -304,6 +306,21 @@ The deterministic corpus must include format-correct special values,
 canonical/non-canonical boundaries, directional operand combinations, and
 deterministic pseudo-random coverage. A rounding-sensitive Tier 1 operation is
 crossed with all five supported rounding modes at its semantic boundaries.
+Every selected mixed-width FMA/sqrt extension is likewise crossed with all five
+rounding modes on one unchanged operand tuple, and the native runner must prove
+that the pinned Intel C result bits split into at least two distinct values;
+merely enumerating five mode numbers is not rounding-mode coverage.
+
+Every selected mixed-width FMA also carries a generated fusedness sentinel whose
+expected direct result and forbidden sequential result are hand-pinned outside
+the generation path. The native runner compares both Intel C and the Go port to
+the direct expected bits and raw flags, then proves that a widened
+`multiply -> add` sequence (plus destination narrowing for Decimal64 results)
+produces the pinned forbidden result instead. Generated Rust public and direct
+implementation paths execute the same sentinel contract. Where finite
+single-rounding inputs cannot distinguish FMA from the sequential operations,
+the sentinel must use an Intel-defined special-value ordering case that does;
+no mixed FMA entrypoint is waived from this closed census.
 
 The generated Tier 1 long runners strengthen this domain for both production
 implementations. Go public APIs and the mechanical port, and generated Rust

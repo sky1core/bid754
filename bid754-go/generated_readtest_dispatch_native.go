@@ -672,6 +672,15 @@ static BID_UINT64 bid754_generated_readtest_bid64_sub(BID_UINT64 v0, BID_UINT64 
 	return result;
 }
 
+static BID_UINT64 bid754_generated_readtest_bid64ddq_fma(BID_UINT64 v0, BID_UINT64 v1, const unsigned char* v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v2;
+	memcpy(&in_v2, v2, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64ddq_fma(v0, v1, in_v2, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
 static BID_UINT64 bid754_generated_readtest_bid64dq_add(BID_UINT64 v0, const unsigned char* v1, int rounding_mode, _IDEC_flags* out_flags) {
 	BID_UINT128 in_v1;
 	memcpy(&in_v1, v1, 16);
@@ -708,6 +717,35 @@ static BID_UINT64 bid754_generated_readtest_bid64dq_sub(BID_UINT64 v0, const uns
 	return result;
 }
 
+static BID_UINT64 bid754_generated_readtest_bid64dqd_fma(BID_UINT64 v0, const unsigned char* v1, BID_UINT64 v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v1;
+	memcpy(&in_v1, v1, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64dqd_fma(v0, in_v1, v2, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
+static BID_UINT64 bid754_generated_readtest_bid64dqq_fma(BID_UINT64 v0, const unsigned char* v1, const unsigned char* v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v1;
+	memcpy(&in_v1, v1, 16);
+	BID_UINT128 in_v2;
+	memcpy(&in_v2, v2, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64dqq_fma(v0, in_v1, in_v2, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
+static BID_UINT64 bid754_generated_readtest_bid64q_sqrt(const unsigned char* v0, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64q_sqrt(in_v0, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
 static BID_UINT64 bid754_generated_readtest_bid64qd_add(const unsigned char* v0, BID_UINT64 v1, int rounding_mode, _IDEC_flags* out_flags) {
 	BID_UINT128 in_v0;
 	memcpy(&in_v0, v0, 16);
@@ -740,6 +778,26 @@ static BID_UINT64 bid754_generated_readtest_bid64qd_sub(const unsigned char* v0,
 	memcpy(&in_v0, v0, 16);
 	_IDEC_flags flags = 0;
 	BID_UINT64 result = bid64qd_sub(in_v0, v1, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
+static BID_UINT64 bid754_generated_readtest_bid64qdd_fma(const unsigned char* v0, BID_UINT64 v1, BID_UINT64 v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64qdd_fma(in_v0, v1, v2, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
+static BID_UINT64 bid754_generated_readtest_bid64qdq_fma(const unsigned char* v0, BID_UINT64 v1, const unsigned char* v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	BID_UINT128 in_v2;
+	memcpy(&in_v2, v2, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64qdq_fma(in_v0, v1, in_v2, (_IDEC_round)rounding_mode, &flags);
 	if (out_flags) { *out_flags = flags; }
 	return result;
 }
@@ -784,6 +842,30 @@ static BID_UINT64 bid754_generated_readtest_bid64qq_sub(const unsigned char* v0,
 	memcpy(&in_v1, v1, 16);
 	_IDEC_flags flags = 0;
 	BID_UINT64 result = bid64qq_sub(in_v0, in_v1, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
+static BID_UINT64 bid754_generated_readtest_bid64qqd_fma(const unsigned char* v0, const unsigned char* v1, BID_UINT64 v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	BID_UINT128 in_v1;
+	memcpy(&in_v1, v1, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64qqd_fma(in_v0, in_v1, v2, (_IDEC_round)rounding_mode, &flags);
+	if (out_flags) { *out_flags = flags; }
+	return result;
+}
+
+static BID_UINT64 bid754_generated_readtest_bid64qqq_fma(const unsigned char* v0, const unsigned char* v1, const unsigned char* v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	BID_UINT128 in_v1;
+	memcpy(&in_v1, v1, 16);
+	BID_UINT128 in_v2;
+	memcpy(&in_v2, v2, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT64 result = bid64qqq_fma(in_v0, in_v1, in_v2, (_IDEC_round)rounding_mode, &flags);
 	if (out_flags) { *out_flags = flags; }
 	return result;
 }
@@ -1183,6 +1265,13 @@ static void bid754_generated_readtest_bid128_sub(unsigned char out_result[16], c
 	if (out_flags) { *out_flags = flags; }
 }
 
+static void bid754_generated_readtest_bid128d_sqrt(unsigned char out_result[16], BID_UINT64 v0, int rounding_mode, _IDEC_flags* out_flags) {
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128d_sqrt(v0, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
 static void bid754_generated_readtest_bid128dd_add(unsigned char out_result[16], BID_UINT64 v0, BID_UINT64 v1, int rounding_mode, _IDEC_flags* out_flags) {
 	_IDEC_flags flags = 0;
 	BID_UINT128 result = bid128dd_add(v0, v1, (_IDEC_round)rounding_mode, &flags);
@@ -1207,6 +1296,22 @@ static void bid754_generated_readtest_bid128dd_mul(unsigned char out_result[16],
 static void bid754_generated_readtest_bid128dd_sub(unsigned char out_result[16], BID_UINT64 v0, BID_UINT64 v1, int rounding_mode, _IDEC_flags* out_flags) {
 	_IDEC_flags flags = 0;
 	BID_UINT128 result = bid128dd_sub(v0, v1, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
+static void bid754_generated_readtest_bid128ddd_fma(unsigned char out_result[16], BID_UINT64 v0, BID_UINT64 v1, BID_UINT64 v2, int rounding_mode, _IDEC_flags* out_flags) {
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128ddd_fma(v0, v1, v2, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
+static void bid754_generated_readtest_bid128ddq_fma(unsigned char out_result[16], BID_UINT64 v0, BID_UINT64 v1, const unsigned char* v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v2;
+	memcpy(&in_v2, v2, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128ddq_fma(v0, v1, in_v2, (_IDEC_round)rounding_mode, &flags);
 	memcpy(out_result, &result, 16);
 	if (out_flags) { *out_flags = flags; }
 }
@@ -1247,6 +1352,26 @@ static void bid754_generated_readtest_bid128dq_sub(unsigned char out_result[16],
 	if (out_flags) { *out_flags = flags; }
 }
 
+static void bid754_generated_readtest_bid128dqd_fma(unsigned char out_result[16], BID_UINT64 v0, const unsigned char* v1, BID_UINT64 v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v1;
+	memcpy(&in_v1, v1, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128dqd_fma(v0, in_v1, v2, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
+static void bid754_generated_readtest_bid128dqq_fma(unsigned char out_result[16], BID_UINT64 v0, const unsigned char* v1, const unsigned char* v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v1;
+	memcpy(&in_v1, v1, 16);
+	BID_UINT128 in_v2;
+	memcpy(&in_v2, v2, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128dqq_fma(v0, in_v1, in_v2, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
 static void bid754_generated_readtest_bid128qd_add(unsigned char out_result[16], const unsigned char* v0, BID_UINT64 v1, int rounding_mode, _IDEC_flags* out_flags) {
 	BID_UINT128 in_v0;
 	memcpy(&in_v0, v0, 16);
@@ -1279,6 +1404,37 @@ static void bid754_generated_readtest_bid128qd_sub(unsigned char out_result[16],
 	memcpy(&in_v0, v0, 16);
 	_IDEC_flags flags = 0;
 	BID_UINT128 result = bid128qd_sub(in_v0, v1, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
+static void bid754_generated_readtest_bid128qdd_fma(unsigned char out_result[16], const unsigned char* v0, BID_UINT64 v1, BID_UINT64 v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128qdd_fma(in_v0, v1, v2, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
+static void bid754_generated_readtest_bid128qdq_fma(unsigned char out_result[16], const unsigned char* v0, BID_UINT64 v1, const unsigned char* v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	BID_UINT128 in_v2;
+	memcpy(&in_v2, v2, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128qdq_fma(in_v0, v1, in_v2, (_IDEC_round)rounding_mode, &flags);
+	memcpy(out_result, &result, 16);
+	if (out_flags) { *out_flags = flags; }
+}
+
+static void bid754_generated_readtest_bid128qqd_fma(unsigned char out_result[16], const unsigned char* v0, const unsigned char* v1, BID_UINT64 v2, int rounding_mode, _IDEC_flags* out_flags) {
+	BID_UINT128 in_v0;
+	memcpy(&in_v0, v0, 16);
+	BID_UINT128 in_v1;
+	memcpy(&in_v1, v1, 16);
+	_IDEC_flags flags = 0;
+	BID_UINT128 result = bid128qqd_fma(in_v0, in_v1, v2, (_IDEC_round)rounding_mode, &flags);
 	memcpy(out_result, &result, 16);
 	if (out_flags) { *out_flags = flags; }
 }
@@ -5404,6 +5560,25 @@ func nativeReadtestGeneratedBID64(function string, rounding int, operands []stri
 		var flags C._IDEC_flags
 		result := uint64(C.bid754_generated_readtest_bid64_sub(C.BID_UINT64(arg0Raw), C.BID_UINT64(arg1Raw), C.int(rounding), &flags))
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64ddq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64ddq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64ddq_fma(C.BID_UINT64(arg0Raw), C.BID_UINT64(arg1Raw), (*C.uchar)(unsafe.Pointer(&arg2Raw[0])), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	case "bid64dq_add":
 		if len(operands) != 2 {
 			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dq_add expects 2 operands, got %d", len(operands))
@@ -5463,6 +5638,55 @@ func nativeReadtestGeneratedBID64(function string, rounding int, operands []stri
 		}
 		var flags C._IDEC_flags
 		result := uint64(C.bid754_generated_readtest_bid64dq_sub(C.BID_UINT64(arg0Raw), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64dqd_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64dqd_fma(C.BID_UINT64(arg0Raw), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.BID_UINT64(arg2Raw), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64dqq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64dqq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64dqq_fma(C.BID_UINT64(arg0Raw), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), (*C.uchar)(unsafe.Pointer(&arg2Raw[0])), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64q_sqrt":
+		if len(operands) != 1 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64q_sqrt expects 1 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64q_sqrt((*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.int(rounding), &flags))
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	case "bid64qd_add":
 		if len(operands) != 2 {
@@ -5524,6 +5748,44 @@ func nativeReadtestGeneratedBID64(function string, rounding int, operands []stri
 		var flags C._IDEC_flags
 		result := uint64(C.bid754_generated_readtest_bid64qd_sub((*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.BID_UINT64(arg1Raw), C.int(rounding), &flags))
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64qdd_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qdd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64qdd_fma((*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.BID_UINT64(arg1Raw), C.BID_UINT64(arg2Raw), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64qdq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qdq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64qdq_fma((*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.BID_UINT64(arg1Raw), (*C.uchar)(unsafe.Pointer(&arg2Raw[0])), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	case "bid64qq_add":
 		if len(operands) != 2 {
 			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qq_add expects 2 operands, got %d", len(operands))
@@ -5583,6 +5845,44 @@ func nativeReadtestGeneratedBID64(function string, rounding int, operands []stri
 		}
 		var flags C._IDEC_flags
 		result := uint64(C.bid754_generated_readtest_bid64qq_sub((*C.uchar)(unsafe.Pointer(&arg0Raw[0])), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64qqd_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64qqd_fma((*C.uchar)(unsafe.Pointer(&arg0Raw[0])), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.BID_UINT64(arg2Raw), C.int(rounding), &flags))
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid64qqq_fma":
+		if len(operands) != 3 {
+			return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("bid64qqq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return 0, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		result := uint64(C.bid754_generated_readtest_bid64qqq_fma((*C.uchar)(unsafe.Pointer(&arg0Raw[0])), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), (*C.uchar)(unsafe.Pointer(&arg2Raw[0])), C.int(rounding), &flags))
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	default:
 		return 0, readtestNoSecondaryOutput(), "", fmt.Errorf("unsupported generated readtest decimal64 function %q", function)
@@ -6179,6 +6479,18 @@ func nativeReadtestGeneratedBID128(function string, rounding int, operands []str
 		var result [16]byte
 		C.bid754_generated_readtest_bid128_sub((*C.uchar)(unsafe.Pointer(&result[0])), (*C.uchar)(unsafe.Pointer(&arg0Raw[0])), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.int(rounding), &flags)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128d_sqrt":
+		if len(operands) != 1 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128d_sqrt expects 1 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128d_sqrt((*C.uchar)(unsafe.Pointer(&result[0])), C.BID_UINT64(arg0Raw), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	case "bid128dd_add":
 		if len(operands) != 2 {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dd_add expects 2 operands, got %d", len(operands))
@@ -6242,6 +6554,46 @@ func nativeReadtestGeneratedBID128(function string, rounding int, operands []str
 		var flags C._IDEC_flags
 		var result [16]byte
 		C.bid754_generated_readtest_bid128dd_sub((*C.uchar)(unsafe.Pointer(&result[0])), C.BID_UINT64(arg0Raw), C.BID_UINT64(arg1Raw), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128ddd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128ddd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128ddd_fma((*C.uchar)(unsafe.Pointer(&result[0])), C.BID_UINT64(arg0Raw), C.BID_UINT64(arg1Raw), C.BID_UINT64(arg2Raw), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128ddq_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128ddq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128ddq_fma((*C.uchar)(unsafe.Pointer(&result[0])), C.BID_UINT64(arg0Raw), C.BID_UINT64(arg1Raw), (*C.uchar)(unsafe.Pointer(&arg2Raw[0])), C.int(rounding), &flags)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	case "bid128dq_add":
 		if len(operands) != 2 {
@@ -6307,6 +6659,46 @@ func nativeReadtestGeneratedBID128(function string, rounding int, operands []str
 		var result [16]byte
 		C.bid754_generated_readtest_bid128dq_sub((*C.uchar)(unsafe.Pointer(&result[0])), C.BID_UINT64(arg0Raw), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.int(rounding), &flags)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128dqd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128dqd_fma((*C.uchar)(unsafe.Pointer(&result[0])), C.BID_UINT64(arg0Raw), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.BID_UINT64(arg2Raw), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128dqq_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128dqq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits64(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128dqq_fma((*C.uchar)(unsafe.Pointer(&result[0])), C.BID_UINT64(arg0Raw), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), (*C.uchar)(unsafe.Pointer(&arg2Raw[0])), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	case "bid128qd_add":
 		if len(operands) != 2 {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qd_add expects 2 operands, got %d", len(operands))
@@ -6370,6 +6762,66 @@ func nativeReadtestGeneratedBID128(function string, rounding int, operands []str
 		var flags C._IDEC_flags
 		var result [16]byte
 		C.bid754_generated_readtest_bid128qd_sub((*C.uchar)(unsafe.Pointer(&result[0])), (*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.BID_UINT64(arg1Raw), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128qdd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qdd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128qdd_fma((*C.uchar)(unsafe.Pointer(&result[0])), (*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.BID_UINT64(arg1Raw), C.BID_UINT64(arg2Raw), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128qdq_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qdq_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits64(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits128(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128qdq_fma((*C.uchar)(unsafe.Pointer(&result[0])), (*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.BID_UINT64(arg1Raw), (*C.uchar)(unsafe.Pointer(&arg2Raw[0])), C.int(rounding), &flags)
+		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
+	case "bid128qqd_fma":
+		if len(operands) != 3 {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("bid128qqd_fma expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestBits128(operands[0])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg1Raw, err := parseReadtestBits128(operands[1])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		arg2Raw, err := parseReadtestBits64(operands[2])
+		if err != nil {
+			return [16]byte{}, readtestNoSecondaryOutput(), "", err
+		}
+		var flags C._IDEC_flags
+		var result [16]byte
+		C.bid754_generated_readtest_bid128qqd_fma((*C.uchar)(unsafe.Pointer(&result[0])), (*C.uchar)(unsafe.Pointer(&arg0Raw[0])), (*C.uchar)(unsafe.Pointer(&arg1Raw[0])), C.BID_UINT64(arg2Raw), C.int(rounding), &flags)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
 	case "bid32_to_bid128":
 		if len(operands) != 1 {

@@ -12,13 +12,15 @@ type testspecPackageTemplate struct {
 }
 
 // testspecPackageTemplates lists the verbatim templates that make up the
-// generated bid754-go/internal/testspec package: the shared spec data model
-// plus the LoadGenerated index+shard loader consumed by the bid754-go
-// verification harness and platformdigest. The schema source of truth stays
-// in this package; the harness coverage assertions catch template drift.
+// generated bid754-go/internal/testspec package: the shared spec data model,
+// the LoadGenerated index+shard loader consumed by the bid754-go verification
+// harness and platformdigest, and the loader's strict-JSON regression boundary.
+// The schema source of truth stays in this package; the harness coverage
+// assertions catch template drift.
 var testspecPackageTemplates = []testspecPackageTemplate{
 	{OutputPath: "../bid754-go/internal/testspec/spec.go", TemplatePath: "internal/testgen/testspec_templates/spec.go.tmpl"},
 	{OutputPath: "../bid754-go/internal/testspec/spec_io.go", TemplatePath: "internal/testgen/testspec_templates/spec_io.go.tmpl"},
+	{OutputPath: "../bid754-go/internal/testspec/spec_io_strict_test.go", TemplatePath: "internal/testgen/testspec_templates/spec_io_strict_test.go.tmpl"},
 }
 
 func WriteTestspecPackageOutputs(repoRoot string) error {

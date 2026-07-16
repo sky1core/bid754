@@ -129,6 +129,23 @@ fn from_port128(v: bid754::gen_types::BID_UINT128) -> [u8; 16] {
     bytes
 }
 
+const MIXED_FMA_FUSEDNESS_SENTINEL_ROWS: [&str; 14] = [
+    "bid64ddq_fma x=31c0000000000001 y=31c0000000000001 z=2ffc000000000000:4563918244f40001 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+    "bid64dqd_fma x=31c0000000000003 y=2ffca45894e48295:7efb0aa216fc0001 z=31c0000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+    "bid64dqq_fma x=31c0000000000003 y=2ffca45894e48295:7efb0aa216fc0001 z=3040000000000000:0000000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+    "bid64qdd_fma x=2ffca45894e48295:7efb0aa216fc0001 y=31c0000000000003 z=31c0000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+    "bid64qdq_fma x=2ffca45894e48295:7efb0aa216fc0001 y=31c0000000000003 z=3040000000000000:0000000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+    "bid64qqd_fma x=2ffca45894e48295:7efb0aa216fc0001 y=3040000000000000:0000000000000003 z=31c0000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+    "bid64qqq_fma x=2ffca45894e48295:7efb0aa216fc0001 y=3040000000000000:0000000000000003 z=3040000000000000:0000000000000000 m=0 -> 2fe38d7ea4c68001/00000020 forbidden=2fe38d7ea4c68000/00000020",
+    "bid128ddd_fma x=0000000000000000 y=7800000000000000 z=7c00000000000001 m=0 -> 7c00000000000000:0de0b6b3a7640000/00000000 forbidden=7c00000000000000:0000000000000000/00000001",
+    "bid128ddq_fma x=0000000000000000 y=7800000000000000 z=7c00000000000000:0000000000000001 m=0 -> 7c00000000000000:0000000000000001/00000000 forbidden=7c00000000000000:0000000000000000/00000001",
+    "bid128dqd_fma x=2fe38d7ea4c68001 y=2ffded09bead87c0:378d8e63ffffffff z=afe38d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+    "bid128dqq_fma x=2fe38d7ea4c68001 y=2ffded09bead87c0:378d8e63ffffffff z=b022000000000000:00038d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+    "bid128qdd_fma x=2ffded09bead87c0:378d8e63ffffffff y=2fe38d7ea4c68001 z=afe38d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+    "bid128qdq_fma x=2ffded09bead87c0:378d8e63ffffffff y=2fe38d7ea4c68001 z=b022000000000000:00038d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+    "bid128qqd_fma x=3022000000000000:00038d7ea4c68001 y=2ffded09bead87c0:378d8e63ffffffff z=afe38d7ea4c68001 m=0 -> afde000000000000:00038d7ea4c68001/00000000 forbidden=2ffe000000000000:0000000000000000/00000020",
+];
+
 const CORPUS_32: &[u32] = &[
     0x00000000,
     0x80000000,
@@ -7260,6 +7277,1294 @@ fn parity_div64_qqbidwith_mode(failures: &mut Vec<String>) -> usize {
     count
 }
 
+fn parity_fma128_dddbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_64.len() {
+        let x_triple = TRIPLES_64[triple_index];
+        let y_triple = TRIPLES_64[triple_index];
+        let z_triple = TRIPLES_64[triple_index];
+        let x_bits = CORPUS_64[x_triple.0];
+        let y_bits = CORPUS_64[y_triple.1];
+        let z_bits = CORPUS_64[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::fma_ddd_with_mode(Decimal64::from_bits(x_bits), Decimal64::from_bits(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128ddd_fma(x_bits, y_bits, z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DDDBIDWithMode: operands {:#x},{:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DDDBIDWithMode: operands {:#x},{:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[(u64, u64, u64)] = &[
+        (0x31c0000000000001, 0x31c0000000000001, 0x2d80000000000005),
+        (0x31c0000000000001, 0x31c0000000000001, 0x2d80000000000001),
+        (0x31c0000000000001, 0x31c0000000000001, 0x2d80000000000009),
+        (0xb1c0000000000001, 0x31c0000000000001, 0xad80000000000001),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::fma_ddd_with_mode(Decimal64::from_bits(x_bits), Decimal64::from_bits(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128ddd_fma(x_bits, y_bits, z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DDDBIDWithMode: discriminant operands {:#x},{:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DDDBIDWithMode: discriminant operands {:#x},{:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA128DDDBIDWithMode: discriminant operands {:#x},{:#x},{:#x}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: u64 = 0x0000000000000000u64;
+        let fused_y_bits: u64 = 0x7800000000000000u64;
+        let fused_z_bits: u64 = 0x7c00000000000001u64;
+        let expected_bits: [u8; 16] = [0x00, 0x00, 0x64, 0xa7, 0xb3, 0xb6, 0xe0, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c];
+        let forbidden_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c];
+        let expected_raw = 0x00000000u32;
+        let forbidden_raw = 0x00000001u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal128::fma_ddd_with_mode(Decimal64::from_bits(fused_x_bits), Decimal64::from_bits(fused_y_bits), Decimal64::from_bits(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid128ddd_fma(fused_x_bits, fused_y_bits, fused_z_bits, fused_port_mode);
+        if fused_pv.to_le_bytes() != expected_bits {
+            failures.push(format!("public parity FMA128DDDBIDWithMode fusedness: public result mismatch public={:?} expected={:?}", fused_pv.to_le_bytes(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA128DDDBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if from_port128(fused_pr) != expected_bits {
+            failures.push(format!("public parity FMA128DDDBIDWithMode fusedness: direct-port result mismatch port={:?} expected={:?}", from_port128(fused_pr), expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA128DDDBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let (fused_x_q, fused_x_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_x_bits);
+        let (fused_y_q, fused_y_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_y_bits);
+        let (fused_z_q, fused_z_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_z_bits);
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let composed_result = fused_sum;
+        if from_port128(composed_result) != forbidden_bits {
+            failures.push(format!("public parity FMA128DDDBIDWithMode fusedness: sequential result mismatch composed={:?} forbidden={:?}", from_port128(composed_result), forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA128DDDBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if from_port128(composed_result) == from_port128(fused_pr) && composed_raw == fused_praw {
+            failures.push("public parity FMA128DDDBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma128_ddqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_64.len() {
+        let x_triple = TRIPLES_64[triple_index];
+        let y_triple = TRIPLES_64[triple_index];
+        let z_triple = TRIPLES_128[triple_index];
+        let x_bits = CORPUS_64[x_triple.0];
+        let y_bits = CORPUS_64[y_triple.1];
+        let z_bits = CORPUS_128[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::fma_ddq_with_mode(Decimal64::from_bits(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128ddq_fma(x_bits, y_bits, to_port128(z_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DDQBIDWithMode: operands {:#x},{:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DDQBIDWithMode: operands {:#x},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[(u64, u64, [u8; 16])] = &[
+        (0x31c0000000000001, 0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0x31c0000000000001, 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0x31c0000000000001, 0x31c0000000000001, [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0xb1c0000000000001, 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf]),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::fma_ddq_with_mode(Decimal64::from_bits(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128ddq_fma(x_bits, y_bits, to_port128(z_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DDQBIDWithMode: discriminant operands {:#x},{:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DDQBIDWithMode: discriminant operands {:#x},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA128DDQBIDWithMode: discriminant operands {:#x},{:#x},{:x?}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: u64 = 0x0000000000000000u64;
+        let fused_y_bits: u64 = 0x7800000000000000u64;
+        let fused_z_bits: [u8; 16] = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c];
+        let expected_bits: [u8; 16] = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c];
+        let forbidden_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7c];
+        let expected_raw = 0x00000000u32;
+        let forbidden_raw = 0x00000001u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal128::fma_ddq_with_mode(Decimal64::from_bits(fused_x_bits), Decimal64::from_bits(fused_y_bits), Decimal128::from_le_bytes(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid128ddq_fma(fused_x_bits, fused_y_bits, to_port128(fused_z_bits), fused_port_mode);
+        if fused_pv.to_le_bytes() != expected_bits {
+            failures.push(format!("public parity FMA128DDQBIDWithMode fusedness: public result mismatch public={:?} expected={:?}", fused_pv.to_le_bytes(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA128DDQBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if from_port128(fused_pr) != expected_bits {
+            failures.push(format!("public parity FMA128DDQBIDWithMode fusedness: direct-port result mismatch port={:?} expected={:?}", from_port128(fused_pr), expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA128DDQBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let (fused_x_q, fused_x_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_x_bits);
+        let (fused_y_q, fused_y_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_y_bits);
+        let fused_z_q = to_port128(fused_z_bits);
+        let fused_z_widen_raw = 0u32;
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let composed_result = fused_sum;
+        if from_port128(composed_result) != forbidden_bits {
+            failures.push(format!("public parity FMA128DDQBIDWithMode fusedness: sequential result mismatch composed={:?} forbidden={:?}", from_port128(composed_result), forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA128DDQBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if from_port128(composed_result) == from_port128(fused_pr) && composed_raw == fused_praw {
+            failures.push("public parity FMA128DDQBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma128_dqdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_64.len() {
+        let x_triple = TRIPLES_64[triple_index];
+        let y_triple = TRIPLES_128[triple_index];
+        let z_triple = TRIPLES_64[triple_index];
+        let x_bits = CORPUS_64[x_triple.0];
+        let y_bits = CORPUS_128[y_triple.1];
+        let z_bits = CORPUS_64[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::fma_dqd_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128dqd_fma(x_bits, to_port128(y_bits), z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DQDBIDWithMode: operands {:#x},{:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DQDBIDWithMode: operands {:#x},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[(u64, [u8; 16], u64)] = &[
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000005),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000001),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000009),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0xad80000000000001),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::fma_dqd_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128dqd_fma(x_bits, to_port128(y_bits), z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DQDBIDWithMode: discriminant operands {:#x},{:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DQDBIDWithMode: discriminant operands {:#x},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA128DQDBIDWithMode: discriminant operands {:#x},{:x?},{:#x}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let fused_y_bits: [u8; 16] = [0xff, 0xff, 0xff, 0xff, 0x63, 0x8e, 0x8d, 0x37, 0xc0, 0x87, 0xad, 0xbe, 0x09, 0xed, 0xfd, 0x2f];
+        let fused_z_bits: u64 = 0xafe38d7ea4c68001u64;
+        let expected_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xde, 0xaf];
+        let forbidden_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0x2f];
+        let expected_raw = 0x00000000u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal128::fma_dqd_with_mode(Decimal64::from_bits(fused_x_bits), Decimal128::from_le_bytes(fused_y_bits), Decimal64::from_bits(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid128dqd_fma(fused_x_bits, to_port128(fused_y_bits), fused_z_bits, fused_port_mode);
+        if fused_pv.to_le_bytes() != expected_bits {
+            failures.push(format!("public parity FMA128DQDBIDWithMode fusedness: public result mismatch public={:?} expected={:?}", fused_pv.to_le_bytes(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA128DQDBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if from_port128(fused_pr) != expected_bits {
+            failures.push(format!("public parity FMA128DQDBIDWithMode fusedness: direct-port result mismatch port={:?} expected={:?}", from_port128(fused_pr), expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA128DQDBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let (fused_x_q, fused_x_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_x_bits);
+        let fused_y_q = to_port128(fused_y_bits);
+        let fused_y_widen_raw = 0u32;
+        let (fused_z_q, fused_z_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_z_bits);
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let composed_result = fused_sum;
+        if from_port128(composed_result) != forbidden_bits {
+            failures.push(format!("public parity FMA128DQDBIDWithMode fusedness: sequential result mismatch composed={:?} forbidden={:?}", from_port128(composed_result), forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA128DQDBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if from_port128(composed_result) == from_port128(fused_pr) && composed_raw == fused_praw {
+            failures.push("public parity FMA128DQDBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma128_dqqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_64.len() {
+        let x_triple = TRIPLES_64[triple_index];
+        let y_triple = TRIPLES_128[triple_index];
+        let z_triple = TRIPLES_128[triple_index];
+        let x_bits = CORPUS_64[x_triple.0];
+        let y_bits = CORPUS_128[y_triple.1];
+        let z_bits = CORPUS_128[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::fma_dqq_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128dqq_fma(x_bits, to_port128(y_bits), to_port128(z_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DQQBIDWithMode: operands {:#x},{:x?},{:x?} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DQQBIDWithMode: operands {:#x},{:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[(u64, [u8; 16], [u8; 16])] = &[
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf]),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::fma_dqq_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128dqq_fma(x_bits, to_port128(y_bits), to_port128(z_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128DQQBIDWithMode: discriminant operands {:#x},{:x?},{:x?} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128DQQBIDWithMode: discriminant operands {:#x},{:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA128DQQBIDWithMode: discriminant operands {:#x},{:x?},{:x?}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let fused_y_bits: [u8; 16] = [0xff, 0xff, 0xff, 0xff, 0x63, 0x8e, 0x8d, 0x37, 0xc0, 0x87, 0xad, 0xbe, 0x09, 0xed, 0xfd, 0x2f];
+        let fused_z_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0xb0];
+        let expected_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xde, 0xaf];
+        let forbidden_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0x2f];
+        let expected_raw = 0x00000000u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal128::fma_dqq_with_mode(Decimal64::from_bits(fused_x_bits), Decimal128::from_le_bytes(fused_y_bits), Decimal128::from_le_bytes(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid128dqq_fma(fused_x_bits, to_port128(fused_y_bits), to_port128(fused_z_bits), fused_port_mode);
+        if fused_pv.to_le_bytes() != expected_bits {
+            failures.push(format!("public parity FMA128DQQBIDWithMode fusedness: public result mismatch public={:?} expected={:?}", fused_pv.to_le_bytes(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA128DQQBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if from_port128(fused_pr) != expected_bits {
+            failures.push(format!("public parity FMA128DQQBIDWithMode fusedness: direct-port result mismatch port={:?} expected={:?}", from_port128(fused_pr), expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA128DQQBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let (fused_x_q, fused_x_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_x_bits);
+        let fused_y_q = to_port128(fused_y_bits);
+        let fused_y_widen_raw = 0u32;
+        let fused_z_q = to_port128(fused_z_bits);
+        let fused_z_widen_raw = 0u32;
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let composed_result = fused_sum;
+        if from_port128(composed_result) != forbidden_bits {
+            failures.push(format!("public parity FMA128DQQBIDWithMode fusedness: sequential result mismatch composed={:?} forbidden={:?}", from_port128(composed_result), forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA128DQQBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if from_port128(composed_result) == from_port128(fused_pr) && composed_raw == fused_praw {
+            failures.push("public parity FMA128DQQBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma128_qddbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_128.len() {
+        let x_triple = TRIPLES_128[triple_index];
+        let y_triple = TRIPLES_64[triple_index];
+        let z_triple = TRIPLES_64[triple_index];
+        let x_bits = CORPUS_128[x_triple.0];
+        let y_bits = CORPUS_64[y_triple.1];
+        let z_bits = CORPUS_64[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::fma_qdd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128qdd_fma(to_port128(x_bits), y_bits, z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128QDDBIDWithMode: operands {:x?},{:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128QDDBIDWithMode: operands {:x?},{:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[([u8; 16], u64, u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, 0x2d80000000000005),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, 0x2d80000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, 0x2d80000000000009),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0x31c0000000000001, 0xad80000000000001),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::fma_qdd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128qdd_fma(to_port128(x_bits), y_bits, z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128QDDBIDWithMode: discriminant operands {:x?},{:#x},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128QDDBIDWithMode: discriminant operands {:x?},{:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA128QDDBIDWithMode: discriminant operands {:x?},{:#x},{:#x}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: [u8; 16] = [0xff, 0xff, 0xff, 0xff, 0x63, 0x8e, 0x8d, 0x37, 0xc0, 0x87, 0xad, 0xbe, 0x09, 0xed, 0xfd, 0x2f];
+        let fused_y_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let fused_z_bits: u64 = 0xafe38d7ea4c68001u64;
+        let expected_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xde, 0xaf];
+        let forbidden_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0x2f];
+        let expected_raw = 0x00000000u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal128::fma_qdd_with_mode(Decimal128::from_le_bytes(fused_x_bits), Decimal64::from_bits(fused_y_bits), Decimal64::from_bits(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid128qdd_fma(to_port128(fused_x_bits), fused_y_bits, fused_z_bits, fused_port_mode);
+        if fused_pv.to_le_bytes() != expected_bits {
+            failures.push(format!("public parity FMA128QDDBIDWithMode fusedness: public result mismatch public={:?} expected={:?}", fused_pv.to_le_bytes(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA128QDDBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if from_port128(fused_pr) != expected_bits {
+            failures.push(format!("public parity FMA128QDDBIDWithMode fusedness: direct-port result mismatch port={:?} expected={:?}", from_port128(fused_pr), expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA128QDDBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let fused_x_q = to_port128(fused_x_bits);
+        let fused_x_widen_raw = 0u32;
+        let (fused_y_q, fused_y_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_y_bits);
+        let (fused_z_q, fused_z_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_z_bits);
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let composed_result = fused_sum;
+        if from_port128(composed_result) != forbidden_bits {
+            failures.push(format!("public parity FMA128QDDBIDWithMode fusedness: sequential result mismatch composed={:?} forbidden={:?}", from_port128(composed_result), forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA128QDDBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if from_port128(composed_result) == from_port128(fused_pr) && composed_raw == fused_praw {
+            failures.push("public parity FMA128QDDBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma128_qdqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_128.len() {
+        let x_triple = TRIPLES_128[triple_index];
+        let y_triple = TRIPLES_64[triple_index];
+        let z_triple = TRIPLES_128[triple_index];
+        let x_bits = CORPUS_128[x_triple.0];
+        let y_bits = CORPUS_64[y_triple.1];
+        let z_bits = CORPUS_128[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::fma_qdq_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128qdq_fma(to_port128(x_bits), y_bits, to_port128(z_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128QDQBIDWithMode: operands {:x?},{:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128QDQBIDWithMode: operands {:x?},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[([u8; 16], u64, [u8; 16])] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf]),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::fma_qdq_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128qdq_fma(to_port128(x_bits), y_bits, to_port128(z_bits), port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128QDQBIDWithMode: discriminant operands {:x?},{:#x},{:x?} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128QDQBIDWithMode: discriminant operands {:x?},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA128QDQBIDWithMode: discriminant operands {:x?},{:#x},{:x?}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: [u8; 16] = [0xff, 0xff, 0xff, 0xff, 0x63, 0x8e, 0x8d, 0x37, 0xc0, 0x87, 0xad, 0xbe, 0x09, 0xed, 0xfd, 0x2f];
+        let fused_y_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let fused_z_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0xb0];
+        let expected_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xde, 0xaf];
+        let forbidden_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0x2f];
+        let expected_raw = 0x00000000u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal128::fma_qdq_with_mode(Decimal128::from_le_bytes(fused_x_bits), Decimal64::from_bits(fused_y_bits), Decimal128::from_le_bytes(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid128qdq_fma(to_port128(fused_x_bits), fused_y_bits, to_port128(fused_z_bits), fused_port_mode);
+        if fused_pv.to_le_bytes() != expected_bits {
+            failures.push(format!("public parity FMA128QDQBIDWithMode fusedness: public result mismatch public={:?} expected={:?}", fused_pv.to_le_bytes(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA128QDQBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if from_port128(fused_pr) != expected_bits {
+            failures.push(format!("public parity FMA128QDQBIDWithMode fusedness: direct-port result mismatch port={:?} expected={:?}", from_port128(fused_pr), expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA128QDQBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let fused_x_q = to_port128(fused_x_bits);
+        let fused_x_widen_raw = 0u32;
+        let (fused_y_q, fused_y_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_y_bits);
+        let fused_z_q = to_port128(fused_z_bits);
+        let fused_z_widen_raw = 0u32;
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let composed_result = fused_sum;
+        if from_port128(composed_result) != forbidden_bits {
+            failures.push(format!("public parity FMA128QDQBIDWithMode fusedness: sequential result mismatch composed={:?} forbidden={:?}", from_port128(composed_result), forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA128QDQBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if from_port128(composed_result) == from_port128(fused_pr) && composed_raw == fused_praw {
+            failures.push("public parity FMA128QDQBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma128_qqdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_128.len() {
+        let x_triple = TRIPLES_128[triple_index];
+        let y_triple = TRIPLES_128[triple_index];
+        let z_triple = TRIPLES_64[triple_index];
+        let x_bits = CORPUS_128[x_triple.0];
+        let y_bits = CORPUS_128[y_triple.1];
+        let z_bits = CORPUS_64[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::fma_qqd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128qqd_fma(to_port128(x_bits), to_port128(y_bits), z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128QQDBIDWithMode: operands {:x?},{:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128QQDBIDWithMode: operands {:x?},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[([u8; 16], [u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000005),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2d80000000000009),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0xad80000000000001),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::fma_qqd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid128qqd_fma(to_port128(x_bits), to_port128(y_bits), z_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity FMA128QQDBIDWithMode: discriminant operands {:x?},{:x?},{:#x} mode {:?}: result mismatch public={:?} port={:?}", x_bits, y_bits, z_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA128QQDBIDWithMode: discriminant operands {:x?},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA128QQDBIDWithMode: discriminant operands {:x?},{:x?},{:#x}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0x30];
+        let fused_y_bits: [u8; 16] = [0xff, 0xff, 0xff, 0xff, 0x63, 0x8e, 0x8d, 0x37, 0xc0, 0x87, 0xad, 0xbe, 0x09, 0xed, 0xfd, 0x2f];
+        let fused_z_bits: u64 = 0xafe38d7ea4c68001u64;
+        let expected_bits: [u8; 16] = [0x01, 0x80, 0xc6, 0xa4, 0x7e, 0x8d, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xde, 0xaf];
+        let forbidden_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0x2f];
+        let expected_raw = 0x00000000u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal128::fma_qqd_with_mode(Decimal128::from_le_bytes(fused_x_bits), Decimal128::from_le_bytes(fused_y_bits), Decimal64::from_bits(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid128qqd_fma(to_port128(fused_x_bits), to_port128(fused_y_bits), fused_z_bits, fused_port_mode);
+        if fused_pv.to_le_bytes() != expected_bits {
+            failures.push(format!("public parity FMA128QQDBIDWithMode fusedness: public result mismatch public={:?} expected={:?}", fused_pv.to_le_bytes(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA128QQDBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if from_port128(fused_pr) != expected_bits {
+            failures.push(format!("public parity FMA128QQDBIDWithMode fusedness: direct-port result mismatch port={:?} expected={:?}", from_port128(fused_pr), expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA128QQDBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let fused_x_q = to_port128(fused_x_bits);
+        let fused_x_widen_raw = 0u32;
+        let fused_y_q = to_port128(fused_y_bits);
+        let fused_y_widen_raw = 0u32;
+        let (fused_z_q, fused_z_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_z_bits);
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let composed_result = fused_sum;
+        if from_port128(composed_result) != forbidden_bits {
+            failures.push(format!("public parity FMA128QQDBIDWithMode fusedness: sequential result mismatch composed={:?} forbidden={:?}", from_port128(composed_result), forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA128QQDBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if from_port128(composed_result) == from_port128(fused_pr) && composed_raw == fused_praw {
+            failures.push("public parity FMA128QQDBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma64_ddqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_64.len() {
+        let x_triple = TRIPLES_64[triple_index];
+        let y_triple = TRIPLES_64[triple_index];
+        let z_triple = TRIPLES_128[triple_index];
+        let x_bits = CORPUS_64[x_triple.0];
+        let y_bits = CORPUS_64[y_triple.1];
+        let z_bits = CORPUS_128[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::fma_ddq_with_mode(Decimal64::from_bits(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64ddq_fma(x_bits, y_bits, to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64DDQBIDWithMode: operands {:#x},{:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64DDQBIDWithMode: operands {:#x},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[(u64, u64, [u8; 16])] = &[
+        (0x31c0000000000001, 0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0x31c0000000000001, 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0x31c0000000000001, 0x31c0000000000001, [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0xb1c0000000000001, 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0]),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::fma_ddq_with_mode(Decimal64::from_bits(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64ddq_fma(x_bits, y_bits, to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64DDQBIDWithMode: discriminant operands {:#x},{:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64DDQBIDWithMode: discriminant operands {:#x},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA64DDQBIDWithMode: discriminant operands {:#x},{:#x},{:x?}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: u64 = 0x31c0000000000001u64;
+        let fused_y_bits: u64 = 0x31c0000000000001u64;
+        let fused_z_bits: [u8; 16] = [0x01, 0x00, 0xf4, 0x44, 0x82, 0x91, 0x63, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x2f];
+        let expected_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let forbidden_bits: u64 = 0x2fe38d7ea4c68000u64;
+        let expected_raw = 0x00000020u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal64::fma_ddq_with_mode(Decimal64::from_bits(fused_x_bits), Decimal64::from_bits(fused_y_bits), Decimal128::from_le_bytes(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid64ddq_fma(fused_x_bits, fused_y_bits, to_port128(fused_z_bits), fused_port_mode);
+        if fused_pv.to_bits() != expected_bits {
+            failures.push(format!("public parity FMA64DDQBIDWithMode fusedness: public result mismatch public={:#x} expected={:#x}", fused_pv.to_bits(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA64DDQBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if fused_pr != expected_bits {
+            failures.push(format!("public parity FMA64DDQBIDWithMode fusedness: direct-port result mismatch port={:#x} expected={:#x}", fused_pr, expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA64DDQBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let (fused_x_q, fused_x_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_x_bits);
+        let (fused_y_q, fused_y_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_y_bits);
+        let fused_z_q = to_port128(fused_z_bits);
+        let fused_z_widen_raw = 0u32;
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);
+        composed_raw |= fused_narrow_raw;
+        if composed_result != forbidden_bits {
+            failures.push(format!("public parity FMA64DDQBIDWithMode fusedness: sequential result mismatch composed={:#x} forbidden={:#x}", composed_result, forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA64DDQBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if composed_result == fused_pr && composed_raw == fused_praw {
+            failures.push("public parity FMA64DDQBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma64_dqdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_64.len() {
+        let x_triple = TRIPLES_64[triple_index];
+        let y_triple = TRIPLES_128[triple_index];
+        let z_triple = TRIPLES_64[triple_index];
+        let x_bits = CORPUS_64[x_triple.0];
+        let y_bits = CORPUS_128[y_triple.1];
+        let z_bits = CORPUS_64[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::fma_dqd_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64dqd_fma(x_bits, to_port128(y_bits), z_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64DQDBIDWithMode: operands {:#x},{:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64DQDBIDWithMode: operands {:#x},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[(u64, [u8; 16], u64)] = &[
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000005),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000001),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000009),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0xafc0000000000001),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::fma_dqd_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64dqd_fma(x_bits, to_port128(y_bits), z_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64DQDBIDWithMode: discriminant operands {:#x},{:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64DQDBIDWithMode: discriminant operands {:#x},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA64DQDBIDWithMode: discriminant operands {:#x},{:x?},{:#x}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: u64 = 0x31c0000000000003u64;
+        let fused_y_bits: [u8; 16] = [0x01, 0x00, 0xfc, 0x16, 0xa2, 0x0a, 0xfb, 0x7e, 0x95, 0x82, 0xe4, 0x94, 0x58, 0xa4, 0xfc, 0x2f];
+        let fused_z_bits: u64 = 0x31c0000000000000u64;
+        let expected_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let forbidden_bits: u64 = 0x2fe38d7ea4c68000u64;
+        let expected_raw = 0x00000020u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal64::fma_dqd_with_mode(Decimal64::from_bits(fused_x_bits), Decimal128::from_le_bytes(fused_y_bits), Decimal64::from_bits(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid64dqd_fma(fused_x_bits, to_port128(fused_y_bits), fused_z_bits, fused_port_mode);
+        if fused_pv.to_bits() != expected_bits {
+            failures.push(format!("public parity FMA64DQDBIDWithMode fusedness: public result mismatch public={:#x} expected={:#x}", fused_pv.to_bits(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA64DQDBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if fused_pr != expected_bits {
+            failures.push(format!("public parity FMA64DQDBIDWithMode fusedness: direct-port result mismatch port={:#x} expected={:#x}", fused_pr, expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA64DQDBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let (fused_x_q, fused_x_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_x_bits);
+        let fused_y_q = to_port128(fused_y_bits);
+        let fused_y_widen_raw = 0u32;
+        let (fused_z_q, fused_z_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_z_bits);
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);
+        composed_raw |= fused_narrow_raw;
+        if composed_result != forbidden_bits {
+            failures.push(format!("public parity FMA64DQDBIDWithMode fusedness: sequential result mismatch composed={:#x} forbidden={:#x}", composed_result, forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA64DQDBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if composed_result == fused_pr && composed_raw == fused_praw {
+            failures.push("public parity FMA64DQDBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma64_dqqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_64.len() {
+        let x_triple = TRIPLES_64[triple_index];
+        let y_triple = TRIPLES_128[triple_index];
+        let z_triple = TRIPLES_128[triple_index];
+        let x_bits = CORPUS_64[x_triple.0];
+        let y_bits = CORPUS_128[y_triple.1];
+        let z_bits = CORPUS_128[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::fma_dqq_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64dqq_fma(x_bits, to_port128(y_bits), to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64DQQBIDWithMode: operands {:#x},{:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64DQQBIDWithMode: operands {:#x},{:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[(u64, [u8; 16], [u8; 16])] = &[
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        (0xb1c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0]),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::fma_dqq_with_mode(Decimal64::from_bits(x_bits), Decimal128::from_le_bytes(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64dqq_fma(x_bits, to_port128(y_bits), to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64DQQBIDWithMode: discriminant operands {:#x},{:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64DQQBIDWithMode: discriminant operands {:#x},{:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA64DQQBIDWithMode: discriminant operands {:#x},{:x?},{:x?}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: u64 = 0x31c0000000000003u64;
+        let fused_y_bits: [u8; 16] = [0x01, 0x00, 0xfc, 0x16, 0xa2, 0x0a, 0xfb, 0x7e, 0x95, 0x82, 0xe4, 0x94, 0x58, 0xa4, 0xfc, 0x2f];
+        let fused_z_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30];
+        let expected_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let forbidden_bits: u64 = 0x2fe38d7ea4c68000u64;
+        let expected_raw = 0x00000020u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal64::fma_dqq_with_mode(Decimal64::from_bits(fused_x_bits), Decimal128::from_le_bytes(fused_y_bits), Decimal128::from_le_bytes(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid64dqq_fma(fused_x_bits, to_port128(fused_y_bits), to_port128(fused_z_bits), fused_port_mode);
+        if fused_pv.to_bits() != expected_bits {
+            failures.push(format!("public parity FMA64DQQBIDWithMode fusedness: public result mismatch public={:#x} expected={:#x}", fused_pv.to_bits(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA64DQQBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if fused_pr != expected_bits {
+            failures.push(format!("public parity FMA64DQQBIDWithMode fusedness: direct-port result mismatch port={:#x} expected={:#x}", fused_pr, expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA64DQQBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let (fused_x_q, fused_x_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_x_bits);
+        let fused_y_q = to_port128(fused_y_bits);
+        let fused_y_widen_raw = 0u32;
+        let fused_z_q = to_port128(fused_z_bits);
+        let fused_z_widen_raw = 0u32;
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);
+        composed_raw |= fused_narrow_raw;
+        if composed_result != forbidden_bits {
+            failures.push(format!("public parity FMA64DQQBIDWithMode fusedness: sequential result mismatch composed={:#x} forbidden={:#x}", composed_result, forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA64DQQBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if composed_result == fused_pr && composed_raw == fused_praw {
+            failures.push("public parity FMA64DQQBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma64_qddbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_128.len() {
+        let x_triple = TRIPLES_128[triple_index];
+        let y_triple = TRIPLES_64[triple_index];
+        let z_triple = TRIPLES_64[triple_index];
+        let x_bits = CORPUS_128[x_triple.0];
+        let y_bits = CORPUS_64[y_triple.1];
+        let z_bits = CORPUS_64[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::fma_qdd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qdd_fma(to_port128(x_bits), y_bits, z_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QDDBIDWithMode: operands {:x?},{:#x},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QDDBIDWithMode: operands {:x?},{:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[([u8; 16], u64, u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, 0x2fc0000000000005),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, 0x2fc0000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, 0x2fc0000000000009),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0x31c0000000000001, 0xafc0000000000001),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::fma_qdd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qdd_fma(to_port128(x_bits), y_bits, z_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QDDBIDWithMode: discriminant operands {:x?},{:#x},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QDDBIDWithMode: discriminant operands {:x?},{:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA64QDDBIDWithMode: discriminant operands {:x?},{:#x},{:#x}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: [u8; 16] = [0x01, 0x00, 0xfc, 0x16, 0xa2, 0x0a, 0xfb, 0x7e, 0x95, 0x82, 0xe4, 0x94, 0x58, 0xa4, 0xfc, 0x2f];
+        let fused_y_bits: u64 = 0x31c0000000000003u64;
+        let fused_z_bits: u64 = 0x31c0000000000000u64;
+        let expected_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let forbidden_bits: u64 = 0x2fe38d7ea4c68000u64;
+        let expected_raw = 0x00000020u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal64::fma_qdd_with_mode(Decimal128::from_le_bytes(fused_x_bits), Decimal64::from_bits(fused_y_bits), Decimal64::from_bits(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid64qdd_fma(to_port128(fused_x_bits), fused_y_bits, fused_z_bits, fused_port_mode);
+        if fused_pv.to_bits() != expected_bits {
+            failures.push(format!("public parity FMA64QDDBIDWithMode fusedness: public result mismatch public={:#x} expected={:#x}", fused_pv.to_bits(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA64QDDBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if fused_pr != expected_bits {
+            failures.push(format!("public parity FMA64QDDBIDWithMode fusedness: direct-port result mismatch port={:#x} expected={:#x}", fused_pr, expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA64QDDBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let fused_x_q = to_port128(fused_x_bits);
+        let fused_x_widen_raw = 0u32;
+        let (fused_y_q, fused_y_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_y_bits);
+        let (fused_z_q, fused_z_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_z_bits);
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);
+        composed_raw |= fused_narrow_raw;
+        if composed_result != forbidden_bits {
+            failures.push(format!("public parity FMA64QDDBIDWithMode fusedness: sequential result mismatch composed={:#x} forbidden={:#x}", composed_result, forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA64QDDBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if composed_result == fused_pr && composed_raw == fused_praw {
+            failures.push("public parity FMA64QDDBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma64_qdqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_128.len() {
+        let x_triple = TRIPLES_128[triple_index];
+        let y_triple = TRIPLES_64[triple_index];
+        let z_triple = TRIPLES_128[triple_index];
+        let x_bits = CORPUS_128[x_triple.0];
+        let y_bits = CORPUS_64[y_triple.1];
+        let z_bits = CORPUS_128[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::fma_qdq_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qdq_fma(to_port128(x_bits), y_bits, to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QDQBIDWithMode: operands {:x?},{:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QDQBIDWithMode: operands {:x?},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[([u8; 16], u64, [u8; 16])] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x31c0000000000001, [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], 0x31c0000000000001, [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0]),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::fma_qdq_with_mode(Decimal128::from_le_bytes(x_bits), Decimal64::from_bits(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qdq_fma(to_port128(x_bits), y_bits, to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QDQBIDWithMode: discriminant operands {:x?},{:#x},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QDQBIDWithMode: discriminant operands {:x?},{:#x},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA64QDQBIDWithMode: discriminant operands {:x?},{:#x},{:x?}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: [u8; 16] = [0x01, 0x00, 0xfc, 0x16, 0xa2, 0x0a, 0xfb, 0x7e, 0x95, 0x82, 0xe4, 0x94, 0x58, 0xa4, 0xfc, 0x2f];
+        let fused_y_bits: u64 = 0x31c0000000000003u64;
+        let fused_z_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30];
+        let expected_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let forbidden_bits: u64 = 0x2fe38d7ea4c68000u64;
+        let expected_raw = 0x00000020u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal64::fma_qdq_with_mode(Decimal128::from_le_bytes(fused_x_bits), Decimal64::from_bits(fused_y_bits), Decimal128::from_le_bytes(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid64qdq_fma(to_port128(fused_x_bits), fused_y_bits, to_port128(fused_z_bits), fused_port_mode);
+        if fused_pv.to_bits() != expected_bits {
+            failures.push(format!("public parity FMA64QDQBIDWithMode fusedness: public result mismatch public={:#x} expected={:#x}", fused_pv.to_bits(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA64QDQBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if fused_pr != expected_bits {
+            failures.push(format!("public parity FMA64QDQBIDWithMode fusedness: direct-port result mismatch port={:#x} expected={:#x}", fused_pr, expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA64QDQBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let fused_x_q = to_port128(fused_x_bits);
+        let fused_x_widen_raw = 0u32;
+        let (fused_y_q, fused_y_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_y_bits);
+        let fused_z_q = to_port128(fused_z_bits);
+        let fused_z_widen_raw = 0u32;
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);
+        composed_raw |= fused_narrow_raw;
+        if composed_result != forbidden_bits {
+            failures.push(format!("public parity FMA64QDQBIDWithMode fusedness: sequential result mismatch composed={:#x} forbidden={:#x}", composed_result, forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA64QDQBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if composed_result == fused_pr && composed_raw == fused_praw {
+            failures.push("public parity FMA64QDQBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma64_qqdbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_128.len() {
+        let x_triple = TRIPLES_128[triple_index];
+        let y_triple = TRIPLES_128[triple_index];
+        let z_triple = TRIPLES_64[triple_index];
+        let x_bits = CORPUS_128[x_triple.0];
+        let y_bits = CORPUS_128[y_triple.1];
+        let z_bits = CORPUS_64[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::fma_qqd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qqd_fma(to_port128(x_bits), to_port128(y_bits), z_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QQDBIDWithMode: operands {:x?},{:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QQDBIDWithMode: operands {:x?},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[([u8; 16], [u8; 16], u64)] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000005),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000001),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0x2fc0000000000009),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], 0xafc0000000000001),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::fma_qqd_with_mode(Decimal128::from_le_bytes(x_bits), Decimal128::from_le_bytes(y_bits), Decimal64::from_bits(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qqd_fma(to_port128(x_bits), to_port128(y_bits), z_bits, port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QQDBIDWithMode: discriminant operands {:x?},{:x?},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QQDBIDWithMode: discriminant operands {:x?},{:x?},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA64QQDBIDWithMode: discriminant operands {:x?},{:x?},{:#x}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: [u8; 16] = [0x01, 0x00, 0xfc, 0x16, 0xa2, 0x0a, 0xfb, 0x7e, 0x95, 0x82, 0xe4, 0x94, 0x58, 0xa4, 0xfc, 0x2f];
+        let fused_y_bits: [u8; 16] = [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30];
+        let fused_z_bits: u64 = 0x31c0000000000000u64;
+        let expected_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let forbidden_bits: u64 = 0x2fe38d7ea4c68000u64;
+        let expected_raw = 0x00000020u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal64::fma_qqd_with_mode(Decimal128::from_le_bytes(fused_x_bits), Decimal128::from_le_bytes(fused_y_bits), Decimal64::from_bits(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid64qqd_fma(to_port128(fused_x_bits), to_port128(fused_y_bits), fused_z_bits, fused_port_mode);
+        if fused_pv.to_bits() != expected_bits {
+            failures.push(format!("public parity FMA64QQDBIDWithMode fusedness: public result mismatch public={:#x} expected={:#x}", fused_pv.to_bits(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA64QQDBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if fused_pr != expected_bits {
+            failures.push(format!("public parity FMA64QQDBIDWithMode fusedness: direct-port result mismatch port={:#x} expected={:#x}", fused_pr, expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA64QQDBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let fused_x_q = to_port128(fused_x_bits);
+        let fused_x_widen_raw = 0u32;
+        let fused_y_q = to_port128(fused_y_bits);
+        let fused_y_widen_raw = 0u32;
+        let (fused_z_q, fused_z_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(fused_z_bits);
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);
+        composed_raw |= fused_narrow_raw;
+        if composed_result != forbidden_bits {
+            failures.push(format!("public parity FMA64QQDBIDWithMode fusedness: sequential result mismatch composed={:#x} forbidden={:#x}", composed_result, forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA64QQDBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if composed_result == fused_pr && composed_raw == fused_praw {
+            failures.push("public parity FMA64QQDBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_fma64_qqqbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for triple_index in 0..TRIPLES_128.len() {
+        let x_triple = TRIPLES_128[triple_index];
+        let y_triple = TRIPLES_128[triple_index];
+        let z_triple = TRIPLES_128[triple_index];
+        let x_bits = CORPUS_128[x_triple.0];
+        let y_bits = CORPUS_128[y_triple.1];
+        let z_bits = CORPUS_128[z_triple.2];
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::fma_qqq_with_mode(Decimal128::from_le_bytes(x_bits), Decimal128::from_le_bytes(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qqq_fma(to_port128(x_bits), to_port128(y_bits), to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QQQBIDWithMode: operands {:x?},{:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QQQBIDWithMode: operands {:x?},{:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_triples: &[([u8; 16], [u8; 16], [u8; 16])] = &[
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30]),
+        ([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30], [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0]),
+    ];
+    for &(x_bits, y_bits, z_bits) in disc_triples {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::fma_qqq_with_mode(Decimal128::from_le_bytes(x_bits), Decimal128::from_le_bytes(y_bits), Decimal128::from_le_bytes(z_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_fma::bid64qqq_fma(to_port128(x_bits), to_port128(y_bits), to_port128(z_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity FMA64QQQBIDWithMode: discriminant operands {:x?},{:x?},{:x?} mode {:?}: result mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity FMA64QQQBIDWithMode: discriminant operands {:x?},{:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity FMA64QQQBIDWithMode: discriminant operands {:x?},{:x?},{:x?}: every rounding mode produced the same result", x_bits, y_bits, z_bits));
+        }
+    }
+    {
+        let fused_x_bits: [u8; 16] = [0x01, 0x00, 0xfc, 0x16, 0xa2, 0x0a, 0xfb, 0x7e, 0x95, 0x82, 0xe4, 0x94, 0x58, 0xa4, 0xfc, 0x2f];
+        let fused_y_bits: [u8; 16] = [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30];
+        let fused_z_bits: [u8; 16] = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30];
+        let expected_bits: u64 = 0x2fe38d7ea4c68001u64;
+        let forbidden_bits: u64 = 0x2fe38d7ea4c68000u64;
+        let expected_raw = 0x00000020u32;
+        let forbidden_raw = 0x00000020u32;
+        let fused_mode = RoundingMode::NearestEven;
+        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;
+        let (fused_pv, fused_pf) = Decimal64::fma_qqq_with_mode(Decimal128::from_le_bytes(fused_x_bits), Decimal128::from_le_bytes(fused_y_bits), Decimal128::from_le_bytes(fused_z_bits), fused_mode);
+        let (fused_pr, fused_praw) = bid754::generated::bid128_fma::bid64qqq_fma(to_port128(fused_x_bits), to_port128(fused_y_bits), to_port128(fused_z_bits), fused_port_mode);
+        if fused_pv.to_bits() != expected_bits {
+            failures.push(format!("public parity FMA64QQQBIDWithMode fusedness: public result mismatch public={:#x} expected={:#x}", fused_pv.to_bits(), expected_bits));
+        }
+        if fused_pf.bits() != map_port_flags(expected_raw) {
+            failures.push(format!("public parity FMA64QQQBIDWithMode fusedness: public flags mismatch public={:#x} expected={:#x}", fused_pf.bits(), map_port_flags(expected_raw)));
+        }
+        if fused_pr != expected_bits {
+            failures.push(format!("public parity FMA64QQQBIDWithMode fusedness: direct-port result mismatch port={:#x} expected={:#x}", fused_pr, expected_bits));
+        }
+        if fused_praw != expected_raw {
+            failures.push(format!("public parity FMA64QQQBIDWithMode fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}", fused_praw, expected_raw));
+        }
+        let fused_x_q = to_port128(fused_x_bits);
+        let fused_x_widen_raw = 0u32;
+        let fused_y_q = to_port128(fused_y_bits);
+        let fused_y_widen_raw = 0u32;
+        let fused_z_q = to_port128(fused_z_bits);
+        let fused_z_widen_raw = 0u32;
+        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);
+        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;
+        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);
+        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);
+        composed_raw |= fused_narrow_raw;
+        if composed_result != forbidden_bits {
+            failures.push(format!("public parity FMA64QQQBIDWithMode fusedness: sequential result mismatch composed={:#x} forbidden={:#x}", composed_result, forbidden_bits));
+        }
+        if composed_raw != forbidden_raw {
+            failures.push(format!("public parity FMA64QQQBIDWithMode fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}", composed_raw, forbidden_raw));
+        }
+        if composed_result == fused_pr && composed_raw == fused_praw {
+            failures.push("public parity FMA64QQQBIDWithMode fusedness: sequential composition did not differ from direct FMA in bits+raw-flags".to_string());
+        }
+        count += 1;
+    }
+    count
+}
+
 fn parity_mul128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for pair_index in 0..PAIRS_64.len() {
@@ -8853,6 +10158,90 @@ fn parity_parse_decimal64_bidraw(failures: &mut Vec<String>) -> usize {
     count
 }
 
+fn parity_sqrt128_dbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &value_bits in CORPUS_64 {
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal128::sqrt_d_with_mode(Decimal64::from_bits(value_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_sqrt::bid128d_sqrt(value_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sqrt128DBIDWithMode: operand {:#x} mode {:?}: result mismatch public={:?} port={:?}", value_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sqrt128DBIDWithMode: operand {:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", value_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_values: &[u64] = &[
+        0x31c0000000000002,
+        0x31c0000000000003,
+        0x31c0000000000005,
+        0x31c0000000000007,
+    ];
+    for &value_bits in disc_values {
+        let mut mode_seen = [[0u8; 16]; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal128::sqrt_d_with_mode(Decimal64::from_bits(value_bits), mode);
+            let (pr, praw) = bid754::generated::bid128_sqrt::bid128d_sqrt(value_bits, port_mode);
+            if pv.to_le_bytes() != from_port128(pr) {
+                failures.push(format!("public parity Sqrt128DBIDWithMode: discriminant operand {:#x} mode {:?}: result mismatch public={:?} port={:?}", value_bits, mode, pv.to_le_bytes(), from_port128(pr)));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sqrt128DBIDWithMode: discriminant operand {:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", value_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_le_bytes();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sqrt128DBIDWithMode: discriminant operand {:#x}: every rounding mode produced the same result", value_bits));
+        }
+    }
+    count
+}
+
+fn parity_sqrt64_qbidwith_mode(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &value_bits in CORPUS_128 {
+        for &(mode, port_mode) in PARITY_MODES {
+            let (pv, pf) = Decimal64::sqrt_q_with_mode(Decimal128::from_le_bytes(value_bits), mode);
+            let (pr, praw) = bid754::generated::sqrt64::bid64q_sqrt(to_port128(value_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sqrt64QBIDWithMode: operand {:x?} mode {:?}: result mismatch public={:#x} port={:#x}", value_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sqrt64QBIDWithMode: operand {:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", value_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            count += 1;
+        }
+    }
+    let disc_values: &[[u8; 16]] = &[
+        [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30],
+        [0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30],
+        [0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30],
+        [0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30],
+    ];
+    for &value_bits in disc_values {
+        let mut mode_seen = [0u64; 5];
+        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {
+            let (pv, pf) = Decimal64::sqrt_q_with_mode(Decimal128::from_le_bytes(value_bits), mode);
+            let (pr, praw) = bid754::generated::sqrt64::bid64q_sqrt(to_port128(value_bits), port_mode);
+            if pv.to_bits() != pr {
+                failures.push(format!("public parity Sqrt64QBIDWithMode: discriminant operand {:x?} mode {:?}: result mismatch public={:#x} port={:#x}", value_bits, mode, pv.to_bits(), pr));
+            }
+            if pf.bits() != map_port_flags(praw) {
+                failures.push(format!("public parity Sqrt64QBIDWithMode: discriminant operand {:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", value_bits, mode, pf.bits(), map_port_flags(praw)));
+            }
+            mode_seen[mi] = pv.to_bits();
+            count += 1;
+        }
+        if mode_seen.iter().all(|s| *s == mode_seen[0]) {
+            failures.push(format!("public parity Sqrt64QBIDWithMode: discriminant operand {:x?}: every rounding mode produced the same result", value_bits));
+        }
+    }
+    count
+}
+
 fn parity_sub128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for pair_index in 0..PAIRS_64.len() {
@@ -9460,6 +10849,20 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Div64DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_div64_dqbidwith_mode },
     ParityUnit { go_symbol: "Div64QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_div64_qdbidwith_mode },
     ParityUnit { go_symbol: "Div64QQBIDWithMode", shape: "mixed_binary_mode_flags_qq", run: parity_div64_qqbidwith_mode },
+    ParityUnit { go_symbol: "FMA128DDDBIDWithMode", shape: "mixed_ternary_mode_flags_ddd", run: parity_fma128_dddbidwith_mode },
+    ParityUnit { go_symbol: "FMA128DDQBIDWithMode", shape: "mixed_ternary_mode_flags_ddq", run: parity_fma128_ddqbidwith_mode },
+    ParityUnit { go_symbol: "FMA128DQDBIDWithMode", shape: "mixed_ternary_mode_flags_dqd", run: parity_fma128_dqdbidwith_mode },
+    ParityUnit { go_symbol: "FMA128DQQBIDWithMode", shape: "mixed_ternary_mode_flags_dqq", run: parity_fma128_dqqbidwith_mode },
+    ParityUnit { go_symbol: "FMA128QDDBIDWithMode", shape: "mixed_ternary_mode_flags_qdd", run: parity_fma128_qddbidwith_mode },
+    ParityUnit { go_symbol: "FMA128QDQBIDWithMode", shape: "mixed_ternary_mode_flags_qdq", run: parity_fma128_qdqbidwith_mode },
+    ParityUnit { go_symbol: "FMA128QQDBIDWithMode", shape: "mixed_ternary_mode_flags_qqd", run: parity_fma128_qqdbidwith_mode },
+    ParityUnit { go_symbol: "FMA64DDQBIDWithMode", shape: "mixed_ternary_mode_flags_ddq", run: parity_fma64_ddqbidwith_mode },
+    ParityUnit { go_symbol: "FMA64DQDBIDWithMode", shape: "mixed_ternary_mode_flags_dqd", run: parity_fma64_dqdbidwith_mode },
+    ParityUnit { go_symbol: "FMA64DQQBIDWithMode", shape: "mixed_ternary_mode_flags_dqq", run: parity_fma64_dqqbidwith_mode },
+    ParityUnit { go_symbol: "FMA64QDDBIDWithMode", shape: "mixed_ternary_mode_flags_qdd", run: parity_fma64_qddbidwith_mode },
+    ParityUnit { go_symbol: "FMA64QDQBIDWithMode", shape: "mixed_ternary_mode_flags_qdq", run: parity_fma64_qdqbidwith_mode },
+    ParityUnit { go_symbol: "FMA64QQDBIDWithMode", shape: "mixed_ternary_mode_flags_qqd", run: parity_fma64_qqdbidwith_mode },
+    ParityUnit { go_symbol: "FMA64QQQBIDWithMode", shape: "mixed_ternary_mode_flags_qqq", run: parity_fma64_qqqbidwith_mode },
     ParityUnit { go_symbol: "Mul128DDBIDWithMode", shape: "mixed_binary_mode_flags_dd", run: parity_mul128_ddbidwith_mode },
     ParityUnit { go_symbol: "Mul128DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_mul128_dqbidwith_mode },
     ParityUnit { go_symbol: "Mul128QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_mul128_qdbidwith_mode },
@@ -9496,6 +10899,8 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "ParseDecimal128BIDRaw", shape: "parse_raw", run: parity_parse_decimal128_bidraw },
     ParityUnit { go_symbol: "ParseDecimal32BIDRaw", shape: "parse_raw", run: parity_parse_decimal32_bidraw },
     ParityUnit { go_symbol: "ParseDecimal64BIDRaw", shape: "parse_raw", run: parity_parse_decimal64_bidraw },
+    ParityUnit { go_symbol: "Sqrt128DBIDWithMode", shape: "mixed_unary_mode_flags_d", run: parity_sqrt128_dbidwith_mode },
+    ParityUnit { go_symbol: "Sqrt64QBIDWithMode", shape: "mixed_unary_mode_flags_q", run: parity_sqrt64_qbidwith_mode },
     ParityUnit { go_symbol: "Sub128DDBIDWithMode", shape: "mixed_binary_mode_flags_dd", run: parity_sub128_ddbidwith_mode },
     ParityUnit { go_symbol: "Sub128DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_sub128_dqbidwith_mode },
     ParityUnit { go_symbol: "Sub128QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_sub128_qdbidwith_mode },
@@ -9512,8 +10917,10 @@ const PARITY_UNITS: &[ParityUnit] = &[
 /// regular verification domain (same framing as the Go leg). Case counts are
 /// pinned here at generation time so a generator regression that shrinks the
 /// corpus cannot silently re-pin a smaller surface.
-pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 363;
-pub(crate) const EXPECTED_PARITY_CASES: usize = 27167;
+pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 379;
+pub(crate) const EXPECTED_PARITY_CASES: usize = 28721;
+
+const EXPECTED_MIXED_FMA_FUSEDNESS_SENTINELS: usize = 14;
 
 const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("binary", 288),
@@ -9542,6 +10949,16 @@ const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("mixed_binary_mode_flags_dq", 1120),
     ("mixed_binary_mode_flags_qd", 1120),
     ("mixed_binary_mode_flags_qq", 560),
+    ("mixed_ternary_mode_flags_ddd", 91),
+    ("mixed_ternary_mode_flags_ddq", 182),
+    ("mixed_ternary_mode_flags_dqd", 182),
+    ("mixed_ternary_mode_flags_dqq", 182),
+    ("mixed_ternary_mode_flags_qdd", 182),
+    ("mixed_ternary_mode_flags_qdq", 182),
+    ("mixed_ternary_mode_flags_qqd", 182),
+    ("mixed_ternary_mode_flags_qqq", 91),
+    ("mixed_unary_mode_flags_d", 140),
+    ("mixed_unary_mode_flags_q", 140),
     ("next_toward", 360),
     ("parse", 147),
     ("parse_fold", 147),
@@ -9591,6 +11008,11 @@ const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
 
 #[test]
 fn generated_public_api_parity() {
+    assert_eq!(
+        MIXED_FMA_FUSEDNESS_SENTINEL_ROWS.len(),
+        EXPECTED_MIXED_FMA_FUSEDNESS_SENTINELS,
+        "mixed FMA fusedness sentinel census drifted"
+    );
     assert_eq!(
         PARITY_UNITS.len(),
         EXPECTED_PARITY_WRAPPERS,

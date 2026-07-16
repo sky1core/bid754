@@ -1,8 +1,14 @@
 package testgen
 
 import (
+	"bytes"
+	"go/ast"
+	"go/format"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -228,5 +234,372 @@ func TestResolveParityUnitRejectsMixedSuffixSignatureMismatch(t *testing.T) {
 	_, err := resolveParityUnit(sym, "Bid128qdDiv", nil, publicParityCorpus{})
 	if err == nil || !strings.Contains(err.Error(), "want Decimal128BID from suffix QD") {
 		t.Fatalf("suffix/signature mismatch error = %v", err)
+	}
+}
+
+func TestResolveParityUnitClassifiesMixedFMAExactly(t *testing.T) {
+	tests := []struct {
+		resultWidth int
+		operandCode string
+	}{
+		{64, "DDQ"}, {64, "DQD"}, {64, "DQQ"}, {64, "QDD"},
+		{64, "QDQ"}, {64, "QQD"}, {64, "QQQ"},
+		{128, "DDD"}, {128, "DDQ"}, {128, "DQD"}, {128, "DQQ"},
+		{128, "QDD"}, {128, "QDQ"}, {128, "QQD"},
+	}
+	for _, tc := range tests {
+		name := "FMA" + strconv.Itoa(tc.resultWidth) + tc.operandCode + "BIDWithMode"
+		t.Run(name, func(t *testing.T) {
+			params := make([]string, 0, 4)
+			portParams := make([]bidgoParam, 0, 4)
+			portValueTypes := make([]string, 0, 3)
+			var wantWidths [3]int
+			for i, code := range tc.operandCode {
+				width := 64
+				portType := "uint64"
+				if code == 'Q' {
+					width = 128
+					portType = "BID_UINT128"
+				}
+				wantWidths[i] = width
+				params = append(params, "Decimal"+strconv.Itoa(width)+"BID")
+				portParams = append(portParams, bidgoParam{Type: portType})
+				portValueTypes = append(portValueTypes, portType)
+			}
+			params = append(params, "RoundingMode")
+			portParams = append(portParams, bidgoParam{Name: "rnd_mode", Type: "int"})
+			portResult := "uint64"
+			if tc.resultWidth == 128 {
+				portResult = "BID_UINT128"
+			}
+			bidgoFn := "Bid" + strconv.Itoa(tc.resultWidth) + strings.ToLower(tc.operandCode) + "Fma"
+			sym := publicAPISymbol{
+				Symbol:  name,
+				Kind:    "func",
+				Name:    name,
+				Params:  params,
+				Results: []string{"Decimal" + strconv.Itoa(tc.resultWidth) + "BID", "ExceptionFlags"},
+			}
+			sigs := map[string]bidgoFuncSig{bidgoFn: {
+				Name:    bidgoFn,
+				Params:  portParams,
+				Results: []bidgoParam{{Type: portResult}, {Type: "uint32"}},
+			}}
+
+			unit, err := resolveParityUnit(sym, bidgoFn, sigs, publicParityCorpus{})
+			if err != nil {
+				t.Fatalf("resolve mixed FMA parity unit: %v", err)
+			}
+			if unit.Shape != shapeFuncMixedModeTernary || unit.Width != tc.resultWidth || unit.TernaryOperandWidths != wantWidths || unit.Operation != "FMA" {
+				t.Fatalf("mixed FMA parity unit = %+v", unit)
+			}
+			if strings.Join(unit.Port.ValueParams, ",") != strings.Join(portValueTypes, ",") || !unit.Port.HasRounding || unit.Port.FlagsKind != "result" || unit.Port.PrimaryResult != portResult {
+				t.Fatalf("mixed FMA port plan = %+v, want value params %v, rounding, result flags, primary %s", unit.Port, portValueTypes, portResult)
+			}
+			wantCases := (len(parityLabelTriples)+4)*len(parityModeOrder) + 1
+			if unit.Cases != wantCases {
+				t.Fatalf("mixed FMA cases = %d, want %d", unit.Cases, wantCases)
+			}
+		})
+	}
+}
+
+func TestResolveParityUnitClassifiesMixedSqrtExactly(t *testing.T) {
+	tests := []struct {
+		name         string
+		resultWidth  int
+		operandWidth int
+		bidgoFn      string
+		portParam    string
+		portResult   string
+	}{
+		{"Sqrt64QBIDWithMode", 64, 128, "Bid64qSqrt", "BID_UINT128", "uint64"},
+		{"Sqrt128DBIDWithMode", 128, 64, "Bid128dSqrt", "uint64", "BID_UINT128"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			sym := publicAPISymbol{
+				Symbol:  tc.name,
+				Kind:    "func",
+				Name:    tc.name,
+				Params:  []string{"Decimal" + strconv.Itoa(tc.operandWidth) + "BID", "RoundingMode"},
+				Results: []string{"Decimal" + strconv.Itoa(tc.resultWidth) + "BID", "ExceptionFlags"},
+			}
+			sigs := map[string]bidgoFuncSig{tc.bidgoFn: {
+				Name: tc.bidgoFn,
+				Params: []bidgoParam{
+					{Type: tc.portParam},
+					{Name: "rnd_mode", Type: "int"},
+				},
+				Results: []bidgoParam{{Type: tc.portResult}, {Type: "uint32"}},
+			}}
+
+			unit, err := resolveParityUnit(sym, tc.bidgoFn, sigs, publicParityCorpus{})
+			if err != nil {
+				t.Fatalf("resolve mixed sqrt parity unit: %v", err)
+			}
+			if unit.Shape != shapeFuncMixedModeUnary || unit.Width != tc.resultWidth || unit.UnaryOperandWidth != tc.operandWidth || unit.Operation != "Sqrt" {
+				t.Fatalf("mixed sqrt parity unit = %+v", unit)
+			}
+			if strings.Join(unit.Port.ValueParams, ",") != tc.portParam || !unit.Port.HasRounding || unit.Port.FlagsKind != "result" || unit.Port.PrimaryResult != tc.portResult {
+				t.Fatalf("mixed sqrt port plan = %+v, want value param %s, rounding, result flags, primary %s", unit.Port, tc.portParam, tc.portResult)
+			}
+			wantCases := (publicParityCorpusLen+4)*len(parityModeOrder) + 1
+			if unit.Cases != wantCases {
+				t.Fatalf("mixed sqrt cases = %d, want %d", unit.Cases, wantCases)
+			}
+		})
+	}
+}
+
+func TestResolveParityUnitRejectsMixedFMASuffixSignatureMismatch(t *testing.T) {
+	sym := publicAPISymbol{
+		Symbol:  "FMA64DQQBIDWithMode",
+		Kind:    "func",
+		Name:    "FMA64DQQBIDWithMode",
+		Params:  []string{"Decimal64BID", "Decimal64BID", "Decimal128BID", "RoundingMode"},
+		Results: []string{"Decimal64BID", "ExceptionFlags"},
+	}
+	_, err := resolveParityUnit(sym, "Bid64dqqFma", nil, publicParityCorpus{})
+	if err == nil || !strings.Contains(err.Error(), "want Decimal128BID from suffix DQQ") {
+		t.Fatalf("mixed FMA suffix/signature mismatch error = %v", err)
+	}
+}
+
+func TestResolveParityUnitRejectsMixedPortMappingMismatch(t *testing.T) {
+	tests := []struct {
+		name    string
+		params  []string
+		results []string
+		gotPort string
+	}{
+		{
+			name:    "FMA128QDQBIDWithMode",
+			params:  []string{"Decimal128BID", "Decimal64BID", "Decimal128BID", "RoundingMode"},
+			results: []string{"Decimal128BID", "ExceptionFlags"},
+			gotPort: "Bid128dqqFma",
+		},
+		{
+			name:    "Sqrt64QBIDWithMode",
+			params:  []string{"Decimal128BID", "RoundingMode"},
+			results: []string{"Decimal64BID", "ExceptionFlags"},
+			gotPort: "Bid128dSqrt",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			sym := publicAPISymbol{Symbol: tc.name, Kind: "func", Name: tc.name, Params: tc.params, Results: tc.results}
+			_, err := resolveParityUnit(sym, tc.gotPort, nil, publicParityCorpus{})
+			if err == nil || !strings.Contains(err.Error(), "must map to") {
+				t.Fatalf("mixed port mapping mismatch error = %v", err)
+			}
+		})
+	}
+}
+
+func TestResolveParityUnitRejectsUnsupportedMixedFMAAndSqrtSurfaces(t *testing.T) {
+	tests := []publicAPISymbol{
+		{
+			Symbol: "FMA64DDDBIDWithMode", Kind: "func", Name: "FMA64DDDBIDWithMode",
+			Params: []string{"Decimal64BID", "Decimal64BID", "Decimal64BID", "RoundingMode"}, Results: []string{"Decimal64BID", "ExceptionFlags"},
+		},
+		{
+			Symbol: "FMA128QQQBIDWithMode", Kind: "func", Name: "FMA128QQQBIDWithMode",
+			Params: []string{"Decimal128BID", "Decimal128BID", "Decimal128BID", "RoundingMode"}, Results: []string{"Decimal128BID", "ExceptionFlags"},
+		},
+		{
+			Symbol: "Sqrt64DBIDWithMode", Kind: "func", Name: "Sqrt64DBIDWithMode",
+			Params: []string{"Decimal64BID", "RoundingMode"}, Results: []string{"Decimal64BID", "ExceptionFlags"},
+		},
+		{
+			Symbol: "Sqrt128QBIDWithMode", Kind: "func", Name: "Sqrt128QBIDWithMode",
+			Params: []string{"Decimal128BID", "RoundingMode"}, Results: []string{"Decimal128BID", "ExceptionFlags"},
+		},
+	}
+	for _, sym := range tests {
+		t.Run(sym.Name, func(t *testing.T) {
+			_, err := resolveParityUnit(sym, "unused", nil, publicParityCorpus{})
+			if err == nil || !strings.Contains(err.Error(), "unsupported Intel mixed") {
+				t.Fatalf("unsupported mixed surface error = %v", err)
+			}
+		})
+	}
+}
+
+func TestEmitMixedFMAAndSqrtParityPinsDiscriminantsAndInvalidMode(t *testing.T) {
+	tests := []struct {
+		name               string
+		unit               parityUnit
+		discriminant       string
+		expectedBoundCalls []generatedGoBoundCallExpectation
+		canonicalCall      string
+	}{
+		{
+			name: "FMA64DQQ",
+			unit: parityUnit{
+				Symbol: "FMA64DQQBIDWithMode", FuncName: "publicParity_FMA64DQQBIDWithMode",
+				Shape: shapeFuncMixedModeTernary, Width: 64, Func: "FMA64DQQBIDWithMode", Operation: "FMA",
+				TernaryOperandWidths: [3]int{64, 128, 128}, ResultClass: "dec64",
+				Port: parityPortPlan{GoName: "Bid64dqqFma", HasRounding: true, FlagsKind: "result", PrimaryResult: "uint64"},
+			},
+			discriminant:  "discTriples",
+			canonicalCall: "canonicalQNaN64BID",
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "pv, pf", callee: "FMA64DQQBIDWithMode", args: [][]string{
+					{"a", "bv", "c", "mode.pub"},
+					{"a", "bv", "c", "mode.pub"},
+				}},
+				{binding: "pr, prf", callee: "bidgo.Bid64dqqFma", args: [][]string{
+					{"aBits", "publicParityToBidgo128(bBits)", "publicParityToBidgo128(cBits)", "mode.port"},
+					{"triple.a", "publicParityToBidgo128(triple.b)", "publicParityToBidgo128(triple.c)", "mode.port"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "FMA64DQQBIDWithMode", args: [][]string{
+					{"invalidA", "invalidB", "invalidC", "RoundingMode(99)"},
+				}},
+			},
+		},
+		{
+			name: "Sqrt128D",
+			unit: parityUnit{
+				Symbol: "Sqrt128DBIDWithMode", FuncName: "publicParity_Sqrt128DBIDWithMode",
+				Shape: shapeFuncMixedModeUnary, Width: 128, Func: "Sqrt128DBIDWithMode", Operation: "Sqrt",
+				UnaryOperandWidth: 64, ResultClass: "dec128",
+				Port: parityPortPlan{GoName: "Bid128dSqrt", HasRounding: true, FlagsKind: "result", PrimaryResult: "BID_UINT128"},
+			},
+			discriminant:  "discVals",
+			canonicalCall: "canonicalQNaN128BID",
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "pv, pf", callee: "Sqrt128DBIDWithMode", args: [][]string{
+					{"operand", "mode.pub"},
+					{"operand", "mode.pub"},
+				}},
+				{binding: "pr, prf", callee: "bidgo.Bid128dSqrt", args: [][]string{
+					{"elem", "mode.port"},
+					{"dv", "mode.port"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "Sqrt128DBIDWithMode", args: [][]string{
+					{"invalidOperand", "RoundingMode(99)"},
+				}},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var b strings.Builder
+			if err := emitParityUnitFunc(&b, tc.unit); err != nil {
+				t.Fatalf("emit parity unit: %v", err)
+			}
+			structure := parseGeneratedGoStructure(t, b.String())
+			if structure.identifiers[tc.discriminant] == 0 {
+				t.Errorf("emitted parity body has no AST identifier %q", tc.discriminant)
+			}
+			for _, want := range tc.expectedBoundCalls {
+				assertGeneratedGoBoundCallArgs(t, structure, want)
+			}
+			assertGeneratedGoCallArgs(t, structure.calls[tc.canonicalCall], tc.canonicalCall, [][]string{{}})
+		})
+	}
+}
+
+type generatedGoBoundCallExpectation struct {
+	binding string
+	callee  string
+	args    [][]string
+}
+
+type generatedGoStructure struct {
+	calls       map[string][][]string
+	boundCalls  map[string]map[string][][]string
+	identifiers map[string]int
+}
+
+func parseGeneratedGoStructure(t *testing.T, source string) generatedGoStructure {
+	t.Helper()
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "generated_parity.go", "package bid754\n"+source, 0)
+	if err != nil {
+		t.Fatalf("parse generated Go parity body: %v\n%s", err, source)
+	}
+	structure := generatedGoStructure{
+		calls:       map[string][][]string{},
+		boundCalls:  map[string]map[string][][]string{},
+		identifiers: map[string]int{},
+	}
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch node := node.(type) {
+		case *ast.Ident:
+			structure.identifiers[node.Name]++
+		case *ast.CallExpr:
+			callee := formatGeneratedGoExpr(t, fset, node.Fun)
+			args := make([]string, len(node.Args))
+			for i, arg := range node.Args {
+				args[i] = formatGeneratedGoExpr(t, fset, arg)
+			}
+			structure.calls[callee] = append(structure.calls[callee], args)
+		case *ast.AssignStmt:
+			if len(node.Rhs) != 1 {
+				break
+			}
+			call, ok := node.Rhs[0].(*ast.CallExpr)
+			if !ok {
+				break
+			}
+			lhs := make([]string, len(node.Lhs))
+			for i, expr := range node.Lhs {
+				lhs[i] = formatGeneratedGoExpr(t, fset, expr)
+			}
+			binding := strings.Join(lhs, ", ")
+			callee := formatGeneratedGoExpr(t, fset, call.Fun)
+			args := make([]string, len(call.Args))
+			for i, arg := range call.Args {
+				args[i] = formatGeneratedGoExpr(t, fset, arg)
+			}
+			if structure.boundCalls[binding] == nil {
+				structure.boundCalls[binding] = map[string][][]string{}
+			}
+			structure.boundCalls[binding][callee] = append(structure.boundCalls[binding][callee], args)
+		}
+		return true
+	})
+	return structure
+}
+
+func assertGeneratedGoBoundCallArgs(t *testing.T, structure generatedGoStructure, want generatedGoBoundCallExpectation) {
+	t.Helper()
+	byCallee := structure.boundCalls[want.binding]
+	total := 0
+	for _, calls := range byCallee {
+		total += len(calls)
+	}
+	if total != len(want.args) {
+		t.Fatalf("generated binding %q call count = %d, want %d; calls %v", want.binding, total, len(want.args), byCallee)
+	}
+	assertGeneratedGoCallArgs(t, byCallee[want.callee], want.binding+" = "+want.callee, want.args)
+}
+
+func formatGeneratedGoExpr(t *testing.T, fset *token.FileSet, expr ast.Expr) string {
+	t.Helper()
+	var b bytes.Buffer
+	if err := format.Node(&b, fset, expr); err != nil {
+		t.Fatalf("format generated Go expression: %v", err)
+	}
+	return b.String()
+}
+
+func assertGeneratedGoCallArgs(t *testing.T, got [][]string, callee string, want [][]string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("generated call %s count = %d, want %d; got args %v", callee, len(got), len(want), got)
+	}
+	for i := range want {
+		if len(got[i]) != len(want[i]) {
+			t.Errorf("generated call %s[%d] arg count = %d, want %d; got %v", callee, i, len(got[i]), len(want[i]), got[i])
+			continue
+		}
+		for j := range want[i] {
+			if got[i][j] != want[i][j] {
+				t.Errorf("generated call %s[%d] arg %d = %q, want %q", callee, i, j, got[i][j], want[i][j])
+			}
+		}
 	}
 }

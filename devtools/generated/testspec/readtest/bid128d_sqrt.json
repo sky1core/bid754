@@ -1,0 +1,37 @@
+{
+  "suite": "bid128d_sqrt",
+  "group": "decimal128_operations",
+  "format": "decimal128",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "third_party/intel_dfp/TESTS/readtest.in",
+  "function": "bid128d_sqrt",
+  "kind": "unary_op",
+  "output_type": "OP_DEC128",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid128d_sqrt_line_1680","line":1680,"operands":["[0001000000000000]"],"expected":"[2eb20000000000000000000001000000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1681","line":1681,"operands":["[0020002800000000]"],"expected":"[2eb20000000000000000000000140000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1682","line":1682,"operands":["[002000a000000000]"],"expected":"[2eb20000000000000000000000280000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1683","line":1683,"operands":["[0060002800000000]"],"expected":"[2eb40000000000000000000000140000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1684","line":1684,"operands":["[01000a3089020103]"],"expected":"[2e84a5074645c41a804fb9d2e3939180]","status":"20","rounding":0},
+    {"id":"bid128d_sqrt_line_1685","line":1685,"operands":["[0512098907437002]"],"expected":"[2ea75f4e511d7e76d9a106de26baeea2]","status":"20","rounding":0},
+    {"id":"bid128d_sqrt_line_1686","line":1686,"operands":["[27d5c30a30412d7f]"],"expected":"[2fbd81e06bdaf0491386f5696f514e3b]","status":"20","rounding":0},
+    {"id":"bid128d_sqrt_line_1687","line":1687,"operands":["[2fa99ffbafdf67f0]"],"expected":"[2ffc5126e9846573890021b45075b9e3]","status":"20","rounding":0},
+    {"id":"bid128d_sqrt_line_1688","line":1688,"operands":["[7a21901223bbb17e]"],"expected":"[78000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1689","line":1689,"operands":["[96fcdebedd6fefe0]"],"expected":"[7c000000000000000000000000000000]","status":"01","rounding":0},
+    {"id":"bid128d_sqrt_line_1690","line":1690,"operands":["-9999999999.9999998998888898998898E-6015"],"expected":"[aeb20000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1691","line":1691,"operands":["[ee97dbc6fde797c7]"],"expected":"[b0840000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1692","line":1692,"operands":["[fac6864b3fb45623]"],"expected":"[7c000000000000000000000000000000]","status":"01","rounding":0},
+    {"id":"bid128d_sqrt_line_1693","line":1693,"operands":["[fdeffffd7efb6fdf]"],"expected":"[fc000000000000000000000000000000]","status":"00","rounding":0},
+    {"id":"bid128d_sqrt_line_1694","line":1694,"operands":["[fffd7e3ef57bebfd]"],"expected":"[fc0014b8ba5b19e678879b4139d40000]","status":"01","rounding":0},
+    {"id":"bid128d_sqrt_line_1695","line":1695,"operands":["[0020002800000000]"],"expected":"[2eb20000000000000000000000140000]","status":"00","rounding":1},
+    {"id":"bid128d_sqrt_line_1696","line":1696,"operands":["[0020002800000000]"],"expected":"[2eb20000000000000000000000140000]","status":"00","rounding":2},
+    {"id":"bid128d_sqrt_line_1697","line":1697,"operands":["[27d5c30a30412d7f]"],"expected":"[2fbd81e06bdaf0491386f5696f514e3c]","status":"20","rounding":2},
+    {"id":"bid128d_sqrt_line_1698","line":1698,"operands":["[2fa99ffbafdf67f0]"],"expected":"[2ffc5126e9846573890021b45075b9e3]","status":"20","rounding":2},
+    {"id":"bid128d_sqrt_line_1699","line":1699,"operands":["[0020002800000000]"],"expected":"[2eb20000000000000000000000140000]","status":"00","rounding":3},
+    {"id":"bid128d_sqrt_line_1700","line":1700,"operands":["[0020002800000000]"],"expected":"[2eb20000000000000000000000140000]","status":"00","rounding":4}
+  ]
+}

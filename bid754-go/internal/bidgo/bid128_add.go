@@ -23,7 +23,7 @@ func Bid64qdAdd(x BID_UINT128, y uint64, rnd_mode int) (uint64, uint32) {
 func Bid64qqAdd(x, y BID_UINT128, rnd_mode int) (uint64, uint32) {
 	one := BID_UINT128{lo: 0x0000000000000001, hi: 0x3040000000000000}
 	var flags uint32
-	return bid64qqqFma(one, x, y, rnd_mode, &flags), flags
+	return bid64qqqFmaCore(one, x, y, rnd_mode, &flags), flags
 }
 
 // Bid128ddAdd is ported mechanically from bid128_add.c: bid128dd_add.
@@ -70,7 +70,7 @@ func Bid64qqSub(x, y BID_UINT128, rnd_mode int) (uint64, uint32) {
 		y.hi ^= MASK_SIGN64
 	}
 	var flags uint32
-	return bid64qqqFma(one, x, y, rnd_mode, &flags), flags
+	return bid64qqqFmaCore(one, x, y, rnd_mode, &flags), flags
 }
 
 // Bid128ddSub is ported mechanically from bid128_add.c: bid128dd_sub.

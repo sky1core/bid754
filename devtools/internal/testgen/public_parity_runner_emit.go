@@ -446,6 +446,10 @@ func emitParityUnitBody(b *strings.Builder, u parityUnit) error {
 		return emitFuncContext(b, u)
 	case shapeFuncMixedModeBinary:
 		return emitFuncMixedModeBinary(b, u)
+	case shapeFuncMixedModeTernary:
+		return emitFuncMixedModeTernary(b, u)
+	case shapeFuncMixedModeUnary:
+		return emitFuncMixedModeUnary(b, u)
 	default:
 		return fmt.Errorf("no emitter for shape %d", u.Shape)
 	}
@@ -522,6 +526,125 @@ func emitFuncMixedModeBinary(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\tinvalidLeft := %s\n", pwPublicVal(leftWidth, pwCorpus(leftWidth)+"[0]"))
 	fmt.Fprintf(b, "\tinvalidRight := %s\n", pwPublicVal(rightWidth, pwCorpus(rightWidth)+"[0]"))
 	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s(invalidLeft, invalidRight, RoundingMode(99))\n", u.Func)
+	canonical := fmt.Sprintf("canonicalQNaN%dBID()", u.Width)
+	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", pubBitsExpr(u.ResultClass, "invalidValue"), pubBitsExpr(u.ResultClass, canonical))
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, pubBitsExpr(u.ResultClass, "invalidValue"))
+	fmt.Fprintf(b, "\t}\n\tcount++\n")
+	return nil
+}
+
+// emitFuncMixedModeTernary renders the Intel D/Q mixed-width FMA free
+// functions. Each operand position resolves the shared label triple at its
+// own width, then the result is compared with the exact mapped Go-port call.
+func emitFuncMixedModeTernary(b *strings.Builder, u parityUnit) error {
+	widths := u.TernaryOperandWidths
+	disc, err := mixedModeTernaryDiscriminantOperands(u.Operation, u.Width, widths)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(b, "\tfor tripleIndex := range %s {\n", pwTriples(widths[0]))
+	fmt.Fprintf(b, "\t\taTriple := %s[tripleIndex]\n", pwTriples(widths[0]))
+	fmt.Fprintf(b, "\t\tbTriple := %s[tripleIndex]\n", pwTriples(widths[1]))
+	fmt.Fprintf(b, "\t\tcTriple := %s[tripleIndex]\n", pwTriples(widths[2]))
+	fmt.Fprintf(b, "\t\taBits := %s[aTriple[0]]\n", pwCorpus(widths[0]))
+	fmt.Fprintf(b, "\t\tbBits := %s[bTriple[1]]\n", pwCorpus(widths[1]))
+	fmt.Fprintf(b, "\t\tcBits := %s[cTriple[2]]\n", pwCorpus(widths[2]))
+	fmt.Fprintf(b, "\t\ta := %s\n", pwPublicVal(widths[0], "aBits"))
+	fmt.Fprintf(b, "\t\tbv := %s\n", pwPublicVal(widths[1], "bBits"))
+	fmt.Fprintf(b, "\t\tc := %s\n", pwPublicVal(widths[2], "cBits"))
+	fmt.Fprintf(b, "\t\tfor _, mode := range publicParityModes {\n")
+	fmt.Fprintf(b, "\t\t\tpv, pf := %s(a, bv, c, mode.pub)\n", u.Func)
+	pfPort := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(widths[0], "aBits"), pwPortArg(widths[1], "bBits"), pwPortArg(widths[2], "cBits")}, "mode.port", true)
+	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "operands %v,%v,%v mode %v", "aBits, bBits, cBits, mode.pub")
+	emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", pfPort, "operands %v,%v,%v mode %v", "aBits, bBits, cBits, mode.pub")
+	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n\t}\n")
+
+	fmt.Fprintf(b, "\tdiscTriples := []struct {\n\t\ta %s\n\t\tb %s\n\t\tc %s\n\t}{\n", modeDiscGoType(widths[0]), modeDiscGoType(widths[1]), modeDiscGoType(widths[2]))
+	for _, triple := range disc {
+		literals := [3]string{}
+		for i, operand := range triple {
+			literal, err := modeDiscGoLiteral(widths[i], operand)
+			if err != nil {
+				return fmt.Errorf("%s: discriminant operand %d: %w", u.Symbol, i, err)
+			}
+			if widths[i] == 128 {
+				literal = "[16]byte" + literal
+			}
+			literals[i] = literal
+		}
+		fmt.Fprintf(b, "\t\t{%s, %s, %s},\n", literals[0], literals[1], literals[2])
+	}
+	fmt.Fprintf(b, "\t}\n")
+	fmt.Fprintf(b, "\tfor _, triple := range discTriples {\n")
+	fmt.Fprintf(b, "\t\ta := %s\n", pwPublicVal(widths[0], "triple.a"))
+	fmt.Fprintf(b, "\t\tbv := %s\n", pwPublicVal(widths[1], "triple.b"))
+	fmt.Fprintf(b, "\t\tc := %s\n", pwPublicVal(widths[2], "triple.c"))
+	fmt.Fprintf(b, "\t\tvar modeSeen [%d]%s\n", len(parityModeOrder), modeDiscGoType(u.Width))
+	fmt.Fprintf(b, "\t\tfor mi, mode := range publicParityModes {\n")
+	fmt.Fprintf(b, "\t\t\tpv, pf := %s(a, bv, c, mode.pub)\n", u.Func)
+	pfDisc := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(widths[0], "triple.a"), pwPortArg(widths[1], "triple.b"), pwPortArg(widths[2], "triple.c")}, "mode.port", true)
+	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "discriminant operands %v,%v,%v mode %v", "triple.a, triple.b, triple.c, mode.pub")
+	emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", pfDisc, "discriminant operands %v,%v,%v mode %v", "triple.a, triple.b, triple.c, mode.pub")
+	fmt.Fprintf(b, "\t\t\tmodeSeen[mi] = %s\n", pubBitsExpr(u.ResultClass, "pv"))
+	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
+	emitModeDiscAssertion(b, u.Symbol, "discriminant operands %v,%v,%v", "triple.a, triple.b, triple.c")
+	fmt.Fprintf(b, "\t}\n")
+
+	fmt.Fprintf(b, "\tinvalidA := %s\n", pwPublicVal(widths[0], pwCorpus(widths[0])+"[0]"))
+	fmt.Fprintf(b, "\tinvalidB := %s\n", pwPublicVal(widths[1], pwCorpus(widths[1])+"[0]"))
+	fmt.Fprintf(b, "\tinvalidC := %s\n", pwPublicVal(widths[2], pwCorpus(widths[2])+"[0]"))
+	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s(invalidA, invalidB, invalidC, RoundingMode(99))\n", u.Func)
+	canonical := fmt.Sprintf("canonicalQNaN%dBID()", u.Width)
+	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", pubBitsExpr(u.ResultClass, "invalidValue"), pubBitsExpr(u.ResultClass, canonical))
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, pubBitsExpr(u.ResultClass, "invalidValue"))
+	fmt.Fprintf(b, "\t}\n\tcount++\n")
+	return nil
+}
+
+// emitFuncMixedModeUnary renders the two unlike-width sqrt free functions.
+// The routing and discriminant operands are encoded at the input width while
+// the mode-sensitivity collector uses the result width.
+func emitFuncMixedModeUnary(b *strings.Builder, u parityUnit) error {
+	operandWidth := u.UnaryOperandWidth
+	disc, err := mixedModeUnaryDiscriminantOperands(u.Operation, u.Width, operandWidth)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(b, "\tfor _, elem := range %s {\n", pwCorpus(operandWidth))
+	fmt.Fprintf(b, "\t\toperand := %s\n", pwPublicVal(operandWidth, "elem"))
+	fmt.Fprintf(b, "\t\tfor _, mode := range publicParityModes {\n")
+	fmt.Fprintf(b, "\t\t\tpv, pf := %s(operand, mode.pub)\n", u.Func)
+	pfPort := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(operandWidth, "elem")}, "mode.port", true)
+	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "operand %v mode %v", "elem, mode.pub")
+	emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", pfPort, "operand %v mode %v", "elem, mode.pub")
+	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n\t}\n")
+
+	fmt.Fprintf(b, "\tdiscVals := []%s{\n", modeDiscGoType(operandWidth))
+	for _, operand := range disc {
+		literal, err := modeDiscGoLiteral(operandWidth, operand)
+		if err != nil {
+			return fmt.Errorf("%s: discriminant operand: %w", u.Symbol, err)
+		}
+		fmt.Fprintf(b, "\t\t%s,\n", literal)
+	}
+	fmt.Fprintf(b, "\t}\n")
+	fmt.Fprintf(b, "\tfor _, dv := range discVals {\n")
+	fmt.Fprintf(b, "\t\toperand := %s\n", pwPublicVal(operandWidth, "dv"))
+	fmt.Fprintf(b, "\t\tvar modeSeen [%d]%s\n", len(parityModeOrder), modeDiscGoType(u.Width))
+	fmt.Fprintf(b, "\t\tfor mi, mode := range publicParityModes {\n")
+	fmt.Fprintf(b, "\t\t\tpv, pf := %s(operand, mode.pub)\n", u.Func)
+	pfDisc := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(operandWidth, "dv")}, "mode.port", true)
+	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "discriminant operand %v mode %v", "dv, mode.pub")
+	emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", pfDisc, "discriminant operand %v mode %v", "dv, mode.pub")
+	fmt.Fprintf(b, "\t\t\tmodeSeen[mi] = %s\n", pubBitsExpr(u.ResultClass, "pv"))
+	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
+	emitModeDiscAssertion(b, u.Symbol, "discriminant operand %v", "dv")
+	fmt.Fprintf(b, "\t}\n")
+
+	fmt.Fprintf(b, "\tinvalidOperand := %s\n", pwPublicVal(operandWidth, pwCorpus(operandWidth)+"[0]"))
+	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s(invalidOperand, RoundingMode(99))\n", u.Func)
 	canonical := fmt.Sprintf("canonicalQNaN%dBID()", u.Width)
 	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", pubBitsExpr(u.ResultClass, "invalidValue"), pubBitsExpr(u.ResultClass, canonical))
 	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, pubBitsExpr(u.ResultClass, "invalidValue"))
@@ -1562,6 +1685,10 @@ func shapeName(s parityShape) string {
 		return "func_context"
 	case shapeFuncMixedModeBinary:
 		return "func_mixed_mode_binary"
+	case shapeFuncMixedModeTernary:
+		return "func_mixed_mode_ternary"
+	case shapeFuncMixedModeUnary:
+		return "func_mixed_mode_unary"
 	default:
 		return "unknown"
 	}

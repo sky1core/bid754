@@ -433,6 +433,7 @@ func emitRustParityFile(rows []rustParityInventoryRow, constRows []rustConstInve
 	b.WriteString("use bid754::{Context, Decimal128, Decimal32, Decimal64, RoundingMode};\n\n")
 
 	emitRustParityStaticHelpers(&b, masks)
+	emitRustMixedFMAFusednessSentinelRows(&b)
 	emitRustParityCorpusTables(&b, corpus)
 
 	seenNames := map[string]string{}
@@ -486,6 +487,19 @@ struct NanCase {
 		return nil, err
 	}
 	return []byte(b.String()), nil
+}
+
+// emitRustMixedFMAFusednessSentinelRows carries the generator-owned, ordered
+// mixed-FMA sentinel census into the generated Rust runner. The verification
+// anchor compares this literal byte-for-byte with the independently maintained
+// pin; the Rust generator never reads that pin.
+func emitRustMixedFMAFusednessSentinelRows(b *strings.Builder) {
+	rows := ffiMixedFMAFusednessRows()
+	fmt.Fprintf(b, "const MIXED_FMA_FUSEDNESS_SENTINEL_ROWS: [&str; %d] = [\n", len(rows))
+	for _, row := range rows {
+		fmt.Fprintf(b, "    %q,\n", row)
+	}
+	b.WriteString("];\n\n")
 }
 
 // emitRustNaNRoundtripTest emits width w's NAN_CASES_<digits> corpus const
@@ -981,6 +995,11 @@ func emitRustParityUnit(b *strings.Builder, row rustParityInventoryRow, corpus p
 		return emitModeBinary(b, row, corpus, w)
 	case "mixed_binary_mode_flags_dd", "mixed_binary_mode_flags_dq", "mixed_binary_mode_flags_qd", "mixed_binary_mode_flags_qq":
 		return emitMixedModeBinary(b, row, corpus, w)
+	case "mixed_ternary_mode_flags_ddd", "mixed_ternary_mode_flags_ddq", "mixed_ternary_mode_flags_dqd", "mixed_ternary_mode_flags_dqq",
+		"mixed_ternary_mode_flags_qdd", "mixed_ternary_mode_flags_qdq", "mixed_ternary_mode_flags_qqd", "mixed_ternary_mode_flags_qqq":
+		return emitMixedModeTernary(b, row, corpus, w)
+	case "mixed_unary_mode_flags_d", "mixed_unary_mode_flags_q":
+		return emitMixedModeUnary(b, row, corpus, w)
 	case "unary_mode_flags":
 		return emitModeUnaryArith(b, row, corpus, w)
 	case "ternary_mode_flags":
@@ -1074,6 +1093,22 @@ var rustMixedShapeWidths = map[string][2]parityWidth{
 	"mixed_binary_mode_flags_qq": {decimal128ParityWidth, decimal128ParityWidth},
 }
 
+var rustMixedTernaryShapeWidths = map[string][3]parityWidth{
+	"mixed_ternary_mode_flags_ddd": {decimal64ParityWidth, decimal64ParityWidth, decimal64ParityWidth},
+	"mixed_ternary_mode_flags_ddq": {decimal64ParityWidth, decimal64ParityWidth, decimal128ParityWidth},
+	"mixed_ternary_mode_flags_dqd": {decimal64ParityWidth, decimal128ParityWidth, decimal64ParityWidth},
+	"mixed_ternary_mode_flags_dqq": {decimal64ParityWidth, decimal128ParityWidth, decimal128ParityWidth},
+	"mixed_ternary_mode_flags_qdd": {decimal128ParityWidth, decimal64ParityWidth, decimal64ParityWidth},
+	"mixed_ternary_mode_flags_qdq": {decimal128ParityWidth, decimal64ParityWidth, decimal128ParityWidth},
+	"mixed_ternary_mode_flags_qqd": {decimal128ParityWidth, decimal128ParityWidth, decimal64ParityWidth},
+	"mixed_ternary_mode_flags_qqq": {decimal128ParityWidth, decimal128ParityWidth, decimal128ParityWidth},
+}
+
+var rustMixedUnaryShapeWidths = map[string]parityWidth{
+	"mixed_unary_mode_flags_d": decimal64ParityWidth,
+	"mixed_unary_mode_flags_q": decimal128ParityWidth,
+}
+
 func rustMixedOperation(goSymbol string) (string, error) {
 	for _, op := range []string{"Add", "Sub", "Mul", "Div"} {
 		if strings.HasPrefix(goSymbol, op) {
@@ -1165,6 +1200,387 @@ func emitMixedModeBinary(b *strings.Builder, row rustParityInventoryRow, corpus 
 		b.WriteString("        }\n")
 		fmt.Fprintf(b, "        if mode_seen.iter().all(|s| *s == mode_seen[0]) {\n")
 		fmt.Fprintf(b, "            failures.push(format!(\"public parity %s: discriminant operands %s,%s: every rounding mode produced the same result\", left_bits, right_bits));\n", row.GoSymbol, left.opFmtSpec(), right.opFmtSpec())
+		b.WriteString("        }\n    }\n")
+	}
+	b.WriteString("    count\n}\n\n")
+	return funcName, cases, nil
+}
+
+// validateRustMixedTernaryRow keeps the Rust parity generator's D/Q mapping
+// independent of apiemit's mapping. A manifest row must name the exact Intel
+// mixed FMA symbol, associated function, owner, and port implied by its shape;
+// otherwise generation fails instead of comparing two identically miswired
+// paths.
+func validateRustMixedTernaryRow(row rustParityInventoryRow, result parityWidth) (string, [3]parityWidth, error) {
+	operands, ok := rustMixedTernaryShapeWidths[row.Shape]
+	if !ok {
+		return "", [3]parityWidth{}, fmt.Errorf("rust public parity: mixed ternary shape %q has no independent operand-width mapping", row.Shape)
+	}
+	code := strings.TrimPrefix(row.Shape, "mixed_ternary_mode_flags_")
+	resultWidth := parityWidthDigits(result)
+	if (resultWidth == 64 && code == "ddd") || (resultWidth == 128 && code == "qqq") {
+		return "", [3]parityWidth{}, fmt.Errorf("rust public parity: %s is a same-width FMA shape, not an Intel mixed-width extension for Decimal%d", code, resultWidth)
+	}
+	wantSymbol := fmt.Sprintf("FMA%d%sBIDWithMode", resultWidth, strings.ToUpper(code))
+	wantSurface := "fma_" + code + "_with_mode"
+	wantPort := fmt.Sprintf("Bid%d%sFma", resultWidth, code)
+	if row.GoSymbol != wantSymbol || row.RustOwner != result.selfType || row.RustSurface != wantSurface || row.BidgoFunction != wantPort {
+		return "", [3]parityWidth{}, fmt.Errorf("rust public parity: mixed FMA row %q does not match shape %q; want symbol=%q owner=%q surface=%q port=%q, got owner=%q surface=%q port=%q", row.GoSymbol, row.Shape, wantSymbol, result.selfType, wantSurface, wantPort, row.RustOwner, row.RustSurface, row.BidgoFunction)
+	}
+	return code, operands, nil
+}
+
+// emitMixedModeTernary independently exercises one generated Rust associated
+// function for Intel's mixed-width FMA family. Each operand is selected and
+// converted through its declared D/Q width, preserving operand order (which
+// is observable for NaN selection), while the result and flags are compared
+// against the direct generated Go-port entrypoint.
+func emitMixedModeTernary(b *strings.Builder, row rustParityInventoryRow, corpus publicParityCorpus, result parityWidth) (string, int, error) {
+	code, operands, err := validateRustMixedTernaryRow(row, result)
+	if err != nil {
+		return "", 0, err
+	}
+	probeFunction := fmt.Sprintf("bid%d%s_fma", parityWidthDigits(result), code)
+	shape, ok := ffiMixedDecimalShapeFor(probeFunction)
+	if !ok {
+		return "", 0, fmt.Errorf("rust public parity: mixed FMA %q has no FFI shape for its fusedness sentinel", row.GoSymbol)
+	}
+	probe, ok := ffiMixedFMAFusednessProbeFor(probeFunction)
+	if !ok {
+		return "", 0, fmt.Errorf("rust public parity: mixed FMA %q has no fusedness sentinel for %q", row.GoSymbol, probeFunction)
+	}
+	if err := validateFFIFusednessProbe(probe, shape); err != nil {
+		return "", 0, fmt.Errorf("rust public parity: mixed FMA %q fusedness sentinel: %w", row.GoSymbol, err)
+	}
+	if probe.rounding != 0 {
+		return "", 0, fmt.Errorf("rust public parity: mixed FMA %q fusedness sentinel rounding = %d, want nearest-even (0)", row.GoSymbol, probe.rounding)
+	}
+	xWidth, yWidth, zWidth := operands[0], operands[1], operands[2]
+	operandDigits := [3]int{parityWidthDigits(xWidth), parityWidthDigits(yWidth), parityWidthDigits(zWidth)}
+	disc, err := mixedModeTernaryDiscriminantOperands("FMA", parityWidthDigits(result), operandDigits)
+	if err != nil {
+		return "", 0, err
+	}
+	module, fn, err := resolvePort(row.BidgoFunction, row.GoSymbol)
+	if err != nil {
+		return "", 0, err
+	}
+	funcName := normalizeRustFnName(row.GoSymbol)
+	cases := (len(parityLabelTriples)+len(disc))*len(publicParityModeOrderNames) + 1
+	pubBits, portBits := result.pubBitsExpr("pv"), result.portBitsExpr("pr")
+	resultFmt := result.resultFmtSpec()
+
+	fmt.Fprintf(b, "fn %s(failures: &mut Vec<String>) -> usize {\n", funcName)
+	b.WriteString("    let mut count = 0usize;\n")
+	fmt.Fprintf(b, "    for triple_index in 0..%s.len() {\n", xWidth.triples)
+	fmt.Fprintf(b, "        let x_triple = %s[triple_index];\n", xWidth.triples)
+	fmt.Fprintf(b, "        let y_triple = %s[triple_index];\n", yWidth.triples)
+	fmt.Fprintf(b, "        let z_triple = %s[triple_index];\n", zWidth.triples)
+	fmt.Fprintf(b, "        let x_bits = %s[x_triple.0];\n", xWidth.corpus)
+	fmt.Fprintf(b, "        let y_bits = %s[y_triple.1];\n", yWidth.corpus)
+	fmt.Fprintf(b, "        let z_bits = %s[z_triple.2];\n", zWidth.corpus)
+	b.WriteString("        for &(mode, port_mode) in PARITY_MODES {\n")
+	indent := "            "
+	fmt.Fprintf(b, "%slet (pv, pf) = %s::%s(%s, %s, %s, mode);\n", indent, result.selfType, row.RustSurface, xWidth.pubFrom("x_bits"), yWidth.pubFrom("y_bits"), zWidth.pubFrom("z_bits"))
+	b.WriteString(indent + portCallStmt(row.BidgoFunction, module, fn, []string{xWidth.portArg("x_bits"), yWidth.portArg("y_bits"), zWidth.portArg("z_bits"), "port_mode"}) + "\n")
+	ctxFmt := "operands " + xWidth.opFmtSpec() + "," + yWidth.opFmtSpec() + "," + zWidth.opFmtSpec() + " mode {:?}"
+	fmt.Fprintf(b, "%sif %s != %s {\n", indent, pubBits, portBits)
+	fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: result mismatch public=%s port=%s\", x_bits, y_bits, z_bits, mode, %s, %s));\n", indent, row.GoSymbol, ctxFmt, resultFmt, resultFmt, pubBits, portBits)
+	fmt.Fprintf(b, "%s}\n", indent)
+	fmt.Fprintf(b, "%sif pf.bits() != map_port_flags(praw) {\n", indent)
+	fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: flag mismatch public={:#x} port={:#x}\", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));\n", indent, row.GoSymbol, ctxFmt)
+	fmt.Fprintf(b, "%s}\n", indent)
+	fmt.Fprintf(b, "%scount += 1;\n", indent)
+	b.WriteString("        }\n    }\n")
+
+	if len(disc) > 0 {
+		xType, _ := rustModeDiscTypes(xWidth)
+		yType, _ := rustModeDiscTypes(yWidth)
+		zType, _ := rustModeDiscTypes(zWidth)
+		_, seenInit := rustModeDiscTypes(result)
+		fmt.Fprintf(b, "    let disc_triples: &[(%s, %s, %s)] = &[\n", xType, yType, zType)
+		for _, triple := range disc {
+			xLit, err := modeDiscRustLiteral(parityWidthDigits(xWidth), triple[0])
+			if err != nil {
+				return "", 0, fmt.Errorf("%s x discriminant: %w", row.GoSymbol, err)
+			}
+			yLit, err := modeDiscRustLiteral(parityWidthDigits(yWidth), triple[1])
+			if err != nil {
+				return "", 0, fmt.Errorf("%s y discriminant: %w", row.GoSymbol, err)
+			}
+			zLit, err := modeDiscRustLiteral(parityWidthDigits(zWidth), triple[2])
+			if err != nil {
+				return "", 0, fmt.Errorf("%s z discriminant: %w", row.GoSymbol, err)
+			}
+			fmt.Fprintf(b, "        (%s, %s, %s),\n", xLit, yLit, zLit)
+		}
+		b.WriteString("    ];\n")
+		b.WriteString("    for &(x_bits, y_bits, z_bits) in disc_triples {\n")
+		fmt.Fprintf(b, "        let mut mode_seen = %s;\n", seenInit)
+		b.WriteString("        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {\n")
+		fmt.Fprintf(b, "%slet (pv, pf) = %s::%s(%s, %s, %s, mode);\n", indent, result.selfType, row.RustSurface, xWidth.pubFrom("x_bits"), yWidth.pubFrom("y_bits"), zWidth.pubFrom("z_bits"))
+		b.WriteString(indent + portCallStmt(row.BidgoFunction, module, fn, []string{xWidth.portArg("x_bits"), yWidth.portArg("y_bits"), zWidth.portArg("z_bits"), "port_mode"}) + "\n")
+		discCtxFmt := "discriminant operands " + xWidth.opFmtSpec() + "," + yWidth.opFmtSpec() + "," + zWidth.opFmtSpec() + " mode {:?}"
+		fmt.Fprintf(b, "%sif %s != %s {\n", indent, pubBits, portBits)
+		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: result mismatch public=%s port=%s\", x_bits, y_bits, z_bits, mode, %s, %s));\n", indent, row.GoSymbol, discCtxFmt, resultFmt, resultFmt, pubBits, portBits)
+		fmt.Fprintf(b, "%s}\n", indent)
+		fmt.Fprintf(b, "%sif pf.bits() != map_port_flags(praw) {\n", indent)
+		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: flag mismatch public={:#x} port={:#x}\", x_bits, y_bits, z_bits, mode, pf.bits(), map_port_flags(praw)));\n", indent, row.GoSymbol, discCtxFmt)
+		fmt.Fprintf(b, "%s}\n", indent)
+		fmt.Fprintf(b, "%smode_seen[mi] = %s;\n", indent, pubBits)
+		fmt.Fprintf(b, "%scount += 1;\n", indent)
+		b.WriteString("        }\n")
+		fmt.Fprintf(b, "        if mode_seen.iter().all(|s| *s == mode_seen[0]) {\n")
+		fmt.Fprintf(b, "            failures.push(format!(\"public parity %s: discriminant operands %s,%s,%s: every rounding mode produced the same result\", x_bits, y_bits, z_bits));\n", row.GoSymbol, xWidth.opFmtSpec(), yWidth.opFmtSpec(), zWidth.opFmtSpec())
+		b.WriteString("        }\n    }\n")
+	}
+	if err := emitRustMixedFMAFusednessCase(b, row, result, operands, probe, module, fn); err != nil {
+		return "", 0, err
+	}
+	b.WriteString("    count\n}\n\n")
+	return funcName, cases, nil
+}
+
+func rustFusednessBitsType(bits ffiFusednessBits) (string, error) {
+	switch bits.width {
+	case 64:
+		return "u64", nil
+	case 128:
+		return "[u8; 16]", nil
+	default:
+		return "", fmt.Errorf("rust public parity: fusedness literal has unsupported width %d", bits.width)
+	}
+}
+
+// rustFusednessBitsLiteral renders the table's semantic (hi, lo) words as the
+// raw Rust value representation. Decimal128 is deliberately emitted lo-word
+// first in little-endian byte order, exactly matching Decimal128::from_le_bytes
+// and the FFI shard representation.
+func rustFusednessBitsLiteral(bits ffiFusednessBits) (string, error) {
+	switch bits.width {
+	case 64:
+		return fmt.Sprintf("0x%016xu64", bits.lo), nil
+	case 128:
+		parts := make([]string, 16)
+		for i := 0; i < 8; i++ {
+			parts[i] = fmt.Sprintf("0x%02x", byte(bits.lo>>uint(8*i)))
+			parts[8+i] = fmt.Sprintf("0x%02x", byte(bits.hi>>uint(8*i)))
+		}
+		return "[" + strings.Join(parts, ", ") + "]", nil
+	default:
+		return "", fmt.Errorf("rust public parity: fusedness literal has unsupported width %d", bits.width)
+	}
+}
+
+func emitRustFusednessOperand(b *strings.Builder, name string, bits ffiFusednessBits) error {
+	typeName, err := rustFusednessBitsType(bits)
+	if err != nil {
+		return err
+	}
+	literal, err := rustFusednessBitsLiteral(bits)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(b, "        let %s_bits: %s = %s;\n", name, typeName, literal)
+	return nil
+}
+
+func emitRustFusednessWiden(b *strings.Builder, name string, bits ffiFusednessBits) error {
+	switch bits.width {
+	case 64:
+		fmt.Fprintf(b, "        let (%s_q, %s_widen_raw) = bid754::generated::to_bid12864::bid64_to_bid128(%s_bits);\n", name, name, name)
+	case 128:
+		fmt.Fprintf(b, "        let %s_q = to_port128(%s_bits);\n", name, name)
+		fmt.Fprintf(b, "        let %s_widen_raw = 0u32;\n", name)
+	default:
+		return fmt.Errorf("rust public parity: fusedness operand %s has unsupported width %d", name, bits.width)
+	}
+	return nil
+}
+
+// emitRustMixedFMAFusednessCase adds one nearest-even known-answer case to a
+// mixed FMA wrapper. It closes both sides of the contract: the public wrapper
+// and its direct generated port must equal the fused Intel result, while an
+// explicitly sequential generated-port composition must equal the pinned
+// forbidden result. Every conversion/operation status is ORed so flags remain
+// sticky across the full composition.
+func emitRustMixedFMAFusednessCase(b *strings.Builder, row rustParityInventoryRow, result parityWidth, operands [3]parityWidth, probe ffiFusednessProbe, module, fn string) error {
+	if apiemit.PortPfpsf(row.BidgoFunction) {
+		return fmt.Errorf("rust public parity: mixed FMA %q unexpectedly uses a pfpsf output parameter", row.GoSymbol)
+	}
+	for i, width := range operands {
+		if got, want := probe.operands[i].width, parityWidthDigits(width); got != want {
+			return fmt.Errorf("rust public parity: mixed FMA %q fusedness operand %d width = %d, want %d", row.GoSymbol, i, got, want)
+		}
+	}
+	if got, want := probe.expected.bits.width, parityWidthDigits(result); got != want {
+		return fmt.Errorf("rust public parity: mixed FMA %q fusedness result width = %d, want %d", row.GoSymbol, got, want)
+	}
+
+	expectedType, err := rustFusednessBitsType(probe.expected.bits)
+	if err != nil {
+		return err
+	}
+	expectedLiteral, err := rustFusednessBitsLiteral(probe.expected.bits)
+	if err != nil {
+		return err
+	}
+	forbiddenLiteral, err := rustFusednessBitsLiteral(probe.forbidden.bits)
+	if err != nil {
+		return err
+	}
+
+	b.WriteString("    {\n")
+	for i, name := range []string{"fused_x", "fused_y", "fused_z"} {
+		if err := emitRustFusednessOperand(b, name, probe.operands[i]); err != nil {
+			return fmt.Errorf("rust public parity: mixed FMA %q: %w", row.GoSymbol, err)
+		}
+	}
+	fmt.Fprintf(b, "        let expected_bits: %s = %s;\n", expectedType, expectedLiteral)
+	fmt.Fprintf(b, "        let forbidden_bits: %s = %s;\n", expectedType, forbiddenLiteral)
+	fmt.Fprintf(b, "        let expected_raw = 0x%08xu32;\n", probe.expected.flags)
+	fmt.Fprintf(b, "        let forbidden_raw = 0x%08xu32;\n", probe.forbidden.flags)
+	b.WriteString("        let fused_mode = RoundingMode::NearestEven;\n")
+	b.WriteString("        let fused_port_mode = BIDGO_ROUND_NEAREST_EVEN;\n")
+	fmt.Fprintf(b, "        let (fused_pv, fused_pf) = %s::%s(%s, %s, %s, fused_mode);\n",
+		result.selfType, row.RustSurface,
+		operands[0].pubFrom("fused_x_bits"), operands[1].pubFrom("fused_y_bits"), operands[2].pubFrom("fused_z_bits"))
+	fmt.Fprintf(b, "        let (fused_pr, fused_praw) = bid754::generated::%s::%s(%s, %s, %s, fused_port_mode);\n",
+		module, fn,
+		operands[0].portArg("fused_x_bits"), operands[1].portArg("fused_y_bits"), operands[2].portArg("fused_z_bits"))
+
+	pubBits := result.pubBitsExpr("fused_pv")
+	portBits := result.portBitsExpr("fused_pr")
+	resultFmt := result.resultFmtSpec()
+	fmt.Fprintf(b, "        if %s != expected_bits {\n", pubBits)
+	fmt.Fprintf(b, "            failures.push(format!(\"public parity %s fusedness: public result mismatch public=%s expected=%s\", %s, expected_bits));\n", row.GoSymbol, resultFmt, resultFmt, pubBits)
+	b.WriteString("        }\n")
+	b.WriteString("        if fused_pf.bits() != map_port_flags(expected_raw) {\n")
+	fmt.Fprintf(b, "            failures.push(format!(\"public parity %s fusedness: public flags mismatch public={:#x} expected={:#x}\", fused_pf.bits(), map_port_flags(expected_raw)));\n", row.GoSymbol)
+	b.WriteString("        }\n")
+	fmt.Fprintf(b, "        if %s != expected_bits {\n", portBits)
+	fmt.Fprintf(b, "            failures.push(format!(\"public parity %s fusedness: direct-port result mismatch port=%s expected=%s\", %s, expected_bits));\n", row.GoSymbol, resultFmt, resultFmt, portBits)
+	b.WriteString("        }\n")
+	b.WriteString("        if fused_praw != expected_raw {\n")
+	fmt.Fprintf(b, "            failures.push(format!(\"public parity %s fusedness: direct-port raw flags mismatch port={:#x} expected={:#x}\", fused_praw, expected_raw));\n", row.GoSymbol)
+	b.WriteString("        }\n")
+
+	for i, name := range []string{"fused_x", "fused_y", "fused_z"} {
+		if err := emitRustFusednessWiden(b, name, probe.operands[i]); err != nil {
+			return fmt.Errorf("rust public parity: mixed FMA %q: %w", row.GoSymbol, err)
+		}
+	}
+	b.WriteString("        let (fused_product, fused_mul_raw) = bid754::generated::bid128_mul::bid128_mul(fused_x_q, fused_y_q, fused_port_mode);\n")
+	b.WriteString("        let mut composed_raw = fused_x_widen_raw | fused_y_widen_raw | fused_z_widen_raw | fused_mul_raw;\n")
+	b.WriteString("        let fused_sum = bid754::generated::bid128_add::bid128_add(fused_product, fused_z_q, fused_port_mode, &mut composed_raw);\n")
+	if result.selfType == "Decimal64" {
+		b.WriteString("        let (composed_result, fused_narrow_raw) = bid754::generated::bid128_conversions::bid128_to_bid64(fused_sum, fused_port_mode);\n")
+		b.WriteString("        composed_raw |= fused_narrow_raw;\n")
+	} else {
+		b.WriteString("        let composed_result = fused_sum;\n")
+	}
+	composedBits := result.portBitsExpr("composed_result")
+	fmt.Fprintf(b, "        if %s != forbidden_bits {\n", composedBits)
+	fmt.Fprintf(b, "            failures.push(format!(\"public parity %s fusedness: sequential result mismatch composed=%s forbidden=%s\", %s, forbidden_bits));\n", row.GoSymbol, resultFmt, resultFmt, composedBits)
+	b.WriteString("        }\n")
+	b.WriteString("        if composed_raw != forbidden_raw {\n")
+	fmt.Fprintf(b, "            failures.push(format!(\"public parity %s fusedness: sequential raw flags mismatch composed={:#x} forbidden={:#x}\", composed_raw, forbidden_raw));\n", row.GoSymbol)
+	b.WriteString("        }\n")
+	fmt.Fprintf(b, "        if %s == %s && composed_raw == fused_praw {\n", composedBits, portBits)
+	fmt.Fprintf(b, "            failures.push(\"public parity %s fusedness: sequential composition did not differ from direct FMA in bits+raw-flags\".to_string());\n", row.GoSymbol)
+	b.WriteString("        }\n")
+	b.WriteString("        count += 1;\n")
+	b.WriteString("    }\n")
+	return nil
+}
+
+func validateRustMixedUnaryRow(row rustParityInventoryRow, result parityWidth) (parityWidth, error) {
+	operand, ok := rustMixedUnaryShapeWidths[row.Shape]
+	if !ok {
+		return parityWidth{}, fmt.Errorf("rust public parity: mixed unary shape %q has no independent operand-width mapping", row.Shape)
+	}
+	code := strings.TrimPrefix(row.Shape, "mixed_unary_mode_flags_")
+	resultWidth := parityWidthDigits(result)
+	if (resultWidth == 64 && code != "q") || (resultWidth == 128 && code != "d") {
+		return parityWidth{}, fmt.Errorf("rust public parity: mixed sqrt shape %q is unsupported for Decimal%d", row.Shape, resultWidth)
+	}
+	wantSymbol := fmt.Sprintf("Sqrt%d%sBIDWithMode", resultWidth, strings.ToUpper(code))
+	wantSurface := "sqrt_" + code + "_with_mode"
+	wantPort := fmt.Sprintf("Bid%d%sSqrt", resultWidth, code)
+	if row.GoSymbol != wantSymbol || row.RustOwner != result.selfType || row.RustSurface != wantSurface || row.BidgoFunction != wantPort {
+		return parityWidth{}, fmt.Errorf("rust public parity: mixed sqrt row %q does not match shape %q; want symbol=%q owner=%q surface=%q port=%q, got owner=%q surface=%q port=%q", row.GoSymbol, row.Shape, wantSymbol, result.selfType, wantSurface, wantPort, row.RustOwner, row.RustSurface, row.BidgoFunction)
+	}
+	return operand, nil
+}
+
+// emitMixedModeUnary independently exercises Intel's two unlike-width square
+// roots. The source corpus is decoded at the operand width and the result is
+// compared at the destination width; no widen/sqrt/narrow composition enters
+// this verification path.
+func emitMixedModeUnary(b *strings.Builder, row rustParityInventoryRow, corpus publicParityCorpus, result parityWidth) (string, int, error) {
+	operand, err := validateRustMixedUnaryRow(row, result)
+	if err != nil {
+		return "", 0, err
+	}
+	disc, err := mixedModeUnaryDiscriminantOperands("Sqrt", parityWidthDigits(result), parityWidthDigits(operand))
+	if err != nil {
+		return "", 0, err
+	}
+	module, fn, err := resolvePort(row.BidgoFunction, row.GoSymbol)
+	if err != nil {
+		return "", 0, err
+	}
+	funcName := normalizeRustFnName(row.GoSymbol)
+	cases := (operand.bitsLen(corpus) + len(disc)) * len(publicParityModeOrderNames)
+	pubBits, portBits := result.pubBitsExpr("pv"), result.portBitsExpr("pr")
+	resultFmt := result.resultFmtSpec()
+	indent := "            "
+
+	fmt.Fprintf(b, "fn %s(failures: &mut Vec<String>) -> usize {\n", funcName)
+	b.WriteString("    let mut count = 0usize;\n")
+	fmt.Fprintf(b, "    for &value_bits in %s {\n", operand.corpus)
+	b.WriteString("        for &(mode, port_mode) in PARITY_MODES {\n")
+	fmt.Fprintf(b, "%slet (pv, pf) = %s::%s(%s, mode);\n", indent, result.selfType, row.RustSurface, operand.pubFrom("value_bits"))
+	b.WriteString(indent + portCallStmt(row.BidgoFunction, module, fn, []string{operand.portArg("value_bits"), "port_mode"}) + "\n")
+	ctxFmt := "operand " + operand.opFmtSpec() + " mode {:?}"
+	fmt.Fprintf(b, "%sif %s != %s {\n", indent, pubBits, portBits)
+	fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: result mismatch public=%s port=%s\", value_bits, mode, %s, %s));\n", indent, row.GoSymbol, ctxFmt, resultFmt, resultFmt, pubBits, portBits)
+	fmt.Fprintf(b, "%s}\n", indent)
+	fmt.Fprintf(b, "%sif pf.bits() != map_port_flags(praw) {\n", indent)
+	fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: flag mismatch public={:#x} port={:#x}\", value_bits, mode, pf.bits(), map_port_flags(praw)));\n", indent, row.GoSymbol, ctxFmt)
+	fmt.Fprintf(b, "%s}\n", indent)
+	fmt.Fprintf(b, "%scount += 1;\n", indent)
+	b.WriteString("        }\n    }\n")
+
+	if len(disc) > 0 {
+		elemType, _ := rustModeDiscTypes(operand)
+		_, seenInit := rustModeDiscTypes(result)
+		fmt.Fprintf(b, "    let disc_values: &[%s] = &[\n", elemType)
+		for _, value := range disc {
+			lit, err := modeDiscRustLiteral(parityWidthDigits(operand), value)
+			if err != nil {
+				return "", 0, fmt.Errorf("%s discriminant: %w", row.GoSymbol, err)
+			}
+			fmt.Fprintf(b, "        %s,\n", lit)
+		}
+		b.WriteString("    ];\n")
+		b.WriteString("    for &value_bits in disc_values {\n")
+		fmt.Fprintf(b, "        let mut mode_seen = %s;\n", seenInit)
+		b.WriteString("        for (mi, &(mode, port_mode)) in PARITY_MODES.iter().enumerate() {\n")
+		fmt.Fprintf(b, "%slet (pv, pf) = %s::%s(%s, mode);\n", indent, result.selfType, row.RustSurface, operand.pubFrom("value_bits"))
+		b.WriteString(indent + portCallStmt(row.BidgoFunction, module, fn, []string{operand.portArg("value_bits"), "port_mode"}) + "\n")
+		discCtxFmt := "discriminant operand " + operand.opFmtSpec() + " mode {:?}"
+		fmt.Fprintf(b, "%sif %s != %s {\n", indent, pubBits, portBits)
+		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: result mismatch public=%s port=%s\", value_bits, mode, %s, %s));\n", indent, row.GoSymbol, discCtxFmt, resultFmt, resultFmt, pubBits, portBits)
+		fmt.Fprintf(b, "%s}\n", indent)
+		fmt.Fprintf(b, "%sif pf.bits() != map_port_flags(praw) {\n", indent)
+		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s: flag mismatch public={:#x} port={:#x}\", value_bits, mode, pf.bits(), map_port_flags(praw)));\n", indent, row.GoSymbol, discCtxFmt)
+		fmt.Fprintf(b, "%s}\n", indent)
+		fmt.Fprintf(b, "%smode_seen[mi] = %s;\n", indent, pubBits)
+		fmt.Fprintf(b, "%scount += 1;\n", indent)
+		b.WriteString("        }\n")
+		fmt.Fprintf(b, "        if mode_seen.iter().all(|s| *s == mode_seen[0]) {\n")
+		fmt.Fprintf(b, "            failures.push(format!(\"public parity %s: discriminant operand %s: every rounding mode produced the same result\", value_bits));\n", row.GoSymbol, operand.opFmtSpec())
 		b.WriteString("        }\n    }\n")
 	}
 	b.WriteString("    count\n}\n\n")
@@ -2855,6 +3271,7 @@ struct ParityUnit {
 `)
 	fmt.Fprintf(b, "pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = %d;\n", len(summaries))
 	fmt.Fprintf(b, "pub(crate) const EXPECTED_PARITY_CASES: usize = %d;\n\n", total)
+	fmt.Fprintf(b, "const EXPECTED_MIXED_FMA_FUSEDNESS_SENTINELS: usize = %d;\n\n", len(ffiMixedFMAFusednessProbes))
 
 	b.WriteString("const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[\n")
 	for _, name := range shapeNames {
@@ -2864,6 +3281,11 @@ struct ParityUnit {
 
 	b.WriteString(`#[test]
 fn generated_public_api_parity() {
+    assert_eq!(
+        MIXED_FMA_FUSEDNESS_SENTINEL_ROWS.len(),
+        EXPECTED_MIXED_FMA_FUSEDNESS_SENTINELS,
+        "mixed FMA fusedness sentinel census drifted"
+    );
     assert_eq!(
         PARITY_UNITS.len(),
         EXPECTED_PARITY_WRAPPERS,
