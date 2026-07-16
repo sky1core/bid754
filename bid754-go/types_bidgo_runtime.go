@@ -1,11 +1,11 @@
 package bid754
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
 	"strings"
-	"unsafe"
 
 	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
@@ -1526,15 +1526,38 @@ func parseDecimal128BIDPortModeWithRawStatus(s string, rndMode int) (Decimal128B
 	return decimal128BIDFromBidgo(result), bidgoExceptionFlags(rawFlags), rawFlags
 }
 
+// decimal128BIDWords returns the (hi, lo) 64-bit words stored in d's
+// little-endian [16]byte image. The Decimal128BID byte contract is
+// little-endian on every platform, so the decode is explicit rather than a
+// native-endian pointer reinterpretation (which byte-swapped the words on
+// big-endian platforms).
+func decimal128BIDWords(d Decimal128BID) (hi, lo uint64) {
+	return binary.LittleEndian.Uint64(d[8:16]), binary.LittleEndian.Uint64(d[0:8])
+}
+
+// decimal128BIDFromWords builds the little-endian [16]byte image of the
+// (hi, lo) 64-bit words.
+func decimal128BIDFromWords(hi, lo uint64) Decimal128BID {
+	var d Decimal128BID
+	binary.LittleEndian.PutUint64(d[0:8], lo)
+	binary.LittleEndian.PutUint64(d[8:16], hi)
+	return d
+}
+
 func decimal128BIDAsBidgo(d Decimal128BID) bidgo.BID_UINT128 {
-	raw := d.ToBytes()
-	return *(*bidgo.BID_UINT128)(unsafe.Pointer(&raw))
+	hi, lo := decimal128BIDWords(d)
+	return bidgo.Bid128FromWords(hi, lo)
 }
 
 func decimal128BIDFromBidgo(x bidgo.BID_UINT128) Decimal128BID {
-	return *(*Decimal128BID)(unsafe.Pointer(&x))
+	hi, lo := bidgo.Bid128Words(x)
+	return decimal128BIDFromWords(hi, lo)
 }
 
 func binary128FromBidgo(x bidgo.BID_UINT128) Binary128 {
-	return *(*Binary128)(unsafe.Pointer(&x))
+	hi, lo := bidgo.Bid128Words(x)
+	var b Binary128
+	binary.LittleEndian.PutUint64(b[0:8], lo)
+	binary.LittleEndian.PutUint64(b[8:16], hi)
+	return b
 }

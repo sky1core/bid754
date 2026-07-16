@@ -2035,6 +2035,25 @@
       "exported": true,
       "group": "bid128"
     },
+    "Bid128FromWords": {
+      "params": [
+        {
+          "name": "hi",
+          "type": "u64"
+        },
+        {
+          "name": "lo",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "BID_UINT128"
+      ],
+      "go_file": "bid128_words.go",
+      "go_name": "Bid128FromWords",
+      "exported": true,
+      "group": "bid128"
+    },
     "Bid128Ilogb": {
       "params": [
         {
@@ -4769,6 +4788,22 @@
       ],
       "go_file": "bid128_compare.go",
       "go_name": "Bid128TotalOrderMag",
+      "exported": true,
+      "group": "bid128"
+    },
+    "Bid128Words": {
+      "params": [
+        {
+          "name": "x",
+          "type": "BID_UINT128"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u64"
+      ],
+      "go_file": "bid128_words.go",
+      "go_name": "Bid128Words",
       "exported": true,
       "group": "bid128"
     },

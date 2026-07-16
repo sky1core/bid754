@@ -1,8 +1,6 @@
 package bid754
 
 import (
-	"unsafe"
-
 	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
 
@@ -42,8 +40,7 @@ func canonicalQNaN64BID() Decimal64BID { return Decimal64BID(bidNaNBits64) }
 // canonicalQNaN128BID returns the canonical Decimal128 quiet NaN. The high word
 // carries the 0x7c… combination field; the payload words are zero.
 func canonicalQNaN128BID() Decimal128BID {
-	bits := bidUint128Words{w: [2]uint64{0, 0x7c00000000000000}}
-	return *(*Decimal128BID)(unsafe.Pointer(&bits))
+	return decimal128BIDFromWords(0x7c00000000000000, 0)
 }
 
 // bidNaN128Bidgo returns the canonical Decimal128 quiet NaN in the bidgo

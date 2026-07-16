@@ -4,17 +4,12 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
-	"unsafe"
 )
 
 type bidNaNLiteral struct {
 	negative  bool
 	signaling bool
 	payload   string
-}
-
-type bidUint128Words struct {
-	w [2]uint64
 }
 
 // parseBIDNaNLiteral recognizes the public NaN literal grammar:
@@ -122,15 +117,14 @@ func parseDecimal128BIDNaN(input string) (Decimal128BID, bool) {
 	}
 
 	lo := new(big.Int).And(payload, new(big.Int).SetUint64(^uint64(0))).Uint64()
-	hi := new(big.Int).Rsh(payload, 64).Uint64()
-	bits := bidUint128Words{w: [2]uint64{lo, hi | 0x7c00000000000000}}
+	hi := new(big.Int).Rsh(payload, 64).Uint64() | 0x7c00000000000000
 	if lit.signaling {
-		bits.w[1] = (bits.w[1] &^ uint64(0x7c00000000000000)) | 0x7e00000000000000
+		hi = (hi &^ uint64(0x7c00000000000000)) | 0x7e00000000000000
 	}
 	if lit.negative {
-		bits.w[1] |= 0x8000000000000000
+		hi |= 0x8000000000000000
 	}
-	return *(*Decimal128BID)(unsafe.Pointer(&bits)), true
+	return decimal128BIDFromWords(hi, lo), true
 }
 
 func parseUintPayload(payload string, max uint64) (uint64, bool) {
@@ -176,18 +170,18 @@ func formatDecimal64BIDNaN(bits uint64) (string, bool) {
 }
 
 func formatDecimal128BIDNaN(d Decimal128BID) (string, bool) {
-	bits := *(*bidUint128Words)(unsafe.Pointer(&d))
-	if bits.w[1]&0x7c00000000000000 != 0x7c00000000000000 {
+	hi, lo := decimal128BIDWords(d)
+	if hi&0x7c00000000000000 != 0x7c00000000000000 {
 		return "", false
 	}
-	payload := new(big.Int).SetUint64(bits.w[1] & 0x00003fffffffffff)
+	payload := new(big.Int).SetUint64(hi & 0x00003fffffffffff)
 	payload.Lsh(payload, 64)
-	payload.Or(payload, new(big.Int).SetUint64(bits.w[0]))
+	payload.Or(payload, new(big.Int).SetUint64(lo))
 	payloadText := ""
 	if payload.Sign() != 0 && payload.Cmp(decimal128NaNPayloadLimit()) < 0 {
 		payloadText = payload.String()
 	}
-	return formatBIDNaN(bits.w[1]&0x8000000000000000 != 0, bits.w[1]&0x7e00000000000000 == 0x7e00000000000000, payloadText), true
+	return formatBIDNaN(hi&0x8000000000000000 != 0, hi&0x7e00000000000000 == 0x7e00000000000000, payloadText), true
 }
 
 // payloadString renders a NaN payload only when it is canonical: nonzero and

@@ -31,6 +31,7 @@ pub mod bid128_sqrt;
 pub mod bid128_string;
 pub mod bid128_to_binary;
 pub mod bid128_to_int;
+pub mod bid128_words;
 pub mod bid32_add;
 pub mod bid32_div;
 pub mod bid32_exports;

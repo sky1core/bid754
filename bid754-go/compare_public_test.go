@@ -2,7 +2,6 @@ package bid754
 
 import (
 	"testing"
-	"unsafe"
 
 	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
@@ -31,8 +30,7 @@ type directCompare64 func(uint64, uint64) (int, uint32)
 type directCompare128 func(bidgo.BID_UINT128, bidgo.BID_UINT128) (int, uint32)
 
 func rawDecimal128BID(lo, hi uint64) Decimal128BID {
-	bits := bidUint128Words{w: [2]uint64{lo, hi}}
-	return *(*Decimal128BID)(unsafe.Pointer(&bits))
+	return decimal128BIDFromWords(hi, lo)
 }
 
 func compareInputs32(t *testing.T) []compareCase32 {

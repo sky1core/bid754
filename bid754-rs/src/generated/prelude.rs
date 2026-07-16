@@ -197,6 +197,7 @@ pub use super::bid128_sqrt::*;
 pub use super::bid128_string::*;
 pub use super::bid128_to_binary::*;
 pub use super::bid128_to_int::*;
+pub use super::bid128_words::*;
 pub use super::bid32_add::*;
 pub use super::bid32_div::*;
 pub use super::bid32_exports::*;

@@ -18,7 +18,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unsafe"
 
 	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
 	"github.com/sky1core/bid754/bid754-go/internal/testspec"
@@ -217,12 +216,7 @@ func operand128(ops []string, i int) (bidgo.BID_UINT128, bool) {
 		if err1 != nil || err2 != nil {
 			return zero, false
 		}
-		var raw [16]byte
-		for b := 0; b < 8; b++ {
-			raw[b] = byte(lo >> (8 * b))
-			raw[8+b] = byte(hi >> (8 * b))
-		}
-		return *(*bidgo.BID_UINT128)(unsafe.Pointer(&raw)), true
+		return bidgo.Bid128FromWords(hi, lo), true
 	}
 	r, _ := bidgo.Bid128FromString(ops[i], 0)
 	return r, true
@@ -237,11 +231,6 @@ func bracketHex(s string) (string, bool) {
 }
 
 func hex128(x bidgo.BID_UINT128) string {
-	raw := *(*[16]byte)(unsafe.Pointer(&x))
-	var hi, lo uint64
-	for b := 0; b < 8; b++ {
-		lo |= uint64(raw[b]) << (8 * b)
-		hi |= uint64(raw[8+b]) << (8 * b)
-	}
+	hi, lo := bidgo.Bid128Words(x)
 	return fmt.Sprintf("%016x%016x", hi, lo)
 }

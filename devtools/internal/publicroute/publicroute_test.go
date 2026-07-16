@@ -425,6 +425,36 @@ func setEquals(got map[string]bool, want []string) bool {
 	return true
 }
 
+// representationPlumbingPortFuncs lists the bidgo functions that only convert
+// between the public little-endian [16]byte value-type image and the port's
+// BID_UINT128 word representation, with the reason each carries no decimal
+// operation semantics. The shim layer reaches them on every 128-bit route
+// because the conversion is explicit-endian plumbing (it replaced the
+// native-endian unsafe reinterpretation that broke big-endian platforms), so
+// checks 2 and 3 remove them from the reachable set before comparing against
+// the inventory operation mapping. This cannot weaken the routing gate: a
+// wrapper whose reachable set holds only plumbing still fails the exact-set
+// comparison against its inventory operation. Exhaustive in the composed-map
+// style: an entry that no mapped wrapper reaches, or with an empty reason,
+// fails.
+var representationPlumbingPortFuncs = map[string]string{
+	"Bid128FromWords": "constructs BID_UINT128 from explicit (hi, lo) words; bit-pattern representation change only, no decimal operation semantics, exercised transitively by every 128-bit case of the generated verification domains that bit-compare wrapper results",
+	"Bid128Words":     "reads the (hi, lo) words of BID_UINT128; bit-pattern representation change only, no decimal operation semantics, exercised transitively by every 128-bit case of the generated verification domains that bit-compare wrapper results",
+}
+
+// withoutRepresentationPlumbing removes the registered representation-plumbing
+// functions from a resolved reachable set, recording which entries matched so
+// the caller can fail stale registrations.
+func withoutRepresentationPlumbing(reachable map[string]bool, used map[string]bool) map[string]bool {
+	for fn := range reachable {
+		if _, plumbing := representationPlumbingPortFuncs[fn]; plumbing {
+			used[fn] = true
+			delete(reachable, fn)
+		}
+	}
+	return reachable
+}
+
 func TestPublicAPIInventoryMappingsMatchShimCalls(t *testing.T) {
 	inventory := loadInventory(t)
 	tb := loadTypedPublicBuild(t)
@@ -432,6 +462,7 @@ func TestPublicAPIInventoryMappingsMatchShimCalls(t *testing.T) {
 
 	usedValueComposed := map[string]bool{}
 	usedFuncComposed := map[string]bool{}
+	usedPlumbing := map[string]bool{}
 
 	for _, row := range inventory.Symbols {
 		if row.Status != "mapped" {
@@ -451,7 +482,7 @@ func TestPublicAPIInventoryMappingsMatchShimCalls(t *testing.T) {
 			t.Errorf("mapped symbol %q not found among public-build declarations", row.Symbol)
 			continue
 		}
-		reachable := resolver.reachablePortFuncs(start)
+		reachable := withoutRepresentationPlumbing(resolver.reachablePortFuncs(start), usedPlumbing)
 
 		// Composed value-type method?
 		if row.Kind == "method" {
@@ -516,6 +547,14 @@ func TestPublicAPIInventoryMappingsMatchShimCalls(t *testing.T) {
 	for sym := range composedPackageFuncCallees {
 		if !usedFuncComposed[sym] {
 			t.Errorf("composedPackageFuncCallees entry %q matched no mapped package function; remove the stale entry", sym)
+		}
+	}
+	for fn, reason := range representationPlumbingPortFuncs {
+		if strings.TrimSpace(reason) == "" {
+			t.Errorf("representationPlumbingPortFuncs[%q] has an empty reason", fn)
+		}
+		if !usedPlumbing[fn] {
+			t.Errorf("representationPlumbingPortFuncs entry %q was reached by no mapped wrapper; remove the stale entry", fn)
 		}
 	}
 }
@@ -696,7 +735,7 @@ func TestPublicAPIPortFunctionsAreVerifiedByADomain(t *testing.T) {
 			t.Errorf("mapped symbol %q not found among public-build declarations", row.Symbol)
 			continue
 		}
-		r := rootRes.reachablePortFuncs(start)
+		r := withoutRepresentationPlumbing(rootRes.reachablePortFuncs(start), map[string]bool{})
 		for fn := range r {
 			targets[fn] = true
 		}

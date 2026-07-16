@@ -3,7 +3,6 @@ package bid754
 
 import (
 	"fmt"
-	"unsafe"
 )
 
 const (
@@ -114,11 +113,10 @@ func decTestDecimal64Abs(a Decimal64BID) (Decimal64BID, ExceptionFlags) {
 }
 
 func decTestDecimal128Abs(a Decimal128BID) (Decimal128BID, ExceptionFlags) {
-	words := *(*bidUint128Words)(unsafe.Pointer(&a))
-	if words.w[1]&bid128NaNMaskHigh == bid128NaNMaskHigh {
-		if words.w[1]&bid128SignalMaskHi == bid128SignalMaskHi {
-			words.w[1] &^= bid128SignalBitHigh
-			return *(*Decimal128BID)(unsafe.Pointer(&words)), FlagInvalidOperation
+	hi, lo := decimal128BIDWords(a)
+	if hi&bid128NaNMaskHigh == bid128NaNMaskHigh {
+		if hi&bid128SignalMaskHi == bid128SignalMaskHi {
+			return decimal128BIDFromWords(hi&^bid128SignalBitHigh, lo), FlagInvalidOperation
 		}
 		return a, 0
 	}
