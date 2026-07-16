@@ -3,10 +3,10 @@
 package bid754
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"strings"
-	"unsafe"
 
 	"github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
@@ -6288,12 +6288,21 @@ func goportReadtestGeneratedUnsigned(function string, rounding int, operands []s
 	}
 }
 
+// goportReadtestToBidgo128 / goportReadtestFromBidgo128 convert between the
+// little-endian [16]byte 128-bit image and the port operand type through the
+// explicit (hi, lo) word view, so the conversion is byte-order identical on
+// every host endianness (a native-endian pointer reinterpretation would
+// byte-swap the words on big-endian platforms).
 func goportReadtestToBidgo128(raw [16]byte) bidgo.BID_UINT128 {
-	return *(*bidgo.BID_UINT128)(unsafe.Pointer(&raw))
+	return bidgo.Bid128FromWords(binary.LittleEndian.Uint64(raw[8:16]), binary.LittleEndian.Uint64(raw[0:8]))
 }
 
 func goportReadtestFromBidgo128(value bidgo.BID_UINT128) [16]byte {
-	return *(*[16]byte)(unsafe.Pointer(&value))
+	hi, lo := bidgo.Bid128Words(value)
+	var raw [16]byte
+	binary.LittleEndian.PutUint64(raw[0:8], lo)
+	binary.LittleEndian.PutUint64(raw[8:16], hi)
+	return raw
 }
 
 func goportReadtestBoolToInt64(value bool) int64 {

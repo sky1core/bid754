@@ -73,7 +73,14 @@ verification.
 The Linux verification legs run locally in Docker without a CI service:
 `make verify-linux` (or the per-leg
 `verify-linux-portable-arm64`/`verify-linux-portable-amd64`/`verify-linux-native-amd64`
-targets). See `devtools/scripts/verify_linux.sh` for what each leg covers.
+targets). An additional local-only big-endian regression leg,
+`make verify-linux-digest-s390x`, runs `make digest`, the
+`bid754-codec-go` module tests, and the two generated Go-port runners
+(readtest goport dispatch and public-API parity, full corpus) under qemu
+linux/s390x, capturing `test_results/digest_linux_s390x.txt` for the
+`make verify-digest` cross-platform comparison; it has no CI counterpart
+and is not part of `make verify-linux`. See
+`devtools/scripts/verify_linux.sh` for what each leg covers.
 
 To run the current benchmark boundary:
 

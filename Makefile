@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -340,6 +340,13 @@ verify-linux-portable-amd64:
 
 verify-linux-native-amd64:
 	@bash ./devtools/scripts/verify_linux.sh native-amd64
+
+# CI 미러가 아닌 로컬 전용 big-endian 회귀 레그 (qemu linux/s390x):
+# make digest 교차 endian 비트 동일성 + bid754-codec-go 모듈 테스트 +
+# 생성 Go-port 러너 2종(readtest goport, public-API parity) 전체 코퍼스.
+# CI에 s390x job이 없고 qemu 비용이 커서 verify-linux(all)에는 포함하지 않는다.
+verify-linux-digest-s390x:
+	@bash ./devtools/scripts/verify_linux.sh digest-s390x
 
 check-scripts:
 	@echo "📜 셸 스크립트 구문 검사..."
@@ -869,10 +876,11 @@ help:
 	@echo "  make verify-package-versions  전 패키지 manifest 버전 일치 검증"
 	@echo "  make verify-cexport-disabled bidgo cexport inactive contract 검증"
 	@echo "  make check-scripts  셸 스크립트 구문 검사"
-	@echo "  make verify-linux   Linux 검증 레그 전체를 로컬 Docker로 실행 (CI 불요)"
+	@echo "  make verify-linux   CI 미러 Linux 검증 레그 3종을 로컬 Docker로 실행 (CI 불요)"
 	@echo "  make verify-linux-portable-arm64  Linux arm64 portable 레그 (Go+Rust)"
 	@echo "  make verify-linux-portable-amd64  Linux amd64 portable 레그 (Go+Rust)"
 	@echo "  make verify-linux-native-amd64    Linux amd64 native 레그 (Intel C oracle bit-compare)"
+	@echo "  make verify-linux-digest-s390x    Linux s390x big-endian digest+codec+러너 레그 (로컬 전용, all 미포함)"
 	@echo "  make verify-intel-bid-v20u4 Intel BID v20U3→v20U4 원본 차이 검증"
 	@echo "  make test-bid-string BID string<->bits 생성/Go+Rust 구현 검증"
 	@echo "  make test-portable-readtest generated readtest Go 포트 직접 검증 (cgo 불요)"

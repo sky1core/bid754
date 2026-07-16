@@ -9,6 +9,19 @@
 #                                  bit-compare/readtest/decTest gates, and the
 #                                  Rust Tier 1 long exact and readtest gates
 #
+# One extra leg has no CI counterpart and is not part of "all":
+#
+#   digest-s390x     linux/s390x   big-endian regression leg under qemu:
+#                                  make digest (cross-endian bit identity of
+#                                  the core-op digest, compared by make
+#                                  verify-digest), the bid754-codec-go module
+#                                  tests (byte-level codec contract), and the
+#                                  two generated Go-port runners (readtest
+#                                  goport + public-API parity, full corpus).
+#                                  The full portable gate set is intentionally
+#                                  not run: qemu-s390x emulation makes it
+#                                  impractically slow for a routine leg.
+#
 # Intentionally not run here (platform-independent; covered on the host by
 # make verify-all): verify-generated, the BID codec 6-language consumers, and
 # check-scripts.
@@ -21,7 +34,8 @@
 set -euo pipefail
 
 usage() {
-    echo "usage: $0 <portable-arm64|portable-amd64|native-amd64|all>" >&2
+    echo "usage: $0 <portable-arm64|portable-amd64|native-amd64|digest-s390x|all>" >&2
+    echo "  (all = the three CI-mirroring legs; digest-s390x is run explicitly)" >&2
     exit 2
 }
 
@@ -54,6 +68,26 @@ run_leg() {
             # and the IBM decTest originals that the native decTest gate
             # parses next to the IBM decNumber oracle.
             gate_cmd='bash devtools/scripts/setup_generation_inputs.sh && bash devtools/scripts/install_ibm_decnumber.sh && bash devtools/scripts/setup_c_libs.sh && make doctor && make test-native-smoke && make test-native-ffi && make _test-native-tier1-arithmetic-long-full && make _test-native-tier1-compare-conversion-long-full && make _test-rust-native-tier1-arithmetic-long-full && make _test-rust-native-tier1-compare-conversion-long-full && make test-native-readtest && make test-native-dectest && make test-rust-native'
+            ;;
+        digest-s390x)
+            platform=linux/s390x; arch=s390x
+            # Local-only big-endian regression leg (no CI counterpart, so it
+            # is not part of "all"). make digest emits the PLATFORM-DIGEST
+            # line captured below as test_results/digest_linux_s390x.txt and
+            # compared across platforms by make verify-digest; the
+            # bid754-codec-go module tests close the byte-level BID codec
+            # contract on a big-endian host; the two generated Go-port
+            # runners (readtest goport dispatch and public-API parity, full
+            # corpus, anchored -run match) close the 128-bit byte-image <->
+            # word conversion glue that a native-endian reinterpretation
+            # would byte-swap here. All gates need only the tracked tree
+            # (generated testspec and codec vectors are checked in), so no
+            # pinned-input setup runs, and the full test-go-modules gate is
+            # intentionally excluded: under qemu-s390x emulation it is
+            # impractically slow for a routine leg. GOCACHE is pinned to the
+            # same path the Makefile GOENV uses so the digest and runner
+            # builds share one in-container build cache.
+            gate_cmd='make digest && (cd bid754-codec-go && GOCACHE="${GOCACHE:-/tmp/go-cache}" go test -count=1 ./...) && (cd bid754-go && GOCACHE="${GOCACHE:-/tmp/go-cache}" go test -count=1 -run "^(TestGeneratedReadCasesGoPort|TestGeneratedPublicAPIParity)$" .)'
             ;;
         *)
             usage

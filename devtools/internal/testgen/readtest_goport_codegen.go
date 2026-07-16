@@ -621,10 +621,10 @@ func generateReadtestGoportDispatch(reads []ReadTestSpec, symbols map[string]sym
 	buf.WriteString(genmarker.Line("testgen") + "\n\n")
 	buf.WriteString("package bid754\n\n")
 	buf.WriteString("import (\n")
+	buf.WriteString("\t\"encoding/binary\"\n")
 	buf.WriteString("\t\"fmt\"\n")
 	buf.WriteString("\t\"math\"\n")
-	buf.WriteString("\t\"strings\"\n")
-	buf.WriteString("\t\"unsafe\"\n\n")
+	buf.WriteString("\t\"strings\"\n\n")
 	buf.WriteString("\t\"github.com/sky1core/bid754/bid754-go/internal/bidgo\"\n")
 	buf.WriteString(")\n\n")
 
@@ -973,12 +973,21 @@ func emitGoportToString(buf *bytes.Buffer, entry goportStringEntry) {
 // generated file emitted by the readtest dispatch generator
 // (generated_readtest_shared.go).
 const readtestGoportHelpers = `
+// goportReadtestToBidgo128 / goportReadtestFromBidgo128 convert between the
+// little-endian [16]byte 128-bit image and the port operand type through the
+// explicit (hi, lo) word view, so the conversion is byte-order identical on
+// every host endianness (a native-endian pointer reinterpretation would
+// byte-swap the words on big-endian platforms).
 func goportReadtestToBidgo128(raw [16]byte) bidgo.BID_UINT128 {
-	return *(*bidgo.BID_UINT128)(unsafe.Pointer(&raw))
+	return bidgo.Bid128FromWords(binary.LittleEndian.Uint64(raw[8:16]), binary.LittleEndian.Uint64(raw[0:8]))
 }
 
 func goportReadtestFromBidgo128(value bidgo.BID_UINT128) [16]byte {
-	return *(*[16]byte)(unsafe.Pointer(&value))
+	hi, lo := bidgo.Bid128Words(value)
+	var raw [16]byte
+	binary.LittleEndian.PutUint64(raw[0:8], lo)
+	binary.LittleEndian.PutUint64(raw[8:16], hi)
+	return raw
 }
 
 func goportReadtestBoolToInt64(value bool) int64 {

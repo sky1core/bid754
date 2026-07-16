@@ -24,9 +24,9 @@ func emitPublicParityDispatch(units []parityUnit, corpus publicParityCorpus, mas
 	b.WriteString(genmarker.Line("testgen") + "\n\n")
 	b.WriteString("package bid754\n\n")
 	b.WriteString("import (\n")
+	b.WriteString("\t\"encoding/binary\"\n")
 	b.WriteString("\t\"math\"\n")
-	b.WriteString("\t\"testing\"\n")
-	b.WriteString("\t\"unsafe\"\n\n")
+	b.WriteString("\t\"testing\"\n\n")
 	b.WriteString("\t\"github.com/sky1core/bid754/bid754-go/internal/bidgo\"\n")
 	b.WriteString(")\n\n")
 
@@ -48,16 +48,21 @@ func emitPublicParityDispatch(units []parityUnit, corpus publicParityCorpus, mas
 }
 
 func emitPublicParityStaticHelpers(b *strings.Builder, masks publicParityExceptionMasks) {
-	b.WriteString(`// publicParityToBidgo128 / publicParityFromBidgo128 reinterpret the
-// fixed-width 128-bit byte pattern as the port operand type, matching the
-// value types' 1:1 byte correspondence. This is a pure bit reinterpretation,
-// not a flag or rounding conversion.
+	b.WriteString(`// publicParityToBidgo128 / publicParityFromBidgo128 convert between the
+// fixed-width little-endian 128-bit byte image and the port operand type
+// through the explicit (hi, lo) word view, matching the value types' 1:1
+// byte correspondence on every host endianness. This is a pure encoding
+// conversion, not a flag or rounding conversion.
 func publicParityToBidgo128(raw [16]byte) bidgo.BID_UINT128 {
-	return *(*bidgo.BID_UINT128)(unsafe.Pointer(&raw))
+	return bidgo.Bid128FromWords(binary.LittleEndian.Uint64(raw[8:16]), binary.LittleEndian.Uint64(raw[0:8]))
 }
 
 func publicParityFromBidgo128(value bidgo.BID_UINT128) [16]byte {
-	return *(*[16]byte)(unsafe.Pointer(&value))
+	hi, lo := bidgo.Bid128Words(value)
+	var raw [16]byte
+	binary.LittleEndian.PutUint64(raw[0:8], lo)
+	binary.LittleEndian.PutUint64(raw[8:16], hi)
+	return raw
 }
 
 `)
