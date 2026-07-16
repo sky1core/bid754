@@ -119,6 +119,34 @@ misnamed outer registrations that a shared row-macro test alone cannot see;
 the gate is part of `make test-rust`, so the portable CI and `make verify-all`
 paths both enforce it.
 
+The registry gates check registered names only. The binding of each row name
+to its operation is pinned by the hand-maintained cross-layer row descriptor
+`bid754-go/testdata/benchmark_rows.json` (340 rows: 93 public Go API, 81
+Intel C, 85 Go mechanical port, 81 generated Rust). Like
+`devtools/verification_anchors.json` and
+`devtools/verification_sentinels.json`, the descriptor stays outside every
+generation path: no generator, template, manifest, or emitting script may
+read or write it, so a wiring regression cannot re-pin itself.
+Three gates consume it. `bid754-go/internal/benchrows` (which also carries
+the Go-port row table itself so the module root can execute it)
+closed-world-compares the Go-port tables against the descriptor and enforces
+per-row sink/status discipline portably as part of `make test-go-modules`.
+The native untimed preflight (`TestBenchmarkRow*` in
+`bid754-go/benchmark_preflight_test.go`, part of `make test-native-smoke` and
+`make test-native`) closed-world-compares the public-API and Intel C tables
+(including the Intel C result-kind/flag metadata), then executes every
+public-API and Go-port row exactly once per wiring fixture and exact-compares
+the observed bits/flags against the executed Intel C benchmark leg as the
+anchor — there is deliberately no parallel expected-value switch, so a wiring
+mistake cannot skew the observed and expected legs the same way — and
+requires the anchor observations to stay pairwise distinct per group across
+fixtures. The Rust leg's `benchmark_contracts_match_shared_descriptor`
+(`bid754-rs/ffi-verify/tests/benchmark_wiring.rs`, part of
+`make test-rust-native`) exact-matches the declared Criterion row contracts
+against the descriptor's rust layer, while its existing independent Intel BID
+C oracle test keeps closing the Rust rows' observed results. Preflight
+executions are untimed wiring evidence, never performance evidence.
+
 Benchmark name to layer mapping (`make summary` groups by these):
 
 - `BenchmarkIntelCBID*` and `BenchmarkIntelCMixedBID*`: Intel C called

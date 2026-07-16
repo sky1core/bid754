@@ -1396,6 +1396,226 @@ fn benchmark_rows_match_the_intel_bid_oracle() {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Shared hand-pinned benchmark row descriptor conformance.
+//
+// bid754-go/testdata/benchmark_rows.json pins every benchmark row of all four
+// measured layers. The Go native preflight closed-world-compares the three
+// Go-side layers against it; this leg exact-matches the descriptor's rust
+// layer against the Contract metadata declared row-by-row in
+// benches/support/rows.rs (the same declarations the Criterion emitter and
+// the Intel BID oracle test above consume).
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SharedDescriptor {
+    comment: Vec<String>,
+    format_version: u32,
+    layer_counts: BTreeMap<String, usize>,
+    rows: Vec<SharedDescriptorRow>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SharedDescriptorRow {
+    layer: String,
+    group: String,
+    name: String,
+    op: String,
+    operands: Vec<String>,
+    result: String,
+    rounding: String,
+    status: String,
+}
+
+fn operand_kind_for_token(token: &str) -> ValueKind {
+    match token {
+        "x32" | "y32" | "z32" | "integer32" => ValueKind::D32,
+        "x64" | "y64" | "z64" | "integer64" => ValueKind::D64,
+        "x128" | "y128" | "z128" | "integer128" => ValueKind::D128,
+        "integer_operand" | "scale_exponent" => ValueKind::I64,
+        "decimal32_x_text" | "decimal64_x_text" | "decimal128_x_text" => ValueKind::Text,
+        other => panic!("unknown shared descriptor operand token {other:?}"),
+    }
+}
+
+fn shape_kinds(shape: OperandShape) -> Vec<ValueKind> {
+    match shape {
+        OperandShape::One(a) => vec![a],
+        OperandShape::Two(a, b) => vec![a, b],
+        OperandShape::Three(a, b, c) => vec![a, b, c],
+    }
+}
+
+fn value_kind_token(kind: ValueKind) -> &'static str {
+    match kind {
+        ValueKind::D32 => "d32",
+        ValueKind::D64 => "d64",
+        ValueKind::D128 => "d128",
+        ValueKind::I64 => "i64",
+        ValueKind::Predicate => "predicate",
+        ValueKind::Text => "text",
+    }
+}
+
+fn rounding_token(rounding: RoundingContract) -> &'static str {
+    match rounding {
+        RoundingContract::ExplicitNearestEven => "explicit_nearest_even",
+        RoundingContract::FixedNearestEven => "fixed_nearest_even",
+        RoundingContract::NotApplicable => "not_applicable",
+    }
+}
+
+fn status_matches_descriptor(status: StatusContract, token: &str) -> bool {
+    match status {
+        StatusContract::TupleFlags | StatusContract::OutFlags => token == "flags_observed",
+        StatusContract::NoFlags => token == "value_only",
+    }
+}
+
+macro_rules! collect_contract_row {
+    (
+        $rows_vec:ident,
+        $id:ident,
+        $group:literal,
+        $name:literal,
+        $operands:tt,
+        $result:ident,
+        $rounding:ident,
+        $status:ident,
+        $call:expr
+    ) => {
+        $rows_vec.push((
+            RowId::$id,
+            Contract {
+                group: $group,
+                name: $name,
+                operands: operand_shape!($operands),
+                result: value_kind!($result),
+                rounding: rounding_contract!($rounding),
+                status: status_contract!($status),
+            },
+        ));
+    };
+}
+
+macro_rules! collect_contract_group {
+    ($rows_vec:ident, $prepared:ident, $name:literal, $count:literal, $rows:ident) => {{
+        let before = $rows_vec.len();
+        $rows!(collect_contract_row, $rows_vec, $prepared);
+        assert_eq!(
+            $rows_vec.len() - before,
+            $count,
+            "declared benchmark row count for group {}",
+            $name
+        );
+    }};
+}
+
+#[test]
+fn benchmark_contracts_match_shared_descriptor() {
+    let descriptor: SharedDescriptor = serde_json::from_str(include_str!(
+        "../../../bid754-go/testdata/benchmark_rows.json"
+    ))
+    .expect("parse shared benchmark row descriptor");
+    assert_eq!(
+        descriptor.format_version, 1,
+        "shared descriptor format_version"
+    );
+    assert!(
+        !descriptor.comment.is_empty(),
+        "shared descriptor must carry its hand-maintenance comment"
+    );
+    assert_eq!(
+        descriptor.rows.len(),
+        descriptor.layer_counts.values().sum::<usize>(),
+        "shared descriptor row total vs layer_counts"
+    );
+
+    // The collector captures each row's declared contract tokens; the call
+    // expressions are bound but never evaluated, so no prepared inputs exist.
+    let mut declared: Vec<(RowId, Contract)> = Vec::new();
+    benchmark_groups!(collect_contract_group, declared, unused_prepared_inputs);
+
+    let mut by_key: BTreeMap<(String, String), (RowId, Contract)> = BTreeMap::new();
+    for (id, contract) in declared {
+        assert!(
+            by_key
+                .insert(
+                    (contract.group.to_owned(), contract.name.to_owned()),
+                    (id, contract)
+                )
+                .is_none(),
+            "duplicate declared benchmark row {id:?}"
+        );
+    }
+
+    let rust_rows: Vec<&SharedDescriptorRow> = descriptor
+        .rows
+        .iter()
+        .filter(|row| row.layer == "rust")
+        .collect();
+    assert_eq!(
+        Some(&rust_rows.len()),
+        descriptor.layer_counts.get("rust"),
+        "shared descriptor rust layer count"
+    );
+    assert_eq!(
+        rust_rows.len(),
+        by_key.len(),
+        "declared Criterion rows vs shared descriptor rust rows"
+    );
+
+    for row in rust_rows {
+        let (id, contract) = by_key
+            .remove(&(row.group.clone(), row.name.clone()))
+            .unwrap_or_else(|| {
+                panic!(
+                    "shared descriptor rust row {}/{} has no declared Criterion row",
+                    row.group, row.name
+                )
+            });
+        assert!(
+            !row.op.is_empty(),
+            "shared descriptor rust row {}/{} is missing its Intel C op identity",
+            row.group,
+            row.name
+        );
+        let declared_operands = shape_kinds(contract.operands);
+        let descriptor_operands: Vec<ValueKind> = row
+            .operands
+            .iter()
+            .map(|token| operand_kind_for_token(token))
+            .collect();
+        assert_eq!(
+            declared_operands, descriptor_operands,
+            "operand shape for {id:?}"
+        );
+        assert_eq!(
+            value_kind_token(contract.result),
+            row.result,
+            "result kind for {id:?}"
+        );
+        assert_eq!(
+            rounding_token(contract.rounding),
+            row.rounding,
+            "rounding contract for {id:?}"
+        );
+        assert!(
+            status_matches_descriptor(contract.status, &row.status),
+            "status contract for {id:?}: declared {:?}, descriptor {:?}",
+            contract.status,
+            row.status
+        );
+    }
+    assert!(
+        by_key.is_empty(),
+        "declared Criterion rows missing from the shared descriptor: {:?}",
+        by_key.keys().collect::<Vec<_>>()
+    );
+}
+
 #[test]
 fn benchmark_setup_rejects_publicly_unrepresentable_cohorts() {
     for (name, mutate) in [
