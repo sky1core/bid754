@@ -2,6 +2,7 @@ package testgen
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -322,9 +323,7 @@ func ffiModeDiscOperandBits(width int, operand modeDiscOperand) (string, error) 
 		if err != nil {
 			return "", err
 		}
-		lo := binary.LittleEndian.Uint64(raw[0:8])
-		hi := binary.LittleEndian.Uint64(raw[8:16])
-		return formatFFIWideBits(hi, lo, width), nil
+		return hex.EncodeToString(raw[:]), nil
 	default:
 		return "", fmt.Errorf("unsupported decimal width %d", width)
 	}
@@ -1311,9 +1310,19 @@ func formatFFIBits(value uint64, bits int) string {
 	return fmt.Sprintf("%016x", value)
 }
 
+// formatFFIWideBits emits the raw little-endian 16-byte image of the
+// (high, low) BID words. The sole runtime consumer of 128-bit FFI operand
+// strings, parseFFIUint128Bits on the generated Go native runner, decodes
+// them as that byte image (the same LE convention ffi_fusedness.go rawString
+// and the value-level Rust parity emit already follow), so the emitted
+// string must be the LE image for the declared words to be the values
+// actually injected.
 func formatFFIWideBits(high uint64, low uint64, bits int) string {
 	if bits != 128 {
 		panic("unsupported wide ffi width")
 	}
-	return fmt.Sprintf("%016x%016x", high, low)
+	var raw [16]byte
+	binary.LittleEndian.PutUint64(raw[0:8], low)
+	binary.LittleEndian.PutUint64(raw[8:16], high)
+	return hex.EncodeToString(raw[:])
 }

@@ -754,9 +754,12 @@ func TestDeterministicFFIGeneratorUsesFormatSpecificEdges(t *testing.T) {
 		{name: "bid32_signaling_nan", bits: 32, index: 15, want: "7e000000"},
 		{name: "bid64_positive_infinity", bits: 64, index: 10, want: "7800000000000000"},
 		{name: "bid64_signaling_nan", bits: 64, index: 15, want: "7e00000000000000"},
-		{name: "bid128_negative_zero", bits: 128, index: 1, want: "80000000000000000000000000000000"},
-		{name: "bid128_positive_infinity", bits: 128, index: 5, want: "78000000000000000000000000000000"},
-		{name: "bid128_signaling_nan", bits: 128, index: 9, want: "7e000000000000000000000000000000"},
+		// 128-bit operand strings are the raw little-endian byte image, so
+		// the BID steering bits of the high word land in the trailing hex
+		// bytes (negative zero hi=0x8000... -> "...0080").
+		{name: "bid128_negative_zero", bits: 128, index: 1, want: "00000000000000000000000000000080"},
+		{name: "bid128_positive_infinity", bits: 128, index: 5, want: "00000000000000000000000000000078"},
+		{name: "bid128_signaling_nan", bits: 128, index: 9, want: "0000000000000000000000000000007e"},
 	}
 	for _, tt := range unaryTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -777,8 +780,8 @@ func TestDeterministicFFIGeneratorUsesFormatSpecificEdges(t *testing.T) {
 		{name: "bid32_snan_left_finite_right", bits: 32, index: 9, want: []string{"7e000000", "32800001"}},
 		{name: "bid32_finite_left_snan_right", bits: 32, index: 10, want: []string{"32800001", "7e000000"}},
 		{name: "bid64_noncanonical_left_finite_right", bits: 64, index: 13, want: []string{"6000000000000000", "31c0000000000001"}},
-		{name: "bid128_qnan_right", bits: 128, index: 8, want: []string{"30400000000000000000000000000001", "7c000000000000000000000000000000"}},
-		{name: "bid128_snan_left", bits: 128, index: 9, want: []string{"7e000000000000000000000000000000", "30400000000000000000000000000001"}},
+		{name: "bid128_qnan_right", bits: 128, index: 8, want: []string{"01000000000000000000000000004030", "0000000000000000000000000000007c"}},
+		{name: "bid128_snan_left", bits: 128, index: 9, want: []string{"0000000000000000000000000000007e", "01000000000000000000000000004030"}},
 	}
 	for _, tt := range binaryTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -798,7 +801,7 @@ func TestDeterministicFFIGeneratorUsesFormatSpecificEdges(t *testing.T) {
 	}{
 		{name: "bid32_snan_left", bits: 32, index: 7, want: []string{"7e000000", "32800001", "32800001"}},
 		{name: "bid64_snan_right", bits: 64, index: 8, want: []string{"31c0000000000001", "7e00000000000000", "31c0000000000001"}},
-		{name: "bid128_snan_left", bits: 128, index: 7, want: []string{"7e000000000000000000000000000000", "30400000000000000000000000000001", "30400000000000000000000000000001"}},
+		{name: "bid128_snan_left", bits: 128, index: 7, want: []string{"0000000000000000000000000000007e", "01000000000000000000000000004030", "01000000000000000000000000004030"}},
 	}
 	for _, tt := range ternaryTests {
 		t.Run(tt.name, func(t *testing.T) {
