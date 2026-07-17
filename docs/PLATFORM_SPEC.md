@@ -36,7 +36,7 @@ Targets for which bit reproducibility is **not guaranteed** (they may build/run,
 result bits are not promised):
 
 - 32-bit x86 (x87 80-bit extended-precision path) — bit-mismatched with float64 due to the extended exponent
-- big-endian (s390x etc.) — arithmetic identity is expected from its integer basis but remains unverified, and byte-serialization identity is also unverified
+- big-endian (s390x etc.) — arithmetic and byte-serialization identity are exercised by the local qemu `digest-s390x` leg (platform digest, standalone codec tests, and the generated Go-port readtest and public parity runners agree with the little-endian platforms); per section 4 this QEMU evidence is an auxiliary signal and native big-endian hardware confirmation remains outstanding
 - Windows amd64 — since C `long`=4 (LLP64), the int-width branch in `bid64_lrint`/`bid64_lround` can
   produce results different from POSIX (these functions are optional C-compat, not IEEE mandatory
   fixed-width conversions)

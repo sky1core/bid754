@@ -385,6 +385,62 @@ anchors. Seed replay can be part of ordinary tests, but a mutation run or a
 result-only differential fuzz path is not evidence that a regular domain is
 closed.
 
+## decNumber Differential Gate
+
+An additional generated differential gate (like public-API parity, not a
+fifth regular verification domain) compares three legs per case — pinned
+Intel BID C, the Go mechanical port, and pinned IBM decNumber 3.68 — over a
+batch-generated corpus. decNumber is a divergence tripwire, never a
+correctness definition (SPEC.md Non-Goals): the adjudication authority for
+any mismatch is IEEE 754-2019, and every divergence resolves through
+exactly one of four paths — harness/mapping fix; a hand-audited
+known-divergence regression row pinned in the manifest with a reason id
+(decNumber-side defect or GDA-specific choice); the documented
+IEEE-deviation procedure when pinned Intel C violates an IEEE `shall`
+requirement; or a generation-time exclusion-class change when IEEE leaves
+both behaviors legal.
+
+Requirements:
+
+- comparison is exact over the (class, sign, coefficient, exponent) triple
+  — cohort-exact for finite results — plus the projected IEEE 5-flag word;
+  the runner carries no tolerance, no runtime heuristic, and no runtime
+  skip beyond replaying the generation-time class predicates it counts
+  against externally anchored totals
+- the decNumber leg is evaluated structurally (decNumberGetBCD + exponent +
+  class predicates) in explicit width-fixed GDA contexts (digits/emax/emin
+  per width, clamp=1, traps=0); operands transfer as exact
+  integer-coefficient strings through a wide exact parse context, and a
+  nonzero parse status is a hard failure, never a skip
+- the decNumber status projection is the fixed table (Invalid_operation and
+  Division_undefined to invalid; Division_by_zero, Overflow, Underflow,
+  Inexact one-to-one; Rounded/Clamped/Subnormal dropped; every other bit is
+  a hard failure); per-case adjustment functions are forbidden, and the
+  decTest-domain file-convention flag heuristics must not be inherited
+- corpus, independent BID triple codec, runner, stub, and the closed-world
+  exclusion inventory are all testgen batch outputs; corpus sources are the
+  filtered Tier 1 boundary reuse (canonical-only, NaN payload zero),
+  normalized Tier 1 probes, a manifest-owned exact-product overflow class,
+  and seeded deterministic random triples with stream hashes pinned in the
+  runner constants and re-pinned by hand in devtools/verification_anchors.json
+- exclusion classes are generation-time class predicates identified by
+  reason id and counted in the generated inventory; adding or widening an
+  exclusion class is a specification change requiring approval, exactly as
+  for decTest flag exemptions
+- known-divergence rows are hand-audited manifest entries; the runner keeps
+  executing them on every leg and requires both sides to reproduce the
+  pinned divergent results exactly, counts them against externally anchored
+  totals, and a row matching no executed case fails generation as stale
+- routing sentinels (hand-pinned in devtools/verification_sentinels.json,
+  byte-equal to the generated runner literal) cover operand-slot,
+  rounding-mode, and width/context-wiring skew that a common-mode glue bug
+  would hide from the differential; the hand-written comparator strength
+  anchor (bid754-go/decnumber_comparator_strength_test.go) pins the exact
+  comparison semantics outside the generation path
+- a PASS means "no divergence from an independent implementation inside the
+  declared exact region", not IEEE conformance; excluded regions stay
+  covered by the Intel-oracle domains only and must be reported that way
+
 ## Scope Classification
 
 Generated inventories use explicit classifications with these meanings:
