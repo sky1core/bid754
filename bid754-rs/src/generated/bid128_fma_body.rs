@@ -333,7 +333,13 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
                 z_exp = (res.hi & 0x7ffe000000000000);
             }
         } else {
-            bid_fma_case1pp_b_psign_ne_zsign(p34, res, (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint), p_sign, z_sign, (&mut z_exp), q3, q4, (&mut e3), scale, C3, C4, lt_half_ulp, eq_half_ulp, gt_half_ulp, rnd_mode, pfpsf);
+            if bid_fma_case1pp_b_psign_ne_zsign(p34, res, (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint), p_sign, z_sign, (&mut z_exp), q3, q4, (&mut e3), scale, C3, C4, lt_half_ulp, eq_half_ulp, gt_half_ulp, rnd_mode, pfpsf) {
+                (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
+                (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
+                (*ptr_is_inexact_lt_midpoint) = is_inexact_lt_midpoint;
+                (*ptr_is_inexact_gt_midpoint) = is_inexact_gt_midpoint;
+                break 'done;
+            }
         }
         res.hi = ((z_sign | (z_exp & 0x7ffe000000000000)) | (res.hi & 0x1ffffffffffff));
         (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
@@ -469,7 +475,7 @@ pub(crate) fn bid_fma_delta_lt_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     (*e4_ptr) = e4;
 }
 
-pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint_lt_even: &mut i64, ptr_is_midpoint_gt_even: &mut i64, ptr_is_inexact_lt_midpoint: &mut i64, ptr_is_inexact_gt_midpoint: &mut i64, mut p_sign: u64, mut z_sign: u64, z_exp_ptr: &mut u64, mut q3: i64, mut q4: i64, e3_ptr: &mut i64, mut scale: i64, C3: &mut BID_UINT128, mut C4: BID_UINT256, mut lt_half_ulp: i64, mut eq_half_ulp: i64, mut gt_half_ulp: i64, mut rnd_mode: i64, pfpsf: &mut u32) {
+pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint_lt_even: &mut i64, ptr_is_midpoint_gt_even: &mut i64, ptr_is_inexact_lt_midpoint: &mut i64, ptr_is_inexact_gt_midpoint: &mut i64, mut p_sign: u64, mut z_sign: u64, z_exp_ptr: &mut u64, mut q3: i64, mut q4: i64, e3_ptr: &mut i64, mut scale: i64, C3: &mut BID_UINT128, mut C4: BID_UINT256, mut lt_half_ulp: i64, mut eq_half_ulp: i64, mut gt_half_ulp: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> bool {
     let mut z_exp = (*z_exp_ptr);
     let mut e3 = (*e3_ptr);
     let mut is_midpoint_lt_even: i64 = 0;
@@ -516,7 +522,7 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
             (*ptr_is_inexact_gt_midpoint) = is_inexact_gt_midpoint;
             (*z_exp_ptr) = z_exp;
             (*e3_ptr) = e3;
-            return;
+            return true;
         }
         (*pfpsf) |= 32;
         if (rnd_mode != 0) {
@@ -590,7 +596,7 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
                         (*ptr_is_inexact_gt_midpoint) = is_inexact_gt_midpoint;
                         (*z_exp_ptr) = z_exp;
                         (*e3_ptr) = e3;
-                        return;
+                        return true;
                     }
                     (*pfpsf) |= 32;
                     res.hi = ((z_sign | ((go_checked_shl_u64(((e3.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64))))) | res.hi);
@@ -632,6 +638,7 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
     (*ptr_is_inexact_gt_midpoint) = is_inexact_gt_midpoint;
     (*z_exp_ptr) = z_exp;
     (*e3_ptr) = e3;
+    return false;
 }
 
 pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint_lt_even: &mut i64, ptr_is_midpoint_gt_even: &mut i64, ptr_is_inexact_lt_midpoint: &mut i64, ptr_is_inexact_gt_midpoint: &mut i64, mut p_sign: u64, mut z_sign: u64, z_exp_ptr: &mut u64, mut q3: i64, mut q4: i64, e3_ptr: &mut i64, e4_ptr: &mut i64, mut delta: i64, C3: &mut BID_UINT128, mut C4: BID_UINT256, mut rnd_mode: i64, pfpsf: &mut u32) {

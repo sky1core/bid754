@@ -393,14 +393,24 @@ func bid_fma_delta_ge_zero(
 		} else { // p_sign != z_sign
 			// This is the complex case with C3*10^scale = 10^33 as a special case.
 			// For brevity, delegate to bid_fma_case1ppB_psign_ne_zsign
-			bid_fma_case1ppB_psign_ne_zsign(p34, res,
+			if bid_fma_case1ppB_psign_ne_zsign(p34, res,
 				&is_midpoint_lt_even, &is_midpoint_gt_even,
 				&is_inexact_lt_midpoint, &is_inexact_gt_midpoint,
 				p_sign, z_sign, &z_exp,
 				q3, q4, &e3, scale,
 				C3, C4,
 				lt_half_ulp, eq_half_ulp, gt_half_ulp,
-				rnd_mode, pfpsf)
+				rnd_mode, pfpsf) {
+				// The helper took one of the Intel C e3 > expmax overflow exits
+				// ("BID_SWAP128 (res); BID_RETURN (res)", bid128_fma.c lines
+				// 2117-2136 and 2245-2264): res is final and the Case (1''B)
+				// reassembly below must not run, exactly as in the C source.
+				*ptr_is_midpoint_lt_even = is_midpoint_lt_even
+				*ptr_is_midpoint_gt_even = is_midpoint_gt_even
+				*ptr_is_inexact_lt_midpoint = is_inexact_lt_midpoint
+				*ptr_is_inexact_gt_midpoint = is_inexact_gt_midpoint
+				goto done
+			}
 		}
 
 		res.hi = z_sign | (z_exp & MASK_EXP_128) | (res.hi & MASK_COEFF128)
@@ -601,6 +611,10 @@ func bid_fma_delta_lt_zero(
 
 // bid_fma_case1ppB_psign_ne_zsign handles Case (1”B) when p_sign != z_sign.
 // Ported from the corresponding Case (1”B) branch in Intel bid128_fma.c.
+// It returns true when it took one of the Intel C e3 > expmax overflow exits
+// ("BID_SWAP128 (res); BID_RETURN (res)", bid128_fma.c lines 2117-2136 and
+// 2245-2264): res is then final and the caller must not run the shared
+// Case (1”B) reassembly that follows in the C source (line 2324).
 func bid_fma_case1ppB_psign_ne_zsign(
 	p34 int, res *BID_UINT128,
 	ptr_is_midpoint_lt_even, ptr_is_midpoint_gt_even,
@@ -609,7 +623,7 @@ func bid_fma_case1ppB_psign_ne_zsign(
 	q3, q4 int, e3_ptr *int, scale int,
 	C3 *BID_UINT128, C4 BID_UINT256,
 	lt_half_ulp, eq_half_ulp, gt_half_ulp int,
-	rnd_mode int, pfpsf *uint32) {
+	rnd_mode int, pfpsf *uint32) bool {
 
 	z_exp := *z_exp_ptr
 	e3 := *e3_ptr
@@ -661,7 +675,7 @@ func bid_fma_case1ppB_psign_ne_zsign(
 			*ptr_is_inexact_gt_midpoint = is_inexact_gt_midpoint
 			*z_exp_ptr = z_exp
 			*e3_ptr = e3
-			return
+			return true // C: BID_SWAP128 (res); BID_RETURN (res)
 		}
 		*pfpsf |= BID_INEXACT_EXCEPTION
 		if rnd_mode != BID_ROUNDING_TO_NEAREST {
@@ -748,7 +762,7 @@ func bid_fma_case1ppB_psign_ne_zsign(
 						*ptr_is_inexact_gt_midpoint = is_inexact_gt_midpoint
 						*z_exp_ptr = z_exp
 						*e3_ptr = e3
-						return
+						return true // C: BID_SWAP128 (res); BID_RETURN (res)
 					}
 					*pfpsf |= BID_INEXACT_EXCEPTION
 					res.hi = z_sign | (uint64(e3+6176) << 49) | res.hi
@@ -802,6 +816,7 @@ func bid_fma_case1ppB_psign_ne_zsign(
 	*ptr_is_inexact_gt_midpoint = is_inexact_gt_midpoint
 	*z_exp_ptr = z_exp
 	*e3_ptr = e3
+	return false // fall through to the caller's Case (1''B) reassembly (C line 2324)
 }
 
 // The following helpers cover the remaining complex FMA case groups from

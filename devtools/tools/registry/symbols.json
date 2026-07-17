@@ -14884,7 +14884,9 @@
           "pointer": true
         }
       ],
-      "returns": null,
+      "returns": [
+        "bool"
+      ],
       "go_file": "bid128_fma_body.go",
       "go_name": "bid_fma_case1ppB_psign_ne_zsign",
       "exported": false,
