@@ -236,6 +236,9 @@ jobs:
       - name: Run Tier 1 compare and conversion long exact differential
         run: make _test-native-tier1-compare-conversion-long-full
 
+      - name: Run decNumber third-oracle differential gate
+        run: make _test-native-decnumber-differential-full
+
       - name: Run Rust Tier 1 arithmetic long exact differential
         run: make _test-rust-native-tier1-arithmetic-long-full
 

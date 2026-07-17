@@ -695,5 +695,38 @@
       { "symbol": "E64BID", "class": "constant_accessor", "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation" },
       { "symbol": "E128BID", "class": "constant_accessor", "reason": "returns a copy of the package-private decimal constant; no mechanical-port operation" }
     ]
+  },
+  "decnumber_differential": {
+    "inventory_output": "generated/testspec/decnumber_differential_inventory.json",
+    "random_pairs_per_operation": 16384,
+    "exact_product_exponent_offsets": [-1, 0, 1],
+    "known_divergences": [
+      {
+        "reason_id": "decnumber368_misaligned_add_nearest_misround",
+        "classification": "decnumber_defect",
+        "width": "decimal32",
+        "operation": "fma",
+        "mode": 0,
+        "x": "3e8265b3",
+        "y": "1600cdcf",
+        "z": "a180005c",
+        "intel": "23fe4df8/00000020",
+        "decnumber": "8277497E-30/00000020",
+        "note": "157107E24*52687E-57-92E-34: exact sum 82774964998E-34 rounds to 8277496E-30 (hand arithmetic, pinned Intel BID C, and libmpdec all agree); decNumber 3.68 answers 8277497E-30 because the misaligned decAddOp path inside decNumberFMA collapses the far-aligned addend into a sticky below the guard digit and loses the borrow that pulls the discarded fraction from 5090 to 4998, i.e. across the nearest-mode half boundary; reproduced standalone with raw decNumber C calls (same misround via plain decNumberAdd of the exact product, correct when pre-aligned to a common exponent or given wider digits)"
+      },
+      {
+        "reason_id": "decnumber368_misaligned_add_nearest_misround",
+        "classification": "decnumber_defect",
+        "width": "decimal32",
+        "operation": "fma",
+        "mode": 4,
+        "x": "3e8265b3",
+        "y": "1600cdcf",
+        "z": "a180005c",
+        "intel": "23fe4df8/00000020",
+        "decnumber": "8277497E-30/00000020",
+        "note": "same tuple as the mode-0 row under roundTiesToAway; the misround affects exactly the nearest modes (directed modes agree with Intel on this tuple)"
+      }
+    ]
   }
 }

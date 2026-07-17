@@ -7,15 +7,60 @@ import (
 )
 
 type Manifest struct {
-	Output          string                `json:"output"`
-	DectestSuites   []DectestSuiteSpec    `json:"dectest_suites"`
-	ReadTests       []ReadTestSpec        `json:"readtests"`
-	ReadTestGroups  []ReadTestGroupSpec   `json:"readtest_groups"`
-	ReadProfiles    []ReadTestProfileSpec `json:"readtest_profiles"`
-	FuzzTests       []FuzzTestSpec        `json:"fuzztests"`
-	FFITests        []FFITestSpec         `json:"ffi_tests"`
-	BidCodecVectors *BidCodecVectorSpec   `json:"bid_codec_vectors,omitempty"`
-	PublicAPI       *PublicAPISpec        `json:"public_api,omitempty"`
+	Output                string                     `json:"output"`
+	DectestSuites         []DectestSuiteSpec         `json:"dectest_suites"`
+	ReadTests             []ReadTestSpec             `json:"readtests"`
+	ReadTestGroups        []ReadTestGroupSpec        `json:"readtest_groups"`
+	ReadProfiles          []ReadTestProfileSpec      `json:"readtest_profiles"`
+	FuzzTests             []FuzzTestSpec             `json:"fuzztests"`
+	FFITests              []FFITestSpec              `json:"ffi_tests"`
+	BidCodecVectors       *BidCodecVectorSpec        `json:"bid_codec_vectors,omitempty"`
+	PublicAPI             *PublicAPISpec             `json:"public_api,omitempty"`
+	DecnumberDifferential *DecnumberDifferentialSpec `json:"decnumber_differential,omitempty"`
+}
+
+// DecnumberDifferentialSpec is the manifest block of the decNumber
+// third-oracle differential gate. It owns the corpus parameters the design
+// assigns to the manifest: the random stream size per operation, the
+// exact-product overflow class exponents (relative to each width's
+// precision p, so `0` means 1E<p>), and the hand-audited known-divergence
+// regression rows.
+type DecnumberDifferentialSpec struct {
+	InventoryOutput             string                                 `json:"inventory_output"`
+	RandomPairsPerOperation     int                                    `json:"random_pairs_per_operation"`
+	ExactProductExponentOffsets []int                                  `json:"exact_product_exponent_offsets"`
+	KnownDivergences            []DecnumberDifferentialKnownDivergence `json:"known_divergences"`
+}
+
+// DecnumberDifferentialKnownDivergence pins one classified, hand-audited
+// real divergence between pinned Intel BID C and pinned decNumber 3.68
+// inside the gate's corpus. The generated runner still executes the case on
+// every leg and requires both sides to reproduce the pinned results exactly
+// (a change on either side fails the gate for re-audit); the case is
+// counted as a known divergence instead of an exact comparison. Rows are
+// classified through the documented four-way procedure before they are
+// added; adding a row is a reviewed manifest change, never a runtime
+// tolerance.
+type DecnumberDifferentialKnownDivergence struct {
+	// ReasonID names the classified divergence class.
+	ReasonID string `json:"reason_id"`
+	// Classification is the four-way bucket (currently only
+	// "decnumber_defect" is expected; a pinned-Intel-C IEEE violation goes
+	// through the IEEE-deviation procedure instead).
+	Classification string `json:"classification"`
+	Width          string `json:"width"`     // decimal32|decimal64|decimal128
+	Operation      string `json:"operation"` // add|sub|mul|div|quantize|fma|sqrt
+	Mode           int    `json:"mode"`      // native Intel rounding number 0..4
+	X              string `json:"x"`         // canonical width text (d128: hi:lo)
+	Y              string `json:"y,omitempty"`
+	Z              string `json:"z,omitempty"`
+	// Intel is the pinned Intel C leg in the generated FFI shim's leg text
+	// ("<bits>/<rawflags>"; 128-bit bits are the little-endian byte hex image).
+	Intel string `json:"intel"`
+	// Decnumber is the pinned decNumber comparison result as
+	// "<triple>/<flags5>" (e.g. "8277497E-30/00000020").
+	Decnumber string `json:"decnumber"`
+	Note      string `json:"note"`
 }
 
 type DectestSuiteSpec struct {
@@ -364,6 +409,20 @@ func LoadManifest(path string) (Manifest, error) {
 	}
 	if manifest.BidCodecVectors.Output == "" || manifest.BidCodecVectors.RandomCasesPerFormat <= 0 {
 		return manifest, fmt.Errorf("manifest %q: bid_codec_vectors is incomplete", path)
+	}
+	if manifest.DecnumberDifferential == nil {
+		return manifest, fmt.Errorf("manifest %q: decnumber_differential is required", path)
+	}
+	if manifest.DecnumberDifferential.InventoryOutput == "" ||
+		manifest.DecnumberDifferential.RandomPairsPerOperation <= 0 ||
+		len(manifest.DecnumberDifferential.ExactProductExponentOffsets) == 0 {
+		return manifest, fmt.Errorf("manifest %q: decnumber_differential is incomplete", path)
+	}
+	for i, row := range manifest.DecnumberDifferential.KnownDivergences {
+		if row.ReasonID == "" || row.Classification == "" || row.Width == "" ||
+			row.Operation == "" || row.X == "" || row.Intel == "" || row.Decnumber == "" || row.Note == "" {
+			return manifest, fmt.Errorf("manifest %q: decnumber_differential.known_divergences[%d] is incomplete", path, i)
+		}
 	}
 
 	return manifest, nil

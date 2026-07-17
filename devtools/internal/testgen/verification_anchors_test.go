@@ -117,6 +117,21 @@ type verificationAnchors struct {
 	RustPublicAPIParityCasesTotal                int                          `json:"rust_public_api_parity_cases_total"`
 	RustPublicAPIConstantsTotal                  int                          `json:"rust_public_api_constants_total"`
 	RustPublicAPIParityCasesByShape              map[string]int               `json:"rust_public_api_parity_cases_by_shape"`
+	DecnumberDiffBoundaryValues                  map[string]uint64            `json:"decnumber_differential_boundary_values_by_width"`
+	DecnumberDiffProbeValues                     map[string]uint64            `json:"decnumber_differential_probe_values_by_width"`
+	DecnumberDiffExactProductValues              map[string]uint64            `json:"decnumber_differential_exact_product_values_by_width"`
+	DecnumberDiffExactProductAddends             map[string]uint64            `json:"decnumber_differential_exact_product_addends_by_width"`
+	DecnumberDiffRandomPairsPerOp                uint64                       `json:"decnumber_differential_random_pairs_per_operation"`
+	DecnumberDiffStructuredComparisons           map[string]uint64            `json:"decnumber_differential_structured_comparisons_by_width"`
+	DecnumberDiffStructuredFmaExcluded           map[string]uint64            `json:"decnumber_differential_structured_fma_excluded_by_width"`
+	DecnumberDiffStructuredKnownDivergences      map[string]uint64            `json:"decnumber_differential_structured_known_divergences_by_width"`
+	DecnumberDiffStructuredStreamHashes          map[string]uint64            `json:"decnumber_differential_structured_stream_hash_by_width"`
+	DecnumberDiffRandomComparisons               map[string]uint64            `json:"decnumber_differential_random_comparisons_by_width"`
+	DecnumberDiffRandomFmaExcluded               map[string]uint64            `json:"decnumber_differential_random_fma_excluded_by_width"`
+	DecnumberDiffRandomKnownDivergences          map[string]uint64            `json:"decnumber_differential_random_known_divergences_by_width"`
+	DecnumberDiffRandomStreamHashes              map[string]uint64            `json:"decnumber_differential_random_stream_hash_by_width"`
+	DecnumberDiffTotalComparisons                map[string]uint64            `json:"decnumber_differential_total_comparisons_by_width"`
+	DecnumberDiffConsumers                       uint64                       `json:"decnumber_differential_consumers"`
 	VerificationArtifactSHA256                   map[string]string            `json:"verification_artifact_sha256"`
 }
 
@@ -152,6 +167,7 @@ type verificationSentinels struct {
 	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
 	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
 	MixedFMAFusednessRows             []string `json:"mixed_fma_fusedness_rows"`
+	DecnumberDifferentialRows         []string `json:"decnumber_differential_sentinel_rows"`
 }
 
 func loadVerificationSentinels(t *testing.T) verificationSentinels {
@@ -349,6 +365,8 @@ func evalGeneratedUintConstant(expr ast.Expr, values map[string]uint64) (uint64,
 				return 0, fmt.Errorf("uint64 left shift overflow: %d << %d", left, right)
 			}
 			return left << right, nil
+		case token.OR:
+			return left | right, nil
 		default:
 			return 0, fmt.Errorf("unsupported constant operator %s", e.Op)
 		}
@@ -962,6 +980,86 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	if rustTier1Arithmetic.RandomOperations != anchors.Tier1ArithmeticRandomOperations {
 		t.Errorf("generated Rust Tier 1 arithmetic random operations = %d, anchor = %d", rustTier1Arithmetic.RandomOperations, anchors.Tier1ArithmeticRandomOperations)
 	}
+	// decNumber differential gate: the checked-in shared constants, the
+	// generated inventory JSON, and the external anchors must agree in every
+	// direction; the regenerated output set pins the closed artifact world.
+	manifest, err := LoadManifest(filepath.Join("..", "..", "testgen_manifest.json"))
+	if err != nil {
+		t.Fatalf("load manifest for decNumber differential consumer anchor: %v", err)
+	}
+	decnumberDiffOutputs, err := GenerateDecnumberDifferentialOutputs(manifest)
+	if err != nil {
+		t.Fatalf("generate decNumber differential outputs for consumer anchor: %v", err)
+	}
+	assertGeneratedOutputSet(t, "decNumber differential", decnumberDiffOutputs,
+		decnumberDiffSharedGeneratedPath,
+		decnumberDiffNativeShimGeneratedPath,
+		decnumberDiffRunnerGeneratedPath,
+		decnumberDiffStubGeneratedPath,
+		manifest.DecnumberDifferential.InventoryOutput,
+	)
+	decnumberDiffRunnerConsumers := uint64(0)
+	for path := range decnumberDiffOutputs {
+		if strings.HasSuffix(path, "_native_test.go") {
+			decnumberDiffRunnerConsumers++
+		}
+	}
+	if decnumberDiffRunnerConsumers != anchors.DecnumberDiffConsumers {
+		t.Errorf("decNumber differential generated runner consumers = %d, anchor = %d", decnumberDiffRunnerConsumers, anchors.DecnumberDiffConsumers)
+	}
+	decnumberDiff := loadDecnumberDifferentialArtifactInventory(t)
+	for _, check := range []struct {
+		label string
+		got   map[string]uint64
+		want  map[string]uint64
+	}{
+		{"decNumber differential boundary values", decnumberDiff.BoundaryValues, anchors.DecnumberDiffBoundaryValues},
+		{"decNumber differential probe values", decnumberDiff.ProbeValues, anchors.DecnumberDiffProbeValues},
+		{"decNumber differential exact-product values", decnumberDiff.ExactProductValues, anchors.DecnumberDiffExactProductValues},
+		{"decNumber differential exact-product addends", decnumberDiff.ExactProductAddends, anchors.DecnumberDiffExactProductAddends},
+		{"decNumber differential structured comparisons", decnumberDiff.StructuredComparisons, anchors.DecnumberDiffStructuredComparisons},
+		{"decNumber differential structured fma exclusions", decnumberDiff.StructuredFmaExcluded, anchors.DecnumberDiffStructuredFmaExcluded},
+		{"decNumber differential structured known divergences", decnumberDiff.StructuredKnownDivergences, anchors.DecnumberDiffStructuredKnownDivergences},
+		{"decNumber differential structured stream hashes", decnumberDiff.StructuredStreamHashes, anchors.DecnumberDiffStructuredStreamHashes},
+		{"decNumber differential random comparisons", decnumberDiff.RandomComparisons, anchors.DecnumberDiffRandomComparisons},
+		{"decNumber differential random fma exclusions", decnumberDiff.RandomFmaExcluded, anchors.DecnumberDiffRandomFmaExcluded},
+		{"decNumber differential random known divergences", decnumberDiff.RandomKnownDivergences, anchors.DecnumberDiffRandomKnownDivergences},
+		{"decNumber differential random stream hashes", decnumberDiff.RandomStreamHashes, anchors.DecnumberDiffRandomStreamHashes},
+		{"decNumber differential total comparisons", decnumberDiff.TotalComparisons, anchors.DecnumberDiffTotalComparisons},
+	} {
+		if !reflect.DeepEqual(check.got, check.want) {
+			t.Errorf("generated %s = %#v, anchor = %#v", check.label, check.got, check.want)
+		}
+	}
+	if decnumberDiff.RandomPairsPerOp != anchors.DecnumberDiffRandomPairsPerOp {
+		t.Errorf("generated decNumber differential random pairs per operation = %d, anchor = %d",
+			decnumberDiff.RandomPairsPerOp, anchors.DecnumberDiffRandomPairsPerOp)
+	}
+	decnumberDiffJSON := loadDecnumberDifferentialInventoryJSON(t)
+	for _, widthEntry := range decnumberDiffJSON.Widths {
+		label := widthEntry.Width
+		for _, check := range []struct {
+			name string
+			got  uint64
+			want uint64
+		}{
+			{"boundary_included_values", uint64(widthEntry.BoundaryIncluded), anchors.DecnumberDiffBoundaryValues[label]},
+			{"probe_values", uint64(widthEntry.ProbeValues), anchors.DecnumberDiffProbeValues[label]},
+			{"exact_product_values", uint64(widthEntry.ExactProductValues), anchors.DecnumberDiffExactProductValues[label]},
+			{"structured_comparisons", widthEntry.StructuredComparisons, anchors.DecnumberDiffStructuredComparisons[label]},
+			{"structured_known_divergences", widthEntry.StructuredKnownDivergences, anchors.DecnumberDiffStructuredKnownDivergences[label]},
+			{"structured_stream_hash", widthEntry.StructuredStreamHash, anchors.DecnumberDiffStructuredStreamHashes[label]},
+			{"random_comparisons", widthEntry.RandomComparisons, anchors.DecnumberDiffRandomComparisons[label]},
+			{"random_known_divergences", widthEntry.RandomKnownDivergences, anchors.DecnumberDiffRandomKnownDivergences[label]},
+			{"random_stream_hash", widthEntry.RandomStreamHash, anchors.DecnumberDiffRandomStreamHashes[label]},
+			{"total_comparisons", widthEntry.TotalComparisons, anchors.DecnumberDiffTotalComparisons[label]},
+		} {
+			if check.got != check.want {
+				t.Errorf("decNumber differential inventory %s %s = %d, anchor = %d", label, check.name, check.got, check.want)
+			}
+		}
+	}
+
 	// Routing sentinels: the hand-pinned rows in verification_sentinels.json
 	// must be byte-equal, in order, with both generated runner literals. The
 	// generator cannot touch the pin file, so a selection change (or a hand
@@ -1019,6 +1117,20 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		t.Errorf("generated Rust Tier 1 compare/conversion routing sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
 			len(rustCCSentinelRows), len(sentinels.Tier1CompareConversionRoutingRows),
 			firstSentinelRowDivergence(rustCCSentinelRows, sentinels.Tier1CompareConversionRoutingRows))
+	}
+	if len(sentinels.DecnumberDifferentialRows) == 0 {
+		t.Errorf("verification_sentinels.json pins no decNumber differential sentinel rows")
+	}
+	decnumberDiffSentinelRowsLiteral := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_decnumber_differential_native_test.go"),
+		"decnumberDiffSentinelRows")
+	if !reflect.DeepEqual(decnumberDiffSentinelRowsLiteral, sentinels.DecnumberDifferentialRows) {
+		t.Errorf("generated decNumber differential sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(decnumberDiffSentinelRowsLiteral), len(sentinels.DecnumberDifferentialRows),
+			firstSentinelRowDivergence(decnumberDiffSentinelRowsLiteral, sentinels.DecnumberDifferentialRows))
+	}
+	if got := uint64(len(decnumberDiffSentinelRowsLiteral)); got != decnumberDiff.SentinelRowCount {
+		t.Errorf("generated decNumber differential sentinel row literal count %d diverges from the shared constant %d", got, decnumberDiff.SentinelRowCount)
 	}
 	tier1CompareConversionOutputs, err := GenerateTier1CompareConversionLongOutputs()
 	if err != nil {
@@ -2017,6 +2129,12 @@ func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 				// goport verification runners, not decNumber-oracle executor files;
 				// this case must precede the generic generated_dectest_ arm.
 				return "goport_verification_runners", ""
+			case strings.HasPrefix(base, "generated_decnumber_differential_"):
+				// The decNumber third-oracle differential gate artifacts (shared
+				// support, cgo shim, runner, stub) form their own hashed bucket;
+				// this case must precede the generic generated_dectest_ arm's
+				// sibling prefixes for clarity even though the prefixes differ.
+				return "decnumber_differential_runners", ""
 			case strings.HasPrefix(base, "generated_readtest_"),
 				strings.HasPrefix(base, "generated_ffi_bitcompare_"),
 				strings.HasPrefix(base, "generated_public_parity_"):
@@ -2359,4 +2477,111 @@ func splitNonEmptyLines(s string) []string {
 		}
 	}
 	return out
+}
+
+// decnumberDifferentialArtifactInventory carries the anchored constants
+// parsed from the checked-in generated decNumber differential shared
+// support file (bid754-go/generated_decnumber_differential_shared_test.go).
+type decnumberDifferentialArtifactInventory struct {
+	BoundaryValues             map[string]uint64
+	ProbeValues                map[string]uint64
+	ExactProductValues         map[string]uint64
+	ExactProductAddends        map[string]uint64
+	RandomPairsPerOp           uint64
+	StructuredComparisons      map[string]uint64
+	StructuredFmaExcluded      map[string]uint64
+	StructuredKnownDivergences map[string]uint64
+	StructuredStreamHashes     map[string]uint64
+	RandomComparisons          map[string]uint64
+	RandomFmaExcluded          map[string]uint64
+	RandomKnownDivergences     map[string]uint64
+	RandomStreamHashes         map[string]uint64
+	TotalComparisons           map[string]uint64
+	SentinelRowCount           uint64
+}
+
+// loadDecnumberDifferentialArtifactInventory evaluates every
+// `decnumberDiff*` integer constant of the checked-in shared support file.
+// Constants whose expressions fall outside the evaluator's operator set are
+// skipped; every constant this inventory needs must resolve.
+func loadDecnumberDifferentialArtifactInventory(t *testing.T) decnumberDifferentialArtifactInventory {
+	t.Helper()
+	path := filepath.Join("..", "..", "..", "bid754-go", "generated_decnumber_differential_shared_test.go")
+	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+	if err != nil {
+		t.Fatalf("parse generated decNumber differential shared support: %v", err)
+	}
+	constants := map[string]uint64{}
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || gen.Tok != token.CONST {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			values, ok := spec.(*ast.ValueSpec)
+			if !ok || len(values.Names) != len(values.Values) {
+				continue
+			}
+			for i, name := range values.Names {
+				if !strings.HasPrefix(name.Name, "decnumberDiff") {
+					continue
+				}
+				value, err := evalGeneratedUintConstant(values.Values[i], constants)
+				if err != nil {
+					continue // non-arithmetic support constant; not anchored here
+				}
+				constants[name.Name] = value
+			}
+		}
+	}
+	require := func(name string) uint64 {
+		t.Helper()
+		value, ok := constants[name]
+		if !ok {
+			t.Fatalf("generated decNumber differential shared support is missing constant %s", name)
+		}
+		return value
+	}
+	widthMap := func(prefix string) map[string]uint64 {
+		return map[string]uint64{
+			"decimal32":  require(prefix + "32"),
+			"decimal64":  require(prefix + "64"),
+			"decimal128": require(prefix + "128"),
+		}
+	}
+	return decnumberDifferentialArtifactInventory{
+		BoundaryValues:             map[string]uint64{"decimal32": require("decnumberDiffBoundary32Count"), "decimal64": require("decnumberDiffBoundary64Count"), "decimal128": require("decnumberDiffBoundary128Count")},
+		ProbeValues:                map[string]uint64{"decimal32": require("decnumberDiffProbes32Count"), "decimal64": require("decnumberDiffProbes64Count"), "decimal128": require("decnumberDiffProbes128Count")},
+		ExactProductValues:         map[string]uint64{"decimal32": require("decnumberDiffExactProduct32Count"), "decimal64": require("decnumberDiffExactProduct64Count"), "decimal128": require("decnumberDiffExactProduct128Count")},
+		ExactProductAddends:        map[string]uint64{"decimal32": require("decnumberDiffExactProductZ32Count"), "decimal64": require("decnumberDiffExactProductZ64Count"), "decimal128": require("decnumberDiffExactProductZ128Count")},
+		RandomPairsPerOp:           require("decnumberDiffRandomPairsPerOp"),
+		StructuredComparisons:      widthMap("decnumberDiffStructuredComparisons"),
+		StructuredFmaExcluded:      widthMap("decnumberDiffStructuredFmaExcluded"),
+		StructuredKnownDivergences: widthMap("decnumberDiffStructuredKnownDivergences"),
+		StructuredStreamHashes:     widthMap("decnumberDiffStructuredStreamHash"),
+		RandomComparisons:          widthMap("decnumberDiffRandomComparisons"),
+		RandomFmaExcluded:          widthMap("decnumberDiffRandomFmaExcluded"),
+		RandomKnownDivergences:     widthMap("decnumberDiffRandomKnownDivergences"),
+		RandomStreamHashes:         widthMap("decnumberDiffRandomStreamHash"),
+		TotalComparisons:           widthMap("decnumberDiffTotalComparisons"),
+		SentinelRowCount:           require("decnumberDiffSentinelRowCount"),
+	}
+}
+
+// loadDecnumberDifferentialInventoryJSON reads the generated closed-world
+// exclusion inventory as the third agreement point (anchors == shared
+// constants == inventory JSON).
+func loadDecnumberDifferentialInventoryJSON(t *testing.T) decnumberDiffInventory {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("..", "..", "generated", "testspec", "decnumber_differential_inventory.json"))
+	if err != nil {
+		t.Fatalf("read decNumber differential inventory: %v", err)
+	}
+	var inventory decnumberDiffInventory
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&inventory); err != nil {
+		t.Fatalf("unmarshal decNumber differential inventory: %v", err)
+	}
+	return inventory
 }

@@ -158,6 +158,25 @@ deterministic raw samples and structured boundaries; it is not exhaustive.
 Current scale and class totals are maintained only in the external anchors and
 generated runner constants.
 
+### decNumber third-oracle differential
+
+A generated 3-leg differential gate compares pinned Intel BID C, the Go
+mechanical port, and pinned IBM decNumber 3.68 over a batch-generated corpus
+(filtered Tier 1 boundary reuse, normalized probes, a manifest-owned
+exact-product overflow class, and seeded random triples), exactly on the
+`(class, sign, coefficient, exponent)` triple plus the projected IEEE 5-flag
+word. decNumber acts as a divergence tripwire, never as a correctness
+definition; comparison-region exclusions are generation-time class
+predicates counted in the generated inventory
+(`devtools/generated/testspec/decnumber_differential_inventory.json`), and
+classified real divergences are pinned as manifest known-divergence
+regression rows that both legs must keep reproducing exactly. Like public
+parity, it is an additional generated gate, not a fifth regular domain.
+Corpus scale, stream hashes, and sentinel rows are externally anchored;
+commands are `make test-native-decnumber-differential` and the
+`verify-all-native-gates` chain member
+`_test-native-decnumber-differential-full`.
+
 ### Auxiliary fuzzing
 
 The repository contains native differential and portable no-panic/closure fuzz

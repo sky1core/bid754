@@ -270,6 +270,7 @@ make test-native-smoke
 make test-native-ffi
 make test-native-readtest
 make test-native-dectest
+make test-native-decnumber-differential
 ```
 
 Notes:
@@ -279,6 +280,12 @@ Notes:
 - `make test-native-ffi` is the non-short generated C FFI exact bit-compare gate
 - `make test-native-readtest` is the non-short generated Intel readtest native gate
 - `make test-native-dectest` is the non-short generated IBM decTest native gate
+- `make test-native-decnumber-differential` is the generated decNumber
+  third-oracle 3-leg differential gate (pinned Intel BID C / Go mechanical
+  port / pinned IBM decNumber 3.68; requires the `bid754_decnumber_diff`
+  build tag which the target sets itself); `verify-all-native-gates` runs it
+  as `_test-native-decnumber-differential-full` with verifylog evidence
+  binding
 - some current-tree native paths may also require IBM decNumber
 - that requirement is a current implementation detail, not the source-of-truth architecture
 
@@ -407,6 +414,7 @@ portable, smoke, full, or sharded:
 | `make test-native-dectest` | native generated decTest runner, non-short |
 | `make test-portable-dectest` | portable Go fixed-width decTest runner |
 | `make test-native-ffi` | native generated C FFI exact bit-compare runner, non-short |
+| `make test-native-decnumber-differential` | generated decNumber third-oracle 3-leg differential gate, always full-scale |
 | `make test-bidcodec` | six-language generated BID codec vector consumers |
 | `make verify-bidcodec-packages` | standalone codec package-boundary verification |
 | `make test-bid-string` | readtest-derived Go/Rust BID string verification |

@@ -1,0 +1,558 @@
+
+package bid754
+
+// decNumber third-oracle differential gate: shared pure-Go support.
+//
+// This file is tag-free so the portable build type-checks it and the
+// hand-written comparator strength anchor
+// (decnumber_comparator_strength_test.go) can exercise the comparator and
+// the flag projection without cgo. It carries the independent BID triple
+// codec (emitted from the devtools bid_codec_reference layout logic;
+// production codec and the Go mechanical port are never used to decode),
+// the exact comparison surface, the fixed decNumber status projection
+// table, the deterministic random-triple stream, and every anchored
+// constant of the decnumber_differential gate.
+//
+// decNumber is a divergence tripwire, not a correctness definition: any
+// mismatch inside the generated corpus fails the gate and is resolved
+// through the documented four-way procedure (harness fix, pinned known
+// divergence, IEEE-deviation registration, or a generation-time exclusion
+// class change, which is a spec change).
+
+import (
+	"fmt"
+	"math/big"
+)
+
+const (
+	decnumberDiffBoundary32Count  = uint64(@@DND_BOUNDARY32_COUNT@@)
+	decnumberDiffBoundary64Count  = uint64(@@DND_BOUNDARY64_COUNT@@)
+	decnumberDiffBoundary128Count = uint64(@@DND_BOUNDARY128_COUNT@@)
+
+	decnumberDiffProbes32Count  = uint64(@@DND_PROBES32_COUNT@@)
+	decnumberDiffProbes64Count  = uint64(@@DND_PROBES64_COUNT@@)
+	decnumberDiffProbes128Count = uint64(@@DND_PROBES128_COUNT@@)
+
+	decnumberDiffExactProduct32Count  = uint64(@@DND_EXACT_PRODUCT32_COUNT@@)
+	decnumberDiffExactProduct64Count  = uint64(@@DND_EXACT_PRODUCT64_COUNT@@)
+	decnumberDiffExactProduct128Count = uint64(@@DND_EXACT_PRODUCT128_COUNT@@)
+
+	decnumberDiffExactProductZ32Count  = uint64(@@DND_EXACT_PRODUCT_Z32_COUNT@@)
+	decnumberDiffExactProductZ64Count  = uint64(@@DND_EXACT_PRODUCT_Z64_COUNT@@)
+	decnumberDiffExactProductZ128Count = uint64(@@DND_EXACT_PRODUCT_Z128_COUNT@@)
+
+	decnumberDiffRandomPairsPerOp = uint64(@@DND_RANDOM_PAIRS_PER_OP@@)
+
+	decnumberDiffStructuredFmaExcluded32  = uint64(@@DND_STRUCTURED_FMA_EXCLUDED32@@)
+	decnumberDiffStructuredFmaExcluded64  = uint64(@@DND_STRUCTURED_FMA_EXCLUDED64@@)
+	decnumberDiffStructuredFmaExcluded128 = uint64(@@DND_STRUCTURED_FMA_EXCLUDED128@@)
+
+	decnumberDiffRandomFmaExcluded32  = uint64(@@DND_RANDOM_FMA_EXCLUDED32@@)
+	decnumberDiffRandomFmaExcluded64  = uint64(@@DND_RANDOM_FMA_EXCLUDED64@@)
+	decnumberDiffRandomFmaExcluded128 = uint64(@@DND_RANDOM_FMA_EXCLUDED128@@)
+
+	decnumberDiffStructuredComparisons32  = uint64(@@DND_STRUCTURED_COMPARISONS32@@)
+	decnumberDiffStructuredComparisons64  = uint64(@@DND_STRUCTURED_COMPARISONS64@@)
+	decnumberDiffStructuredComparisons128 = uint64(@@DND_STRUCTURED_COMPARISONS128@@)
+
+	decnumberDiffRandomComparisons32  = uint64(@@DND_RANDOM_COMPARISONS32@@)
+	decnumberDiffRandomComparisons64  = uint64(@@DND_RANDOM_COMPARISONS64@@)
+	decnumberDiffRandomComparisons128 = uint64(@@DND_RANDOM_COMPARISONS128@@)
+
+	decnumberDiffTotalComparisons32  = uint64(@@DND_TOTAL_COMPARISONS32@@)
+	decnumberDiffTotalComparisons64  = uint64(@@DND_TOTAL_COMPARISONS64@@)
+	decnumberDiffTotalComparisons128 = uint64(@@DND_TOTAL_COMPARISONS128@@)
+
+	decnumberDiffStructuredStreamHash32  = uint64(@@DND_STRUCTURED_STREAM_HASH32@@)
+	decnumberDiffStructuredStreamHash64  = uint64(@@DND_STRUCTURED_STREAM_HASH64@@)
+	decnumberDiffStructuredStreamHash128 = uint64(@@DND_STRUCTURED_STREAM_HASH128@@)
+
+	decnumberDiffRandomStreamHash32  = uint64(@@DND_RANDOM_STREAM_HASH32@@)
+	decnumberDiffRandomStreamHash64  = uint64(@@DND_RANDOM_STREAM_HASH64@@)
+	decnumberDiffRandomStreamHash128 = uint64(@@DND_RANDOM_STREAM_HASH128@@)
+
+	decnumberDiffSentinelRowCount = uint64(@@DND_SENTINEL_COUNT@@)
+
+	// Known-divergence case-mode evaluation counts (hand-audited manifest
+	// rows; each executed occurrence pins both legs' divergent results
+	// exactly and is counted here instead of as an exact comparison).
+	decnumberDiffStructuredKnownDivergences32  = uint64(@@DND_STRUCTURED_KNOWN_DIVERGENCES32@@)
+	decnumberDiffStructuredKnownDivergences64  = uint64(@@DND_STRUCTURED_KNOWN_DIVERGENCES64@@)
+	decnumberDiffStructuredKnownDivergences128 = uint64(@@DND_STRUCTURED_KNOWN_DIVERGENCES128@@)
+	decnumberDiffRandomKnownDivergences32      = uint64(@@DND_RANDOM_KNOWN_DIVERGENCES32@@)
+	decnumberDiffRandomKnownDivergences64      = uint64(@@DND_RANDOM_KNOWN_DIVERGENCES64@@)
+	decnumberDiffRandomKnownDivergences128     = uint64(@@DND_RANDOM_KNOWN_DIVERGENCES128@@)
+
+	decnumberDiffSeedBase32  = uint64(@@DND_SEED_BASE32@@)
+	decnumberDiffSeedBase64  = uint64(@@DND_SEED_BASE64@@)
+	decnumberDiffSeedBase128 = uint64(@@DND_SEED_BASE128@@)
+
+	decnumberDiffHashOffset = uint64(0xcbf29ce484222325)
+	decnumberDiffHashPrime  = uint64(0x100000001b3)
+)
+
+// Intel raw 5-flag bit surface (identical to the raw _IDEC_flags positions).
+const (
+	decnumberDiffFlagInvalid   = uint32(0x01)
+	decnumberDiffFlagDivZero   = uint32(0x04)
+	decnumberDiffFlagOverflow  = uint32(0x08)
+	decnumberDiffFlagUnderflow = uint32(0x10)
+	decnumberDiffFlagInexact   = uint32(0x20)
+	decnumberDiffFlags5Mask    = decnumberDiffFlagInvalid | decnumberDiffFlagDivZero |
+		decnumberDiffFlagOverflow | decnumberDiffFlagUnderflow | decnumberDiffFlagInexact
+)
+
+// Pinned decNumber 3.68 status bit values (decContext.h). The native runner
+// cross-checks these against the compiled header through the cgo shim, so a
+// decNumber upgrade that moves a bit fails loudly instead of skewing the
+// projection.
+const (
+	decnumberDiffDnConversionSyntax   = uint32(0x00000001)
+	decnumberDiffDnDivisionByZero     = uint32(0x00000002)
+	decnumberDiffDnDivisionImpossible = uint32(0x00000004)
+	decnumberDiffDnDivisionUndefined  = uint32(0x00000008)
+	decnumberDiffDnInsufficientStore  = uint32(0x00000010)
+	decnumberDiffDnInexact            = uint32(0x00000020)
+	decnumberDiffDnInvalidContext     = uint32(0x00000040)
+	decnumberDiffDnInvalidOperation   = uint32(0x00000080)
+	decnumberDiffDnOverflow           = uint32(0x00000200)
+	decnumberDiffDnClamped            = uint32(0x00000400)
+	decnumberDiffDnRounded            = uint32(0x00000800)
+	decnumberDiffDnSubnormal          = uint32(0x00001000)
+	decnumberDiffDnUnderflow          = uint32(0x00002000)
+)
+
+// decnumberDiffDnDropped are the GDA-only condition bits outside the IEEE
+// 5-flag mask (design projection table: dropped, never compared).
+const decnumberDiffDnDropped = decnumberDiffDnRounded | decnumberDiffDnClamped | decnumberDiffDnSubnormal
+
+// decnumberDiffDnMapped are the status bits the fixed projection table maps
+// onto the 5-flag surface.
+const decnumberDiffDnMapped = decnumberDiffDnInvalidOperation | decnumberDiffDnDivisionUndefined |
+	decnumberDiffDnDivisionByZero | decnumberDiffDnOverflow | decnumberDiffDnUnderflow | decnumberDiffDnInexact
+
+// decnumberDiffProjectStatus applies the fixed decNumber-status -> IEEE
+// 5-flag projection. Any status bit outside the mapped and dropped sets is
+// returned in unknown and must hard-fail the caller (no runtime tolerance).
+func decnumberDiffProjectStatus(status uint32) (flags5, unknown uint32) {
+	if status&(decnumberDiffDnInvalidOperation|decnumberDiffDnDivisionUndefined) != 0 {
+		flags5 |= decnumberDiffFlagInvalid
+	}
+	if status&decnumberDiffDnDivisionByZero != 0 {
+		flags5 |= decnumberDiffFlagDivZero
+	}
+	if status&decnumberDiffDnOverflow != 0 {
+		flags5 |= decnumberDiffFlagOverflow
+	}
+	if status&decnumberDiffDnUnderflow != 0 {
+		flags5 |= decnumberDiffFlagUnderflow
+	}
+	if status&decnumberDiffDnInexact != 0 {
+		flags5 |= decnumberDiffFlagInexact
+	}
+	unknown = status &^ (decnumberDiffDnMapped | decnumberDiffDnDropped)
+	return flags5, unknown
+}
+
+// ---- comparison surface: the (class, sign, coefficient, exponent) triple ----
+
+type decnumberDiffKind uint8
+
+const (
+	decnumberDiffKindFinite decnumberDiffKind = iota // includes zeros
+	decnumberDiffKindInf
+	decnumberDiffKindQNaN
+	decnumberDiffKindSNaN
+)
+
+type decnumberDiffTriple struct {
+	kind  decnumberDiffKind
+	sign  bool
+	coeff *big.Int // finite only; may be zero
+	exp   int32    // quantum exponent, finite only
+}
+
+func (t decnumberDiffTriple) key() string {
+	sign := ""
+	if t.sign {
+		sign = "-"
+	}
+	switch t.kind {
+	case decnumberDiffKindInf:
+		return sign + "Inf"
+	case decnumberDiffKindQNaN:
+		return "qNaN"
+	case decnumberDiffKindSNaN:
+		return "sNaN"
+	default:
+		return sign + t.coeff.String() + "E" + fmt.Sprint(t.exp)
+	}
+}
+
+// dnOperandString renders the operand transfer form for
+// decNumberFromString: exact integer-coefficient scientific text, so no GDA
+// string-format semantics enter the comparison (NaN operands are payload
+// zero by corpus construction).
+func (t decnumberDiffTriple) dnOperandString() string {
+	sign := ""
+	if t.sign {
+		sign = "-"
+	}
+	switch t.kind {
+	case decnumberDiffKindInf:
+		return sign + "Infinity"
+	case decnumberDiffKindQNaN:
+		return sign + "NaN"
+	case decnumberDiffKindSNaN:
+		return sign + "sNaN"
+	default:
+		return sign + t.coeff.String() + "E" + fmt.Sprint(t.exp)
+	}
+}
+
+// decnumberDiffCompare is the gate's exact comparator over the projected
+// comparison surface: classes must match; infinities compare sign;
+// finite values compare sign, quantum exponent (cohort-exact), and
+// coefficient; NaN sign and payload are outside the v1 surface (payloads
+// are structurally absent from the triple). The 5-flag words must be equal
+// bit-for-bit. The hand-written strength anchor
+// (decnumber_comparator_strength_test.go) pins this strictness outside the
+// generation path.
+func decnumberDiffCompare(a decnumberDiffTriple, aFlags5 uint32, b decnumberDiffTriple, bFlags5 uint32) bool {
+	if aFlags5 != bFlags5 {
+		return false
+	}
+	if a.kind != b.kind {
+		return false
+	}
+	switch a.kind {
+	case decnumberDiffKindInf:
+		return a.sign == b.sign
+	case decnumberDiffKindQNaN, decnumberDiffKindSNaN:
+		return true
+	default:
+		return a.sign == b.sign && a.exp == b.exp && a.coeff.Cmp(b.coeff) == 0
+	}
+}
+
+// ---- independent BID triple codec (bid_codec_reference layout logic) ----
+
+type decnumberDiffWidthParams struct {
+	bits     int
+	p        int
+	minExp   int32
+	maxExp   int32
+	maxCoeff *big.Int
+	seedBase uint64
+}
+
+func decnumberDiffPow10(k int) *big.Int {
+	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(k)), nil)
+}
+
+var decnumberDiffWidth32 = decnumberDiffWidthParams{bits: 32, p: 7, minExp: -101, maxExp: 90,
+	maxCoeff: big.NewInt(9999999), seedBase: decnumberDiffSeedBase32}
+var decnumberDiffWidth64 = decnumberDiffWidthParams{bits: 64, p: 16, minExp: -398, maxExp: 369,
+	maxCoeff: big.NewInt(9999999999999999), seedBase: decnumberDiffSeedBase64}
+var decnumberDiffWidth128 = decnumberDiffWidthParams{bits: 128, p: 34, minExp: -6176, maxExp: 6111,
+	maxCoeff: new(big.Int).Sub(decnumberDiffPow10(34), big.NewInt(1)), seedBase: decnumberDiffSeedBase128}
+
+var decnumberDiffTen34 = decnumberDiffPow10(34)
+
+func decnumberDiffDecode32(v uint32) decnumberDiffTriple {
+	sign := v&0x80000000 != 0
+	if v&0x7c000000 == 0x7c000000 {
+		kind := decnumberDiffKindQNaN
+		if v&0x7e000000 == 0x7e000000 {
+			kind = decnumberDiffKindSNaN
+		}
+		return decnumberDiffTriple{kind: kind, sign: sign}
+	}
+	if v&0x78000000 == 0x78000000 {
+		return decnumberDiffTriple{kind: decnumberDiffKindInf, sign: sign}
+	}
+	var exp int
+	var coeff uint32
+	if v&0x60000000 == 0x60000000 {
+		exp = int((v >> 21) & 0xff)
+		coeff = (v & 0x001fffff) | 0x00800000
+		if coeff > 9999999 {
+			coeff = 0
+		}
+	} else {
+		exp = int((v >> 23) & 0xff)
+		coeff = v & 0x007fffff
+	}
+	return decnumberDiffTriple{kind: decnumberDiffKindFinite, sign: sign,
+		coeff: new(big.Int).SetUint64(uint64(coeff)), exp: int32(exp - 101)}
+}
+
+func decnumberDiffDecode64(v uint64) decnumberDiffTriple {
+	sign := v&0x8000000000000000 != 0
+	if v&0x7c00000000000000 == 0x7c00000000000000 {
+		kind := decnumberDiffKindQNaN
+		if v&0x7e00000000000000 == 0x7e00000000000000 {
+			kind = decnumberDiffKindSNaN
+		}
+		return decnumberDiffTriple{kind: kind, sign: sign}
+	}
+	if v&0x7800000000000000 == 0x7800000000000000 {
+		return decnumberDiffTriple{kind: decnumberDiffKindInf, sign: sign}
+	}
+	var exp int
+	var coeff uint64
+	if v&0x6000000000000000 == 0x6000000000000000 {
+		exp = int((v >> 51) & 0x3ff)
+		coeff = (v & 0x0007ffffffffffff) | 0x0020000000000000
+		if coeff > 9999999999999999 {
+			coeff = 0
+		}
+	} else {
+		exp = int((v >> 53) & 0x3ff)
+		coeff = v & 0x001fffffffffffff
+	}
+	return decnumberDiffTriple{kind: decnumberDiffKindFinite, sign: sign,
+		coeff: new(big.Int).SetUint64(coeff), exp: int32(exp - 398)}
+}
+
+func decnumberDiffDecode128(lo, hi uint64) decnumberDiffTriple {
+	sign := hi&0x8000000000000000 != 0
+	if hi&0x7c00000000000000 == 0x7c00000000000000 {
+		kind := decnumberDiffKindQNaN
+		if hi&0x7e00000000000000 == 0x7e00000000000000 {
+			kind = decnumberDiffKindSNaN
+		}
+		return decnumberDiffTriple{kind: kind, sign: sign}
+	}
+	if hi&0x7800000000000000 == 0x7800000000000000 {
+		return decnumberDiffTriple{kind: decnumberDiffKindInf, sign: sign}
+	}
+	var exp int
+	var coeffHi uint64
+	if hi&0x6000000000000000 == 0x6000000000000000 {
+		exp = int((hi >> 47) & 0x3fff)
+		coeffHi = (hi & 0x00007fffffffffff) | 0x0020000000000000
+	} else {
+		exp = int((hi >> 49) & 0x3fff)
+		coeffHi = hi & 0x0001ffffffffffff
+	}
+	coeff := new(big.Int).SetUint64(coeffHi)
+	coeff.Lsh(coeff, 64)
+	coeff.Or(coeff, new(big.Int).SetUint64(lo))
+	if coeff.Cmp(decnumberDiffTen34) >= 0 {
+		coeff.SetUint64(0)
+	}
+	return decnumberDiffTriple{kind: decnumberDiffKindFinite, sign: sign, coeff: coeff, exp: int32(exp - 6176)}
+}
+
+func decnumberDiffDecode(width decnumberDiffWidthParams, lo, hi uint64) decnumberDiffTriple {
+	switch width.bits {
+	case 32:
+		return decnumberDiffDecode32(uint32(lo))
+	case 64:
+		return decnumberDiffDecode64(lo)
+	default:
+		return decnumberDiffDecode128(lo, hi)
+	}
+}
+
+func decnumberDiffEncode32(t decnumberDiffTriple) (uint32, bool) {
+	var sign uint32
+	if t.sign {
+		sign = 0x80000000
+	}
+	switch t.kind {
+	case decnumberDiffKindInf:
+		return sign | 0x78000000, true
+	case decnumberDiffKindQNaN:
+		return sign | 0x7c000000, true
+	case decnumberDiffKindSNaN:
+		return sign | 0x7e000000, true
+	}
+	exp := int(t.exp) + 101
+	if exp < 0 || exp > 191 || !t.coeff.IsUint64() {
+		return 0, false
+	}
+	coeff := t.coeff.Uint64()
+	if coeff > 9999999 {
+		return 0, false
+	}
+	if coeff < 0x800000 {
+		return sign | (uint32(exp) << 23) | uint32(coeff), true
+	}
+	return sign | 0x60000000 | (uint32(exp) << 21) | (uint32(coeff) & 0x001fffff), true
+}
+
+func decnumberDiffEncode64(t decnumberDiffTriple) (uint64, bool) {
+	var sign uint64
+	if t.sign {
+		sign = 0x8000000000000000
+	}
+	switch t.kind {
+	case decnumberDiffKindInf:
+		return sign | 0x7800000000000000, true
+	case decnumberDiffKindQNaN:
+		return sign | 0x7c00000000000000, true
+	case decnumberDiffKindSNaN:
+		return sign | 0x7e00000000000000, true
+	}
+	exp := int(t.exp) + 398
+	if exp < 0 || exp > 767 || !t.coeff.IsUint64() {
+		return 0, false
+	}
+	coeff := t.coeff.Uint64()
+	if coeff > 9999999999999999 {
+		return 0, false
+	}
+	if coeff < 0x20000000000000 {
+		return sign | (uint64(exp) << 53) | coeff, true
+	}
+	return sign | 0x6000000000000000 | (uint64(exp) << 51) | (coeff & 0x0007ffffffffffff), true
+}
+
+func decnumberDiffEncode128(t decnumberDiffTriple) (lo, hi uint64, ok bool) {
+	var sign uint64
+	if t.sign {
+		sign = 0x8000000000000000
+	}
+	switch t.kind {
+	case decnumberDiffKindInf:
+		return 0, sign | 0x7800000000000000, true
+	case decnumberDiffKindQNaN:
+		return 0, sign | 0x7c00000000000000, true
+	case decnumberDiffKindSNaN:
+		return 0, sign | 0x7e00000000000000, true
+	}
+	exp := int(t.exp) + 6176
+	if exp < 0 || exp > 12287 || t.coeff.Sign() < 0 || t.coeff.Cmp(decnumberDiffTen34) >= 0 {
+		return 0, 0, false
+	}
+	var words [16]byte
+	t.coeff.FillBytes(words[:])
+	coeffHi := uint64(words[0])<<56 | uint64(words[1])<<48 | uint64(words[2])<<40 | uint64(words[3])<<32 |
+		uint64(words[4])<<24 | uint64(words[5])<<16 | uint64(words[6])<<8 | uint64(words[7])
+	coeffLo := uint64(words[8])<<56 | uint64(words[9])<<48 | uint64(words[10])<<40 | uint64(words[11])<<32 |
+		uint64(words[12])<<24 | uint64(words[13])<<16 | uint64(words[14])<<8 | uint64(words[15])
+	return coeffLo, sign | (uint64(exp) << 49) | (coeffHi & 0x0001ffffffffffff), true
+}
+
+func decnumberDiffEncode(width decnumberDiffWidthParams, t decnumberDiffTriple) (lo, hi uint64, ok bool) {
+	switch width.bits {
+	case 32:
+		v, ok := decnumberDiffEncode32(t)
+		return uint64(v), 0, ok
+	case 64:
+		v, ok := decnumberDiffEncode64(t)
+		return v, 0, ok
+	default:
+		return decnumberDiffEncode128(t)
+	}
+}
+
+// decnumberDiffDecodeCanonical decodes result or operand bits and reports
+// whether they survive the independent encode round trip (canonical form).
+// Non-canonical result bits from any leg are a hard gate failure.
+func decnumberDiffDecodeCanonical(width decnumberDiffWidthParams, lo, hi uint64) (decnumberDiffTriple, bool) {
+	t := decnumberDiffDecode(width, lo, hi)
+	relo, rehi, ok := decnumberDiffEncode(width, t)
+	if !ok {
+		return t, false
+	}
+	return t, relo == lo && rehi == hi
+}
+
+func decnumberDiffBitsText(width decnumberDiffWidthParams, lo, hi uint64) string {
+	switch width.bits {
+	case 32:
+		return fmt.Sprintf("%08x", uint32(lo))
+	case 64:
+		return fmt.Sprintf("%016x", lo)
+	default:
+		return fmt.Sprintf("%016x:%016x", hi, lo)
+	}
+}
+
+// ---- deterministic random triple stream (splitmix64, tier1 pattern) ----
+
+func decnumberDiffSplitMix64(v uint64) uint64 {
+	v += 0x9e3779b97f4a7c15
+	v = (v ^ (v >> 30)) * 0xbf58476d1ce4e5b9
+	v = (v ^ (v >> 27)) * 0x94d049bb133111eb
+	return v ^ (v >> 31)
+}
+
+func decnumberDiffRandomWord(seed, caseIndex, lane uint64) uint64 {
+	return decnumberDiffSplitMix64(seed ^ caseIndex*0xd1342543de82ef95 ^ lane*0x9e3779b97f4a7c15)
+}
+
+// decnumberDiffRandomTriple generates one canonical random operand in triple
+// space: NaN payload always zero (corpus contract), zeros spread across the
+// quantum range, finite exponents optionally correlated to the partner
+// operand so additions and fma products stay numerically interactive.
+// The devtools codegen carries a byte-equal replica; the anchored stream
+// hashes fail if the twins drift.
+func decnumberDiffRandomTriple(width decnumberDiffWidthParams, seed, caseIndex, lane uint64, partner *decnumberDiffTriple) decnumberDiffTriple {
+	r := decnumberDiffRandomWord(seed, caseIndex, lane*16+0) % 1000
+	sign := decnumberDiffRandomWord(seed, caseIndex, lane*16+1)&1 == 1
+	expRange := uint64(width.maxExp - width.minExp + 1)
+	switch {
+	case r < 850: // finite nonzero
+		digitCount := 1 + int(decnumberDiffRandomWord(seed, caseIndex, lane*16+2)%uint64(width.p))
+		state := decnumberDiffRandomWord(seed, caseIndex, lane*16+3)
+		digits := make([]byte, digitCount)
+		digits[0] = byte('1' + state%9)
+		for i := 1; i < digitCount; i++ {
+			state = decnumberDiffSplitMix64(state)
+			digits[i] = byte('0' + state%10)
+		}
+		coeff, ok := new(big.Int).SetString(string(digits), 10)
+		if !ok {
+			panic("decnumber differential random coefficient parse cannot fail")
+		}
+		var exp int32
+		if partner != nil && partner.kind == decnumberDiffKindFinite && decnumberDiffRandomWord(seed, caseIndex, lane*16+5)&1 == 0 {
+			span := int32(width.p + 4)
+			delta := int32(decnumberDiffRandomWord(seed, caseIndex, lane*16+6)%uint64(2*span+1)) - span
+			exp = partner.exp + delta
+			if exp < width.minExp {
+				exp = width.minExp
+			}
+			if exp > width.maxExp {
+				exp = width.maxExp
+			}
+		} else {
+			exp = width.minExp + int32(decnumberDiffRandomWord(seed, caseIndex, lane*16+4)%expRange)
+		}
+		return decnumberDiffTriple{kind: decnumberDiffKindFinite, sign: sign, coeff: coeff, exp: exp}
+	case r < 910: // zero across the quantum range
+		exp := width.minExp + int32(decnumberDiffRandomWord(seed, caseIndex, lane*16+4)%expRange)
+		return decnumberDiffTriple{kind: decnumberDiffKindFinite, sign: sign, coeff: new(big.Int), exp: exp}
+	case r < 950:
+		return decnumberDiffTriple{kind: decnumberDiffKindInf, sign: sign}
+	case r < 980:
+		return decnumberDiffTriple{kind: decnumberDiffKindQNaN, sign: sign}
+	default:
+		return decnumberDiffTriple{kind: decnumberDiffKindSNaN, sign: sign}
+	}
+}
+
+// decnumberDiffFmaExcluded replays the generation-time L13 class predicate:
+// fma with one product operand a zero of any quantum and sign, the other an
+// infinity, and a quiet NaN addend (IEEE 754-2019 7.2 implementation-defined
+// invalid; pinned Intel C and decNumber measurably disagree). Cases in this
+// class are never compared; both the generator and the runner count them
+// against the anchored exclusion totals.
+func decnumberDiffFmaExcluded(x, y, z decnumberDiffTriple) bool {
+	isZero := func(t decnumberDiffTriple) bool {
+		return t.kind == decnumberDiffKindFinite && t.coeff.Sign() == 0
+	}
+	isInf := func(t decnumberDiffTriple) bool { return t.kind == decnumberDiffKindInf }
+	if z.kind != decnumberDiffKindQNaN {
+		return false
+	}
+	return (isZero(x) && isInf(y)) || (isInf(x) && isZero(y))
+}
+
+func decnumberDiffMix(digest, word uint64) uint64 {
+	return (digest ^ word) * decnumberDiffHashPrime
+}

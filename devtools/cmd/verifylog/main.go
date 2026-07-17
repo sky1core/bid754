@@ -30,6 +30,12 @@ type anchors struct {
 	ReadtestNativeCompareSkipCases  uint64            `json:"readtest_native_compare_skip_cases"`
 	GoportReadtestExecutedCases     uint64            `json:"goport_readtest_executed_cases"`
 	FFIBitcompareCasesTotal         uint64            `json:"ffi_bitcompare_cases_total"`
+	DecnumberDiffStructured         map[string]uint64 `json:"decnumber_differential_structured_comparisons_by_width"`
+	DecnumberDiffStructuredExcluded map[string]uint64 `json:"decnumber_differential_structured_fma_excluded_by_width"`
+	DecnumberDiffStructuredKnown    map[string]uint64 `json:"decnumber_differential_structured_known_divergences_by_width"`
+	DecnumberDiffRandom             map[string]uint64 `json:"decnumber_differential_random_comparisons_by_width"`
+	DecnumberDiffRandomExcluded     map[string]uint64 `json:"decnumber_differential_random_fma_excluded_by_width"`
+	DecnumberDiffRandomKnown        map[string]uint64 `json:"decnumber_differential_random_known_divergences_by_width"`
 }
 
 // sentinels mirrors the routing-sentinel row pin file; the row counts are
@@ -37,13 +43,14 @@ type anchors struct {
 type sentinels struct {
 	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
 	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
+	DecnumberDifferentialRows         []string `json:"decnumber_differential_sentinel_rows"`
 }
 
 func main() {
 	anchorsPath := flag.String("anchors", "verification_anchors.json", "path to verification_anchors.json")
 	sentinelsPath := flag.String("sentinels", "verification_sentinels.json", "path to verification_sentinels.json (routing-sentinel row pins)")
 	logPath := flag.String("log", "", "path to the captured gate log")
-	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi")
+	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi, decnumber-differential")
 	passes := flag.String("passes", "", "comma-separated top-level Go test names that must have '--- PASS:' evidence")
 	flag.Parse()
 	if *logPath == "" || (*domain == "" && *passes == "") {
@@ -157,6 +164,34 @@ func main() {
 				fail("native FFI evidence: %v", err)
 			}
 			required = append(required, nativeEvidence...)
+		case "decnumber-differential":
+			required = append(required,
+				topLevelPass("TestGeneratedDecnumberDifferentialCorpusContract"),
+				topLevelPass("TestGeneratedDecnumberDifferentialRoutingSentinels"),
+				topLevelPass("TestGeneratedDecnumberDifferentialStructured"),
+				topLevelPass("TestGeneratedDecnumberDifferentialDeterministicRandom"),
+				decnumberDiffSentinelCountEvidence(*sentinelsPath, "decNumber differential routing sentinels"),
+			)
+			for _, w := range widths {
+				structured := a.DecnumberDiffStructured["decimal"+w]
+				structuredKnown := a.DecnumberDiffStructuredKnown["decimal"+w]
+				random := a.DecnumberDiffRandom["decimal"+w]
+				randomKnown := a.DecnumberDiffRandomKnown["decimal"+w]
+				if structured == 0 || random == 0 {
+					fail("decNumber differential anchors carry a zero comparison count for decimal%s (an empty gate would be a green no-op)", w)
+				}
+				if structuredKnown > structured || randomKnown > random {
+					fail("decNumber differential known-divergence anchors exceed the comparison totals for decimal%s", w)
+				}
+				required = append(required,
+					countLine(fmt.Sprintf("decimal%s decnumber differential structured exact comparisons: %d/%d", w, structured-structuredKnown, structured-structuredKnown)),
+					countLine(fmt.Sprintf("decimal%s decnumber differential structured excluded fma_zero_inf_qnan_invalid_ieee_optional: %d", w, a.DecnumberDiffStructuredExcluded["decimal"+w])),
+					countLine(fmt.Sprintf("decimal%s decnumber differential structured known divergences: %d/%d", w, structuredKnown, structuredKnown)),
+					countLine(fmt.Sprintf("decimal%s decnumber differential random exact comparisons: %d/%d", w, random-randomKnown, random-randomKnown)),
+					countLine(fmt.Sprintf("decimal%s decnumber differential random excluded fma_zero_inf_qnan_invalid_ieee_optional: %d", w, a.DecnumberDiffRandomExcluded["decimal"+w])),
+					countLine(fmt.Sprintf("decimal%s decnumber differential random known divergences: %d/%d", w, randomKnown, randomKnown)),
+				)
+			}
 		default:
 			fail("unknown domain %q", *domain)
 		}
@@ -272,6 +307,16 @@ func sentinelCCCountEvidence(sentinelsPath, prefix string) evidence {
 	n := len(loadSentinels(sentinelsPath).Tier1CompareConversionRoutingRows)
 	if n == 0 {
 		fail("verification_sentinels.json pins zero Tier 1 compare/conversion routing sentinel rows")
+	}
+	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
+}
+
+// decnumberDiffSentinelCountEvidence is the decNumber differential analogue
+// of sentinelCountEvidence.
+func decnumberDiffSentinelCountEvidence(sentinelsPath, prefix string) evidence {
+	n := len(loadSentinels(sentinelsPath).DecnumberDifferentialRows)
+	if n == 0 {
+		fail("verification_sentinels.json pins zero decNumber differential sentinel rows")
 	}
 	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
 }

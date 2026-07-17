@@ -13,12 +13,22 @@ func main() {
 	manifestPath := flag.String("manifest", "testgen_manifest.json", "path to the shared test generation manifest")
 	printSentinelAnchors := flag.Bool("print-sentinel-anchors", false,
 		"print the proposed verification_sentinels.json routing-sentinel rows to stdout and exit; writes no file and reads no anchor")
+	printDecnumberSentinelAnchors := flag.Bool("print-decnumber-sentinel-anchors", false,
+		"print the proposed verification_sentinels.json decNumber differential sentinel rows to stdout and exit; writes no file and reads no anchor")
 	flag.Parse()
 
 	if *printSentinelAnchors {
 		proposal, err := testgen.Tier1SentinelAnchorProposal()
 		if err != nil {
 			log.Fatalf("compute sentinel anchor proposal: %v", err)
+		}
+		fmt.Print(proposal)
+		return
+	}
+	if *printDecnumberSentinelAnchors {
+		proposal, err := testgen.DecnumberDifferentialSentinelAnchorProposal()
+		if err != nil {
+			log.Fatalf("compute decNumber differential sentinel anchor proposal: %v", err)
 		}
 		fmt.Print(proposal)
 		return
@@ -75,6 +85,9 @@ func main() {
 	}
 	if err := testgen.WriteTier1CompareConversionLongOutputs(repoRoot); err != nil {
 		log.Fatalf("write generated Tier 1 compare/conversion long test: %v", err)
+	}
+	if err := testgen.WriteDecnumberDifferentialOutputs(repoRoot, manifest); err != nil {
+		log.Fatalf("write generated decNumber differential outputs: %v", err)
 	}
 	if err := testgen.WriteBidCodecVectorDataOutput(repoRoot, *manifest.BidCodecVectors); err != nil {
 		log.Fatalf("write generated BID codec vectors: %v", err)

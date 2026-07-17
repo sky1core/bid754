@@ -1,0 +1,981 @@
+
+//go:build cgo && bid754_native && bid754_decnumber_diff
+
+package bid754
+
+// decNumber third-oracle differential gate runner.
+//
+// Three legs per case: pinned Intel BID C (the existing generated FFI shim
+// surface), the Go mechanical port (asserted bit- and flag-exact against
+// Intel inside the same shim helpers), and pinned IBM decNumber 3.68
+// evaluated structurally in a width-fixed GDA context. Comparison is exact
+// over the (class, sign, coefficient, exponent) triple — cohort-exact for
+// finite values — plus the projected IEEE 5-flag word. There is no
+// tolerance, no runtime heuristic, and no runtime skip: the only cases not
+// compared are the generation-time exclusion classes this runner replays
+// and counts against the anchored totals. A divergence is a finding, never
+// noise: it fails the gate with the full case identity and is resolved
+// through the documented four-way procedure.
+//
+// Always full-scale: no shard variables, no reduced smoke subset.
+
+import (
+	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"math/big"
+	"strconv"
+	"strings"
+	"testing"
+)
+
+type decnumberDiff128Words struct {
+	lo uint64
+	hi uint64
+}
+
+var decnumberDiffBoundary32Values = [...]uint32{
+@@DND_BOUNDARY32_VALUES@@}
+
+var decnumberDiffProbes32Values = [...]uint32{
+@@DND_PROBES32_VALUES@@}
+
+var decnumberDiffExactProduct32Values = [...]uint32{
+@@DND_EXACT_PRODUCT32_VALUES@@}
+
+var decnumberDiffExactProductZ32Values = [...]uint32{
+@@DND_EXACT_PRODUCT_Z32_VALUES@@}
+
+var decnumberDiffBoundary64Values = [...]uint64{
+@@DND_BOUNDARY64_VALUES@@}
+
+var decnumberDiffProbes64Values = [...]uint64{
+@@DND_PROBES64_VALUES@@}
+
+var decnumberDiffExactProduct64Values = [...]uint64{
+@@DND_EXACT_PRODUCT64_VALUES@@}
+
+var decnumberDiffExactProductZ64Values = [...]uint64{
+@@DND_EXACT_PRODUCT_Z64_VALUES@@}
+
+var decnumberDiffBoundary128Values = [...]decnumberDiff128Words{
+@@DND_BOUNDARY128_VALUES@@}
+
+var decnumberDiffProbes128Values = [...]decnumberDiff128Words{
+@@DND_PROBES128_VALUES@@}
+
+var decnumberDiffExactProduct128Values = [...]decnumberDiff128Words{
+@@DND_EXACT_PRODUCT128_VALUES@@}
+
+var decnumberDiffExactProductZ128Values = [...]decnumberDiff128Words{
+@@DND_EXACT_PRODUCT_Z128_VALUES@@}
+
+// Routing sentinel rows. Byte-equal to the hand-pinned
+// devtools/verification_sentinels.json decnumber_differential_sentinel_rows
+// (TestVerificationAnchorsMatchGeneratedArtifacts enforces the equality; no
+// generator reads or writes the pin file).
+var decnumberDiffSentinelRows = []string{
+@@DND_SENTINEL_ROWS@@}
+
+// decnumberDiffKnownDivergenceRow is one hand-audited real divergence
+// pinned in the manifest (testgen_manifest.json decnumber_differential
+// known_divergences, classified through the documented four-way procedure).
+// The runner still executes the case on every leg and requires both sides
+// to reproduce the pinned divergent results exactly — a change on either
+// side fails the gate for re-audit — and counts the evaluation as a known
+// divergence instead of an exact comparison.
+type decnumberDiffKnownDivergenceRow struct {
+	op                     string
+	mode                   int
+	xLo, xHi, yLo, yHi     uint64
+	zLo, zHi               uint64
+	intelLeg               string
+	dnKey                  string
+	dnFlags5               uint32
+	reason                 string
+}
+
+var decnumberDiffKnownDivergences32 = []decnumberDiffKnownDivergenceRow{
+@@DND_KNOWN_DIVERGENCE_ROWS32@@}
+
+var decnumberDiffKnownDivergences64 = []decnumberDiffKnownDivergenceRow{
+@@DND_KNOWN_DIVERGENCE_ROWS64@@}
+
+var decnumberDiffKnownDivergences128 = []decnumberDiffKnownDivergenceRow{
+@@DND_KNOWN_DIVERGENCE_ROWS128@@}
+
+func decnumberDiffKnownDivergencesFor(width decnumberDiffWidthParams) []decnumberDiffKnownDivergenceRow {
+	switch width.bits {
+	case 32:
+		return decnumberDiffKnownDivergences32
+	case 64:
+		return decnumberDiffKnownDivergences64
+	default:
+		return decnumberDiffKnownDivergences128
+	}
+}
+
+// decnumberDiffModes is the fixed native Intel rounding-mode execution
+// order. The decNumber-side mapping lives in the cgo shim (design ledger
+// L17); the sentinel rows discriminate every mode pair through pinned
+// mode-sensitive tuples.
+var decnumberDiffModes = [...]int{0, 1, 2, 3, 4}
+
+// decnumberDiffOps maps the gate's fixed operation order onto the shim
+// opcodes and the generated FFI helper function names.
+type decnumberDiffOp struct {
+	name   string
+	opCode int
+	arity  int
+}
+
+var decnumberDiffRoundedOpsTable = [...]decnumberDiffOp{
+	{name: "add", opCode: 0, arity: 2},
+	{name: "sub", opCode: 1, arity: 2},
+	{name: "mul", opCode: 2, arity: 2},
+	{name: "div", opCode: 3, arity: 2},
+	{name: "quantize", opCode: 5, arity: 2},
+}
+
+var decnumberDiffFmaOp = decnumberDiffOp{name: "fma", opCode: 4, arity: 3}
+var decnumberDiffSqrtOp = decnumberDiffOp{name: "sqrt", opCode: 6, arity: 1}
+
+// decnumberDiffOperand is one materialized corpus operand: raw bits, the
+// independently decoded triple, and the exact decNumber transfer string
+// (built once, reused across every op/mode combination).
+type decnumberDiffOperand struct {
+	lo, hi uint64
+	triple decnumberDiffTriple
+	dnStr  string
+}
+
+func decnumberDiffMaterialize(t *testing.T, width decnumberDiffWidthParams, lo, hi uint64) decnumberDiffOperand {
+	t.Helper()
+	triple, canonical := decnumberDiffDecodeCanonical(width, lo, hi)
+	if !canonical {
+		t.Fatalf("decimal%d decnumber differential corpus operand %s is non-canonical (corpus contract violation)",
+			width.bits, decnumberDiffBitsText(width, lo, hi))
+	}
+	return decnumberDiffOperand{lo: lo, hi: hi, triple: triple, dnStr: triple.dnOperandString()}
+}
+
+type decnumberDiffCorpus struct {
+	width         decnumberDiffWidthParams
+	boundary      []decnumberDiffOperand
+	probes        []decnumberDiffOperand
+	exactProduct  []decnumberDiffOperand
+	exactProductZ []decnumberDiffOperand
+}
+
+func decnumberDiffMaterializeCorpus(t *testing.T, width decnumberDiffWidthParams) decnumberDiffCorpus {
+	t.Helper()
+	corpus := decnumberDiffCorpus{width: width}
+	materializeAll := func(loHi func(i int) (uint64, uint64), n int) []decnumberDiffOperand {
+		out := make([]decnumberDiffOperand, 0, n)
+		for i := 0; i < n; i++ {
+			lo, hi := loHi(i)
+			out = append(out, decnumberDiffMaterialize(t, width, lo, hi))
+		}
+		return out
+	}
+	switch width.bits {
+	case 32:
+		corpus.boundary = materializeAll(func(i int) (uint64, uint64) { return uint64(decnumberDiffBoundary32Values[i]), 0 }, len(decnumberDiffBoundary32Values))
+		corpus.probes = materializeAll(func(i int) (uint64, uint64) { return uint64(decnumberDiffProbes32Values[i]), 0 }, len(decnumberDiffProbes32Values))
+		corpus.exactProduct = materializeAll(func(i int) (uint64, uint64) { return uint64(decnumberDiffExactProduct32Values[i]), 0 }, len(decnumberDiffExactProduct32Values))
+		corpus.exactProductZ = materializeAll(func(i int) (uint64, uint64) { return uint64(decnumberDiffExactProductZ32Values[i]), 0 }, len(decnumberDiffExactProductZ32Values))
+	case 64:
+		corpus.boundary = materializeAll(func(i int) (uint64, uint64) { return decnumberDiffBoundary64Values[i], 0 }, len(decnumberDiffBoundary64Values))
+		corpus.probes = materializeAll(func(i int) (uint64, uint64) { return decnumberDiffProbes64Values[i], 0 }, len(decnumberDiffProbes64Values))
+		corpus.exactProduct = materializeAll(func(i int) (uint64, uint64) { return decnumberDiffExactProduct64Values[i], 0 }, len(decnumberDiffExactProduct64Values))
+		corpus.exactProductZ = materializeAll(func(i int) (uint64, uint64) { return decnumberDiffExactProductZ64Values[i], 0 }, len(decnumberDiffExactProductZ64Values))
+	default:
+		corpus.boundary = materializeAll(func(i int) (uint64, uint64) {
+			return decnumberDiffBoundary128Values[i].lo, decnumberDiffBoundary128Values[i].hi
+		}, len(decnumberDiffBoundary128Values))
+		corpus.probes = materializeAll(func(i int) (uint64, uint64) {
+			return decnumberDiffProbes128Values[i].lo, decnumberDiffProbes128Values[i].hi
+		}, len(decnumberDiffProbes128Values))
+		corpus.exactProduct = materializeAll(func(i int) (uint64, uint64) {
+			return decnumberDiffExactProduct128Values[i].lo, decnumberDiffExactProduct128Values[i].hi
+		}, len(decnumberDiffExactProduct128Values))
+		corpus.exactProductZ = materializeAll(func(i int) (uint64, uint64) {
+			return decnumberDiffExactProductZ128Values[i].lo, decnumberDiffExactProductZ128Values[i].hi
+		}, len(decnumberDiffExactProductZ128Values))
+	}
+	return corpus
+}
+
+// decnumberDiffVisitStructuredPairs is the fixed structured pair visitation
+// shared by the corpus contract digest and the differential executor:
+// boundary x probes in both operand orders, then probes x probes, then the
+// exact-product cross. The devtools codegen replicates this order when
+// pinning the anchored structured stream hash.
+func (c decnumberDiffCorpus) visitStructuredPairs(visit func(x, y decnumberDiffOperand)) {
+	for _, x := range c.boundary {
+		for _, y := range c.probes {
+			visit(x, y)
+			visit(y, x)
+		}
+	}
+	for _, x := range c.probes {
+		for _, y := range c.probes {
+			visit(x, y)
+		}
+	}
+	for _, x := range c.exactProduct {
+		for _, y := range c.exactProduct {
+			visit(x, y)
+		}
+	}
+}
+
+// visitStructuredTriples: boundary value rotated through all three fma
+// slots against (i+j)%len(probes) companion pairs, then probes^3, then
+// exact-product x exact-product x addend.
+func (c decnumberDiffCorpus) visitStructuredTriples(visit func(x, y, z decnumberDiffOperand)) {
+	for i, x := range c.boundary {
+		for j, y := range c.probes {
+			z := c.probes[(i+j)%len(c.probes)]
+			visit(x, y, z)
+			visit(y, z, x)
+			visit(z, x, y)
+		}
+	}
+	for _, x := range c.probes {
+		for _, y := range c.probes {
+			for _, z := range c.probes {
+				visit(x, y, z)
+			}
+		}
+	}
+	for _, x := range c.exactProduct {
+		for _, y := range c.exactProduct {
+			for _, z := range c.exactProductZ {
+				visit(x, y, z)
+			}
+		}
+	}
+}
+
+func (c decnumberDiffCorpus) structuredStreamHash() uint64 {
+	digest := decnumberDiffMix(decnumberDiffHashOffset, uint64(c.width.bits))
+	var visits uint64
+	c.visitStructuredPairs(func(x, y decnumberDiffOperand) {
+		digest = decnumberDiffMix(digest, x.lo)
+		digest = decnumberDiffMix(digest, x.hi)
+		digest = decnumberDiffMix(digest, y.lo)
+		digest = decnumberDiffMix(digest, y.hi)
+		visits++
+	})
+	c.visitStructuredTriples(func(x, y, z decnumberDiffOperand) {
+		digest = decnumberDiffMix(digest, x.lo)
+		digest = decnumberDiffMix(digest, x.hi)
+		digest = decnumberDiffMix(digest, y.lo)
+		digest = decnumberDiffMix(digest, y.hi)
+		digest = decnumberDiffMix(digest, z.lo)
+		digest = decnumberDiffMix(digest, z.hi)
+		visits++
+	})
+	for _, x := range c.boundary {
+		digest = decnumberDiffMix(digest, x.lo)
+		digest = decnumberDiffMix(digest, x.hi)
+		visits++
+	}
+	return decnumberDiffMix(digest, visits)
+}
+
+// ---- leg evaluation (single fan-out shared by differentials and sentinels) ----
+
+// decnumberDiffDnResult is the decNumber leg in comparison-triple form,
+// converted from the cgo shim's raw primitive extraction. rc values 0-4
+// come from the C shim; rc 5 marks a structurally impossible finite digit
+// count reported by decNumber (hard gate failure either way).
+type decnumberDiffDnResult struct {
+	triple      decnumberDiffTriple
+	rawStatus   uint32
+	parseStatus uint32
+	rc          int
+}
+
+func decnumberDiffRunDn(opCode, widthBits, intelRounding int, s1, s2, s3 string, arity int) decnumberDiffDnResult {
+	raw := decnumberDiffRunDnRaw(opCode, widthBits, intelRounding, s1, s2, s3, arity)
+	result := decnumberDiffDnResult{rawStatus: raw.rawStatus, parseStatus: raw.parseStatus, rc: raw.rc}
+	if raw.rc != 0 {
+		return result
+	}
+	switch raw.kind {
+	case 1:
+		result.triple = decnumberDiffTriple{kind: decnumberDiffKindInf, sign: raw.sign}
+	case 2:
+		result.triple = decnumberDiffTriple{kind: decnumberDiffKindQNaN, sign: raw.sign}
+	case 3:
+		result.triple = decnumberDiffTriple{kind: decnumberDiffKindSNaN, sign: raw.sign}
+	default:
+		digitCount := int(raw.digits)
+		if digitCount < 1 || digitCount > 34 {
+			result.rc = 5
+			return result
+		}
+		buf := make([]byte, digitCount)
+		for i := 0; i < digitCount; i++ {
+			buf[i] = byte('0' + raw.bcd[i])
+		}
+		coeff, ok := new(big.Int).SetString(string(buf), 10)
+		if !ok {
+			result.rc = 5
+			return result
+		}
+		result.triple = decnumberDiffTriple{kind: decnumberDiffKindFinite, sign: raw.sign, coeff: coeff, exp: raw.exponent}
+	}
+	return result
+}
+
+func decnumberDiffD128(op decnumberDiffOperand) Decimal128BID {
+	var value Decimal128BID
+	binary.LittleEndian.PutUint64(value[0:8], op.lo)
+	binary.LittleEndian.PutUint64(value[8:16], op.hi)
+	return value
+}
+
+// decnumberDiffLegs evaluates one case on all three legs. The returned
+// native and port strings are the generated FFI shim's "<bits>/<rawflags>"
+// forms; the decNumber result is structural. This is the single
+// operand/mode/dispatch fan-out shared by the differential executors and
+// the routing sentinels, so a slot swap, mode miswire, or width/context
+// mislabel in this glue skews the differential legs identically while the
+// pinned sentinel rows diverge and fail.
+func decnumberDiffLegs(t *testing.T, width decnumberDiffWidthParams, op decnumberDiffOp, x, y, z decnumberDiffOperand, mode int) (native, port string, dn decnumberDiffDnResult) {
+	t.Helper()
+	function := fmt.Sprintf("bid%d_%s", width.bits, op.name)
+	switch width.bits {
+	case 32:
+		switch op.arity {
+		case 1:
+			native, port = runGeneratedFFICase32Unary(function, uint32(x.lo), mode)
+		case 2:
+			native, port = runGeneratedFFICase32Binary(function, uint32(x.lo), uint32(y.lo), mode)
+		default:
+			native, port = runGeneratedFFICase32Ternary(function, uint32(x.lo), uint32(y.lo), uint32(z.lo), mode)
+		}
+	case 64:
+		switch op.arity {
+		case 1:
+			native, port = runGeneratedFFICase64Unary(function, x.lo, mode)
+		case 2:
+			native, port = runGeneratedFFICase64Binary(function, x.lo, y.lo, mode)
+		default:
+			native, port = runGeneratedFFICase64Ternary(function, x.lo, y.lo, z.lo, mode)
+		}
+	default:
+		switch op.arity {
+		case 1:
+			native, port = runGeneratedFFICase128Unary(function, decnumberDiffD128(x), mode)
+		case 2:
+			native, port = runGeneratedFFICase128Binary(function, decnumberDiffD128(x), decnumberDiffD128(y), mode)
+		default:
+			native, port = runGeneratedFFICase128Ternary(function, decnumberDiffD128(x), decnumberDiffD128(y), decnumberDiffD128(z), mode)
+		}
+	}
+	dn = decnumberDiffRunDn(op.opCode, width.bits, mode, x.dnStr, y.dnStr, z.dnStr, op.arity)
+	return native, port, dn
+}
+
+// decnumberDiffParseLeg splits one FFI shim "<bits>/<rawflags>" string back
+// into raw words (the 128-bit form is the little-endian byte hex image).
+func decnumberDiffParseLeg(t *testing.T, width decnumberDiffWidthParams, leg string) (lo, hi uint64, rawFlags uint32) {
+	t.Helper()
+	bitsText, flagsText, ok := strings.Cut(leg, "/")
+	if !ok {
+		t.Fatalf("decimal%d decnumber differential: malformed FFI leg %q", width.bits, leg)
+	}
+	flags64, err := strconv.ParseUint(flagsText, 16, 32)
+	if err != nil {
+		t.Fatalf("decimal%d decnumber differential: malformed FFI flags %q: %v", width.bits, leg, err)
+	}
+	switch width.bits {
+	case 32, 64:
+		bits, err := strconv.ParseUint(bitsText, 16, 64)
+		if err != nil {
+			t.Fatalf("decimal%d decnumber differential: malformed FFI bits %q: %v", width.bits, leg, err)
+		}
+		return bits, 0, uint32(flags64)
+	default:
+		raw, err := hex.DecodeString(bitsText)
+		if err != nil || len(raw) != 16 {
+			t.Fatalf("decimal128 decnumber differential: malformed FFI bits %q: %v", leg, err)
+		}
+		return binary.LittleEndian.Uint64(raw[0:8]), binary.LittleEndian.Uint64(raw[8:16]), uint32(flags64)
+	}
+}
+
+// ---- divergence recording ----
+
+// decnumberDiffDivergenceLog records every divergence of one executor run:
+// full identities for the first sample budget, bucket counts for all of
+// them. A divergence is a finding to classify through the four-way
+// procedure, so the run reports the complete population instead of stopping
+// at the first case, then fails.
+type decnumberDiffDivergenceLog struct {
+	total   uint64
+	buckets map[string]uint64
+	samples []string
+}
+
+const decnumberDiffDivergenceSampleBudget = 25
+const decnumberDiffDivergenceAbortThreshold = 5000
+
+func newDecnumberDiffDivergenceLog() *decnumberDiffDivergenceLog {
+	return &decnumberDiffDivergenceLog{buckets: map[string]uint64{}}
+}
+
+func (l *decnumberDiffDivergenceLog) record(t *testing.T, bucket, detail string) {
+	t.Helper()
+	l.total++
+	l.buckets[bucket]++
+	if len(l.samples) < decnumberDiffDivergenceSampleBudget {
+		l.samples = append(l.samples, detail)
+	}
+	if l.total >= decnumberDiffDivergenceAbortThreshold {
+		l.flush(t)
+		t.Fatalf("decnumber differential: aborting after %d divergences (systemic skew; see bucket counts above)", l.total)
+	}
+}
+
+func (l *decnumberDiffDivergenceLog) flush(t *testing.T) {
+	t.Helper()
+	if l.total == 0 {
+		return
+	}
+	for _, sample := range l.samples {
+		t.Error(sample)
+	}
+	for bucket, count := range l.buckets {
+		t.Errorf("decnumber differential divergence bucket %s: %d", bucket, count)
+	}
+	t.Errorf("decnumber differential divergences total: %d (classify each through the documented four-way procedure)", l.total)
+}
+
+// ---- one differential comparison ----
+
+// decnumberDiffKnownLookup returns the pinned known-divergence row for one
+// case identity, if any.
+func decnumberDiffKnownLookup(width decnumberDiffWidthParams, op decnumberDiffOp, x, y, z decnumberDiffOperand, mode int) *decnumberDiffKnownDivergenceRow {
+	rows := decnumberDiffKnownDivergencesFor(width)
+	for i := range rows {
+		row := &rows[i]
+		if row.op != op.name || row.mode != mode {
+			continue
+		}
+		if row.xLo != x.lo || row.xHi != x.hi {
+			continue
+		}
+		if op.arity >= 2 && (row.yLo != y.lo || row.yHi != y.hi) {
+			continue
+		}
+		if op.arity >= 3 && (row.zLo != z.lo || row.zHi != z.hi) {
+			continue
+		}
+		return row
+	}
+	return nil
+}
+
+func decnumberDiffCheckCase(t *testing.T, log *decnumberDiffDivergenceLog, width decnumberDiffWidthParams, op decnumberDiffOp, x, y, z decnumberDiffOperand, mode int, knownDivergences *uint64) {
+	native, port, dn := decnumberDiffLegs(t, width, op, x, y, z, mode)
+	if native != port {
+		t.Fatalf("decimal%d %s port!=Intel: x=%s y=%s z=%s mode=%d C=%s port=%s",
+			width.bits, op.name, decnumberDiffBitsText(width, x.lo, x.hi), decnumberDiffBitsText(width, y.lo, y.hi),
+			decnumberDiffBitsText(width, z.lo, z.hi), mode, native, port)
+	}
+	if dn.rc != 0 {
+		t.Fatalf("decimal%d %s decNumber leg hard failure rc=%d parse_status=%08x: x=%q y=%q z=%q mode=%d",
+			width.bits, op.name, dn.rc, dn.parseStatus, x.dnStr, y.dnStr, z.dnStr, mode)
+	}
+	dnFlags5, unknown := decnumberDiffProjectStatus(dn.rawStatus)
+	if unknown != 0 {
+		t.Fatalf("decimal%d %s decNumber leg raised status bits outside the fixed projection table: raw=%08x unknown=%08x x=%q y=%q z=%q mode=%d",
+			width.bits, op.name, dn.rawStatus, unknown, x.dnStr, y.dnStr, z.dnStr, mode)
+	}
+	if known := decnumberDiffKnownLookup(width, op, x, y, z, mode); known != nil {
+		if native != known.intelLeg {
+			t.Fatalf("decimal%d %s known-divergence %s: Intel/port leg %q diverges from the pinned %q (re-audit the pinned row)",
+				width.bits, op.name, known.reason, native, known.intelLeg)
+		}
+		if got := dn.triple.key(); got != known.dnKey || dnFlags5 != known.dnFlags5 {
+			t.Fatalf("decimal%d %s known-divergence %s: decNumber leg %s/%02x diverges from the pinned %s/%02x (re-audit the pinned row)",
+				width.bits, op.name, known.reason, got, dnFlags5, known.dnKey, known.dnFlags5)
+		}
+		*knownDivergences++
+		return
+	}
+	lo, hi, rawFlags := decnumberDiffParseLeg(t, width, native)
+	intelTriple, canonical := decnumberDiffDecodeCanonical(width, lo, hi)
+	if !canonical {
+		t.Fatalf("decimal%d %s Intel/port result bits are non-canonical: x=%s y=%s z=%s mode=%d result=%s",
+			width.bits, op.name, decnumberDiffBitsText(width, x.lo, x.hi), decnumberDiffBitsText(width, y.lo, y.hi),
+			decnumberDiffBitsText(width, z.lo, z.hi), mode, native)
+	}
+	if intelTriple.kind == decnumberDiffKindSNaN || dn.triple.kind == decnumberDiffKindSNaN {
+		t.Fatalf("decimal%d %s produced a signaling NaN result class (arithmetic must quiet): intel=%s dn=%s mode=%d",
+			width.bits, op.name, intelTriple.key(), dn.triple.key(), mode)
+	}
+	intelFlags5 := rawFlags & decnumberDiffFlags5Mask
+	if !decnumberDiffCompare(intelTriple, intelFlags5, dn.triple, dnFlags5) {
+		bucket := fmt.Sprintf("d%d|%s|m%d", width.bits, op.name, mode)
+		log.record(t, bucket, fmt.Sprintf(
+			"DIVERGENCE d%d %s mode=%d x=%s(%s) y=%s(%s) z=%s(%s) intel=%s[%s] flags5=%02x dn=%s flags5=%02x dn_raw_status=%08x",
+			width.bits, op.name, mode,
+			decnumberDiffBitsText(width, x.lo, x.hi), x.dnStr,
+			decnumberDiffBitsText(width, y.lo, y.hi), y.dnStr,
+			decnumberDiffBitsText(width, z.lo, z.hi), z.dnStr,
+			native, intelTriple.key(), intelFlags5, dn.triple.key(), dnFlags5, dn.rawStatus))
+	}
+}
+
+// ---- per-width anchored expectations ----
+
+type decnumberDiffWidthExpectation struct {
+	width                      decnumberDiffWidthParams
+	boundaryCount              uint64
+	probeCount                 uint64
+	exactProductCount          uint64
+	exactProductZCount         uint64
+	structuredComparisons      uint64
+	structuredFmaExcluded      uint64
+	structuredKnownDivergences uint64
+	structuredStreamHash       uint64
+	randomComparisons          uint64
+	randomFmaExcluded          uint64
+	randomKnownDivergences     uint64
+	randomStreamHash           uint64
+	totalComparisons           uint64
+}
+
+var decnumberDiffWidthExpectations = [...]decnumberDiffWidthExpectation{
+	{
+		width:                 decnumberDiffWidth32,
+		boundaryCount:         decnumberDiffBoundary32Count,
+		probeCount:            decnumberDiffProbes32Count,
+		exactProductCount:     decnumberDiffExactProduct32Count,
+		exactProductZCount:    decnumberDiffExactProductZ32Count,
+		structuredComparisons: decnumberDiffStructuredComparisons32,
+		structuredFmaExcluded: decnumberDiffStructuredFmaExcluded32,
+		structuredKnownDivergences: decnumberDiffStructuredKnownDivergences32,
+		structuredStreamHash:  decnumberDiffStructuredStreamHash32,
+		randomComparisons:     decnumberDiffRandomComparisons32,
+		randomFmaExcluded:     decnumberDiffRandomFmaExcluded32,
+		randomKnownDivergences: decnumberDiffRandomKnownDivergences32,
+		randomStreamHash:      decnumberDiffRandomStreamHash32,
+		totalComparisons:      decnumberDiffTotalComparisons32,
+	},
+	{
+		width:                 decnumberDiffWidth64,
+		boundaryCount:         decnumberDiffBoundary64Count,
+		probeCount:            decnumberDiffProbes64Count,
+		exactProductCount:     decnumberDiffExactProduct64Count,
+		exactProductZCount:    decnumberDiffExactProductZ64Count,
+		structuredComparisons: decnumberDiffStructuredComparisons64,
+		structuredFmaExcluded: decnumberDiffStructuredFmaExcluded64,
+		structuredKnownDivergences: decnumberDiffStructuredKnownDivergences64,
+		structuredStreamHash:  decnumberDiffStructuredStreamHash64,
+		randomComparisons:     decnumberDiffRandomComparisons64,
+		randomFmaExcluded:     decnumberDiffRandomFmaExcluded64,
+		randomKnownDivergences: decnumberDiffRandomKnownDivergences64,
+		randomStreamHash:      decnumberDiffRandomStreamHash64,
+		totalComparisons:      decnumberDiffTotalComparisons64,
+	},
+	{
+		width:                 decnumberDiffWidth128,
+		boundaryCount:         decnumberDiffBoundary128Count,
+		probeCount:            decnumberDiffProbes128Count,
+		exactProductCount:     decnumberDiffExactProduct128Count,
+		exactProductZCount:    decnumberDiffExactProductZ128Count,
+		structuredComparisons: decnumberDiffStructuredComparisons128,
+		structuredFmaExcluded: decnumberDiffStructuredFmaExcluded128,
+		structuredKnownDivergences: decnumberDiffStructuredKnownDivergences128,
+		structuredStreamHash:  decnumberDiffStructuredStreamHash128,
+		randomComparisons:     decnumberDiffRandomComparisons128,
+		randomFmaExcluded:     decnumberDiffRandomFmaExcluded128,
+		randomKnownDivergences: decnumberDiffRandomKnownDivergences128,
+		randomStreamHash:      decnumberDiffRandomStreamHash128,
+		totalComparisons:      decnumberDiffTotalComparisons128,
+	},
+}
+
+// ---- tests ----
+
+// TestGeneratedDecnumberDifferentialCorpusContract closes the corpus
+// identity: literal array counts, canonical-only materialization, the
+// anchored structured stream hash, the replayed structured exclusion
+// counts, the pinned decNumber status-bit table against the linked build,
+// and the pinned oracle version.
+func TestGeneratedDecnumberDifferentialCorpusContract(t *testing.T) {
+	version := decnumberDiffCVersion()
+	if !strings.Contains(version, "3.68") {
+		t.Fatalf("linked decNumber version %q is not the pinned 3.68 oracle", version)
+	}
+	cBits := decnumberDiffCStatusBits()
+	pinnedBits := [...]uint32{
+		decnumberDiffDnConversionSyntax,
+		decnumberDiffDnDivisionByZero,
+		decnumberDiffDnDivisionImpossible,
+		decnumberDiffDnDivisionUndefined,
+		decnumberDiffDnInsufficientStore,
+		decnumberDiffDnInexact,
+		decnumberDiffDnInvalidContext,
+		decnumberDiffDnInvalidOperation,
+		decnumberDiffDnOverflow,
+		decnumberDiffDnClamped,
+		decnumberDiffDnRounded,
+		decnumberDiffDnSubnormal,
+		decnumberDiffDnUnderflow,
+	}
+	for i := range pinnedBits {
+		if cBits[i] != pinnedBits[i] {
+			t.Fatalf("pinned decNumber status bit %d (%08x) diverges from the linked decContext.h (%08x); the fixed projection table would be skewed", i, pinnedBits[i], cBits[i])
+		}
+	}
+	if got := uint64(len(decnumberDiffSentinelRows)); got != decnumberDiffSentinelRowCount {
+		t.Fatalf("sentinel row literal count %d diverges from the generated constant %d", got, decnumberDiffSentinelRowCount)
+	}
+	for _, expect := range decnumberDiffWidthExpectations {
+		corpus := decnumberDiffMaterializeCorpus(t, expect.width)
+		if got := uint64(len(corpus.boundary)); got != expect.boundaryCount {
+			t.Fatalf("decimal%d boundary corpus count %d diverges from anchored constant %d", expect.width.bits, got, expect.boundaryCount)
+		}
+		if got := uint64(len(corpus.probes)); got != expect.probeCount {
+			t.Fatalf("decimal%d probe corpus count %d diverges from anchored constant %d", expect.width.bits, got, expect.probeCount)
+		}
+		if got := uint64(len(corpus.exactProduct)); got != expect.exactProductCount {
+			t.Fatalf("decimal%d exact-product corpus count %d diverges from anchored constant %d", expect.width.bits, got, expect.exactProductCount)
+		}
+		if got := uint64(len(corpus.exactProductZ)); got != expect.exactProductZCount {
+			t.Fatalf("decimal%d exact-product addend count %d diverges from anchored constant %d", expect.width.bits, got, expect.exactProductZCount)
+		}
+		if got := corpus.structuredStreamHash(); got != expect.structuredStreamHash {
+			t.Fatalf("decimal%d structured stream hash %d diverges from anchored constant %d", expect.width.bits, got, expect.structuredStreamHash)
+		}
+		var pairVisits, tripleVisits, excluded uint64
+		corpus.visitStructuredPairs(func(x, y decnumberDiffOperand) { pairVisits++ })
+		corpus.visitStructuredTriples(func(x, y, z decnumberDiffOperand) {
+			tripleVisits++
+			if decnumberDiffFmaExcluded(x.triple, y.triple, z.triple) {
+				excluded++
+			}
+		})
+		if excluded != expect.structuredFmaExcluded {
+			t.Fatalf("decimal%d structured fma exclusion replay %d diverges from anchored constant %d", expect.width.bits, excluded, expect.structuredFmaExcluded)
+		}
+		wantStructured := pairVisits*uint64(len(decnumberDiffRoundedOpsTable))*uint64(len(decnumberDiffModes)) +
+			(tripleVisits-excluded)*uint64(len(decnumberDiffModes)) +
+			uint64(len(corpus.boundary))
+		if wantStructured != expect.structuredComparisons {
+			t.Fatalf("decimal%d structured comparison formula %d diverges from anchored constant %d", expect.width.bits, wantStructured, expect.structuredComparisons)
+		}
+		if expect.structuredComparisons+expect.randomComparisons != expect.totalComparisons {
+			t.Fatalf("decimal%d total comparison constant is inconsistent: %d+%d != %d",
+				expect.width.bits, expect.structuredComparisons, expect.randomComparisons, expect.totalComparisons)
+		}
+		t.Logf("decimal%d decnumber differential corpus contract: boundary=%d probes=%d exact_product=%d structured_stream_hash=%d",
+			expect.width.bits, len(corpus.boundary), len(corpus.probes), len(corpus.exactProduct), corpus.structuredStreamHash())
+	}
+}
+
+// TestGeneratedDecnumberDifferentialRoutingSentinels replays the pinned
+// known-answer rows through the same leg fan-out as the differentials, so
+// an operand slot swap, rounding-mode miswire, or width/context mislabel
+// that skews every differential leg identically still diverges from the
+// hand-audited pins.
+func TestGeneratedDecnumberDifferentialRoutingSentinels(t *testing.T) {
+	executed := 0
+	for rowIndex, row := range decnumberDiffSentinelRows {
+		width, op, operands, mode, wantLeg, wantDnKey, wantDnFlags := decnumberDiffParseSentinelRow(t, rowIndex, row)
+		x := decnumberDiffMaterialize(t, width, operands[0].lo, operands[0].hi)
+		y, z := x, x
+		if op.arity >= 2 {
+			y = decnumberDiffMaterialize(t, width, operands[1].lo, operands[1].hi)
+		}
+		if op.arity >= 3 {
+			z = decnumberDiffMaterialize(t, width, operands[2].lo, operands[2].hi)
+		}
+		native, port, dn := decnumberDiffLegs(t, width, op, x, y, z, mode)
+		if native != wantLeg {
+			t.Fatalf("sentinel row %d (%s): Intel C leg %q diverges from pinned %q", rowIndex, row, native, wantLeg)
+		}
+		if port != wantLeg {
+			t.Fatalf("sentinel row %d (%s): Go port leg %q diverges from pinned %q", rowIndex, row, port, wantLeg)
+		}
+		if dn.rc != 0 {
+			t.Fatalf("sentinel row %d (%s): decNumber leg hard failure rc=%d parse_status=%08x", rowIndex, row, dn.rc, dn.parseStatus)
+		}
+		dnFlags5, unknown := decnumberDiffProjectStatus(dn.rawStatus)
+		if unknown != 0 {
+			t.Fatalf("sentinel row %d (%s): decNumber leg unknown status bits %08x", rowIndex, row, unknown)
+		}
+		if got := dn.triple.key(); got != wantDnKey || dnFlags5 != wantDnFlags {
+			t.Fatalf("sentinel row %d (%s): decNumber leg %s/%02x diverges from pinned %s/%02x (raw status %08x)",
+				rowIndex, row, got, dnFlags5, wantDnKey, wantDnFlags, dn.rawStatus)
+		}
+		executed++
+	}
+	if uint64(executed) != decnumberDiffSentinelRowCount {
+		t.Fatalf("executed %d sentinel rows, want %d", executed, decnumberDiffSentinelRowCount)
+	}
+	t.Logf("decNumber differential routing sentinels: %d/%d", executed, executed)
+}
+
+// decnumberDiffParseSentinelRow parses one pinned row:
+//
+//	d<width> <op> x=<bits> [y=<bits>] [z=<bits>] m=<mode> -> <bits>/<flags> dn=<triple>/<flags5>
+func decnumberDiffParseSentinelRow(t *testing.T, rowIndex int, row string) (width decnumberDiffWidthParams, op decnumberDiffOp, operands [3]decnumberDiff128Words, mode int, wantLeg, wantDnKey string, wantDnFlags uint32) {
+	t.Helper()
+	fields := strings.Fields(row)
+	fail := func(reason string) {
+		t.Fatalf("sentinel row %d is malformed (%s): %q", rowIndex, reason, row)
+	}
+	if len(fields) < 6 {
+		fail("field count")
+	}
+	switch fields[0] {
+	case "d32":
+		width = decnumberDiffWidth32
+	case "d64":
+		width = decnumberDiffWidth64
+	case "d128":
+		width = decnumberDiffWidth128
+	default:
+		fail("width tag")
+	}
+	found := false
+	for _, candidate := range decnumberDiffRoundedOpsTable {
+		if candidate.name == fields[1] {
+			op, found = candidate, true
+		}
+	}
+	if fields[1] == decnumberDiffFmaOp.name {
+		op, found = decnumberDiffFmaOp, true
+	}
+	if fields[1] == decnumberDiffSqrtOp.name {
+		op, found = decnumberDiffSqrtOp, true
+	}
+	if !found {
+		fail("operation")
+	}
+	parseBits := func(text string) decnumberDiff128Words {
+		if width.bits == 128 {
+			hiText, loText, ok := strings.Cut(text, ":")
+			if !ok {
+				fail("128-bit operand form")
+			}
+			hi, err := strconv.ParseUint(hiText, 16, 64)
+			if err != nil {
+				fail("128-bit hi word")
+			}
+			lo, err := strconv.ParseUint(loText, 16, 64)
+			if err != nil {
+				fail("128-bit lo word")
+			}
+			return decnumberDiff128Words{lo: lo, hi: hi}
+		}
+		bits, err := strconv.ParseUint(text, 16, 64)
+		if err != nil {
+			fail("operand bits")
+		}
+		return decnumberDiff128Words{lo: bits}
+	}
+	cursor := 2
+	prefixes := [...]string{"x=", "y=", "z="}
+	for slot := 0; slot < op.arity; slot++ {
+		if cursor >= len(fields) || !strings.HasPrefix(fields[cursor], prefixes[slot]) {
+			fail("operand slots")
+		}
+		operands[slot] = parseBits(strings.TrimPrefix(fields[cursor], prefixes[slot]))
+		cursor++
+	}
+	if cursor >= len(fields) || !strings.HasPrefix(fields[cursor], "m=") {
+		fail("mode")
+	}
+	modeValue, err := strconv.Atoi(strings.TrimPrefix(fields[cursor], "m="))
+	if err != nil || modeValue < 0 || modeValue > 4 {
+		fail("mode value")
+	}
+	mode = modeValue
+	cursor++
+	if cursor >= len(fields) || fields[cursor] != "->" {
+		fail("arrow")
+	}
+	cursor++
+	if cursor >= len(fields) {
+		fail("expected leg")
+	}
+	wantLeg = fields[cursor]
+	cursor++
+	if cursor >= len(fields) || !strings.HasPrefix(fields[cursor], "dn=") {
+		fail("dn pin")
+	}
+	dnText := strings.TrimPrefix(fields[cursor], "dn=")
+	keyText, flagsText, ok := strings.Cut(dnText, "/")
+	if !ok {
+		fail("dn pin form")
+	}
+	flags64, err := strconv.ParseUint(flagsText, 16, 32)
+	if err != nil {
+		fail("dn flags")
+	}
+	if cursor != len(fields)-1 {
+		fail("trailing fields")
+	}
+	return width, op, operands, mode, wantLeg, keyText, uint32(flags64)
+}
+
+// TestGeneratedDecnumberDifferentialStructured executes the structured
+// corpus (boundary/probe crosses, the exact-product overflow class, and the
+// boundary sqrt sweep) on all three legs with exact comparison.
+func TestGeneratedDecnumberDifferentialStructured(t *testing.T) {
+	for _, expect := range decnumberDiffWidthExpectations {
+		corpus := decnumberDiffMaterializeCorpus(t, expect.width)
+		log := newDecnumberDiffDivergenceLog()
+		var executed, excluded, known uint64
+		for _, op := range decnumberDiffRoundedOpsTable {
+			corpus.visitStructuredPairs(func(x, y decnumberDiffOperand) {
+				for _, mode := range decnumberDiffModes {
+					decnumberDiffCheckCase(t, log, expect.width, op, x, y, x, mode, &known)
+					executed++
+				}
+			})
+		}
+		corpus.visitStructuredTriples(func(x, y, z decnumberDiffOperand) {
+			if decnumberDiffFmaExcluded(x.triple, y.triple, z.triple) {
+				excluded++
+				return
+			}
+			for _, mode := range decnumberDiffModes {
+				decnumberDiffCheckCase(t, log, expect.width, decnumberDiffFmaOp, x, y, z, mode, &known)
+				executed++
+			}
+		})
+		for _, x := range corpus.boundary {
+			decnumberDiffCheckCase(t, log, expect.width, decnumberDiffSqrtOp, x, x, x, 0, &known)
+			executed++
+		}
+		log.flush(t)
+		if t.Failed() {
+			t.FailNow()
+		}
+		if executed != expect.structuredComparisons {
+			t.Fatalf("decimal%d structured executed %d comparisons, want anchored %d", expect.width.bits, executed, expect.structuredComparisons)
+		}
+		if excluded != expect.structuredFmaExcluded {
+			t.Fatalf("decimal%d structured excluded %d fma triples, want anchored %d", expect.width.bits, excluded, expect.structuredFmaExcluded)
+		}
+		if known != expect.structuredKnownDivergences {
+			t.Fatalf("decimal%d structured saw %d known-divergence evaluations, want anchored %d", expect.width.bits, known, expect.structuredKnownDivergences)
+		}
+		exact := executed - known
+		t.Logf("decimal%d decnumber differential structured exact comparisons: %d/%d", expect.width.bits, exact, exact)
+		t.Logf("decimal%d decnumber differential structured excluded fma_zero_inf_qnan_invalid_ieee_optional: %d", expect.width.bits, excluded)
+		t.Logf("decimal%d decnumber differential structured known divergences: %d/%d", expect.width.bits, known, known)
+	}
+}
+
+// TestGeneratedDecnumberDifferentialDeterministicRandom executes the seeded
+// random streams (canonical triple space, NaN payload zero) on all three
+// legs and asserts the anchored stream hashes over the exact operand bits
+// it consumed.
+func TestGeneratedDecnumberDifferentialDeterministicRandom(t *testing.T) {
+	for _, expect := range decnumberDiffWidthExpectations {
+		width := expect.width
+		log := newDecnumberDiffDivergenceLog()
+		digest := decnumberDiffMix(decnumberDiffHashOffset, uint64(width.bits))
+		var streamCases, executed, excluded, known uint64
+		materializeRandom := func(seed, caseIndex, lane uint64, partner *decnumberDiffTriple) decnumberDiffOperand {
+			triple := decnumberDiffRandomTriple(width, seed, caseIndex, lane, partner)
+			lo, hi, ok := decnumberDiffEncode(width, triple)
+			if !ok {
+				t.Fatalf("decimal%d random triple %s does not encode (stream generator defect)", width.bits, triple.key())
+			}
+			digest = decnumberDiffMix(digest, lo)
+			digest = decnumberDiffMix(digest, hi)
+			return decnumberDiffOperand{lo: lo, hi: hi, triple: triple, dnStr: triple.dnOperandString()}
+		}
+		for _, op := range decnumberDiffRoundedOpsTable {
+			seed := width.seedBase ^ decnumberDiffOpSeedTag(op.name)
+			for caseIndex := uint64(0); caseIndex < decnumberDiffRandomPairsPerOp; caseIndex++ {
+				x := materializeRandom(seed, caseIndex, 0, nil)
+				y := materializeRandom(seed, caseIndex, 1, &x.triple)
+				streamCases++
+				for _, mode := range decnumberDiffModes {
+					decnumberDiffCheckCase(t, log, width, op, x, y, x, mode, &known)
+					executed++
+				}
+			}
+		}
+		fmaSeed := width.seedBase ^ decnumberDiffOpSeedTag("fma")
+		for caseIndex := uint64(0); caseIndex < decnumberDiffRandomPairsPerOp; caseIndex++ {
+			x := materializeRandom(fmaSeed, caseIndex, 0, nil)
+			y := materializeRandom(fmaSeed, caseIndex, 1, &x.triple)
+			z := materializeRandom(fmaSeed, caseIndex, 2, &x.triple)
+			streamCases++
+			if decnumberDiffFmaExcluded(x.triple, y.triple, z.triple) {
+				excluded++
+				continue
+			}
+			for _, mode := range decnumberDiffModes {
+				decnumberDiffCheckCase(t, log, width, decnumberDiffFmaOp, x, y, z, mode, &known)
+				executed++
+			}
+		}
+		sqrtSeed := width.seedBase ^ decnumberDiffOpSeedTag("sqrt")
+		for caseIndex := uint64(0); caseIndex < decnumberDiffRandomPairsPerOp; caseIndex++ {
+			x := materializeRandom(sqrtSeed, caseIndex, 0, nil)
+			streamCases++
+			decnumberDiffCheckCase(t, log, width, decnumberDiffSqrtOp, x, x, x, 0, &known)
+			executed++
+		}
+		digest = decnumberDiffMix(digest, streamCases)
+		log.flush(t)
+		if t.Failed() {
+			t.FailNow()
+		}
+		if digest != expect.randomStreamHash {
+			t.Fatalf("decimal%d random stream hash %d diverges from anchored constant %d", width.bits, digest, expect.randomStreamHash)
+		}
+		if executed != expect.randomComparisons {
+			t.Fatalf("decimal%d random executed %d comparisons, want anchored %d", width.bits, executed, expect.randomComparisons)
+		}
+		if excluded != expect.randomFmaExcluded {
+			t.Fatalf("decimal%d random excluded %d fma triples, want anchored %d", width.bits, excluded, expect.randomFmaExcluded)
+		}
+		if known != expect.randomKnownDivergences {
+			t.Fatalf("decimal%d random saw %d known-divergence evaluations, want anchored %d", width.bits, known, expect.randomKnownDivergences)
+		}
+		exact := executed - known
+		t.Logf("decimal%d decnumber differential random exact comparisons: %d/%d", width.bits, exact, exact)
+		t.Logf("decimal%d decnumber differential random excluded fma_zero_inf_qnan_invalid_ieee_optional: %d", width.bits, excluded)
+		t.Logf("decimal%d decnumber differential random known divergences: %d/%d", width.bits, known, known)
+	}
+}
+
+// decnumberDiffOpSeedTag mirrors the devtools codegen's per-operation seed
+// tags (the anchored stream hashes pin the pairing).
+func decnumberDiffOpSeedTag(name string) uint64 {
+	switch name {
+	case "add":
+		return 0xa1
+	case "sub":
+		return 0xa2
+	case "mul":
+		return 0xa3
+	case "div":
+		return 0xa4
+	case "quantize":
+		return 0xa5
+	case "fma":
+		return 0xa6
+	case "sqrt":
+		return 0xa7
+	default:
+		panic("unknown decnumber differential operation seed tag")
+	}
+}

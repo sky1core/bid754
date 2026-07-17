@@ -819,10 +819,11 @@ func TestPublicAPIPortFunctionsAreVerifiedByADomain(t *testing.T) {
 // fails until this list is updated, and a public-runtime file that imports C
 // fails both this list and the no-C rule below.
 var cgoNativeFiles = map[string]string{
-	"c_bid_benchmark_native.go":             "bid754_native-gated cgo benchmark harness comparing the Go port against native Intel BID; excluded from the public runtime build",
-	"dectest_native.go":                     "generated bid754_native-gated native decTest reference oracle; excluded from the public runtime build",
-	"generated_readtest_dispatch_native.go": "generated bid754_native-gated native readtest dispatch oracle; excluded from the public runtime build",
-	"generated_ffi_bitcompare_native.go":    "generated bid754_native-gated native FFI bit-compare oracle; excluded from the public runtime build",
+	"c_bid_benchmark_native.go":                  "bid754_native-gated cgo benchmark harness comparing the Go port against native Intel BID; excluded from the public runtime build",
+	"dectest_native.go":                          "generated bid754_native-gated native decTest reference oracle; excluded from the public runtime build",
+	"generated_readtest_dispatch_native.go":      "generated bid754_native-gated native readtest dispatch oracle; excluded from the public runtime build",
+	"generated_ffi_bitcompare_native.go":         "generated bid754_native-gated native FFI bit-compare oracle; excluded from the public runtime build",
+	"generated_decnumber_differential_native.go": "generated bid754_native+bid754_decnumber_diff-gated decNumber 3.68 differential-oracle shim (test files cannot carry cgo preambles); excluded from the public runtime build",
 }
 
 func fileImportsC(file *ast.File) bool {

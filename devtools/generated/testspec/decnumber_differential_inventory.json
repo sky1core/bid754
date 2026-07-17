@@ -1,0 +1,159 @@
+{
+  "domain": "decnumber_differential",
+  "oracle": "IBM decNumber 3.68 (pinned by devtools/scripts/install_ibm_decnumber.sh)",
+  "status": "additional generated differential gate; not a regular verification domain; decNumber is a divergence tripwire, not a correctness definition",
+  "operations": [
+    "add",
+    "sub",
+    "mul",
+    "div",
+    "quantize",
+    "fma",
+    "sqrt"
+  ],
+  "sqrt_rounding_mode": "nearest_even_only",
+  "rounding_modes": [
+    "nearest_even",
+    "toward_negative",
+    "toward_positive",
+    "toward_zero",
+    "nearest_away"
+  ],
+  "exclusion_classes": [
+    {
+      "id": "fma_zero_inf_qnan_invalid_ieee_optional",
+      "kind": "generated_class_predicate",
+      "definition": "fma where one product operand is a zero of any quantum and sign, the other is an infinity of any sign, and the addend is a quiet NaN; IEEE 754-2019 7.2 leaves the invalid signal implementation-defined and pinned Intel C and decNumber 3.68 measurably disagree"
+    },
+    {
+      "id": "sqrt_gda_fixed_half_even_rounding",
+      "kind": "structural",
+      "definition": "sqrt cases are generated for round-nearest-even only; GDA squareRoot rounds half-even regardless of context rounding, so non-RN sqrt has no decNumber counterpart and stays covered by the Intel-oracle domains only"
+    },
+    {
+      "id": "noncanonical_operand_no_gda_counterpart",
+      "kind": "corpus_filter",
+      "definition": "non-canonical BID operand encodings have no GDA counterpart; they are excluded from the reused Tier 1 corpora and stay covered by the FFI and BID codec domains"
+    },
+    {
+      "id": "nan_payload_operand_zero_only",
+      "kind": "corpus_filter",
+      "definition": "v1 corpus NaN operands carry payload zero only (NaN payload propagation is an IEEE 'should'); payloaded boundary NaNs are excluded and probe NaN payloads are normalized to zero"
+    },
+    {
+      "id": "remainder_gda_division_impossible",
+      "kind": "structural",
+      "definition": "remainder/fmod/remainderNear are not in the v1 operation set: GDA raises Division_impossible where IEEE remainder is always exact, the divergence class already documented for the decTest domain"
+    }
+  ],
+  "known_divergences": [
+    {
+      "reason_id": "decnumber368_misaligned_add_nearest_misround",
+      "classification": "decnumber_defect",
+      "width": "decimal32",
+      "operation": "fma",
+      "mode": 0,
+      "x": "3e8265b3",
+      "y": "1600cdcf",
+      "z": "a180005c",
+      "intel": "23fe4df8/00000020",
+      "decnumber": "8277497E-30/00000020",
+      "note": "157107E24*52687E-57-92E-34: exact sum 82774964998E-34 rounds to 8277496E-30 (hand arithmetic, pinned Intel BID C, and libmpdec all agree); decNumber 3.68 answers 8277497E-30 because the misaligned decAddOp path inside decNumberFMA collapses the far-aligned addend into a sticky below the guard digit and loses the borrow that pulls the discarded fraction from 5090 to 4998, i.e. across the nearest-mode half boundary; reproduced standalone with raw decNumber C calls (same misround via plain decNumberAdd of the exact product, correct when pre-aligned to a common exponent or given wider digits)",
+      "matched_cases": 1
+    },
+    {
+      "reason_id": "decnumber368_misaligned_add_nearest_misround",
+      "classification": "decnumber_defect",
+      "width": "decimal32",
+      "operation": "fma",
+      "mode": 4,
+      "x": "3e8265b3",
+      "y": "1600cdcf",
+      "z": "a180005c",
+      "intel": "23fe4df8/00000020",
+      "decnumber": "8277497E-30/00000020",
+      "note": "same tuple as the mode-0 row under roundTiesToAway; the misround affects exactly the nearest modes (directed modes agree with Intel on this tuple)",
+      "matched_cases": 1
+    }
+  ],
+  "widths": [
+    {
+      "width": "decimal32",
+      "boundary_source_values": 1144,
+      "boundary_included_values": 766,
+      "boundary_excluded_noncanonical_operand_no_gda_counterpart": 362,
+      "boundary_excluded_nan_payload_operand_zero_only": 16,
+      "probe_values": 12,
+      "probe_nan_payload_zeroed": 2,
+      "probe_excluded_noncanonical_operand_no_gda_counterpart": 0,
+      "exact_product_values": 10,
+      "exact_product_fma_addends": 4,
+      "structured_pairs": 18628,
+      "structured_fma_triples": 29704,
+      "structured_fma_excluded_fma_zero_inf_qnan_invalid_ieee_optional": 19,
+      "structured_sqrt_cases": 766,
+      "structured_comparisons": 614891,
+      "structured_known_divergences": 0,
+      "structured_stream_hash": 16861411385736761111,
+      "random_pairs_per_operation": 16384,
+      "random_fma_excluded_fma_zero_inf_qnan_invalid_ieee_optional": 1,
+      "random_comparisons": 507899,
+      "random_known_divergences": 2,
+      "random_stream_hash": 14013103781779376027,
+      "total_comparisons": 1122790,
+      "sqrt_non_rn_cases_not_generated_sqrt_gda_fixed_half_even_rounding": 68600
+    },
+    {
+      "width": "decimal64",
+      "boundary_source_values": 804,
+      "boundary_included_values": 374,
+      "boundary_excluded_noncanonical_operand_no_gda_counterpart": 414,
+      "boundary_excluded_nan_payload_operand_zero_only": 16,
+      "probe_values": 12,
+      "probe_nan_payload_zeroed": 2,
+      "probe_excluded_noncanonical_operand_no_gda_counterpart": 0,
+      "exact_product_values": 10,
+      "exact_product_fma_addends": 4,
+      "structured_pairs": 9220,
+      "structured_fma_triples": 15592,
+      "structured_fma_excluded_fma_zero_inf_qnan_invalid_ieee_optional": 7,
+      "structured_sqrt_cases": 374,
+      "structured_comparisons": 308799,
+      "structured_known_divergences": 0,
+      "structured_stream_hash": 14014119089028890703,
+      "random_pairs_per_operation": 16384,
+      "random_fma_excluded_fma_zero_inf_qnan_invalid_ieee_optional": 2,
+      "random_comparisons": 507894,
+      "random_known_divergences": 0,
+      "random_stream_hash": 17577084183194343346,
+      "total_comparisons": 816693,
+      "sqrt_non_rn_cases_not_generated_sqrt_gda_fixed_half_even_rounding": 67032
+    },
+    {
+      "width": "decimal128",
+      "boundary_source_values": 7722,
+      "boundary_included_values": 2184,
+      "boundary_excluded_noncanonical_operand_no_gda_counterpart": 5306,
+      "boundary_excluded_nan_payload_operand_zero_only": 232,
+      "probe_values": 11,
+      "probe_nan_payload_zeroed": 2,
+      "probe_excluded_noncanonical_operand_no_gda_counterpart": 1,
+      "exact_product_values": 10,
+      "exact_product_fma_addends": 4,
+      "structured_pairs": 48269,
+      "structured_fma_triples": 73803,
+      "structured_fma_excluded_fma_zero_inf_qnan_invalid_ieee_optional": 9,
+      "structured_sqrt_cases": 2184,
+      "structured_comparisons": 1577879,
+      "structured_known_divergences": 0,
+      "structured_stream_hash": 7592226517984291962,
+      "random_pairs_per_operation": 16384,
+      "random_fma_excluded_fma_zero_inf_qnan_invalid_ieee_optional": 1,
+      "random_comparisons": 507899,
+      "random_known_divergences": 0,
+      "random_stream_hash": 13884178953218722093,
+      "total_comparisons": 2085778,
+      "sqrt_non_rn_cases_not_generated_sqrt_gda_fixed_half_even_rounding": 74272
+    }
+  ]
+}
