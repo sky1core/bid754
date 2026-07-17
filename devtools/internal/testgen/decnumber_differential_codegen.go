@@ -240,8 +240,11 @@ type decnumberDiffBoundaryFilter struct {
 	includedFiniteNonZero int
 }
 
-// decnumberDiffTier1Boundary returns the reused Tier 1 arithmetic boundary
-// set for one width (function reuse, no data copy).
+// decnumberDiffTier1Boundary returns the reused Tier 1 boundary base set for
+// one width (function reuse, no data copy). The arithmetic runners' extra
+// exponent-cap extension (tier1_exponent_cap_boundary.go) is deliberately not
+// part of this corpus; extending it here would repin every decNumber
+// differential count and stream-hash anchor.
 func decnumberDiffTier1Boundary(width decnumberDiffWidth) []bid128BidCodecValue {
 	switch width.bits {
 	case 32:

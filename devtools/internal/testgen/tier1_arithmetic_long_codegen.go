@@ -80,9 +80,16 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		return nil, fmt.Errorf("read Tier 1 arithmetic long template: %w", err)
 	}
 
-	boundary32 := tier1ArithmeticBoundary32Values()
-	boundary64 := bid64BidCodecEdgeValues()
-	boundary128 := bid128BidCodecEdgeValues()
+	// The arithmetic runners extend the shared base boundary sets with the
+	// exponent-cap class (tier1_exponent_cap_boundary.go); the
+	// compare/conversion runner, the decNumber differential corpus, and the
+	// BID codec vectors keep consuming the unchanged base sets.
+	boundary32 := appendUnique32(tier1ArithmeticBoundary32Values(), tier1ArithmeticExponentCapFloorBoundary32Values())
+	boundary64 := appendUnique64(bid64BidCodecEdgeValues(), tier1ArithmeticExponentCapFloorBoundary64Values())
+	boundary128 := appendUnique128(bid128BidCodecEdgeValues(), tier1ArithmeticExponentCapFloorBoundary128Values())
+	if err := tier1ArithmeticVerifyExponentCapContract(boundary32, boundary64, boundary128); err != nil {
+		return nil, err
+	}
 	semantic, err := tier1ArithmeticSemanticCorpus()
 	if err != nil {
 		return nil, err
@@ -863,6 +870,49 @@ func tier1ArithmeticSemanticCorpus() (tier1ArithmeticSemanticSpec, error) {
 			}
 		}
 	}
+	// D2 exponent-cap FMA counterexamples: the Intel bid128_fma.c Case (1”B)
+	// p_sign != z_sign overflow exits (lines 2117-2136/2245-2264) are reached
+	// from exactly the FMA(±1E+34, ±Nmax, z) shapes below — the trigger
+	// surface is that narrow: 1E+33/1E+35 and the 10^33/10^34-1 coefficient
+	// neighbours all route elsewhere (measured against pinned Intel C while
+	// re-introducing the bid128_fma_body.go D2 defect). The rotated
+	// boundary x probe FMA block only meets a specific probe companion pair
+	// at one boundary-index residue, so these exact triples are pinned here
+	// index-independently instead of relying on that alignment. Expected
+	// results are not stored: the runners compare all legs against live
+	// pinned Intel C, and bid128_fma_overflow_test.go keeps the hand-pinned
+	// expected bits.
+	{
+		oneE34 := mdo(1, 34)
+		negOneE34 := mdoNeg(1, 34)
+		posNmax := mdoStr("9999999999999999999999999999999999", 6111)
+		negNmax := posNmax
+		negNmax.Neg = true
+		for _, triple := range [][3]modeDiscOperand{
+			{oneE34, posNmax, negNmax},
+			{oneE34, negNmax, posNmax},
+			{negOneE34, posNmax, posNmax},
+			{negOneE34, negNmax, negNmax},
+		} {
+			x, err := encodeModeDiscOperand128(triple[0])
+			if err != nil {
+				return result, err
+			}
+			y, err := encodeModeDiscOperand128(triple[1])
+			if err != nil {
+				return result, err
+			}
+			z, err := encodeModeDiscOperand128(triple[2])
+			if err != nil {
+				return result, err
+			}
+			result.fma128 = append(result.fma128, tier1ArithmeticTriple128Spec{
+				x: bid128BidCodecValue{lo: binary.LittleEndian.Uint64(x[0:8]), hi: binary.LittleEndian.Uint64(x[8:16])},
+				y: bid128BidCodecValue{lo: binary.LittleEndian.Uint64(y[0:8]), hi: binary.LittleEndian.Uint64(y[8:16])},
+				z: bid128BidCodecValue{lo: binary.LittleEndian.Uint64(z[0:8]), hi: binary.LittleEndian.Uint64(z[8:16])},
+			})
+		}
+	}
 	for _, width := range []int{32, 64, 128} {
 		operands, err := modeUnaryDiscriminantOperands("Sqrt", width)
 		if err != nil {
@@ -937,6 +987,12 @@ func tier1ArithmeticSemanticCorpus() (tier1ArithmeticSemanticSpec, error) {
 	return result, nil
 }
 
+// tier1ArithmeticBoundary32Values is the shared BID32 boundary base set: the
+// BID codec edge corpus plus the closed combinatorial raw-field boundary set.
+// It is consumed unchanged by the compare/conversion runner and the decNumber
+// differential corpus; the arithmetic runners additionally append the
+// exponent-cap extension (tier1ArithmeticExponentCapFloorBoundary32Values) at
+// composition time in GenerateTier1ArithmeticLongOutputs.
 func tier1ArithmeticBoundary32Values() []uint32 {
 	values := make(map[uint32]struct{})
 	for _, value := range bid32BidCodecEdgeValues() {

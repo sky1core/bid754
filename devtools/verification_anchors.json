@@ -16,9 +16,9 @@
   "goport_readtest_executed_cases": 86552,
   "ffi_bitcompare_cases_total": 23662,
   "tier1_arithmetic_long_boundary_values_by_width": {
-    "decimal32": 1144,
-    "decimal64": 804,
-    "decimal128": 7722
+    "decimal32": 1238,
+    "decimal64": 912,
+    "decimal128": 7830
   },
   "tier1_arithmetic_long_semantic_rounded_pairs_by_width": {
     "decimal32": 22,
@@ -38,7 +38,7 @@
   "tier1_arithmetic_long_semantic_fma_triples_by_width": {
     "decimal32": 4,
     "decimal64": 4,
-    "decimal128": 4
+    "decimal128": 8
   },
   "tier1_arithmetic_long_semantic_sqrt_cases_by_width": {
     "decimal32": 4,
@@ -46,9 +46,9 @@
     "decimal128": 4
   },
   "tier1_arithmetic_long_structured_comparisons_by_width": {
-    "decimal32": 1108658,
-    "decimal64": 782928,
-    "decimal128": 7410372
+    "decimal32": 1198710,
+    "decimal64": 886392,
+    "decimal128": 7513856
   },
   "tier1_arithmetic_long_random_operations": 10,
   "tier1_arithmetic_long_random_cases_per_operation_by_width": {
@@ -74,14 +74,14 @@
     "decimal128": 16300534806315284357
   },
   "tier1_arithmetic_long_pair_stream_hash_by_width": {
-    "decimal32": 12633225191596235277,
-    "decimal64": 15929065699865557485,
-    "decimal128": 9557644360222676621
+    "decimal32": 18311679352664084909,
+    "decimal64": 17078329851023383021,
+    "decimal128": 4856160481190583885
   },
   "tier1_arithmetic_long_fma_triple_stream_hash_by_width": {
-    "decimal32": 16463423321988039021,
-    "decimal64": 2492977992395877821,
-    "decimal128": 17742503262215582133
+    "decimal32": 3614288124381628909,
+    "decimal64": 17425414533795463485,
+    "decimal128": 8308620874638607013
   },
   "tier1_arithmetic_long_random_stream_hash_by_width": {
     "decimal32": 3372992773371778301,
@@ -89,9 +89,9 @@
     "decimal128": 13621240088269297776
   },
   "tier1_arithmetic_long_total_comparisons_by_width": {
-    "decimal32": 11594418,
-    "decimal64": 11268688,
-    "decimal128": 12653252
+    "decimal32": 11684470,
+    "decimal64": 11372152,
+    "decimal128": 12756736
   },
   "tier1_arithmetic_long_consumers": 2,
   "tier1_compare_conversion_long_boundary_values_by_width": {
@@ -486,13 +486,13 @@
     "testspec_tree": "e61bd4b09415b32d3a697ad5ecab2be71644305e52a7decce4e81d4e86c9692a",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "e3c98f5af677e7ae01eec630a48c9d84635058b0de96c1b429d1bab449b3a3cb",
-    "goport_verification_runners": "842d7a591b645e697f2b695c6db11618dc010588eaeaa83b569d7c8bf7fcf14d",
+    "goport_verification_runners": "5426e6b6f6604ef3240de010d4481a69e83b9458a04961851b64e52ba229b3c7",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",
     "spec_loader": "e8c723bb13c1846c972bfe5807366229a10a71d57af6ea11b1a3aa3edeb98b4c",
     "rust_readtest_runner": "ef282749941861b84790236c1af0bae18c473dae13ba938c4c401a77fcc7a43e",
     "rust_public_parity_runner": "a3ab6bca46519a2247a3bfc6752a7c7a8e8cd09207c8458f2756ecdcea175f9c",
     "rust_dectest_runner": "d24e687c18929322d79943ec07b9507697bc605e320381e3dbced6dc356cdc5a",
-    "rust_tier1_long_runners": "674aaa1d2104aa473be89cc3e86f09eea053d60141937266d326ce45f7c5ab06"
+    "rust_tier1_long_runners": "cec3d7e6dcb3f6f678fef925b3c426cb192e463a5a14a87dd3fe142c7f4579a7"
   }
 }
