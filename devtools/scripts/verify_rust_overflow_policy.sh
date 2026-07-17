@@ -12,8 +12,8 @@ echo "==> Rust generated overflow policy"
 # and re-denies the overflow lints, so it is excluded from the implementation
 # file tripwire and verified separately below.
 generated_count=$(find src/generated -type f -name '*.rs' -not -path '*/api/*' | wc -l | tr -d ' ')
-if [ "$generated_count" != "102" ]; then
-  echo "generated Rust implementation file count changed: got $generated_count, want 102 (api/ wrappers excluded)" >&2
+if [ "$generated_count" != "103" ]; then
+  echo "generated Rust implementation file count changed: got $generated_count, want 103 (api/ wrappers excluded)" >&2
   exit 1
 fi
 
