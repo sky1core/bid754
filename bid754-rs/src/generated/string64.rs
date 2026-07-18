@@ -46,10 +46,10 @@ pub(crate) fn l0_split_mi_di_2(mut X: u32, mut MiDi: &mut [u32], ptr: &mut i64) 
         L0_tail = L0_tail.wrapping_sub(1000);
         L0_head = L0_head.wrapping_add(1);
     }
-    MiDi[(*ptr) as usize] = L0_head;
-    (*ptr) = (*ptr).wrapping_add(1);
-    MiDi[(*ptr) as usize] = L0_tail;
-    (*ptr) = (*ptr).wrapping_add(1);
+    let mut p = (*ptr);
+    MiDi[p as usize] = L0_head;
+    MiDi[(p.wrapping_add(1)) as usize] = L0_tail;
+    (*ptr) = (p.wrapping_add(2));
 }
 
 pub(crate) fn l0_split_mi_di_3(mut X: u64, mut MiDi: &mut [u32], ptr: &mut i64) {
@@ -69,12 +69,11 @@ pub(crate) fn l0_split_mi_di_3(mut X: u64, mut MiDi: &mut [u32], ptr: &mut i64) 
         L0_tail = L0_tail.wrapping_sub(1000);
         L0_mid = L0_mid.wrapping_add(1);
     }
-    MiDi[(*ptr) as usize] = L0_head;
-    (*ptr) = (*ptr).wrapping_add(1);
-    MiDi[(*ptr) as usize] = L0_mid;
-    (*ptr) = (*ptr).wrapping_add(1);
-    MiDi[(*ptr) as usize] = L0_tail;
-    (*ptr) = (*ptr).wrapping_add(1);
+    let mut p = (*ptr);
+    MiDi[p as usize] = L0_head;
+    MiDi[(p.wrapping_add(1)) as usize] = L0_mid;
+    MiDi[(p.wrapping_add(2)) as usize] = L0_tail;
+    (*ptr) = (p.wrapping_add(3));
 }
 
 pub(crate) fn l1_split_mi_di_6_lead(mut X: u64, mut MiDi: &mut [u32], ptr: &mut i64) {
@@ -113,31 +112,28 @@ pub(crate) fn l1_split_mi_di_6_lead(mut X: u64, mut MiDi: &mut [u32], ptr: &mut 
 
 pub(crate) fn l0_mi_di2_str(mut X: u32, mut ps: &mut [u8], c_ptr: &mut i64) {
     let mut src = bid_midi_tbl[X as usize];
-    ps[(*c_ptr) as usize] = src[0];
-    (*c_ptr) = (*c_ptr).wrapping_add(1);
-    ps[(*c_ptr) as usize] = src[1];
-    (*c_ptr) = (*c_ptr).wrapping_add(1);
-    ps[(*c_ptr) as usize] = src[2];
-    (*c_ptr) = (*c_ptr).wrapping_add(1);
+    let mut p = (*c_ptr);
+    ps[p as usize] = src[0];
+    ps[(p.wrapping_add(1)) as usize] = src[1];
+    ps[(p.wrapping_add(2)) as usize] = src[2];
+    (*c_ptr) = (p.wrapping_add(3));
 }
 
 pub(crate) fn l0_mi_di2_str_lead(mut X: u32, mut ps: &mut [u8], c_ptr: &mut i64) {
     let mut src = bid_midi_tbl[X as usize];
+    let mut p = (*c_ptr);
     if (X >= 100) {
-        ps[(*c_ptr) as usize] = src[0];
-        (*c_ptr) = (*c_ptr).wrapping_add(1);
-        ps[(*c_ptr) as usize] = src[1];
-        (*c_ptr) = (*c_ptr).wrapping_add(1);
-        ps[(*c_ptr) as usize] = src[2];
-        (*c_ptr) = (*c_ptr).wrapping_add(1);
+        ps[p as usize] = src[0];
+        ps[(p.wrapping_add(1)) as usize] = src[1];
+        ps[(p.wrapping_add(2)) as usize] = src[2];
+        (*c_ptr) = (p.wrapping_add(3));
     } else if (X >= 10) {
-        ps[(*c_ptr) as usize] = src[1];
-        (*c_ptr) = (*c_ptr).wrapping_add(1);
-        ps[(*c_ptr) as usize] = src[2];
-        (*c_ptr) = (*c_ptr).wrapping_add(1);
+        ps[p as usize] = src[1];
+        ps[(p.wrapping_add(1)) as usize] = src[2];
+        (*c_ptr) = (p.wrapping_add(2));
     } else {
-        ps[(*c_ptr) as usize] = src[2];
-        (*c_ptr) = (*c_ptr).wrapping_add(1);
+        ps[p as usize] = src[2];
+        (*c_ptr) = (p.wrapping_add(1));
     }
 }
 

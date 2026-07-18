@@ -20,6 +20,8 @@ func l0_Normalize_10to18(X_hi, X_lo *uint64) {
 }
 
 // __L0_Split_MiDi_2 - 매크로 포팅
+// C의 *((ptr)++) 연속 기록 2회를, 커서 값 1회 로드 후 상수 오프셋 기록과
+// 커서 1회 전진(순 효과 +2 동일)으로 국소 표현만 변경 (기록 값/순서 동일).
 func l0_Split_MiDi_2(X uint32, MiDi []uint32, ptr *int) {
 	L0_head := X >> 10
 	L0_tail := (X & 0x03FF) + (L0_head << 5) - (L0_head << 3)
@@ -30,13 +32,15 @@ func l0_Split_MiDi_2(X uint32, MiDi []uint32, ptr *int) {
 		L0_tail -= 1000
 		L0_head += 1
 	}
-	MiDi[*ptr] = L0_head
-	*ptr++
-	MiDi[*ptr] = L0_tail
-	*ptr++
+	p := *ptr
+	MiDi[p] = L0_head
+	MiDi[p+1] = L0_tail
+	*ptr = p + 2
 }
 
 // __L0_Split_MiDi_3 - 매크로 포팅
+// C의 *((ptr)++) 연속 기록 3회를, 커서 값 1회 로드 후 상수 오프셋 기록과
+// 커서 1회 전진(순 효과 +3 동일)으로 국소 표현만 변경 (기록 값/순서 동일).
 func l0_Split_MiDi_3(X uint64, MiDi []uint32, ptr *int) {
 	L0_X := uint32(X)
 	L0_head := ((L0_X >> 17) * 34359) >> 18
@@ -54,12 +58,11 @@ func l0_Split_MiDi_3(X uint64, MiDi []uint32, ptr *int) {
 		L0_tail -= 1000
 		L0_mid += 1
 	}
-	MiDi[*ptr] = L0_head
-	*ptr++
-	MiDi[*ptr] = L0_mid
-	*ptr++
-	MiDi[*ptr] = L0_tail
-	*ptr++
+	p := *ptr
+	MiDi[p] = L0_head
+	MiDi[p+1] = L0_mid
+	MiDi[p+2] = L0_tail
+	*ptr = p + 3
 }
 
 // __L1_Split_MiDi_6_Lead - 매크로 포팅
@@ -98,34 +101,35 @@ func l1_Split_MiDi_6_Lead(X uint64, MiDi []uint32, ptr *int) {
 }
 
 // __L0_MiDi2Str - 매크로 포팅 (3자리 출력)
+// C의 *((c_ptr)++) 연속 기록 3회를, 커서 값 1회 로드 후 상수 오프셋 기록과
+// 커서 1회 전진(순 효과 +3 동일)으로 국소 표현만 변경 (기록 값/순서 동일).
 func l0_MiDi2Str(X uint32, ps []byte, c_ptr *int) {
 	src := bid_midi_tbl[X]
-	ps[*c_ptr] = src[0]
-	*c_ptr++
-	ps[*c_ptr] = src[1]
-	*c_ptr++
-	ps[*c_ptr] = src[2]
-	*c_ptr++
+	p := *c_ptr
+	ps[p] = src[0]
+	ps[p+1] = src[1]
+	ps[p+2] = src[2]
+	*c_ptr = p + 3
 }
 
 // __L0_MiDi2Str_Lead - 매크로 포팅 (선행 0 제거)
+// 각 분기의 *((c_ptr)++) 연속 기록을, 커서 값 1회 로드 후 상수 오프셋 기록과
+// 분기별 기록 폭만큼의 커서 1회 전진으로 국소 표현만 변경 (기록 값/순서 동일).
 func l0_MiDi2Str_Lead(X uint32, ps []byte, c_ptr *int) {
 	src := bid_midi_tbl[X]
+	p := *c_ptr
 	if X >= 100 {
-		ps[*c_ptr] = src[0]
-		*c_ptr++
-		ps[*c_ptr] = src[1]
-		*c_ptr++
-		ps[*c_ptr] = src[2]
-		*c_ptr++
+		ps[p] = src[0]
+		ps[p+1] = src[1]
+		ps[p+2] = src[2]
+		*c_ptr = p + 3
 	} else if X >= 10 {
-		ps[*c_ptr] = src[1]
-		*c_ptr++
-		ps[*c_ptr] = src[2]
-		*c_ptr++
+		ps[p] = src[1]
+		ps[p+1] = src[2]
+		*c_ptr = p + 2
 	} else {
-		ps[*c_ptr] = src[2]
-		*c_ptr++
+		ps[p] = src[2]
+		*c_ptr = p + 1
 	}
 }
 
