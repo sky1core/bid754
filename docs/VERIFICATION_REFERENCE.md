@@ -177,6 +177,24 @@ commands are `make test-native-decnumber-differential` and the
 `verify-all-native-gates` chain member
 `_test-native-decnumber-differential-full`.
 
+### Decimal32 unary exhaustive differential
+
+A generated 2-leg differential gate sweeps the entire 32-bit Decimal32 input
+space (non-canonical encodings included) for a fixed 17-lane unary table —
+`bid32_sqrt` and `bid32_round_integral_exact` across all five rounding modes,
+the five fixed-attribute `bid32_round_integral_*` variants, and the
+`bid32_to_bid64`/`bid32_to_bid128` promotions — comparing pinned Intel BID C
+and the Go mechanical port bit+flag exact per input with no skip, tolerance,
+or sampling. Its contract is `TEST_GENERATION_SPEC.md`. Lane and count
+anchors plus the hand-pinned per-lane result digests live in
+`devtools/verification_anchors.json`; `devtools/cmd/verifylog` (domain
+`d32-exhaustive`) binds the digests to the runner's log lines, and
+hand-pinned sentinel rows in `devtools/verification_sentinels.json` replay
+through the same lane dispatch. Like the Decimal32 codec exhaustive harness
+it is an independent long gate outside the `verify-all` chain; commands are
+`make test-native-d32-exhaustive` and, for the canonical unsharded run with
+verifylog evidence binding, `_test-native-d32-exhaustive-full`.
+
 ### Auxiliary fuzzing
 
 The repository contains native differential and portable no-panic/closure fuzz

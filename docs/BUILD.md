@@ -286,6 +286,12 @@ Notes:
   build tag which the target sets itself); `verify-all-native-gates` runs it
   as `_test-native-decnumber-differential-full` with verifylog evidence
   binding
+- `make test-native-d32-exhaustive` is the generated Decimal32 unary
+  exhaustive differential gate (pinned Intel BID C / Go mechanical port,
+  bit+flag exact over all 2^32 inputs for a fixed 17-lane unary table); it
+  is an independent long gate outside the `verify-all` chain, and
+  `_test-native-d32-exhaustive-full` is the canonical unsharded run with
+  verifylog evidence binding (domain `d32-exhaustive`)
 - some current-tree native paths may also require IBM decNumber
 - that requirement is a current implementation detail, not the source-of-truth architecture
 
