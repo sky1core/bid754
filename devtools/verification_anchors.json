@@ -95,21 +95,21 @@
   },
   "tier1_arithmetic_long_consumers": 2,
   "tier1_compare_conversion_long_boundary_values_by_width": {
-    "decimal32": 1144,
-    "decimal64": 804,
-    "decimal128": 7722
+    "decimal32": 1238,
+    "decimal64": 912,
+    "decimal128": 7830
   },
   "tier1_compare_conversion_long_semantic_values_by_width": {
     "decimal32": 42,
-    "decimal64": 70,
-    "decimal128": 87
+    "decimal64": 68,
+    "decimal128": 85
   },
   "tier1_compare_conversion_long_quiet_predicates": 6,
   "tier1_compare_conversion_long_minmax_operations": 4,
   "tier1_compare_conversion_long_comparison_structured_by_width": {
-    "decimal32": 276000,
-    "decimal64": 194400,
-    "decimal128": 1854720
+    "decimal32": 298560,
+    "decimal64": 220320,
+    "decimal128": 1880640
   },
   "tier1_compare_conversion_long_comparison_random_by_width": {
     "decimal32": 10485760,
@@ -122,15 +122,15 @@
     "decimal128": 2140358034234494605
   },
   "tier1_compare_conversion_long_comparison_total_by_width": {
-    "decimal32": 10761760,
-    "decimal64": 10680160,
-    "decimal128": 7097600
+    "decimal32": 10784320,
+    "decimal64": 10706080,
+    "decimal128": 7123520
   },
   "tier1_compare_conversion_long_to_integer_operations": 80,
   "tier1_compare_conversion_long_to_integer_total_by_width": {
-    "decimal32": 357024,
-    "decimal64": 332064,
-    "decimal128": 755792
+    "decimal32": 364544,
+    "decimal64": 340544,
+    "decimal128": 764272
   },
   "tier1_compare_conversion_long_to_integer_random_stream_hash_by_width": {
     "decimal32": 5565143809330466923,
@@ -143,9 +143,9 @@
     "decimal128": 10
   },
   "tier1_compare_conversion_long_width_total_by_source": {
-    "decimal32": 264516,
-    "decimal64": 267388,
-    "decimal128": 209162
+    "decimal32": 264704,
+    "decimal64": 268024,
+    "decimal128": 210222
   },
   "tier1_compare_conversion_long_width_random_stream_hash_by_width": {
     "decimal32": 3418391819236514937,
@@ -161,9 +161,9 @@
   "tier1_compare_conversion_long_constructor_total": 1049181,
   "tier1_compare_conversion_long_constructor_convenience_checks": 57,
   "tier1_compare_conversion_long_constructor_random_stream_hash": 3224779711172605996,
-  "tier1_compare_conversion_long_conversion_structured": 1023866,
+  "tier1_compare_conversion_long_conversion_structured": 1054820,
   "tier1_compare_conversion_long_conversion_random": 3014656,
-  "tier1_compare_conversion_long_conversion_total": 4038522,
+  "tier1_compare_conversion_long_conversion_total": 4069476,
   "tier1_compare_conversion_long_consumers": 2,
   "dectest_suite_cases": {
     "Decimal32": 909,
@@ -510,7 +510,7 @@
     "testspec_tree": "e61bd4b09415b32d3a697ad5ecab2be71644305e52a7decce4e81d4e86c9692a",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "e3c98f5af677e7ae01eec630a48c9d84635058b0de96c1b429d1bab449b3a3cb",
-    "goport_verification_runners": "5426e6b6f6604ef3240de010d4481a69e83b9458a04961851b64e52ba229b3c7",
+    "goport_verification_runners": "229d29ac2a36d8fcfd9210bbbe36e2cac3b62f07c7babfffbdc70839c26b5204",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
     "d32_exhaustive_runners": "2a6661aef222fdd10709c88a56e2fa77a1ab8cbc328b00011956cfc0f7274a4b",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",
@@ -518,6 +518,6 @@
     "rust_readtest_runner": "ef282749941861b84790236c1af0bae18c473dae13ba938c4c401a77fcc7a43e",
     "rust_public_parity_runner": "a3ab6bca46519a2247a3bfc6752a7c7a8e8cd09207c8458f2756ecdcea175f9c",
     "rust_dectest_runner": "d24e687c18929322d79943ec07b9507697bc605e320381e3dbced6dc356cdc5a",
-    "rust_tier1_long_runners": "cec3d7e6dcb3f6f678fef925b3c426cb192e463a5a14a87dd3fe142c7f4579a7"
+    "rust_tier1_long_runners": "7236dcf5b97173f9f9a4a10615e2a2e414239a4b639b1da5caf98c93d89ab6b1"
   }
 }

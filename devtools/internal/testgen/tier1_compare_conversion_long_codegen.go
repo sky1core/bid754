@@ -55,9 +55,14 @@ func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read Rust Tier 1 compare/conversion long template: %w", err)
 	}
-	boundary32 := tier1ArithmeticBoundary32Values()
-	boundary64 := bid64BidCodecEdgeValues()
-	boundary128 := bid128BidCodecEdgeValues()
+	// Shared Tier 1 long boundary (base + exponent-cap/floor extension).
+	// The Go runner iterates the arithmetic runner's emitted tables at
+	// runtime and cross-checks their length against the counts generated
+	// here; the Rust runner embeds these values directly. Both must come
+	// from the same composition as the arithmetic codegen.
+	boundary32 := tier1SharedLongBoundary32Values()
+	boundary64 := tier1SharedLongBoundary64Values()
+	boundary128 := tier1SharedLongBoundary128Values()
 	counts := tier1CompareConversionCountsFor(
 		uint64(len(boundary32)), uint64(len(boundary64)), uint64(len(boundary128)),
 		uint64(len(semantic32)), uint64(len(semantic64)), uint64(len(semantic128)),
@@ -95,9 +100,9 @@ func GenerateTier1CompareConversionLongOutputs() (map[string][]byte, error) {
 	replacer := strings.NewReplacer(
 		"@@TIER1_CC_SENTINEL_COUNT@@", fmt.Sprint(len(sentinelRows)),
 		"@@TIER1_CC_SENTINEL_ROWS@@", tier1SentinelGoRowLiterals(sentinelRows),
-		"@@TIER1_BOUNDARY32_COUNT@@", fmt.Sprint(len(tier1ArithmeticBoundary32Values())),
-		"@@TIER1_BOUNDARY64_COUNT@@", fmt.Sprint(len(bid64BidCodecEdgeValues())),
-		"@@TIER1_BOUNDARY128_COUNT@@", fmt.Sprint(len(bid128BidCodecEdgeValues())),
+		"@@TIER1_BOUNDARY32_COUNT@@", fmt.Sprint(len(boundary32)),
+		"@@TIER1_BOUNDARY64_COUNT@@", fmt.Sprint(len(boundary64)),
+		"@@TIER1_BOUNDARY128_COUNT@@", fmt.Sprint(len(boundary128)),
 		"@@TIER1_CONVERSION_SEMANTIC32_COUNT@@", fmt.Sprint(len(semantic32)),
 		"@@TIER1_CONVERSION_SEMANTIC64_COUNT@@", fmt.Sprint(len(semantic64)),
 		"@@TIER1_CONVERSION_SEMANTIC128_COUNT@@", fmt.Sprint(len(semantic128)),
@@ -245,14 +250,14 @@ func tier1CompareConversionCountsFor(
 		probes = uint64(12)
 		// 6 quiet predicates + 4 min/max operations (minnum, maxnum,
 		// minnum_mag, maxnum_mag) per visited pair.
-		compareOps = uint64(10)
-		toIntOps          = uint64(80)
-		toIntRandom32     = uint64(1) << 18
-		toIntRandom64     = uint64(1) << 18
-		toIntRandom128    = uint64(1) << 17
-		widthRandom32     = uint64(1) << 18
-		widthRandom64     = uint64(1) << 18
-		widthRandom128    = uint64(1) << 17
+		compareOps     = uint64(10)
+		toIntOps       = uint64(80)
+		toIntRandom32  = uint64(1) << 18
+		toIntRandom64  = uint64(1) << 18
+		toIntRandom128 = uint64(1) << 17
+		widthRandom32  = uint64(1) << 18
+		widthRandom64  = uint64(1) << 18
+		widthRandom128 = uint64(1) << 17
 		// One-way BID -> binary interchange: 3 targets x 5 rounding modes.
 		binaryOps         = uint64(15)
 		binaryRandom32    = uint64(1) << 18
@@ -392,15 +397,15 @@ func tier1ConversionSemanticInputs() ([]uint32, []uint64, []bid128BidCodecValue,
 	)
 
 	boundary32 := make(map[uint32]struct{})
-	for _, value := range tier1ArithmeticBoundary32Values() {
+	for _, value := range tier1SharedLongBoundary32Values() {
 		boundary32[value] = struct{}{}
 	}
 	boundary64 := make(map[uint64]struct{})
-	for _, value := range bid64BidCodecEdgeValues() {
+	for _, value := range tier1SharedLongBoundary64Values() {
 		boundary64[value] = struct{}{}
 	}
 	boundary128 := make(map[bid128BidCodecValue]struct{})
-	for _, value := range bid128BidCodecEdgeValues() {
+	for _, value := range tier1SharedLongBoundary128Values() {
 		boundary128[value] = struct{}{}
 	}
 

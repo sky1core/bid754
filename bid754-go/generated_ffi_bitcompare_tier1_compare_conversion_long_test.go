@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	tier1CompareConversionBoundary32Count      = uint64(1144)
-	tier1CompareConversionBoundary64Count      = uint64(804)
-	tier1CompareConversionBoundary128Count     = uint64(7722)
+	tier1CompareConversionBoundary32Count      = uint64(1238)
+	tier1CompareConversionBoundary64Count      = uint64(912)
+	tier1CompareConversionBoundary128Count     = uint64(7830)
 	tier1ConversionSemantic32Count             = uint64(42)
-	tier1ConversionSemantic64Count             = uint64(70)
-	tier1ConversionSemantic128Count            = uint64(87)
+	tier1ConversionSemantic64Count             = uint64(68)
+	tier1ConversionSemantic128Count            = uint64(85)
 	tier1ConstructorInt32Count                 = uint64(19)
 	tier1ConstructorUint32Count                = uint64(14)
 	tier1ConstructorInt64Count                 = uint64(19)
@@ -3327,7 +3327,6 @@ var tier1ConversionSemantic64 = []uint64{
 	0x30e0000000989681,
 	0x30e0000000989685,
 	0x30e0000005f5e0fb,
-	0x3180000000000001,
 	0x31a0000000000005,
 	0x31a000000000000f,
 	0x31a00000000004fb,
@@ -3363,7 +3362,6 @@ var tier1ConversionSemantic64 = []uint64{
 	0xa500000000000005,
 	0xa500000000000009,
 	0xb0e0000000989681,
-	0xb180000000000001,
 	0xb1a0000000000005,
 	0xb1a000000000000f,
 	0xb1a00000000004fb,
@@ -3406,7 +3404,6 @@ var tier1ConversionSemantic128 = []tier1Arithmetic128Words{
 	{lo: 0x0000000000989681, hi: 0x3032000000000000},
 	{lo: 0x0000000000989685, hi: 0x3032000000000000},
 	{lo: 0x0000000005f5e0fb, hi: 0x3032000000000000},
-	{lo: 0x0000000000000001, hi: 0x303c000000000000},
 	{lo: 0x0000000000000005, hi: 0x303e000000000000},
 	{lo: 0x000000000000000f, hi: 0x303e000000000000},
 	{lo: 0x00000000000004fb, hi: 0x303e000000000000},
@@ -3450,7 +3447,6 @@ var tier1ConversionSemantic128 = []tier1Arithmetic128Words{
 	{lo: 0x0000000000000009, hi: 0xaf74000000000000},
 	{lo: 0x002386f26fc10001, hi: 0xb020000000000000},
 	{lo: 0x0000000000989681, hi: 0xb032000000000000},
-	{lo: 0x0000000000000001, hi: 0xb03c000000000000},
 	{lo: 0x0000000000000005, hi: 0xb03e000000000000},
 	{lo: 0x000000000000000f, hi: 0xb03e000000000000},
 	{lo: 0x00000000000004fb, hi: 0xb03e000000000000},

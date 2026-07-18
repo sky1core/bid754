@@ -80,13 +80,15 @@ func GenerateTier1ArithmeticLongOutputs() (map[string][]byte, error) {
 		return nil, fmt.Errorf("read Tier 1 arithmetic long template: %w", err)
 	}
 
-	// The arithmetic runners extend the shared base boundary sets with the
-	// exponent-cap class (tier1_exponent_cap_boundary.go); the
-	// compare/conversion runner, the decNumber differential corpus, and the
-	// BID codec vectors keep consuming the unchanged base sets.
-	boundary32 := appendUnique32(tier1ArithmeticBoundary32Values(), tier1ArithmeticExponentCapFloorBoundary32Values())
-	boundary64 := appendUnique64(bid64BidCodecEdgeValues(), tier1ArithmeticExponentCapFloorBoundary64Values())
-	boundary128 := appendUnique128(bid128BidCodecEdgeValues(), tier1ArithmeticExponentCapFloorBoundary128Values())
+	// Shared Tier 1 long boundary (base + exponent-cap/floor extension,
+	// composed once in tier1_exponent_cap_boundary.go). The value tables
+	// emitted here are also iterated at runtime by the compare/conversion Go
+	// runner, whose codegen derives its counts from the same composition;
+	// the decNumber differential corpus and the BID codec vectors keep
+	// consuming the unchanged base sets.
+	boundary32 := tier1SharedLongBoundary32Values()
+	boundary64 := tier1SharedLongBoundary64Values()
+	boundary128 := tier1SharedLongBoundary128Values()
 	if err := tier1ArithmeticVerifyExponentCapContract(boundary32, boundary64, boundary128); err != nil {
 		return nil, err
 	}
@@ -989,10 +991,10 @@ func tier1ArithmeticSemanticCorpus() (tier1ArithmeticSemanticSpec, error) {
 
 // tier1ArithmeticBoundary32Values is the shared BID32 boundary base set: the
 // BID codec edge corpus plus the closed combinatorial raw-field boundary set.
-// It is consumed unchanged by the compare/conversion runner and the decNumber
-// differential corpus; the arithmetic runners additionally append the
-// exponent-cap extension (tier1ArithmeticExponentCapFloorBoundary32Values) at
-// composition time in GenerateTier1ArithmeticLongOutputs.
+// The decNumber differential corpus consumes it unchanged; both Tier 1 long
+// runner generation paths consume it only through the composed
+// tier1SharedLongBoundary32Values (base plus the exponent-cap/floor
+// extension in tier1_exponent_cap_boundary.go).
 func tier1ArithmeticBoundary32Values() []uint32 {
 	values := make(map[uint32]struct{})
 	for _, value := range bid32BidCodecEdgeValues() {

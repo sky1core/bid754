@@ -5,45 +5,45 @@ use bid754::generated::bid32_exports::{bid32_max_num, bid32_max_num_mag, bid32_m
 use bid754::{Binary128, Decimal128, Decimal32, Decimal64, ExceptionFlags, RoundingMode};
 use libbid_sys::BID_UINT128 as C128;
 
-const BOUNDARY32_COUNT: u64 = 1144;
-const BOUNDARY64_COUNT: u64 = 804;
-const BOUNDARY128_COUNT: u64 = 7722;
+const BOUNDARY32_COUNT: u64 = 1238;
+const BOUNDARY64_COUNT: u64 = 912;
+const BOUNDARY128_COUNT: u64 = 7830;
 const SEMANTIC32_COUNT: u64 = 42;
-const SEMANTIC64_COUNT: u64 = 70;
-const SEMANTIC128_COUNT: u64 = 87;
+const SEMANTIC64_COUNT: u64 = 68;
+const SEMANTIC128_COUNT: u64 = 85;
 const CONSTRUCTOR_I32_COUNT: u64 = 19;
 const CONSTRUCTOR_U32_COUNT: u64 = 14;
 const CONSTRUCTOR_I64_COUNT: u64 = 19;
 const CONSTRUCTOR_U64_COUNT: u64 = 15;
 
-const COMPARE_STRUCTURED32: u64 = 276000;
-const COMPARE_STRUCTURED64: u64 = 194400;
-const COMPARE_STRUCTURED128: u64 = 1854720;
+const COMPARE_STRUCTURED32: u64 = 298560;
+const COMPARE_STRUCTURED64: u64 = 220320;
+const COMPARE_STRUCTURED128: u64 = 1880640;
 const COMPARE_RANDOM32: u64 = 10485760;
 const COMPARE_RANDOM64: u64 = 10485760;
 const COMPARE_RANDOM128: u64 = 5242880;
-const COMPARE_TOTAL32: u64 = 10761760;
-const COMPARE_TOTAL64: u64 = 10680160;
-const COMPARE_TOTAL128: u64 = 7097600;
+const COMPARE_TOTAL32: u64 = 10784320;
+const COMPARE_TOTAL64: u64 = 10706080;
+const COMPARE_TOTAL128: u64 = 7123520;
 
-const TO_INT_STRUCTURED32: u64 = 94880;
-const TO_INT_STRUCTURED64: u64 = 69920;
-const TO_INT_STRUCTURED128: u64 = 624720;
-const TO_INT_TOTAL32: u64 = 357024;
-const TO_INT_TOTAL64: u64 = 332064;
-const TO_INT_TOTAL128: u64 = 755792;
-const WIDTH_STRUCTURED32: u64 = 2372;
-const WIDTH_STRUCTURED64: u64 = 5244;
-const WIDTH_STRUCTURED128: u64 = 78090;
-const WIDTH_TOTAL32: u64 = 264516;
-const WIDTH_TOTAL64: u64 = 267388;
-const WIDTH_TOTAL128: u64 = 209162;
+const TO_INT_STRUCTURED32: u64 = 102400;
+const TO_INT_STRUCTURED64: u64 = 78400;
+const TO_INT_STRUCTURED128: u64 = 633200;
+const TO_INT_TOTAL32: u64 = 364544;
+const TO_INT_TOTAL64: u64 = 340544;
+const TO_INT_TOTAL128: u64 = 764272;
+const WIDTH_STRUCTURED32: u64 = 2560;
+const WIDTH_STRUCTURED64: u64 = 5880;
+const WIDTH_STRUCTURED128: u64 = 79150;
+const WIDTH_TOTAL32: u64 = 264704;
+const WIDTH_TOTAL64: u64 = 268024;
+const WIDTH_TOTAL128: u64 = 210222;
 const CONSTRUCTOR_STRUCTURED: u64 = 605;
 const CONSTRUCTOR_TOTAL: u64 = 1049181;
 const CONSTRUCTOR_CONVENIENCE: u64 = 57;
-const CONVERSION_STRUCTURED: u64 = 1023866;
+const CONVERSION_STRUCTURED: u64 = 1054820;
 const CONVERSION_RANDOM: u64 = 3014656;
-const CONVERSION_TOTAL: u64 = 4038522;
+const CONVERSION_TOTAL: u64 = 4069476;
 const QUIET_PREDICATE_COUNT: u64 = 6;
 const MINMAX_OPERATION_COUNT: u64 = 4;
 const TO_INT_OPERATION_COUNT: u64 = 80;
@@ -4041,6 +4041,100 @@ const BOUNDARY32: &[u32] = &[
     0xffff4241,
     0xfffffffe,
     0xffffffff,
+    0x33800001,
+    0x34000001,
+    0x34800001,
+    0x35000001,
+    0x35800001,
+    0x36000001,
+    0x36800001,
+    0x37000001,
+    0x37800001,
+    0x38000001,
+    0x38800001,
+    0x39000001,
+    0x39800001,
+    0x338f4240,
+    0x6cf8967f,
+    0x358f4240,
+    0x6d78967f,
+    0x360f4240,
+    0x6d98967f,
+    0x368f4240,
+    0x6db8967f,
+    0x390f4240,
+    0x6e58967f,
+    0x398f4240,
+    0x6e78967f,
+    0x31000001,
+    0x30800001,
+    0x30000001,
+    0x2f800001,
+    0x2f000001,
+    0x2e800001,
+    0x2e000001,
+    0x2d800001,
+    0x2d000001,
+    0x2c800001,
+    0x2c000001,
+    0x2b800001,
+    0x2f8f4240,
+    0x6bf8967f,
+    0x2f0f4240,
+    0x6bd8967f,
+    0x2e8f4240,
+    0x6bb8967f,
+    0x2c0f4240,
+    0x6b18967f,
+    0x2b8f4240,
+    0x6af8967f,
+    0xb3800001,
+    0xb4000001,
+    0xb4800001,
+    0xb5000001,
+    0xb5800001,
+    0xb6000001,
+    0xb6800001,
+    0xb7000001,
+    0xb7800001,
+    0xb8000001,
+    0xb8800001,
+    0xb9000001,
+    0xb9800001,
+    0xb38f4240,
+    0xecf8967f,
+    0xb58f4240,
+    0xed78967f,
+    0xb60f4240,
+    0xed98967f,
+    0xb68f4240,
+    0xedb8967f,
+    0xb90f4240,
+    0xee58967f,
+    0xb98f4240,
+    0xee78967f,
+    0xb1000001,
+    0xb0800001,
+    0xb0000001,
+    0xaf800001,
+    0xaf000001,
+    0xae800001,
+    0xae000001,
+    0xad800001,
+    0xad000001,
+    0xac800001,
+    0xac000001,
+    0xab800001,
+    0xaf8f4240,
+    0xebf8967f,
+    0xaf0f4240,
+    0xebd8967f,
+    0xae8f4240,
+    0xebb8967f,
+    0xac0f4240,
+    0xeb18967f,
+    0xab8f4240,
+    0xeaf8967f,
 
 ];
 const BOUNDARY64: &[u64] = &[
@@ -4848,6 +4942,114 @@ const BOUNDARY64: &[u64] = &[
     0xffff8d7ea4c68001,
     0xfffffffffffffffe,
     0xffffffffffffffff,
+    0x3200000000000001,
+    0x3320000000000001,
+    0x3340000000000001,
+    0x3360000000000001,
+    0x3380000000000001,
+    0x33a0000000000001,
+    0x33c0000000000001,
+    0x33e0000000000001,
+    0x3400000000000001,
+    0x3420000000000001,
+    0x3440000000000001,
+    0x3460000000000001,
+    0x3480000000000001,
+    0x35a0000000000001,
+    0x35c0000000000001,
+    0x32038d7ea4c68000,
+    0x6c8386f26fc0ffff,
+    0x33a38d7ea4c68000,
+    0x6ceb86f26fc0ffff,
+    0x33c38d7ea4c68000,
+    0x6cf386f26fc0ffff,
+    0x33e38d7ea4c68000,
+    0x6cfb86f26fc0ffff,
+    0x35a38d7ea4c68000,
+    0x6d6b86f26fc0ffff,
+    0x35c38d7ea4c68000,
+    0x6d7386f26fc0ffff,
+    0x3180000000000001,
+    0x3060000000000001,
+    0x3040000000000001,
+    0x3020000000000001,
+    0x3000000000000001,
+    0x2fe0000000000001,
+    0x2fc0000000000001,
+    0x2fa0000000000001,
+    0x2f80000000000001,
+    0x2f60000000000001,
+    0x2f40000000000001,
+    0x2f20000000000001,
+    0x2f00000000000001,
+    0x2de0000000000001,
+    0x2dc0000000000001,
+    0x31838d7ea4c68000,
+    0x6c6386f26fc0ffff,
+    0x2fe38d7ea4c68000,
+    0x6bfb86f26fc0ffff,
+    0x2fc38d7ea4c68000,
+    0x6bf386f26fc0ffff,
+    0x2fa38d7ea4c68000,
+    0x6beb86f26fc0ffff,
+    0x2de38d7ea4c68000,
+    0x6b7b86f26fc0ffff,
+    0x2dc38d7ea4c68000,
+    0x6b7386f26fc0ffff,
+    0xb200000000000001,
+    0xb320000000000001,
+    0xb340000000000001,
+    0xb360000000000001,
+    0xb380000000000001,
+    0xb3a0000000000001,
+    0xb3c0000000000001,
+    0xb3e0000000000001,
+    0xb400000000000001,
+    0xb420000000000001,
+    0xb440000000000001,
+    0xb460000000000001,
+    0xb480000000000001,
+    0xb5a0000000000001,
+    0xb5c0000000000001,
+    0xb2038d7ea4c68000,
+    0xec8386f26fc0ffff,
+    0xb3a38d7ea4c68000,
+    0xeceb86f26fc0ffff,
+    0xb3c38d7ea4c68000,
+    0xecf386f26fc0ffff,
+    0xb3e38d7ea4c68000,
+    0xecfb86f26fc0ffff,
+    0xb5a38d7ea4c68000,
+    0xed6b86f26fc0ffff,
+    0xb5c38d7ea4c68000,
+    0xed7386f26fc0ffff,
+    0xb180000000000001,
+    0xb060000000000001,
+    0xb040000000000001,
+    0xb020000000000001,
+    0xb000000000000001,
+    0xafe0000000000001,
+    0xafc0000000000001,
+    0xafa0000000000001,
+    0xaf80000000000001,
+    0xaf60000000000001,
+    0xaf40000000000001,
+    0xaf20000000000001,
+    0xaf00000000000001,
+    0xade0000000000001,
+    0xadc0000000000001,
+    0xb1838d7ea4c68000,
+    0xec6386f26fc0ffff,
+    0xafe38d7ea4c68000,
+    0xebfb86f26fc0ffff,
+    0xafc38d7ea4c68000,
+    0xebf386f26fc0ffff,
+    0xafa38d7ea4c68000,
+    0xebeb86f26fc0ffff,
+    0xade38d7ea4c68000,
+    0xeb7b86f26fc0ffff,
+    0xadc38d7ea4c68000,
+    0xeb7386f26fc0ffff,
 
 ];
 const BOUNDARY128: &[Words] = &[
@@ -12573,6 +12775,114 @@ const BOUNDARY128: &[Words] = &[
     Words { lo: 0x8000000000000000, hi: 0xffffffffffffffff },
     Words { lo: 0xfffffffffffffffe, hi: 0xffffffffffffffff },
     Words { lo: 0xffffffffffffffff, hi: 0xffffffffffffffff },
+    Words { lo: 0x0000000000000001, hi: 0x3044000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x307a000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x307c000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x307e000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3080000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3082000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3084000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3086000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3088000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x308a000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x308c000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x308e000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3090000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x30c6000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x30c8000000000000 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x3044314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x3045ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x3082314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x3083ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x3084314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x3085ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x3086314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x3087ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x30c6314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x30c7ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x30c8314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x30c9ed09bead87c0 },
+    Words { lo: 0x0000000000000001, hi: 0x303c000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3006000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3004000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3002000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x3000000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ffe000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ffc000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ffa000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ff8000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ff6000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ff4000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ff2000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2ff0000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2fba000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0x2fb8000000000000 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x303c314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x303ded09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x2ffe314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x2fffed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x2ffc314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x2ffded09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x2ffa314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x2ffbed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x2fba314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x2fbbed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0x2fb8314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0x2fb9ed09bead87c0 },
+    Words { lo: 0x0000000000000001, hi: 0xb044000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb07a000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb07c000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb07e000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb080000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb082000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb084000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb086000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb088000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb08a000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb08c000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb08e000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb090000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb0c6000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb0c8000000000000 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xb044314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xb045ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xb082314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xb083ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xb084314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xb085ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xb086314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xb087ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xb0c6314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xb0c7ed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xb0c8314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xb0c9ed09bead87c0 },
+    Words { lo: 0x0000000000000001, hi: 0xb03c000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb006000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb004000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb002000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xb000000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaffe000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaffc000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaffa000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaff8000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaff6000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaff4000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaff2000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xaff0000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xafba000000000000 },
+    Words { lo: 0x0000000000000001, hi: 0xafb8000000000000 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xb03c314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xb03ded09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xaffe314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xafffed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xaffc314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xaffded09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xaffa314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xaffbed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xafba314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xafbbed09bead87c0 },
+    Words { lo: 0x38c15b0a00000000, hi: 0xafb8314dc6448d93 },
+    Words { lo: 0x378d8e63ffffffff, hi: 0xafb9ed09bead87c0 },
 
 ];
 const SEMANTIC32: &[u32] = &[
@@ -12627,7 +12937,6 @@ const SEMANTIC64: &[u64] = &[
     0x30e0000000989681,
     0x30e0000000989685,
     0x30e0000005f5e0fb,
-    0x3180000000000001,
     0x31a0000000000005,
     0x31a000000000000f,
     0x31a00000000004fb,
@@ -12663,7 +12972,6 @@ const SEMANTIC64: &[u64] = &[
     0xa500000000000005,
     0xa500000000000009,
     0xb0e0000000989681,
-    0xb180000000000001,
     0xb1a0000000000005,
     0xb1a000000000000f,
     0xb1a00000000004fb,
@@ -12706,7 +13014,6 @@ const SEMANTIC128: &[Words] = &[
     Words { lo: 0x0000000000989681, hi: 0x3032000000000000 },
     Words { lo: 0x0000000000989685, hi: 0x3032000000000000 },
     Words { lo: 0x0000000005f5e0fb, hi: 0x3032000000000000 },
-    Words { lo: 0x0000000000000001, hi: 0x303c000000000000 },
     Words { lo: 0x0000000000000005, hi: 0x303e000000000000 },
     Words { lo: 0x000000000000000f, hi: 0x303e000000000000 },
     Words { lo: 0x00000000000004fb, hi: 0x303e000000000000 },
@@ -12750,7 +13057,6 @@ const SEMANTIC128: &[Words] = &[
     Words { lo: 0x0000000000000009, hi: 0xaf74000000000000 },
     Words { lo: 0x002386f26fc10001, hi: 0xb020000000000000 },
     Words { lo: 0x0000000000989681, hi: 0xb032000000000000 },
-    Words { lo: 0x0000000000000001, hi: 0xb03c000000000000 },
     Words { lo: 0x0000000000000005, hi: 0xb03e000000000000 },
     Words { lo: 0x000000000000000f, hi: 0xb03e000000000000 },
     Words { lo: 0x00000000000004fb, hi: 0xb03e000000000000 },

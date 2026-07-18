@@ -19,9 +19,12 @@ import "fmt"
 // boundary x probe pairs (add/sub/mul/div/quantize) and the rotated FMA
 // triples against the +/-Nmax probes take the overflow clamp paths of every
 // width. Values already present in the base sets are absorbed by the
-// appendUnique* composition in GenerateTier1ArithmeticLongOutputs; the
-// compare/conversion runner, the decNumber differential corpus, and the BID
-// codec vectors keep consuming the unchanged base sets.
+// tier1SharedLongBoundary*Values composition below, which both the
+// arithmetic and the compare/conversion long codegens consume (the
+// compare/conversion Go runner iterates the arithmetic runner's emitted
+// tables at runtime, so their generation paths must agree); the decNumber
+// differential corpus and the BID codec vectors keep consuming the
+// unchanged base sets.
 //
 // Layout contract (checked by tier1ArithmeticCheckExponentCapResidues): the
 // runners' structured FMA block pairs boundary index i with the probe
@@ -201,6 +204,28 @@ func tier1ArithmeticExponentCapFloorBoundary128Values() []bid128BidCodecValue {
 		}
 	}
 	return values
+}
+
+// tier1SharedLongBoundary32Values is the single composition point of the
+// shared Tier 1 long boundary set (base + exponent-cap/floor extension) for
+// BID32. Both long runners consume it: the arithmetic codegen emits the
+// value tables (shared at runtime by the compare/conversion Go runner, which
+// cross-checks the table length against its own generated count), and the
+// compare/conversion codegen derives its counts and the Rust-embedded value
+// tables from it. Composing in one place keeps those two generation paths
+// from silently diverging again.
+func tier1SharedLongBoundary32Values() []uint32 {
+	return appendUnique32(tier1ArithmeticBoundary32Values(), tier1ArithmeticExponentCapFloorBoundary32Values())
+}
+
+// tier1SharedLongBoundary64Values is the BID64 shared composition point.
+func tier1SharedLongBoundary64Values() []uint64 {
+	return appendUnique64(bid64BidCodecEdgeValues(), tier1ArithmeticExponentCapFloorBoundary64Values())
+}
+
+// tier1SharedLongBoundary128Values is the BID128 shared composition point.
+func tier1SharedLongBoundary128Values() []bid128BidCodecValue {
+	return appendUnique128(bid128BidCodecEdgeValues(), tier1ArithmeticExponentCapFloorBoundary128Values())
 }
 
 // appendUnique32 mirrors appendUnique64 for the BID32 boundary composition:
