@@ -1,10 +1,11 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
 DECNUMBER_DIFF_NATIVE_TAGS ?= -tags bid754_native,bid754_decnumber_diff
+D32_EXHAUSTIVE_NATIVE_TAGS ?= -tags bid754_native,bid754_d32_exhaustive
 GOENV = GOCACHE=$${GOCACHE:-/tmp/go-cache}
 # Repetition count for the Go benchmark matrix targets (bench-native,
 # bench-bidgo). Before/after performance claims need repeated samples
@@ -443,6 +444,24 @@ _test-native-decnumber-differential-full:
 	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$$" -timeout 0 ./...) | tee test_results/latest_native_decnumber_differential_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_decnumber_differential_results.txt -domain decnumber-differential
 
+# Decimal32 단항 exhaustive 차등 게이트: 전체 2^32 입력 공간(비트패턴
+# 0..2^32-1, non-canonical 포함)을 pinned Intel BID C와 Go mechanical port
+# 간 비트+플래그 exact 비교. bidcodec-exhaustive32와 같은 지위의 독립 장기
+# 게이트로, verify-all 체인에는 포함하지 않는다. 레인별 결과 다이제스트는
+# devtools/verification_anchors.json에 수기 핀되고 _full 변형의 verifylog가
+# 로그 증거와 대조한다.
+test-native-d32-exhaustive:
+	@echo "🔬 Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 검증 실행..."
+	@mkdir -p test_results
+	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
+
+_test-native-d32-exhaustive-full:
+	@echo "🔬 Decimal32 단항 exhaustive canonical full 실행 + verifylog 증거 바인딩 (shard 비활성)..."
+	@mkdir -p test_results
+	@unset BID754_D32_EXHAUSTIVE_SHARD_COUNT BID754_D32_EXHAUSTIVE_SHARD_INDEX; \
+		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_d32_exhaustive_results.txt -domain d32-exhaustive
+
 test-native-readtest:
 	@echo "🔎 generated readtest native non-short 검증 실행..."
 	@mkdir -p test_results
@@ -627,6 +646,9 @@ verify-generated:
 		bid754-go/generated_decnumber_differential_native.go \
 		bid754-go/generated_decnumber_differential_native_test.go \
 		bid754-go/generated_decnumber_differential_stub_test.go \
+		bid754-go/generated_d32_exhaustive_native.go \
+		bid754-go/generated_d32_exhaustive_long_test.go \
+		bid754-go/generated_d32_exhaustive_stub_test.go \
 		bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs \
 		bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs \
 		bid754-go/internal/testspec/spec.go \
@@ -715,6 +737,9 @@ verify-generated:
 	cmp -s bid754-go/generated_decnumber_differential_native.go $$tmpdir/backup/bid754-go/generated_decnumber_differential_native.go || failed="$$failed bid754-go/generated_decnumber_differential_native.go"; \
 	cmp -s bid754-go/generated_decnumber_differential_native_test.go $$tmpdir/backup/bid754-go/generated_decnumber_differential_native_test.go || failed="$$failed bid754-go/generated_decnumber_differential_native_test.go"; \
 	cmp -s bid754-go/generated_decnumber_differential_stub_test.go $$tmpdir/backup/bid754-go/generated_decnumber_differential_stub_test.go || failed="$$failed bid754-go/generated_decnumber_differential_stub_test.go"; \
+	cmp -s bid754-go/generated_d32_exhaustive_native.go $$tmpdir/backup/bid754-go/generated_d32_exhaustive_native.go || failed="$$failed bid754-go/generated_d32_exhaustive_native.go"; \
+	cmp -s bid754-go/generated_d32_exhaustive_long_test.go $$tmpdir/backup/bid754-go/generated_d32_exhaustive_long_test.go || failed="$$failed bid754-go/generated_d32_exhaustive_long_test.go"; \
+	cmp -s bid754-go/generated_d32_exhaustive_stub_test.go $$tmpdir/backup/bid754-go/generated_d32_exhaustive_stub_test.go || failed="$$failed bid754-go/generated_d32_exhaustive_stub_test.go"; \
 	cmp -s bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs"; \
 	cmp -s bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs"; \
 	cmp -s bid754-go/internal/testspec/spec.go $$tmpdir/backup/bid754-go/internal/testspec/spec.go || failed="$$failed bid754-go/internal/testspec/spec.go"; \
@@ -916,6 +941,7 @@ help:
 	@echo "  make test-native-tier1-compare-conversion-long Tier 1 비교·MinNum/MaxNum·정수/BID·폭 변환 Intel C exact 장기 검증"
 	@echo "  make test-rust-native-tier1-arithmetic-long 동일 Tier 1 산술 corpus의 Rust public API vs Intel C exact 검증"
 	@echo "  make test-native-decnumber-differential decNumber 제3 oracle 3-leg 차등 게이트 (Intel C / Go port / decNumber)"
+	@echo "  make test-native-d32-exhaustive Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 (verify-all 비포함 독립 장기 게이트)"
 	@echo "  make test-rust-native-tier1-compare-conversion-long 동일 Tier 1 비교·변환 corpus의 Rust public API vs Intel C exact 검증"
 	@echo "  make test-native-readtest generated readtest native non-short 검증"
 	@echo "  make test-native-dectest generated decTest native non-short 검증"

@@ -20,6 +20,8 @@
 //	unrounded <width> <op> <x> <y>            -> ok <bits>/<rawflags>
 //	fma <width> <mode> <x> <y> <z>            -> ok <bits>/<rawflags>
 //	sqrt <width> <mode> <x>                   -> ok <bits>/<rawflags>
+//	roundintexact <width> <mode> <x>          -> ok <bits>/<rawflags>
+//	roundint <width> <variant> <x>            -> ok <bits>/<rawflags>
 //	scaleb <width> <mode> <n> <x>             -> ok <bits>/<rawflags>
 //	quiet <width> <op> <x> <y>                -> ok <00|01>/<rawflags>
 //	minmax <width> <op> <x> <y>               -> ok <bits>/<rawflags>
@@ -341,6 +343,36 @@ func evalRequest(line string) (string, error) {
 			return "", err
 		}
 		return evalSqrt(width, x, mode)
+	case "roundintexact":
+		if err := requireFields(fields, 3); err != nil {
+			return "", err
+		}
+		width, err := parseWidth(fields[1])
+		if err != nil {
+			return "", err
+		}
+		mode, err := parseMode(fields[2])
+		if err != nil {
+			return "", err
+		}
+		x, err := parseValue(width, fields[3])
+		if err != nil {
+			return "", err
+		}
+		return evalRoundIntegralExact(width, x, mode)
+	case "roundint":
+		if err := requireFields(fields, 3); err != nil {
+			return "", err
+		}
+		width, err := parseWidth(fields[1])
+		if err != nil {
+			return "", err
+		}
+		x, err := parseValue(width, fields[3])
+		if err != nil {
+			return "", err
+		}
+		return evalRoundIntegralFixed(width, fields[2], x)
 	case "scaleb":
 		if err := requireFields(fields, 4); err != nil {
 			return "", err
@@ -631,6 +663,50 @@ func evalSqrt(width int, x oracleValue, mode bid754.RoundingMode) (string, error
 		return result128(value, flags)
 	default:
 		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	}
+}
+
+// evalRoundIntegralExact answers `roundintexact <width> <mode> <x>` through
+// the public mode-taking round-to-integral-exact surface. The d32 exhaustive
+// sentinel codegen is the only current consumer, so only width 32 is wired;
+// widening it is an explicit follow-up, not a silent fallback.
+func evalRoundIntegralExact(width int, x oracleValue, mode bid754.RoundingMode) (string, error) {
+	switch width {
+	case 32:
+		value, flags := bid754.Decimal32BID(uint32(x.lo)).RoundIntegralExactWithMode(mode)
+		return result32(value, flags)
+	default:
+		return "", fmt.Errorf("roundintexact oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
+	}
+}
+
+// evalRoundIntegralFixed answers `roundint <width> <variant> <x>` through the
+// public fixed-attribute round-to-integral surfaces (the Intel
+// bid32_round_integral_<variant> family). Width scope matches
+// evalRoundIntegralExact.
+func evalRoundIntegralFixed(width int, variant string, x oracleValue) (string, error) {
+	if width != 32 {
+		return "", fmt.Errorf("roundint oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
+	}
+	value := bid754.Decimal32BID(uint32(x.lo))
+	switch variant {
+	case "nearest_even":
+		result, flags := value.RoundIntegralNearestEven()
+		return result32(result, flags)
+	case "nearest_away":
+		result, flags := value.RoundIntegralNearestAway()
+		return result32(result, flags)
+	case "zero":
+		result, flags := value.RoundIntegralZero()
+		return result32(result, flags)
+	case "positive":
+		result, flags := value.RoundIntegralPositive()
+		return result32(result, flags)
+	case "negative":
+		result, flags := value.RoundIntegralNegative()
+		return result32(result, flags)
+	default:
+		return "", fmt.Errorf("unknown roundint variant %q", variant)
 	}
 }
 

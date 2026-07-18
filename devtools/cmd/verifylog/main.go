@@ -15,6 +15,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -36,6 +37,10 @@ type anchors struct {
 	DecnumberDiffRandom             map[string]uint64 `json:"decnumber_differential_random_comparisons_by_width"`
 	DecnumberDiffRandomExcluded     map[string]uint64 `json:"decnumber_differential_random_fma_excluded_by_width"`
 	DecnumberDiffRandomKnown        map[string]uint64 `json:"decnumber_differential_random_known_divergences_by_width"`
+	D32ExhaustiveLanes              uint64            `json:"d32_exhaustive_unary_lanes"`
+	D32ExhaustiveCasesPerLane       uint64            `json:"d32_exhaustive_unary_cases_per_lane"`
+	D32ExhaustiveTotalComparisons   uint64            `json:"d32_exhaustive_unary_total_comparisons"`
+	D32ExhaustiveDigestByLane       map[string]uint64 `json:"d32_exhaustive_unary_result_digest_by_lane"`
 }
 
 // sentinels mirrors the routing-sentinel row pin file; the row counts are
@@ -44,13 +49,14 @@ type sentinels struct {
 	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
 	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
 	DecnumberDifferentialRows         []string `json:"decnumber_differential_sentinel_rows"`
+	D32ExhaustiveRows                 []string `json:"d32_exhaustive_sentinel_rows"`
 }
 
 func main() {
 	anchorsPath := flag.String("anchors", "verification_anchors.json", "path to verification_anchors.json")
 	sentinelsPath := flag.String("sentinels", "verification_sentinels.json", "path to verification_sentinels.json (routing-sentinel row pins)")
 	logPath := flag.String("log", "", "path to the captured gate log")
-	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi, decnumber-differential")
+	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi, decnumber-differential, d32-exhaustive")
 	passes := flag.String("passes", "", "comma-separated top-level Go test names that must have '--- PASS:' evidence")
 	flag.Parse()
 	if *logPath == "" || (*domain == "" && *passes == "") {
@@ -192,6 +198,40 @@ func main() {
 					countLine(fmt.Sprintf("decimal%s decnumber differential random known divergences: %d/%d", w, randomKnown, randomKnown)),
 				)
 			}
+		case "d32-exhaustive":
+			required = append(required,
+				topLevelPass("TestGeneratedD32ExhaustiveLaneContract"),
+				topLevelPass("TestGeneratedD32ExhaustiveRoutingSentinels"),
+				topLevelPass("TestGeneratedD32ExhaustiveUnaryDifferential"),
+				d32ExhaustiveSentinelCountEvidence(*sentinelsPath, "d32 exhaustive routing sentinels"),
+			)
+			if a.D32ExhaustiveLanes == 0 || a.D32ExhaustiveCasesPerLane == 0 {
+				fail("d32 exhaustive anchors carry a zero lane or per-lane case count (an empty gate would be a green no-op)")
+			}
+			if uint64(len(a.D32ExhaustiveDigestByLane)) != a.D32ExhaustiveLanes {
+				fail("d32 exhaustive anchors pin %d lane digests for %d lanes", len(a.D32ExhaustiveDigestByLane), a.D32ExhaustiveLanes)
+			}
+			if a.D32ExhaustiveLanes*a.D32ExhaustiveCasesPerLane != a.D32ExhaustiveTotalComparisons {
+				fail("d32 exhaustive anchors: lanes %d x cases-per-lane %d != total %d",
+					a.D32ExhaustiveLanes, a.D32ExhaustiveCasesPerLane, a.D32ExhaustiveTotalComparisons)
+			}
+			laneNames := make([]string, 0, len(a.D32ExhaustiveDigestByLane))
+			for lane := range a.D32ExhaustiveDigestByLane {
+				laneNames = append(laneNames, lane)
+			}
+			sort.Strings(laneNames)
+			for _, lane := range laneNames {
+				digest := a.D32ExhaustiveDigestByLane[lane]
+				if digest == 0 {
+					fail("d32 exhaustive anchors pin a zero result digest for lane %q (an unpinned digest binds nothing)", lane)
+				}
+				required = append(required, countLine(fmt.Sprintf(
+					"decimal32 exhaustive lane %s: exact comparisons %d/%d digest=%d",
+					lane, a.D32ExhaustiveCasesPerLane, a.D32ExhaustiveCasesPerLane, digest)))
+			}
+			required = append(required, countLine(fmt.Sprintf(
+				"decimal32 exhaustive unary total comparisons: %d/%d",
+				a.D32ExhaustiveTotalComparisons, a.D32ExhaustiveTotalComparisons)))
 		default:
 			fail("unknown domain %q", *domain)
 		}
@@ -317,6 +357,16 @@ func decnumberDiffSentinelCountEvidence(sentinelsPath, prefix string) evidence {
 	n := len(loadSentinels(sentinelsPath).DecnumberDifferentialRows)
 	if n == 0 {
 		fail("verification_sentinels.json pins zero decNumber differential sentinel rows")
+	}
+	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
+}
+
+// d32ExhaustiveSentinelCountEvidence is the d32 exhaustive analogue of
+// sentinelCountEvidence.
+func d32ExhaustiveSentinelCountEvidence(sentinelsPath, prefix string) evidence {
+	n := len(loadSentinels(sentinelsPath).D32ExhaustiveRows)
+	if n == 0 {
+		fail("verification_sentinels.json pins zero d32 exhaustive sentinel rows")
 	}
 	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
 }

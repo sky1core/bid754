@@ -132,6 +132,12 @@ type verificationAnchors struct {
 	DecnumberDiffRandomStreamHashes              map[string]uint64            `json:"decnumber_differential_random_stream_hash_by_width"`
 	DecnumberDiffTotalComparisons                map[string]uint64            `json:"decnumber_differential_total_comparisons_by_width"`
 	DecnumberDiffConsumers                       uint64                       `json:"decnumber_differential_consumers"`
+	D32ExhaustiveOperations                      uint64                       `json:"d32_exhaustive_unary_operations"`
+	D32ExhaustiveLanes                           uint64                       `json:"d32_exhaustive_unary_lanes"`
+	D32ExhaustiveCasesPerLane                    uint64                       `json:"d32_exhaustive_unary_cases_per_lane"`
+	D32ExhaustiveTotalComparisons                uint64                       `json:"d32_exhaustive_unary_total_comparisons"`
+	D32ExhaustiveDigestByLane                    map[string]uint64            `json:"d32_exhaustive_unary_result_digest_by_lane"`
+	D32ExhaustiveConsumers                       uint64                       `json:"d32_exhaustive_unary_consumers"`
 	VerificationArtifactSHA256                   map[string]string            `json:"verification_artifact_sha256"`
 }
 
@@ -168,6 +174,7 @@ type verificationSentinels struct {
 	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
 	MixedFMAFusednessRows             []string `json:"mixed_fma_fusedness_rows"`
 	DecnumberDifferentialRows         []string `json:"decnumber_differential_sentinel_rows"`
+	D32ExhaustiveRows                 []string `json:"d32_exhaustive_sentinel_rows"`
 }
 
 func loadVerificationSentinels(t *testing.T) verificationSentinels {
@@ -1132,6 +1139,87 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	if got := uint64(len(decnumberDiffSentinelRowsLiteral)); got != decnumberDiff.SentinelRowCount {
 		t.Errorf("generated decNumber differential sentinel row literal count %d diverges from the shared constant %d", got, decnumberDiff.SentinelRowCount)
 	}
+
+	// Decimal32 unary exhaustive gate: the generated lane/count constants,
+	// the generated lane-name inventory, and the hand-pinned digest-map key
+	// set must agree with the external anchors; the regenerated output set
+	// pins the closed artifact world. The digest VALUES are runtime
+	// execution evidence (they require running pinned Intel C over the full
+	// space), so they are bound to the runner's log lines by cmd/verifylog,
+	// not compared against any artifact here; this test pins their key set
+	// and rejects zero (unpinned) digests.
+	d32ExhaustiveOutputs, err := GenerateD32ExhaustiveOutputs()
+	if err != nil {
+		t.Fatalf("generate d32 exhaustive outputs for consumer anchor: %v", err)
+	}
+	assertGeneratedOutputSet(t, "d32 exhaustive", d32ExhaustiveOutputs,
+		d32ExhaustiveNativeShimGeneratedPath,
+		d32ExhaustiveRunnerGeneratedPath,
+		d32ExhaustiveStubGeneratedPath,
+	)
+	d32ExhaustiveRunnerConsumers := uint64(0)
+	for path := range d32ExhaustiveOutputs {
+		if strings.HasSuffix(path, "_long_test.go") {
+			d32ExhaustiveRunnerConsumers++
+		}
+	}
+	if d32ExhaustiveRunnerConsumers != anchors.D32ExhaustiveConsumers {
+		t.Errorf("d32 exhaustive generated runner consumers = %d, anchor = %d", d32ExhaustiveRunnerConsumers, anchors.D32ExhaustiveConsumers)
+	}
+	d32Exhaustive := loadD32ExhaustiveArtifactInventory(t)
+	for _, check := range []struct {
+		label string
+		got   uint64
+		want  uint64
+	}{
+		{"d32 exhaustive lanes", d32Exhaustive.Lanes, anchors.D32ExhaustiveLanes},
+		{"d32 exhaustive operations", d32Exhaustive.Operations, anchors.D32ExhaustiveOperations},
+		{"d32 exhaustive cases per lane", d32Exhaustive.CasesPerLane, anchors.D32ExhaustiveCasesPerLane},
+		{"d32 exhaustive total comparisons", d32Exhaustive.TotalComparisons, anchors.D32ExhaustiveTotalComparisons},
+	} {
+		if check.got != check.want {
+			t.Errorf("generated %s = %d, anchor = %d", check.label, check.got, check.want)
+		}
+	}
+	if anchors.D32ExhaustiveLanes*anchors.D32ExhaustiveCasesPerLane != anchors.D32ExhaustiveTotalComparisons {
+		t.Errorf("d32 exhaustive anchors are internally inconsistent: lanes %d x cases-per-lane %d != total %d",
+			anchors.D32ExhaustiveLanes, anchors.D32ExhaustiveCasesPerLane, anchors.D32ExhaustiveTotalComparisons)
+	}
+	d32ExhaustiveLaneNameRows := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_d32_exhaustive_long_test.go"),
+		"d32ExhaustiveLaneNames")
+	if got := uint64(len(d32ExhaustiveLaneNameRows)); got != anchors.D32ExhaustiveLanes {
+		t.Errorf("generated d32 exhaustive lane-name inventory carries %d lanes, anchor = %d", got, anchors.D32ExhaustiveLanes)
+	}
+	for _, lane := range d32ExhaustiveLaneNameRows {
+		digest, pinned := anchors.D32ExhaustiveDigestByLane[lane]
+		if !pinned {
+			t.Errorf("d32 exhaustive anchors pin no result digest for generated lane %q", lane)
+			continue
+		}
+		if digest == 0 {
+			t.Errorf("d32 exhaustive anchors pin a zero result digest for lane %q (an unpinned digest binds nothing)", lane)
+		}
+	}
+	if len(anchors.D32ExhaustiveDigestByLane) != len(d32ExhaustiveLaneNameRows) {
+		t.Errorf("d32 exhaustive anchors pin %d lane digests for %d generated lanes (stale or extra digest keys)",
+			len(anchors.D32ExhaustiveDigestByLane), len(d32ExhaustiveLaneNameRows))
+	}
+	if len(sentinels.D32ExhaustiveRows) == 0 {
+		t.Errorf("verification_sentinels.json pins no d32 exhaustive sentinel rows")
+	}
+	d32ExhaustiveSentinelRowsLiteral := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_d32_exhaustive_long_test.go"),
+		"d32ExhaustiveSentinelRows")
+	if !reflect.DeepEqual(d32ExhaustiveSentinelRowsLiteral, sentinels.D32ExhaustiveRows) {
+		t.Errorf("generated d32 exhaustive sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(d32ExhaustiveSentinelRowsLiteral), len(sentinels.D32ExhaustiveRows),
+			firstSentinelRowDivergence(d32ExhaustiveSentinelRowsLiteral, sentinels.D32ExhaustiveRows))
+	}
+	if got := uint64(len(d32ExhaustiveSentinelRowsLiteral)); got != d32Exhaustive.SentinelRowCount {
+		t.Errorf("generated d32 exhaustive sentinel row literal count %d diverges from the generated constant %d", got, d32Exhaustive.SentinelRowCount)
+	}
+
 	tier1CompareConversionOutputs, err := GenerateTier1CompareConversionLongOutputs()
 	if err != nil {
 		t.Fatalf("generate Tier 1 compare/conversion long outputs for consumer anchor: %v", err)
@@ -2135,6 +2223,10 @@ func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 				// this case must precede the generic generated_dectest_ arm's
 				// sibling prefixes for clarity even though the prefixes differ.
 				return "decnumber_differential_runners", ""
+			case strings.HasPrefix(base, "generated_d32_exhaustive_"):
+				// The Decimal32 unary exhaustive gate artifacts (cgo shim,
+				// runner, stub) form their own hashed bucket.
+				return "d32_exhaustive_runners", ""
 			case strings.HasPrefix(base, "generated_readtest_"),
 				strings.HasPrefix(base, "generated_ffi_bitcompare_"),
 				strings.HasPrefix(base, "generated_public_parity_"):
@@ -2565,6 +2657,68 @@ func loadDecnumberDifferentialArtifactInventory(t *testing.T) decnumberDifferent
 		RandomStreamHashes:         widthMap("decnumberDiffRandomStreamHash"),
 		TotalComparisons:           widthMap("decnumberDiffTotalComparisons"),
 		SentinelRowCount:           require("decnumberDiffSentinelRowCount"),
+	}
+}
+
+// d32ExhaustiveArtifactInventory carries the anchored constants parsed from
+// the checked-in generated d32 exhaustive runner
+// (bid754-go/generated_d32_exhaustive_long_test.go).
+type d32ExhaustiveArtifactInventory struct {
+	Lanes            uint64
+	Operations       uint64
+	CasesPerLane     uint64
+	TotalComparisons uint64
+	SentinelRowCount uint64
+}
+
+// loadD32ExhaustiveArtifactInventory evaluates every `d32Exhaustive*`
+// integer constant of the checked-in generated runner. Constants whose
+// expressions fall outside the evaluator's operator set are skipped; every
+// constant this inventory needs must resolve.
+func loadD32ExhaustiveArtifactInventory(t *testing.T) d32ExhaustiveArtifactInventory {
+	t.Helper()
+	path := filepath.Join("..", "..", "..", "bid754-go", "generated_d32_exhaustive_long_test.go")
+	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+	if err != nil {
+		t.Fatalf("parse generated d32 exhaustive runner: %v", err)
+	}
+	constants := map[string]uint64{}
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || gen.Tok != token.CONST {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			values, ok := spec.(*ast.ValueSpec)
+			if !ok || len(values.Names) != len(values.Values) {
+				continue
+			}
+			for i, name := range values.Names {
+				if !strings.HasPrefix(name.Name, "d32Exhaustive") {
+					continue
+				}
+				value, err := evalGeneratedUintConstant(values.Values[i], constants)
+				if err != nil {
+					continue // non-arithmetic support constant; not anchored here
+				}
+				constants[name.Name] = value
+			}
+		}
+	}
+	require := func(name string) uint64 {
+		t.Helper()
+		value, ok := constants[name]
+		if !ok {
+			t.Fatalf("generated d32 exhaustive runner is missing constant %s", name)
+		}
+		return value
+	}
+	return d32ExhaustiveArtifactInventory{
+		Lanes:            require("d32ExhaustiveLaneCount"),
+		Operations:       require("d32ExhaustiveOperationCount"),
+		CasesPerLane:     require("d32ExhaustiveCasesPerLane"),
+		TotalComparisons: require("d32ExhaustiveTotalComparisons"),
+		SentinelRowCount: require("d32ExhaustiveSentinelRowCount"),
 	}
 }
 

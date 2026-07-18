@@ -15,6 +15,8 @@ func main() {
 		"print the proposed verification_sentinels.json routing-sentinel rows to stdout and exit; writes no file and reads no anchor")
 	printDecnumberSentinelAnchors := flag.Bool("print-decnumber-sentinel-anchors", false,
 		"print the proposed verification_sentinels.json decNumber differential sentinel rows to stdout and exit; writes no file and reads no anchor")
+	printD32ExhaustiveSentinelAnchors := flag.Bool("print-d32-exhaustive-sentinel-anchors", false,
+		"print the proposed verification_sentinels.json d32 exhaustive sentinel rows to stdout and exit; writes no file and reads no anchor")
 	flag.Parse()
 
 	if *printSentinelAnchors {
@@ -29,6 +31,14 @@ func main() {
 		proposal, err := testgen.DecnumberDifferentialSentinelAnchorProposal()
 		if err != nil {
 			log.Fatalf("compute decNumber differential sentinel anchor proposal: %v", err)
+		}
+		fmt.Print(proposal)
+		return
+	}
+	if *printD32ExhaustiveSentinelAnchors {
+		proposal, err := testgen.D32ExhaustiveSentinelAnchorProposal()
+		if err != nil {
+			log.Fatalf("compute d32 exhaustive sentinel anchor proposal: %v", err)
 		}
 		fmt.Print(proposal)
 		return
@@ -88,6 +98,9 @@ func main() {
 	}
 	if err := testgen.WriteDecnumberDifferentialOutputs(repoRoot, manifest); err != nil {
 		log.Fatalf("write generated decNumber differential outputs: %v", err)
+	}
+	if err := testgen.WriteD32ExhaustiveOutputs(repoRoot); err != nil {
+		log.Fatalf("write generated d32 exhaustive outputs: %v", err)
 	}
 	if err := testgen.WriteBidCodecVectorDataOutput(repoRoot, *manifest.BidCodecVectors); err != nil {
 		log.Fatalf("write generated BID codec vectors: %v", err)

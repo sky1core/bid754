@@ -824,6 +824,7 @@ var cgoNativeFiles = map[string]string{
 	"generated_readtest_dispatch_native.go":      "generated bid754_native-gated native readtest dispatch oracle; excluded from the public runtime build",
 	"generated_ffi_bitcompare_native.go":         "generated bid754_native-gated native FFI bit-compare oracle; excluded from the public runtime build",
 	"generated_decnumber_differential_native.go": "generated bid754_native+bid754_decnumber_diff-gated decNumber 3.68 differential-oracle shim (test files cannot carry cgo preambles); excluded from the public runtime build",
+	"generated_d32_exhaustive_native.go":         "generated bid754_native+bid754_d32_exhaustive-gated Intel C shim for the Decimal32 unary exhaustive differential gate (test files cannot carry cgo preambles); excluded from the public runtime build",
 }
 
 func fileImportsC(file *ast.File) bool {
