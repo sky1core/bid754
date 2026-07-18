@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -12,6 +12,8 @@ GOENV = GOCACHE=$${GOCACHE:-/tmp/go-cache}
 # (AGENTS.md Performance Testing Discipline); Criterion handles its own
 # sampling on the Rust leg.
 BENCH_COUNT ?= 5
+# 신규-seed 탐색 fuzz(explore-fresh-seed)의 (폭, 연산) 타깃당 케이스 수.
+FRESH_SEED_CASES ?= 50000
 # Active Go modules covered by the per-module test/vet/hygiene/purity loops.
 GO_MODULES = bid754-go bid754-codec-go devtools
 # Modules with a real goroutine-concurrent consumer surface, covered by the Go
@@ -461,6 +463,23 @@ _test-native-d32-exhaustive-full:
 	@unset BID754_D32_EXHAUSTIVE_SHARD_COUNT BID754_D32_EXHAUSTIVE_SHARD_INDEX; \
 		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_d32_exhaustive_results.txt -domain d32-exhaustive
+
+# 신규-seed 탐색 fuzz: 실행할 때마다 새 seed로 Tier 1 산술
+# (add/sub/mul/div/fma/sqrt/quantize × 3폭 × 5모드) 케이스를 생성해 Go
+# mechanical port와 pinned Intel BID C를 비트+플래그 exact 차등 비교한다.
+# mutgate와 같은 발견/감사 도구 지위로 verify-all 체인에 포함하지 않으며,
+# pinned-seed 재현 게이트를 대체하지 않는다. 발견물(JSONL, seed 포함)은
+# 기존 수동 절차(회귀 벡터/센티널/corpus 승격)로 편입한다. 반례 발견 시
+# exit 3, 실행 실패 시 exit 1로 실패한다. `go run`은 자식 exit 코드를 1로
+# 접으므로 0/3/1 계약이 보이도록 반드시 빌드한 바이너리를 직접 실행한다
+# (도구가 출력하는 재현 명령도 같은 형태).
+explore-fresh-seed:
+	@echo "🎲 신규-seed Tier 1 산술 Go port vs Intel C exact 차등 탐색 실행 (타깃당 $(FRESH_SEED_CASES) 케이스)..."
+	@mkdir -p test_results
+	@bash -o pipefail -c 'set -e; \
+		tmpdir=$$(mktemp -d); trap "rm -rf $$tmpdir" EXIT; \
+		(cd devtools && $(GOENV) go build -o "$$tmpdir/explorediff" ./cmd/explorediff); \
+		"$$tmpdir/explorediff" -repo . -cases $(FRESH_SEED_CASES) | tee test_results/latest_explore_fresh_seed.txt'
 
 test-native-readtest:
 	@echo "🔎 generated readtest native non-short 검증 실행..."
@@ -942,6 +961,7 @@ help:
 	@echo "  make test-rust-native-tier1-arithmetic-long 동일 Tier 1 산술 corpus의 Rust public API vs Intel C exact 검증"
 	@echo "  make test-native-decnumber-differential decNumber 제3 oracle 3-leg 차등 게이트 (Intel C / Go port / decNumber)"
 	@echo "  make test-native-d32-exhaustive Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 (verify-all 비포함 독립 장기 게이트)"
+	@echo "  make explore-fresh-seed 신규-seed Tier 1 산술 Go port vs Intel C exact 차등 탐색 (발견 도구, verify-all 비포함, FRESH_SEED_CASES=$(FRESH_SEED_CASES))"
 	@echo "  make test-rust-native-tier1-compare-conversion-long 동일 Tier 1 비교·변환 corpus의 Rust public API vs Intel C exact 검증"
 	@echo "  make test-native-readtest generated readtest native non-short 검증"
 	@echo "  make test-native-dectest generated decTest native non-short 검증"

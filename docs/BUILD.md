@@ -471,6 +471,28 @@ the fuzz body and the crash file is removed (use `trash`, not `rm`). Never
 leave an untriaged crash file behind, and never widen a gate just to silence
 a finding.
 
+`make explore-fresh-seed` runs `devtools/cmd/explorediff`, a fresh-seed
+exploration fuzzer with the same discovery/audit standing as
+`devtools/cmd/mutgate`: every run draws a new seed (pin one with `-seed`)
+and differentially compares the Go mechanical port against pinned Intel BID
+C with exact bits+flags over Tier 1 arithmetic
+(add/sub/mul/div/fma/sqrt/quantize × three widths × five rounding modes),
+with a `-bias` option that steers operands toward boundary pools and
+exponent-interaction windows. It is not a verification domain, is never part
+of `make verify-all`, and does not replace the pinned-seed gates; it exits 3
+when it records counterexamples, writes the seed, config, and every mismatch
+(operation, width, mode, operand bits, both results and flag words) as JSONL
+under `test_results/`, and prints the exact reproduction command. Findings
+enter the tree only through the existing manual procedures (regression
+vectors, routing sentinels, corpus promotion). To observe the exit contract
+(0 = clean, 3 = counterexamples recorded, 1 = run failure), invoke a built
+binary directly — the Make target and the printed reproduction command
+already do; `go run` folds every nonzero child exit into 1. It needs the
+pinned Intel build (`make setup-native`); in a worktree,
+`devtools/third_party/intel_dfp` already exists (it carries tracked files),
+so symlink its `lib`, `src`, `include`, and `LIBRARY` subdirectories from
+the primary checkout first.
+
 ## ARM64 Intel BID
 
 Keep the ARM64 `BID_SIZE_LONG=8` override explicit when required by the pinned upstream. This preserves the intended 64-bit BID build behavior; it is not an alternate arithmetic implementation.
