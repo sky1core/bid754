@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check bench-codec bench-codec-go bench-codec-rs bench-codec-rs-baseline bench-codec-js bench-codec-py test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -575,6 +575,45 @@ bench-go-check:
 		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_root.txt -candidate ../test_results/latest_benchmark_root_results.txt) || rc=1; \
 		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_bidgo.txt -candidate ../test_results/latest_benchmark_bid_go_results.txt) || rc=1; \
 		exit $$rc ) | tee test_results/latest_bench_go_check_results.txt'
+
+# standalone 코덱 벤치마크 (Go/Rust/JS/Py 4레그; Java/Swift 제외). 4레그 모두
+# 공유 피연산자 계약(bid754-codec-go/testdata/codec_benchmark_operands.json)을
+# 소비하고, 각 레그의 셋업이 계약 위반 피연산자를 거부한다. 벤치 인프라이며
+# 정규 검증 도메인이 아니다.
+bench-codec:
+	@$(MAKE) bench-codec-go
+	@$(MAKE) bench-codec-rs
+	@$(MAKE) bench-codec-js
+	@$(MAKE) bench-codec-py
+
+bench-codec-go:
+	@echo "📊 standalone 코덱 Go 벤치마크 실행..."
+	@mkdir -p test_results
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-go count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-go && $(GOENV) go test -bench="^BenchmarkCodecBID" -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 600s ) | tee test_results/latest_benchmark_codec_go_results.txt'
+
+# 코덱 Rust Criterion 벤치. bench-rust 와 동일 철학: change% 는 명명된
+# 'pinned' 기준점 대비로만 읽고, 기준점 갱신은 bench-codec-rs-baseline 으로만
+# 한다 (직전 실행 대비 change% 오독 방지).
+bench-codec-rs:
+	@echo "📊 standalone 코덱 Rust Criterion 벤치마크 실행 (기준점: pinned)..."
+	@mkdir -p test_results
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-rs baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench codec -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench codec -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_codec_rs_results.txt'
+
+# 코덱 Criterion 'pinned' 기준점 갱신 (개선을 확정 반영할 때만 명시적으로 실행)
+bench-codec-rs-baseline:
+	@echo "📌 standalone 코덱 Rust Criterion pinned 기준점 저장/갱신..."
+	@mkdir -p test_results
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-rs-baseline save-baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-rs && cargo bench --locked --bench codec -- --save-baseline pinned ) | tee test_results/latest_benchmark_codec_rs_baseline_results.txt'
+
+bench-codec-js:
+	@echo "📊 standalone 코덱 JS 벤치마크 실행..."
+	@mkdir -p test_results
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-js count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-js && npm ci --no-audit --no-fund && npm run build && node bench_runner.mjs $(BENCH_COUNT) ) | tee test_results/latest_benchmark_codec_js_results.txt'
+
+bench-codec-py:
+	@echo "📊 standalone 코덱 Python 벤치마크 실행..."
+	@mkdir -p test_results
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-py count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-py && python3 benchmarks/bench_runner.py $(BENCH_COUNT) ) | tee test_results/latest_benchmark_codec_py_results.txt'
 
 # generated IBM decTest 스위트만 실행
 test-dectest: test-native-dectest

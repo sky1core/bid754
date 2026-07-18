@@ -212,6 +212,29 @@ leg, whose strict `--baseline pinned` comparison fails outright on
 benchmarks missing from an older pinned baseline — to fold them into the
 saved baselines.
 
+To benchmark the standalone BID codec packages (benchmark infrastructure
+only, not a regular verification domain):
+
+```bash
+make bench-codec        # all four legs: Go, Rust, JS, Python
+```
+
+- `make bench-codec-go` — `bid754-codec-go` via stdlib `testing.B`
+  (`BenchmarkCodecBID{32,64,128}/{decode,encode,to_string,from_string}`,
+  repeated `BENCH_COUNT` times, results consumed through sink variables)
+- `make bench-codec-rs` — `bid754-codec-rs` via Criterion
+  (`benches/codec.rs`, dev-dependency only; change% reads against the named
+  `pinned` baseline exactly like `bench-rust`, refreshed only by
+  `make bench-codec-rs-baseline`)
+- `make bench-codec-js` / `make bench-codec-py` — dependency-free scripts
+  (`bid754-codec-js/bench_runner.mjs`, node built-in timing;
+  `bid754-codec-py/benchmarks/bench_runner.py`, stdlib timing)
+- all four legs load the same hand-pinned exact-operand contract
+  `bid754-codec-go/testdata/codec_benchmark_operands.json`; each leg's setup
+  rejects non-canonical or inexact operands, and
+  `TestCodecBenchmarkOperandContract` (`bid754-codec-go/benchmark_test.go`)
+  keeps that contract as a checked-in failing test
+
 To verify the generated BID codec vector consumers for the required Go, Rust,
 Java, Python, JavaScript/TypeScript, and Swift targets:
 

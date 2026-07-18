@@ -14,9 +14,11 @@ categories = ["encoding", "no-std", "mathematics"]
 # bid754-rs; flip this deliberately at first release (cargo package still works).
 publish = false
 # The integration tests read the repo-level fixture
-# (../bid754-codec-vectors/vectors.json), so they are excluded from the
-# published package; they still run from a repo checkout.
-exclude = ["tests/"]
+# (../bid754-codec-vectors/vectors.json) and the criterion benchmark leg reads
+# the repo-level shared operand contract
+# (../bid754-codec-go/testdata/codec_benchmark_operands.json), so both are
+# excluded from the published package; they still run from a repo checkout.
+exclude = ["tests/", "benches/"]
 
 [features]
 default = ["std"]
@@ -25,5 +27,11 @@ std = []
 [dependencies]
 
 [dev-dependencies]
+# criterion is pinned to the same version as the bid754-rs benchmark leg.
+criterion = "=0.5.1"
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.149"
+
+[[bench]]
+name = "codec"
+harness = false

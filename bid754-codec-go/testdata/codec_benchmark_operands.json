@@ -1,0 +1,22 @@
+{
+  "format_version": 1,
+  "description": "Hand-pinned shared benchmark operand contract for the standalone BID codec benchmark legs (Go testing.B, Rust criterion, JS and Python scripts). Every entry is a canonical BID encoding whose decimal_string is the codec's exact canonical rendering: encode(decode(bits)) == bits, toString(decode(bits)) == decimal_string, and encode(fromString(decimal_string)) == bits. TestCodecBenchmarkOperandContract (bid754-codec-go/benchmark_test.go) fails on any violation, and every language leg re-checks the same round trips in its benchmark setup before timing. Benchmark infrastructure only; not a regular verification domain.",
+  "decimal32": [
+    { "hex": "32800001", "decimal_string": "+1E+0" },
+    { "hex": "7018967f", "decimal_string": "+9.999999E+33" },
+    { "hex": "b101e240", "decimal_string": "-1.23456E+2" },
+    { "hex": "00000005", "decimal_string": "+5E-101" }
+  ],
+  "decimal64": [
+    { "hex": "31c0000000000001", "decimal_string": "+1E+0" },
+    { "hex": "75d386f26fc0ffff", "decimal_string": "+9.999999999999999E+315" },
+    { "hex": "afe462d53c8abac0", "decimal_string": "-1.234567890123456E+0" },
+    { "hex": "0000000000000005", "decimal_string": "+5E-398" }
+  ],
+  "decimal128": [
+    { "hex": "0000000000000001", "hex_hi": "3040000000000000", "decimal_string": "+1E+0" },
+    { "hex": "378d8e63ffffffff", "hex_hi": "5f21ed09bead87c0", "decimal_string": "+9.999999999999999999999999999999999E+6033" },
+    { "hex": "de825cd07e96aff2", "hex_hi": "91023cde6fff9732", "decimal_string": "-1.234567890123456789012345678901234E-3966" },
+    { "hex": "0000000000000005", "hex_hi": "0000000000000000", "decimal_string": "+5E-6176" }
+  ]
+}
