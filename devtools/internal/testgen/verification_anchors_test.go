@@ -96,6 +96,9 @@ type verificationAnchors struct {
 	BidCodecRejectChannels                       map[string]int               `json:"bid_codec_reject_vectors_channels"`
 	BidCodecRejectRequires                       map[string]int               `json:"bid_codec_reject_vectors_requires"`
 	BidCodecRejectConsumedByLanguage             map[string]int               `json:"bid_codec_reject_vectors_consumed_by_language"`
+	BidCodecRejectGoFullConsumed                 int                          `json:"bid_codec_reject_vectors_go_full_consumed"`
+	BidCodecRejectGoFullChannelSkipped           int                          `json:"bid_codec_reject_vectors_go_full_channel_skipped"`
+	BidCodecStringGoFullConsumed                 int                          `json:"bid_codec_string_vectors_go_full_consumed"`
 	BidCodecStringVectorsTotal                   int                          `json:"bid_codec_string_vectors_total"`
 	BidCodecStringConsumedByLanguage             map[string]int               `json:"bid_codec_string_vectors_consumed_by_language"`
 	BidCodecD32ExhaustiveRawPatterns             uint64                       `json:"bid_codec_decimal32_exhaustive_raw_patterns"`
@@ -1778,6 +1781,31 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		}
 	}
 
+	// go_full consumer pins. The bid754-go full library's public parse surface
+	// consumes the from_string reject channel and every string_vectors record;
+	// the encode/to_string channels are channel-skipped because bid754-go has
+	// no public Components construction surface. The split is channel-derived,
+	// not capability-derived, so go_full stays outside the consumed-by-language
+	// map above and is recomputed here directly from the checked-in JSON.
+	goFullConsumed, goFullSkipped := 0, 0
+	for _, r := range vectors.RejectVectors {
+		if r.Channel == "from_string" {
+			goFullConsumed++
+		} else {
+			goFullSkipped++
+		}
+	}
+	if goFullConsumed != anchors.BidCodecRejectGoFullConsumed {
+		t.Errorf("go_full recomputed reject consumed = %d, anchor = %d", goFullConsumed, anchors.BidCodecRejectGoFullConsumed)
+	}
+	if goFullSkipped != anchors.BidCodecRejectGoFullChannelSkipped {
+		t.Errorf("go_full recomputed reject channel-skipped = %d, anchor = %d", goFullSkipped, anchors.BidCodecRejectGoFullChannelSkipped)
+	}
+	if len(vectors.StringVectors) != anchors.BidCodecStringGoFullConsumed {
+		t.Errorf("go_full string_vectors consumed anchor = %d, want the ungated record total %d",
+			anchors.BidCodecStringGoFullConsumed, len(vectors.StringVectors))
+	}
+
 	// string_vectors consumed pins. The success channel is capability-ungated
 	// by design: every record is a pure ASCII input/expected string pair
 	// constructible in every language, so each consumer must consume every
@@ -2243,6 +2271,7 @@ func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 		"bid754-codec-go/decimal64_128_long_test.go",
 		"bid754-codec-rs/tests/vectors.rs",
 		"bid754-rs/tests/bid_codec_vectors.rs",
+		"bid754-go/generated_bid_codec_vectors_test.go",
 		"bid754-rs/tests/bid_string_vectors.rs",
 		"bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java",
 		"bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java",

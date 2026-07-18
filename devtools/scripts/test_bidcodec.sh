@@ -56,6 +56,22 @@ require_vector_reference() {
   fi
 }
 
+# The go_full consumer exercises the bid754-go public parse surface against the
+# reject_vectors from_string channel and the string_vectors channel only, so it
+# is checked for those channel references instead of the decimal_string field
+# the raw `vectors` channel consumers verify.
+require_go_full_reference() {
+  local path=$1
+  if ! rg -q 'bid754-codec-vectors' "$path"; then
+    echo "go_full BID codec consumer does not read generated vectors: $path" >&2
+    exit 1
+  fi
+  if ! rg -q 'reject_vectors' "$path" || ! rg -q 'string_vectors' "$path"; then
+    echo "go_full BID codec consumer does not reference the reject/string channels: $path" >&2
+    exit 1
+  fi
+}
+
 make verify-generated
 (cd devtools && GOCACHE="$go_cache" go test -count=1 ./internal/testgen -run TestBidCodecVectorGeneratorDoesNotImportBidCodecUnderTest)
 
@@ -84,6 +100,9 @@ for consumer in "${required_consumers[@]}"; do
   require_vector_reference "$consumer"
 done
 
+require_file "bid754-go/generated_bid_codec_vectors_test.go"
+require_go_full_reference "bid754-go/generated_bid_codec_vectors_test.go"
+
 echo "==> Go BID codec vector tests: bid754-codec-go"
 (cd bid754-codec-go && GOCACHE="$go_cache" go test -count=1 -tags bid754_bidcodec_vectors ./...)
 
@@ -92,6 +111,24 @@ echo "==> Rust BID codec vector tests: bid754-codec-rs"
 
 echo "==> Rust bid754 BID codec vector tests: bid754-rs"
 (cd bid754-rs && cargo test --locked --test bid_codec_vectors)
+
+echo "==> Go bid754 public parse BID codec vector tests: bid754-go"
+# A -run expression that matches zero tests (or silently drops one of the two
+# generated tests) still exits 0, so this leg must fail on the "test not
+# executed" failure mode itself instead of trusting the name filter: require
+# an explicit PASS line for each generated go_full test in the verbose output.
+# No pipe into grep here: pipefail would surface grep's SIGPIPE otherwise.
+go_full_out=$(cd bid754-go && GOCACHE="$go_cache" go test -count=1 -v -tags bid754_bidcodec_vectors -run '^TestGoFullBidCodec' . 2>&1) || {
+  printf '%s\n' "$go_full_out"
+  exit 1
+}
+printf '%s\n' "$go_full_out"
+for go_full_test in TestGoFullBidCodecRejectVectors TestGoFullBidCodecStringVectors; do
+  if ! grep -qF -- "--- PASS: $go_full_test" <<<"$go_full_out"; then
+    echo "go_full BID codec consumer did not execute $go_full_test" >&2
+    exit 1
+  fi
+done
 
 echo "==> Java BID codec vector tests: bid754-codec-java"
 java_out=$(mktemp -d)

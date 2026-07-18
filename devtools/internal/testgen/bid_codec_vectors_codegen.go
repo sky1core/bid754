@@ -16,6 +16,7 @@ const (
 	bidCodecVectorsGoExhaustive32TestPath = "../bid754-codec-go/exhaustive32_long_test.go"
 	bidCodecVectorsGoLong64And128TestPath = "../bid754-codec-go/decimal64_128_long_test.go"
 	bidCodecVectorsRustTestPath           = "../bid754-rs/tests/bid_codec_vectors.rs"
+	bidCodecVectorsGoFullTestPath         = "../bid754-go/generated_bid_codec_vectors_test.go"
 	bidCodecVectorsStandaloneRustTestPath = "../bid754-codec-rs/tests/vectors.rs"
 	bidCodecVectorsJavaRunnerPath         = "../bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java"
 	bidCodecVectorsJavaTestPath           = "../bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java"
@@ -101,11 +102,24 @@ func applyBidCodecConsumerTemplateReplacements(src string) string {
 		"{{BID_CODEC_JS_REJECT_CAPS}}":        bidCodecRejectCapsElems("js"),
 		"{{BID_CODEC_SWIFT_REJECT_CAPS}}":     bidCodecRejectCapsElems("swift"),
 		"{{BID_CODEC_GO_REJECT_TYPE_DOMAIN}}": bidCodecGoTypeDomainElems(),
-		"{{BID_CODEC_PY_REJECT_TYPE_DOMAIN}}": bidCodecPyTypeDomainElems(),
-		"{{BID_CODEC_JS_REJECT_TYPE_DOMAIN}}": bidCodecJsTypeDomainElems(),
-		"{{BID_CODEC_PY_RAW_DECODE_REJECTS}}": bidCodecPyRawDecodeRejectElems(),
-		"{{BID_CODEC_JS_RAW_DECODE_REJECTS}}": bidCodecJsRawDecodeRejectElems(),
+		// go_full consumer: the bid754-go full library's public parse surface
+		// consumes the from_string reject channel and the string_vectors
+		// channel against generator-owned expectation classes; the remaining
+		// reject channels are channel-skipped (no public Components surface).
+		"{{BID_CODEC_GO_FULL_FROM_STRING_CLASSES}}": bidCodecGoFullFromStringClassElems(),
+		"{{BID_CODEC_GO_FULL_STRING_CLASSES}}":      bidCodecGoFullStringClassElems(),
+		"{{BID_CODEC_PY_REJECT_TYPE_DOMAIN}}":       bidCodecPyTypeDomainElems(),
+		"{{BID_CODEC_JS_REJECT_TYPE_DOMAIN}}":       bidCodecJsTypeDomainElems(),
+		"{{BID_CODEC_PY_RAW_DECODE_REJECTS}}":       bidCodecPyRawDecodeRejectElems(),
+		"{{BID_CODEC_JS_RAW_DECODE_REJECTS}}":       bidCodecJsRawDecodeRejectElems(),
 	}
+	// go_full consumed/skipped pins are channel-derived, not capability-derived:
+	// the from_string channel is the consumed set, every other channel is the
+	// skipped set, so the go_full consumer does not join the capability loop
+	// below.
+	goFullConsumed, goFullSkipped := bidCodecGoFullRejectCounts()
+	replacements["{{BID_CODEC_GO_FULL_REJECT_CONSUMED}}"] = fmt.Sprintf("%d", goFullConsumed)
+	replacements["{{BID_CODEC_GO_FULL_REJECT_SKIPPED}}"] = fmt.Sprintf("%d", goFullSkipped)
 	// Per-language consumed/skipped pins and the unsupported-tag set: each
 	// consumer asserts its exact consumption split and that every skipped
 	// record's requires tag is a declared-unsupported one, so a generator
@@ -1473,6 +1487,290 @@ fn test_bid_codec_vectors_encode_decode() {
         encode_passed,
         skipped,
     );
+}
+`)),
+		bidCodecVectorsGoFullTestPath: []byte(applyBidCodecConsumerTemplateReplacements(genmarker.Line("testgen") + `
+//go:build bid754_bidcodec_vectors
+
+// Additional (non-required) BID codec vector consumer: the bid754-go full
+// decimal library's PUBLIC parse surface (NewDecimal{32,64,128},
+// NewDecimal*WithFlags, NewDecimal*WithMode). bid754-go has no embedded
+// Components codec, so unlike the bid754-rs ` + "`rust_full`" + ` consumer this runner
+// does not re-verify the codec contract; it holds the public fromString
+// contract to the generated no-silent-failure domain. It consumes the
+// ` + "`reject_vectors`" + ` from_string channel and the ` + "`string_vectors`" + ` channel
+// against generator-owned expectation classes; the encode and to_string
+// channels are channel-skipped (and counted) because the library exposes no
+// public Components construction surface. Expected observation classes:
+//
+//   - exact:    Direct succeeds; WithFlags succeeds with zero flags and the
+//               same bits; WithMode(RoundNearestEven) matches WithFlags; and
+//               the public render/parse closure holds (Direct(v.String())==v).
+//   - rounded:  Direct errors with a zero value (exact-only contract);
+//               WithFlags succeeds with nonzero flags (the IEEE flag channel
+//               reports the range/precision excursion instead of silence);
+//               WithMode matches WithFlags.
+//   - rejected: every family errors with a zero value and zero flags (public
+//               grammar violation, silent-cohort trap, or a NaN payload
+//               outside the width's range).
+//
+// The external test package makes the public-only access structural: nothing
+// below can reach an internal identifier.
+package bid754_test
+
+import (
+	"encoding/json"
+	"os"
+	"testing"
+
+	bid754 "github.com/sky1core/bid754/bid754-go"
+)
+
+type goFullRejectEntry struct {
+	Channel string ` + "`json:\"channel\"`" + `
+	Input   string ` + "`json:\"input\"`" + `
+	Reason  string ` + "`json:\"reason\"`" + `
+}
+
+type goFullStringEntry struct {
+	Input    string ` + "`json:\"input\"`" + `
+	Expected string ` + "`json:\"expected\"`" + `
+}
+
+type goFullVectorFile struct {
+	FormatVersion int                 ` + "`json:\"format_version\"`" + `
+	RejectVectors []goFullRejectEntry ` + "`json:\"reject_vectors\"`" + `
+	StringVectors []goFullStringEntry ` + "`json:\"string_vectors\"`" + `
+}
+
+const (
+	goFullExpectedFormatVersion = {{BID_CODEC_VECTOR_FORMAT_VERSION}}
+	goFullExpectedRejectTotal   = {{BID_CODEC_REJECT_TOTAL}}
+	goFullExpectedRejectConsumed = {{BID_CODEC_GO_FULL_REJECT_CONSUMED}}
+	goFullExpectedRejectSkipped  = {{BID_CODEC_GO_FULL_REJECT_SKIPPED}}
+	goFullExpectedStringTotal    = {{BID_CODEC_STRING_TOTAL}}
+)
+
+// goFullFromStringClasses pins the go_full class of every reject_vectors
+// from_string input (width-independent on this channel).
+var goFullFromStringClasses = map[string]string{ {{BID_CODEC_GO_FULL_FROM_STRING_CLASSES}} }
+
+// goFullStringVectorClasses pins the go_full classes of every string_vectors
+// input for widths 32, 64, and 128 in that order.
+var goFullStringVectorClasses = map[string][3]string{ {{BID_CODEC_GO_FULL_STRING_CLASSES}} }
+
+func goFullLoadVectors(t *testing.T) goFullVectorFile {
+	t.Helper()
+	data, err := os.ReadFile("../bid754-codec-vectors/vectors.json")
+	if err != nil {
+		t.Fatalf("failed to read vectors.json: %v", err)
+	}
+	var file goFullVectorFile
+	if err := json.Unmarshal(data, &file); err != nil {
+		t.Fatalf("failed to parse vectors.json: %v", err)
+	}
+	if file.FormatVersion != goFullExpectedFormatVersion {
+		t.Fatalf("unsupported BID codec vectors format_version %d, want %d", file.FormatVersion, goFullExpectedFormatVersion)
+	}
+	return file
+}
+
+func goFullAssertClass32(t *testing.T, label, input, class string) {
+	t.Helper()
+	d, derr := bid754.NewDecimal32(input)
+	w, wf, werr := bid754.NewDecimal32WithFlags(input)
+	m, mf, merr := bid754.NewDecimal32WithMode(input, bid754.RoundNearestEven)
+	if m != w || mf != wf || (merr == nil) != (werr == nil) {
+		t.Errorf("%s %q d32: WithMode(NearestEven) = (%#08x, %v, err=%v) diverges from WithFlags (%#08x, %v, err=%v)",
+			label, input, uint32(m), mf, merr, uint32(w), wf, werr)
+		return
+	}
+	switch class {
+	case "exact":
+		if derr != nil || werr != nil || wf != 0 || w != d {
+			t.Errorf("%s %q d32: want exact accept, got Direct(err=%v) WithFlags(%#08x, %v, err=%v) Direct value %#08x",
+				label, input, derr, uint32(w), wf, werr, uint32(d))
+			return
+		}
+		rendered := d.String()
+		rt, rterr := bid754.NewDecimal32(rendered)
+		if rterr != nil || rt != d {
+			t.Errorf("%s %q d32: render/parse closure broken: String()=%q reparsed=(%#08x, err=%v), want %#08x",
+				label, input, rendered, uint32(rt), rterr, uint32(d))
+		}
+	case "rounded":
+		if derr == nil || d != 0 {
+			t.Errorf("%s %q d32: want exact-channel reject, got Direct (%#08x, err=%v)", label, input, uint32(d), derr)
+		}
+		if werr != nil || wf == 0 {
+			t.Errorf("%s %q d32: want flag-channel accept with nonzero flags, got WithFlags (%#08x, %v, err=%v)",
+				label, input, uint32(w), wf, werr)
+		}
+	case "rejected":
+		if derr == nil || d != 0 {
+			t.Errorf("%s %q d32: want Direct reject, got (%#08x, err=%v)", label, input, uint32(d), derr)
+		}
+		if werr == nil || w != 0 || wf != 0 {
+			t.Errorf("%s %q d32: want WithFlags reject with zero value and flags, got (%#08x, %v, err=%v)",
+				label, input, uint32(w), wf, werr)
+		}
+	default:
+		t.Fatalf("%s %q d32: unknown go_full class %q", label, input, class)
+	}
+}
+
+func goFullAssertClass64(t *testing.T, label, input, class string) {
+	t.Helper()
+	d, derr := bid754.NewDecimal64(input)
+	w, wf, werr := bid754.NewDecimal64WithFlags(input)
+	m, mf, merr := bid754.NewDecimal64WithMode(input, bid754.RoundNearestEven)
+	if m != w || mf != wf || (merr == nil) != (werr == nil) {
+		t.Errorf("%s %q d64: WithMode(NearestEven) = (%#016x, %v, err=%v) diverges from WithFlags (%#016x, %v, err=%v)",
+			label, input, uint64(m), mf, merr, uint64(w), wf, werr)
+		return
+	}
+	switch class {
+	case "exact":
+		if derr != nil || werr != nil || wf != 0 || w != d {
+			t.Errorf("%s %q d64: want exact accept, got Direct(err=%v) WithFlags(%#016x, %v, err=%v) Direct value %#016x",
+				label, input, derr, uint64(w), wf, werr, uint64(d))
+			return
+		}
+		rendered := d.String()
+		rt, rterr := bid754.NewDecimal64(rendered)
+		if rterr != nil || rt != d {
+			t.Errorf("%s %q d64: render/parse closure broken: String()=%q reparsed=(%#016x, err=%v), want %#016x",
+				label, input, rendered, uint64(rt), rterr, uint64(d))
+		}
+	case "rounded":
+		if derr == nil || d != 0 {
+			t.Errorf("%s %q d64: want exact-channel reject, got Direct (%#016x, err=%v)", label, input, uint64(d), derr)
+		}
+		if werr != nil || wf == 0 {
+			t.Errorf("%s %q d64: want flag-channel accept with nonzero flags, got WithFlags (%#016x, %v, err=%v)",
+				label, input, uint64(w), wf, werr)
+		}
+	case "rejected":
+		if derr == nil || d != 0 {
+			t.Errorf("%s %q d64: want Direct reject, got (%#016x, err=%v)", label, input, uint64(d), derr)
+		}
+		if werr == nil || w != 0 || wf != 0 {
+			t.Errorf("%s %q d64: want WithFlags reject with zero value and flags, got (%#016x, %v, err=%v)",
+				label, input, uint64(w), wf, werr)
+		}
+	default:
+		t.Fatalf("%s %q d64: unknown go_full class %q", label, input, class)
+	}
+}
+
+func goFullAssertClass128(t *testing.T, label, input, class string) {
+	t.Helper()
+	var zero bid754.Decimal128BID
+	d, derr := bid754.NewDecimal128(input)
+	w, wf, werr := bid754.NewDecimal128WithFlags(input)
+	m, mf, merr := bid754.NewDecimal128WithMode(input, bid754.RoundNearestEven)
+	if m != w || mf != wf || (merr == nil) != (werr == nil) {
+		t.Errorf("%s %q d128: WithMode(NearestEven) = (%x, %v, err=%v) diverges from WithFlags (%x, %v, err=%v)",
+			label, input, m.ToBytes(), mf, merr, w.ToBytes(), wf, werr)
+		return
+	}
+	switch class {
+	case "exact":
+		if derr != nil || werr != nil || wf != 0 || w != d {
+			t.Errorf("%s %q d128: want exact accept, got Direct(err=%v) WithFlags(%x, %v, err=%v) Direct value %x",
+				label, input, derr, w.ToBytes(), wf, werr, d.ToBytes())
+			return
+		}
+		rendered := d.String()
+		rt, rterr := bid754.NewDecimal128(rendered)
+		if rterr != nil || rt != d {
+			t.Errorf("%s %q d128: render/parse closure broken: String()=%q reparsed=(%x, err=%v), want %x",
+				label, input, rendered, rt.ToBytes(), rterr, d.ToBytes())
+		}
+	case "rounded":
+		if derr == nil || d != zero {
+			t.Errorf("%s %q d128: want exact-channel reject, got Direct (%x, err=%v)", label, input, d.ToBytes(), derr)
+		}
+		if werr != nil || wf == 0 {
+			t.Errorf("%s %q d128: want flag-channel accept with nonzero flags, got WithFlags (%x, %v, err=%v)",
+				label, input, w.ToBytes(), wf, werr)
+		}
+	case "rejected":
+		if derr == nil || d != zero {
+			t.Errorf("%s %q d128: want Direct reject, got (%x, err=%v)", label, input, d.ToBytes(), derr)
+		}
+		if werr == nil || w != zero || wf != 0 {
+			t.Errorf("%s %q d128: want WithFlags reject with zero value and flags, got (%x, %v, err=%v)",
+				label, input, w.ToBytes(), wf, werr)
+		}
+	default:
+		t.Fatalf("%s %q d128: unknown go_full class %q", label, input, class)
+	}
+}
+
+func TestGoFullBidCodecRejectVectors(t *testing.T) {
+	file := goFullLoadVectors(t)
+	if len(file.RejectVectors) != goFullExpectedRejectTotal {
+		t.Fatalf("reject_vectors total = %d, want %d", len(file.RejectVectors), goFullExpectedRejectTotal)
+	}
+	consumed, skipped := 0, 0
+	skipChannels := map[string]int{}
+	for _, r := range file.RejectVectors {
+		switch r.Channel {
+		case "from_string":
+			consumed++
+			class, ok := goFullFromStringClasses[r.Input]
+			if !ok {
+				t.Fatalf("reject from_string input %q (%s) has no go_full expectation class", r.Input, r.Reason)
+			}
+			label := "reject from_string (" + r.Reason + ")"
+			goFullAssertClass32(t, label, r.Input, class)
+			goFullAssertClass64(t, label, r.Input, class)
+			goFullAssertClass128(t, label, r.Input, class)
+		case "encode", "to_string":
+			// Channel skip: bid754-go exposes no public Components
+			// construction surface, so these channels have no go_full analog.
+			skipped++
+			skipChannels[r.Channel]++
+		default:
+			t.Fatalf("unknown reject channel %q", r.Channel)
+		}
+	}
+	if consumed != goFullExpectedRejectConsumed || skipped != goFullExpectedRejectSkipped || consumed+skipped != len(file.RejectVectors) {
+		t.Fatalf("go_full reject consumption = consumed %d skipped %d of %d, want consumed %d skipped %d",
+			consumed, skipped, len(file.RejectVectors), goFullExpectedRejectConsumed, goFullExpectedRejectSkipped)
+	}
+	if len(goFullFromStringClasses) != consumed {
+		t.Fatalf("go_full from_string expectation table has %d entries, want %d (stale or missing entries)",
+			len(goFullFromStringClasses), consumed)
+	}
+	t.Logf("go_full reject_vectors: consumed=%d channel_skipped=%d skipChannels=%v", consumed, skipped, skipChannels)
+}
+
+func TestGoFullBidCodecStringVectors(t *testing.T) {
+	file := goFullLoadVectors(t)
+	if len(file.StringVectors) != goFullExpectedStringTotal {
+		t.Fatalf("string_vectors total = %d, want %d", len(file.StringVectors), goFullExpectedStringTotal)
+	}
+	consumed := 0
+	for _, sv := range file.StringVectors {
+		consumed++
+		classes, ok := goFullStringVectorClasses[sv.Input]
+		if !ok {
+			t.Fatalf("string_vectors input %q has no go_full expectation classes", sv.Input)
+		}
+		goFullAssertClass32(t, "string_vectors", sv.Input, classes[0])
+		goFullAssertClass64(t, "string_vectors", sv.Input, classes[1])
+		goFullAssertClass128(t, "string_vectors", sv.Input, classes[2])
+	}
+	if consumed != goFullExpectedStringTotal {
+		t.Fatalf("go_full string_vectors consumption = %d, want %d", consumed, goFullExpectedStringTotal)
+	}
+	if len(goFullStringVectorClasses) != consumed {
+		t.Fatalf("go_full string_vectors expectation table has %d entries, want %d (stale or missing entries)",
+			len(goFullStringVectorClasses), consumed)
+	}
+	t.Logf("go_full string_vectors: consumed=%d", consumed)
 }
 `)),
 	}

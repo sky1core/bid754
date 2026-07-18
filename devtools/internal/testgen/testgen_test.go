@@ -140,6 +140,48 @@ func TestBidCodecToStringRejectVectorsCloseSharedSchema(t *testing.T) {
 	}
 }
 
+// TestBidCodecGoFullExpectationTablesClosedWorld exercises the go_full
+// expectation-table accessors as ordinary test failures instead of only
+// generation-time panics: every from_string reject record and every
+// string_vectors record must carry a known expectation class, both maps must
+// be free of stale entries, and the channel-derived consumed/skipped split
+// must partition the reject set. The exact totals are pinned externally in
+// devtools/verification_anchors.json (checked by the anchors test); this test
+// pins the structural closed world plus the per-class partition of the
+// from_string channel so a class flip cannot pass as a mere recount.
+func TestBidCodecGoFullExpectationTablesClosedWorld(t *testing.T) {
+	fromString := bidCodecGoFullFromStringRecords()
+	if len(fromString) != len(bidCodecGoFullFromStringClasses) {
+		t.Fatalf("go_full from_string records = %d, expectation entries = %d", len(fromString), len(bidCodecGoFullFromStringClasses))
+	}
+	classCounts := map[string]int{}
+	for _, r := range fromString {
+		classCounts[bidCodecGoFullFromStringClasses[*r.Input]]++
+	}
+	if classCounts["rejected"] != 24 || classCounts["rounded"] != 9 || classCounts["exact"] != 0 {
+		t.Fatalf("go_full from_string class partition = %v, want rejected=24 rounded=9 exact=0", classCounts)
+	}
+
+	stringRecords := bidCodecGoFullStringVectorRecords()
+	if len(stringRecords) != len(bidCodecGoFullStringVectorClasses) {
+		t.Fatalf("go_full string_vectors records = %d, expectation entries = %d", len(stringRecords), len(bidCodecGoFullStringVectorClasses))
+	}
+	stringClassCounts := map[string]int{}
+	for _, sv := range stringRecords {
+		for _, class := range bidCodecGoFullStringVectorClasses[sv.Input] {
+			stringClassCounts[class]++
+		}
+	}
+	if stringClassCounts["exact"] != 22 || stringClassCounts["rounded"] != 30 || stringClassCounts["rejected"] != 8 {
+		t.Fatalf("go_full string_vectors per-width class partition = %v, want exact=22 rounded=30 rejected=8", stringClassCounts)
+	}
+
+	consumed, skipped := bidCodecGoFullRejectCounts()
+	if consumed != len(fromString) || consumed+skipped != len(bidCodecRejectVectors()) {
+		t.Fatalf("go_full reject split consumed=%d skipped=%d does not partition %d records", consumed, skipped, len(bidCodecRejectVectors()))
+	}
+}
+
 func TestDectestExecutorRootFilesAreGenerated(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
 	generatedExecutorPaths := make(map[string]bool, len(dectestExecutorTemplates))
