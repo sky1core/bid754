@@ -144,11 +144,15 @@ The repository profile is:
 
 `CMP_FUZZYSTATUS - explicit historical skip groups + CMP_EQUALSTATUS`
 
-It must not be described as all of `CMP_FUZZYSTATUS`. Non-`fmod`
-`CMP_RELATIVEERR` math/transcendental groups remain profile expansion. Generated
-runners may additionally apply the duplicate Intel `CMP_RELATIVEERR` rows for
-`bid32_fmod`, `bid64_fmod`, and `bid128_fmod`, because those functions are
-already selected by the `CMP_FUZZYSTATUS` surface.
+It must not be described as all of `CMP_FUZZYSTATUS`. `CMP_RELATIVEERR`
+functions join the profile only through the explicit closed adoption list in
+the selection code, evaluated ahead of the blanket `CMP_RELATIVEERR`
+exclusion and reflected row-by-row in the generated readtest profile
+inventory; unadopted functions remain profile expansion
+(`optional_not_required`). The list starts with the duplicate Intel
+`CMP_RELATIVEERR` rows for `bid32_fmod`, `bid64_fmod`, and `bid128_fmod`
+(already selected by the `CMP_FUZZYSTATUS` surface) and grows only with
+mechanically ported Tier 3 transcendental functions.
 
 Unsupported binary formats, DPD interchange, FE APIs, version-predicate
 helpers, and Intel extensions are classified by the selection code, not by a
@@ -178,8 +182,9 @@ path.
 - Decimal results and status are compared with the pinned Intel comparator
   semantics for the row's comparison group.
 - `CMP_FUZZYSTATUS` and `CMP_EQUALSTATUS` operation flags compare exactly.
-- The duplicate `fmod` `CMP_RELATIVEERR` rows use the pinned Intel relative
-  comparator behavior and its flag mask only on that path.
+- Adopted `CMP_RELATIVEERR` rows — the duplicate `fmod` rows and any function
+  on the Tier 3 adoption list — use the pinned Intel relative comparator
+  behavior and its flag mask only on that path.
 - Scalar and secondary outputs such as `frexp` exponents and `modf` integral
   results compare exactly according to upstream `readtest.c`.
 - The Go-port runner may not replace these comparisons with float tolerance or
@@ -440,6 +445,67 @@ Requirements:
 - a PASS means "no divergence from an independent implementation inside the
   declared exact region", not IEEE conformance; excluded regions stay
   covered by the Intel-oracle domains only and must be reported that way
+
+## Decimal32 Unary Exhaustive Differential Gate
+
+An additional generated differential gate (like public-API parity and the
+decNumber differential gate, not a fifth regular verification domain)
+compares pinned Intel BID C and the Go mechanical port bit+flag exact over
+the entire 32-bit Decimal32 input space — bit patterns 0..2^32-1,
+non-canonical encodings included — for a fixed table of unary lanes. It is
+the arithmetic extension of the Decimal32 codec exhaustive harness: where a
+finite input space is enumerable, enumeration replaces sampling.
+
+Lane table (17 lanes, 9 operations):
+
+- `bid32_sqrt` across all five rounding modes (5 lanes)
+- `bid32_round_integral_exact` across all five rounding modes (5 lanes)
+- the five fixed-attribute `bid32_round_integral_*` variants (5 lanes)
+- the exact width promotions `bid32_to_bid64` and `bid32_to_bid128`
+  (2 lanes)
+
+`bid32_negate`, `bid32_abs`, and `bid32_copy` are deliberately excluded:
+their ports are single sign-bit/mask/identity expressions with no
+data-dependent control flow and no status flags, already exercised by the
+readtest and FFI bit-compare domains; exhaustive enumeration adds no
+discriminating power for that operation shape.
+
+Requirements:
+
+- every lane compares result bits and the raw `_IDEC_flags` word exactly,
+  per input, between the pinned Intel C entry point and the Go mechanical
+  port function; there is no skip, no tolerance, and no sampling
+- the gate is exhaustive, so there is no case corpus: the cgo shim, the
+  runner, the stub, the lane table, and the loop-bound/count constants are
+  all testgen batch outputs, and the lane/operation/total counts are
+  re-pinned by hand in `devtools/verification_anchors.json`
+- each lane folds every case's (Intel bits, Intel flags, port bits, port
+  flags) into an ordered FNV-style result digest; the per-lane digests are
+  execution evidence, not generator output — they are hand-pinned in
+  `devtools/verification_anchors.json` from a completed full run and bound
+  to the runner's per-lane digest log lines by `cmd/verifylog` (domain
+  `d32-exhaustive`), so a common-mode change in both legs' observed
+  behavior, a weakened comparator, or a silently shrunk sweep fails the
+  evidence binding even though the in-run differential still agrees
+- routing sentinels (hand-pinned in `devtools/verification_sentinels.json`,
+  byte-equal to the generated runner literal) resolve through the same lane
+  dispatch as the exhaustive sweep and cover operation-miswire and
+  rounding-mode-miswire skew; every lane must be covered by at least one
+  sentinel row, and generation fails if the mode-taking lanes' pinned
+  result vectors do not separate every rounding-mode pair
+  (`round_integral_exact` carries the full mode separation; two sqrt mode
+  equivalences — nearest_even/nearest_away and toward_zero/toward_negative
+  — are mathematical identities of the operation, asserted as such at
+  generation time)
+- the gate is an independent long-running target
+  (`make test-native-d32-exhaustive`, `_test-native-d32-exhaustive-full`)
+  with the same standing as the Decimal32 codec exhaustive harness; it is
+  not part of the `verify-all` native gate chain, and a sharded run is a
+  development aid that suppresses digests and cannot produce the full-count
+  evidence lines
+- a PASS means the two legs agree exactly over the full space for the
+  declared lanes; it is not a statement about any other operation, width,
+  or leg
 
 ## Scope Classification
 

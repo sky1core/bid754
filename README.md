@@ -318,9 +318,9 @@ Important current-tree distinction:
 - `docs/BUILD.md` lists the current commands
 
 The operative readtest profile is not all of Intel readtest. It is the
-documented repository-supported surface, with non-`fmod` `CMP_RELATIVEERR`
-profile expansion and unsupported encodings/types kept outside the completion
-claim. Use generated inventory output for the exact current inventory.
+documented repository-supported surface, with `CMP_RELATIVEERR` functions
+outside the explicit Tier 3 adoption list kept as profile expansion and
+unsupported encodings/types kept outside the completion claim. Use generated inventory output for the exact current inventory.
 
 If a workflow only covers a subset, documentation must call it a subset.
 

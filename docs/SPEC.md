@@ -233,7 +233,8 @@ redefine public Go API semantics or route outside the Go mechanical port.
 The operative Intel `readtest` scope is:
 
 - `CMP_FUZZYSTATUS - explicit historical skip function groups + CMP_EQUALSTATUS`
-- `CMP_RELATIVEERR` remains excluded as a profile-expansion group, except that generated runners may also apply the duplicate Intel `bid32_fmod` / `bid64_fmod` / `bid128_fmod` `CMP_RELATIVEERR` comparator rows because those functions are already selected by the `CMP_FUZZYSTATUS` surface
+- `CMP_RELATIVEERR` functions enter the profile only through an explicit closed adoption list owned by the selection code and reflected in the generated readtest profile inventory; functions outside that list remain excluded as a profile-expansion group
+- the adoption list starts with the duplicate Intel `bid32_fmod` / `bid64_fmod` / `bid128_fmod` `CMP_RELATIVEERR` comparator rows (those functions are already selected by the `CMP_FUZZYSTATUS` surface) and grows only with mechanically ported Tier 3 transcendental functions; adopted rows use the pinned Intel relative comparator semantics for that path and never replace or weaken the comparator of any `CMP_FUZZYSTATUS`/`CMP_EQUALSTATUS` row
 
 The selection policy lives in `TEST_GENERATION_SPEC.md`. Exact current
 selected/excluded functions and reasons live in the generated readtest profile

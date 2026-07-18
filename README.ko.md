@@ -304,8 +304,8 @@ standalone codec API 와 공유 vector protocol 은
 - 현재 실행 명령은 `docs/BUILD.md` 에 있습니다
 
 운용 readtest profile 은 Intel readtest 전체가 아닙니다. 문서화된 저장소
-지원 표면만 포함하며 non-`fmod` `CMP_RELATIVEERR` profile 확장과 미지원
-encoding/type 은 완료 주장 밖에 둡니다. 정확한 현재 inventory 는 generated
+지원 표면만 포함하며 명시적 Tier 3 편입 리스트 밖의 `CMP_RELATIVEERR`
+함수는 profile 확장으로, 미지원 encoding/type 은 완료 주장 밖에 둡니다. 정확한 현재 inventory 는 generated
 inventory 결과를 사용합니다.
 
 부분집합만 검증하면 문서도 반드시 부분집합이라고 써야 합니다.

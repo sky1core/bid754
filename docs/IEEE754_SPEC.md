@@ -181,7 +181,7 @@ Documentation principles:
 historical operative scope:
 
 - `CMP_FUZZYSTATUS - explicit historical skip function groups + CMP_EQUALSTATUS`
-- `CMP_RELATIVEERR` is excluded as a profile-expansion group, but the Intel duplicate `CMP_RELATIVEERR` comparator rows for `bid32_fmod` / `bid64_fmod` / `bid128_fmod`, already included in the `CMP_FUZZYSTATUS` surface, may be applied separately per generated runner
+- `CMP_RELATIVEERR` is excluded as a profile-expansion group except for the explicit closed adoption list owned by the selection code (starting with the Intel duplicate `CMP_RELATIVEERR` comparator rows for `bid32_fmod` / `bid64_fmod` / `bid128_fmod`, already included in the `CMP_FUZZYSTATUS` surface, applied separately per generated runner; growing only with mechanically ported Tier 3 transcendental functions listed in the generated readtest profile inventory)
 - `TEST_GENERATION_SPEC.md` defines the selection policy; the generated
   readtest profile inventory contains the exact current exclusions and reasons
 
