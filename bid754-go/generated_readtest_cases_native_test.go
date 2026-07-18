@@ -32,14 +32,14 @@ type generatedReadCaseCounts struct {
 }
 
 var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
-	Total:         86689,
-	Decimal32:     20862,
-	Decimal64:     21710,
-	Decimal128:    43980,
+	Total:         86917,
+	Decimal32:     20921,
+	Decimal64:     21789,
+	Decimal128:    44070,
 	FromString:    278,
 	ToString:      63,
 	UnaryOp:       61366,
-	BinaryOp:      23028,
+	BinaryOp:      23256,
 	TernaryOp:     1817,
 	StatusControl: 137,
 	Functions: map[string]int{
@@ -51,7 +51,7 @@ var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
 		"bid128_div":                         324,
 		"bid128_fdim":                        586,
 		"bid128_fma":                         299,
-		"bid128_fmod":                        90,
+		"bid128_fmod":                        180,
 		"bid128_frexp":                       47,
 		"bid128_from_int32":                  20,
 		"bid128_from_int64":                  20,
@@ -241,7 +241,7 @@ var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
 		"bid32_div":                          67,
 		"bid32_fdim":                         191,
 		"bid32_fma":                          615,
-		"bid32_fmod":                         59,
+		"bid32_fmod":                         118,
 		"bid32_frexp":                        49,
 		"bid32_from_int32":                   125,
 		"bid32_from_int64":                   120,
@@ -411,7 +411,7 @@ var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
 		"bid64_div":                          291,
 		"bid64_fdim":                         376,
 		"bid64_fma":                          531,
-		"bid64_fmod":                         79,
+		"bid64_fmod":                         158,
 		"bid64_frexp":                        45,
 		"bid64_from_int32":                   20,
 		"bid64_from_int64":                   122,
@@ -604,19 +604,20 @@ var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
 	},
 	Groups: map[string]int{
 		"decimal128_ieee754_regressions": 15,
-		"decimal128_operations":          43864,
+		"decimal128_operations":          43954,
 		"decimal128_strings":             101,
 		"decimal32_ieee754_regressions":  15,
-		"decimal32_operations":           20737,
+		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
 		"decimal64_ieee754_regressions":  15,
-		"decimal64_operations":           21610,
+		"decimal64_operations":           21689,
 		"decimal64_strings":              85,
 		"status_control_operations":      137,
 	},
 	CompareGroups: map[string]int{
 		"CMP_EQUALSTATUS": 1027,
 		"CMP_FUZZYSTATUS": 85662,
+		"CMP_RELATIVEERR": 228,
 	},
 	NativeCompareSkips: map[string]int{
 		"pinned Intel BID C bid32_from_string ignores rnd_mode on the no-exponent overflow path (always Inf); these rows pin the IEEE 754 directed-overflow behavior that intentionally diverges from pinned C": 4,
@@ -631,6 +632,16 @@ var nativeReadtestStringBackend = readtestStringBackend{
 	FromString32:  nativeReadtestBID32FromString,
 	FromString64:  nativeReadtestBID64FromString,
 	FromString128: nativeReadtestBID128FromString,
+}
+
+// nativeReadtestOperationBackend routes the CMP_RELATIVEERR comparator's
+// bid*_quantize / bid*_quiet_less calls through the Intel C oracle dispatch,
+// mirroring the upstream check32/64/128_rel BIDECIMAL_CALL2 calls.
+var nativeReadtestOperationBackend = readtestOperationBackend{
+	Dec32:  nativeReadtestGeneratedBID32,
+	Dec64:  nativeReadtestGeneratedBID64,
+	Dec128: nativeReadtestGeneratedBID128,
+	Signed: nativeReadtestGeneratedSigned,
 }
 
 func TestGeneratedReadCases(t *testing.T) {
@@ -714,6 +725,25 @@ func TestGeneratedReadCases(t *testing.T) {
 					t.Fatalf("generatedReadCaseOperationBits(%q): %v", tc.Function, err)
 				}
 				switch {
+				case tc.CompareGroup == "CMP_RELATIVEERR":
+					// readtest.c CMP_RELATIVEERR rows compare check*_rel plus the
+					// trans_flags_mask-masked status only (readtest.c:1477/1486/1495);
+					// no secondary output and no exact status comparison apply.
+					equal, err := readtestRelativeErrRowEqual(tc.Format, tc.Expected, got, tc.Rounding, tc.UlpAdd, nativeReadtestStringBackend, nativeReadtestOperationBackend)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrRowEqual(%q): %v", tc.Function, err)
+					}
+					if !equal {
+						t.Fatalf("generated read case %s line %d: expected relative-error match %q (ulp_add %v), got bits %q", tc.ID, tc.Line, tc.Expected, tc.UlpAdd, got)
+					}
+					statusEqual, err := readtestRelativeErrStatusEqual(tc.Status, status)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrStatusEqual(%q, %q): %v", tc.Status, status, err)
+					}
+					if !statusEqual {
+						t.Fatalf("generated read case %s line %d: expected masked status %q, got %q", tc.ID, tc.Line, normalizeReadtestStatus(tc.Status), normalizeReadtestStatus(status))
+					}
+					return
 				case tc.CompareGroup == "CMP_EQUALSTATUS":
 					// readtest.c check_results does not compare the frexp/modf
 					// secondary output in its CMP_EQUALSTATUS branches, so the

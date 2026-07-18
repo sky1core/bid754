@@ -1186,6 +1186,16 @@ var goportReadtestStringBackend = readtestStringBackend{
 	FromString128: goportReadtestBID128FromString,
 }
 
+// goportReadtestOperationBackend routes the CMP_RELATIVEERR comparator's
+// bid*_quantize / bid*_quiet_less calls through the Go mechanical-port
+// dispatch, mirroring the upstream check32/64/128_rel BIDECIMAL_CALL2 calls.
+var goportReadtestOperationBackend = readtestOperationBackend{
+	Dec32:  goportReadtestGeneratedBID32,
+	Dec64:  goportReadtestGeneratedBID64,
+	Dec128: goportReadtestGeneratedBID128,
+	Signed: goportReadtestGeneratedSigned,
+}
+
 func TestGeneratedReadCasesGoPort(t *testing.T) {
 	if testing.Short() {
 		t.Skip("goport readtest cases run in non-short mode; use make test-portable-readtest")
@@ -1274,6 +1284,25 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 					t.Fatalf("goportReadCaseOperationBits(%q): %v", tc.Function, err)
 				}
 				switch {
+				case tc.CompareGroup == "CMP_RELATIVEERR":
+					// readtest.c CMP_RELATIVEERR rows compare check*_rel plus the
+					// trans_flags_mask-masked status only (readtest.c:1477/1486/1495);
+					// no secondary output and no exact status comparison apply.
+					equal, err := readtestRelativeErrRowEqual(tc.Format, tc.Expected, got, tc.Rounding, tc.UlpAdd, goportReadtestStringBackend, goportReadtestOperationBackend)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrRowEqual(%q): %v", tc.Function, err)
+					}
+					if !equal {
+						t.Fatalf("goport read case %s line %d: expected relative-error match %q (ulp_add %v), got bits %q", tc.ID, tc.Line, tc.Expected, tc.UlpAdd, got)
+					}
+					statusEqual, err := readtestRelativeErrStatusEqual(tc.Status, status)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrStatusEqual(%q, %q): %v", tc.Status, status, err)
+					}
+					if !statusEqual {
+						t.Fatalf("goport read case %s line %d: expected masked status %q, got %q", tc.ID, tc.Line, normalizeReadtestStatus(tc.Status), normalizeReadtestStatus(status))
+					}
+					return
 				case tc.CompareGroup == "CMP_EQUALSTATUS":
 					// readtest.c check_results does not compare the frexp/modf
 					// secondary output in its CMP_EQUALSTATUS branches, so the

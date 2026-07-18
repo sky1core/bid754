@@ -60,10 +60,10 @@
     {"id":"bid64dq_mul_line_65373","line":65373,"operands":["[887c1f05e9ddbdca]","[5501623a321e36b094ad6e6e03a6db03]"],"expected":"[f800000000000000]","status":"28","rounding":4},
     {"id":"bid64dq_mul_line_65374","line":65374,"operands":["[96591b6e18f59163]","[b4cd084042009800fffeefffffffffff]"],"expected":"[7800000000000000]","status":"28","rounding":4},
     {"id":"bid64dq_mul_line_65375","line":65375,"operands":["[b7b60adb6ff9d39d]","[408222c3c020b5020000000000000200]"],"expected":"[f800000000000000]","status":"28","rounding":4},
-    {"id":"bid64dq_mul_line_125800","line":125800,"operands":["-1E-2","99999999999999999E-398"],"expected":"-1000000000000000E-398","status":"0X30","rounding":0},
-    {"id":"bid64dq_mul_line_125801","line":125801,"operands":["-1E-2","99999999999999999E-398"],"expected":"-1000000000000000E-398","status":"0X30","rounding":1},
+    {"id":"bid64dq_mul_line_125800","line":125800,"operands":["-1E-2","99999999999999999E-398"],"expected":"-1000000000000000E-398","status":"0X30","rounding":0,"underflow_before_only":true},
+    {"id":"bid64dq_mul_line_125801","line":125801,"operands":["-1E-2","99999999999999999E-398"],"expected":"-1000000000000000E-398","status":"0X30","rounding":1,"underflow_before_only":true},
     {"id":"bid64dq_mul_line_125802","line":125802,"operands":["-1E-2","99999999999999999E-398"],"expected":"-999999999999999E-398","status":"0X30","rounding":2},
     {"id":"bid64dq_mul_line_125803","line":125803,"operands":["-1E-2","99999999999999999E-398"],"expected":"-999999999999999E-398","status":"0X30","rounding":3},
-    {"id":"bid64dq_mul_line_125804","line":125804,"operands":["-1E-2","99999999999999999E-398"],"expected":"-1000000000000000E-398","status":"0X30","rounding":4}
+    {"id":"bid64dq_mul_line_125804","line":125804,"operands":["-1E-2","99999999999999999E-398"],"expected":"-1000000000000000E-398","status":"0X30","rounding":4,"underflow_before_only":true}
   ]
 }

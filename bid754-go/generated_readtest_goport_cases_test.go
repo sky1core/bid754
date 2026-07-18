@@ -30,14 +30,14 @@ type goportReadCaseCounts struct {
 }
 
 var expectedGoportReadCaseCounts = goportReadCaseCounts{
-	Total:         86689,
-	Decimal32:     20862,
-	Decimal64:     21710,
-	Decimal128:    43980,
+	Total:         86917,
+	Decimal32:     20921,
+	Decimal64:     21789,
+	Decimal128:    44070,
 	FromString:    278,
 	ToString:      63,
 	UnaryOp:       61366,
-	BinaryOp:      23028,
+	BinaryOp:      23256,
 	TernaryOp:     1817,
 	StatusControl: 137,
 	Functions: map[string]int{
@@ -49,7 +49,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid128_div":                         324,
 		"bid128_fdim":                        586,
 		"bid128_fma":                         299,
-		"bid128_fmod":                        90,
+		"bid128_fmod":                        180,
 		"bid128_frexp":                       47,
 		"bid128_from_int32":                  20,
 		"bid128_from_int64":                  20,
@@ -239,7 +239,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid32_div":                          67,
 		"bid32_fdim":                         191,
 		"bid32_fma":                          615,
-		"bid32_fmod":                         59,
+		"bid32_fmod":                         118,
 		"bid32_frexp":                        49,
 		"bid32_from_int32":                   125,
 		"bid32_from_int64":                   120,
@@ -409,7 +409,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid64_div":                          291,
 		"bid64_fdim":                         376,
 		"bid64_fma":                          531,
-		"bid64_fmod":                         79,
+		"bid64_fmod":                         158,
 		"bid64_frexp":                        45,
 		"bid64_from_int32":                   20,
 		"bid64_from_int64":                   122,
@@ -602,19 +602,20 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 	},
 	Groups: map[string]int{
 		"decimal128_ieee754_regressions": 15,
-		"decimal128_operations":          43864,
+		"decimal128_operations":          43954,
 		"decimal128_strings":             101,
 		"decimal32_ieee754_regressions":  15,
-		"decimal32_operations":           20737,
+		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
 		"decimal64_ieee754_regressions":  15,
-		"decimal64_operations":           21610,
+		"decimal64_operations":           21689,
 		"decimal64_strings":              85,
 		"status_control_operations":      137,
 	},
 	CompareGroups: map[string]int{
 		"CMP_EQUALSTATUS": 1027,
 		"CMP_FUZZYSTATUS": 85662,
+		"CMP_RELATIVEERR": 228,
 	},
 }
 
@@ -625,7 +626,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 // readtest gates. Rows carrying a native-compare skip reason (cdiverge) pin
 // intended IEEE behavior, so they must execute and pass here.
 const (
-	expectedGoportExecutedReadCases              = 86552
+	expectedGoportExecutedReadCases              = 86780
 	expectedGoportExcludedStatusControlReadCases = 137
 	expectedGoportCDivergeExecutedReadCases      = 8
 )
@@ -637,6 +638,16 @@ var goportReadtestStringBackend = readtestStringBackend{
 	FromString32:  goportReadtestBID32FromString,
 	FromString64:  goportReadtestBID64FromString,
 	FromString128: goportReadtestBID128FromString,
+}
+
+// goportReadtestOperationBackend routes the CMP_RELATIVEERR comparator's
+// bid*_quantize / bid*_quiet_less calls through the Go mechanical-port
+// dispatch, mirroring the upstream check32/64/128_rel BIDECIMAL_CALL2 calls.
+var goportReadtestOperationBackend = readtestOperationBackend{
+	Dec32:  goportReadtestGeneratedBID32,
+	Dec64:  goportReadtestGeneratedBID64,
+	Dec128: goportReadtestGeneratedBID128,
+	Signed: goportReadtestGeneratedSigned,
 }
 
 func TestGeneratedReadCasesGoPort(t *testing.T) {
@@ -727,6 +738,25 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 					t.Fatalf("goportReadCaseOperationBits(%q): %v", tc.Function, err)
 				}
 				switch {
+				case tc.CompareGroup == "CMP_RELATIVEERR":
+					// readtest.c CMP_RELATIVEERR rows compare check*_rel plus the
+					// trans_flags_mask-masked status only (readtest.c:1477/1486/1495);
+					// no secondary output and no exact status comparison apply.
+					equal, err := readtestRelativeErrRowEqual(tc.Format, tc.Expected, got, tc.Rounding, tc.UlpAdd, goportReadtestStringBackend, goportReadtestOperationBackend)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrRowEqual(%q): %v", tc.Function, err)
+					}
+					if !equal {
+						t.Fatalf("goport read case %s line %d: expected relative-error match %q (ulp_add %v), got bits %q", tc.ID, tc.Line, tc.Expected, tc.UlpAdd, got)
+					}
+					statusEqual, err := readtestRelativeErrStatusEqual(tc.Status, status)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrStatusEqual(%q, %q): %v", tc.Status, status, err)
+					}
+					if !statusEqual {
+						t.Fatalf("goport read case %s line %d: expected masked status %q, got %q", tc.ID, tc.Line, normalizeReadtestStatus(tc.Status), normalizeReadtestStatus(status))
+					}
+					return
 				case tc.CompareGroup == "CMP_EQUALSTATUS":
 					// readtest.c check_results does not compare the frexp/modf
 					// secondary output in its CMP_EQUALSTATUS branches, so the

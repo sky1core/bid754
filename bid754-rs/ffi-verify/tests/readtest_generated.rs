@@ -623,7 +623,10 @@ fn bid32_relative_err_ok(got: u32, expected: u32, rm: i64, ulp_add: f64) -> bool
     let m1 = bid32_readtest_mant(r1);
     let m2 = bid32_readtest_mant(r2);
     let mut ulp = if m1 > m2 { (m1 - m2) as f64 } else { (m2 - m1) as f64 };
-    let (less, _) = bid32_quiet_less(got, expected);
+    // Intel check32_rel signs the distance with quiet_less(a, b) where a is
+    // the row expected value and b the produced result (readtest.c:885), so
+    // ulp_add biases (expected - got); keep that exact orientation.
+    let (less, _) = bid32_quiet_less(expected, got);
     if less != 0 {
         ulp *= -1.0;
     }
@@ -658,7 +661,10 @@ fn bid64_relative_err_ok(got: u64, expected: u64, rm: i64, ulp_add: f64) -> bool
     let m1 = bid64_readtest_mant(r1);
     let m2 = bid64_readtest_mant(r2);
     let mut ulp = if m1 > m2 { (m1 - m2) as f64 } else { (m2 - m1) as f64 };
-    let (less, _) = bid64_quiet_less(got, expected);
+    // Intel check64_rel signs the distance with quiet_less(a, b) where a is
+    // the row expected value and b the produced result (readtest.c:817), so
+    // ulp_add biases (expected - got); keep that exact orientation.
+    let (less, _) = bid64_quiet_less(expected, got);
     if less != 0 {
         ulp *= -1.0;
     }
@@ -712,7 +718,11 @@ fn bid128_relative_err_ok(mut got: BID_UINT128, mut expected: BID_UINT128, rm: i
     } else {
         (m2.lo - m1.lo) as f64
     };
-    let (less, _) = bid128_quiet_less(got, expected);
+    // Intel check128_rel signs the distance with quiet_less(a, b) where a is
+    // the row expected value and b the produced result (readtest.c:752), so
+    // ulp_add biases (expected - got); keep that exact orientation. Like the
+    // upstream in-place-modified a/b, this runs on the Inf-substituted values.
+    let (less, _) = bid128_quiet_less(expected, got);
     if less != 0 {
         ulp *= -1.0;
     }

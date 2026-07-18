@@ -62,6 +62,8 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 				Expected:                tc.Expected,
 				Status:                  tc.Status,
 				Rounding:                tc.Rounding,
+				UlpAdd:                  tc.UlpAdd,
+				UnderflowBeforeOnly:     tc.UnderflowBeforeOnly,
 			})
 		}
 	}

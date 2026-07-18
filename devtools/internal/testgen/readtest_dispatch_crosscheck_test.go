@@ -36,6 +36,7 @@ type crosscheckGoportInventory struct {
 type crosscheckRustInventory struct {
 	Functions []struct {
 		Function     string `json:"function"`
+		Compare      string `json:"compare"`
 		Status       string `json:"status"`
 		Route        string `json:"route"`
 		RustFunction string `json:"rust_function"`
@@ -136,11 +137,29 @@ func TestGeneratedReadtestCasesCoverEveryRustSelectedSourceRow(t *testing.T) {
 	if err := json.Unmarshal(rustRaw, &rustInventory); err != nil {
 		t.Fatalf("unmarshal Rust readtest dispatch inventory: %v", err)
 	}
-	selected := make(map[string]struct{}, len(rustInventory.Functions))
+	// The Rust dispatch inventory records one dispatched row per (function,
+	// comparator) spec pair: Intel readtest.h holds independent if-blocks, so a
+	// function can legitimately be exercised under more than one comparator
+	// for the same source row (the fmod CMP_FUZZYSTATUS + CMP_RELATIVEERR
+	// duplicate). The generated testspec mirrors that with one suite per
+	// (function, comparator), so the coverage key here is
+	// (function, line, compare group) and the per-function expected comparator
+	// set comes from the same inventory.
+	selected := make(map[string]map[string]struct{}, len(rustInventory.Functions))
 	for _, row := range rustInventory.Functions {
-		if row.Status == "dispatched" {
-			selected[row.Function] = struct{}{}
+		if row.Status != "dispatched" {
+			continue
 		}
+		if row.Compare == "" {
+			t.Fatalf("Rust readtest dispatch inventory row %q is dispatched without a compare group", row.Function)
+		}
+		if selected[row.Function] == nil {
+			selected[row.Function] = map[string]struct{}{}
+		}
+		if _, duplicate := selected[row.Function][row.Compare]; duplicate {
+			t.Errorf("Rust readtest dispatch inventory duplicates (%s, %s)", row.Function, row.Compare)
+		}
+		selected[row.Function][row.Compare] = struct{}{}
 	}
 	if len(selected) == 0 {
 		t.Fatal("Rust readtest dispatch inventory contains no selected functions")
@@ -151,16 +170,25 @@ func TestGeneratedReadtestCasesCoverEveryRustSelectedSourceRow(t *testing.T) {
 		line     int
 	}
 	const upstreamSource = "third_party/intel_dfp/TESTS/readtest.in"
-	generated := make(map[sourceRow]struct{})
+	generated := make(map[sourceRow]map[string]struct{})
+	generatedPairs := 0
 	for _, tc := range spec.ReadCases {
 		if tc.Source != upstreamSource {
 			continue
 		}
 		key := sourceRow{function: tc.Function, line: tc.Line}
-		if _, duplicate := generated[key]; duplicate {
-			t.Errorf("generated readtest duplicates upstream row %s:%d", tc.Function, tc.Line)
+		if generated[key] == nil {
+			generated[key] = map[string]struct{}{}
 		}
-		generated[key] = struct{}{}
+		if _, duplicate := generated[key][tc.CompareGroup]; duplicate {
+			t.Errorf("generated readtest duplicates upstream row %s:%d under compare group %s", tc.Function, tc.Line, tc.CompareGroup)
+			continue
+		}
+		if _, ok := selected[tc.Function][tc.CompareGroup]; !ok {
+			t.Errorf("generated readtest row %s:%d carries compare group %s that the Rust dispatch inventory does not select", tc.Function, tc.Line, tc.CompareGroup)
+		}
+		generated[key][tc.CompareGroup] = struct{}{}
+		generatedPairs++
 	}
 
 	sourcePath := filepath.Join("..", "..", upstreamSource)
@@ -175,6 +203,7 @@ func TestGeneratedReadtestCasesCoverEveryRustSelectedSourceRow(t *testing.T) {
 
 	var missing []string
 	selectedRows := 0
+	selectedPairs := 0
 	scanner := bufio.NewScanner(file)
 	for lineNo := 1; scanner.Scan(); lineNo++ {
 		line := scanner.Text()
@@ -190,15 +219,19 @@ func TestGeneratedReadtestCasesCoverEveryRustSelectedSourceRow(t *testing.T) {
 			continue
 		}
 		function := fields[0]
-		if _, ok := selected[function]; !ok {
+		compares, ok := selected[function]
+		if !ok {
 			continue
 		}
 		if strings.Contains(strings.ToLower(line), "longintsize=32") {
 			continue
 		}
 		selectedRows++
-		if _, ok := generated[sourceRow{function: function, line: lineNo}]; !ok {
-			missing = append(missing, fmt.Sprintf("%s:%d: %s", function, lineNo, line))
+		selectedPairs += len(compares)
+		for compare := range compares {
+			if _, ok := generated[sourceRow{function: function, line: lineNo}][compare]; !ok {
+				missing = append(missing, fmt.Sprintf("%s:%d (%s): %s", function, lineNo, compare, line))
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -210,10 +243,13 @@ func TestGeneratedReadtestCasesCoverEveryRustSelectedSourceRow(t *testing.T) {
 		if len(reported) > reportLimit {
 			reported = reported[:reportLimit]
 		}
-		t.Fatalf("generated testspec (upstream row set %d) omitted %d of %d Rust-selected Intel readtest rows (first %d):\n%s",
-			len(generated), len(missing), selectedRows, len(reported), strings.Join(reported, "\n"))
+		t.Fatalf("generated testspec (upstream row set %d, %d row-comparator pairs) omitted %d of %d Rust-selected Intel readtest row-comparator pairs (first %d):\n%s",
+			len(generated), generatedPairs, len(missing), selectedPairs, len(reported), strings.Join(reported, "\n"))
 	}
 	if len(generated) != selectedRows {
 		t.Fatalf("generated upstream readtest row set = %d, Rust-selected source rows = %d", len(generated), selectedRows)
+	}
+	if generatedPairs != selectedPairs {
+		t.Fatalf("generated upstream readtest row-comparator pairs = %d, Rust-selected source row-comparator pairs = %d", generatedPairs, selectedPairs)
 	}
 }

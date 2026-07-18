@@ -450,8 +450,10 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.ReadCases) == 0 {
 		t.Fatal("expected generated read cases")
 	}
-	if len(spec.ReadCases) != 86689 {
-		t.Fatalf("generated read case count = %d, want pinned current-surface plus IEEE regression case count 86689", len(spec.ReadCases))
+	// 86917 = 86689 exact-comparator surface (profile + IEEE regression rows)
+	// + 228 Tier 3 fmod CMP_RELATIVEERR duplicate rows (59 + 79 + 90).
+	if len(spec.ReadCases) != 86917 {
+		t.Fatalf("generated read case count = %d, want pinned current-surface plus IEEE regression case count 86917", len(spec.ReadCases))
 	}
 	assertGeneratedReadtestProfileInventory(t, spec)
 	expectedReads := make(map[string]ReadTestSpec)
@@ -533,33 +535,37 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 			t.Fatalf("generated read cases do not include manifest-selected suite %q", suite)
 		}
 	}
+	// The CMP_RELATIVEERR bucket holds the Tier 3 fmod duplicate-comparator
+	// rows: 228 = 59 (bid32) + 79 (bid64) + 90 (bid128) readtest.in rows, the
+	// same source rows the CMP_FUZZYSTATUS fmod suites keep unchanged.
 	assertCountMap(t, "generated readtest case compare groups", readCaseCompareCounts, map[string]int{
 		"CMP_EQUALSTATUS": 1027,
 		"CMP_FUZZYSTATUS": 85662,
+		"CMP_RELATIVEERR": 228,
 	})
 	assertCountMap(t, "generated readtest case formats", readCaseFormatCounts, map[string]int{
-		"decimal32":  20862,
-		"decimal64":  21710,
-		"decimal128": 43980,
+		"decimal32":  20921,
+		"decimal64":  21789,
+		"decimal128": 44070,
 		"status":     137,
 	})
 	assertCountMap(t, "generated readtest case kinds", readCaseKindCounts, map[string]int{
 		"unary_op":       61366,
-		"binary_op":      23028,
+		"binary_op":      23256,
 		"ternary_op":     1817,
 		"from_string":    278,
 		"to_string":      63,
 		"status_control": 137,
 	})
 	assertCountMap(t, "generated readtest case groups", readCaseGroupCounts, map[string]int{
-		"decimal32_operations":           20737,
+		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
 		"decimal32_ieee754_regressions":  15,
 		"decimal64_ieee754_regressions":  15,
 		"decimal128_ieee754_regressions": 15,
-		"decimal64_operations":           21610,
+		"decimal64_operations":           21689,
 		"decimal64_strings":              85,
-		"decimal128_operations":          43864,
+		"decimal128_operations":          43954,
 		"decimal128_strings":             101,
 		"status_control_operations":      137,
 	})
@@ -1204,8 +1210,11 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	if len(reads) == 0 {
 		t.Fatal("expected mechanically selected readtest functions")
 	}
-	if len(reads) != 558 {
-		t.Fatalf("mechanically selected readtest function count = %d, want pinned Intel selected surface count 558", len(reads))
+	// 561 = 558 mechanically selected exact-comparator functions + the 3
+	// explicit Tier 3 CMP_RELATIVEERR fmod duplicate-comparator specs
+	// (isTier3RelativeErrSelectedFunction).
+	if len(reads) != 561 {
+		t.Fatalf("mechanically selected readtest function count = %d, want pinned Intel selected surface count 561", len(reads))
 	}
 	allowedFormats := make(map[string]struct{}, len(profile.Formats))
 	for _, format := range profile.Formats {
@@ -1245,8 +1254,22 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 		if read.OutputType == "" || len(read.InputTypes) == 0 || read.CompareGroup == "" {
 			t.Fatalf("selected readtest function %q is missing signature metadata", read.Function)
 		}
-		if read.CompareGroup != "CMP_FUZZYSTATUS" && read.CompareGroup != "CMP_EQUALSTATUS" {
-			t.Fatalf("selected readtest function %q compare group = %q, want CMP_FUZZYSTATUS or CMP_EQUALSTATUS", read.Function, read.CompareGroup)
+		switch read.CompareGroup {
+		case "CMP_FUZZYSTATUS", "CMP_EQUALSTATUS":
+			if read.Name != read.Function {
+				t.Fatalf("selected exact-comparator readtest %q has suite name %q, want the function name", read.Function, read.Name)
+			}
+		case "CMP_RELATIVEERR":
+			// Only the explicit Tier 3 closed list may select the relative
+			// comparator, and only under its dedicated duplicate suite name.
+			if !isTier3RelativeErrSelectedFunction(read.Function) {
+				t.Fatalf("selected readtest function %q compare group = CMP_RELATIVEERR outside the explicit Tier 3 closed list", read.Function)
+			}
+			if read.Name != readtestRelativeErrSuiteName(read.Function) {
+				t.Fatalf("selected CMP_RELATIVEERR readtest %q has suite name %q, want %q", read.Function, read.Name, readtestRelativeErrSuiteName(read.Function))
+			}
+		default:
+			t.Fatalf("selected readtest function %q compare group = %q, want CMP_FUZZYSTATUS, CMP_EQUALSTATUS, or closed-list CMP_RELATIVEERR", read.Function, read.CompareGroup)
 		}
 		compareCounts[read.CompareGroup]++
 		formatCounts[read.Format]++
@@ -1332,16 +1355,17 @@ func TestExpandReadTestProfileUsesMechanicalReadtestScope(t *testing.T) {
 	assertCountMap(t, "readtest compare groups", compareCounts, map[string]int{
 		"CMP_FUZZYSTATUS": 546,
 		"CMP_EQUALSTATUS": 12,
+		"CMP_RELATIVEERR": 3,
 	})
 	assertCountMap(t, "readtest formats", formatCounts, map[string]int{
-		"decimal32":  170,
-		"decimal64":  190,
-		"decimal128": 190,
+		"decimal32":  171,
+		"decimal64":  191,
+		"decimal128": 191,
 		"status":     8,
 	})
 	assertCountMap(t, "readtest kinds", kindCounts, map[string]int{
 		"unary_op":       374,
-		"binary_op":      153,
+		"binary_op":      156,
 		"ternary_op":     17,
 		"from_string":    3,
 		"to_string":      3,
@@ -1416,8 +1440,12 @@ func assertGeneratedReadtestProfileInventory(t *testing.T, spec SharedSpec) {
 	if inventory.Profile != "intel_readtest_current_surface" {
 		t.Fatalf("readtest inventory profile = %q, want intel_readtest_current_surface", inventory.Profile)
 	}
-	if inventory.TotalFunctions != 680 || inventory.SelectedFunctions != 558 || inventory.ExcludedFunctions != 122 {
-		t.Fatalf("readtest inventory counts = total %d selected %d excluded %d, want 680/558/122", inventory.TotalFunctions, inventory.SelectedFunctions, inventory.ExcludedFunctions)
+	// 561 selected = 558 exact-comparator functions + the 3 explicit Tier 3
+	// CMP_RELATIVEERR fmod duplicate specs; the excluded remainder shrinks to
+	// 119 = 84 transcendental CMP_RELATIVEERR (optional_not_required) + 35
+	// out-of-scope.
+	if inventory.TotalFunctions != 680 || inventory.SelectedFunctions != 561 || inventory.ExcludedFunctions != 119 {
+		t.Fatalf("readtest inventory counts = total %d selected %d excluded %d, want 680/561/119", inventory.TotalFunctions, inventory.SelectedFunctions, inventory.ExcludedFunctions)
 	}
 	if len(inventory.Functions) != inventory.TotalFunctions {
 		t.Fatalf("readtest inventory function entries = %d, want total %d", len(inventory.Functions), inventory.TotalFunctions)
@@ -1438,8 +1466,8 @@ func assertGeneratedReadtestProfileInventory(t *testing.T, spec SharedSpec) {
 		}
 	}
 	assertCountMap(t, "readtest inventory classifications", classificationCounts, map[string]int{
-		"selected":                  558,
-		"optional_not_required":     87,
+		"selected":                  561,
+		"optional_not_required":     84,
 		"out_of_scope_not_required": 35,
 	})
 	if len(unresolvedRequired) != 0 {

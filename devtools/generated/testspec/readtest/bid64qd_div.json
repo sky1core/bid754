@@ -43,11 +43,11 @@
     {"id":"bid64qd_div_line_72531","line":72531,"operands":["[3001008102112020,58bf737fedd1ca59]","[5efefdfffd9f77f7]"],"expected":"[00f53006942505b9]","status":"20","rounding":2},
     {"id":"bid64qd_div_line_72532","line":72532,"operands":["[3d7426b00fc83c07,6bc056b9209a1b95]","[d96bb891279b7d7d]"],"expected":"[f7fb86f26fc0ffff]","status":"28","rounding":2},
     {"id":"bid64qd_div_line_72533","line":72533,"operands":["[3001008102112020,58bf737fedd1ca59]","[5efefdfffd9f77f7]"],"expected":"[00f53006942505b8]","status":"20","rounding":4},
-    {"id":"bid64qd_div_line_125812","line":125812,"operands":["99999999999999999E-398","100"],"expected":"1000000000000000E-398","status":"0X30","rounding":0},
+    {"id":"bid64qd_div_line_125812","line":125812,"operands":["99999999999999999E-398","100"],"expected":"1000000000000000E-398","status":"0X30","rounding":0,"underflow_before_only":true},
     {"id":"bid64qd_div_line_125813","line":125813,"operands":["99999999999999999E-398","100"],"expected":"999999999999999E-398","status":"0X30","rounding":1},
-    {"id":"bid64qd_div_line_125814","line":125814,"operands":["99999999999999999E-398","100"],"expected":"1000000000000000E-398","status":"0X30","rounding":2},
+    {"id":"bid64qd_div_line_125814","line":125814,"operands":["99999999999999999E-398","100"],"expected":"1000000000000000E-398","status":"0X30","rounding":2,"underflow_before_only":true},
     {"id":"bid64qd_div_line_125815","line":125815,"operands":["99999999999999999E-398","100"],"expected":"999999999999999E-398","status":"0X30","rounding":3},
-    {"id":"bid64qd_div_line_125816","line":125816,"operands":["99999999999999999E-398","100"],"expected":"1000000000000000E-398","status":"0X30","rounding":4},
+    {"id":"bid64qd_div_line_125816","line":125816,"operands":["99999999999999999E-398","100"],"expected":"1000000000000000E-398","status":"0X30","rounding":4,"underflow_before_only":true},
     {"id":"bid64qd_div_line_126127","line":126127,"operands":["qNan","sNan"],"expected":"Nan","status":"01","rounding":0}
   ]
 }

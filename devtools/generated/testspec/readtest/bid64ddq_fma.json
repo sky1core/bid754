@@ -24,10 +24,10 @@
     {"id":"bid64ddq_fma_line_64880","line":64880,"operands":["[aff61e33a0a2e0ec]","[000049d288122150]","[7577d40cb4153757,fffffffffbf7ffff]"],"expected":"[8001cb97c45d9d90]","status":"30","rounding":0},
     {"id":"bid64ddq_fma_line_64881","line":64881,"operands":["[d6b0fdffff7fef7b]","[88ae2bb4981317db]","[afff7f7bdff7f7df,5ff65418ed38fe46]"],"expected":"[affba04b44dc69b8]","status":"20","rounding":0},
     {"id":"bid64ddq_fma_line_95675","line":95675,"operands":["[0000000000000012]","[d5d84338200b83db]","[0020000000000200,0b67ef407632b79d]"],"expected":"[a4445e04fb873155]","status":"20","rounding":0},
-    {"id":"bid64ddq_fma_line_125727","line":125727,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":0},
+    {"id":"bid64ddq_fma_line_125727","line":125727,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":0,"underflow_before_only":true},
     {"id":"bid64ddq_fma_line_125728","line":125728,"operands":["5e-101","-1e-299","1e-383"],"expected":"999999999999999E-398","status":"0X30","rounding":1},
-    {"id":"bid64ddq_fma_line_125729","line":125729,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":2},
+    {"id":"bid64ddq_fma_line_125729","line":125729,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":2,"underflow_before_only":true},
     {"id":"bid64ddq_fma_line_125730","line":125730,"operands":["5e-101","-1e-299","1e-383"],"expected":"999999999999999E-398","status":"0X30","rounding":3},
-    {"id":"bid64ddq_fma_line_125731","line":125731,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":4}
+    {"id":"bid64ddq_fma_line_125731","line":125731,"operands":["5e-101","-1e-299","1e-383"],"expected":"1000000000000000E-398","status":"0X30","rounding":4,"underflow_before_only":true}
   ]
 }

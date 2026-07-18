@@ -171,6 +171,8 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 				Expected:                tc.Expected,
 				Status:                  tc.Status,
 				Rounding:                tc.Rounding,
+				UlpAdd:                  tc.UlpAdd,
+				UnderflowBeforeOnly:     tc.UnderflowBeforeOnly,
 			})
 		}
 	}
@@ -293,12 +295,14 @@ func groupReadtestShards(cases []GeneratedReadCase) ([]ReadtestShard, error) {
 
 func readtestShardCaseOf(tc GeneratedReadCase) ReadtestShardCase {
 	return ReadtestShardCase{
-		ID:       tc.ID,
-		Line:     tc.Line,
-		Operands: tc.Operands,
-		Expected: tc.Expected,
-		Status:   tc.Status,
-		Rounding: tc.Rounding,
+		ID:                  tc.ID,
+		Line:                tc.Line,
+		Operands:            tc.Operands,
+		Expected:            tc.Expected,
+		Status:              tc.Status,
+		Rounding:            tc.Rounding,
+		UlpAdd:              tc.UlpAdd,
+		UnderflowBeforeOnly: tc.UnderflowBeforeOnly,
 	}
 }
 

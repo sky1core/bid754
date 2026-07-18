@@ -5,6 +5,7 @@ package bid754
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -507,4 +508,390 @@ func normalizeReadtestStatus(input string) string {
 		trimmed = "0" + trimmed
 	}
 	return trimmed
+}
+
+// --- Intel readtest.c CMP_RELATIVEERR comparator (check32/64/128_rel) ---
+
+// readtestRelativeErrFlagsMask mirrors the readtest.c trans_flags_mask global
+// (readtest.c:101): CMP_RELATIVEERR rows compare only the invalid (0x01) and
+// zero-divide (0x04) status bits (readtest.c:1477/1486/1495).
+const readtestRelativeErrFlagsMask = 0x05
+
+// readtestRelativeErrStatusEqual mirrors the readtest.c CMP_RELATIVEERR status
+// comparison (expected_status & trans_flags_mask) == (*pfpsf & trans_flags_mask).
+// It applies only to CMP_RELATIVEERR rows; every other compare group keeps the
+// exact status comparison.
+func readtestRelativeErrStatusEqual(expected, actual string) (bool, error) {
+	expectedFlags, err := strconv.ParseUint(normalizeReadtestStatus(expected), 16, 32)
+	if err != nil {
+		return false, fmt.Errorf("parse readtest status %q: %w", expected, err)
+	}
+	actualFlags, err := strconv.ParseUint(normalizeReadtestStatus(actual), 16, 32)
+	if err != nil {
+		return false, fmt.Errorf("parse readtest status %q: %w", actual, err)
+	}
+	return (expectedFlags & readtestRelativeErrFlagsMask) == (actualFlags & readtestRelativeErrFlagsMask), nil
+}
+
+// readtestMreMax is the Intel readtest.c per-width maximum-relative-error
+// table (readtest.c:1921-1948), indexed by the row's BID rounding number
+// (0=NE, 1=DOWN, 2=UP, 3=ZERO, 4=NA). A rounding outside the table is a
+// generation/spec defect and fails loudly instead of picking a default.
+func readtestMreMax(format string, rounding int) (float64, error) {
+	if rounding < 0 || rounding > 4 {
+		return 0, fmt.Errorf("readtest CMP_RELATIVEERR rounding %d outside the BID rounding table 0..4", rounding)
+	}
+	switch format {
+	case "decimal32":
+		return [5]float64{0.5, 1.01, 1.01, 1.01, 0.5}[rounding], nil
+	case "decimal64":
+		return [5]float64{0.55, 1.05, 1.05, 1.05, 0.55}[rounding], nil
+	case "decimal128":
+		return [5]float64{2.0, 5.0, 5.0, 5.0, 2.0}[rounding], nil
+	default:
+		return 0, fmt.Errorf("unsupported readtest format %q", format)
+	}
+}
+
+// readtestOperationBackend carries the decimal operation dispatch of the gate
+// under test so the CMP_RELATIVEERR comparator can run the library's own
+// bid*_quantize and bid*_quiet_less exactly like the Intel readtest.c
+// check32/64/128_rel BIDECIMAL_CALL2 calls do: the native gate stays on the
+// Intel C oracle and the goport gate on the Go mechanical port.
+type readtestOperationBackend struct {
+	Dec32  func(function string, rounding int, operands []string) (uint32, readtestSecondaryOutput, string, error)
+	Dec64  func(function string, rounding int, operands []string) (uint64, readtestSecondaryOutput, string, error)
+	Dec128 func(function string, rounding int, operands []string) ([16]byte, readtestSecondaryOutput, string, error)
+	Signed func(function string, rounding int, operands []string) (int64, string, error)
+}
+
+// The NaN/Inf predicates and the exponent/coefficient field extractors below
+// mirror the readtest.c comparator macros bit for bit
+// (GET_EXP_32/64/128 and GET_MANT_32/64/128 with the mask constants at
+// readtest.c:600-639). They are fixed BID field decodes shared verbatim by
+// both gates; only quantize/quiet_less run through the backend library.
+
+func readtestBid32IsNaN(x uint32) bool { return x&0x7c000000 == 0x7c000000 }
+func readtestBid32IsInf(x uint32) bool { return x&0x78000000 == 0x78000000 && !readtestBid32IsNaN(x) }
+func readtestBid64IsNaN(x uint64) bool { return x&0x7c00000000000000 == 0x7c00000000000000 }
+func readtestBid64IsInf(x uint64) bool {
+	return x&0x7800000000000000 == 0x7800000000000000 && !readtestBid64IsNaN(x)
+}
+func readtestBid128IsNaN(hi uint64) bool { return hi&0x7c00000000000000 == 0x7c00000000000000 }
+func readtestBid128IsInf(hi uint64) bool {
+	return hi&0x7800000000000000 == 0x7800000000000000 && !readtestBid128IsNaN(hi)
+}
+
+func readtestBid32Exp(x uint32) uint32 {
+	if x&0x60000000 == 0x60000000 {
+		return (x & 0x1fe00000) >> 21
+	}
+	return (x & 0x7f800000) >> 23
+}
+
+func readtestBid32Mant(x uint32) uint32 {
+	if x&0x60000000 == 0x60000000 {
+		return (x & 0x001fffff) | 0x00800000
+	}
+	return x & 0x007fffff
+}
+
+func readtestBid64Exp(x uint64) uint64 {
+	if x&0x6000000000000000 == 0x6000000000000000 {
+		return (x & 0x1ff8000000000000) >> 51
+	}
+	return (x & 0x7fe0000000000000) >> 53
+}
+
+func readtestBid64Mant(x uint64) uint64 {
+	if x&0x6000000000000000 == 0x6000000000000000 {
+		return (x & 0x0007ffffffffffff) | 0x0020000000000000
+	}
+	return x & 0x001fffffffffffff
+}
+
+func readtestBid128Exp(hi uint64) uint64 {
+	if hi&0x6000000000000000 == 0x6000000000000000 {
+		return (hi & 0x1fff800000000000) >> 15
+	}
+	return (hi & 0x7ffe000000000000) >> 17
+}
+
+// readtestBid128Mant mirrors GET_MANT_128 including the upstream quirk of
+// OR-ing EXP_P1 (0x0002000000000000) into the steering-case high word.
+func readtestBid128Mant(raw [16]byte) (hi, lo uint64) {
+	hi = binary.LittleEndian.Uint64(raw[8:16])
+	lo = binary.LittleEndian.Uint64(raw[0:8])
+	if hi&0x6000000000000000 == 0x6000000000000000 {
+		hi = (hi & 0x00007fffffffffff) | 0x0002000000000000
+	} else {
+		hi = hi & 0x0001ffffffffffff
+	}
+	return hi, lo
+}
+
+func readtestRelQuantize32(ops readtestOperationBackend, x, y uint32, rounding int) (uint32, error) {
+	result, _, _, err := ops.Dec32("bid32_quantize", rounding, []string{fmt.Sprintf("[%08x]", x), fmt.Sprintf("[%08x]", y)})
+	return result, err
+}
+
+func readtestRelQuantize64(ops readtestOperationBackend, x, y uint64, rounding int) (uint64, error) {
+	result, _, _, err := ops.Dec64("bid64_quantize", rounding, []string{fmt.Sprintf("[%016x]", x), fmt.Sprintf("[%016x]", y)})
+	return result, err
+}
+
+func readtestRelQuantize128(ops readtestOperationBackend, x, y [16]byte, rounding int) ([16]byte, error) {
+	result, _, _, err := ops.Dec128("bid128_quantize", rounding, []string{formatReadtestBits128(x), formatReadtestBits128(y)})
+	return result, err
+}
+
+// readtestRelQuietLess runs the backend bid*_quiet_less like the upstream
+// BIDECIMAL_CALL2_NORND call; the rounding argument is fixed at 0 exactly like
+// the readtestQuietEqual quiet_not_equal call.
+func readtestRelQuietLess(ops readtestOperationBackend, function, aBits, bBits string) (bool, error) {
+	value, _, err := ops.Signed(function, 0, []string{aBits, bBits})
+	if err != nil {
+		return false, err
+	}
+	return value != 0, nil
+}
+
+// readtestRelativeErrRowEqual mirrors the Intel readtest.c CMP_RELATIVEERR
+// value comparison check32/64/128_rel (readtest.c:685-893) with a = the row
+// expected value and b = the produced result, exactly like the upstream
+// check*_rel(R, Q) call sites:
+//   - a NaN or infinite side requires exact bits, except that decimal128
+//     first replaces an infinite side with the maximum-finite bit pattern of
+//     the same sign and continues (readtest.c:702-708);
+//   - a sign-bit mismatch fails immediately;
+//   - the smaller-exponent side is aligned with the library's own
+//     bid*_quantize at the row rounding mode, and a residual exponent
+//     difference fails;
+//   - the ulp distance is the coefficient difference (decimal128 uses only
+//     the low coefficient word, mirroring the pinned upstream code and its
+//     "TODO HIGH part difference" comment rather than repairing it), signed
+//     negative when bid*_quiet_less(expected, got) holds;
+//   - the row passes iff |ulp + ulp_add| <= mre_max[rounding] in IEEE binary64
+//     arithmetic with the upstream operation order, which is deterministic and
+//     identical across the Go, Rust, and C runners.
+//
+// The expected field is parsed like every other row (bit literals exact,
+// decimal literals through the backend from_string at the row rounding).
+func readtestRelativeErrRowEqual(format, expected, gotBits string, rounding int, ulpAdd float64, backend readtestStringBackend, ops readtestOperationBackend) (bool, error) {
+	expectedBits, _, err := readtestValueBits(format, expected, rounding, backend)
+	if err != nil {
+		return false, err
+	}
+	switch format {
+	case "decimal32":
+		expectedRaw, err := parseReadtestHex(expectedBits, 32)
+		if err != nil {
+			return false, err
+		}
+		gotRaw, err := parseReadtestHex(gotBits, 32)
+		if err != nil {
+			return false, err
+		}
+		return readtestRelativeErr32(uint32(expectedRaw), uint32(gotRaw), rounding, ulpAdd, ops)
+	case "decimal64":
+		expectedRaw, err := parseReadtestHex(expectedBits, 64)
+		if err != nil {
+			return false, err
+		}
+		gotRaw, err := parseReadtestHex(gotBits, 64)
+		if err != nil {
+			return false, err
+		}
+		return readtestRelativeErr64(expectedRaw, gotRaw, rounding, ulpAdd, ops)
+	case "decimal128":
+		expectedRaw, err := parseReadtestBits128(expectedBits)
+		if err != nil {
+			return false, err
+		}
+		gotRaw, err := parseReadtestBits128(gotBits)
+		if err != nil {
+			return false, err
+		}
+		return readtestRelativeErr128(expectedRaw, gotRaw, rounding, ulpAdd, ops)
+	default:
+		return false, fmt.Errorf("unsupported readtest format %q", format)
+	}
+}
+
+func readtestRelativeErr32(expected, got uint32, rounding int, ulpAdd float64, ops readtestOperationBackend) (bool, error) {
+	if readtestBid32IsNaN(expected) || readtestBid32IsNaN(got) || readtestBid32IsInf(expected) || readtestBid32IsInf(got) {
+		return expected == got, nil
+	}
+	if (expected^got)&0x80000000 != 0 {
+		return false, nil
+	}
+	r1, r2 := expected, got
+	e1, e2 := readtestBid32Exp(r1), readtestBid32Exp(r2)
+	if e1 < e2 {
+		quantized, err := readtestRelQuantize32(ops, expected, got, rounding)
+		if err != nil {
+			return false, err
+		}
+		r1 = quantized
+		e1, e2 = readtestBid32Exp(r1), readtestBid32Exp(r2)
+	} else if e2 < e1 {
+		quantized, err := readtestRelQuantize32(ops, got, expected, rounding)
+		if err != nil {
+			return false, err
+		}
+		r2 = quantized
+		e1, e2 = readtestBid32Exp(r1), readtestBid32Exp(r2)
+	}
+	if e1 != e2 {
+		return false, nil
+	}
+	m1, m2 := readtestBid32Mant(r1), readtestBid32Mant(r2)
+	var diff uint32
+	if m1 > m2 {
+		diff = m1 - m2
+	} else {
+		diff = m2 - m1
+	}
+	ulp := float64(diff)
+	less, err := readtestRelQuietLess(ops, "bid32_quiet_less", fmt.Sprintf("[%08x]", expected), fmt.Sprintf("[%08x]", got))
+	if err != nil {
+		return false, err
+	}
+	if less {
+		ulp = -ulp
+	}
+	maxErr, err := readtestMreMax("decimal32", rounding)
+	if err != nil {
+		return false, err
+	}
+	return math.Abs(ulp+ulpAdd) <= maxErr, nil
+}
+
+func readtestRelativeErr64(expected, got uint64, rounding int, ulpAdd float64, ops readtestOperationBackend) (bool, error) {
+	if readtestBid64IsNaN(expected) || readtestBid64IsNaN(got) || readtestBid64IsInf(expected) || readtestBid64IsInf(got) {
+		return expected == got, nil
+	}
+	if (expected^got)&0x8000000000000000 != 0 {
+		return false, nil
+	}
+	r1, r2 := expected, got
+	e1, e2 := readtestBid64Exp(r1), readtestBid64Exp(r2)
+	if e1 < e2 {
+		quantized, err := readtestRelQuantize64(ops, expected, got, rounding)
+		if err != nil {
+			return false, err
+		}
+		r1 = quantized
+		e1, e2 = readtestBid64Exp(r1), readtestBid64Exp(r2)
+	} else if e2 < e1 {
+		quantized, err := readtestRelQuantize64(ops, got, expected, rounding)
+		if err != nil {
+			return false, err
+		}
+		r2 = quantized
+		e1, e2 = readtestBid64Exp(r1), readtestBid64Exp(r2)
+	}
+	if e1 != e2 {
+		return false, nil
+	}
+	m1, m2 := readtestBid64Mant(r1), readtestBid64Mant(r2)
+	var diff uint64
+	if m1 > m2 {
+		diff = m1 - m2
+	} else {
+		diff = m2 - m1
+	}
+	ulp := float64(diff)
+	less, err := readtestRelQuietLess(ops, "bid64_quiet_less", fmt.Sprintf("[%016x]", expected), fmt.Sprintf("[%016x]", got))
+	if err != nil {
+		return false, err
+	}
+	if less {
+		ulp = -ulp
+	}
+	maxErr, err := readtestMreMax("decimal64", rounding)
+	if err != nil {
+		return false, err
+	}
+	return math.Abs(ulp+ulpAdd) <= maxErr, nil
+}
+
+func readtestRelativeErr128(expected, got [16]byte, rounding int, ulpAdd float64, ops readtestOperationBackend) (bool, error) {
+	expectedHi := binary.LittleEndian.Uint64(expected[8:16])
+	gotHi := binary.LittleEndian.Uint64(got[8:16])
+	expectedNaN := readtestBid128IsNaN(expectedHi)
+	gotNaN := readtestBid128IsNaN(gotHi)
+	expectedInf := readtestBid128IsInf(expectedHi)
+	gotInf := readtestBid128IsInf(gotHi)
+	if expectedNaN || gotNaN || expectedInf || gotInf {
+		if expected == got {
+			return true, nil
+		}
+		// readtest.c:702-708 replaces an infinite side (a first, then b) with
+		// the maximum-finite bit pattern of the same sign and continues; two
+		// NaN sides with different bits fail.
+		switch {
+		case expectedInf:
+			binary.LittleEndian.PutUint64(expected[8:16], (expectedHi&0x8000000000000000)|0x5fffed09bead87c0)
+			binary.LittleEndian.PutUint64(expected[0:8], 0x378d8e63ffffffff)
+		case gotInf:
+			binary.LittleEndian.PutUint64(got[8:16], (gotHi&0x8000000000000000)|0x5fffed09bead87c0)
+			binary.LittleEndian.PutUint64(got[0:8], 0x378d8e63ffffffff)
+		default:
+			return false, nil
+		}
+		expectedHi = binary.LittleEndian.Uint64(expected[8:16])
+		gotHi = binary.LittleEndian.Uint64(got[8:16])
+	}
+	if (expectedHi^gotHi)&0x8000000000000000 != 0 {
+		return false, nil
+	}
+	r1, r2 := expected, got
+	e1 := readtestBid128Exp(binary.LittleEndian.Uint64(r1[8:16]))
+	e2 := readtestBid128Exp(binary.LittleEndian.Uint64(r2[8:16]))
+	if e1 < e2 {
+		quantized, err := readtestRelQuantize128(ops, expected, got, rounding)
+		if err != nil {
+			return false, err
+		}
+		r1 = quantized
+		e1 = readtestBid128Exp(binary.LittleEndian.Uint64(r1[8:16]))
+		e2 = readtestBid128Exp(binary.LittleEndian.Uint64(r2[8:16]))
+	} else if e2 < e1 {
+		quantized, err := readtestRelQuantize128(ops, got, expected, rounding)
+		if err != nil {
+			return false, err
+		}
+		r2 = quantized
+		e1 = readtestBid128Exp(binary.LittleEndian.Uint64(r1[8:16]))
+		e2 = readtestBid128Exp(binary.LittleEndian.Uint64(r2[8:16]))
+	}
+	if e1 != e2 {
+		return false, nil
+	}
+	_, m1lo := readtestBid128Mant(r1)
+	_, m2lo := readtestBid128Mant(r2)
+	// readtest.c:749-751 computes the coefficient distance from the low words
+	// only ("TODO HIGH part difference"); mirror the pinned code exactly.
+	var diff uint64
+	if m1lo > m2lo {
+		diff = m1lo - m2lo
+	} else {
+		diff = m2lo - m1lo
+	}
+	ulp := float64(diff)
+	// quiet_less runs on the (possibly Inf-substituted) values, exactly like
+	// the in-place-modified a/b locals of check128_rel.
+	less, err := readtestRelQuietLess(ops, "bid128_quiet_less", formatReadtestBits128(expected), formatReadtestBits128(got))
+	if err != nil {
+		return false, err
+	}
+	if less {
+		ulp = -ulp
+	}
+	maxErr, err := readtestMreMax("decimal128", rounding)
+	if err != nil {
+		return false, err
+	}
+	return math.Abs(ulp+ulpAdd) <= maxErr, nil
 }

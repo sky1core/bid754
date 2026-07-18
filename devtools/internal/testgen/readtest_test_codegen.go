@@ -194,6 +194,16 @@ var nativeReadtestStringBackend = readtestStringBackend{
 	FromString128: nativeReadtestBID128FromString,
 }
 
+// nativeReadtestOperationBackend routes the CMP_RELATIVEERR comparator's
+// bid*_quantize / bid*_quiet_less calls through the Intel C oracle dispatch,
+// mirroring the upstream check32/64/128_rel BIDECIMAL_CALL2 calls.
+var nativeReadtestOperationBackend = readtestOperationBackend{
+	Dec32:  nativeReadtestGeneratedBID32,
+	Dec64:  nativeReadtestGeneratedBID64,
+	Dec128: nativeReadtestGeneratedBID128,
+	Signed: nativeReadtestGeneratedSigned,
+}
+
 func TestGeneratedReadCases(t *testing.T) {
 	requireNative(t)
 	if testing.Short() {
@@ -275,6 +285,25 @@ func TestGeneratedReadCases(t *testing.T) {
 					t.Fatalf("generatedReadCaseOperationBits(%q): %v", tc.Function, err)
 				}
 				switch {
+				case tc.CompareGroup == "CMP_RELATIVEERR":
+					// readtest.c CMP_RELATIVEERR rows compare check*_rel plus the
+					// trans_flags_mask-masked status only (readtest.c:1477/1486/1495);
+					// no secondary output and no exact status comparison apply.
+					equal, err := readtestRelativeErrRowEqual(tc.Format, tc.Expected, got, tc.Rounding, tc.UlpAdd, nativeReadtestStringBackend, nativeReadtestOperationBackend)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrRowEqual(%q): %v", tc.Function, err)
+					}
+					if !equal {
+						t.Fatalf("generated read case %s line %d: expected relative-error match %q (ulp_add %v), got bits %q", tc.ID, tc.Line, tc.Expected, tc.UlpAdd, got)
+					}
+					statusEqual, err := readtestRelativeErrStatusEqual(tc.Status, status)
+					if err != nil {
+						t.Fatalf("readtestRelativeErrStatusEqual(%q, %q): %v", tc.Status, status, err)
+					}
+					if !statusEqual {
+						t.Fatalf("generated read case %s line %d: expected masked status %q, got %q", tc.ID, tc.Line, normalizeReadtestStatus(tc.Status), normalizeReadtestStatus(status))
+					}
+					return
 				case tc.CompareGroup == "CMP_EQUALSTATUS":
 					// readtest.c check_results does not compare the frexp/modf
 					// secondary output in its CMP_EQUALSTATUS branches, so the

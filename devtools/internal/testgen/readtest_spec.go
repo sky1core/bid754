@@ -17,6 +17,13 @@ type parsedReadtestCase struct {
 	Result   string
 	Status   string
 	Line     int
+	// UlpAdd and UnderflowBeforeOnly carry the readtest.in row tokens that
+	// Intel readtest.c extracts as fields before tokenizing the row
+	// (readtest.c:1844-1860): "ulp=<v>" is the CMP_RELATIVEERR ulp bias and
+	// "underflow_before_only" tags the expected underflow flag as
+	// before-rounding-only. They are row fields, never row-skip reasons.
+	UlpAdd              float64
+	UnderflowBeforeOnly bool
 }
 
 type readtestFunctionSpec struct {
@@ -121,6 +128,34 @@ func buildReadtestFunctionInventory(profile ReadTestProfileSpec, fn readtestFunc
 
 	inventory.Reason, inventory.Classification = readtestProfileExclusion(profile, fn, allowedFormats)
 	return inventory
+}
+
+// isTier3RelativeErrSelectedFunction is the explicit closed list of readtest.h
+// CMP_RELATIVEERR function specs the profile selects. Selection is by exact
+// function name and is evaluated before the blanket CMP_RELATIVEERR exclusion,
+// so the remaining CMP_RELATIVEERR surface stays owned by the generated
+// inventory as optional_not_required. Batch 0 selects only the three fmod
+// duplicate-comparator entries: readtest.h holds two independent if-blocks per
+// fmod width (CMP_FUZZYSTATUS at readtest.h:183/1416/4772 and CMP_RELATIVEERR
+// at readtest.h:5218/5476/5729), both executed for every fmod row upstream,
+// and docs/SPEC.md already allows applying the duplicate fmod comparator rows
+// separately per generated runner. Tier 3 transcendental batches extend this
+// list explicitly, batch by batch.
+func isTier3RelativeErrSelectedFunction(name string) bool {
+	switch name {
+	case "bid32_fmod", "bid64_fmod", "bid128_fmod":
+		return true
+	default:
+		return false
+	}
+}
+
+// readtestRelativeErrSuiteName names the dedicated suite of a selected
+// CMP_RELATIVEERR duplicate spec. The plain function name already identifies
+// the CMP_FUZZYSTATUS suite of the same function, so the duplicate comparator
+// spec gets its own suite (and shard file) name.
+func readtestRelativeErrSuiteName(function string) string {
+	return function + "_relativeerr"
 }
 
 func readtestProfileExclusion(profile ReadTestProfileSpec, fn readtestFunctionSpec, allowedFormats map[string]struct{}) (string, string) {
@@ -231,7 +266,10 @@ func buildProfileReadTest(profile ReadTestProfileSpec, fn readtestFunctionSpec, 
 	if profile.Selection != "repo_supported_surface" {
 		return ReadTestSpec{}, false
 	}
-	if fn.Compare == "CMP_RELATIVEERR" {
+	// The explicit Tier 3 closed list is evaluated before the blanket
+	// CMP_RELATIVEERR exclusion, so a selected duplicate-comparator spec flows
+	// through the same supported-surface classification as every other spec.
+	if fn.Compare == "CMP_RELATIVEERR" && !isTier3RelativeErrSelectedFunction(fn.Name) {
 		return ReadTestSpec{}, false
 	}
 	if isHistoricalReadtestSkipFunction(fn.Name) {
@@ -255,8 +293,12 @@ func buildProfileReadTest(profile ReadTestProfileSpec, fn readtestFunctionSpec, 
 	if kind == "status_control" {
 		group = "status_control_operations"
 	}
+	suiteName := fn.Name
+	if fn.Compare == "CMP_RELATIVEERR" {
+		suiteName = readtestRelativeErrSuiteName(fn.Name)
+	}
 	return ReadTestSpec{
-		Name:          fn.Name,
+		Name:          suiteName,
 		Group:         group,
 		Format:        caseFormat,
 		Header:        profile.Header,
@@ -562,6 +604,8 @@ func appendGeneratedReadCases(repoRoot string, spec *SharedSpec, read ReadTestSp
 			Expected:                tc.Result,
 			Status:                  tc.Status,
 			Rounding:                tc.Rounding,
+			UlpAdd:                  tc.UlpAdd,
+			UnderflowBeforeOnly:     tc.UnderflowBeforeOnly,
 		})
 	}
 	if len(cases) == 0 {
@@ -603,6 +647,46 @@ const (
 	readtestRowSkipStatusFiltered    = "status_filtered"
 	readtestRowSkipUnsupportedResult = "unsupported_literal"
 )
+
+// readtestRowTokenMarkers are the row-suffix tokens Intel readtest.c extracts
+// as fields before the sscanf row tokenization (readtest.c:1844-1890). The
+// line is truncated at the earliest marker (the end_of_args minimum), exactly
+// like upstream; the marker values are fields, never row-skip reasons.
+// "str_prefix=" is truncated but carries no stored field: its only upstream
+// consumers are the bid_strtod*/bid_wcstod* helpers, which are permanently
+// outside the supported readtest surface. "longintsize=" is truncated here
+// while its value-based row skip stays with the pre-truncation check in
+// parseReadtestSubset, keeping the historical skip accounting unchanged.
+var readtestRowTokenMarkers = []string{"ulp=", "underflow_before_only", "str_prefix=", "longintsize="}
+
+// parseReadtestRowTokens mirrors the readtest.c:1844-1890 token extraction: it
+// returns the row truncated at the earliest token marker plus the parsed
+// "ulp=<v>" bias (sscanf %le semantics: an unparsable value is 0.0, like
+// upstream) and the "underflow_before_only" presence flag.
+func parseReadtestRowTokens(line string) (trimmed string, ulpAdd float64, underflowBeforeOnly bool) {
+	end := len(line)
+	for _, marker := range readtestRowTokenMarkers {
+		idx := strings.Index(line, marker)
+		if idx < 0 {
+			continue
+		}
+		if idx < end {
+			end = idx
+		}
+		switch marker {
+		case "ulp=":
+			value := line[idx+len(marker):]
+			if fields := strings.Fields(value); len(fields) > 0 {
+				if parsed, err := strconv.ParseFloat(fields[0], 64); err == nil {
+					ulpAdd = parsed
+				}
+			}
+		case "underflow_before_only":
+			underflowBeforeOnly = true
+		}
+	}
+	return strings.TrimSpace(line[:end]), ulpAdd, underflowBeforeOnly
+}
 
 // parseReadtestSubset returns the generated cases for one readtest function and,
 // as its second result, per-reason counts of rows that belong to that function
@@ -650,7 +734,14 @@ func parseReadtestSubset(path string, spec ReadTestSpec) ([]parsedReadtestCase, 
 			continue
 		}
 
-		fields := splitFields(line)
+		// Intel readtest.c extracts the ulp=/underflow_before_only/str_prefix=/
+		// longintsize= suffix tokens as fields and truncates the row at the
+		// earliest token before tokenizing (readtest.c:1844-1890). Mirror that
+		// here; the longintsize=32 row skip below deliberately keeps reading the
+		// pre-truncation line so its historical accounting is unchanged.
+		rowLine, ulpAdd, underflowBeforeOnly := parseReadtestRowTokens(line)
+
+		fields := splitFields(rowLine)
 		if len(fields) == 0 || fields[0] != spec.Function {
 			// Row for another function: this is how a per-function scan walks
 			// the shared readtest.in, not a drop of this function's data.
@@ -716,12 +807,14 @@ func parseReadtestSubset(path string, spec ReadTestSpec) ([]parsedReadtestCase, 
 		}
 
 		cases = append(cases, parsedReadtestCase{
-			Function: fields[0],
-			Rounding: rounding,
-			Operands: append([]string(nil), operands...),
-			Result:   result,
-			Status:   status,
-			Line:     lineNo,
+			Function:            fields[0],
+			Rounding:            rounding,
+			Operands:            append([]string(nil), operands...),
+			Result:              result,
+			Status:              status,
+			Line:                lineNo,
+			UlpAdd:              ulpAdd,
+			UnderflowBeforeOnly: underflowBeforeOnly,
 		})
 		if spec.Limit > 0 && len(cases) == spec.Limit {
 			break

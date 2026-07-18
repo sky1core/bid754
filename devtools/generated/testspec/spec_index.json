@@ -2387,9 +2387,9 @@
       "source": "third_party/intel_dfp/TESTS/readtest.in",
       "selection": "repo_supported_surface",
       "total_functions": 680,
-      "selected_functions": 558,
-      "excluded_functions": 122,
-      "rows_accepted": 86644,
+      "selected_functions": 561,
+      "excluded_functions": 119,
+      "rows_accepted": 86872,
       "row_skip_reasons": {
         "longintsize32": 6652
       },
@@ -10483,9 +10483,12 @@
             "OP_DEC32"
           ],
           "compare_group": "CMP_RELATIVEERR",
-          "selected": false,
-          "reason": "CMP_RELATIVEERR is excluded from the current regular readtest verification profile",
-          "classification": "optional_not_required"
+          "selected": true,
+          "format": "decimal32",
+          "kind": "binary_op",
+          "group": "decimal32_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid32_hypot",
@@ -10787,9 +10790,12 @@
             "OP_DEC64"
           ],
           "compare_group": "CMP_RELATIVEERR",
-          "selected": false,
-          "reason": "CMP_RELATIVEERR is excluded from the current regular readtest verification profile",
-          "classification": "optional_not_required"
+          "selected": true,
+          "format": "decimal64",
+          "kind": "binary_op",
+          "group": "decimal64_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid64_hypot",
@@ -11091,9 +11097,12 @@
             "OP_DEC128"
           ],
           "compare_group": "CMP_RELATIVEERR",
-          "selected": false,
-          "reason": "CMP_RELATIVEERR is excluded from the current regular readtest verification profile",
-          "classification": "optional_not_required"
+          "selected": true,
+          "format": "decimal128",
+          "kind": "binary_op",
+          "group": "decimal128_operations",
+          "reason": "selected by readtest profile",
+          "classification": "selected"
         },
         {
           "function": "bid128_hypot",
@@ -14469,8 +14478,11 @@
     "readtest/bid32_signaling_less_equal.json",
     "readtest/bid32_signaling_not_greater.json",
     "readtest/bid32_signaling_greater.json",
+    "readtest/bid32_fmod_relativeerr.json",
     "readtest/bid32_modf.json",
+    "readtest/bid64_fmod_relativeerr.json",
     "readtest/bid64_modf.json",
+    "readtest/bid128_fmod_relativeerr.json",
     "readtest/bid128_modf.json",
     "readtest/bid32_fdim.json",
     "readtest/bid64_fdim.json",

@@ -54,14 +54,21 @@ type ReadtestShard struct {
 	Cases []ReadtestShardCase `json:"cases"`
 }
 
-// ReadtestShardCase holds the per-case GeneratedReadCase fields.
+// ReadtestShardCase holds the per-case GeneratedReadCase fields. UlpAdd and
+// UnderflowBeforeOnly carry the readtest.in row tokens Intel readtest.c
+// extracts as fields before tokenizing (readtest.c:1844-1860): the
+// CMP_RELATIVEERR ulp bias and the before-rounding-only underflow tag. Both
+// are omitted at their zero value, which every current CMP_FUZZYSTATUS /
+// CMP_EQUALSTATUS row has.
 type ReadtestShardCase struct {
-	ID       string   `json:"id"`
-	Line     int      `json:"line"`
-	Operands []string `json:"operands"`
-	Expected string   `json:"expected"`
-	Status   string   `json:"status"`
-	Rounding int      `json:"rounding"`
+	ID                  string   `json:"id"`
+	Line                int      `json:"line"`
+	Operands            []string `json:"operands"`
+	Expected            string   `json:"expected"`
+	Status              string   `json:"status"`
+	Rounding            int      `json:"rounding"`
+	UlpAdd              float64  `json:"ulp_add,omitempty"`
+	UnderflowBeforeOnly bool     `json:"underflow_before_only,omitempty"`
 }
 
 // FFIShardHeader holds the GeneratedFFICase fields that are constant
@@ -142,6 +149,11 @@ type GeneratedReadCase struct {
 	Expected                string   `json:"expected"`
 	Status                  string   `json:"status"`
 	Rounding                int      `json:"rounding"`
+	// UlpAdd and UnderflowBeforeOnly are the readtest.in row-token fields
+	// (readtest.c:1844-1860): the CMP_RELATIVEERR ulp bias and the
+	// before-rounding-only underflow tag.
+	UlpAdd              float64 `json:"ulp_add,omitempty"`
+	UnderflowBeforeOnly bool    `json:"underflow_before_only,omitempty"`
 }
 
 type GeneratedReadtestProfileInventory struct {

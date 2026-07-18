@@ -48,7 +48,14 @@ package bid754
 //     result still requires an exact bit match (quiet_not_equal is true for
 //     NaN operands);
 //   - frexp/modf secondary outputs are compared exactly
-//     (i1 != i2 / R64_1 != B64 / check128(R_1, B), readtest.c:1480,1489).
+//     (i1 != i2 / R64_1 != B64 / check128(R_1, B), readtest.c:1480,1489);
+//   - CMP_RELATIVEERR rows (readtest.c:1476-1496) compare
+//     check32/64/128_rel (readtest.c:685-893) plus the status masked to
+//     trans_flags_mask = 0x05 (invalid | zero-divide, readtest.c:101), with
+//     the per-width mre_max thresholds indexed by the row's BID rounding
+//     number (readtest.c:1921-1948); this comparator applies ONLY to
+//     CMP_RELATIVEERR rows — using it on a CMP_FUZZYSTATUS or
+//     CMP_EQUALSTATUS row would weaken those exact comparisons.
 //
 // Every rejection case below carries the same contract: if it starts passing
 // (or an acceptance case starts failing), the generated gate has drifted from
@@ -449,6 +456,365 @@ func TestReadtestExpectedLiteralParseHonorsRowRounding(t *testing.T) {
 	}
 }
 
+// TestReadtestRelativeErrComparatorMatchesIntelSemantics anchors the
+// CMP_RELATIVEERR value comparator (readtestRelativeErrRowEqual) to the Intel
+// readtest.c check32/64/128_rel meaning (readtest.c:685-893). The rejection
+// rows pin the strict side (a weakened comparator starts passing them); the
+// acceptance rows pin the Intel-mandated tolerance (a strengthened comparator
+// starts failing them). Together the per-rounding rows also pin the mre_max
+// table values and their BID rounding-number indexing (0=NE, 1=DOWN, 2=UP,
+// 3=ZERO, 4=NA; readtest.c:1921-1948), and the ulp_add rows pin the upstream
+// sign orientation ulp = ±(expected - got) from quiet_less(expected, got).
+func TestReadtestRelativeErrComparatorMatchesIntelSemantics(t *testing.T) {
+	cases := []struct {
+		name     string
+		format   string
+		rounding int
+		ulpAdd   float64
+		expected string
+		got      string // decimal literal or [bits]; converted like a dispatch result
+		want     bool
+		detail   string
+	}{
+		// --- decimal64 threshold/index pinning: 1 ulp against
+		// mre_max64 = {0.55, 1.05, 1.05, 1.05, 0.55}.
+		{"64 identical", "decimal64", 0, 0, "[31c0000000000001]", "[31c0000000000001]", true,
+			"identical bits must pass at every threshold"},
+		{"64 one ulp NE", "decimal64", 0, 0, "[31c0000000000001]", "[31c0000000000002]", false,
+			"1 ulp exceeds mre_max64[0]=0.55; accepting it widens the nearest-even threshold"},
+		{"64 one ulp NA", "decimal64", 4, 0, "[31c0000000000001]", "[31c0000000000002]", false,
+			"1 ulp exceeds mre_max64[4]=0.55; index 4 must share the nearest thresholds"},
+		{"64 one ulp DOWN", "decimal64", 1, 0, "[31c0000000000001]", "[31c0000000000002]", true,
+			"1 ulp is within mre_max64[1]=1.05; rejecting it narrows the directed threshold"},
+		{"64 one ulp UP", "decimal64", 2, 0, "[31c0000000000001]", "[31c0000000000002]", true,
+			"1 ulp is within mre_max64[2]=1.05"},
+		{"64 one ulp ZERO", "decimal64", 3, 0, "[31c0000000000001]", "[31c0000000000002]", true,
+			"1 ulp is within mre_max64[3]=1.05"},
+		{"64 two ulp DOWN", "decimal64", 1, 0, "[31c0000000000001]", "[31c0000000000003]", false,
+			"2 ulp exceeds mre_max64[1]=1.05"},
+		// --- decimal32 thresholds: mre_max32 = {0.5, 1.01, 1.01, 1.01, 0.5}.
+		{"32 one ulp NE", "decimal32", 0, 0, "[32800001]", "[32800002]", false,
+			"1 ulp exceeds mre_max32[0]=0.5"},
+		{"32 one ulp NA", "decimal32", 4, 0, "[32800001]", "[32800002]", false,
+			"1 ulp exceeds mre_max32[4]=0.5"},
+		{"32 one ulp DOWN", "decimal32", 1, 0, "[32800001]", "[32800002]", true,
+			"1 ulp is within mre_max32[1]=1.01"},
+		{"32 two ulp DOWN", "decimal32", 1, 0, "[32800001]", "[32800003]", false,
+			"2 ulp exceeds mre_max32[1]=1.01"},
+		// --- decimal128 thresholds: mre_max128 = {2.0, 5.0, 5.0, 5.0, 2.0}.
+		{"128 two ulp NE", "decimal128", 0, 0, "[30400000000000000000000000000001]", "[30400000000000000000000000000003]", true,
+			"2 ulp is within mre_max128[0]=2.0"},
+		{"128 three ulp NE", "decimal128", 0, 0, "[30400000000000000000000000000001]", "[30400000000000000000000000000004]", false,
+			"3 ulp exceeds mre_max128[0]=2.0"},
+		{"128 five ulp DOWN", "decimal128", 1, 0, "[30400000000000000000000000000001]", "[30400000000000000000000000000006]", true,
+			"5 ulp is within mre_max128[1]=5.0"},
+		{"128 six ulp DOWN", "decimal128", 1, 0, "[30400000000000000000000000000001]", "[30400000000000000000000000000007]", false,
+			"6 ulp exceeds mre_max128[1]=5.0"},
+		// --- ulp_add sign orientation: ulp = ±(expected - got), negative when
+		// quiet_less(expected, got) (readtest.c:752/817/885). Flipping the
+		// orientation makes these two rows trade outcomes.
+		{"64 ulp_add compensates got above", "decimal64", 0, 1.0, "[31c0000000000001]", "[31c0000000000002]", true,
+			"got 1 ulp above expected gives ulp=-1; |-1+1.0|=0 must pass — failing means the ulp sign orientation flipped"},
+		{"64 ulp_add doubles got below", "decimal64", 0, 1.0, "[31c0000000000002]", "[31c0000000000001]", false,
+			"got 1 ulp below expected gives ulp=+1; |1+1.0|=2 must fail — passing means the ulp sign orientation flipped"},
+		{"64 ulp_add widens against direction", "decimal64", 0, -1.0, "[31c0000000000001]", "[31c0000000000002]", false,
+			"got 1 ulp above expected with ulp_add=-1 gives |-2|=2 and must fail"},
+		// --- quantize alignment: equal-value different-quantum cohort members
+		// align to distance 0. CMP_RELATIVEERR is deliberately a value-level
+		// comparison, unlike the exact-bit CMP_FUZZYSTATUS branch.
+		{"64 cohort aligns to zero", "decimal64", 0, 0, "+16E+0", "+160E-1", true,
+			"quantize alignment must give ulp=0 for equal-value cohort members"},
+		{"128 cohort aligns to zero", "decimal128", 0, 0, "+16E+0", "+160E-1", true,
+			"quantize alignment must give ulp=0 for equal-value cohort members"},
+		// --- sign, NaN, and Inf handling (readtest.c:699-717/776-784/842-852).
+		{"64 sign mismatch", "decimal64", 1, 0, "[31c0000000000001]", "[b1c0000000000001]", false,
+			"a sign-bit mismatch fails before any distance is measured"},
+		{"64 nan exact", "decimal64", 0, 0, "[7c00000000000001]", "[7c00000000000001]", true,
+			"bit-identical NaNs pass"},
+		{"64 nan payload", "decimal64", 0, 0, "[7c00000000000001]", "[7c00000000000002]", false,
+			"NaN results require exact bits under check64_rel"},
+		{"64 inf exact", "decimal64", 0, 0, "[7800000000000000]", "[7800000000000000]", true,
+			"bit-identical infinities pass"},
+		{"64 inf vs max finite", "decimal64", 0, 0, "[7800000000000000]", "[77fb86f26fc0ffff]", false,
+			"check64_rel has no Inf substitution; only decimal128 substitutes"},
+		{"128 nan payload", "decimal128", 0, 0, "[7c000000000000000000000000000001]", "[7c000000000000000000000000000002]", false,
+			"NaN results require exact bits under check128_rel"},
+		// --- decimal128 Inf substitution (readtest.c:702-708): an infinite
+		// side becomes the maximum-finite pattern of the same sign and the
+		// comparison continues.
+		{"128 +inf equals +max finite", "decimal128", 0, 0, "[78000000000000000000000000000000]", "[5fffed09bead87c0378d8e63ffffffff]", true,
+			"check128_rel substitutes +Inf with the +max-finite pattern; distance 0 must pass"},
+		{"128 -inf equals -max finite", "decimal128", 0, 0, "[f8000000000000000000000000000000]", "[dfffed09bead87c0378d8e63ffffffff]", true,
+			"check128_rel substitutes -Inf with the -max-finite pattern; distance 0 must pass"},
+		{"128 +inf vs -max finite", "decimal128", 0, 0, "[78000000000000000000000000000000]", "[dfffed09bead87c0378d8e63ffffffff]", false,
+			"the substitution keeps the sign, so the sign check must still fail"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotBits := comparatorStrengthBits(t, tc.format, tc.got, tc.rounding)
+			equal, err := readtestRelativeErrRowEqual(tc.format, tc.expected, gotBits, tc.rounding, tc.ulpAdd, goportReadtestStringBackend, goportReadtestOperationBackend)
+			if err != nil {
+				t.Fatalf("readtestRelativeErrRowEqual(%q, %q, %q, rnd=%d, ulpAdd=%v): %v", tc.format, tc.expected, gotBits, tc.rounding, tc.ulpAdd, err)
+			}
+			if equal != tc.want {
+				t.Errorf("readtestRelativeErrRowEqual(%q, %q, %q, rnd=%d, ulpAdd=%v) = %v, want %v — gate less strict/stricter than Intel readtest.c: %s",
+					tc.format, tc.expected, gotBits, tc.rounding, tc.ulpAdd, equal, tc.want, tc.detail)
+			}
+		})
+	}
+}
+
+// TestReadtestRelativeErrMreMaxTableMatchesIntel pins the mre_max threshold
+// table values and their BID rounding-number indexing directly against the
+// Intel readtest.c constants (readtest.c:1921-1948), and pins that a rounding
+// outside the table errors instead of picking a default threshold.
+func TestReadtestRelativeErrMreMaxTableMatchesIntel(t *testing.T) {
+	want := map[string][5]float64{
+		"decimal32":  {0.5, 1.01, 1.01, 1.01, 0.5},
+		"decimal64":  {0.55, 1.05, 1.05, 1.05, 0.55},
+		"decimal128": {2.0, 5.0, 5.0, 5.0, 2.0},
+	}
+	for format, thresholds := range want {
+		for rounding, threshold := range thresholds {
+			got, err := readtestMreMax(format, rounding)
+			if err != nil {
+				t.Fatalf("readtestMreMax(%q, %d): %v", format, rounding, err)
+			}
+			if got != threshold {
+				t.Errorf("readtestMreMax(%q, %d) = %v, want %v — mre_max table or its rounding index drifted from readtest.c:1921-1948", format, rounding, got, threshold)
+			}
+		}
+	}
+	for _, rounding := range []int{-1, 5} {
+		if _, err := readtestMreMax("decimal64", rounding); err == nil {
+			t.Errorf("readtestMreMax(decimal64, %d) accepted an out-of-table rounding — it must error, not default", rounding)
+		}
+	}
+}
+
+// TestReadtestRelativeErrStatusMaskMatchesIntel pins the CMP_RELATIVEERR
+// status comparison to (expected & 0x05) == (actual & 0x05) — the readtest.c
+// trans_flags_mask of invalid (0x01) and zero-divide (0x04) only
+// (readtest.c:101, 1477/1486/1495). Widening the mask makes the acceptance
+// rows fail; narrowing it makes the rejection rows pass.
+func TestReadtestRelativeErrStatusMaskMatchesIntel(t *testing.T) {
+	cases := []struct {
+		name     string
+		expected string
+		actual   string
+		want     bool
+	}{
+		{"identical zero", "00", "00", true},
+		{"inexact ignored", "00", "20", true},
+		{"underflow+inexact ignored", "30", "00", true},
+		{"overflow ignored", "08", "20", true},
+		{"invalid must match", "01", "00", false},
+		{"invalid must match reversed", "00", "01", false},
+		{"zero-divide must match", "04", "00", false},
+		{"invalid+zero-divide equal", "05", "05", true},
+		{"invalid vs invalid+zero-divide", "01", "05", false},
+		{"masked bits equal despite noise", "21", "01", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := readtestRelativeErrStatusEqual(tc.expected, tc.actual)
+			if err != nil {
+				t.Fatalf("readtestRelativeErrStatusEqual(%q, %q): %v", tc.expected, tc.actual, err)
+			}
+			if got != tc.want {
+				t.Errorf("readtestRelativeErrStatusEqual(%q, %q) = %v, want %v — trans_flags_mask drifted from 0x05", tc.expected, tc.actual, got, tc.want)
+			}
+		})
+	}
+}
+
+// readtestRelativeErrSuiteAllowlist is the hand-pinned closed list of
+// generated readtest suites that may carry CMP_RELATIVEERR cases. It mirrors
+// the explicit Tier 3 selection list in devtools/internal/testgen
+// (isTier3RelativeErrSelectedFunction) but is maintained by hand here, outside
+// the generation path, so a generator that silently reclassifies an exact
+// suite as CMP_RELATIVEERR (a comparison weakening no count can see) fails
+// this anchor. Extend it only together with a reviewed selection-list change.
+var readtestRelativeErrSuiteAllowlist = map[string]string{
+	"bid32_fmod_relativeerr":  "bid32_fmod",
+	"bid64_fmod_relativeerr":  "bid64_fmod",
+	"bid128_fmod_relativeerr": "bid128_fmod",
+}
+
+// TestReadtestRelativeErrComparatorAppliedOnlyToRelativeErrRows anchors the
+// application boundary of the relative-error comparator from both sides:
+//   - data side: in the checked-in generated spec, CMP_RELATIVEERR appears
+//     only in the hand-allowlisted duplicate-comparator suites, each bound to
+//     its declared function — so no exact suite can be reclassified under the
+//     tolerant comparator;
+//   - runner side: in the checked-in generated case runners, every call to
+//     the relative-error comparator helpers is lexically guarded by a
+//     tc.CompareGroup == "CMP_RELATIVEERR" case clause — so no
+//     CMP_FUZZYSTATUS/CMP_EQUALSTATUS row can reach the tolerant comparator.
+func TestReadtestRelativeErrComparatorAppliedOnlyToRelativeErrRows(t *testing.T) {
+	spec := goportLoadGeneratedReadSpec(t)
+	seenSuites := map[string]bool{}
+	for _, tc := range spec.ReadCases {
+		if tc.CompareGroup == "CMP_RELATIVEERR" {
+			function, allowed := readtestRelativeErrSuiteAllowlist[tc.Suite]
+			if !allowed {
+				t.Errorf("generated suite %q carries a CMP_RELATIVEERR case (%s) but is not in the hand-pinned relative-error suite allowlist — an exact suite must never adopt the tolerant comparator", tc.Suite, tc.ID)
+				continue
+			}
+			if tc.Function != function {
+				t.Errorf("relative-error suite %q case %s runs function %q, allowlist pins %q", tc.Suite, tc.ID, tc.Function, function)
+			}
+			seenSuites[tc.Suite] = true
+			continue
+		}
+		if _, allowed := readtestRelativeErrSuiteAllowlist[tc.Suite]; allowed {
+			t.Errorf("relative-error suite %q case %s carries compare group %q — the duplicate suites are CMP_RELATIVEERR only", tc.Suite, tc.ID, tc.CompareGroup)
+		}
+	}
+	for suite := range readtestRelativeErrSuiteAllowlist {
+		if !seenSuites[suite] {
+			t.Errorf("allowlisted relative-error suite %q has no generated cases; remove the stale entry or fix the selection", suite)
+		}
+	}
+
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot resolve anchor source path")
+	}
+	dir := filepath.Dir(thisFile)
+	for _, file := range []string{
+		"generated_readtest_goport_cases_test.go",
+		"generated_readtest_cases_native_test.go",
+	} {
+		file := file
+		t.Run(file, func(t *testing.T) {
+			src, err := os.ReadFile(filepath.Join(dir, file))
+			if err != nil {
+				t.Fatalf("read checked-in generated source %s: %v", file, err)
+			}
+			guarded, total, err := readtestRelativeErrCallSitesGuarded(string(src))
+			if err != nil {
+				t.Fatalf("parse generated source %s: %v", file, err)
+			}
+			if total == 0 {
+				t.Errorf("%s: no relative-error comparator call sites found — the CMP_RELATIVEERR rows lost their comparator", file)
+			}
+			if guarded != total {
+				t.Errorf("%s: %d of %d relative-error comparator call sites are outside a tc.CompareGroup == \"CMP_RELATIVEERR\" case clause — the tolerant comparator must never reach exact rows", file, total-guarded, total)
+			}
+		})
+	}
+}
+
+// readtestRelativeErrCallSitesGuarded statically counts the call sites of the
+// relative-error comparator helpers in one generated runner source and how
+// many of them sit inside a switch case clause whose guard expression
+// compares .CompareGroup against the literal "CMP_RELATIVEERR". Pure function
+// of the source text so the negative self-test below can prove detection
+// power.
+func readtestRelativeErrCallSitesGuarded(src string) (guarded, total int, err error) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "generated.go", src, 0)
+	if err != nil {
+		return 0, 0, err
+	}
+	isRelativeErrGuard := func(expr ast.Expr) bool {
+		binary, ok := expr.(*ast.BinaryExpr)
+		if !ok || binary.Op != token.EQL {
+			return false
+		}
+		matchSide := func(side ast.Expr) bool {
+			selector, ok := side.(*ast.SelectorExpr)
+			return ok && selector.Sel.Name == "CompareGroup"
+		}
+		matchLiteral := func(side ast.Expr) bool {
+			literal, ok := side.(*ast.BasicLit)
+			return ok && literal.Kind == token.STRING && literal.Value == `"CMP_RELATIVEERR"`
+		}
+		return (matchSide(binary.X) && matchLiteral(binary.Y)) || (matchSide(binary.Y) && matchLiteral(binary.X))
+	}
+	type span struct{ from, to token.Pos }
+	var guardedSpans []span
+	ast.Inspect(file, func(n ast.Node) bool {
+		clause, ok := n.(*ast.CaseClause)
+		if !ok {
+			return true
+		}
+		for _, expr := range clause.List {
+			if isRelativeErrGuard(expr) {
+				guardedSpans = append(guardedSpans, span{clause.Pos(), clause.End()})
+				break
+			}
+		}
+		return true
+	})
+	ast.Inspect(file, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		ident, ok := call.Fun.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		switch ident.Name {
+		case "readtestRelativeErrRowEqual", "readtestRelativeErrStatusEqual":
+		default:
+			return true
+		}
+		total++
+		for _, s := range guardedSpans {
+			if call.Pos() >= s.from && call.End() <= s.to {
+				guarded++
+				break
+			}
+		}
+		return true
+	})
+	return guarded, total, nil
+}
+
+// TestReadtestRelativeErrGuardCheckDetectsMisapplication is the
+// detection-power self-test for readtestRelativeErrCallSitesGuarded: an
+// unguarded relative-error comparator call (the misapplication the anchor
+// exists to stop) must be counted as unguarded, and a properly guarded one as
+// guarded.
+func TestReadtestRelativeErrGuardCheckDetectsMisapplication(t *testing.T) {
+	const guardedSrc = `package bid754
+func runner() {
+	switch {
+	case tc.CompareGroup == "CMP_RELATIVEERR":
+		equal, _ := readtestRelativeErrRowEqual(f, e, g, r, u, b, o)
+		_ = equal
+	}
+}`
+	guarded, total, err := readtestRelativeErrCallSitesGuarded(guardedSrc)
+	if err != nil {
+		t.Fatalf("parse guarded synthetic source: %v", err)
+	}
+	if total != 1 || guarded != 1 {
+		t.Fatalf("guarded synthetic source counted (guarded=%d, total=%d), want (1, 1)", guarded, total)
+	}
+
+	const misappliedSrc = `package bid754
+func runner() {
+	switch {
+	case tc.CompareGroup == "CMP_FUZZYSTATUS":
+		equal, _ := readtestRelativeErrRowEqual(f, e, g, r, u, b, o)
+		_ = equal
+	}
+	ok, _ := readtestRelativeErrStatusEqual(e, a)
+	_ = ok
+}`
+	guarded, total, err = readtestRelativeErrCallSitesGuarded(misappliedSrc)
+	if err != nil {
+		t.Fatalf("parse misapplied synthetic source: %v", err)
+	}
+	if total != 2 || guarded != 0 {
+		t.Fatalf("misapplied synthetic source counted (guarded=%d, total=%d), want (0, 2) — the guard check lost its detection power", guarded, total)
+	}
+}
+
 // readtestComparatorBindingReport holds the static-analysis outcome of scanning
 // one generated readtest source: whether its declared case-decision entry
 // function still exists and which anchored comparators it fails to reach
@@ -722,13 +1088,15 @@ func TestReadtestComparatorBindingRoutesThroughAnchoredHelpers(t *testing.T) {
 	// binding together pin: the comparator body is strict AND the runner
 	// invokes it where its result is consumed.
 	coreComparators := []string{
-		"readtestDecimalRowEqual",      // TestReadtestDecimalRowComparatorIsBitExact
-		"readtestQuietEqual",           // TestReadtestQuietEqualComparatorMatchesIntelSemantics
-		"readtestToStringRowEqual",     // TestReadtestToStringComparatorRequiresExactCohort
-		"readtestSecondaryOutputEqual", // TestReadtestSecondaryOutputComparatorIsExact
-		"readtestCombineStatus",        // TestReadtestStatusComparatorDistinguishesFlags
-		"normalizeReadtestStatus",      // TestReadtestStatusComparatorDistinguishesFlags
-		"normalizeReadtestBits",        // TestReadtest128BitLiteralParserRejectsInvalidForms
+		"readtestDecimalRowEqual",        // TestReadtestDecimalRowComparatorIsBitExact
+		"readtestQuietEqual",             // TestReadtestQuietEqualComparatorMatchesIntelSemantics
+		"readtestToStringRowEqual",       // TestReadtestToStringComparatorRequiresExactCohort
+		"readtestSecondaryOutputEqual",   // TestReadtestSecondaryOutputComparatorIsExact
+		"readtestCombineStatus",          // TestReadtestStatusComparatorDistinguishesFlags
+		"normalizeReadtestStatus",        // TestReadtestStatusComparatorDistinguishesFlags
+		"normalizeReadtestBits",          // TestReadtest128BitLiteralParserRejectsInvalidForms
+		"readtestRelativeErrRowEqual",    // TestReadtestRelativeErrComparatorMatchesIntelSemantics
+		"readtestRelativeErrStatusEqual", // TestReadtestRelativeErrStatusMaskMatchesIntel
 	}
 
 	targets := []struct {

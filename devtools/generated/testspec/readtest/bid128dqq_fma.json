@@ -139,10 +139,10 @@
     {"id":"bid128dqq_fma_line_1674","line":1674,"operands":["[d3fa890f64ce5e81]","[3ea531047129006250000181900b0030]","[64e121628004f054ffffffffefffffe7]"],"expected":"[c0e6e3d1a636830c908b5666aee40f82]","status":"20","rounding":4},
     {"id":"bid128dqq_fma_line_1675","line":1675,"operands":["[d75dee9e7fa7ddb6]","[b8c2206ea94748a5809b447f4dee2ff7]","[00000000000000010000000000000000]"],"expected":"[3b39113f12dea6020589c01ea453ba99]","status":"20","rounding":4},
     {"id":"bid128dqq_fma_line_1676","line":1676,"operands":["[dfce04ec385ae19b]","[934cd5b31f04b39112a7b9c3e3824ebd]","[01028049400201000800000800008000]"],"expected":"[164c5453c54dc87c374fc35ce033fa73]","status":"20","rounding":4},
-    {"id":"bid128dqq_fma_line_125781","line":125781,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"1000000000000000000000000000000000E-6176","status":"0X30","rounding":0},
+    {"id":"bid128dqq_fma_line_125781","line":125781,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"1000000000000000000000000000000000E-6176","status":"0X30","rounding":0,"underflow_before_only":true},
     {"id":"bid128dqq_fma_line_125782","line":125782,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"999999999999999999999999999999999E-6176","status":"0X30","rounding":1},
-    {"id":"bid128dqq_fma_line_125783","line":125783,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"1000000000000000000000000000000000E-6176","status":"0X30","rounding":2},
+    {"id":"bid128dqq_fma_line_125783","line":125783,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"1000000000000000000000000000000000E-6176","status":"0X30","rounding":2,"underflow_before_only":true},
     {"id":"bid128dqq_fma_line_125784","line":125784,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"999999999999999999999999999999999E-6176","status":"0X30","rounding":3},
-    {"id":"bid128dqq_fma_line_125785","line":125785,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"1000000000000000000000000000000000E-6176","status":"0X30","rounding":4}
+    {"id":"bid128dqq_fma_line_125785","line":125785,"operands":["5e-100","-1e-6078","1e-6143"],"expected":"1000000000000000000000000000000000E-6176","status":"0X30","rounding":4,"underflow_before_only":true}
   ]
 }
