@@ -585,8 +585,10 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 23662 {
-		t.Fatalf("generated %d ffi cases, want 23662", len(spec.FFICases))
+	// 23662 manifest-driven cases + 5 mutation-audit witness rows + 2048
+	// bid_factors32 exactness sweep cases (mutation_witness_corpus.go).
+	if len(spec.FFICases) != 25715 {
+		t.Fatalf("generated %d ffi cases, want 25715", len(spec.FFICases))
 	}
 	ffiSymbols, err := loadSymbolFile(filepath.Join(repoRoot, "generated", "json", "intel_dfp_symbols.json"))
 	if err != nil {
@@ -650,6 +652,14 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(ffiFunctionCaseCounts) != 469 {
 		t.Fatalf("generated ffi function count = %d, want 469 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
 	}
+	ffiWitnessRowsByFunction := map[string]int{}
+	for _, witness := range ffiMutationWitnessCases {
+		ffiWitnessRowsByFunction[witness.Function]++
+	}
+	factorsSweep, err := bid32DivFactors32SweepCases()
+	if err != nil {
+		t.Fatalf("bid_factors32 sweep: %v", err)
+	}
 	for function, count := range ffiFunctionCaseCounts {
 		want := 48 + 4*ffiTier1RoundingEdgeCaseCount(ffiFunctionOperations[function], ffiFunctionBits[function])
 		if shape, ok := ffiMixedDecimalShapeFor(function); ok {
@@ -658,23 +668,30 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 				want++
 			}
 		}
+		want += ffiWitnessRowsByFunction[function]
+		if function == "bid32_div" {
+			want += len(factorsSweep)
+		}
 		if count != want {
 			t.Fatalf("generated ffi function %q has %d cases, want %d", function, count, want)
 		}
 	}
+	// decimal32 carries the 2048-case bid_factors32 exactness sweep; the
+	// mutation-audit witness rows add 2 decimal64 (bid64_add, bid64_fma) and
+	// 3 decimal128 (bid128_fma x2, bid128_quantize) cases.
 	assertCountMap(t, "ffi formats", ffiFormatCaseCounts, map[string]int{
-		"decimal32":  7600,
-		"decimal64":  8031,
-		"decimal128": 8031,
+		"decimal32":  9648,
+		"decimal64":  8033,
+		"decimal128": 8034,
 	})
 	expectedFFIOperations := map[string]int{
 		"abs":                         144,
-		"add":                         324,
+		"add":                         325, // +1 mutation-audit witness (bid64_add)
 		"class":                       144,
 		"copy":                        144,
 		"copySign":                    144,
-		"div":                         324,
-		"fma":                         900,
+		"div":                         2372, // +2048 bid_factors32 sweep (bid32_div)
+		"fma":                         903,  // +3 mutation-audit witnesses (bid64_fma, bid128_fma x2)
 		"fmod":                        144,
 		"from_int32":                  144,
 		"from_int64":                  144,
@@ -701,7 +718,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"negate":                      144,
 		"nextdown":                    144,
 		"nextup":                      144,
-		"quantize":                    324,
+		"quantize":                    325, // +1 mutation-audit witness (bid128_quantize)
 		"quiet_equal":                 144,
 		"quiet_greater":               144,
 		"quiet_greater_equal":         144,

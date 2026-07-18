@@ -1261,6 +1261,9 @@ func GeneratePublicParityRunnerOutputs(repoRoot string, symbols []publicAPISymbo
 	if err := validatePublicParityStringCorpus(); err != nil {
 		return nil, err
 	}
+	if err := validateParityFlaglessSiblingTables(sigs); err != nil {
+		return nil, err
+	}
 	masks, err := loadBidExceptionMasks(fpJoin(repoRoot, publicParityHeaderPath))
 	if err != nil {
 		return nil, err

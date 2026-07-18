@@ -16,6 +16,30 @@ const (
 	expectedPublicParityCases    = 29011
 )
 
+// The flagless-sibling equivalence leg's counts are pinned separately from
+// the wrapper parity cases: it compares port entrypoints against their
+// WithFlags siblings rather than public wrappers against the port, and its
+// corpus density (crossed corpus + pinned random supplement + mutation-audit
+// witness rows) is sized by the measured detection gaps, not by the public
+// symbol census.
+const (
+	expectedPublicParityFlaglessSiblingTargets = 6
+	expectedPublicParityFlaglessSiblingCases   = 21029792
+)
+
+func TestGeneratedPublicAPIFlaglessSiblingEquivalence(t *testing.T) {
+	if testing.Short() {
+		t.Skip("flagless-sibling equivalence runs in non-short mode; it exercises the full crossed corpus")
+	}
+	if got := len(publicParityFlaglessSiblingTargets32) + len(publicParityFlaglessSiblingTargets64); got != expectedPublicParityFlaglessSiblingTargets {
+		t.Fatalf("expected %d flagless-sibling targets, got %d", expectedPublicParityFlaglessSiblingTargets, got)
+	}
+	n := runPublicParityFlaglessSiblingEquivalence(t)
+	if n != expectedPublicParityFlaglessSiblingCases {
+		t.Fatalf("expected %d flagless-sibling cases, ran %d", expectedPublicParityFlaglessSiblingCases, n)
+	}
+}
+
 var expectedPublicParityCasesByShape = map[string]int{
 	"func_context":            720,
 	"func_from_int":           55,

@@ -43,8 +43,152 @@ func emitPublicParityDispatch(units []parityUnit, corpus publicParityCorpus, mas
 	for _, u := range units {
 		fmt.Fprintf(&b, "\t{%q, %q, %s},\n", u.Symbol, shapeName(u.Shape), u.FuncName)
 	}
-	b.WriteString("}\n")
+	b.WriteString("}\n\n")
+
+	emitPublicParityFlaglessSibling(&b)
 	return []byte(b.String()), nil
+}
+
+// emitPublicParityFlaglessSibling renders the generated flagless-sibling
+// equivalence leg: the separately ported flagless port entrypoints (which the
+// public value-only wrappers route through, and which carry no oracle of
+// their own in the regular generated chain) are compared bit-exactly against
+// their oracle-verified *WithFlags siblings over the parity corpus crossed
+// both ways, a pinned seeded pseudo-random supplement, and the pinned
+// mutation-audit witness rows (mutation_witness_corpus.go).
+func emitPublicParityFlaglessSibling(b *strings.Builder) {
+	widthOfTarget := map[string]int{}
+	emitTargets := func(width int, uintType string) {
+		fmt.Fprintf(b, "var publicParityFlaglessSiblingTargets%d = []struct {\n\tname      string\n\tflagless  func(x, y %s, rndMode int) %s\n\twithFlags func(x, y %s, rndMode int) (%s, uint32)\n}{\n",
+			width, uintType, uintType, uintType, uintType)
+		for _, target := range parityFlaglessSiblingTargets {
+			if target.Width != width {
+				continue
+			}
+			widthOfTarget[target.Flagless] = width
+			fmt.Fprintf(b, "\t{%q, bidgo.%s, bidgo.%s}, // %s\n", target.Flagless, target.Flagless, target.WithFlags, target.Reason)
+		}
+		b.WriteString("}\n\n")
+	}
+	b.WriteString(`// The flagless-sibling equivalence leg: the six separately ported flagless
+// port bodies have no direct oracle in the regular generated chain (readtest
+// and the FFI bit-compare exercise the WithFlags variants), so this leg pins
+// flagless(x, y, mode) == value(WithFlags(x, y, mode)) bit-exactly. Witness
+// rows re-run the distinguishing inputs of the 2026-07-18 mutation-audit
+// survivors on these bodies.
+`)
+	emitTargets(32, "uint32")
+	emitTargets(64, "uint64")
+
+	emitWitnessRows := func(width int, format string) {
+		fmt.Fprintf(b, "var publicParityFlaglessWitnessRows%d = []struct {\n\ttarget string\n\tx, y   uint%d\n\tmode   int\n}{\n", width, width)
+		for _, row := range parityFlaglessWitnessRows {
+			if widthOfTarget[row.Target] != width {
+				continue
+			}
+			fmt.Fprintf(b, "\t{%q, "+format+", "+format+", %d}, // mutant %s\n", row.Target, row.X, row.Y, row.Mode, row.MutantID)
+		}
+		b.WriteString("}\n\n")
+	}
+	emitWitnessRows(32, "0x%08x")
+	emitWitnessRows(64, "0x%016x")
+
+	fmt.Fprintf(b, `// publicParityFlaglessNext is a splitmix-style deterministic stream emitted
+// as literals so the random supplement is pinned by seed and count.
+func publicParityFlaglessNext(state *uint64) uint64 {
+	*state += 0x9e3779b97f4a7c15
+	z := *state
+	z ^= z >> 30
+	z *= 0xbf58476d1ce4e5b9
+	z ^= z >> 27
+	z *= 0x94d049bb133111eb
+	z ^= z >> 31
+	return z
+}
+
+func runPublicParityFlaglessSiblingEquivalence(t *testing.T) int {
+	count := 0
+	check32 := func(name string, flagless func(uint32, uint32, int) uint32, withFlags func(uint32, uint32, int) (uint32, uint32), x, y uint32, mode int) {
+		got := flagless(x, y, mode)
+		want, _ := withFlags(x, y, mode)
+		count++
+		if got != want {
+			t.Fatalf("public parity flagless sibling %%s(%%#010x, %%#010x, mode %%d) = %%#010x, want WithFlags value %%#010x", name, x, y, mode, got, want)
+		}
+	}
+	check64 := func(name string, flagless func(uint64, uint64, int) uint64, withFlags func(uint64, uint64, int) (uint64, uint32), x, y uint64, mode int) {
+		got := flagless(x, y, mode)
+		want, _ := withFlags(x, y, mode)
+		count++
+		if got != want {
+			t.Fatalf("public parity flagless sibling %%s(%%#018x, %%#018x, mode %%d) = %%#018x, want WithFlags value %%#018x", name, x, y, mode, got, want)
+		}
+	}
+	for _, target := range publicParityFlaglessSiblingTargets32 {
+		for _, x := range publicParityCorpus32 {
+			for _, y := range publicParityCorpus32 {
+				for mode := 0; mode < %d; mode++ {
+					check32(target.name, target.flagless, target.withFlags, x, y, mode)
+				}
+			}
+		}
+		state := uint64(%#x)
+		for i := 0; i < %d; i++ {
+			x := uint32(publicParityFlaglessNext(&state))
+			y := uint32(publicParityFlaglessNext(&state))
+			for mode := 0; mode < %d; mode++ {
+				check32(target.name, target.flagless, target.withFlags, x, y, mode)
+			}
+		}
+	}
+	for _, target := range publicParityFlaglessSiblingTargets64 {
+		for _, x := range publicParityCorpus64 {
+			for _, y := range publicParityCorpus64 {
+				for mode := 0; mode < %d; mode++ {
+					check64(target.name, target.flagless, target.withFlags, x, y, mode)
+				}
+			}
+		}
+		state := uint64(%#x)
+		for i := 0; i < %d; i++ {
+			x := publicParityFlaglessNext(&state)
+			y := publicParityFlaglessNext(&state)
+			for mode := 0; mode < %d; mode++ {
+				check64(target.name, target.flagless, target.withFlags, x, y, mode)
+			}
+		}
+	}
+	flagless32 := map[string]func(uint32, uint32, int) uint32{}
+	withFlags32 := map[string]func(uint32, uint32, int) (uint32, uint32){}
+	for _, target := range publicParityFlaglessSiblingTargets32 {
+		flagless32[target.name] = target.flagless
+		withFlags32[target.name] = target.withFlags
+	}
+	for _, row := range publicParityFlaglessWitnessRows32 {
+		flagless, ok := flagless32[row.target]
+		if !ok {
+			t.Fatalf("flagless witness row targets unknown function %%q", row.target)
+		}
+		check32(row.target, flagless, withFlags32[row.target], row.x, row.y, row.mode)
+	}
+	flagless64 := map[string]func(uint64, uint64, int) uint64{}
+	withFlags64 := map[string]func(uint64, uint64, int) (uint64, uint32){}
+	for _, target := range publicParityFlaglessSiblingTargets64 {
+		flagless64[target.name] = target.flagless
+		withFlags64[target.name] = target.withFlags
+	}
+	for _, row := range publicParityFlaglessWitnessRows64 {
+		flagless, ok := flagless64[row.target]
+		if !ok {
+			t.Fatalf("flagless witness row targets unknown function %%q", row.target)
+		}
+		check64(row.target, flagless, withFlags64[row.target], row.x, row.y, row.mode)
+	}
+	return count
+}
+`,
+		parityFlaglessModeCount, parityFlaglessSeed32, parityFlaglessRandomPairs32, parityFlaglessModeCount,
+		parityFlaglessModeCount, parityFlaglessSeed64, parityFlaglessRandomPairs64, parityFlaglessModeCount)
 }
 
 func emitPublicParityStaticHelpers(b *strings.Builder, masks publicParityExceptionMasks) {
@@ -1595,6 +1739,32 @@ func emitPublicParityCases(units []parityUnit) []byte {
 // shrinks the corpus cannot silently re-pin a smaller surface.
 `)
 	fmt.Fprintf(&b, "const (\n\texpectedPublicParityWrappers = %d\n\texpectedPublicParityCases    = %d\n)\n\n", len(units), total)
+
+	fmt.Fprintf(&b, `// The flagless-sibling equivalence leg's counts are pinned separately from
+// the wrapper parity cases: it compares port entrypoints against their
+// WithFlags siblings rather than public wrappers against the port, and its
+// corpus density (crossed corpus + pinned random supplement + mutation-audit
+// witness rows) is sized by the measured detection gaps, not by the public
+// symbol census.
+const (
+	expectedPublicParityFlaglessSiblingTargets = %d
+	expectedPublicParityFlaglessSiblingCases   = %d
+)
+
+func TestGeneratedPublicAPIFlaglessSiblingEquivalence(t *testing.T) {
+	if testing.Short() {
+		t.Skip("flagless-sibling equivalence runs in non-short mode; it exercises the full crossed corpus")
+	}
+	if got := len(publicParityFlaglessSiblingTargets32) + len(publicParityFlaglessSiblingTargets64); got != expectedPublicParityFlaglessSiblingTargets {
+		t.Fatalf("expected %%d flagless-sibling targets, got %%d", expectedPublicParityFlaglessSiblingTargets, got)
+	}
+	n := runPublicParityFlaglessSiblingEquivalence(t)
+	if n != expectedPublicParityFlaglessSiblingCases {
+		t.Fatalf("expected %%d flagless-sibling cases, ran %%d", expectedPublicParityFlaglessSiblingCases, n)
+	}
+}
+
+`, len(parityFlaglessSiblingTargets), parityFlaglessSiblingCaseCount())
 
 	b.WriteString("var expectedPublicParityCasesByShape = map[string]int{\n")
 	shapeNames := make([]string, 0, len(byShape))

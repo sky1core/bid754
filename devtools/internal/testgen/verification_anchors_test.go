@@ -111,6 +111,8 @@ type verificationAnchors struct {
 	PublicAPIParityWrappers                      int                          `json:"public_api_parity_wrappers"`
 	PublicAPIParityExcluded                      int                          `json:"public_api_parity_excluded"`
 	PublicAPIParityCasesTotal                    int                          `json:"public_api_parity_cases_total"`
+	PublicAPIFlaglessSiblingTargets              int                          `json:"public_api_flagless_sibling_targets"`
+	PublicAPIFlaglessSiblingCasesTotal           int                          `json:"public_api_flagless_sibling_cases_total"`
 	RustPublicAPIParityWrappers                  int                          `json:"rust_public_api_parity_wrappers"`
 	RustPublicAPIDirectRoutingWrappers           int                          `json:"rust_public_api_direct_routing_wrappers"`
 	RustPublicAPIDelegatedRoutingWrappers        int                          `json:"rust_public_api_delegated_routing_wrappers"`
@@ -1847,6 +1849,14 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		if runnerCases != anchors.PublicAPIParityCasesTotal {
 			t.Errorf("generated runner expectedPublicParityCases = %d, anchor public_api_parity_cases_total = %d", runnerCases, anchors.PublicAPIParityCasesTotal)
 		}
+
+		flaglessTargets, flaglessCases := loadPublicParityFlaglessConstants(t)
+		if flaglessTargets != anchors.PublicAPIFlaglessSiblingTargets {
+			t.Errorf("generated runner expectedPublicParityFlaglessSiblingTargets = %d, anchor public_api_flagless_sibling_targets = %d", flaglessTargets, anchors.PublicAPIFlaglessSiblingTargets)
+		}
+		if flaglessCases != anchors.PublicAPIFlaglessSiblingCasesTotal {
+			t.Errorf("generated runner expectedPublicParityFlaglessSiblingCases = %d, anchor public_api_flagless_sibling_cases_total = %d", flaglessCases, anchors.PublicAPIFlaglessSiblingCasesTotal)
+		}
 		// Belt-and-suspenders: the two generated artifacts must agree with each
 		// other on the wrapper count independent of the anchor comparison above.
 		if inventory.Mapped != runnerWrappers {
@@ -2019,6 +2029,55 @@ func loadPublicParityRunnerConstants(t *testing.T) (wrappers, cases int) {
 		t.Fatalf("expected both parity constants in %s, found %v", path, found)
 	}
 	return w, c
+}
+
+// loadPublicParityFlaglessConstants extracts the generation-time count
+// constants of the flagless-sibling equivalence leg from the generated parity
+// cases file, mirroring loadPublicParityRunnerConstants.
+func loadPublicParityFlaglessConstants(t *testing.T) (targets, cases int) {
+	t.Helper()
+	path := filepath.Join("..", "..", "..", "bid754-go", "generated_public_parity_cases_test.go")
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, path, nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("parse %s: %v", path, err)
+	}
+	found := map[string]int{}
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || gen.Tok != token.CONST {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			vs, ok := spec.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+			for i, name := range vs.Names {
+				if name.Name != "expectedPublicParityFlaglessSiblingTargets" && name.Name != "expectedPublicParityFlaglessSiblingCases" {
+					continue
+				}
+				if i >= len(vs.Values) {
+					t.Fatalf("const %s in %s has no value", name.Name, path)
+				}
+				lit, ok := vs.Values[i].(*ast.BasicLit)
+				if !ok || lit.Kind != token.INT {
+					t.Fatalf("const %s in %s is not an integer literal", name.Name, path)
+				}
+				v, err := strconv.Atoi(lit.Value)
+				if err != nil {
+					t.Fatalf("const %s in %s = %q: %v", name.Name, path, lit.Value, err)
+				}
+				found[name.Name] = v
+			}
+		}
+	}
+	targetsV, okT := found["expectedPublicParityFlaglessSiblingTargets"]
+	casesV, okC := found["expectedPublicParityFlaglessSiblingCases"]
+	if !okT || !okC {
+		t.Fatalf("expected both flagless-sibling constants in %s, found %v", path, found)
+	}
+	return targetsV, casesV
 }
 
 var (

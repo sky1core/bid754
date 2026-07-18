@@ -79,8 +79,9 @@ type stage struct {
 var stageCatalog = map[string]stage{
 	"readtest": {Name: "readtest", Binary: "portable", RunExpr: "^TestGeneratedReadCasesGoPort$"},
 	"dectest":  {Name: "dectest", Binary: "portable", RunExpr: "^TestGeneratedDectestSuitesGoPort$"},
-	"parity":   {Name: "parity", Binary: "portable", RunExpr: "^TestGeneratedPublicAPIParity$"},
-	"native":   {Name: "native", Binary: "native", RunExpr: "^(TestGeneratedReadCases|TestGeneratedDectestSuites|TestGeneratedFFIBitCompareSubset)$"},
+	"parity": {Name: "parity", Binary: "portable",
+		RunExpr: "^(TestGeneratedPublicAPIParity|TestGeneratedPublicAPIFlaglessSiblingEquivalence)$"},
+	"native": {Name: "native", Binary: "native", RunExpr: "^(TestGeneratedReadCases|TestGeneratedDectestSuites|TestGeneratedFFIBitCompareSubset)$"},
 	"decnumber": {Name: "decnumber", Binary: "decnumber",
 		RunExpr: "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$"},
 	// Secondary-analysis stage (not part of the regular audited gate chain):
@@ -262,7 +263,20 @@ func setupWorktree(cfg config) error {
 		return err
 	}
 	if _, err := os.Stat(cfg.worktree); err == nil {
-		fmt.Printf("worktree already present: %s\n", cfg.worktree)
+		// Reusing a worktree left behind by an interrupted or crashed run
+		// would evaluate every mutant on top of a leftover mutation, so a
+		// reused worktree must prove it is pristine before anything runs.
+		// The tracked tree must be clean; the gitignored setup inputs
+		// (decTest copies, Intel DFP symlinks) do not appear in porcelain
+		// output and stay permitted.
+		dirty, err := gitStatusPorcelain(cfg.worktree)
+		if err != nil {
+			return fmt.Errorf("verify reused worktree %s is clean: %w", cfg.worktree, err)
+		}
+		if dirty != "" {
+			return fmt.Errorf("refusing to reuse dirty worktree %s (leftover state would poison every mutant verdict):\n%s", cfg.worktree, dirty)
+		}
+		fmt.Printf("worktree already present (verified clean): %s\n", cfg.worktree)
 	} else {
 		cmd := exec.Command("git", "-C", cfg.repo, "worktree", "add", "--detach", cfg.worktree, cfg.commit)
 		if out, err := cmd.CombinedOutput(); err != nil {
@@ -328,12 +342,24 @@ func teardownWorktree(cfg config) error {
 	return nil
 }
 
-func worktreeDirty(worktree string) (string, error) {
-	out, err := exec.Command("git", "-C", worktree, "status", "--porcelain", "--", "bid754-go").Output()
+// gitStatusPorcelain returns the porcelain status of a worktree, optionally
+// restricted to pathspecs. Empty output means clean (gitignored files do not
+// appear).
+func gitStatusPorcelain(worktree string, pathspec ...string) (string, error) {
+	args := []string{"-C", worktree, "status", "--porcelain"}
+	if len(pathspec) > 0 {
+		args = append(args, "--")
+		args = append(args, pathspec...)
+	}
+	out, err := exec.Command("git", args...).Output()
 	if err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+func worktreeDirty(worktree string) (string, error) {
+	return gitStatusPorcelain(worktree, "bid754-go")
 }
 
 // ---------- mutation site enumeration ----------
@@ -839,8 +865,29 @@ func (e *engine) buildBinary(binary string) (bool, string, time.Duration, string
 }
 
 // runStage executes one stage against a prebuilt binary.
-// verdict: "pass", "fail", "timeout".
+// verdict: "pass", "fail", "timeout", "nomatch".
+//
+// Before running, the stage's -test.run expression is resolved with
+// -test.list against the same binary: an expression that selects zero tests
+// exits 0 without executing anything, which previously counted as a silent
+// stage pass (and a survived mutant). Zero selected tests is therefore a
+// stage error ("nomatch"), never a pass — in baseline and per-mutant runs
+// alike, since baseline reuses this path.
 func (e *engine) runStage(st stage, binPath string) (string, string, time.Duration) {
+	dir := e.goDir
+	if st.Binary == "bidgopkg" {
+		dir = filepath.Join(e.goDir, "internal", "bidgo")
+	}
+
+	start := time.Now()
+	matched, listOut, err := listMatchedTests(binPath, dir, st.RunExpr, e.cfg.stageTimeout)
+	if err != nil {
+		return "nomatch", "test selection preflight failed: " + err.Error() + "\n" + tail(listOut, 500), time.Since(start)
+	}
+	if matched == 0 {
+		return "nomatch", fmt.Sprintf("-test.run %q selects zero tests in binary %s; a run would pass without executing anything", st.RunExpr, filepath.Base(binPath)), time.Since(start)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), e.cfg.stageTimeout)
 	defer cancel()
 	args := []string{"-test.run", st.RunExpr, "-test.count=1",
@@ -849,12 +896,8 @@ func (e *engine) runStage(st stage, binPath string) (string, string, time.Durati
 		args = append(args, "-test.failfast")
 	}
 	cmd := exec.CommandContext(ctx, binPath, args...)
-	cmd.Dir = e.goDir
-	if st.Binary == "bidgopkg" {
-		cmd.Dir = filepath.Join(e.goDir, "internal", "bidgo")
-	}
+	cmd.Dir = dir
 	cmd.Env = append(append([]string{}, os.Environ()...), "GOFLAGS=")
-	start := time.Now()
 	out, err := cmd.CombinedOutput()
 	dur := time.Since(start)
 	if ctx.Err() == context.DeadlineExceeded {
@@ -864,6 +907,35 @@ func (e *engine) runStage(st stage, binPath string) (string, string, time.Durati
 		return "fail", tail(string(out), 1500), dur
 	}
 	return "pass", "", dur
+}
+
+// listMatchedTests runs `binary -test.list <expr>` and counts the selected
+// top-level tests. The list output is one identifier per line; counting those
+// lines measures "how many tests the expression selects" directly instead of
+// pattern-matching the run output.
+func listMatchedTests(binPath, dir, runExpr string, timeout time.Duration) (int, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, binPath, "-test.list", runExpr)
+	cmd.Dir = dir
+	cmd.Env = append(append([]string{}, os.Environ()...), "GOFLAGS=")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return 0, string(out), fmt.Errorf("-test.list %q: %w", runExpr, err)
+	}
+	return countListedTests(string(out)), string(out), nil
+}
+
+// countListedTests counts the test identifiers in -test.list output (one
+// non-empty line per selected test).
+func countListedTests(out string) int {
+	n := 0
+	for _, line := range strings.Split(out, "\n") {
+		if strings.TrimSpace(line) != "" {
+			n++
+		}
+	}
+	return n
 }
 
 func tail(s string, n int) string {
@@ -945,6 +1017,13 @@ func (e *engine) evaluateMutant(site mutationSite, pristine []byte, stages []sta
 			res.KilledBy = st.Name
 			res.Reason = map[string]string{"fail": "fail", "timeout": "timeout"}[verdict]
 			res.FailLines = failLines(out)
+			return res
+		case "nomatch":
+			// A zero-test selection is a harness error, not a mutant verdict:
+			// counting it as survived would silently deflate the kill rate.
+			res.Status = "invalid"
+			res.Reason = "no_test_match"
+			res.Note = truncate("stage "+st.Name+": "+out, 400)
 			return res
 		}
 	}
@@ -1080,22 +1159,30 @@ func runMutants(cfg config) error {
 	for cat, m := range byCat {
 		fmt.Printf("category %-8s killed=%d survived=%d invalid=%d\n", cat, m["killed"], m["survived"], m["invalid"])
 	}
-	e.reportWorktreeClean()
-	return nil
+	return e.reportWorktreeClean()
 }
 
 // reportWorktreeClean re-verifies at exit that the worktree's bid754-go tree
-// carries no leftover mutation.
-func (e *engine) reportWorktreeClean() {
-	dirty, err := worktreeDirty(e.worktree)
+// carries no leftover mutation. A dirty exit is a hard error (non-zero
+// process exit), not a warning: leftover state invalidates this run's
+// isolation contract and would poison any later reuse.
+func (e *engine) reportWorktreeClean() error {
+	if err := checkWorktreeCleanAfterRun(e.worktree); err != nil {
+		return err
+	}
+	fmt.Println("worktree bid754-go clean after run: OK")
+	return nil
+}
+
+func checkWorktreeCleanAfterRun(worktree string) error {
+	dirty, err := worktreeDirty(worktree)
 	switch {
 	case err != nil:
-		fmt.Printf("WARNING: worktree status check failed: %v\n", err)
+		return fmt.Errorf("worktree status check failed after run: %w", err)
 	case dirty != "":
-		fmt.Printf("WARNING: worktree bid754-go not clean after run:\n%s\n", dirty)
-	default:
-		fmt.Println("worktree bid754-go clean after run: OK")
+		return fmt.Errorf("worktree bid754-go not clean after run (leftover mutation; isolation contract violated):\n%s", dirty)
 	}
+	return nil
 }
 
 // ---------- self-check ----------
@@ -1192,7 +1279,9 @@ func runSelfCheck(cfg config) error {
 			fmt.Printf("self-check %s: OK %s%s\n", sc.name, r.Status, verdictNote)
 		}
 	}
-	e.reportWorktreeClean()
+	if err := e.reportWorktreeClean(); err != nil {
+		return err
+	}
 	if failed > 0 {
 		return fmt.Errorf("%d self-check(s) failed", failed)
 	}

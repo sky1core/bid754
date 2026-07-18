@@ -170,6 +170,9 @@ func buildSpec(repoRoot string, manifest Manifest) (SharedSpec, error) {
 		}
 		spec.FFICases = append(spec.FFICases, cases...)
 	}
+	if err := verifyFFIMutationCorpusCoverage(spec.FFICases); err != nil {
+		return SharedSpec{}, err
+	}
 
 	return spec, nil
 }

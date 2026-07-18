@@ -92,6 +92,7 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 	}
 
 	out := make([]GeneratedFFICase, 0, len(functions)*spec.CasesPerFunction)
+	witnessByFunction := ffiMutationWitnessIndex()
 	for _, function := range functions {
 		symbol, ok := index[function]
 		if !ok {
@@ -196,47 +197,98 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 		}
 
 		edgeCaseCount := ffiTier1RoundingEdgeCaseCount(operation, bits)
-		if edgeCaseCount == 0 {
-			continue
-		}
-		if !hasRoundingParam {
-			return nil, fmt.Errorf("ffi suite %q: Tier 1 operation %q has no rounding parameter", spec.Name, function)
-		}
-		if spec.CasesPerFunction < edgeCaseCount {
-			return nil, fmt.Errorf("ffi suite %q: Tier 1 operation %q baseline has %d cases, need at least %d edge cases", spec.Name, function, spec.CasesPerFunction, edgeCaseCount)
-		}
-		var edgeGenerator *deterministicFFIGenerator
-		var edgeMixedGenerator *deterministicFFIMixedDecimalGenerator
-		if isMixedDecimal {
-			edgeMixedGenerator = newDeterministicFFIMixedDecimalGenerator(spec.Seed, function, mixedShape)
-		} else {
-			edgeGenerator = newDeterministicFFIGenerator(spec.Seed, function, bits)
-		}
-		for edgeIndex := 0; edgeIndex < edgeCaseCount; edgeIndex++ {
-			var operands []string
-			if isMixedDecimal {
-				operands = edgeMixedGenerator.nextOperands(edgeIndex)
-			} else {
-				operands = edgeGenerator.nextOperandsForOperation(edgeIndex, operation, arity)
+		if edgeCaseCount > 0 {
+			if !hasRoundingParam {
+				return nil, fmt.Errorf("ffi suite %q: Tier 1 operation %q has no rounding parameter", spec.Name, function)
 			}
-			baselineMode := ffiCaseRoundingMode(edgeIndex, true)
-			for mode := 0; mode < ffiRoundingModeCount; mode++ {
-				if mode == baselineMode {
-					continue
+			if spec.CasesPerFunction < edgeCaseCount {
+				return nil, fmt.Errorf("ffi suite %q: Tier 1 operation %q baseline has %d cases, need at least %d edge cases", spec.Name, function, spec.CasesPerFunction, edgeCaseCount)
+			}
+			var edgeGenerator *deterministicFFIGenerator
+			var edgeMixedGenerator *deterministicFFIMixedDecimalGenerator
+			if isMixedDecimal {
+				edgeMixedGenerator = newDeterministicFFIMixedDecimalGenerator(spec.Seed, function, mixedShape)
+			} else {
+				edgeGenerator = newDeterministicFFIGenerator(spec.Seed, function, bits)
+			}
+			for edgeIndex := 0; edgeIndex < edgeCaseCount; edgeIndex++ {
+				var operands []string
+				if isMixedDecimal {
+					operands = edgeMixedGenerator.nextOperands(edgeIndex)
+				} else {
+					operands = edgeGenerator.nextOperandsForOperation(edgeIndex, operation, arity)
 				}
+				baselineMode := ffiCaseRoundingMode(edgeIndex, true)
+				for mode := 0; mode < ffiRoundingModeCount; mode++ {
+					if mode == baselineMode {
+						continue
+					}
+					out = append(out, GeneratedFFICase{
+						Suite:       spec.Name,
+						ID:          fmt.Sprintf("%s_%s_%03d", spec.Name, function, caseIndex+1),
+						Format:      format,
+						ResultBits:  mixedShape.resultBits,
+						OperandBits: mixedShape.operandWidths(),
+						Operation:   operation,
+						Function:    function,
+						LinkName:    symbol.LinkName,
+						Declaration: symbol.Declaration,
+						Source:      filepath.ToSlash(spec.Symbols),
+						Rounding:    mode,
+						Operands:    append([]string(nil), operands...),
+					})
+					caseIndex++
+				}
+			}
+		}
+
+		// Mutation-audit witness rows: one pinned distinguishing input per
+		// audited surviving mutant on this function's flags-exposing port
+		// path (mutation_witness_corpus.go).
+		for _, witness := range witnessByFunction[function] {
+			if len(witness.Operands) != arity {
+				return nil, fmt.Errorf("ffi suite %q: mutation witness %s has %d operands, function %q takes %d", spec.Name, witness.MutantID, len(witness.Operands), function, arity)
+			}
+			if witness.Rounding != 0 && !hasRoundingParam {
+				return nil, fmt.Errorf("ffi suite %q: mutation witness %s pins rounding %d but %q has no rounding parameter", spec.Name, witness.MutantID, witness.Rounding, function)
+			}
+			out = append(out, GeneratedFFICase{
+				Suite:       spec.Name,
+				ID:          fmt.Sprintf("%s_%s_%03d", spec.Name, function, caseIndex+1),
+				Format:      format,
+				ResultBits:  mixedShape.resultBits,
+				OperandBits: mixedShape.operandWidths(),
+				Operation:   operation,
+				Function:    function,
+				LinkName:    symbol.LinkName,
+				Declaration: symbol.Declaration,
+				Source:      filepath.ToSlash(spec.Symbols),
+				Rounding:    witness.Rounding,
+				Operands:    append([]string(nil), witness.Operands...),
+			})
+			caseIndex++
+		}
+
+		// bid_factors32 exactness sweep: every row of the pinned Intel
+		// factors table consumed with sign-sensitive weight
+		// (mutation_witness_corpus.go).
+		if function == "bid32_div" {
+			sweep, err := bid32DivFactors32SweepCases()
+			if err != nil {
+				return nil, fmt.Errorf("ffi suite %q: %w", spec.Name, err)
+			}
+			for _, sc := range sweep {
 				out = append(out, GeneratedFFICase{
 					Suite:       spec.Name,
 					ID:          fmt.Sprintf("%s_%s_%03d", spec.Name, function, caseIndex+1),
 					Format:      format,
-					ResultBits:  mixedShape.resultBits,
-					OperandBits: mixedShape.operandWidths(),
 					Operation:   operation,
 					Function:    function,
 					LinkName:    symbol.LinkName,
 					Declaration: symbol.Declaration,
 					Source:      filepath.ToSlash(spec.Symbols),
-					Rounding:    mode,
-					Operands:    append([]string(nil), operands...),
+					Rounding:    0,
+					Operands:    []string{encodeBid32SweepOperand(sc.X), encodeBid32SweepOperand(sc.Y)},
 				})
 				caseIndex++
 			}
@@ -244,6 +296,32 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 	}
 
 	return out, nil
+}
+
+// verifyFFIMutationCorpusCoverage closes the witness/sweep world over the
+// union of every manifest FFI suite: each mutation-audit witness row and the
+// bid_factors32 sweep must have been emitted by some generated suite. It runs
+// in the manifest build path (spec_build.go) so reduced fixture suites in unit
+// tests do not have to carry the full corpus, while the production generation
+// fails closed when a targeted function leaves the generated surface.
+func verifyFFIMutationCorpusCoverage(cases []GeneratedFFICase) error {
+	emitted := map[string]bool{}
+	sweepRows := 0
+	for _, tc := range cases {
+		emitted[tc.Function] = true
+		if tc.Function == "bid32_div" {
+			sweepRows++
+		}
+	}
+	if err := ffiVerifyWitnessConsumption(emitted); err != nil {
+		return err
+	}
+	if sweep, err := bid32DivFactors32SweepCases(); err != nil {
+		return err
+	} else if sweepRows < len(sweep) {
+		return fmt.Errorf("generated FFI suites carry %d bid32_div cases, fewer than the %d bid_factors32 sweep cases; the exactness sweep lost its home", sweepRows, len(sweep))
+	}
+	return nil
 }
 
 // ffiMixedDecimalRoundingProbeOperands returns inputs whose exact arithmetic

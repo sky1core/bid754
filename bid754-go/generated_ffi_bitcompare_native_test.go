@@ -15,19 +15,19 @@ import (
 )
 
 var expectedGeneratedFFIFormatCounts = map[string]int{
-	"decimal128": 8031,
-	"decimal32":  7600,
-	"decimal64":  8031,
+	"decimal128": 8034,
+	"decimal32":  9648,
+	"decimal64":  8033,
 }
 
 var expectedGeneratedFFIOperationCounts = map[string]int{
 	"abs":                         144,
-	"add":                         324,
+	"add":                         325,
 	"class":                       144,
 	"copy":                        144,
 	"copySign":                    144,
-	"div":                         324,
-	"fma":                         900,
+	"div":                         2372,
+	"fma":                         903,
 	"fmod":                        144,
 	"from_int32":                  144,
 	"from_int64":                  144,
@@ -55,7 +55,7 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"nextdown":                    144,
 	"nextup":                      144,
 	"quantexp":                    144,
-	"quantize":                    324,
+	"quantize":                    325,
 	"quantum":                     144,
 	"quiet_equal":                 144,
 	"quiet_greater":               144,
@@ -182,7 +182,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_copy":                        48,
 	"bid128_copySign":                    48,
 	"bid128_div":                         108,
-	"bid128_fma":                         48,
+	"bid128_fma":                         50,
 	"bid128_fmod":                        48,
 	"bid128_from_int32":                  48,
 	"bid128_from_int64":                  48,
@@ -210,7 +210,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_nextdown":                    48,
 	"bid128_nextup":                      48,
 	"bid128_quantexp":                    48,
-	"bid128_quantize":                    108,
+	"bid128_quantize":                    109,
 	"bid128_quantum":                     48,
 	"bid128_quiet_equal":                 48,
 	"bid128_quiet_greater":               48,
@@ -340,7 +340,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid32_class":                        48,
 	"bid32_copy":                         48,
 	"bid32_copySign":                     48,
-	"bid32_div":                          108,
+	"bid32_div":                          2156,
 	"bid32_fma":                          48,
 	"bid32_fmod":                         48,
 	"bid32_from_int32":                   48,
@@ -487,12 +487,12 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid32_totalOrder":                   48,
 	"bid32_totalOrderMag":                48,
 	"bid64_abs":                          48,
-	"bid64_add":                          108,
+	"bid64_add":                          109,
 	"bid64_class":                        48,
 	"bid64_copy":                         48,
 	"bid64_copySign":                     48,
 	"bid64_div":                          108,
-	"bid64_fma":                          48,
+	"bid64_fma":                          49,
 	"bid64_fmod":                         48,
 	"bid64_from_int32":                   48,
 	"bid64_from_int64":                   48,
@@ -648,8 +648,8 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 }
 
 var expectedGeneratedFFIRoundingCounts = map[int]int{
-	0: 20206,
-	1: 896,
+	0: 22258,
+	1: 897,
 	2: 896,
 	3: 832,
 	4: 832,
@@ -1007,8 +1007,8 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 23662 {
-		t.Fatalf("generated ffi case count = %d, want 23662", len(spec.FFICases))
+	if len(spec.FFICases) != 25715 {
+		t.Fatalf("generated ffi case count = %d, want 25715", len(spec.FFICases))
 	}
 	assertGeneratedFFICoverage(t, spec.FFICases)
 	probeTracker, err := validateGeneratedFFIProbeContract(spec.FFICases)

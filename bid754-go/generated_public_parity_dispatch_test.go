@@ -12152,3 +12152,169 @@ var publicParityUnits = []struct {
 	{"Sub64QDBIDWithMode", "func_mixed_mode_binary", publicParity_Sub64QDBIDWithMode},
 	{"Sub64QQBIDWithMode", "func_mixed_mode_binary", publicParity_Sub64QQBIDWithMode},
 }
+
+// The flagless-sibling equivalence leg: the six separately ported flagless
+// port bodies have no direct oracle in the regular generated chain (readtest
+// and the FFI bit-compare exercise the WithFlags variants), so this leg pins
+// flagless(x, y, mode) == value(WithFlags(x, y, mode)) bit-exactly. Witness
+// rows re-run the distinguishing inputs of the 2026-07-18 mutation-audit
+// survivors on these bodies.
+var publicParityFlaglessSiblingTargets32 = []struct {
+	name      string
+	flagless  func(x, y uint32, rndMode int) uint32
+	withFlags func(x, y uint32, rndMode int) (uint32, uint32)
+}{
+	{"Bid32Add", bidgo.Bid32Add, bidgo.Bid32AddWithFlags}, // separately ported flagless BID32 add body (bid32_add_pure)
+	{"Bid32Sub", bidgo.Bid32Sub, bidgo.Bid32SubWithFlags}, // separately ported flagless BID32 sub body (routes through bid32_add_pure)
+	{"Bid32Mul", bidgo.Bid32Mul, bidgo.Bid32MulWithFlags}, // separately ported flagless BID32 mul body (bid32_mul_pure)
+	{"Bid32Div", bidgo.Bid32Div, bidgo.Bid32DivWithFlags}, // separately ported flagless BID32 div body (bid32_div_pure)
+}
+
+var publicParityFlaglessSiblingTargets64 = []struct {
+	name      string
+	flagless  func(x, y uint64, rndMode int) uint64
+	withFlags func(x, y uint64, rndMode int) (uint64, uint32)
+}{
+	{"Bid64Mul", bidgo.Bid64Mul, bidgo.Bid64MulWithFlags}, // separately ported flagless BID64 mul body (mul64.go Bid64Mul)
+	{"Bid64Div", bidgo.Bid64Div, bidgo.Bid64DivWithFlags}, // separately ported flagless BID64 div body (div64.go Bid64Div)
+}
+
+var publicParityFlaglessWitnessRows32 = []struct {
+	target string
+	x, y   uint32
+	mode   int
+}{
+	{"Bid32Add", 0x78000000, 0x78000000, 0}, // mutant bid32_add.go:1309:negcond:negate
+	{"Bid32Add", 0x78000000, 0x00000000, 0}, // mutant bid32_add.go:1477:bit:&->|
+	{"Bid32Add", 0x32800000, 0xb2800000, 0}, // mutant bid32_add.go:1717:const:+1
+	{"Bid32Add", 0x32800000, 0x00000000, 0}, // mutant bid32_add.go:1987:negcond:negate
+	{"Bid32Add", 0x32800001, 0x32800001, 0}, // mutant bid32_add.go:3309:aor:+->-
+	{"Bid32Add", 0x0ddca526, 0x0d56c291, 0}, // mutant bid32_add.go:4371:aor:*->+
+	{"Bid32Add", 0x32800000, 0x77f8967f, 1}, // mutant bid32_add.go:4422:cmp:==->!=
+	{"Bid32Div", 0x32800000, 0x32800000, 0}, // mutant bid32_div.go:1138:negcond:negate
+	{"Bid32Div", 0x32800000, 0x32800000, 0}, // mutant bid32_div.go:1491:negcond:negate
+	{"Bid32Div", 0x43421f4e, 0x2885003c, 0}, // mutant bid32_div.go:3539:aor:-->+
+	{"Bid32Div", 0x77f8967f, 0x3280007b, 0}, // mutant bid32_div.go:3570:aor:-->+
+	{"Bid32Div", 0x32800001, 0x3280007b, 0}, // mutant bid32_div.go:3870:aor:*->+
+	{"Bid32Div", 0xb2db13aa, 0x608d5802, 0}, // mutant bid32_div.go:5615:aor:-->+
+	{"Bid32Mul", 0x00000000, 0x32800000, 0}, // mutant bid32_mul.go:1030:bit:&->|
+	{"Bid32Mul", 0x78000000, 0x32800000, 0}, // mutant bid32_mul.go:1121:cmp:!=->==
+	{"Bid32Mul", 0x78000000, 0x32800001, 0}, // mutant bid32_mul.go:1264:cmp:==->!=
+	{"Bid32Mul", 0x3280007b, 0x77f8967f, 0}, // mutant bid32_mul.go:3066:aor:+=->-=
+	{"Bid32Mul", 0xacb27555, 0x07000005, 0}, // mutant bid32_mul.go:3696:aor:-->+
+	{"Bid32Mul", 0x6cb8967f, 0x6cb8967f, 2}, // mutant bid32_mul.go:3744:negcond:negate
+}
+
+var publicParityFlaglessWitnessRows64 = []struct {
+	target string
+	x, y   uint64
+	mode   int
+}{
+	{"Bid64Div", 0x0000000000000000, 0x0000000000000000, 0}, // mutant div64.go:1512:cmp:==->!=
+	{"Bid64Div", 0x0000000000000000, 0x0000000000000001, 0}, // mutant div64.go:1983:negcond:negate
+	{"Bid64Div", 0x31c0000000000001, 0x77fb86f26fc0ffff, 0}, // mutant div64.go:2767:bit:>>-><<
+	{"Bid64Div", 0x0000000000000001, 0x0000000000000009, 0}, // mutant div64.go:4329:aor:+->-
+	{"Bid64Div", 0x6000000000000000, 0x31c000000000000a, 0}, // mutant div64.go:6196:const:+1
+	{"Bid64Mul", 0x7800000000000000, 0x0000000000000000, 0}, // mutant mul64.go:1493:negcond:negate
+	{"Bid64Mul", 0x7800000000000000, 0x0000000000000000, 0}, // mutant mul64.go:1516:cmp:!=->==
+	{"Bid64Mul", 0x7800000000000000, 0x0000000000000000, 0}, // mutant mul64.go:1556:const:+1
+	{"Bid64Mul", 0x0000000000000000, 0x7800000000000000, 0}, // mutant mul64.go:2748:cmp:==->!=
+	{"Bid64Mul", 0x31c0000000000001, 0x0000000000000000, 0}, // mutant mul64.go:2924:aor:+=->-=
+	{"Bid64Mul", 0x2de38d7ea4c68000, 0x6000000000000000, 0}, // mutant mul64.go:5435:const:-1
+	{"Bid64Mul", 0x31c000000000000a, 0x6000000000000000, 0}, // mutant mul64.go:5859:const:+1
+	{"Bid64Mul", 0x000000000000000a, 0x77fb86f26fc0ffff, 0}, // mutant mul64.go:6598:aor:-->+
+}
+
+// publicParityFlaglessNext is a splitmix-style deterministic stream emitted
+// as literals so the random supplement is pinned by seed and count.
+func publicParityFlaglessNext(state *uint64) uint64 {
+	*state += 0x9e3779b97f4a7c15
+	z := *state
+	z ^= z >> 30
+	z *= 0xbf58476d1ce4e5b9
+	z ^= z >> 27
+	z *= 0x94d049bb133111eb
+	z ^= z >> 31
+	return z
+}
+
+func runPublicParityFlaglessSiblingEquivalence(t *testing.T) int {
+	count := 0
+	check32 := func(name string, flagless func(uint32, uint32, int) uint32, withFlags func(uint32, uint32, int) (uint32, uint32), x, y uint32, mode int) {
+		got := flagless(x, y, mode)
+		want, _ := withFlags(x, y, mode)
+		count++
+		if got != want {
+			t.Fatalf("public parity flagless sibling %s(%#010x, %#010x, mode %d) = %#010x, want WithFlags value %#010x", name, x, y, mode, got, want)
+		}
+	}
+	check64 := func(name string, flagless func(uint64, uint64, int) uint64, withFlags func(uint64, uint64, int) (uint64, uint32), x, y uint64, mode int) {
+		got := flagless(x, y, mode)
+		want, _ := withFlags(x, y, mode)
+		count++
+		if got != want {
+			t.Fatalf("public parity flagless sibling %s(%#018x, %#018x, mode %d) = %#018x, want WithFlags value %#018x", name, x, y, mode, got, want)
+		}
+	}
+	for _, target := range publicParityFlaglessSiblingTargets32 {
+		for _, x := range publicParityCorpus32 {
+			for _, y := range publicParityCorpus32 {
+				for mode := 0; mode < 5; mode++ {
+					check32(target.name, target.flagless, target.withFlags, x, y, mode)
+				}
+			}
+		}
+		state := uint64(0x754c1f32a95)
+		for i := 0; i < 1048576; i++ {
+			x := uint32(publicParityFlaglessNext(&state))
+			y := uint32(publicParityFlaglessNext(&state))
+			for mode := 0; mode < 5; mode++ {
+				check32(target.name, target.flagless, target.withFlags, x, y, mode)
+			}
+		}
+	}
+	for _, target := range publicParityFlaglessSiblingTargets64 {
+		for _, x := range publicParityCorpus64 {
+			for _, y := range publicParityCorpus64 {
+				for mode := 0; mode < 5; mode++ {
+					check64(target.name, target.flagless, target.withFlags, x, y, mode)
+				}
+			}
+		}
+		state := uint64(0x754c1f64a95)
+		for i := 0; i < 4096; i++ {
+			x := publicParityFlaglessNext(&state)
+			y := publicParityFlaglessNext(&state)
+			for mode := 0; mode < 5; mode++ {
+				check64(target.name, target.flagless, target.withFlags, x, y, mode)
+			}
+		}
+	}
+	flagless32 := map[string]func(uint32, uint32, int) uint32{}
+	withFlags32 := map[string]func(uint32, uint32, int) (uint32, uint32){}
+	for _, target := range publicParityFlaglessSiblingTargets32 {
+		flagless32[target.name] = target.flagless
+		withFlags32[target.name] = target.withFlags
+	}
+	for _, row := range publicParityFlaglessWitnessRows32 {
+		flagless, ok := flagless32[row.target]
+		if !ok {
+			t.Fatalf("flagless witness row targets unknown function %q", row.target)
+		}
+		check32(row.target, flagless, withFlags32[row.target], row.x, row.y, row.mode)
+	}
+	flagless64 := map[string]func(uint64, uint64, int) uint64{}
+	withFlags64 := map[string]func(uint64, uint64, int) (uint64, uint32){}
+	for _, target := range publicParityFlaglessSiblingTargets64 {
+		flagless64[target.name] = target.flagless
+		withFlags64[target.name] = target.withFlags
+	}
+	for _, row := range publicParityFlaglessWitnessRows64 {
+		flagless, ok := flagless64[row.target]
+		if !ok {
+			t.Fatalf("flagless witness row targets unknown function %q", row.target)
+		}
+		check64(row.target, flagless, withFlags64[row.target], row.x, row.y, row.mode)
+	}
+	return count
+}

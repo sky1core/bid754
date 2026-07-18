@@ -54,6 +54,7 @@
     {"id":"bid_native_bitcompare_subset_bid64_fma_045","rounding":4,"operands":["198605d0333ef69b","936691b79c5bf3e1","aa2b2339eb8677ba"]},
     {"id":"bid_native_bitcompare_subset_bid64_fma_046","rounding":0,"operands":["449fe2c234254b03","c86cd88e4a4484ae","18e4385cb7bd21d7"]},
     {"id":"bid_native_bitcompare_subset_bid64_fma_047","rounding":1,"operands":["a21dafdcb5a8a7e2","3705304312180a8e","c2c7eec9079c105b"]},
-    {"id":"bid_native_bitcompare_subset_bid64_fma_048","rounding":2,"operands":["34e89755c825552a","9c879efde27d19bc","e6d8116868cb92fe"]}
+    {"id":"bid_native_bitcompare_subset_bid64_fma_048","rounding":2,"operands":["34e89755c825552a","9c879efde27d19bc","e6d8116868cb92fe"]},
+    {"id":"bid_native_bitcompare_subset_bid64_fma_049","rounding":1,"operands":["b1a000000000000b","f7fb86f26fc0ffff","f7fb86f26fc0ffff"]}
   ]
 }

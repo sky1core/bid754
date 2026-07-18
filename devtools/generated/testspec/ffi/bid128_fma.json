@@ -54,6 +54,8 @@
     {"id":"bid_native_bitcompare_subset_bid128_fma_045","rounding":4,"operands":["5a25e32a9006488bc595d7f12e0391f2","0af5d5d4c2df020f1eea54b4cb6a59a3","c90cb981b453e22085dfa2a6df5356f0"]},
     {"id":"bid_native_bitcompare_subset_bid128_fma_046","rounding":0,"operands":["d25e8548897905851ba1377ed6b066b3","968342613d5eb4ebaf45cbdea7cce6d0","38e8bc13b2908a8449b2309486d3bed1"]},
     {"id":"bid_native_bitcompare_subset_bid128_fma_047","rounding":1,"operands":["1e8c20352865fe7acaed77d7ef94297a","5c7a9303bc4d6aa49d3f16734459401b","03b1bd51075cf3213e24bf5b7cb35c32"]},
-    {"id":"bid_native_bitcompare_subset_bid128_fma_048","rounding":2,"operands":["fc34e2733be94969afcd23028a8a25b4","e6c9a96672d14e5003f5a15b45b75cda","4ddcf8970de8919035e02be5aa71b3b0"]}
+    {"id":"bid_native_bitcompare_subset_bid128_fma_048","rounding":2,"operands":["fc34e2733be94969afcd23028a8a25b4","e6c9a96672d14e5003f5a15b45b75cda","4ddcf8970de8919035e02be5aa71b3b0"]},
+    {"id":"bid_native_bitcompare_subset_bid128_fma_049","rounding":0,"operands":["01000000000000000000000000003eb0","01000000000000000000000000000000","01000000000000000000000000000000"]},
+    {"id":"bid_native_bitcompare_subset_bid128_fma_050","rounding":0,"operands":["000000000a5bc138938d44c64d31faaf","ffffffff638e8d37c087adbe09edff5f","ffffffff638e8d37c087adbe09edff5f"]}
   ]
 }

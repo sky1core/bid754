@@ -114,6 +114,7 @@
     {"id":"bid_native_bitcompare_subset_bid128_quantize_105","rounding":0,"operands":["01000000000000000000000000004030","00000000000000000000000000000060"]},
     {"id":"bid_native_bitcompare_subset_bid128_quantize_106","rounding":1,"operands":["01000000000000000000000000004030","00000000000000000000000000000060"]},
     {"id":"bid_native_bitcompare_subset_bid128_quantize_107","rounding":2,"operands":["01000000000000000000000000004030","00000000000000000000000000000060"]},
-    {"id":"bid_native_bitcompare_subset_bid128_quantize_108","rounding":3,"operands":["01000000000000000000000000004030","00000000000000000000000000000060"]}
+    {"id":"bid_native_bitcompare_subset_bid128_quantize_108","rounding":3,"operands":["01000000000000000000000000004030","00000000000000000000000000000060"]},
+    {"id":"bid_native_bitcompare_subset_bid128_quantize_109","rounding":0,"operands":["000000000a5bc138938d44c64d31fe2f","01000000000000000000000000004030"]}
   ]
 }
