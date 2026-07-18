@@ -238,7 +238,7 @@ func tier1SentinelCCToIntPool() []tier1SentinelOperand {
 		sentinelDec(mdo(70000, 0)),    // uint16 overflow, int32 fine
 		sentinelDec(mdo(2147484, 3)),  // int32 overflow, uint32 fine
 		sentinelDec(mdo(4294968, 3)),  // uint32 overflow, int64 fine
-		sentinelDec(mdo(922338, 13)), // 9.22338e18: int64 overflow, uint64 fine
+		sentinelDec(mdo(922338, 13)),  // 9.22338e18: int64 overflow, uint64 fine
 		sentinelDec(mdo(1844675, 13)), // uint64 overflow
 		sentinelDec(mdo(1275, -1)),    // 127.5: int8 tie at its max
 		sentinelDec(mdo(25, -1)),      // 2.5: half-even/half-away tie
