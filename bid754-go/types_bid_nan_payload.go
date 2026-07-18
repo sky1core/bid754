@@ -40,14 +40,13 @@ func parseBIDNaNLiteral(input string) (bidNaNLiteral, bool) {
 		return bidNaNLiteral{}, false
 	}
 
-	lower := strings.ToLower(rest)
 	switch {
-	case strings.HasPrefix(lower, "snan"):
+	case hasASCIIFoldPrefix(rest, "snan"):
 		lit.signaling = true
 		lit.payload = rest[4:]
-	case strings.HasPrefix(lower, "qnan"):
+	case hasASCIIFoldPrefix(rest, "qnan"):
 		lit.payload = rest[4:]
-	case strings.HasPrefix(lower, "nan"):
+	case hasASCIIFoldPrefix(rest, "nan"):
 		lit.payload = rest[3:]
 	default:
 		return bidNaNLiteral{}, false
@@ -62,6 +61,32 @@ func parseBIDNaNLiteral(input string) (bidNaNLiteral, bool) {
 		lit.payload = strings.TrimLeft(lit.payload, "0")
 	}
 	return lit, true
+}
+
+// hasASCIIFoldPrefix reports whether s begins with the ASCII-lowercase
+// pattern pat under byte-wise ASCII case folding, without allocating. For the
+// pure-ASCII patterns used here this is exactly equivalent to
+// strings.HasPrefix(strings.ToLower(s), pat): a lowered prefix can spell pat
+// only when each contributing source rune lowers to the corresponding
+// single-byte ASCII rune of pat, and the only non-ASCII runes whose Unicode
+// simple lowercase mapping is ASCII are U+0130 (to 'i') and U+212A (to 'k'),
+// neither of which appears in the NaN literal patterns; every other non-ASCII
+// source byte can never produce a matching ASCII byte, in either encoding
+// position.
+func hasASCIIFoldPrefix(s, pat string) bool {
+	if len(s) < len(pat) {
+		return false
+	}
+	for i := 0; i < len(pat); i++ {
+		c := s[i]
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		if c != pat[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func parseDecimal32BIDNaN(input string) (Decimal32BID, bool) {

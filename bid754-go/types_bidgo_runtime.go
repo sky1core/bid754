@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
-	"math/big"
 	"strings"
 
 	bidgo "github.com/sky1core/bid754/bid754-go/internal/bidgo"
@@ -393,7 +392,7 @@ func decimal32BIDSignPort(d Decimal32BID) int {
 
 func newDecimal32BIDDirectPort(s string) (Decimal32BID, error) {
 	result, flags := parseDecimal32BIDPort(s)
-	if rejectedBIDStringInput(s, bidgo.Bid32IsNaN(result.ToUint32()), flags) || unrepresentableBIDStringFlags(flags) {
+	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
 		return 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, nil
@@ -401,7 +400,7 @@ func newDecimal32BIDDirectPort(s string) (Decimal32BID, error) {
 
 func newDecimal32BIDWithFlagsPort(s string) (Decimal32BID, ExceptionFlags, error) {
 	result, flags := parseDecimal32BIDPort(s)
-	if rejectedBIDStringInput(s, bidgo.Bid32IsNaN(result.ToUint32()), flags) {
+	if rejectedBIDStringInput(flags) {
 		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
@@ -423,7 +422,7 @@ func newDecimal32BIDWithModePort(s string, mode RoundingMode) (Decimal32BID, Exc
 		return canonicalQNaN32BID(), FlagInvalidOperation, nil
 	}
 	result, flags := parseDecimal32BIDPublicMode(s, rnd)
-	if rejectedBIDStringInput(s, bidgo.Bid32IsNaN(result.ToUint32()), flags) {
+	if rejectedBIDStringInput(flags) {
 		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
@@ -438,12 +437,25 @@ func parseDecimal32BIDPort(s string) (Decimal32BID, ExceptionFlags) {
 // generated decTest loader calls parseDecimal32BIDPortMode directly because
 // IBM operands are converted under their declared context and accumulate
 // conversion status as part of the case.
+//
+// The finite arm scans the input once: for a non-NaN result,
+// invalidBIDStringInput reduces to !validBIDFiniteLiteral because a valid
+// finite literal always contains a digit or an infinity spelling, so the
+// whitespace-only arm can never accept on its own; the same parsed literal
+// then feeds the silent-cohort check that previously re-parsed the input.
 func parseDecimal32BIDPublicMode(s string, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags, rawStatus := parseDecimal32BIDPortModeWithRawStatus(s, rndMode)
-	if invalidBIDStringInput(s, bidgo.Bid32IsNaN(result.ToUint32())) {
+	if bidgo.Bid32IsNaN(result.ToUint32()) {
+		if invalidBIDStringInput(s, true) {
+			return canonicalQNaN32BID(), FlagInvalidOperation
+		}
+		return result, flags
+	}
+	literal, ok := parseBIDFiniteLiteral(s)
+	if !ok {
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
-	if rawStatus == bidgo.BID_EXACT_STATUS && bidFiniteLiteralCohortUnrepresentable(s, decimal32MinQuantum, decimal32MaxQuantum, decimal32Precision) {
+	if rawStatus == bidgo.BID_EXACT_STATUS && literal.cohortUnrepresentable(decimal32MinQuantum, decimal32MaxQuantum, decimal32Precision) {
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	return result, flags
@@ -796,7 +808,7 @@ func decimal64BIDSignPort(d Decimal64BID) int {
 
 func newDecimal64BIDDirectPort(s string) (Decimal64BID, error) {
 	result, flags := parseDecimal64BIDPort(s)
-	if rejectedBIDStringInput(s, bidgo.Bid64IsNaN(result.ToUint64()) != 0, flags) || unrepresentableBIDStringFlags(flags) {
+	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
 		return 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, nil
@@ -804,7 +816,7 @@ func newDecimal64BIDDirectPort(s string) (Decimal64BID, error) {
 
 func newDecimal64BIDWithFlagsPort(s string) (Decimal64BID, ExceptionFlags, error) {
 	result, flags := parseDecimal64BIDPort(s)
-	if rejectedBIDStringInput(s, bidgo.Bid64IsNaN(result.ToUint64()) != 0, flags) {
+	if rejectedBIDStringInput(flags) {
 		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
@@ -823,7 +835,7 @@ func newDecimal64BIDWithModePort(s string, mode RoundingMode) (Decimal64BID, Exc
 		return canonicalQNaN64BID(), FlagInvalidOperation, nil
 	}
 	result, flags := parseDecimal64BIDPublicMode(s, rnd)
-	if rejectedBIDStringInput(s, bidgo.Bid64IsNaN(result.ToUint64()) != 0, flags) {
+	if rejectedBIDStringInput(flags) {
 		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
@@ -834,13 +846,21 @@ func parseDecimal64BIDPort(s string) (Decimal64BID, ExceptionFlags) {
 }
 
 // parseDecimal64BIDPublicMode is the Decimal64 counterpart of
-// parseDecimal32BIDPublicMode.
+// parseDecimal32BIDPublicMode, sharing its single-scan structure and
+// equivalence argument.
 func parseDecimal64BIDPublicMode(s string, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags, rawStatus := parseDecimal64BIDPortModeWithRawStatus(s, rndMode)
-	if invalidBIDStringInput(s, bidgo.Bid64IsNaN(result.ToUint64()) != 0) {
+	if bidgo.Bid64IsNaN(result.ToUint64()) != 0 {
+		if invalidBIDStringInput(s, true) {
+			return canonicalQNaN64BID(), FlagInvalidOperation
+		}
+		return result, flags
+	}
+	literal, ok := parseBIDFiniteLiteral(s)
+	if !ok {
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
-	if rawStatus == bidgo.BID_EXACT_STATUS && bidFiniteLiteralCohortUnrepresentable(s, decimal64MinQuantum, decimal64MaxQuantum, decimal64Precision) {
+	if rawStatus == bidgo.BID_EXACT_STATUS && literal.cohortUnrepresentable(decimal64MinQuantum, decimal64MaxQuantum, decimal64Precision) {
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	return result, flags
@@ -875,12 +895,16 @@ const (
 )
 
 // rejectedBIDStringInput reports whether a public error-returning string
-// parser must reject input based on syntax or an invalid-operation status.
-// The latter catches a syntactically valid NaN payload that does not fit the
-// target width: the raw flag-returning parser reports that loss as
-// FlagInvalidOperation, while error-returning parsers return an error.
-func rejectedBIDStringInput(input string, resultIsNaN bool, flags ExceptionFlags) bool {
-	return invalidBIDStringInput(input, resultIsNaN) || flags&FlagInvalidOperation != 0
+// parser must reject a parseDecimal*BIDPublicMode result. That parse already
+// reports every public-contract rejection through FlagInvalidOperation:
+// malformed syntax and a NaN result whose input does not spell a NaN literal
+// become canonical quiet NaN + FlagInvalidOperation, a silently coerced
+// cohort does the same, and an oversized NaN payload carries the raw parser's
+// FlagInvalidOperation. Conversely an accepted public-mode result never
+// carries FlagInvalidOperation, so the error-channel decision needs only the
+// returned flags and no second scan of the input.
+func rejectedBIDStringInput(flags ExceptionFlags) bool {
+	return flags&FlagInvalidOperation != 0
 }
 
 // unrepresentableBIDStringFlags reports whether converting a syntactically
@@ -906,6 +930,12 @@ func unrepresentableBIDStringFlags(flags ExceptionFlags) bool {
 // payload range is enforced by rejectedBIDStringInput through the raw
 // parser's FlagInvalidOperation result. The Intel port has no parenthesized
 // payload form, so inputs like "nan(123)" are rejected.
+//
+// The public-mode parsers now call this only with resultIsNaN=true: their
+// finite arm folds the equivalent syntax check into the single
+// parseBIDFiniteLiteral scan that also feeds the silent-cohort decision. The
+// finite arm here still states the full contract for that reduction and for
+// validBIDFiniteLiteral's remaining direct callers.
 func invalidBIDStringInput(input string, resultIsNaN bool) bool {
 	if strings.TrimSpace(input) == "" {
 		return true
@@ -926,18 +956,39 @@ func validBIDFiniteLiteral(input string) bool {
 }
 
 type bidFiniteLiteral struct {
-	quantum           *big.Int
-	coefficientDigits int
+	// infinite marks an exact infinity spelling, which has no written cohort.
+	infinite bool
+	// quantum is the written cohort quantum (explicit exponent minus the
+	// fractional digit count) when quantumOutsideInt64 is false.
+	quantum int64
+	// quantumOutsideInt64 reports that the exact quantum does not fit int64.
+	// Every BID width's quantum range is a tiny sub-range of int64, so the
+	// cohort decision needs only this fact, never the wide value itself, and
+	// the overflow direction is irrelevant: either sign is unrepresentable.
+	quantumOutsideInt64 bool
+	coefficientDigits   int
 }
 
 // parseBIDFiniteLiteral parses the complete finite literal grammar and returns
 // its written cohort: quantum (explicit exponent minus fractional digit count)
 // and coefficient digit count after leading zeros. An exact infinity spelling
-// is valid and has a nil quantum. The exponent uses big.Int so a huge exponent
-// can cancel a huge fractional digit count without overflow or saturation
-// changing the decision. Only leading ASCII space/tab is accepted, matching
-// the Intel port and public NaN grammar; trailing or internal whitespace is
-// rejected.
+// is valid and reports infinite instead of a quantum. Only leading ASCII
+// space/tab is accepted, matching the Intel port and public NaN grammar;
+// trailing or internal whitespace is rejected.
+//
+// The quantum is computed in exact uint64/int64 arithmetic with no big-integer
+// allocation, and the result is decision-equivalent to arbitrary-precision
+// arithmetic for every input, including a huge exponent canceling a huge
+// fractional digit count:
+//
+//   - fractionalDigits F counts input bytes, so 0 <= F < 2^63.
+//   - If the exponent digit string overflows uint64 (true magnitude >= 2^64),
+//     the exact quantum is -(M+F) <= -2^64 for a negative exponent and
+//     M-F > 2^64-2^63 = 2^63 for a positive one; both lie outside int64, which
+//     is exactly what arbitrary precision would report.
+//   - Otherwise the magnitude M fits uint64 and bidLiteralQuantum computes
+//     +-M-F exactly, again reporting outside-int64 only when the exact value
+//     is outside int64.
 func parseBIDFiniteLiteral(input string) (bidFiniteLiteral, bool) {
 	rest := strings.TrimLeft(input, " \t")
 	if rest == "" {
@@ -947,7 +998,7 @@ func parseBIDFiniteLiteral(input string) (bidFiniteLiteral, bool) {
 		rest = rest[1:]
 	}
 	if strings.EqualFold(rest, "inf") || strings.EqualFold(rest, "infinity") {
-		return bidFiniteLiteral{}, true
+		return bidFiniteLiteral{infinite: true}, true
 	}
 
 	seenDigit := false
@@ -975,7 +1026,7 @@ func parseBIDFiniteLiteral(input string) (bidFiniteLiteral, bool) {
 		return bidFiniteLiteral{}, false
 	}
 	return bidFiniteLiteral{
-		quantum:           new(big.Int).Neg(big.NewInt(int64(fractionalDigits))),
+		quantum:           -int64(fractionalDigits),
 		coefficientDigits: coefficientDigits,
 	}, true
 
@@ -990,41 +1041,72 @@ exponent:
 		i++
 	}
 	exponentStart := i
-	for i < len(rest) && rest[i] >= '0' && rest[i] <= '9' {
-		i++
+	exponentMagnitude := uint64(0)
+	magnitudeOverflows := false
+	for ; i < len(rest) && rest[i] >= '0' && rest[i] <= '9'; i++ {
+		d := uint64(rest[i] - '0')
+		if exponentMagnitude > (math.MaxUint64-d)/10 {
+			// The true magnitude is already >= 2^64 here, and appending
+			// further digits only grows it; keep scanning for syntax only.
+			magnitudeOverflows = true
+			continue
+		}
+		exponentMagnitude = exponentMagnitude*10 + d
 	}
 	if i != len(rest) || i == exponentStart {
 		return bidFiniteLiteral{}, false
 	}
-	exponentMagnitude, ok := new(big.Int).SetString(rest[exponentStart:i], 10)
-	if !ok {
-		return bidFiniteLiteral{}, false
-	}
-	if exponentNegative {
-		exponentMagnitude.Neg(exponentMagnitude)
-	}
-	return bidFiniteLiteral{
-		quantum:           exponentMagnitude.Sub(exponentMagnitude, big.NewInt(int64(fractionalDigits))),
-		coefficientDigits: coefficientDigits,
-	}, true
+	literal := bidFiniteLiteral{coefficientDigits: coefficientDigits}
+	literal.quantum, literal.quantumOutsideInt64 = bidLiteralQuantum(exponentMagnitude, magnitudeOverflows, exponentNegative, uint64(fractionalDigits))
+	return literal, true
 }
 
-// bidFiniteLiteralCohortUnrepresentable reports whether a complete numeric
-// finite literal asks for a quantum or coefficient the target BID width cannot
-// encode. The Intel from-string port can silently rescale a trailing-zero
-// coefficient or clamp an out-of-range zero while keeping the numeric value
-// exact and therefore raising no status. Public APIs must detect that
-// otherwise-silent cohort coercion explicitly.
-func bidFiniteLiteralCohortUnrepresentable(input string, minQuantum, maxQuantum int64, precision int) bool {
-	literal, ok := parseBIDFiniteLiteral(input)
-	if !ok || literal.quantum == nil {
+// bidLiteralQuantum computes quantum = +-magnitude - fractionalDigits exactly,
+// reporting outside-int64 instead of a value when the exact result does not
+// fit. magnitudeOverflows means the true magnitude is >= 2^64 while
+// fractionalDigits < 2^63 (it counts input bytes), so the exact quantum is
+// then outside int64 for either exponent sign.
+func bidLiteralQuantum(magnitude uint64, magnitudeOverflows, negative bool, fractionalDigits uint64) (int64, bool) {
+	if magnitudeOverflows {
+		return 0, true
+	}
+	if negative {
+		// quantum = -(magnitude + fractionalDigits); representable iff the
+		// exact sum is at most 2^63 (int64's most negative value is -2^63).
+		sum := magnitude + fractionalDigits
+		if sum < magnitude || sum > 1<<63 {
+			return 0, true
+		}
+		if sum == 1<<63 {
+			return math.MinInt64, false
+		}
+		return -int64(sum), false
+	}
+	if magnitude >= fractionalDigits {
+		diff := magnitude - fractionalDigits
+		if diff > math.MaxInt64 {
+			return 0, true
+		}
+		return int64(diff), false
+	}
+	// fractionalDigits < 2^63, so the negative difference always fits.
+	return -int64(fractionalDigits - magnitude), false
+}
+
+// cohortUnrepresentable reports whether a complete numeric finite literal
+// asks for a quantum or coefficient the target BID width cannot encode. The
+// Intel from-string port can silently rescale a trailing-zero coefficient or
+// clamp an out-of-range zero while keeping the numeric value exact and
+// therefore raising no status. Public APIs must detect that otherwise-silent
+// cohort coercion explicitly.
+func (l bidFiniteLiteral) cohortUnrepresentable(minQuantum, maxQuantum int64, precision int) bool {
+	if l.infinite {
 		return false
 	}
-	if literal.coefficientDigits > precision || !literal.quantum.IsInt64() {
+	if l.coefficientDigits > precision || l.quantumOutsideInt64 {
 		return true
 	}
-	value := literal.quantum.Int64()
-	return value < minQuantum || value > maxQuantum
+	return l.quantum < minQuantum || l.quantum > maxQuantum
 }
 
 func trimTrailingIntegerSuffix(s string) string {
@@ -1460,7 +1542,7 @@ func decimal128BIDSignPort(d Decimal128BID) int {
 
 func newDecimal128BIDDirectPort(s string) (Decimal128BID, error) {
 	result, flags := parseDecimal128BIDPort(s)
-	if rejectedBIDStringInput(s, bidgo.Bid128IsNaN(decimal128BIDAsBidgo(result)) != 0, flags) || unrepresentableBIDStringFlags(flags) {
+	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
 		return Decimal128BID{}, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, nil
@@ -1468,7 +1550,7 @@ func newDecimal128BIDDirectPort(s string) (Decimal128BID, error) {
 
 func newDecimal128BIDWithFlagsPort(s string) (Decimal128BID, ExceptionFlags, error) {
 	result, flags := parseDecimal128BIDPort(s)
-	if rejectedBIDStringInput(s, bidgo.Bid128IsNaN(decimal128BIDAsBidgo(result)) != 0, flags) {
+	if rejectedBIDStringInput(flags) {
 		return Decimal128BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
@@ -1487,7 +1569,7 @@ func newDecimal128BIDWithModePort(s string, mode RoundingMode) (Decimal128BID, E
 		return canonicalQNaN128BID(), FlagInvalidOperation, nil
 	}
 	result, flags := parseDecimal128BIDPublicMode(s, rnd)
-	if rejectedBIDStringInput(s, bidgo.Bid128IsNaN(decimal128BIDAsBidgo(result)) != 0, flags) {
+	if rejectedBIDStringInput(flags) {
 		return Decimal128BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
@@ -1498,13 +1580,21 @@ func parseDecimal128BIDPort(s string) (Decimal128BID, ExceptionFlags) {
 }
 
 // parseDecimal128BIDPublicMode is the Decimal128 counterpart of
-// parseDecimal32BIDPublicMode.
+// parseDecimal32BIDPublicMode, sharing its single-scan structure and
+// equivalence argument.
 func parseDecimal128BIDPublicMode(s string, rndMode int) (Decimal128BID, ExceptionFlags) {
 	result, flags, rawStatus := parseDecimal128BIDPortModeWithRawStatus(s, rndMode)
-	if invalidBIDStringInput(s, bidgo.Bid128IsNaN(decimal128BIDAsBidgo(result)) != 0) {
+	if bidgo.Bid128IsNaN(decimal128BIDAsBidgo(result)) != 0 {
+		if invalidBIDStringInput(s, true) {
+			return canonicalQNaN128BID(), FlagInvalidOperation
+		}
+		return result, flags
+	}
+	literal, ok := parseBIDFiniteLiteral(s)
+	if !ok {
 		return canonicalQNaN128BID(), FlagInvalidOperation
 	}
-	if rawStatus == bidgo.BID_EXACT_STATUS && bidFiniteLiteralCohortUnrepresentable(s, decimal128MinQuantum, decimal128MaxQuantum, decimal128Precision) {
+	if rawStatus == bidgo.BID_EXACT_STATUS && literal.cohortUnrepresentable(decimal128MinQuantum, decimal128MaxQuantum, decimal128Precision) {
 		return canonicalQNaN128BID(), FlagInvalidOperation
 	}
 	return result, flags

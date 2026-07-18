@@ -44,16 +44,31 @@ func TestStringParsersAcceptRepresentableCohortBoundary(t *testing.T) {
 func TestParseBIDFiniteLiteralCohort(t *testing.T) {
 	tests := []struct {
 		input       string
-		wantQuantum string
+		wantQuantum int64
+		wantOutside bool
 		wantDigits  int
 		infinity    bool
 		ok          bool
 	}{
-		{input: "0001000.00", wantQuantum: "-2", wantDigits: 6, ok: true},
-		{input: "-1000000.0", wantQuantum: "-1", wantDigits: 8, ok: true},
-		{input: "0.000", wantQuantum: "-3", wantDigits: 0, ok: true},
-		{input: ".00100e+4", wantQuantum: "-1", wantDigits: 3, ok: true},
-		{input: "1e9223372036854775808", wantQuantum: "9223372036854775808", wantDigits: 1, ok: true},
+		{input: "0001000.00", wantQuantum: -2, wantDigits: 6, ok: true},
+		{input: "-1000000.0", wantQuantum: -1, wantDigits: 8, ok: true},
+		{input: "0.000", wantQuantum: -3, wantDigits: 0, ok: true},
+		{input: ".00100e+4", wantQuantum: -1, wantDigits: 3, ok: true},
+		{input: "1.5e2", wantQuantum: 1, wantDigits: 2, ok: true},
+		{input: "12e-3", wantQuantum: -3, wantDigits: 2, ok: true},
+		{input: "1e00000000000000000000090", wantQuantum: 90, wantDigits: 1, ok: true},
+		// exact int64/uint64 edges of quantum = +-exponent - fractionalDigits
+		{input: "1e9223372036854775807", wantQuantum: 9223372036854775807, wantDigits: 1, ok: true},
+		{input: "1e9223372036854775808", wantOutside: true, wantDigits: 1, ok: true},
+		{input: ".0001e9223372036854775811", wantQuantum: 9223372036854775807, wantDigits: 1, ok: true},
+		{input: ".0001e9223372036854775812", wantOutside: true, wantDigits: 1, ok: true},
+		{input: "1e-9223372036854775808", wantQuantum: -9223372036854775808, wantDigits: 1, ok: true},
+		{input: "1e-9223372036854775809", wantOutside: true, wantDigits: 1, ok: true},
+		{input: "1.0e-9223372036854775807", wantQuantum: -9223372036854775808, wantDigits: 2, ok: true},
+		{input: "1.0e-9223372036854775808", wantOutside: true, wantDigits: 2, ok: true},
+		{input: "1e18446744073709551615", wantOutside: true, wantDigits: 1, ok: true},
+		{input: "1e18446744073709551616", wantOutside: true, wantDigits: 1, ok: true},
+		{input: "1e-18446744073709551616", wantOutside: true, wantDigits: 1, ok: true},
 		{input: "Infinity", infinity: true, ok: true},
 		{input: "1e"},
 		{input: "1.0 "},
@@ -68,13 +83,16 @@ func TestParseBIDFiniteLiteralCohort(t *testing.T) {
 				return
 			}
 			if tc.infinity {
-				if got.quantum != nil || got.coefficientDigits != 0 {
+				if !got.infinite || got.coefficientDigits != 0 {
 					t.Fatalf("parseBIDFiniteLiteral(%q) = %+v, want infinity cohort", tc.input, got)
 				}
 				return
 			}
-			if got.quantum == nil || got.quantum.String() != tc.wantQuantum || got.coefficientDigits != tc.wantDigits {
-				t.Fatalf("parseBIDFiniteLiteral(%q) = (quantum=%v, digits=%d), want (%s, %d)", tc.input, got.quantum, got.coefficientDigits, tc.wantQuantum, tc.wantDigits)
+			if got.infinite || got.quantumOutsideInt64 != tc.wantOutside || got.coefficientDigits != tc.wantDigits {
+				t.Fatalf("parseBIDFiniteLiteral(%q) = %+v, want (outside=%v, digits=%d)", tc.input, got, tc.wantOutside, tc.wantDigits)
+			}
+			if !tc.wantOutside && got.quantum != tc.wantQuantum {
+				t.Fatalf("parseBIDFiniteLiteral(%q) quantum = %d, want %d", tc.input, got.quantum, tc.wantQuantum)
 			}
 		})
 	}
