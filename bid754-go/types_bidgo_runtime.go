@@ -307,9 +307,21 @@ func decimal32BIDToBinary128Port(d Decimal32BID, mode RoundingMode) (Binary128, 
 	return binary128FromBidgo(result), bidgoExceptionFlags(flags)
 }
 
-func decimal32BIDToDecimal128Port(d Decimal32BID) (Decimal128BID, ExceptionFlags) {
-	result, flags := bidgo.Bid32ToBid128(d.ToUint32())
-	return decimal128BIDFromBidgo(result), bidgoExceptionFlags(flags)
+// decimal32BIDToDecimal128Port and decimal64BIDToDecimal128Port are the two
+// format-widening conversions to Decimal128. Both write their result through
+// decimal128BIDSetBidgo rather than assigning the value form, which drops the
+// encode's store/reload round trip. That is worth measuring only where the
+// encode is a large enough share of the operation: it moves the bid64 row and
+// is flat on the bid32 row, which does more work per call. Both use the
+// pointer form so the pair stays uniform. Every other path that uses the
+// value-form encode still pays that round trip, which inlining does not
+// remove: it is negligible against the arithmetic operations, and
+// taking it off the remaining cheap ones is unmeasured work, not a decision
+// taken here.
+func decimal32BIDToDecimal128Port(d Decimal32BID) (out Decimal128BID, flags ExceptionFlags) {
+	result, rawFlags := bidgo.Bid32ToBid128(d.ToUint32())
+	decimal128BIDSetBidgo(&out, result)
+	return out, bidgoExceptionFlags(rawFlags)
 }
 
 func decimal32BIDToDecimal64Port(d Decimal32BID) (Decimal64BID, ExceptionFlags) {
@@ -719,9 +731,12 @@ func decimal64BIDToBinary128Port(d Decimal64BID, mode RoundingMode) (Binary128, 
 	return binary128FromBidgo(result), bidgoExceptionFlags(flags)
 }
 
-func decimal64BIDToDecimal128Port(d Decimal64BID) (Decimal128BID, ExceptionFlags) {
-	result, flags := bidgo.Bid64ToBid128(d.ToUint64())
-	return decimal128BIDFromBidgo(result), bidgoExceptionFlags(flags)
+// See decimal32BIDToDecimal128Port for why this conversion writes its result
+// through decimal128BIDSetBidgo.
+func decimal64BIDToDecimal128Port(d Decimal64BID) (out Decimal128BID, flags ExceptionFlags) {
+	result, rawFlags := bidgo.Bid64ToBid128(d.ToUint64())
+	decimal128BIDSetBidgo(&out, result)
+	return out, bidgoExceptionFlags(rawFlags)
 }
 
 func decimal64BIDToDecimal32Port(d Decimal64BID, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
@@ -1616,38 +1631,65 @@ func parseDecimal128BIDPortModeWithRawStatus(s string, rndMode int) (Decimal128B
 	return decimal128BIDFromBidgo(result), bidgoExceptionFlags(rawFlags), rawFlags
 }
 
-// decimal128BIDWords returns the (hi, lo) 64-bit words stored in d's
-// little-endian [16]byte image. The Decimal128BID byte contract is
+// decimal128BIDAsBidgo decodes d's little-endian [16]byte image into the port
+// (hi, lo) word representation. The Decimal128BID byte contract is
 // little-endian on every platform, so the decode is explicit rather than a
 // native-endian pointer reinterpretation (which byte-swapped the words on
-// big-endian platforms).
+// big-endian platforms). Both the hand-written routing layer and the generated
+// FFI bit-compare runner call it, so a byte-order change here moves results in
+// both.
+func decimal128BIDAsBidgo(d Decimal128BID) bidgo.BID_UINT128 {
+	return bidgo.Bid128FromWords(binary.LittleEndian.Uint64(d[8:16]), binary.LittleEndian.Uint64(d[0:8]))
+}
+
+// decimal128BIDFromBidgo encodes x's (hi, lo) words as the little-endian
+// [16]byte image. The result is a named return so the two explicit stores write
+// the result slot directly instead of filling a separate local that is then
+// copied out.
+//
+// This is the value-form encode. decimal128BIDSetBidgo is the pointer form and
+// binary128FromBidgo is the binary128-typed one; all three write the same two
+// words in the same order, so a byte-order change to one must be made to all
+// three. The generated public-API parity runner checks the encoded image
+// against its own independent little-endian oracle, and the linux/s390x leg
+// runs that runner, so a divergence between the three fails there.
+func decimal128BIDFromBidgo(x bidgo.BID_UINT128) (d Decimal128BID) {
+	hi, lo := bidgo.Bid128Words(x)
+	binary.LittleEndian.PutUint64(d[0:8], lo)
+	binary.LittleEndian.PutUint64(d[8:16], hi)
+	return
+}
+
+// decimal128BIDSetBidgo writes x's (hi, lo) words as the little-endian
+// [16]byte image of *d. It is the pointer form of decimal128BIDFromBidgo, for
+// callers whose destination is already an addressable [16]byte they own, such
+// as a named result. Assigning the value form to such a destination costs an
+// extra store/reload round trip: the explicit byte-order stores make the
+// array address-taken, so SSA cannot forward the intermediate away.
+func decimal128BIDSetBidgo(d *Decimal128BID, x bidgo.BID_UINT128) {
+	hi, lo := bidgo.Bid128Words(x)
+	binary.LittleEndian.PutUint64(d[0:8], lo)
+	binary.LittleEndian.PutUint64(d[8:16], hi)
+}
+
+// decimal128BIDWords returns the (hi, lo) 64-bit words stored in d's
+// little-endian [16]byte image.
 func decimal128BIDWords(d Decimal128BID) (hi, lo uint64) {
-	return binary.LittleEndian.Uint64(d[8:16]), binary.LittleEndian.Uint64(d[0:8])
+	return bidgo.Bid128Words(decimal128BIDAsBidgo(d))
 }
 
 // decimal128BIDFromWords builds the little-endian [16]byte image of the
 // (hi, lo) 64-bit words.
 func decimal128BIDFromWords(hi, lo uint64) Decimal128BID {
-	var d Decimal128BID
-	binary.LittleEndian.PutUint64(d[0:8], lo)
-	binary.LittleEndian.PutUint64(d[8:16], hi)
-	return d
+	return decimal128BIDFromBidgo(bidgo.Bid128FromWords(hi, lo))
 }
 
-func decimal128BIDAsBidgo(d Decimal128BID) bidgo.BID_UINT128 {
-	hi, lo := decimal128BIDWords(d)
-	return bidgo.Bid128FromWords(hi, lo)
-}
-
-func decimal128BIDFromBidgo(x bidgo.BID_UINT128) Decimal128BID {
+// binary128FromBidgo encodes x's (hi, lo) words as the little-endian [16]byte
+// binary128 image, with the same named-result reasoning as
+// decimal128BIDFromBidgo.
+func binary128FromBidgo(x bidgo.BID_UINT128) (b Binary128) {
 	hi, lo := bidgo.Bid128Words(x)
-	return decimal128BIDFromWords(hi, lo)
-}
-
-func binary128FromBidgo(x bidgo.BID_UINT128) Binary128 {
-	hi, lo := bidgo.Bid128Words(x)
-	var b Binary128
 	binary.LittleEndian.PutUint64(b[0:8], lo)
 	binary.LittleEndian.PutUint64(b[8:16], hi)
-	return b
+	return
 }
