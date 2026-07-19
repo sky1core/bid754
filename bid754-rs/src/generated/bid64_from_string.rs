@@ -36,7 +36,7 @@ pub(crate) fn tolower_macro(mut x: u8) -> u8 {
 }
 
 pub(crate) fn bid64_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (u64, u32) {
-    let mut str = str.as_ref().to_string();
+    let str = str.as_ref();
     let mut res: u64 = 0;
     let mut pfpsf: u32 = 0;
     let ps = str.as_bytes();

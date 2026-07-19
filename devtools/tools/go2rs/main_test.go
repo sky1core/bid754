@@ -748,44 +748,56 @@ func TestFormerAlternateSourcesConvertWithoutFallbacks(t *testing.T) {
 	}
 }
 
-func TestOptimizeBid32StringParseAvoidsAllocation(t *testing.T) {
+// TestBid32StringParseRejectsAllocatingRender pins the failure direction of the
+// bid32 parse stage. The stage no longer rewrites the generated parser, so its
+// only job is to refuse a rendering that allocates on the parse path; a silent
+// pass here would let a Go-side change reintroduce a per-call allocation with
+// nothing failing.
+func TestBid32StringParseRejectsAllocatingRender(t *testing.T) {
+	allocatingRenders := map[string]string{
+		"whole-string lowercase copy": `    let mut sl = String::from_utf8_lossy(&s).to_ascii_lowercase();
+`,
+		"owned byte buffer": `    let s2 = s.as_bytes().to_vec();
+`,
+		"owned string copy": `    let s3 = s.to_string();
+`,
+	}
+	for name, injected := range allocatingRenders {
+		input := `pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {
+    let ps = ps.as_ref();
+    let mut s = (ps).trim_start_matches(|c| " \t".contains(c));
+` + injected + `    return (0, 0);
+}
+`
+		if _, err := optimizeRustStringHotpaths("bid32_string.go", input); err == nil {
+			t.Fatalf("%s: expected the bid32 parse stage to reject an allocating render, got no error", name)
+		}
+	}
+}
+
+// TestBid32StringParseAcceptsBorrowedRender is the matching success direction:
+// the shape the Go port now generates must pass untouched, so the stage stays a
+// check rather than turning back into a rewrite.
+func TestBid32StringParseAcceptsBorrowedRender(t *testing.T) {
 	input := `pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {
     let ps = ps.as_ref();
-    let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes().to_vec();
+    let mut s = (ps).trim_start_matches(|c| " \t".contains(c));
     if ((s.len() as i64) == 0) {
         return (0x7c000000, 0);
     }
-    let mut c = s[0];
-    let mut sl = String::from_utf8_lossy(&s).to_ascii_lowercase();
+    let mut c = s.as_bytes()[0];
     if ((((c != b'.') && (c != b'-')) && (c != b'+')) && (((c < b'0') || (c > b'9')))) {
-        if ((sl == "inf") || (sl == "infinity")) {
+        if (equal_fold_ascii(s, "inf") || equal_fold_ascii(s, "infinity")) {
             return (0x78000000, 0);
         }
-        if (sl).starts_with("snan") {
+        if has_prefix_fold_ascii(s, "snan") {
             return (0x7e000000, 0);
         }
         return (0x7c000000, 0);
     }
     if ((s.len() as i64) > 1) {
-        let mut sl1 = String::from_utf8_lossy(&s[1 as usize..]).to_ascii_lowercase();
-        if ((sl1 == "inf") || (sl1 == "infinity")) {
-            if (c == b'+') {
-                return (0x78000000, 0);
-            } else if (c == b'-') {
-                return (0xf8000000, 0);
-            }
-            return (0x7c000000, 0);
-        }
-        if (sl1).starts_with("snan") {
-            if (c == b'-') {
-                return (0xfe000000, 0);
-            }
-            return (0x7e000000, 0);
-        }
-        if (sl1 == "nan") {
-            if (c == b'-') {
-                return (0xfc000000, 0);
-            }
+        let mut sl1 = &s[1 as usize..];
+        if equal_fold_ascii(sl1, "nan") {
             return (0x7c000000, 0);
         }
     }
@@ -794,27 +806,18 @@ func TestOptimizeBid32StringParseAvoidsAllocation(t *testing.T) {
 `
 	got, err := optimizeRustStringHotpaths("bid32_string.go", input)
 	if err != nil {
-		t.Fatalf("optimizeRustStringHotpaths: %v", err)
+		t.Fatalf("optimizeRustStringHotpaths rejected the borrowed render: %v", err)
 	}
+	if got != input {
+		t.Fatalf("bid32 parse stage rewrote the borrowed render; it must only check.\ngot:\n%s", got)
+	}
+}
 
-	for _, rejected := range []string{
-		"as_bytes().to_vec()",
-		"String::from_utf8_lossy",
-		"to_ascii_lowercase",
-	} {
-		if strings.Contains(got, rejected) {
-			t.Fatalf("optimized code still contains %q:\n%s", rejected, got)
-		}
-	}
-	for _, required := range []string{
-		`let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();`,
-		`s.eq_ignore_ascii_case(b"inf")`,
-		`let sl1 = &s[1 as usize..];`,
-		`sl1.eq_ignore_ascii_case(b"nan")`,
-	} {
-		if !strings.Contains(got, required) {
-			t.Fatalf("optimized code missing %q:\n%s", required, got)
-		}
+// TestBid32StringParseRequiresParseFunction keeps the stage from degrading into
+// a no-op if the parser is renamed or dropped from the generated file.
+func TestBid32StringParseRequiresParseFunction(t *testing.T) {
+	if _, err := optimizeRustStringHotpaths("bid32_string.go", "pub fn unrelated() {}\n"); err == nil {
+		t.Fatal("expected an error when bid32_from_string_raw is absent, got none")
 	}
 }
 
@@ -858,5 +861,77 @@ pub fn tail() {}
 		if !strings.Contains(got, required) {
 			t.Fatalf("optimizeBid128Misc output missing %q:\n%s", required, got)
 		}
+	}
+}
+
+// TestStringParamIsReboundDetectsMutation pins the analysis that decides whether
+// a string parameter is bound by reference or copied into an owned String. A
+// false "not rebound" would hand the body a borrow where Go semantics call for
+// an independent copy, so every mutation shape must be detected.
+func TestStringParamIsReboundDetectsMutation(t *testing.T) {
+	cases := []struct {
+		name string
+		body string
+		want bool
+	}{
+		{"read only", `x := len(s); _ = x`, false},
+		{"indexed read", `_ = s[0]`, false},
+		{"sliced read", `_ = s[1:]`, false},
+		{"range over it", `for i, v := range s { _, _ = i, v }`, false},
+		{"direct assign", `s = "x"`, true},
+		{"compound assign", `s += "x"`, true},
+		{"tuple assign", `a := 0; a, s = 1, "x"; _ = a`, true},
+		{"assign in if", `if true { s = "x" }`, true},
+		{"assign in loop", `for i := 0; i < 2; i++ { s = "x" }`, true},
+		{"assign inside closure", `f := func() { s = "x" }; f()`, true},
+		{"assign inside defer", `defer func() { s = "x" }()`, true},
+		{"address taken", `p := &s; _ = p`, true},
+		{"range assigns into it", `for s = range map[string]int{} { }`, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			src := "package p\nfunc f(s string) {\n" + tc.body + "\n}\n"
+			fset := token.NewFileSet()
+			file, err := parser.ParseFile(fset, "p.go", src, 0)
+			if err != nil {
+				t.Fatalf("parse %q: %v", tc.body, err)
+			}
+			fn := file.Decls[0].(*ast.FuncDecl)
+			if got := stringParamIsRebound(fn.Body, "s"); got != tc.want {
+				t.Fatalf("stringParamIsRebound(%q) = %v, want %v", tc.body, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestStringParamIsReboundTreatsMissingBodyAsRebound keeps the analysis
+// conservative when there is no body to inspect.
+func TestStringParamIsReboundTreatsMissingBodyAsRebound(t *testing.T) {
+	if !stringParamIsRebound(nil, "s") {
+		t.Fatal("a nil body must be treated as rebound so the owned form is used")
+	}
+}
+
+// TestIsGoStringExprFallbackRejectsNonStrings guards the type-info-absent path.
+// Misreporting a []byte as a string would turn its mutable Rust slice borrow
+// into a shared borrow, so the fallback must only accept known string params.
+func TestIsGoStringExprFallbackRejectsNonStrings(t *testing.T) {
+	prevInfo := activeTypeInfo
+	prevVars := activeStringVars
+	activeTypeInfo = nil
+	activeStringVars = map[string]bool{"s": true}
+	defer func() {
+		activeTypeInfo = prevInfo
+		activeStringVars = prevVars
+	}()
+
+	if !isGoStringExpr(&ast.Ident{Name: "s"}) {
+		t.Fatal("a registered string parameter must be reported as a string")
+	}
+	if isGoStringExpr(&ast.Ident{Name: "buf"}) {
+		t.Fatal("an unregistered identifier must not be reported as a string")
+	}
+	if isGoStringExpr(&ast.CallExpr{Fun: &ast.Ident{Name: "f"}}) {
+		t.Fatal("a non-identifier expression must not be reported as a string without type info")
 	}
 }

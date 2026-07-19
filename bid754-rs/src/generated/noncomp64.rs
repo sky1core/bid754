@@ -268,7 +268,7 @@ pub fn bid64_inf() -> u64 {
 }
 
 pub fn bid64_na_n(tagp: impl AsRef<str>) -> u64 {
-    let mut tagp = tagp.as_ref().to_string();
+    let tagp = tagp.as_ref();
     let mut res: u64 = (0x7c00000000000000 as u64);
     if (tagp == "") {
         return res;

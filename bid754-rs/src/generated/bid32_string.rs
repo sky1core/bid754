@@ -148,8 +148,40 @@ pub fn bid32_to_string_raw(mut x: u32) -> String {
     return go_string_from_bytes(&mut ps[..istart as usize]);
 }
 
+pub(crate) fn equal_fold_ascii(s: impl AsRef<str>, lit: impl AsRef<str>) -> bool {
+    let s = s.as_ref();
+    let lit = lit.as_ref();
+    if ((s.len() as i64) != (lit.len() as i64)) {
+        return false;
+    }
+    let mut i: i64 = 0;
+    while (i < (s.len() as i64)) {
+        if (tolower_macro(s.as_bytes()[i as usize]) != lit.as_bytes()[i as usize]) {
+            return false;
+        }
+        i = i.wrapping_add(1);
+    }
+    return true;
+}
+
+pub(crate) fn has_prefix_fold_ascii(s: impl AsRef<str>, lit: impl AsRef<str>) -> bool {
+    let s = s.as_ref();
+    let lit = lit.as_ref();
+    if ((s.len() as i64) < (lit.len() as i64)) {
+        return false;
+    }
+    let mut i: i64 = 0;
+    while (i < (lit.len() as i64)) {
+        if (tolower_macro(s.as_bytes()[i as usize]) != lit.as_bytes()[i as usize]) {
+            return false;
+        }
+        i = i.wrapping_add(1);
+    }
+    return true;
+}
+
 pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {
-    let mut ps = ps.as_ref().to_string();
+    let ps = ps.as_ref();
     let mut sign_x: u64 = 0;
     let mut coefficient_x: u64 = 0;
     let mut rounded: u64 = 0;
@@ -165,24 +197,24 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
     let mut rdx_pt_enc: i64 = 0;
     let mut pfpsf: u32 = 0;
     let mut res: u64 = 0;
-    let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();
+    let mut s = (ps).trim_start_matches(|c| " \t".contains(c));
     if ((s.len() as i64) == 0) {
         return (0x7c000000, 0);
     }
-    let mut c = s[0];
+    let mut c = s.as_bytes()[0];
     let mut idx: i64 = 0;
     if ((((c != b'.') && (c != b'-')) && (c != b'+')) && (((c < b'0') || (c > b'9')))) {
-        if (s.eq_ignore_ascii_case(b"inf") || s.eq_ignore_ascii_case(b"infinity")) {
+        if (equal_fold_ascii(s, "inf") || equal_fold_ascii(s, "infinity")) {
             return (0x78000000, 0);
         }
-        if ((s.len() >= 4) && s[..4].eq_ignore_ascii_case(b"snan")) {
+        if has_prefix_fold_ascii(s, "snan") {
             return (0x7e000000, 0);
         }
         return (0x7c000000, 0);
     }
     if ((s.len() as i64) > 1) {
-        let sl1 = &s[1 as usize..];
-        if (sl1.eq_ignore_ascii_case(b"inf") || sl1.eq_ignore_ascii_case(b"infinity")) {
+        let mut sl1 = &s[1 as usize..];
+        if (equal_fold_ascii(sl1, "inf") || equal_fold_ascii(sl1, "infinity")) {
             if (c == b'+') {
                 return (0x78000000, 0);
             } else if (c == b'-') {
@@ -190,13 +222,13 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
             }
             return (0x7c000000, 0);
         }
-        if ((sl1.len() >= 4) && sl1[..4].eq_ignore_ascii_case(b"snan")) {
+        if has_prefix_fold_ascii(sl1, "snan") {
             if (c == b'-') {
                 return (0xfe000000, 0);
             }
             return (0x7e000000, 0);
         }
-        if (sl1.eq_ignore_ascii_case(b"nan")) {
+        if equal_fold_ascii(sl1, "nan") {
             if (c == b'-') {
                 return (0xfc000000, 0);
             }
@@ -213,23 +245,23 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
         if (idx >= (s.len() as i64)) {
             return (((0x7c000000 | sign_x) as u32), 0);
         }
-        c = s[idx as usize];
+        c = s.as_bytes()[idx as usize];
     }
     if ((c != b'.') && (((c < b'0') || (c > b'9')))) {
         return (((0x7c000000 | sign_x) as u32), 0);
     }
     rdx_pt_enc = 0;
-    if ((idx < (s.len() as i64)) && (((s[idx as usize] == b'0') || (s[idx as usize] == b'.')))) {
-        if (s[idx as usize] == b'.') {
+    if ((idx < (s.len() as i64)) && (((s.as_bytes()[idx as usize] == b'0') || (s.as_bytes()[idx as usize] == b'.')))) {
+        if (s.as_bytes()[idx as usize] == b'.') {
             rdx_pt_enc = 1;
             idx = idx.wrapping_add(1);
         }
-        while ((idx < (s.len() as i64)) && (s[idx as usize] == b'0')) {
+        while ((idx < (s.len() as i64)) && (s.as_bytes()[idx as usize] == b'0')) {
             idx = idx.wrapping_add(1);
             if (rdx_pt_enc != 0) {
                 right_radix_leading_zeros = right_radix_leading_zeros.wrapping_add(1);
             }
-            if ((idx < (s.len() as i64)) && (s[idx as usize] == b'.')) {
+            if ((idx < (s.len() as i64)) && (s.as_bytes()[idx as usize] == b'.')) {
                 if (rdx_pt_enc == 0) {
                     rdx_pt_enc = 1;
                     if ((idx.wrapping_add(1)) >= (s.len() as i64)) {
@@ -262,7 +294,7 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
         res = (((go_checked_shl_u64((right_radix_leading_zeros as u64), go_shift_count_u64((23) as u64)))) | sign_x);
         return ((res as u32), 0);
     }
-    c = s[idx as usize];
+    c = s.as_bytes()[idx as usize];
     ndigits = 0;
     while ((idx < (s.len() as i64)) && (((((c >= b'0') && (c <= b'9'))) || (c == b'.')))) {
         if (c == b'.') {
@@ -272,7 +304,7 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
             rdx_pt_enc = 1;
             idx = idx.wrapping_add(1);
             if (idx < (s.len() as i64)) {
-                c = s[idx as usize];
+                c = s.as_bytes()[idx as usize];
             }
             continue;
         }
@@ -350,7 +382,7 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
         }
         idx = idx.wrapping_add(1);
         if (idx < (s.len() as i64)) {
-            c = s[idx as usize];
+            c = s.as_bytes()[idx as usize];
         } else {
             c = 0;
         }
@@ -363,7 +395,7 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
         res = (get_bid32_flags((sign_x as u32), (add_expon.wrapping_add(101)), coefficient_x, rnd_mode, (&mut pfpsf)) as u64);
         return ((res as u32), pfpsf);
     }
-    c = s[idx as usize];
+    c = s.as_bytes()[idx as usize];
     if ((c != b'E') && (c != b'e')) {
         return (((0x7c000000 | sign_x) as u32), 0);
     }
@@ -371,7 +403,7 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
     if (idx >= (s.len() as i64)) {
         return (((0x7c000000 | sign_x) as u32), 0);
     }
-    c = s[idx as usize];
+    c = s.as_bytes()[idx as usize];
     if (c == b'-') {
         sgn_expon = 1;
     }
@@ -380,15 +412,15 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
         if (idx >= (s.len() as i64)) {
             return (((0x7c000000 | sign_x) as u32), 0);
         }
-        c = s[idx as usize];
+        c = s.as_bytes()[idx as usize];
     }
     if ((c < b'0') || (c > b'9')) {
         return (((0x7c000000 | sign_x) as u32), 0);
     }
-    while (((idx < (s.len() as i64)) && (s[idx as usize] >= b'0')) && (s[idx as usize] <= b'9')) {
+    while (((idx < (s.len() as i64)) && (s.as_bytes()[idx as usize] >= b'0')) && (s.as_bytes()[idx as usize] <= b'9')) {
         if (expon_x < (1 << 20)) {
             expon_x = (((go_checked_shl_i64(expon_x, go_shift_count_u64((1) as u64)))).wrapping_add(((go_checked_shl_i64(expon_x, go_shift_count_u64((3) as u64))))));
-            expon_x = expon_x.wrapping_add(((s[idx as usize].wrapping_sub(b'0')) as i64));
+            expon_x = expon_x.wrapping_add(((s.as_bytes()[idx as usize].wrapping_sub(b'0')) as i64));
         }
         idx = idx.wrapping_add(1);
     }

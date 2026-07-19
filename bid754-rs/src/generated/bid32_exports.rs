@@ -93,7 +93,7 @@ pub fn bid32_to_string(mut x: u32) -> String {
 }
 
 pub fn bid32_from_string(s: impl AsRef<str>) -> u32 {
-    let mut s = s.as_ref().to_string();
+    let s = s.as_ref();
     let (mut r, _) = bid32_from_string_raw(s, 0);
     return r;
 }

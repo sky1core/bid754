@@ -15957,6 +15957,25 @@
       "exported": false,
       "group": "misc"
     },
+    "equalFoldASCII": {
+      "params": [
+        {
+          "name": "s",
+          "type": "String"
+        },
+        {
+          "name": "lit",
+          "type": "String"
+        }
+      ],
+      "returns": [
+        "bool"
+      ],
+      "go_file": "bid32_string.go",
+      "go_name": "equalFoldASCII",
+      "exported": false,
+      "group": "misc"
+    },
     "fast_get_BID32": {
       "params": [
         {
@@ -16463,6 +16482,25 @@
       ],
       "go_file": "bid128_div.go",
       "go_name": "handle_UF_128",
+      "exported": false,
+      "group": "misc"
+    },
+    "hasPrefixFoldASCII": {
+      "params": [
+        {
+          "name": "s",
+          "type": "String"
+        },
+        {
+          "name": "lit",
+          "type": "String"
+        }
+      ],
+      "returns": [
+        "bool"
+      ],
+      "go_file": "bid32_string.go",
+      "go_name": "hasPrefixFoldASCII",
       "exported": false,
       "group": "misc"
     },

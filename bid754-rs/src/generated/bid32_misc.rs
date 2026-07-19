@@ -305,7 +305,7 @@ pub fn bid32_inf() -> u32 {
 }
 
 pub fn bid32_na_n(tagp: impl AsRef<str>) -> u32 {
-    let mut tagp = tagp.as_ref().to_string();
+    let tagp = tagp.as_ref();
     let mut res: u32 = (0x7c000000 as u32);
     if (tagp == "") {
         return res;

@@ -218,7 +218,7 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
 }
 
 pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT128, u32) {
-    let mut str = str.as_ref().to_string();
+    let str = str.as_ref();
     let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };

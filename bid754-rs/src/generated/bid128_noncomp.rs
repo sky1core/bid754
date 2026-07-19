@@ -180,7 +180,7 @@ pub fn bid128_inf() -> BID_UINT128 {
 }
 
 pub fn bid128_na_n(tagp: impl AsRef<str>) -> BID_UINT128 {
-    let mut tagp = tagp.as_ref().to_string();
+    let tagp = tagp.as_ref();
     let mut res = BID_UINT128 { lo: 0x0000000000000000, hi: 0x7c00000000000000, ..Default::default() };
     if (tagp == "") {
         return res;

@@ -1262,8 +1262,12 @@ func convertFuncDecl(fset *token.FileSet, d *ast.FuncDecl, filePath string) (str
 	} else {
 		sb.WriteString(fmt.Sprintf("%sfn %s(%s) {\n", visibility, rsName, params))
 	}
-	for _, name := range stringParams {
-		sb.WriteString(fmt.Sprintf("    let mut %s = %s.as_ref().to_string();\n", name, name))
+	for _, p := range stringParams {
+		if stringParamIsRebound(d.Body, p.goName) {
+			sb.WriteString(fmt.Sprintf("    let mut %s = %s.as_ref().to_string();\n", p.rsName, p.rsName))
+		} else {
+			sb.WriteString(fmt.Sprintf("    let %s = %s.as_ref();\n", p.rsName, p.rsName))
+		}
 	}
 	sb.WriteString(body)
 	sb.WriteString("}\n")
@@ -1417,13 +1421,20 @@ func fitsSignedConstType(v int64, rustType string) bool {
 	}
 }
 
-func convertFuncParams(fields *ast.FieldList) (string, []string) {
+// stringParamBinding carries both spellings of a string parameter: the Go name
+// is what the body AST is queried with, the Rust name is what gets emitted.
+type stringParamBinding struct {
+	goName string
+	rsName string
+}
+
+func convertFuncParams(fields *ast.FieldList) (string, []stringParamBinding) {
 	if fields == nil || len(fields.List) == 0 {
 		return "", nil
 	}
 
 	var parts []string
-	var stringParams []string
+	var stringParams []stringParamBinding
 	for _, field := range fields.List {
 		rsType := convertParamType(field.Type)
 		// Check if param is a pointer/ref type
@@ -1433,7 +1444,7 @@ func convertFuncParams(fields *ast.FieldList) (string, []string) {
 			rsName := rustIdent(name.Name)
 			if isStringParam {
 				parts = append(parts, fmt.Sprintf("%s: impl AsRef<str>", rsName))
-				stringParams = append(stringParams, rsName)
+				stringParams = append(stringParams, stringParamBinding{goName: name.Name, rsName: rsName})
 			} else if isPtr {
 				parts = append(parts, fmt.Sprintf("%s: %s", rsName, rsType))
 			} else {
@@ -1446,6 +1457,50 @@ func convertFuncParams(fields *ast.FieldList) (string, []string) {
 		}
 	}
 	return strings.Join(parts, ", "), stringParams
+}
+
+// stringParamIsRebound reports whether the body rebinds the named string
+// parameter, which is the only reason the Rust side needs an owned String
+// copy of it.
+//
+// Go passes strings by value, so a body that reassigns the parameter is
+// mutating its own copy and the generated Rust must own one too. A body that
+// only reads the parameter has no such need, and materializing a String for it
+// costs a heap copy on every call — the parse entrypoints are the hot case.
+// Anything that could observe an address (address-of, range binding) is
+// treated as rebinding so the conservative owned form is used.
+func stringParamIsRebound(body *ast.BlockStmt, name string) bool {
+	if body == nil {
+		return true
+	}
+	rebound := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		if rebound {
+			return false
+		}
+		markIfNamed := func(e ast.Expr) {
+			if ident, ok := e.(*ast.Ident); ok && ident.Name == name {
+				rebound = true
+			}
+		}
+		switch s := n.(type) {
+		case *ast.AssignStmt:
+			for _, lhs := range s.Lhs {
+				markIfNamed(lhs)
+			}
+		case *ast.IncDecStmt:
+			markIfNamed(s.X)
+		case *ast.UnaryExpr:
+			if s.Op == token.AND {
+				markIfNamed(s.X)
+			}
+		case *ast.RangeStmt:
+			markIfNamed(s.Key)
+			markIfNamed(s.Value)
+		}
+		return true
+	})
+	return rebound
 }
 
 func isGoStringType(expr ast.Expr) bool {
@@ -2183,6 +2238,37 @@ func wrappingBinaryMethod(tok token.Token, expr ast.Expr) (string, bool) {
 	}
 }
 
+// isGoStringExpr reports whether expr is string-typed in the type-checked
+// package. Slicing a Go string yields another immutable string, so the Rust
+// form must borrow (&s[a..b]); slicing a []byte must stay a mutable borrow.
+// Deciding this from the type checker rather than from a name set keeps string
+// locals correct, not just string parameters.
+func isGoStringExpr(expr ast.Expr) bool {
+	if activeTypeInfo != nil {
+		if tv, ok := activeTypeInfo.Types[expr]; ok && tv.Type != nil {
+			if basic, ok := tv.Type.Underlying().(*types.Basic); ok && basic.Kind() == types.String {
+				return true
+			}
+		}
+		if ident, ok := expr.(*ast.Ident); ok {
+			obj := activeTypeInfo.Uses[ident]
+			if obj == nil {
+				obj = activeTypeInfo.Defs[ident]
+			}
+			if obj != nil && obj.Type() != nil {
+				if basic, ok := obj.Type().Underlying().(*types.Basic); ok && basic.Kind() == types.String {
+					return true
+				}
+			}
+		}
+	}
+	// Fall back to the string-parameter name set when type info is absent.
+	if ident, ok := expr.(*ast.Ident); ok {
+		return activeStringVars[rustIdent(ident.Name)]
+	}
+	return false
+}
+
 func isIntegerExpr(expr ast.Expr) bool {
 	if activeTypeInfo == nil {
 		return false
@@ -2823,7 +2909,8 @@ func convertExprStr(fset *token.FileSet, expr ast.Expr, src []byte) string {
 	case *ast.IndexExpr:
 		x := convertExprStr(fset, e.X, src)
 		idx := convertExprStr(fset, e.Index, src)
-		if ident, ok := e.X.(*ast.Ident); ok && activeStringVars[rustIdent(ident.Name)] {
+		if isGoStringExpr(e.X) {
+			// Go indexes a string by byte; Rust has no integer index on str.
 			return fmt.Sprintf("%s.as_bytes()[%s as usize]", x, idx)
 		}
 		return fmt.Sprintf("%s[%s as usize]", x, idx)
@@ -2858,7 +2945,7 @@ func convertExprStr(fset *token.FileSet, expr ast.Expr, src []byte) string {
 			high = convertExprStr(fset, e.High, src) + " as usize"
 		}
 		prefix := "&mut "
-		if ident, ok := e.X.(*ast.Ident); ok && activeStringVars[rustIdent(ident.Name)] {
+		if isGoStringExpr(e.X) {
 			prefix = "&"
 		}
 		if low != "" && high != "" {
@@ -3327,15 +3414,30 @@ func convertPkgCall(fset *token.FileSet, pkg, fn string, args []ast.Expr, src []
 			arg := convertExprStr(fset, args[0], src)
 			return fmt.Sprintf("(%s).trim().to_string()", arg)
 		case "ToUpper":
-			arg := convertExprStr(fset, args[0], src)
-			return fmt.Sprintf("(%s).to_ascii_uppercase()", arg)
+			// Same unsoundness as ToLower below, opposite direction: Unicode
+			// simple case mapping raises U+0131 to ASCII 'I' and U+017F to 'S',
+			// which to_ascii_uppercase leaves alone.
+			fatal("convert %s.%s: strings.ToUpper has no semantics-preserving Rust "+
+				"counterpart (Unicode vs ASCII fold); use an explicit ASCII fold "+
+				"helper in the Go port", pkg, fn)
+			return ""
 		case "ToLower":
-			arg := convertExprStr(fset, args[0], src)
-			return fmt.Sprintf("(%s).to_ascii_lowercase()", arg)
+			// strings.ToLower applies Unicode simple case mapping, which folds
+			// runes the Rust to_ascii_lowercase counterpart leaves alone (for
+			// example U+0130 lowers to ASCII 'i'). Emitting the ASCII form for
+			// it silently changes which inputs a ported parser accepts, so the
+			// port must spell the intended fold explicitly instead.
+			fatal("convert %s.%s: strings.ToLower has no semantics-preserving Rust "+
+				"counterpart (Unicode vs ASCII fold); use an explicit ASCII fold "+
+				"helper in the Go port", pkg, fn)
+			return ""
 		case "TrimLeft":
 			arg := convertExprStr(fset, args[0], src)
 			cutset := convertExprStr(fset, args[1], src)
-			return fmt.Sprintf("(%s).trim_start_matches(|c| %s.contains(c)).to_string()", arg, cutset)
+			// Borrow rather than copy: trimming a Go string yields a substring of
+			// the same immutable bytes, and the parse entrypoints take this path
+			// on every call.
+			return fmt.Sprintf("(%s).trim_start_matches(|c| %s.contains(c))", arg, cutset)
 		case "HasPrefix":
 			arg := convertExprStr(fset, args[0], src)
 			prefix := convertExprStr(fset, args[1], src)
@@ -3601,59 +3703,60 @@ func rewriteByteLiteralSubtractions(code string) string {
 func optimizeRustStringHotpaths(base string, code string) (string, error) {
 	switch base {
 	case "bid32_string.go":
-		return optimizeBid32StringParse(code)
+		return assertBid32StringParseIsAllocationFree(code)
 	default:
 		return code, nil
 	}
 }
 
-func optimizeBid32StringParse(code string) (string, error) {
-	if strings.Contains(code, `let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();`) &&
-		strings.Contains(code, `s.eq_ignore_ascii_case(b"inf")`) {
-		return code, nil
+// assertBid32StringParseIsAllocationFree checks that the generated bid32
+// parser kept the allocation-free shape the Go port produces directly.
+//
+// This stage used to rewrite the parse head by matching exact generated lines.
+// That coupling meant any local edit to the Go source stopped matching, and the
+// rewrite had to be re-derived before the Go side could change at all. The Go
+// port now spells the allocation-free form itself: the whitespace trim borrows
+// instead of copying, and the special-case probes call explicit ASCII fold
+// helpers rather than allocating a lower-cased copy. So nothing is rewritten
+// here any more; the stage only fails the build if an allocating construct
+// reappears on the parse path, which keeps the guarantee enforced without
+// pinning the generator to one exact rendering.
+func assertBid32StringParseIsAllocationFree(code string) (string, error) {
+	const fnMarker = "pub fn bid32_from_string_raw("
+	start := strings.Index(code, fnMarker)
+	if start < 0 {
+		return "", fmt.Errorf("verify bid32 string parse: %s not found", fnMarker)
 	}
-
-	headerRe := regexp.MustCompile(`(?m)^    let mut s = \(ps\)\.trim_start_matches\(\|c\| " \\t"\.contains\(c\)\)\.to_string\(\);\n    if \(\(s\.len\(\) as i64\) == 0\) \{\n        return \(0x7c000000, 0\);\n    \}\n    let mut c = s\[0\];\n`)
-	if headerRe.MatchString(code) {
-		code = headerRe.ReplaceAllLiteralString(code, `    let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();
-    if ((s.len() as i64) == 0) {
-        return (0x7c000000, 0);
-    }
-    let mut c = s[0];
-`)
-	} else {
-		old := `    let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes().to_vec();
-`
-		if !strings.Contains(code, old) {
-			return "", fmt.Errorf("optimize bid32 string parse: expected parser header not found")
-		}
-		code = strings.Replace(code, old, `    let s = (ps).trim_start_matches(|c| " \t".contains(c)).as_bytes();
-`, 1)
+	body := code[start:]
+	if end := strings.Index(body, "\npub "); end > 0 {
+		body = body[:end]
 	}
-
-	lineReplacements := [][2]string{
-		{`    let mut sl = (s).to_ascii_lowercase();
-`, ``},
-		{`    let mut sl = String::from_utf8_lossy(&s).to_ascii_lowercase();
-`, ``},
-		{`        if ((sl == "inf") || (sl == "infinity")) {`, `        if (s.eq_ignore_ascii_case(b"inf") || s.eq_ignore_ascii_case(b"infinity")) {`},
-		{`        if (sl).starts_with("snan") {`, `        if ((s.len() >= 4) && s[..4].eq_ignore_ascii_case(b"snan")) {`},
-		{`        let mut sl1 = (&mut s[1 as usize..]).to_ascii_lowercase();
-`, `        let sl1 = &s[1 as usize..];
-`},
-		{`        let mut sl1 = String::from_utf8_lossy(&s[1 as usize..]).to_ascii_lowercase();
-`, `        let sl1 = &s[1 as usize..];
-`},
-		{`        if ((sl1 == "inf") || (sl1 == "infinity")) {`, `        if (sl1.eq_ignore_ascii_case(b"inf") || sl1.eq_ignore_ascii_case(b"infinity")) {`},
-		{`        if (sl1).starts_with("snan") {`, `        if ((sl1.len() >= 4) && sl1[..4].eq_ignore_ascii_case(b"snan")) {`},
-		{`        if (sl1 == "nan") {`, `        if (sl1.eq_ignore_ascii_case(b"nan")) {`},
-	}
-	for _, repl := range lineReplacements {
-		code = strings.ReplaceAll(code, repl[0], repl[1])
-	}
-	for _, rejected := range []string{"to_ascii_lowercase", "String::from_utf8_lossy", "as_bytes().to_vec()"} {
-		if strings.Contains(code, rejected) {
-			return "", fmt.Errorf("optimize bid32 string parse: leftover %q", rejected)
+	// Secondary guard. The primary guarantee is that the Go port itself parses
+	// without allocating (TestBid32FromStringParseDoesNotAllocate) and that this
+	// Rust is generated from that Go, so the list below exists to catch a
+	// generator regression that reintroduces an owning construct, not to serve
+	// as the allocation proof on its own.
+	for _, banned := range []string{
+		"to_ascii_lowercase",
+		"to_ascii_uppercase",
+		"String::from_utf8_lossy",
+		"String::from",
+		"String::with_capacity",
+		"String::new",
+		"Vec::from",
+		"Vec::with_capacity",
+		"vec![",
+		".to_vec()",
+		".to_string()",
+		".to_owned()",
+		".collect()",
+		".into_bytes()",
+		"format!(",
+	} {
+		if strings.Contains(body, banned) {
+			return "", fmt.Errorf("verify bid32 string parse: allocating construct %q reached "+
+				"bid32_from_string_raw; the Go port must spell this path allocation-free "+
+				"instead of relying on a post-generation rewrite", banned)
 		}
 	}
 	return code, nil
