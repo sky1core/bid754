@@ -57,7 +57,8 @@ with redistributions of the derived artifacts.
 
 ## IBM decNumber
 
-- Role: optional current-tree native decTest helper/reference dependency.
+- Role: current-tree native decTest helper and third-oracle differential
+  reference dependency.
 - Version: 3.68.
 - Archive: `decNumber-icu-368.zip`.
 - SHA-256: `14ec2cf30b58758493a7661b78b80abfb281652b61a425b85cda83173518fe25`.
@@ -66,7 +67,10 @@ with redistributions of the derived artifacts.
 - Local setup: `bash ./devtools/scripts/install_ibm_decnumber.sh`.
 
 IBM decNumber is not the canonical implementation target for this repository.
-It remains a current-tree native helper only.
+It is a current-tree native reference: besides the decTest helper role, the
+generated decNumber differential gate re-runs it as a third oracle alongside
+pinned Intel BID C and the Go mechanical port, as a divergence tripwire
+rather than a correctness definition.
 
 ## BID Codec Standalone Packages
 
