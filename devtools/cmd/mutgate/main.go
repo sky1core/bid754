@@ -89,6 +89,19 @@ var stageCatalog = map[string]stage{
 	// probe whether survivors of the regular chain fall to the long corpus.
 	"tier1arith": {Name: "tier1arith", Binary: "tier1long",
 		RunExpr: "^TestTier1ArithmeticStructuredNativeDifferential$"},
+	// Secondary-analysis stage: the Tier 1 arithmetic long differential's
+	// deterministic-random leg. Kept separate from tier1arith so a kill is
+	// attributed to the random corpus rather than the structured boundary
+	// corpus; both legs share the tier1long binary, so the split costs no
+	// extra build.
+	"tier1rand": {Name: "tier1rand", Binary: "tier1long",
+		RunExpr: "^TestTier1ArithmeticDeterministicRandomNativeDifferential$"},
+	// Secondary-analysis stage: the Decimal32 unary exhaustive differential.
+	// Only meaningful for mutants on a swept bid32 unary surface, and a full
+	// sweep is expensive, so it is never part of a default chain — select it
+	// explicitly for the mutants whose surface the lane table covers.
+	"d32exh": {Name: "d32exh", Binary: "d32exhaustive",
+		RunExpr: "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$"},
 	// Secondary-analysis stage: the hand-written in-package bidgo tests
 	// (flagless-variant equivalence, targeted regression tests). Part of the
 	// repo's test-go-modules gate but outside the generated verification
@@ -158,7 +171,9 @@ func main() {
 	flag.StringVar(&cfg.files, "files", "arith-core", "'arith-core' preset or CSV of bidgo file names")
 	flag.IntVar(&cfg.perFile, "per-file", 20, "sampled mutants per file")
 	flag.Int64Var(&cfg.seed, "seed", 754, "deterministic sampling seed")
-	flag.StringVar(&cfg.stages, "stages", strings.Join(stageOrderDefault, ","), "ordered kill-suite stages (readtest,dectest,parity,native,decnumber)")
+	flag.StringVar(&cfg.stages, "stages", strings.Join(stageOrderDefault, ","),
+		"ordered kill-suite stages; regular chain: readtest,dectest,parity,native,decnumber; "+
+			"secondary analysis: tier1arith,tier1rand,bidgopkg,d32exh")
 	flag.DurationVar(&cfg.stageTimeout, "stage-timeout", 300*time.Second, "per-stage execution timeout")
 	flag.DurationVar(&cfg.buildTimeout, "build-timeout", 300*time.Second, "per-build timeout")
 	flag.StringVar(&cfg.jsonlPath, "jsonl", "", "JSONL result output path (required for run/selfcheck)")
@@ -829,21 +844,39 @@ func (e *engine) buildEnv(binary string) []string {
 	return env
 }
 
+// binaryBuild describes one test binary: the package to compile and the build
+// tags that make the intended gate real rather than its stub.
+type binaryBuild struct {
+	Pkg  string
+	Tags string
+}
+
+// binaryBuilds is the closed set of test-binary keys a stage may name.
+// resolveStages rejects any stage outside it. Without that check an unknown
+// key would fall through to the untagged default build, and the long gates
+// compile a *stub* under the wrong tags — a stub that skips, which exits 0 and
+// scores every mutant "survived" against a gate that never executed a case.
+var binaryBuilds = map[string]binaryBuild{
+	"portable":      {Pkg: "."},
+	"bidgopkg":      {Pkg: "./internal/bidgo"},
+	"native":        {Pkg: ".", Tags: "bid754_native"},
+	"decnumber":     {Pkg: ".", Tags: "bid754_native,bid754_decnumber_diff"},
+	"tier1long":     {Pkg: ".", Tags: "bid754_native,bid754_tier1_long"},
+	"d32exhaustive": {Pkg: ".", Tags: "bid754_native,bid754_d32_exhaustive"},
+}
+
 func (e *engine) buildArgs(binary, outPath string) []string {
 	args := []string{"test", "-count=1", "-c", "-vet=off", "-o", outPath}
-	pkg := "."
-	switch binary {
-	case "portable":
-	case "bidgopkg":
-		pkg = "./internal/bidgo"
-	case "native":
-		args = append(args, "-tags", "bid754_native")
-	case "decnumber":
-		args = append(args, "-tags", "bid754_native,bid754_decnumber_diff")
-	case "tier1long":
-		args = append(args, "-tags", "bid754_native,bid754_tier1_long")
+	b, ok := binaryBuilds[binary]
+	if !ok {
+		// resolveStages rejects this earlier; reaching here means the catalog
+		// and the build table drifted apart.
+		panic("mutgate: no build spec for test binary " + binary)
 	}
-	return append(args, pkg)
+	if b.Tags != "" {
+		args = append(args, "-tags", b.Tags)
+	}
+	return append(args, b.Pkg)
 }
 
 // buildBinary compiles the bid754-go test binary for the given tag set.
@@ -1048,6 +1081,9 @@ func resolveStages(cfg config) ([]stage, error) {
 		st, ok := stageCatalog[name]
 		if !ok {
 			return nil, fmt.Errorf("unknown stage %q", name)
+		}
+		if _, ok := binaryBuilds[st.Binary]; !ok {
+			return nil, fmt.Errorf("stage %q names test binary %q with no build spec", name, st.Binary)
 		}
 		out = append(out, st)
 	}

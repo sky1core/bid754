@@ -190,3 +190,105 @@ func TestParseStrata(t *testing.T) {
 		t.Fatalf("empty strata should be nil,nil,nil; got %v %v %v", q, order, err)
 	}
 }
+
+// TestEveryStageBinaryHasBuildSpec closes the stage-catalog/build-table world.
+//
+// The failure this blocks is silent, not loud: a stage naming a test binary
+// with no build spec used to fall through to the untagged default build, and
+// under the wrong tags a long gate compiles its stub, whose test *skips*. A
+// skipping test exits 0, so mutgate would score every mutant "survived"
+// against a gate that never executed a single case -- a fabricated survivor
+// list with no visible error anywhere in the run.
+func TestEveryStageBinaryHasBuildSpec(t *testing.T) {
+	for name, st := range stageCatalog {
+		if st.RunExpr == "" {
+			t.Errorf("stage %q has an empty -test.run expression", name)
+		}
+		if _, ok := binaryBuilds[st.Binary]; !ok {
+			t.Errorf("stage %q names test binary %q with no entry in binaryBuilds", name, st.Binary)
+		}
+	}
+	for key, b := range binaryBuilds {
+		if b.Pkg == "" {
+			t.Errorf("binaryBuilds[%q] has no package", key)
+		}
+		used := false
+		for _, st := range stageCatalog {
+			if st.Binary == key {
+				used = true
+				break
+			}
+		}
+		if !used {
+			t.Errorf("binaryBuilds[%q] is unused; a build spec no stage names is dead weight "+
+				"that hides which gates the tool can actually run", key)
+		}
+	}
+}
+
+// TestResolveStagesRejectsMissingBuildSpec exercises the guard through the
+// flag-parsing path a run actually takes.
+//
+// It installs a temporary entry in the package-level stageCatalog, which is
+// safe only because no test in this package calls t.Parallel; adding a
+// parallel test here would race against this mutation.
+func TestResolveStagesRejectsMissingBuildSpec(t *testing.T) {
+	const probe = "probe_missing_build_spec"
+	stageCatalog[probe] = stage{Name: probe, Binary: "no_such_binary", RunExpr: "^TestNothing$"}
+	defer delete(stageCatalog, probe)
+
+	if _, err := resolveStages(config{stages: probe}); err == nil {
+		t.Fatal("resolveStages accepted a stage whose test binary has no build spec")
+	}
+	if _, err := resolveStages(config{stages: "readtest"}); err != nil {
+		t.Fatalf("resolveStages rejected a valid stage: %v", err)
+	}
+}
+
+// TestStubBackedBinariesCarryTheirGateTags pins the build tags of every test
+// binary whose gate has a skipping stub compiled under the complementary
+// constraint.
+//
+// Only the tags separate the real gate from its stub, and a stub is the one
+// wrong-tag outcome mutgate cannot notice: it defines the same test name, so
+// the -test.list preflight still matches, the stub skips, the binary exits 0,
+// and every mutant is scored "survived" against a gate that ran nothing.
+// tier1long is deliberately absent -- the Tier 1 long gate ships no stub, so
+// wrong tags there leave the test undefined and the preflight reports
+// "nomatch" instead of a silent pass.
+func TestStubBackedBinariesCarryTheirGateTags(t *testing.T) {
+	required := map[string][]string{
+		"native":        {"bid754_native"},
+		"decnumber":     {"bid754_native", "bid754_decnumber_diff"},
+		"d32exhaustive": {"bid754_native", "bid754_d32_exhaustive"},
+	}
+	for binary, tags := range required {
+		spec, ok := binaryBuilds[binary]
+		if !ok {
+			t.Errorf("stub-backed binary %q has no build spec", binary)
+			continue
+		}
+		// Exact identifier match, not substring: Go resolves build tags as whole
+		// identifiers, so "bid754_native_wrong" or "bid754_d32_exhaustiveX"
+		// satisfies a Contains check while still compiling the stub -- the very
+		// silent outcome this test exists to block.
+		have := map[string]bool{}
+		for _, tg := range strings.Split(spec.Tags, ",") {
+			have[strings.TrimSpace(tg)] = true
+		}
+		for _, tag := range tags {
+			if !have[tag] {
+				t.Errorf("binary %q builds without the exact tag %q, which compiles the gate's "+
+					"skipping stub; tags are %q", binary, tag, spec.Tags)
+			}
+		}
+	}
+	// The stage that motivated the table must still resolve to one of them.
+	st, ok := stageCatalog["d32exh"]
+	if !ok {
+		t.Fatal("d32exh stage missing from the catalog")
+	}
+	if _, ok := required[st.Binary]; !ok {
+		t.Fatalf("d32exh names binary %q, which is not covered by the stub-backed tag table", st.Binary)
+	}
+}
