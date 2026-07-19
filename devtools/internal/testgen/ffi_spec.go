@@ -70,6 +70,54 @@ func ffiMixedDecimalShapeFor(function string) (ffiMixedDecimalShape, bool) {
 		return ffiMixedDecimalShape{format: "decimal64", operation: "sqrt", resultBits: d, operandBits: [3]int{q}, operandCount: 1}, true
 	case "bid128d_sqrt":
 		return ffiMixedDecimalShape{format: "decimal128", operation: "sqrt", resultBits: q, operandBits: [3]int{d}, operandCount: 1}, true
+	case "bid64dq_add":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid64dq_sub":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid64dq_mul":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid64dq_div":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid64qd_add":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+	case "bid64qd_sub":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+	case "bid64qd_mul":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+	case "bid64qd_div":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+	case "bid64qq_add":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+	case "bid64qq_sub":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+	case "bid64qq_mul":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+	case "bid64qq_div":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+	case "bid128dd_add":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+	case "bid128dd_sub":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+	case "bid128dd_mul":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+	case "bid128dd_div":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+	case "bid128dq_add":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid128dq_sub":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid128dq_mul":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid128dq_div":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+	case "bid128qd_add":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
+	case "bid128qd_sub":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
+	case "bid128qd_mul":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
+	case "bid128qd_div":
+		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
 	default:
 		return ffiMixedDecimalShape{}, false
 	}
@@ -350,10 +398,31 @@ func ffiMixedDecimalRoundingProbeOperands(shape ffiMixedDecimalShape) ([][]strin
 		for i, value := range values {
 			probes[i] = []modeDiscOperand{value}
 		}
+	case "add", "sub", "mul", "div":
+		// The mixed binary families reuse the public-parity discriminant
+		// tables through the same width-encodability check the mixed FMA and
+		// sqrt probes use. Decimal128 DD multiplication is the one shape that
+		// legitimately returns no pairs: every finite product of two
+		// Decimal64 coefficients is exact in Decimal128, so no input can
+		// discriminate the rounding modes and demanding one would force a
+		// fabricated probe. That shape is handled below by emitting no probe
+		// group at all; its 48-case baseline still runs under all five modes.
+		operation := strings.ToUpper(shape.operation[:1]) + shape.operation[1:]
+		pairs, err := mixedModeBinaryDiscriminantOperands(operation, shape.resultBits, [2]int{shape.operandBits[0], shape.operandBits[1]})
+		if err != nil {
+			return nil, err
+		}
+		probes = make([][]modeDiscOperand, len(pairs))
+		for i, pair := range pairs {
+			probes[i] = append([]modeDiscOperand(nil), pair[:]...)
+		}
 	default:
 		return nil, fmt.Errorf("unsupported mixed decimal operation %q", shape.operation)
 	}
 	if len(probes) == 0 {
+		if !ffiMixedShapeCarriesRoundingProbe(shape) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("mixed decimal operation %q has no rounding probe operands", shape.operation)
 	}
 	// The first FMA row is the result-width half-ULP tie and the first sqrt
@@ -380,6 +449,20 @@ func ffiMixedDecimalRoundingProbeOperands(shape ffiMixedDecimalShape) ([][]strin
 		}
 	}
 	return encoded, nil
+}
+
+// ffiMixedShapeCarriesRoundingProbe reports whether a mixed shape admits a
+// rounding-discriminant probe group at all. Every registered shape does except
+// Decimal128 = Decimal64 x Decimal64 multiplication: two Decimal64
+// coefficients multiply to at most 32 digits and their exponents sum well
+// inside the Decimal128 range, so every finite DD product is exact and no
+// operand pair can separate the five rounding modes. Generation fails closed
+// for any other shape that produces no probe operands, so this exception
+// cannot be widened by accident.
+func ffiMixedShapeCarriesRoundingProbe(shape ffiMixedDecimalShape) bool {
+	exactDDMul := shape.operation == "mul" && shape.resultBits == 128 &&
+		shape.operandCount == 2 && shape.operandBits[0] == 64 && shape.operandBits[1] == 64
+	return !exactDDMul
 }
 
 func ffiModeDiscOperandBits(width int, operand modeDiscOperand) (string, error) {
@@ -893,6 +976,19 @@ func (g *deterministicFFIGenerator) nextMixedDecimalOperand(index, arity, positi
 	case 1:
 		if index < g.decimalEdgeCount() {
 			return g.formatDecimalEdge(index)
+		}
+	case 2:
+		// Each operand slot resolves its edge index against its own width's
+		// table, matching the arity-3 convention below. For the equal-width
+		// mixed shapes (bid64qq_*, bid128dd_*) that reproduces the designed
+		// binary edge pairing exactly. For the unequal-width shapes
+		// (bid{64,128}{dq,qd}_*) the two slots read two independently designed
+		// tables at the same row, so the emitted operands are a cross-width
+		// combination of edge values rather than one table's designed pair --
+		// still a deterministic, reproducible edge-heavy corpus, but not a
+		// pairing either table was written to express.
+		if pair, ok := ffiBinaryEdgePair(index, g.bits, g.decimalEdgeCount()); ok {
+			return g.formatDecimalEdge(pair[position])
 		}
 	case 3:
 		if triple, ok := ffiTernaryEdgeTriple(index, g.bits, g.decimalEdgeCount()); ok {

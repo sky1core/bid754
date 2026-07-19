@@ -15,19 +15,19 @@ import (
 )
 
 var expectedGeneratedFFIFormatCounts = map[string]int{
-	"decimal128": 8034,
+	"decimal128": 9390,
 	"decimal32":  9648,
-	"decimal64":  8033,
+	"decimal64":  9395,
 }
 
 var expectedGeneratedFFIOperationCounts = map[string]int{
 	"abs":                         144,
-	"add":                         325,
+	"add":                         1003,
 	"class":                       144,
 	"copy":                        144,
 	"copySign":                    144,
-	"div":                         2372,
-	"fma":                         903,
+	"div":                         3053,
+	"fma":                         906,
 	"fmod":                        144,
 	"from_int32":                  144,
 	"from_int64":                  144,
@@ -50,7 +50,7 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"maxnum_mag":                  144,
 	"minnum":                      144,
 	"minnum_mag":                  144,
-	"mul":                         324,
+	"mul":                         998,
 	"negate":                      144,
 	"nextdown":                    144,
 	"nextup":                      144,
@@ -71,7 +71,7 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"quiet_unordered":             144,
 	"radix":                       144,
 	"rem":                         144,
-	"round_integral_exact":        144,
+	"round_integral_exact":        146,
 	"sameQuantum":                 144,
 	"scalbln":                     300,
 	"scalbn":                      144,
@@ -83,8 +83,8 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"signaling_less_unordered":    144,
 	"signaling_not_greater":       144,
 	"signaling_not_less":          144,
-	"sqrt":                        250,
-	"sub":                         324,
+	"sqrt":                        252,
+	"sub":                         1002,
 	"to_bid128":                   96,
 	"to_bid32":                    96,
 	"to_bid64":                    96,
@@ -182,7 +182,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_copy":                        48,
 	"bid128_copySign":                    48,
 	"bid128_div":                         108,
-	"bid128_fma":                         50,
+	"bid128_fma":                         52,
 	"bid128_fmod":                        48,
 	"bid128_from_int32":                  48,
 	"bid128_from_int64":                  48,
@@ -226,7 +226,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_quiet_unordered":             48,
 	"bid128_radix":                       48,
 	"bid128_rem":                         48,
-	"bid128_round_integral_exact":        48,
+	"bid128_round_integral_exact":        50,
 	"bid128_sameQuantum":                 48,
 	"bid128_scalbln":                     100,
 	"bid128_scalbn":                      48,
@@ -327,11 +327,23 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_to_uint8_xrninta":            48,
 	"bid128_totalOrder":                  48,
 	"bid128_totalOrderMag":               48,
-	"bid128d_sqrt":                       53,
+	"bid128d_sqrt":                       54,
+	"bid128dd_add":                       113,
+	"bid128dd_div":                       113,
+	"bid128dd_mul":                       108,
+	"bid128dd_sub":                       113,
 	"bid128ddd_fma":                      54,
 	"bid128ddq_fma":                      54,
+	"bid128dq_add":                       113,
+	"bid128dq_div":                       113,
+	"bid128dq_mul":                       113,
+	"bid128dq_sub":                       113,
 	"bid128dqd_fma":                      54,
 	"bid128dqq_fma":                      54,
+	"bid128qd_add":                       113,
+	"bid128qd_div":                       113,
+	"bid128qd_mul":                       113,
+	"bid128qd_sub":                       113,
 	"bid128qdd_fma":                      54,
 	"bid128qdq_fma":                      54,
 	"bid128qqd_fma":                      54,
@@ -492,7 +504,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid64_copy":                         48,
 	"bid64_copySign":                     48,
 	"bid64_div":                          108,
-	"bid64_fma":                          49,
+	"bid64_fma":                          50,
 	"bid64_fmod":                         48,
 	"bid64_from_int32":                   48,
 	"bid64_from_int64":                   48,
@@ -638,21 +650,33 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid64_totalOrder":                   48,
 	"bid64_totalOrderMag":                48,
 	"bid64ddq_fma":                       54,
+	"bid64dq_add":                        113,
+	"bid64dq_div":                        113,
+	"bid64dq_mul":                        113,
+	"bid64dq_sub":                        113,
 	"bid64dqd_fma":                       54,
 	"bid64dqq_fma":                       54,
-	"bid64q_sqrt":                        53,
+	"bid64q_sqrt":                        54,
+	"bid64qd_add":                        113,
+	"bid64qd_div":                        113,
+	"bid64qd_mul":                        113,
+	"bid64qd_sub":                        113,
 	"bid64qdd_fma":                       54,
 	"bid64qdq_fma":                       54,
+	"bid64qq_add":                        113,
+	"bid64qq_div":                        116,
+	"bid64qq_mul":                        114,
+	"bid64qq_sub":                        113,
 	"bid64qqd_fma":                       54,
 	"bid64qqq_fma":                       54,
 }
 
 var expectedGeneratedFFIRoundingCounts = map[int]int{
-	0: 22258,
-	1: 897,
-	2: 896,
-	3: 832,
-	4: 832,
+	0: 22812,
+	1: 1449,
+	2: 1449,
+	3: 1361,
+	4: 1362,
 }
 
 const generatedFFIRoundingDiscriminantProbe = "rounding-discriminant"
@@ -786,8 +810,16 @@ func validateGeneratedFFIProbeContract(cases []testspec.GeneratedFFICase) (gener
 		}
 	}
 	for function := range expectedGeneratedFFIFunctionCounts {
-		if generatedFFIMixedDecimalFunction(function) && groupsPerFunction[function] != 1 {
-			return nil, fmt.Errorf("generated mixed FFI function %s has %d rounding-discriminant probe groups, want 1", function, groupsPerFunction[function])
+		shape, mixed := generatedFFIMixedDecimalShapeFor(function)
+		if !mixed {
+			continue
+		}
+		wantGroups := 1
+		if !generatedFFIMixedShapeCarriesRoundingProbe(shape) {
+			wantGroups = 0
+		}
+		if groupsPerFunction[function] != wantGroups {
+			return nil, fmt.Errorf("generated mixed FFI function %s has %d rounding-discriminant probe groups, want %d", function, groupsPerFunction[function], wantGroups)
 		}
 	}
 	if len(fusednessSeen) != len(expectedGeneratedFFIFusednessPins) {
@@ -1007,8 +1039,8 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 25715 {
-		t.Fatalf("generated ffi case count = %d, want 25715", len(spec.FFICases))
+	if len(spec.FFICases) != 28433 {
+		t.Fatalf("generated ffi case count = %d, want 28433", len(spec.FFICases))
 	}
 	assertGeneratedFFICoverage(t, spec.FFICases)
 	probeTracker, err := validateGeneratedFFIProbeContract(spec.FFICases)

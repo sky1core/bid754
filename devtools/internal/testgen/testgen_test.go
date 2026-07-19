@@ -627,10 +627,19 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	// 23662 manifest-driven cases + 5 mutation-audit witness rows + 2048
+	// 26369 manifest-driven cases + 16 mutation-audit witness rows + 2048
 	// bid_factors32 exactness sweep cases (mutation_witness_corpus.go).
-	if len(spec.FFICases) != 25715 {
-		t.Fatalf("generated %d ffi cases, want 25715", len(spec.FFICases))
+	//
+	// The manifest-driven total grew by 2707 when the 24 Intel mixed-format
+	// arithmetic entrypoints (bid{64,128}{dd,dq,qd,qq}_{add,sub,mul,div})
+	// joined the FFI suite: 23 of them carry 113 cases (48 baseline + a
+	// five-mode rounding-discriminant probe group + 15 Tier 1 edge pairs under
+	// the four non-baseline modes) and bid128dd_mul carries 108, having no
+	// rounding-probe group because every finite Decimal64 x Decimal64 product
+	// is exact in Decimal128. The witness rows grew from 5 to 16 with the
+	// eleven batch C-2 detection-gap witnesses.
+	if len(spec.FFICases) != 28433 {
+		t.Fatalf("generated %d ffi cases, want 28433", len(spec.FFICases))
 	}
 	ffiSymbols, err := loadSymbolFile(filepath.Join(repoRoot, "generated", "json", "intel_dfp_symbols.json"))
 	if err != nil {
@@ -691,8 +700,10 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		ffiFormatCaseCounts[tc.Format]++
 		ffiOperationCaseCounts[tc.Operation]++
 	}
-	if len(ffiFunctionCaseCounts) != 469 {
-		t.Fatalf("generated ffi function count = %d, want 469 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
+	// 469 functions before the 24 Intel mixed-format arithmetic entrypoints
+	// (bid{64,128}{dd,dq,qd,qq}_{add,sub,mul,div}) joined the FFI suite.
+	if len(ffiFunctionCaseCounts) != 493 {
+		t.Fatalf("generated ffi function count = %d, want 493 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
 	}
 	ffiWitnessRowsByFunction := map[string]int{}
 	for _, witness := range ffiMutationWitnessCases {
@@ -705,7 +716,9 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	for function, count := range ffiFunctionCaseCounts {
 		want := 48 + 4*ffiTier1RoundingEdgeCaseCount(ffiFunctionOperations[function], ffiFunctionBits[function])
 		if shape, ok := ffiMixedDecimalShapeFor(function); ok {
-			want += ffiRoundingModeCount
+			if ffiMixedShapeCarriesRoundingProbe(shape) {
+				want += ffiRoundingModeCount
+			}
 			if shape.operation == "fma" {
 				want++
 			}
@@ -718,22 +731,31 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 			t.Fatalf("generated ffi function %q has %d cases, want %d", function, count, want)
 		}
 	}
-	// decimal32 carries the 2048-case bid_factors32 exactness sweep; the
-	// mutation-audit witness rows add 2 decimal64 (bid64_add, bid64_fma) and
-	// 3 decimal128 (bid128_fma x2, bid128_quantize) cases.
+	// decimal32 carries the 2048-case bid_factors32 exactness sweep. Batch C-1
+	// witness rows add 2 decimal64 (bid64_add, bid64_fma) and 3 decimal128
+	// (bid128_fma x2, bid128_quantize).
+	//
+	// A mixed-format entrypoint is counted under its result format. decimal64
+	// grows by 1362: 1360 from the twelve bid64{dq,qd,qq}_* functions (which
+	// already include the four batch C-2 witnesses on bid64qq_mul and
+	// bid64qq_div) plus 2 batch C-2 witnesses on the pre-existing bid64_fma
+	// and bid64q_sqrt. decimal128 grows by 1356: 1351 from the twelve
+	// bid128{dd,dq,qd}_* functions plus 5 batch C-2 witnesses on the
+	// pre-existing bid128_fma (x2), bid128_round_integral_exact (x2), and
+	// bid128d_sqrt.
 	assertCountMap(t, "ffi formats", ffiFormatCaseCounts, map[string]int{
 		"decimal32":  9648,
-		"decimal64":  8033,
-		"decimal128": 8034,
+		"decimal64":  9395,
+		"decimal128": 9390,
 	})
 	expectedFFIOperations := map[string]int{
 		"abs":                         144,
-		"add":                         325, // +1 mutation-audit witness (bid64_add)
+		"add":                         1003, // +1 mutation-audit witness (bid64_add); +678 mixed-format add (6 x 113)
 		"class":                       144,
 		"copy":                        144,
 		"copySign":                    144,
-		"div":                         2372, // +2048 bid_factors32 sweep (bid32_div)
-		"fma":                         903,  // +3 mutation-audit witnesses (bid64_fma, bid128_fma x2)
+		"div":                         3053, // +2048 bid_factors32 sweep (bid32_div); +681 mixed-format div (5 x 113 + bid64qq_div 116)
+		"fma":                         906,  // +6 mutation-audit witnesses (bid64_fma x2, bid128_fma x4)
 		"fmod":                        144,
 		"from_int32":                  144,
 		"from_int64":                  144,
@@ -756,7 +778,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"maxnum_mag":                  144,
 		"minnum":                      144,
 		"minnum_mag":                  144,
-		"mul":                         324,
+		"mul":                         998, // +674 mixed-format mul (4 x 113 + bid64qq_mul 114 + bid128dd_mul 108)
 		"negate":                      144,
 		"nextdown":                    144,
 		"nextup":                      144,
@@ -777,7 +799,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"quantum":                     144,
 		"radix":                       144,
 		"rem":                         144,
-		"round_integral_exact":        144,
+		"round_integral_exact":        146, // +2 mutation-audit witnesses (bid128_round_integral_exact)
 		"scalbn":                      144,
 		"scalbln":                     300,
 		"sameQuantum":                 144,
@@ -789,8 +811,8 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"signaling_less_unordered":    144,
 		"signaling_not_greater":       144,
 		"signaling_not_less":          144,
-		"sqrt":                        250,
-		"sub":                         324,
+		"sqrt":                        252,  // +2 mutation-audit witnesses (bid64q_sqrt, bid128d_sqrt)
+		"sub":                         1002, // +678 mixed-format sub (6 x 113)
 		"totalOrder":                  144,
 		"totalOrderMag":               144,
 		"to_bid128":                   96,

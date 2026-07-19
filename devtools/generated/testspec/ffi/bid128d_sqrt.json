@@ -63,6 +63,7 @@
     {"id":"bid_native_bitcompare_subset_bid128d_sqrt_050","probe":"rounding-discriminant","probe_group":"bid128d_sqrt/rounding/1","rounding":1,"operands":["31c0000000000002"]},
     {"id":"bid_native_bitcompare_subset_bid128d_sqrt_051","probe":"rounding-discriminant","probe_group":"bid128d_sqrt/rounding/1","rounding":2,"operands":["31c0000000000002"]},
     {"id":"bid_native_bitcompare_subset_bid128d_sqrt_052","probe":"rounding-discriminant","probe_group":"bid128d_sqrt/rounding/1","rounding":3,"operands":["31c0000000000002"]},
-    {"id":"bid_native_bitcompare_subset_bid128d_sqrt_053","probe":"rounding-discriminant","probe_group":"bid128d_sqrt/rounding/1","rounding":4,"operands":["31c0000000000002"]}
+    {"id":"bid_native_bitcompare_subset_bid128d_sqrt_053","probe":"rounding-discriminant","probe_group":"bid128d_sqrt/rounding/1","rounding":4,"operands":["31c0000000000002"]},
+    {"id":"bid_native_bitcompare_subset_bid128d_sqrt_054","rounding":3,"operands":["360000c465b09a48"]}
   ]
 }

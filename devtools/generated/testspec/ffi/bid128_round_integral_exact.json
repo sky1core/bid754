@@ -54,6 +54,8 @@
     {"id":"bid_native_bitcompare_subset_bid128_round_integral_exact_045","rounding":4,"operands":["76e4b6f4394799e77804881a588ddd82"]},
     {"id":"bid_native_bitcompare_subset_bid128_round_integral_exact_046","rounding":0,"operands":["fc988fc9d5edeb6c945bfae08be51214"]},
     {"id":"bid_native_bitcompare_subset_bid128_round_integral_exact_047","rounding":1,"operands":["93cd88425304e278588b042caee872a5"]},
-    {"id":"bid_native_bitcompare_subset_bid128_round_integral_exact_048","rounding":2,"operands":["aa1b67da67b26124e9946fbe66537022"]}
+    {"id":"bid_native_bitcompare_subset_bid128_round_integral_exact_048","rounding":2,"operands":["aa1b67da67b26124e9946fbe66537022"]},
+    {"id":"bid_native_bitcompare_subset_bid128_round_integral_exact_049","rounding":4,"operands":["5a000000000000000000000000003cb0"]},
+    {"id":"bid_native_bitcompare_subset_bid128_round_integral_exact_050","rounding":3,"operands":["f9bfb800000000000000000000003230"]}
   ]
 }

@@ -40,6 +40,30 @@ var expectedFFIMixedDecimalShapes = map[string]expectedFFIMixedDecimalShape{
 	"bid128qqd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{128, 128, 64}, goPort: "Bid128qqdFma"},
 	"bid64q_sqrt":   {format: "decimal64", operation: "sqrt", resultBits: 64, operandBits: []int{128}, goPort: "Bid64qSqrt"},
 	"bid128d_sqrt":  {format: "decimal128", operation: "sqrt", resultBits: 128, operandBits: []int{64}, goPort: "Bid128dSqrt"},
+	"bid64dq_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqAdd"},
+	"bid64dq_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqSub"},
+	"bid64dq_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqMul"},
+	"bid64dq_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqDiv"},
+	"bid64qd_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdAdd"},
+	"bid64qd_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdSub"},
+	"bid64qd_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdMul"},
+	"bid64qd_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdDiv"},
+	"bid64qq_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqAdd"},
+	"bid64qq_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqSub"},
+	"bid64qq_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqMul"},
+	"bid64qq_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqDiv"},
+	"bid128dd_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddAdd"},
+	"bid128dd_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddSub"},
+	"bid128dd_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddMul"},
+	"bid128dd_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddDiv"},
+	"bid128dq_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqAdd"},
+	"bid128dq_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqSub"},
+	"bid128dq_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqMul"},
+	"bid128dq_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqDiv"},
+	"bid128qd_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdAdd"},
+	"bid128qd_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdSub"},
+	"bid128qd_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdMul"},
+	"bid128qd_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdDiv"},
 }
 
 var expectedFFIMixedDecimalFunctionOrder = []string{
@@ -59,11 +83,34 @@ var expectedFFIMixedDecimalFunctionOrder = []string{
 	"bid128qqd_fma",
 	"bid64q_sqrt",
 	"bid128d_sqrt",
+	"bid64dq_add",
+	"bid64dq_sub",
+	"bid64dq_mul",
+	"bid64dq_div",
+	"bid64qd_add",
+	"bid64qd_sub",
+	"bid64qd_mul",
+	"bid64qd_div",
+	"bid64qq_add",
+	"bid64qq_sub",
+	"bid64qq_mul",
+	"bid64qq_div",
+	"bid128dd_add",
+	"bid128dd_sub",
+	"bid128dd_mul",
+	"bid128dd_div",
+	"bid128dq_add",
+	"bid128dq_sub",
+	"bid128dq_mul",
+	"bid128dq_div",
+	"bid128qd_add",
+	"bid128qd_sub",
+	"bid128qd_mul",
+	"bid128qd_div",
 }
 
 func TestBuildFFICasesSupportsClosedWorldMixedDecimalShapes(t *testing.T) {
 	const casesPerFunction = 48
-	const roundingProbeCasesPerFunction = ffiRoundingModeCount
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
 	functions := make([]string, 0, len(expectedFFIMixedDecimalShapes))
 	for function := range expectedFFIMixedDecimalShapes {
@@ -103,24 +150,70 @@ func TestBuildFFICasesSupportsClosedWorldMixedDecimalShapes(t *testing.T) {
 		}
 		counts[tc.Function]++
 	}
-	fmaFunctions := 0
-	for _, shape := range expectedFFIMixedDecimalShapes {
-		if shape.operation == "fma" {
-			fmaFunctions++
-		}
-	}
-	if got, want := len(cases), len(expectedFFIMixedDecimalShapes)*(casesPerFunction+roundingProbeCasesPerFunction)+fmaFunctions; got != want {
-		t.Fatalf("mixed decimal FFI case count = %d, want %d", got, want)
-	}
+	// Mutation-audit witness rows are pinned per function in the
+	// generator-owned corpus (mutation_witness_corpus.go), so the per-function
+	// budget below adds however many that corpus targets at each function.
+	// This test anchors the mixed shapes, not the witness corpus.
+	witnesses := ffiMutationWitnessIndex()
+	total := 0
 	for function, shape := range expectedFFIMixedDecimalShapes {
-		want := casesPerFunction + roundingProbeCasesPerFunction
-		if shape.operation == "fma" {
-			want++
-		}
+		want := expectedMixedDecimalCaseCount(t, shape, casesPerFunction) + len(witnesses[function])
 		if counts[function] != want {
 			t.Fatalf("%s case count = %d, want %d", function, counts[function], want)
 		}
+		total += want
 	}
+	if got := len(cases); got != total {
+		t.Fatalf("mixed decimal FFI case count = %d, want %d", got, total)
+	}
+}
+
+// mixedTier1EdgePairs is the Tier 1 rounding edge matrix width for the binary
+// arithmetic shapes, written out here independently of the generator table it
+// anchors. Each pair is re-run under every non-baseline rounding mode.
+const mixedTier1EdgePairs = 15
+
+// expectedMixedDecimalCaseCount states the per-function generated case budget
+// independently of buildFFICases: the baseline block, one five-mode
+// rounding-discriminant probe group, one fusedness probe for the FMA shapes,
+// and the Tier 1 rounding edge matrix for the binary arithmetic shapes.
+//
+// Decimal128 DD multiplication is the single shape with no rounding-probe
+// group: multiplying two Decimal64 coefficients yields at most 32 digits and
+// the exponent sum stays inside Decimal128, so every finite DD product is
+// exact and no operand pair can separate the five rounding modes. Its baseline
+// block still runs against Intel C under all five modes.
+func expectedMixedDecimalCaseCount(t *testing.T, shape expectedFFIMixedDecimalShape, casesPerFunction int) int {
+	t.Helper()
+	want := casesPerFunction
+	switch shape.operation {
+	case "fma":
+		want += ffiRoundingModeCount
+		want++
+	case "sqrt":
+		want += ffiRoundingModeCount
+	case "add", "sub", "mul", "div":
+		want += mixedTier1EdgePairs * (ffiRoundingModeCount - 1)
+		if mixedShapeCarriesRoundingProbe(shape) {
+			want += ffiRoundingModeCount
+		}
+	default:
+		t.Fatalf("unexpected mixed decimal operation %q", shape.operation)
+	}
+	return want
+}
+
+// mixedShapeCarriesRoundingProbe reports whether a mixed shape can carry a
+// rounding-discriminant probe group at all. Every shape can except Decimal128
+// = Decimal64 x Decimal64 multiplication: two Decimal64 coefficients multiply
+// to at most 32 digits and their exponents sum well inside the Decimal128
+// range, so every finite DD product is exact and no operand pair separates the
+// five rounding modes. Demanding a probe there would only invite a fabricated
+// one, so the shape is excluded here and its baseline block carries the
+// five-mode comparison instead.
+func mixedShapeCarriesRoundingProbe(shape expectedFFIMixedDecimalShape) bool {
+	exactDDMul := shape.operation == "mul" && shape.resultBits == 128 && slices.Equal(shape.operandBits, []int{64, 64})
+	return !exactDDMul
 }
 
 func TestBuildFFICasesRepeatsMixedDecimalRoundingProbesAcrossAllModes(t *testing.T) {
@@ -187,8 +280,12 @@ func TestBuildFFICasesRepeatsMixedDecimalRoundingProbesAcrossAllModes(t *testing
 		}
 		groupsPerFunction[group.function]++
 	}
-	for function := range expectedFFIMixedDecimalShapes {
-		if got, want := groupsPerFunction[function], 1; got != want {
+	for function, shape := range expectedFFIMixedDecimalShapes {
+		want := 1
+		if !mixedShapeCarriesRoundingProbe(shape) {
+			want = 0
+		}
+		if got := groupsPerFunction[function]; got != want {
 			t.Errorf("%s rounding probe groups = %d, want %d", function, got, want)
 		}
 	}
@@ -259,9 +356,13 @@ func TestGeneratedSpecHasClosedMixedDecimalProbeCensus(t *testing.T) {
 
 	for function, shape := range expectedFFIMixedDecimalShapes {
 		groups := roundingGroups[function]
-		if len(groups) != 1 {
-			t.Errorf("%s rounding probe groups = %d, want 1", function, len(groups))
-		} else {
+		wantGroups := 1
+		if !mixedShapeCarriesRoundingProbe(shape) {
+			wantGroups = 0
+		}
+		if len(groups) != wantGroups {
+			t.Errorf("%s rounding probe groups = %d, want %d", function, len(groups), wantGroups)
+		} else if wantGroups == 1 {
 			for groupName, cases := range groups {
 				if len(cases) != ffiRoundingModeCount {
 					t.Errorf("%s rounding probe group %q cases = %d, want %d", function, groupName, len(cases), ffiRoundingModeCount)
@@ -390,9 +491,15 @@ func TestBuildFFICasesAddsClosedMixedFMAFusednessProbes(t *testing.T) {
 	for function := range expectedFFIMixedDecimalShapes {
 		functions = append(functions, function)
 	}
+	// Every mixed shape stays in the fixture (not just the FMA ones) so the
+	// "unexpected fusedness probe function" check below still proves the sqrt
+	// and binary-arithmetic shapes receive no fusedness probe. That requires
+	// the production case budget, because the binary shapes carry the Tier 1
+	// rounding edge matrix and generation fails closed on a baseline too small
+	// to cover it.
 	cases, err := buildFFICases(repoRoot, FFITestSpec{
 		Name: "mixed_fma_fusedness", Symbols: "generated/json/intel_dfp_symbols.json",
-		Functions: functions, CasesPerFunction: 1, Seed: 754,
+		Functions: functions, CasesPerFunction: 48, Seed: 754,
 	})
 	if err != nil {
 		t.Fatalf("buildFFICases mixed FMA fusedness: %v", err)

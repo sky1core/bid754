@@ -60,6 +60,47 @@ var ffiMutationWitnessCases = []ffiMutationWitnessCase{
 		MutantID: "bid128_quantize.go:4563:aor:-->+", Reason: "bid128_quantize.go:161 Bid128Quantize; semantic literal row +1000000000000000000000000000000000E-33 quantize +1E+0 re-encoded as bits"},
 	{Function: "bid128_fma", Rounding: 0, Operands: []string{"000000000a5bc138938d44c64d31faaf", "ffffffff638e8d37c087adbe09edff5f", "ffffffff638e8d37c087adbe09edff5f"},
 		MutantID: "bid128_fma_body.go:31590:aor:-->+", Reason: "bid128_fma_body.go:990 bid_fma_cases_2_to_6; panic probe (index out of range without the pinned Intel subtraction)"},
+
+	// Batch C-2 detection-gap witnesses. The 2026-07-19 re-adjudication of the
+	// audit's residual survivors ran each mutant through the full regular
+	// chain (goport readtest, goport decTest, public-API parity, native
+	// readtest/decTest/FFI, decNumber differential, Tier 1 Structured and
+	// DeterministicRandom legs) and then searched for a distinguishing input at
+	// a public port entrypoint. These eleven mutants passed every gate and
+	// still produced a wrong result or wrong status flags on the operands
+	// below, so each row is a measured gap of the regular chain rather than a
+	// synthetic case: the mutant is provably non-equivalent and provably
+	// undetected before this row existed.
+	//
+	// Five of them live on the Intel mixed-format entrypoints. Four
+	// (Bid64qqMul, Bid64qqDiv x3) were unreachable from any FFI domain at all
+	// until this change registered the mixed-format arithmetic family, which is
+	// why the audit measured that family as the thinnest covered surface. The
+	// rows are pinned here rather than left to the seeded corpus because a
+	// seeded corpus that happens to cover them today can stop covering them
+	// after any generator reseed.
+	{Function: "bid128_fma", Rounding: 0, Operands: []string{"0200000000000000000000000000ea57", "0500000000000000000000000000d68d", "8c7072812f7a5e1faa0600000000c2a7"},
+		MutantID: "bid128_fma.go:7523:cmp:<-><=", Reason: "bid128_fma.go:290 bid128_ext_fma"},
+	{Function: "bid128_fma", Rounding: 4, Operands: []string{"435d000000000000000000000000f451", "501b32752491c0b3df69311ec306b1bc", "501b32752491c0b3df69311ec306b13c"},
+		MutantID: "bid128_round.go:5917:const:+1", Reason: "bid128_round.go:192 bid_round192_39_57 (reached through Bid128Fma)"},
+	{Function: "bid128_round_integral_exact", Rounding: 4, Operands: []string{"5a000000000000000000000000003cb0"},
+		MutantID: "bid128_round_integral.go:10891:cmp:>=->>", Reason: "bid128_round_integral.go:323 Bid128RoundIntegralExact"},
+	{Function: "bid128_round_integral_exact", Rounding: 3, Operands: []string{"f9bfb800000000000000000000003230"},
+		MutantID: "bid128_round_integral.go:5547:negcond:negate", Reason: "bid128_round_integral.go:174 Bid128RoundIntegralExact"},
+	{Function: "bid128d_sqrt", Rounding: 3, Operands: []string{"360000c465b09a48"},
+		MutantID: "bid128_sqrt.go:15195:cmp:==->!=", Reason: "bid128_sqrt.go:628 Bid128dSqrt"},
+	{Function: "bid64_fma", Rounding: 0, Operands: []string{"afe7230489e80000", "1aa0000000000009", "1aa0000000000009"},
+		MutantID: "inline_round64.go:3686:negcond:negate", Reason: "inline_round64.go:132 __bid_full_round64 (reached through Bid64Fma)"},
+	{Function: "bid64q_sqrt", Rounding: 1, Operands: []string{"0010a5d4e8000000000000000000fe2f"},
+		MutantID: "sqrt64.go:6178:const:-1", Reason: "sqrt64.go:244 Bid64qSqrt"},
+	{Function: "bid64qq_mul", Rounding: 2, Operands: []string{"6ab04059b01dc720acd5b35169f2153b", "1c478271bc15ea0000000000000010a6"},
+		MutantID: "bid128_mul.go:1461:const:+1", Reason: "bid128_mul.go:38 Bid64qqMul"},
+	{Function: "bid64qq_div", Rounding: 2, Operands: []string{"3800000000000000000000000000fedf", "0500000000000000000000000000b2df"},
+		MutantID: "div64.go:22362:aor:+->-", Reason: "div64.go:864 Bid64qqDiv"},
+	{Function: "bid64qq_div", Rounding: 0, Operands: []string{"c1ae3ad16ee21bfdf5300f2b6451e35a", "ae3281672beb14000000000000009cdb"},
+		MutantID: "div64.go:24267:negcond:negate", Reason: "div64.go:936 Bid64qqDiv"},
+	{Function: "bid64qq_div", Rounding: 4, Operands: []string{"47b99912a426f80b2c000000000066c4", "48b99912a426f80b2c000000000066c4"},
+		MutantID: "div64.go:24735:aor:+=->-=", Reason: "div64.go:953 Bid64qqDiv"},
 }
 
 // ffiMutationWitnessIndex groups the witness rows by FFI function for

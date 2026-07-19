@@ -82,6 +82,12 @@ var stageCatalog = map[string]stage{
 	"parity": {Name: "parity", Binary: "portable",
 		RunExpr: "^(TestGeneratedPublicAPIParity|TestGeneratedPublicAPIFlaglessSiblingEquivalence)$"},
 	"native": {Name: "native", Binary: "native", RunExpr: "^(TestGeneratedReadCases|TestGeneratedDectestSuites|TestGeneratedFFIBitCompareSubset)$"},
+	// The generated C-FFI exact bit-compare domain on its own. The `native`
+	// stage bundles it with the native readtest and decTest legs, so a kill
+	// there cannot be attributed to any one of the three. This stage isolates
+	// the FFI domain for attribution and shares the native binary, so the
+	// split costs no extra build (same rationale as tier1arith/tier1rand).
+	"ffi": {Name: "ffi", Binary: "native", RunExpr: "^TestGeneratedFFIBitCompareSubset$"},
 	"decnumber": {Name: "decnumber", Binary: "decnumber",
 		RunExpr: "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$"},
 	// Secondary-analysis stage (not part of the regular audited gate chain):
@@ -110,6 +116,20 @@ var stageCatalog = map[string]stage{
 }
 
 var stageOrderDefault = []string{"readtest", "dectest", "parity"}
+
+// stageCatalogNames lists every selectable stage, sorted. The -stages usage
+// text is built from this rather than from a second hand-maintained list, so a
+// newly added stage cannot stay invisible to -help: an undiscoverable stage
+// pushes the next reader back onto a bundled stage and loses the kill
+// attribution the split exists to provide.
+func stageCatalogNames() []string {
+	names := make([]string, 0, len(stageCatalog))
+	for name := range stageCatalog {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
 
 type mutationSite struct {
 	File     string `json:"file"`     // bidgo-relative file name
@@ -172,8 +192,8 @@ func main() {
 	flag.IntVar(&cfg.perFile, "per-file", 20, "sampled mutants per file")
 	flag.Int64Var(&cfg.seed, "seed", 754, "deterministic sampling seed")
 	flag.StringVar(&cfg.stages, "stages", strings.Join(stageOrderDefault, ","),
-		"ordered kill-suite stages; regular chain: readtest,dectest,parity,native,decnumber; "+
-			"secondary analysis: tier1arith,tier1rand,bidgopkg,d32exh")
+		"ordered kill-suite stages; selectable: "+strings.Join(stageCatalogNames(), ",")+
+			"; regular verification chain: readtest,dectest,parity,native,decnumber (the rest are secondary analysis)")
 	flag.DurationVar(&cfg.stageTimeout, "stage-timeout", 300*time.Second, "per-stage execution timeout")
 	flag.DurationVar(&cfg.buildTimeout, "build-timeout", 300*time.Second, "per-build timeout")
 	flag.StringVar(&cfg.jsonlPath, "jsonl", "", "JSONL result output path (required for run/selfcheck)")
