@@ -1161,10 +1161,14 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		d32ExhaustiveNativeShimGeneratedPath,
 		d32ExhaustiveRunnerGeneratedPath,
 		d32ExhaustiveStubGeneratedPath,
+		d32ExhaustiveRustRunnerGeneratedPath,
 	)
+	// The consumers anchor counts the sweep-executing runner artifacts: the
+	// Go native long runner plus the generated Rust leg (shim and stub are
+	// support files, not sweep consumers).
 	d32ExhaustiveRunnerConsumers := uint64(0)
 	for path := range d32ExhaustiveOutputs {
-		if strings.HasSuffix(path, "_long_test.go") {
+		if strings.HasSuffix(path, "_long_test.go") || strings.HasSuffix(path, "_long_generated.rs") {
 			d32ExhaustiveRunnerConsumers++
 		}
 	}
@@ -1223,6 +1227,22 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	}
 	if got := uint64(len(d32ExhaustiveSentinelRowsLiteral)); got != d32Exhaustive.SentinelRowCount {
 		t.Errorf("generated d32 exhaustive sentinel row literal count %d diverges from the generated constant %d", got, d32Exhaustive.SentinelRowCount)
+	}
+	rustD32ExhaustiveSentinelRows := loadRustStringArrayLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-rs", "ffi-verify", "tests", "d32_exhaustive_long_generated.rs"),
+		"D32_EXHAUSTIVE_SENTINEL_ROWS")
+	if !reflect.DeepEqual(rustD32ExhaustiveSentinelRows, sentinels.D32ExhaustiveRows) {
+		t.Errorf("generated Rust d32 exhaustive sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(rustD32ExhaustiveSentinelRows), len(sentinels.D32ExhaustiveRows),
+			firstSentinelRowDivergence(rustD32ExhaustiveSentinelRows, sentinels.D32ExhaustiveRows))
+	}
+	rustD32ExhaustiveLaneNames := loadRustStringArrayLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-rs", "ffi-verify", "tests", "d32_exhaustive_long_generated.rs"),
+		"D32_EXHAUSTIVE_LANE_NAMES")
+	if !reflect.DeepEqual(rustD32ExhaustiveLaneNames, d32ExhaustiveLaneNameRows) {
+		t.Errorf("generated Rust d32 exhaustive lane-name inventory diverges from the Go runner inventory: Rust %d lanes, Go %d lanes%s",
+			len(rustD32ExhaustiveLaneNames), len(d32ExhaustiveLaneNameRows),
+			firstSentinelRowDivergence(rustD32ExhaustiveLaneNames, d32ExhaustiveLaneNameRows))
 	}
 
 	tier1CompareConversionOutputs, err := GenerateTier1CompareConversionLongOutputs()
@@ -2289,6 +2309,10 @@ func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 	case "bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs",
 		"bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs":
 		return "rust_tier1_long_runners", ""
+	case "bid754-rs/ffi-verify/tests/d32_exhaustive_long_generated.rs":
+		// The generated Rust leg of the Decimal32 unary exhaustive gate hashes
+		// with the Go-side d32 exhaustive artifacts: one gate, one bucket.
+		return "d32_exhaustive_runners", ""
 	case "bid754-rs/tests/public_parity_generated.rs":
 		return "rust_public_parity_runner", ""
 	case "bid754-rs/tests/dectest_generated.rs":

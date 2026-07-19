@@ -170,6 +170,104 @@ func TestSentinelCCCountEvidenceUsesCompareConversionRows(t *testing.T) {
 	}
 }
 
+func TestD32ExhaustiveDigestEvidenceBindsBothLegsToTheSamePins(t *testing.T) {
+	a := anchors{
+		D32ExhaustiveLanes:            2,
+		D32ExhaustiveCasesPerLane:     4,
+		D32ExhaustiveTotalComparisons: 8,
+		D32ExhaustiveDigestByLane: map[string]uint64{
+			"sqrt_nearest_even": 11,
+			"nextup":            22,
+		},
+	}
+	goRequired := d32ExhaustiveDigestEvidence(a, "")
+	goLog := strings.Split(
+		"    x_test.go:1: decimal32 exhaustive lane nextup: exact comparisons 4/4 digest=22\n"+
+			"    x_test.go:1: decimal32 exhaustive lane sqrt_nearest_even: exact comparisons 4/4 digest=11\n"+
+			"    x_test.go:1: decimal32 exhaustive unary total comparisons: 8/8\n",
+		"\n",
+	)
+	if missing := missingEvidence(goLog, goRequired); len(missing) != 0 {
+		t.Fatalf("valid Go-leg digest evidence missing=%v", missing)
+	}
+	wrongDigest := strings.Split(
+		"    x_test.go:1: decimal32 exhaustive lane nextup: exact comparisons 4/4 digest=23\n"+
+			"    x_test.go:1: decimal32 exhaustive lane sqrt_nearest_even: exact comparisons 4/4 digest=11\n"+
+			"    x_test.go:1: decimal32 exhaustive unary total comparisons: 8/8\n",
+		"\n",
+	)
+	if missing := missingEvidence(wrongDigest, goRequired); len(missing) != 1 {
+		t.Fatalf("moved lane digest still satisfied the pinned evidence: missing=%v", missing)
+	}
+
+	rustRequired := d32ExhaustiveDigestEvidence(a, "Rust ")
+	if missing := missingEvidence(goLog, rustRequired); len(missing) != len(rustRequired) {
+		t.Fatalf("Go-leg log satisfied Rust-leg digest evidence: missing=%v of %d", missing, len(rustRequired))
+	}
+	rustLog := strings.Split(
+		"Rust decimal32 exhaustive lane nextup: exact comparisons 4/4 digest=22\n"+
+			"Rust decimal32 exhaustive lane sqrt_nearest_even: exact comparisons 4/4 digest=11\n"+
+			"Rust decimal32 exhaustive unary total comparisons: 8/8\n",
+		"\n",
+	)
+	if missing := missingEvidence(rustLog, rustRequired); len(missing) != 0 {
+		t.Fatalf("valid Rust-leg digest evidence missing=%v", missing)
+	}
+	// Reverse direction: the Go leg's required lines are a literal substring
+	// of the Rust leg's, so without an explicit prefix rejection a Rust log
+	// would satisfy the Go domain's digest evidence on its own.
+	if missing := missingEvidence(rustLog, goRequired); len(missing) != len(goRequired) {
+		t.Fatalf("Rust-leg log satisfied Go-leg digest evidence: missing=%v of %d", missing, len(goRequired))
+	}
+	// The rejection is evaluated per line, so a Rust-format line elsewhere in
+	// the log must not stop a genuine Go-format line from counting.
+	mixed := strings.Split(
+		"Rust decimal32 exhaustive lane nextup: exact comparisons 4/4 digest=22\n"+
+			"    x_test.go:1: decimal32 exhaustive lane nextup: exact comparisons 4/4 digest=22\n",
+		"\n",
+	)
+	if missing := missingEvidence(mixed, goRequired[:1]); len(missing) != 0 {
+		t.Fatalf("Go-format line was rejected because a Rust-format line was present: missing=%v", missing)
+	}
+	sharded := strings.Split(
+		"Rust decimal32 exhaustive lane nextup: exact comparisons 2/4 (sharded run; lane digest suppressed)\n"+
+			"Rust decimal32 exhaustive lane sqrt_nearest_even: exact comparisons 2/4 (sharded run; lane digest suppressed)\n"+
+			"Rust decimal32 exhaustive unary total comparisons: 4/8\n",
+		"\n",
+	)
+	if missing := missingEvidence(sharded, rustRequired); len(missing) != len(rustRequired) {
+		t.Fatalf("sharded Rust-leg log satisfied full-run digest evidence: missing=%v of %d", missing, len(rustRequired))
+	}
+}
+
+func TestD32ExhaustiveSentinelCountEvidenceSeparatesTheLegs(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "verification_sentinels.json")
+	pin := `{"d32_exhaustive_sentinel_rows": ["row a", "row b"]}`
+	if err := os.WriteFile(path, []byte(pin), 0o644); err != nil {
+		t.Fatalf("write sentinel pin fixture: %v", err)
+	}
+	goWant := d32ExhaustiveSentinelCountEvidence(path, "d32 exhaustive routing sentinels")
+	rustWant := d32ExhaustiveSentinelCountEvidence(path, "Rust d32 exhaustive routing sentinels")
+
+	goLog := strings.Split("    x_test.go:1: d32 exhaustive routing sentinels: 2/2\n", "\n")
+	rustLog := strings.Split("Rust d32 exhaustive routing sentinels: 2/2\n", "\n")
+
+	if missing := missingEvidence(goLog, []evidence{goWant}); len(missing) != 0 {
+		t.Fatalf("Go sentinel count line was not accepted: missing=%v", missing)
+	}
+	if missing := missingEvidence(rustLog, []evidence{rustWant}); len(missing) != 0 {
+		t.Fatalf("Rust sentinel count line was not accepted: missing=%v", missing)
+	}
+	// The Go literal is a substring of the Rust line, so without the prefix
+	// rejection a Rust-only log would satisfy the Go domain's sentinel row.
+	if missing := missingEvidence(rustLog, []evidence{goWant}); len(missing) != 1 {
+		t.Fatalf("Rust sentinel line satisfied the Go-leg sentinel evidence: missing=%v", missing)
+	}
+	if missing := missingEvidence(goLog, []evidence{rustWant}); len(missing) != 1 {
+		t.Fatalf("Go sentinel line satisfied the Rust-leg sentinel evidence: missing=%v", missing)
+	}
+}
+
 func TestSentinelCountEvidenceRequiresPinnedFullCount(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "verification_sentinels.json")
 	pin := `{"tier1_arithmetic_long_routing_sentinel_rows": ["row a", "row b", "row c"]}`

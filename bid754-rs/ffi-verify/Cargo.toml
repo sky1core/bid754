@@ -16,6 +16,11 @@ ffi-fuzz = []
 # the regular readtest runner so reduced smoke runs cannot be reported as the
 # long boundary.
 tier1-long = []
+# d32-exhaustive-long enables the generated Decimal32 unary exhaustive
+# differential Rust leg (tests/d32_exhaustive_long_generated.rs): the full
+# 2^32 input space per lane against pinned Intel BID C, an independent long
+# gate like the Go leg's bid754_d32_exhaustive build tag.
+d32-exhaustive-long = []
 
 [dev-dependencies]
 bid754 = { path = ".." }

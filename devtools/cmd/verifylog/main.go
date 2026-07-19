@@ -56,7 +56,7 @@ func main() {
 	anchorsPath := flag.String("anchors", "verification_anchors.json", "path to verification_anchors.json")
 	sentinelsPath := flag.String("sentinels", "verification_sentinels.json", "path to verification_sentinels.json (routing-sentinel row pins)")
 	logPath := flag.String("log", "", "path to the captured gate log")
-	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi, decnumber-differential, d32-exhaustive")
+	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi, decnumber-differential, d32-exhaustive, d32-exhaustive-rust")
 	passes := flag.String("passes", "", "comma-separated top-level Go test names that must have '--- PASS:' evidence")
 	flag.Parse()
 	if *logPath == "" || (*domain == "" && *passes == "") {
@@ -205,33 +205,21 @@ func main() {
 				topLevelPass("TestGeneratedD32ExhaustiveUnaryDifferential"),
 				d32ExhaustiveSentinelCountEvidence(*sentinelsPath, "d32 exhaustive routing sentinels"),
 			)
-			if a.D32ExhaustiveLanes == 0 || a.D32ExhaustiveCasesPerLane == 0 {
-				fail("d32 exhaustive anchors carry a zero lane or per-lane case count (an empty gate would be a green no-op)")
-			}
-			if uint64(len(a.D32ExhaustiveDigestByLane)) != a.D32ExhaustiveLanes {
-				fail("d32 exhaustive anchors pin %d lane digests for %d lanes", len(a.D32ExhaustiveDigestByLane), a.D32ExhaustiveLanes)
-			}
-			if a.D32ExhaustiveLanes*a.D32ExhaustiveCasesPerLane != a.D32ExhaustiveTotalComparisons {
-				fail("d32 exhaustive anchors: lanes %d x cases-per-lane %d != total %d",
-					a.D32ExhaustiveLanes, a.D32ExhaustiveCasesPerLane, a.D32ExhaustiveTotalComparisons)
-			}
-			laneNames := make([]string, 0, len(a.D32ExhaustiveDigestByLane))
-			for lane := range a.D32ExhaustiveDigestByLane {
-				laneNames = append(laneNames, lane)
-			}
-			sort.Strings(laneNames)
-			for _, lane := range laneNames {
-				digest := a.D32ExhaustiveDigestByLane[lane]
-				if digest == 0 {
-					fail("d32 exhaustive anchors pin a zero result digest for lane %q (an unpinned digest binds nothing)", lane)
-				}
-				required = append(required, countLine(fmt.Sprintf(
-					"decimal32 exhaustive lane %s: exact comparisons %d/%d digest=%d",
-					lane, a.D32ExhaustiveCasesPerLane, a.D32ExhaustiveCasesPerLane, digest)))
-			}
-			required = append(required, countLine(fmt.Sprintf(
-				"decimal32 exhaustive unary total comparisons: %d/%d",
-				a.D32ExhaustiveTotalComparisons, a.D32ExhaustiveTotalComparisons)))
+			required = append(required, d32ExhaustiveDigestEvidence(a, "")...)
+		case "d32-exhaustive-rust":
+			// The generated Rust leg binds to the SAME hand-pinned per-lane
+			// digests. Each runner is checked against the pins independently
+			// (this command reads one log at a time and never compares the two
+			// logs), and an in-run C-vs-port divergence fails its runner before
+			// any digest is printed. What the shared pins add is that the Rust
+			// port must reproduce, over the whole space, the digests a Go-port
+			// run established — so a go2rs-side regression cannot be pinned
+			// away on its own.
+			required = append(required,
+				countLine("test result: ok. 3 passed; 0 failed;"),
+				d32ExhaustiveSentinelCountEvidence(*sentinelsPath, "Rust d32 exhaustive routing sentinels"),
+			)
+			required = append(required, d32ExhaustiveDigestEvidence(a, "Rust ")...)
 		default:
 			fail("unknown domain %q", *domain)
 		}
@@ -250,17 +238,32 @@ func main() {
 
 // evidence is one required log line. kind "pass" requires an unindented
 // top-level `--- PASS: <name> (` line so an indented subtest PASS under a
-// failing parent cannot satisfy it; kind "count" requires the literal followed
-// by a non-digit so an anchored total cannot match a longer number; kind
-// "compact-summary" requires exactly one complete summary line for its root.
+// failing parent cannot satisfy it; kind "count" requires the literal's first
+// occurrence in a line to be followed by a non-digit so an anchored total
+// cannot match a longer number, and — when rejectPrefix is set — not to be
+// preceded by that prefix; kind "compact-summary" requires exactly one
+// complete summary line for its root.
 type evidence struct {
 	kind     string
 	literal  string
 	rootTest string
+	// rejectPrefix, when set, disqualifies an occurrence of literal that is
+	// immediately preceded by it. The d32 exhaustive Go-leg lines are a
+	// literal substring of the Rust leg's ("Rust " + the same text), so
+	// without this the Rust log would satisfy the Go domain's digest
+	// evidence; leg separation must not rest on the Go domain's unrelated
+	// top-level PASS requirements.
+	rejectPrefix string
 }
 
 func topLevelPass(name string) evidence { return evidence{kind: "pass", literal: name} }
 func countLine(literal string) evidence { return evidence{kind: "count", literal: literal} }
+
+// countLineRejectingPrefix is countLine restricted to occurrences that are
+// not immediately preceded by reject.
+func countLineRejectingPrefix(literal, reject string) evidence {
+	return evidence{kind: "count", literal: literal, rejectPrefix: reject}
+}
 func compactSummary(rootTest, literal string) evidence {
 	return evidence{kind: "compact-summary", literal: literal, rootTest: rootTest}
 }
@@ -362,13 +365,63 @@ func decnumberDiffSentinelCountEvidence(sentinelsPath, prefix string) evidence {
 }
 
 // d32ExhaustiveSentinelCountEvidence is the d32 exhaustive analogue of
-// sentinelCountEvidence.
+// sentinelCountEvidence. The Go leg's line is a substring of the Rust leg's
+// ("Rust " + the same text), so — like the per-lane digest evidence — the Go
+// leg rejects occurrences carrying the Rust prefix; otherwise a Rust log
+// would satisfy this row of the Go domain.
 func d32ExhaustiveSentinelCountEvidence(sentinelsPath, prefix string) evidence {
 	n := len(loadSentinels(sentinelsPath).D32ExhaustiveRows)
 	if n == 0 {
 		fail("verification_sentinels.json pins zero d32 exhaustive sentinel rows")
 	}
-	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
+	literal := fmt.Sprintf("%s: %d/%d", prefix, n, n)
+	if !strings.HasPrefix(prefix, "Rust ") {
+		return countLineRejectingPrefix(literal, "Rust ")
+	}
+	return countLine(literal)
+}
+
+// d32ExhaustiveDigestEvidence validates the d32 exhaustive anchors and
+// returns the per-lane digest and full-count evidence lines shared by the Go
+// leg (legPrefix "") and the generated Rust leg (legPrefix "Rust "). Both
+// legs bind to the identical hand-pinned digest values.
+func d32ExhaustiveDigestEvidence(a anchors, legPrefix string) []evidence {
+	if a.D32ExhaustiveLanes == 0 || a.D32ExhaustiveCasesPerLane == 0 {
+		fail("d32 exhaustive anchors carry a zero lane or per-lane case count (an empty gate would be a green no-op)")
+	}
+	if uint64(len(a.D32ExhaustiveDigestByLane)) != a.D32ExhaustiveLanes {
+		fail("d32 exhaustive anchors pin %d lane digests for %d lanes", len(a.D32ExhaustiveDigestByLane), a.D32ExhaustiveLanes)
+	}
+	if a.D32ExhaustiveLanes*a.D32ExhaustiveCasesPerLane != a.D32ExhaustiveTotalComparisons {
+		fail("d32 exhaustive anchors: lanes %d x cases-per-lane %d != total %d",
+			a.D32ExhaustiveLanes, a.D32ExhaustiveCasesPerLane, a.D32ExhaustiveTotalComparisons)
+	}
+	laneNames := make([]string, 0, len(a.D32ExhaustiveDigestByLane))
+	for lane := range a.D32ExhaustiveDigestByLane {
+		laneNames = append(laneNames, lane)
+	}
+	sort.Strings(laneNames)
+	// The Go leg's lines are a substring of the Rust leg's, so the Go leg
+	// rejects occurrences carrying the Rust prefix; that keeps the two
+	// domains mutually exclusive on the digest evidence itself.
+	line := countLine
+	if legPrefix == "" {
+		line = func(literal string) evidence { return countLineRejectingPrefix(literal, "Rust ") }
+	}
+	required := []evidence{}
+	for _, lane := range laneNames {
+		digest := a.D32ExhaustiveDigestByLane[lane]
+		if digest == 0 {
+			fail("d32 exhaustive anchors pin a zero result digest for lane %q (an unpinned digest binds nothing)", lane)
+		}
+		required = append(required, line(fmt.Sprintf(
+			"%sdecimal32 exhaustive lane %s: exact comparisons %d/%d digest=%d",
+			legPrefix, lane, a.D32ExhaustiveCasesPerLane, a.D32ExhaustiveCasesPerLane, digest)))
+	}
+	required = append(required, line(fmt.Sprintf(
+		"%sdecimal32 exhaustive unary total comparisons: %d/%d",
+		legPrefix, a.D32ExhaustiveTotalComparisons, a.D32ExhaustiveTotalComparisons)))
+	return required
 }
 
 func (e evidence) String() string {
@@ -387,6 +440,9 @@ func (e evidence) matchesLine(line string) bool {
 	default:
 		idx := strings.Index(line, e.literal)
 		if idx < 0 {
+			return false
+		}
+		if e.rejectPrefix != "" && strings.HasSuffix(line[:idx], e.rejectPrefix) {
 			return false
 		}
 		rest := line[idx+len(e.literal):]

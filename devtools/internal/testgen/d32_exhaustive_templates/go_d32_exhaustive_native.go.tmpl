@@ -84,3 +84,21 @@ func d32ExhaustiveNativeToBid128(x uint32) (lo, hi uint64, flags uint32) {
 	image := *(*Decimal128BID)(unsafe.Pointer(&value))
 	return binary.LittleEndian.Uint64(image[0:8]), binary.LittleEndian.Uint64(image[8:16]), uint32(cFlags)
 }
+
+func d32ExhaustiveNativeNextUp(x uint32) (uint32, uint32) {
+	var flags C._IDEC_flags
+	bits := uint32(C.bid32_nextup(C.BID_UINT32(x), &flags))
+	return bits, uint32(flags)
+}
+
+func d32ExhaustiveNativeNextDown(x uint32) (uint32, uint32) {
+	var flags C._IDEC_flags
+	bits := uint32(C.bid32_nextdown(C.BID_UINT32(x), &flags))
+	return bits, uint32(flags)
+}
+
+func d32ExhaustiveNativeLogb(x uint32) (uint32, uint32) {
+	var flags C._IDEC_flags
+	bits := uint32(C.bid32_logb(C.BID_UINT32(x), &flags))
+	return bits, uint32(flags)
+}

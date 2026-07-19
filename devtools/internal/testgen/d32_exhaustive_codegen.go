@@ -3,28 +3,68 @@ package testgen
 // Decimal32 unary exhaustive differential gate codegen.
 //
 // Generates the native cgo shim, the long runner, and the stub for the
-// `d32_exhaustive` gate: every declared unary Decimal32 lane is compared
-// bit+flag exact between pinned Intel BID C and the Go mechanical port over
-// the full 32-bit input space (bit patterns 0..2^32-1, non-canonical
-// included). The gate is exhaustive, so there is no case corpus to emit:
-// the generated artifacts carry the lane table, the loop-bound and count
-// constants, and the routing-sentinel rows. Result digests cannot be
-// computed at generation time (they require executing pinned Intel C), so
-// they are hand-pinned per lane in devtools/verification_anchors.json and
-// bound to the runner's per-lane digest log lines by cmd/verifylog
-// (domain d32-exhaustive), never by this generator.
+// `d32_exhaustive` gate — plus the generated Rust leg (runner and its own
+// Intel C FFI shim declarations) under bid754-rs/ffi-verify/tests: every
+// declared unary Decimal32 lane is compared bit+flag exact between pinned
+// Intel BID C and the mechanical-port leg (Go port for the Go runner,
+// go2rs-generated Rust port for the Rust runner) over the full 32-bit input
+// space (bit patterns 0..2^32-1, non-canonical included). The gate is
+// exhaustive, so there is no case corpus to emit: the generated artifacts
+// carry the lane table, the loop-bound and count constants, and the
+// routing-sentinel rows. Result digests cannot be computed at generation
+// time (they require executing pinned Intel C), so they are hand-pinned per
+// lane in devtools/verification_anchors.json and bound to both runners'
+// per-lane digest log lines by cmd/verifylog (domains d32-exhaustive and
+// d32-exhaustive-rust), never by this generator.
 //
 // Lane selection (where a finite input space is enumerable, enumeration
 // replaces sampling; unary Decimal32 only):
 //   - bid32_sqrt across all five rounding modes,
 //   - bid32_round_integral_exact across all five rounding modes,
 //   - the five fixed-attribute bid32_round_integral_* variants,
-//   - the exact width promotions bid32_to_bid64 and bid32_to_bid128.
+//   - the exact width promotions bid32_to_bid64 and bid32_to_bid128,
+//   - the modeless bid32_nextup, bid32_nextdown (IEEE 5.3.1), and
+//     bid32_logb (IEEE 5.3.3, decimal32-result logB).
 // bid32_negate, bid32_abs, and bid32_copy are deliberately excluded: their
 // ports are single sign-bit/mask/identity expressions with no
 // data-dependent control flow and no status flags, and the readtest and
 // FFI bit-compare domains already exercise them; an exhaustive sweep adds
 // no discriminating power for that shape of operation.
+// Integer-result unary operations (the bid32_to_int*/bid32_to_uint* family
+// and bid32_ilogb) are excluded because the runner's result contract is a
+// (lo, hi) bit-pattern word pair and adopting an integer result kind needs
+// its own signed-register comparison contract — a separate adoption, not a
+// lane row. bid32_quantum is excluded because IEEE 754-2019 defines no
+// mandatory quantum operation (the repo treats it as a non-`shall`
+// C-library extension per docs/IEEE754_SPEC.md, which classifies quantum as
+// an optional/recommended Clause 5 `should` example rather than a `shall`).
+//
+// The BID-to-binary conversions (bid32_to_binary32/64/128) are excluded for
+// lane-runtime budget. The evidence is deliberately cross-lane inside a
+// single run rather than absolute, because every measurement available here
+// was taken on a loaded host: within one run all lanes share that load, so
+// their ratio survives it while their wall-clock times do not.
+//
+//   - Go leg, single-chunk shard (BID754_D32_EXHAUSTIVE_SHARD_COUNT=1024;
+//     the split is chunk-level, so this resolves to one 2^24-case chunk
+//     executed by one worker, i.e. 1/256 of a lane): every adopted lane
+//     finished at or under the ~1s log resolution floor, while a
+//     to_binary32 lane took ~8s and a to_binary64 lane ~12s. Because the
+//     adopted lanes sit at the resolution floor, that is a lower bound: the
+//     binary lanes cost at least an order of magnitude more per case than
+//     any adopted lane.
+//   - Go leg, full unsharded run of an earlier candidate table that still
+//     carried the binary lanes: those lanes ran in hours where every
+//     adopted lane ran in minutes.
+//
+// Ten lanes an order of magnitude above the adopted ones would dominate the
+// gate outright, and a gate too slow to actually be run is not
+// verification. No absolute per-lane timing is claimed here; the
+// checked-in full-run logs were captured under concurrent host load (the
+// same operation's five mode lanes spread over a 12x range there, which is
+// contention, not lane cost). Their exact per-case Intel C differential
+// coverage stays with the Tier 1 compare/conversion long domain, which
+// exercises to_binary32/64/128 across all five rounding modes.
 //
 // GUARDRAILS: this generator never reads or writes
 // devtools/verification_anchors.json or devtools/verification_sentinels.json.
@@ -46,6 +86,7 @@ const (
 	d32ExhaustiveNativeShimGeneratedPath = "../bid754-go/generated_d32_exhaustive_native.go"
 	d32ExhaustiveRunnerGeneratedPath     = "../bid754-go/generated_d32_exhaustive_long_test.go"
 	d32ExhaustiveStubGeneratedPath       = "../bid754-go/generated_d32_exhaustive_stub_test.go"
+	d32ExhaustiveRustRunnerGeneratedPath = "../bid754-rs/ffi-verify/tests/d32_exhaustive_long_generated.rs"
 
 	d32ExhaustiveCasesPerLane = uint64(1) << 32
 )
@@ -122,8 +163,29 @@ func d32ExhaustiveLaneSpecs() []d32ExhaustiveLaneSpec {
 			nativeMode: -1,
 		})
 	}
+	modeless := []struct {
+		name    string
+		opConst string
+	}{
+		{name: "nextup", opConst: "NextUp"},
+		{name: "nextdown", opConst: "NextDown"},
+		{name: "logb", opConst: "Logb"},
+	}
+	for _, lane := range modeless {
+		lanes = append(lanes, d32ExhaustiveLaneSpec{
+			name:       lane.name,
+			opConst:    lane.opConst,
+			opToken:    lane.name,
+			nativeMode: -1,
+		})
+	}
 	return lanes
 }
+
+// d32ExhaustiveModeTakingOpTokens is the closed list of lane op tokens that
+// must cover all five native rounding modes; every other token is a fixed
+// single-lane operation carrying nativeMode -1.
+var d32ExhaustiveModeTakingOpTokens = []string{"sqrt", "round_integral_exact"}
 
 // d32ExhaustiveOperationCount counts distinct op constants (an op with five
 // mode lanes is one operation).
@@ -156,7 +218,7 @@ func d32ExhaustiveValidateLanes(lanes []d32ExhaustiveLaneSpec) error {
 			return fmt.Errorf("d32 exhaustive lane table: lane %q carries out-of-range native mode %d", lane.name, lane.nativeMode)
 		}
 	}
-	for _, token := range []string{"sqrt", "round_integral_exact"} {
+	for _, token := range d32ExhaustiveModeTakingOpTokens {
 		modes := modesByToken[token]
 		if len(modes) != 5 {
 			return fmt.Errorf("d32 exhaustive lane table: op %q covers %d modes, want all 5", token, len(modes))
@@ -183,6 +245,31 @@ func d32ExhaustiveLaneNameLiterals(lanes []d32ExhaustiveLaneSpec) string {
 	var out strings.Builder
 	for _, lane := range lanes {
 		fmt.Fprintf(&out, "\t%q,\n", lane.name)
+	}
+	return out.String()
+}
+
+func d32ExhaustiveRustLaneRowLiterals(lanes []d32ExhaustiveLaneSpec) string {
+	var out strings.Builder
+	for _, lane := range lanes {
+		fmt.Fprintf(&out, "    Lane { name: %q, op_token: %q, op: Op::%s, native_mode: %d },\n",
+			lane.name, lane.opToken, lane.opConst, lane.nativeMode)
+	}
+	return out.String()
+}
+
+func d32ExhaustiveRustLaneNameLiterals(lanes []d32ExhaustiveLaneSpec) string {
+	var out strings.Builder
+	for _, lane := range lanes {
+		fmt.Fprintf(&out, "    %q,\n", lane.name)
+	}
+	return out.String()
+}
+
+func d32ExhaustiveRustSentinelRowLiterals(rows []d32ExhaustiveSentinelRow) string {
+	var out strings.Builder
+	for _, row := range rows {
+		fmt.Fprintf(&out, "    %q,\n", row.text)
 	}
 	return out.String()
 }
@@ -233,6 +320,10 @@ func GenerateD32ExhaustiveOutputs() (map[string][]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read d32 exhaustive stub template: %w", err)
 	}
+	rustTemplate, err := d32ExhaustiveTemplates.ReadFile("d32_exhaustive_templates/rust_d32_exhaustive_long.rs")
+	if err != nil {
+		return nil, fmt.Errorf("read d32 exhaustive Rust runner template: %w", err)
+	}
 
 	replacer := strings.NewReplacer(
 		"@@D32X_LANE_COUNT@@", fmt.Sprint(laneCount),
@@ -242,12 +333,25 @@ func GenerateD32ExhaustiveOutputs() (map[string][]byte, error) {
 		"@@D32X_LANE_NAME_ROWS@@", d32ExhaustiveLaneNameLiterals(lanes),
 		"@@D32X_SENTINEL_COUNT@@", fmt.Sprint(len(sentinelRows)),
 		"@@D32X_SENTINEL_ROWS@@", d32ExhaustiveSentinelGoRowLiterals(sentinelRows),
+		"@@D32X_RUST_LANE_ROWS@@", d32ExhaustiveRustLaneRowLiterals(lanes),
+		"@@D32X_RUST_LANE_NAME_ROWS@@", d32ExhaustiveRustLaneNameLiterals(lanes),
+		"@@D32X_RUST_SENTINEL_ROWS@@", d32ExhaustiveRustSentinelRowLiterals(sentinelRows),
 	)
+
+	rustSource, err := formatGeneratedRustOutput([]byte(genmarker.Line("testgen") + "\n" + replacer.Replace(string(rustTemplate))))
+	if err != nil {
+		return nil, fmt.Errorf("format d32 exhaustive Rust runner output: %w", err)
+	}
 
 	outputs := map[string][]byte{
 		d32ExhaustiveNativeShimGeneratedPath: []byte(genmarker.Line("testgen") + "\n" + replacer.Replace(string(shimTemplate))),
 		d32ExhaustiveRunnerGeneratedPath:     []byte(genmarker.Line("testgen") + "\n" + replacer.Replace(string(runnerTemplate))),
 		d32ExhaustiveStubGeneratedPath:       []byte(genmarker.Line("testgen") + "\n" + replacer.Replace(string(stubTemplate))),
 	}
-	return formatGeneratedGoOutputs(outputs)
+	formatted, err := formatGeneratedGoOutputs(outputs)
+	if err != nil {
+		return nil, err
+	}
+	formatted[d32ExhaustiveRustRunnerGeneratedPath] = rustSource
+	return formatted, nil
 }

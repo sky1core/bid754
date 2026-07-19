@@ -521,11 +521,14 @@ fn readtest_flags_ok(expected: u32, actual: u32, mode: CmpMode) -> bool {
     }
 }
 
+// The mre_max tables are total over the five Intel native rounding modes
+// (0..4); any other value is a dispatch bug, so it fails loudly instead of
+// silently reusing the nearest-mode bound.
 fn readtest_mre_max32(rm: i64) -> f64 {
     match rm {
         0 | 4 => 0.5,
         1 | 2 | 3 => 1.01,
-        _ => 0.5,
+        _ => panic!("readtest_mre_max32: rounding mode {rm} outside the Intel native mode domain 0..4"),
     }
 }
 
@@ -533,7 +536,7 @@ fn readtest_mre_max64(rm: i64) -> f64 {
     match rm {
         0 | 4 => 0.55,
         1 | 2 | 3 => 1.05,
-        _ => 0.55,
+        _ => panic!("readtest_mre_max64: rounding mode {rm} outside the Intel native mode domain 0..4"),
     }
 }
 
@@ -541,7 +544,7 @@ fn readtest_mre_max128(rm: i64) -> f64 {
     match rm {
         0 | 4 => 2.0,
         1 | 2 | 3 => 5.0,
-        _ => 2.0,
+        _ => panic!("readtest_mre_max128: rounding mode {rm} outside the Intel native mode domain 0..4"),
     }
 }
 
@@ -680,12 +683,18 @@ fn bid128_relative_err_ok(mut got: BID_UINT128, mut expected: BID_UINT128, rm: i
         if got == expected {
             return true;
         }
-        if got_inf {
-            got.hi = (got.hi & 0x8000_0000_0000_0000) | 0x5fff_ed09_bead_87c0;
-            got.lo = 0x378d_8e63_ffff_ffff;
-        } else if expected_inf {
+        // Intel check128_rel substitutes the max-finite stand-in into its
+        // first argument a (the row expected value) first and only falls
+        // through to b (the produced result) when a is not Inf
+        // (readtest.c: if(t3) substitutes a, else if(t4) substitutes b);
+        // keep that exact substitution order so the both-Inf branch stays
+        // faithful.
+        if expected_inf {
             expected.hi = (expected.hi & 0x8000_0000_0000_0000) | 0x5fff_ed09_bead_87c0;
             expected.lo = 0x378d_8e63_ffff_ffff;
+        } else if got_inf {
+            got.hi = (got.hi & 0x8000_0000_0000_0000) | 0x5fff_ed09_bead_87c0;
+            got.lo = 0x378d_8e63_ffff_ffff;
         } else {
             return false;
         }

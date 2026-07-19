@@ -487,10 +487,10 @@
     "decimal128": 2085778
   },
   "decnumber_differential_consumers": 1,
-  "d32_exhaustive_unary_operations": 9,
-  "d32_exhaustive_unary_lanes": 17,
+  "d32_exhaustive_unary_operations": 12,
+  "d32_exhaustive_unary_lanes": 20,
   "d32_exhaustive_unary_cases_per_lane": 4294967296,
-  "d32_exhaustive_unary_total_comparisons": 73014444032,
+  "d32_exhaustive_unary_total_comparisons": 85899345920,
   "d32_exhaustive_unary_result_digest_by_lane": {
     "sqrt_nearest_even": 17410933740778628895,
     "sqrt_nearest_away": 17410933740778628895,
@@ -508,19 +508,22 @@
     "round_integral_positive": 18125134501495019661,
     "round_integral_negative": 5308913390868678925,
     "to_bid64": 3418268691191066847,
-    "to_bid128": 4701096639511601887
+    "to_bid128": 4701096639511601887,
+    "nextup": 4916092195092704351,
+    "nextdown": 8783311854187000671,
+    "logb": 10475740456033624079
   },
-  "d32_exhaustive_unary_consumers": 1,
+  "d32_exhaustive_unary_consumers": 2,
   "verification_artifact_sha256": {
     "testspec_tree": "ef497d25a0992f45ea18fa7055b6d73c305fd12473aede6275d05cb2573c206d",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "ae7d1a3d7d5de7178ccd36eb0c9ff021d29035bf532312f16526baf36fc1f7b8",
     "goport_verification_runners": "be247bb1d182339fdbffcdf725816a6305506b46a7acd73ebb493c75455851c4",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
-    "d32_exhaustive_runners": "2a6661aef222fdd10709c88a56e2fa77a1ab8cbc328b00011956cfc0f7274a4b",
+    "d32_exhaustive_runners": "c7cd9761c7b152027adfcf8fd68adf48d8db86dec1e0c765f4a696a6bbce8093",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",
     "spec_loader": "faf099578397b4e39c0d02005a32d61301f10d86fb414ca5e2941cb4080d0425",
-    "rust_readtest_runner": "06b1fbabd14271fe6e9ef35e13ef9c215b22ffd6c1d9f245b734c3b8c06152b2",
+    "rust_readtest_runner": "a700fe5027e7ea644b1320180913a03c2dbefd363d85e45d5cb66435c9bf4ad5",
     "rust_public_parity_runner": "a3ab6bca46519a2247a3bfc6752a7c7a8e8cd09207c8458f2756ecdcea175f9c",
     "rust_dectest_runner": "d24e687c18929322d79943ec07b9507697bc605e320381e3dbced6dc356cdc5a",
     "rust_tier1_long_runners": "7236dcf5b97173f9f9a4a10615e2a2e414239a4b639b1da5caf98c93d89ab6b1"

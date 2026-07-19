@@ -63,7 +63,27 @@ const (
 	d32ExhaustiveOpRoundIntegralNegative
 	d32ExhaustiveOpToBid64
 	d32ExhaustiveOpToBid128
+	d32ExhaustiveOpNextUp
+	d32ExhaustiveOpNextDown
+	d32ExhaustiveOpLogb
 )
+
+// d32ExhaustiveModeTakingOps is the closed set of operations whose lanes
+// cover all five native rounding modes; every other operation is a fixed
+// single lane carrying nativeMode -1.
+var d32ExhaustiveModeTakingOps = []d32ExhaustiveOp{
+	d32ExhaustiveOpSqrt,
+	d32ExhaustiveOpRoundIntegralExact,
+}
+
+func d32ExhaustiveIsModeTakingOp(op d32ExhaustiveOp) bool {
+	for _, candidate := range d32ExhaustiveModeTakingOps {
+		if op == candidate {
+			return true
+		}
+	}
+	return false
+}
 
 type d32ExhaustiveLane struct {
 	name       string
@@ -135,6 +155,18 @@ func d32ExhaustiveLegs(op d32ExhaustiveOp, nativeMode int, x uint32) (nLo, nHi u
 		p128, pf := bidgo.Bid32ToBid128(x)
 		image := decimal128BIDFromBidgo(p128)
 		return nLo, nHi, nf, binary.LittleEndian.Uint64(image[0:8]), binary.LittleEndian.Uint64(image[8:16]), pf
+	case d32ExhaustiveOpNextUp:
+		nb, nf := d32ExhaustiveNativeNextUp(x)
+		pb, pf := bidgo.Bid32NextUp(x)
+		return uint64(nb), 0, nf, uint64(pb), 0, pf
+	case d32ExhaustiveOpNextDown:
+		nb, nf := d32ExhaustiveNativeNextDown(x)
+		pb, pf := bidgo.Bid32NextDown(x)
+		return uint64(nb), 0, nf, uint64(pb), 0, pf
+	case d32ExhaustiveOpLogb:
+		nb, nf := d32ExhaustiveNativeLogb(x)
+		pb, pf := bidgo.Bid32Logb(x)
+		return uint64(nb), 0, nf, uint64(pb), 0, pf
 	}
 	panic(fmt.Sprintf("unknown d32 exhaustive operation %d", op))
 }
@@ -438,21 +470,18 @@ func TestGeneratedD32ExhaustiveLaneContract(t *testing.T) {
 			t.Fatalf("duplicate (op, mode) lane %q", lane.name)
 		}
 		modesByOp[lane.op][lane.nativeMode] = true
-		switch lane.op {
-		case d32ExhaustiveOpSqrt, d32ExhaustiveOpRoundIntegralExact:
+		if d32ExhaustiveIsModeTakingOp(lane.op) {
 			if lane.nativeMode < 0 || lane.nativeMode > 4 {
 				t.Fatalf("mode-taking lane %q carries native mode %d outside 0..4", lane.name, lane.nativeMode)
 			}
-		default:
-			if lane.nativeMode != -1 {
-				t.Fatalf("fixed-attribute lane %q carries native mode %d, want -1", lane.name, lane.nativeMode)
-			}
+		} else if lane.nativeMode != -1 {
+			t.Fatalf("fixed-attribute lane %q carries native mode %d, want -1", lane.name, lane.nativeMode)
 		}
 	}
 	if uint64(len(ops)) != d32ExhaustiveOperationCount {
 		t.Fatalf("lane table exercises %d distinct operations, generated constant says %d", len(ops), d32ExhaustiveOperationCount)
 	}
-	for _, op := range []d32ExhaustiveOp{d32ExhaustiveOpSqrt, d32ExhaustiveOpRoundIntegralExact} {
+	for _, op := range d32ExhaustiveModeTakingOps {
 		if len(modesByOp[op]) != 5 {
 			t.Fatalf("mode-taking operation %d covers %d modes, want all 5", op, len(modesByOp[op]))
 		}

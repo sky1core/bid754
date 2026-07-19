@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check bench-codec bench-codec-go bench-codec-rs bench-codec-rs-baseline bench-codec-js bench-codec-py test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
+.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full test-rust-native-d32-exhaustive _test-rust-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check bench-codec bench-codec-go bench-codec-rs bench-codec-rs-baseline bench-codec-js bench-codec-py test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -464,6 +464,30 @@ _test-native-d32-exhaustive-full:
 		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_d32_exhaustive_results.txt -domain d32-exhaustive
 
+# Decimal32 단항 exhaustive 차등 게이트의 생성 Rust 레그: 같은 레인 테이블을
+# go2rs 생성 Rust mechanical port와 pinned Intel BID C 간 비트+플래그 exact
+# 비교로 전체 2^32 입력 공간에 걸쳐 스윕한다. Go 레그와 동일한 수기 핀
+# 다이제스트에 바인딩되는 독립 장기 게이트로, verify-all 체인에는 포함하지
+# 않는다.
+#
+# 형제 Rust 게이트(test-rust-native, tier1 long)와 달리 --release로 돌린다:
+# 레인당 2^32 케이스 × 20레인이라 dev 프로파일로는 실행 시간이 이 게이트를
+# 쓸 수 없게 만든다. release는 산술 오버플로 체크를 끄지만 생성 Rust
+# 구현부는 crate 수준에서 이미 해당 lint를 allow하므로(verify-rust-overflow가
+# 그 경계를 강제) 값 semantics는 프로파일과 무관하며, 결과는 매 케이스
+# pinned Intel C와 exact 비교되고 레인 다이제스트로 외부 핀에 묶인다.
+test-rust-native-d32-exhaustive:
+	@echo "🔬 Rust Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 검증 실행..."
+	@mkdir -p test_results
+	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --release --locked --features d32-exhaustive-long --test d32_exhaustive_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_d32_exhaustive_results.txt'
+
+_test-rust-native-d32-exhaustive-full:
+	@echo "🔬 Rust Decimal32 단항 exhaustive canonical full 실행 + verifylog 증거 바인딩 (shard 비활성)..."
+	@mkdir -p test_results
+	@unset BID754_D32_EXHAUSTIVE_SHARD_COUNT BID754_D32_EXHAUSTIVE_SHARD_INDEX; \
+		bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --release --locked --features d32-exhaustive-long --test d32_exhaustive_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_d32_exhaustive_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_rust_native_d32_exhaustive_results.txt -domain d32-exhaustive-rust
+
 # 신규-seed 탐색 fuzz: 실행할 때마다 새 seed로 Tier 1 산술
 # (add/sub/mul/div/fma/sqrt/quantize × 3폭 × 5모드) 케이스를 생성해 Go
 # mechanical port와 pinned Intel BID C를 비트+플래그 exact 차등 비교한다.
@@ -708,6 +732,7 @@ verify-generated:
 		bid754-go/generated_d32_exhaustive_native.go \
 		bid754-go/generated_d32_exhaustive_long_test.go \
 		bid754-go/generated_d32_exhaustive_stub_test.go \
+		bid754-rs/ffi-verify/tests/d32_exhaustive_long_generated.rs \
 		bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs \
 		bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs \
 		bid754-go/internal/testspec/spec.go \
@@ -800,6 +825,7 @@ verify-generated:
 	cmp -s bid754-go/generated_d32_exhaustive_native.go $$tmpdir/backup/bid754-go/generated_d32_exhaustive_native.go || failed="$$failed bid754-go/generated_d32_exhaustive_native.go"; \
 	cmp -s bid754-go/generated_d32_exhaustive_long_test.go $$tmpdir/backup/bid754-go/generated_d32_exhaustive_long_test.go || failed="$$failed bid754-go/generated_d32_exhaustive_long_test.go"; \
 	cmp -s bid754-go/generated_d32_exhaustive_stub_test.go $$tmpdir/backup/bid754-go/generated_d32_exhaustive_stub_test.go || failed="$$failed bid754-go/generated_d32_exhaustive_stub_test.go"; \
+	cmp -s bid754-rs/ffi-verify/tests/d32_exhaustive_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/d32_exhaustive_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/d32_exhaustive_long_generated.rs"; \
 	cmp -s bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs"; \
 	cmp -s bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs $$tmpdir/backup/bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs || failed="$$failed bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs"; \
 	cmp -s bid754-go/internal/testspec/spec.go $$tmpdir/backup/bid754-go/internal/testspec/spec.go || failed="$$failed bid754-go/internal/testspec/spec.go"; \
@@ -1002,6 +1028,7 @@ help:
 	@echo "  make test-rust-native-tier1-arithmetic-long 동일 Tier 1 산술 corpus의 Rust public API vs Intel C exact 검증"
 	@echo "  make test-native-decnumber-differential decNumber 제3 oracle 3-leg 차등 게이트 (Intel C / Go port / decNumber)"
 	@echo "  make test-native-d32-exhaustive Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 (verify-all 비포함 독립 장기 게이트)"
+	@echo "  make test-rust-native-d32-exhaustive Rust 레그: 생성 Rust port vs Intel C, 동일 레인/동일 핀 다이제스트 (verify-all 비포함 독립 장기 게이트)"
 	@echo "  make explore-fresh-seed 신규-seed Tier 1 산술 Go port vs Intel C exact 차등 탐색 (발견 도구, verify-all 비포함, FRESH_SEED_CASES=$(FRESH_SEED_CASES))"
 	@echo "  make test-rust-native-tier1-compare-conversion-long 동일 Tier 1 비교·변환 corpus의 Rust public API vs Intel C exact 검증"
 	@echo "  make test-native-readtest generated readtest native non-short 검증"

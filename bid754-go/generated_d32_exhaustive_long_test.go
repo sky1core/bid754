@@ -39,11 +39,11 @@ import (
 )
 
 const (
-	d32ExhaustiveLaneCount         = uint64(17)
-	d32ExhaustiveOperationCount    = uint64(9)
+	d32ExhaustiveLaneCount         = uint64(20)
+	d32ExhaustiveOperationCount    = uint64(12)
 	d32ExhaustiveCasesPerLane      = uint64(1) << 32
-	d32ExhaustiveTotalComparisons  = uint64(73014444032)
-	d32ExhaustiveSentinelRowCount  = uint64(49)
+	d32ExhaustiveTotalComparisons  = uint64(85899345920)
+	d32ExhaustiveSentinelRowCount  = uint64(64)
 	d32ExhaustiveChunkBits         = 24
 	d32ExhaustiveChunkCount        = d32ExhaustiveCasesPerLane >> d32ExhaustiveChunkBits
 	d32ExhaustiveDigestOffset      = uint64(0xcbf29ce484222325)
@@ -64,7 +64,27 @@ const (
 	d32ExhaustiveOpRoundIntegralNegative
 	d32ExhaustiveOpToBid64
 	d32ExhaustiveOpToBid128
+	d32ExhaustiveOpNextUp
+	d32ExhaustiveOpNextDown
+	d32ExhaustiveOpLogb
 )
+
+// d32ExhaustiveModeTakingOps is the closed set of operations whose lanes
+// cover all five native rounding modes; every other operation is a fixed
+// single lane carrying nativeMode -1.
+var d32ExhaustiveModeTakingOps = []d32ExhaustiveOp{
+	d32ExhaustiveOpSqrt,
+	d32ExhaustiveOpRoundIntegralExact,
+}
+
+func d32ExhaustiveIsModeTakingOp(op d32ExhaustiveOp) bool {
+	for _, candidate := range d32ExhaustiveModeTakingOps {
+		if op == candidate {
+			return true
+		}
+	}
+	return false
+}
 
 type d32ExhaustiveLane struct {
 	name       string
@@ -91,6 +111,9 @@ var d32ExhaustiveLanes = []d32ExhaustiveLane{
 	{name: "round_integral_negative", opToken: "round_integral_negative", op: d32ExhaustiveOpRoundIntegralNegative, nativeMode: -1},
 	{name: "to_bid64", opToken: "to_bid64", op: d32ExhaustiveOpToBid64, nativeMode: -1},
 	{name: "to_bid128", opToken: "to_bid128", op: d32ExhaustiveOpToBid128, nativeMode: -1},
+	{name: "nextup", opToken: "nextup", op: d32ExhaustiveOpNextUp, nativeMode: -1},
+	{name: "nextdown", opToken: "nextdown", op: d32ExhaustiveOpNextDown, nativeMode: -1},
+	{name: "logb", opToken: "logb", op: d32ExhaustiveOpLogb, nativeMode: -1},
 }
 
 // d32ExhaustiveLaneNames is the lane-name inventory compared against the
@@ -114,6 +137,9 @@ var d32ExhaustiveLaneNames = []string{
 	"round_integral_negative",
 	"to_bid64",
 	"to_bid128",
+	"nextup",
+	"nextdown",
+	"logb",
 }
 
 // Routing sentinel rows. Byte-equal to the hand-pinned
@@ -169,6 +195,21 @@ var d32ExhaustiveSentinelRows = []string{
 	"d32 to_bid128 x=3174cbb1 -> 303a000000000000:000000000074cbb1/00000000",
 	"d32 to_bid128 x=7e000000 -> 7c00000000000000:0000000000000000/00000001",
 	"d32 to_bid128 x=6cbfffff -> 3040000000000000:0000000000000000/00000000",
+	"d32 nextup x=32800001 -> 2f8f4241/00000000",
+	"d32 nextup x=77f8967f -> 78000000/00000000",
+	"d32 nextup x=78000000 -> 78000000/00000000",
+	"d32 nextup x=f8000000 -> f7f8967f/00000000",
+	"d32 nextup x=7e000000 -> 7c000000/00000001",
+	"d32 nextdown x=32800001 -> 6bd8967f/00000000",
+	"d32 nextdown x=77f8967f -> 77f8967e/00000000",
+	"d32 nextdown x=78000000 -> 77f8967f/00000000",
+	"d32 nextdown x=f8000000 -> f8000000/00000000",
+	"d32 nextdown x=7e000000 -> 7c000000/00000001",
+	"d32 logb x=32800001 -> 32800000/00000000",
+	"d32 logb x=3174cbb1 -> 32800003/00000000",
+	"d32 logb x=32800000 -> f8000000/00000004",
+	"d32 logb x=78000000 -> 78000000/00000000",
+	"d32 logb x=7e000000 -> 7c000000/00000001",
 }
 
 func d32ExhaustiveDigestMix(digest, word uint64) uint64 {
@@ -219,6 +260,18 @@ func d32ExhaustiveLegs(op d32ExhaustiveOp, nativeMode int, x uint32) (nLo, nHi u
 		p128, pf := bidgo.Bid32ToBid128(x)
 		image := decimal128BIDFromBidgo(p128)
 		return nLo, nHi, nf, binary.LittleEndian.Uint64(image[0:8]), binary.LittleEndian.Uint64(image[8:16]), pf
+	case d32ExhaustiveOpNextUp:
+		nb, nf := d32ExhaustiveNativeNextUp(x)
+		pb, pf := bidgo.Bid32NextUp(x)
+		return uint64(nb), 0, nf, uint64(pb), 0, pf
+	case d32ExhaustiveOpNextDown:
+		nb, nf := d32ExhaustiveNativeNextDown(x)
+		pb, pf := bidgo.Bid32NextDown(x)
+		return uint64(nb), 0, nf, uint64(pb), 0, pf
+	case d32ExhaustiveOpLogb:
+		nb, nf := d32ExhaustiveNativeLogb(x)
+		pb, pf := bidgo.Bid32Logb(x)
+		return uint64(nb), 0, nf, uint64(pb), 0, pf
 	}
 	panic(fmt.Sprintf("unknown d32 exhaustive operation %d", op))
 }
@@ -522,21 +575,18 @@ func TestGeneratedD32ExhaustiveLaneContract(t *testing.T) {
 			t.Fatalf("duplicate (op, mode) lane %q", lane.name)
 		}
 		modesByOp[lane.op][lane.nativeMode] = true
-		switch lane.op {
-		case d32ExhaustiveOpSqrt, d32ExhaustiveOpRoundIntegralExact:
+		if d32ExhaustiveIsModeTakingOp(lane.op) {
 			if lane.nativeMode < 0 || lane.nativeMode > 4 {
 				t.Fatalf("mode-taking lane %q carries native mode %d outside 0..4", lane.name, lane.nativeMode)
 			}
-		default:
-			if lane.nativeMode != -1 {
-				t.Fatalf("fixed-attribute lane %q carries native mode %d, want -1", lane.name, lane.nativeMode)
-			}
+		} else if lane.nativeMode != -1 {
+			t.Fatalf("fixed-attribute lane %q carries native mode %d, want -1", lane.name, lane.nativeMode)
 		}
 	}
 	if uint64(len(ops)) != d32ExhaustiveOperationCount {
 		t.Fatalf("lane table exercises %d distinct operations, generated constant says %d", len(ops), d32ExhaustiveOperationCount)
 	}
-	for _, op := range []d32ExhaustiveOp{d32ExhaustiveOpSqrt, d32ExhaustiveOpRoundIntegralExact} {
+	for _, op := range d32ExhaustiveModeTakingOps {
 		if len(modesByOp[op]) != 5 {
 			t.Fatalf("mode-taking operation %d covers %d modes, want all 5", op, len(modesByOp[op]))
 		}

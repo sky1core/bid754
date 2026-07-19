@@ -22,6 +22,8 @@
 //	sqrt <width> <mode> <x>                   -> ok <bits>/<rawflags>
 //	roundintexact <width> <mode> <x>          -> ok <bits>/<rawflags>
 //	roundint <width> <variant> <x>            -> ok <bits>/<rawflags>
+//	next <width> <up|down> <x>                -> ok <bits>/<rawflags>
+//	logb <width> <x>                          -> ok <bits>/<rawflags>
 //	scaleb <width> <mode> <n> <x>             -> ok <bits>/<rawflags>
 //	quiet <width> <op> <x> <y>                -> ok <00|01>/<rawflags>
 //	minmax <width> <op> <x> <y>               -> ok <bits>/<rawflags>
@@ -373,6 +375,32 @@ func evalRequest(line string) (string, error) {
 			return "", err
 		}
 		return evalRoundIntegralFixed(width, fields[2], x)
+	case "next":
+		if err := requireFields(fields, 3); err != nil {
+			return "", err
+		}
+		width, err := parseWidth(fields[1])
+		if err != nil {
+			return "", err
+		}
+		x, err := parseValue(width, fields[3])
+		if err != nil {
+			return "", err
+		}
+		return evalNext(width, fields[2], x)
+	case "logb":
+		if err := requireFields(fields, 2); err != nil {
+			return "", err
+		}
+		width, err := parseWidth(fields[1])
+		if err != nil {
+			return "", err
+		}
+		x, err := parseValue(width, fields[2])
+		if err != nil {
+			return "", err
+		}
+		return evalLogB(width, x)
 	case "scaleb":
 		if err := requireFields(fields, 4); err != nil {
 			return "", err
@@ -708,6 +736,38 @@ func evalRoundIntegralFixed(width int, variant string, x oracleValue) (string, e
 	default:
 		return "", fmt.Errorf("unknown roundint variant %q", variant)
 	}
+}
+
+// evalNext answers `next <width> <up|down> <x>` through the public
+// NextPlus/NextMinus surfaces (the Intel bid32_nextup/bid32_nextdown family).
+// The d32 exhaustive sentinel codegen is the only current consumer, so only
+// width 32 is wired; widening it is an explicit follow-up, not a silent
+// fallback.
+func evalNext(width int, direction string, x oracleValue) (string, error) {
+	if width != 32 {
+		return "", fmt.Errorf("next oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
+	}
+	value := bid754.Decimal32BID(uint32(x.lo))
+	switch direction {
+	case "up":
+		result, flags := value.NextPlus()
+		return result32(result, flags)
+	case "down":
+		result, flags := value.NextMinus()
+		return result32(result, flags)
+	default:
+		return "", fmt.Errorf("unknown next direction %q (want up or down)", direction)
+	}
+}
+
+// evalLogB answers `logb <width> <x>` through the public LogB surface (the
+// Intel bid32_logb family). Width scope matches evalNext.
+func evalLogB(width int, x oracleValue) (string, error) {
+	if width != 32 {
+		return "", fmt.Errorf("logb oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
+	}
+	value, flags := bid754.Decimal32BID(uint32(x.lo)).LogB()
+	return result32(value, flags)
 }
 
 func evalScale(width int, x oracleValue, n int64, mode bid754.RoundingMode) (string, error) {

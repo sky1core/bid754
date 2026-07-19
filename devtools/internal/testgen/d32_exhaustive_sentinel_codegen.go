@@ -26,6 +26,9 @@ package testgen
 // results make toward_zero and toward_negative identical. Mode-pair
 // separation across all five modes therefore comes from the
 // round_integral_exact rows, whose tie inputs separate every mode pair.
+// The modeless nextup/nextdown pair carries no mode requirement, but an
+// operation miswire between the two directions would replay clean, so their
+// shared input set is required to pin distinct result vectors.
 //
 // GUARDRAILS: this generator never reads or writes
 // devtools/verification_sentinels.json; the human pin flows through
@@ -109,6 +112,12 @@ func d32ExhaustiveSentinelOracle(opToken string, nativeMode int, x uint32) (stri
 		return tier1SentinelOracleQuery(fmt.Sprintf("widthconv 32 64 0 %08x", x))
 	case "to_bid128":
 		return tier1SentinelOracleQuery(fmt.Sprintf("widthconv 32 128 0 %08x", x))
+	case "nextup":
+		return tier1SentinelOracleQuery(fmt.Sprintf("next 32 up %08x", x))
+	case "nextdown":
+		return tier1SentinelOracleQuery(fmt.Sprintf("next 32 down %08x", x))
+	case "logb":
+		return tier1SentinelOracleQuery(fmt.Sprintf("logb 32 %08x", x))
 	default:
 		variant, found := strings.CutPrefix(opToken, "round_integral_")
 		if !found {
@@ -185,6 +194,23 @@ func GenerateD32ExhaustiveSentinelRows() ([]d32ExhaustiveSentinelRow, error) {
 	}
 	convInputs := []uint32{conv1, sNaN, d32ExhaustiveNoncanonicalInput}
 
+	// nextUp/nextDown/logB candidates: 1 exercises the ordinary finite step,
+	// the max-finite magnitude and both infinities pin the overflow boundary
+	// in both directions, and +0 pins logB's division-by-zero contract.
+	maxFinite, err := d32ExhaustiveSentinelEncode(false, 9999999, 90) // 9.999999e96
+	if err != nil {
+		return nil, err
+	}
+	one, err := d32ExhaustiveSentinelEncode(false, 1, 0)
+	if err != nil {
+		return nil, err
+	}
+	posZero, err := d32ExhaustiveSentinelEncode(false, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	negInf := d32ExhaustiveSentinelSpecial(bidCodecRefInfinity, true)
+
 	var rows []d32ExhaustiveSentinelRow
 	coveredLanes := map[string]bool{}
 	// Result vectors for the discrimination assertions, keyed by native mode
@@ -194,6 +220,7 @@ func GenerateD32ExhaustiveSentinelRows() ([]d32ExhaustiveSentinelRow, error) {
 	fixedVectors := map[string]string{}
 	riePayloadByMode := map[int]string{}
 	fixedPayloadByVariant := map[string]string{}
+	nextVectors := map[string]string{}
 
 	appendRow := func(lane d32ExhaustiveLaneSpec, x uint32, comment string) (string, error) {
 		payload, err := d32ExhaustiveSentinelOracle(lane.opToken, lane.nativeMode, x)
@@ -282,6 +309,58 @@ func GenerateD32ExhaustiveSentinelRows() ([]d32ExhaustiveSentinelRow, error) {
 					}
 				}
 			}
+		case lane.opToken == "nextup" || lane.opToken == "nextdown":
+			vector := ""
+			for _, x := range []uint32{one, maxFinite, posInf, negInf} {
+				payload, err := appendRow(lane, x, "nextUp/nextDown: finite step, max-finite/infinity boundary in both directions")
+				if err != nil {
+					return nil, err
+				}
+				vector += payload + ";"
+			}
+			nextVectors[lane.opToken] = vector
+			payload, err := appendRow(lane, sNaN, "nextUp/nextDown of sNaN raises invalid and quiets the NaN")
+			if err != nil {
+				return nil, err
+			}
+			flags, err := d32ExhaustiveSentinelPayloadFlags(payload)
+			if err != nil {
+				return nil, err
+			}
+			if flags&0x01 == 0 {
+				return nil, fmt.Errorf("d32 exhaustive sentinel: %s(sNaN) pin %q carries no invalid flag", lane.opToken, payload)
+			}
+		case lane.opToken == "logb":
+			for _, x := range []uint32{one, conv1} {
+				if _, err := appendRow(lane, x, "logB of a finite value pins the decimal32-result exponent extraction"); err != nil {
+					return nil, err
+				}
+			}
+			payload, err := appendRow(lane, posZero, "logB(+0) is -Inf and raises division-by-zero")
+			if err != nil {
+				return nil, err
+			}
+			flags, err := d32ExhaustiveSentinelPayloadFlags(payload)
+			if err != nil {
+				return nil, err
+			}
+			if flags&0x04 == 0 {
+				return nil, fmt.Errorf("d32 exhaustive sentinel: logb(+0) pin %q carries no division-by-zero flag", payload)
+			}
+			if _, err := appendRow(lane, posInf, "logB(+Inf) is +Inf exactly"); err != nil {
+				return nil, err
+			}
+			payload, err = appendRow(lane, sNaN, "logB(sNaN) raises invalid and quiets the NaN")
+			if err != nil {
+				return nil, err
+			}
+			flags, err = d32ExhaustiveSentinelPayloadFlags(payload)
+			if err != nil {
+				return nil, err
+			}
+			if flags&0x01 == 0 {
+				return nil, fmt.Errorf("d32 exhaustive sentinel: logb(sNaN) pin %q carries no invalid flag", payload)
+			}
 		default:
 			return nil, fmt.Errorf("d32 exhaustive sentinel: lane %q has no candidate rows", lane.name)
 		}
@@ -332,6 +411,11 @@ func GenerateD32ExhaustiveSentinelRows() ([]d32ExhaustiveSentinelRow, error) {
 		if riePayloadByMode[native] == fixedPayloadByVariant[variant] {
 			return nil, fmt.Errorf("d32 exhaustive sentinel: round_integral_exact mode %d and fixed variant %s pin the identical payload %q on the tie input", native, variant, riePayloadByMode[native])
 		}
+	}
+	// nextup/nextdown: the shared input set must separate the two directions
+	// (an operation miswire between them would otherwise replay clean).
+	if nextVectors["nextup"] == nextVectors["nextdown"] {
+		return nil, fmt.Errorf("d32 exhaustive sentinel: nextup and nextdown pin identical result vectors %q", nextVectors["nextup"])
 	}
 
 	if err := tier1SentinelOracleErr(); err != nil {
