@@ -311,10 +311,17 @@ Notes:
   binding
 - `make test-native-d32-exhaustive` is the generated Decimal32 unary
   exhaustive differential gate (pinned Intel BID C / Go mechanical port,
-  bit+flag exact over all 2^32 inputs for a fixed 17-lane unary table); it
+  bit+flag exact over all 2^32 inputs for a fixed 20-lane unary table); it
   is an independent long gate outside the `verify-all` chain, and
   `_test-native-d32-exhaustive-full` is the canonical unsharded run with
   verifylog evidence binding (domain `d32-exhaustive`)
+- `make test-rust-native-d32-exhaustive` is the generated Rust leg of that
+  same gate (pinned Intel BID C / go2rs-generated Rust port, same 20-lane
+  table); it is likewise an independent long gate outside the `verify-all`
+  chain, and `_test-rust-native-d32-exhaustive-full` is its canonical
+  unsharded run with verifylog evidence binding (domain
+  `d32-exhaustive-rust`, bound to the same pinned per-lane digests as the
+  Go leg)
 - some current-tree native paths may also require IBM decNumber
 - that requirement is a current implementation detail, not the source-of-truth architecture
 

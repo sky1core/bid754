@@ -179,21 +179,27 @@ commands are `make test-native-decnumber-differential` and the
 
 ### Decimal32 unary exhaustive differential
 
-A generated 2-leg differential gate sweeps the entire 32-bit Decimal32 input
-space (non-canonical encodings included) for a fixed 17-lane unary table —
+A generated differential gate sweeps the entire 32-bit Decimal32 input
+space (non-canonical encodings included) for a fixed 20-lane unary table —
 `bid32_sqrt` and `bid32_round_integral_exact` across all five rounding modes,
-the five fixed-attribute `bid32_round_integral_*` variants, and the
-`bid32_to_bid64`/`bid32_to_bid128` promotions — comparing pinned Intel BID C
-and the Go mechanical port bit+flag exact per input with no skip, tolerance,
-or sampling. Its contract is `TEST_GENERATION_SPEC.md`. Lane and count
-anchors plus the hand-pinned per-lane result digests live in
-`devtools/verification_anchors.json`; `devtools/cmd/verifylog` (domain
-`d32-exhaustive`) binds the digests to the runner's log lines, and
-hand-pinned sentinel rows in `devtools/verification_sentinels.json` replay
-through the same lane dispatch. Like the Decimal32 codec exhaustive harness
-it is an independent long gate outside the `verify-all` chain; commands are
-`make test-native-d32-exhaustive` and, for the canonical unsharded run with
-verifylog evidence binding, `_test-native-d32-exhaustive-full`.
+the five fixed-attribute `bid32_round_integral_*` variants, the
+`bid32_to_bid64`/`bid32_to_bid128` promotions, and the modeless
+`bid32_nextup`/`bid32_nextdown`/`bid32_logb` — comparing pinned Intel BID C
+and a mechanical port bit+flag exact per input with no skip, tolerance, or
+sampling. Two generated runners consume that one lane table: the Go native
+runner against the Go mechanical port and
+`bid754-rs/ffi-verify/tests/d32_exhaustive_long_generated.rs` against the
+go2rs-generated Rust port. Its contract is `TEST_GENERATION_SPEC.md`. Lane,
+count, and consumer anchors plus the hand-pinned per-lane result digests
+live in `devtools/verification_anchors.json`; `devtools/cmd/verifylog`
+(domains `d32-exhaustive` and `d32-exhaustive-rust`) binds the same pinned
+digests to both runners' log lines, and hand-pinned sentinel rows in
+`devtools/verification_sentinels.json` replay through the same lane
+dispatch in both runners. Like the Decimal32 codec exhaustive harness each
+leg is an independent long gate outside the `verify-all` chain; commands
+are `make test-native-d32-exhaustive` / `make test-rust-native-d32-exhaustive`
+and, for the canonical unsharded runs with verifylog evidence binding,
+`_test-native-d32-exhaustive-full` / `_test-rust-native-d32-exhaustive-full`.
 
 ### Auxiliary fuzzing
 

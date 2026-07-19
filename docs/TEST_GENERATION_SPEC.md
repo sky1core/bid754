@@ -450,19 +450,24 @@ Requirements:
 
 An additional generated differential gate (like public-API parity and the
 decNumber differential gate, not a fifth regular verification domain)
-compares pinned Intel BID C and the Go mechanical port bit+flag exact over
+compares pinned Intel BID C and a mechanical-port leg bit+flag exact over
 the entire 32-bit Decimal32 input space — bit patterns 0..2^32-1,
-non-canonical encodings included — for a fixed table of unary lanes. It is
+non-canonical encodings included — for a fixed table of unary lanes. Two
+generated runners consume the same lane table: the Go native runner (Intel
+C vs the Go mechanical port) and the generated Rust runner under
+`bid754-rs/ffi-verify` (Intel C vs the go2rs-generated Rust port). It is
 the arithmetic extension of the Decimal32 codec exhaustive harness: where a
 finite input space is enumerable, enumeration replaces sampling.
 
-Lane table (17 lanes, 9 operations):
+Lane table (20 lanes, 12 operations):
 
 - `bid32_sqrt` across all five rounding modes (5 lanes)
 - `bid32_round_integral_exact` across all five rounding modes (5 lanes)
 - the five fixed-attribute `bid32_round_integral_*` variants (5 lanes)
 - the exact width promotions `bid32_to_bid64` and `bid32_to_bid128`
   (2 lanes)
+- the modeless `bid32_nextup` and `bid32_nextdown` (IEEE 754-2019 5.3.1)
+  and `bid32_logb` (5.3.3, decimal32-result logB) (3 lanes)
 
 `bid32_negate`, `bid32_abs`, and `bid32_copy` are deliberately excluded:
 their ports are single sign-bit/mask/identity expressions with no
@@ -470,23 +475,54 @@ data-dependent control flow and no status flags, already exercised by the
 readtest and FFI bit-compare domains; exhaustive enumeration adds no
 discriminating power for that operation shape.
 
+Integer-result unary operations (the `bid32_to_int*`/`bid32_to_uint*`
+family and `bid32_ilogb`) are excluded because the runners' result
+contract is a (lo, hi) bit-pattern word pair, and adopting an integer
+result kind requires its own signed-register comparison contract — a
+separate adoption, not a lane row. `bid32_quantum` is excluded because
+`IEEE754_SPEC.md` classifies quantum as an optional/recommended Clause 5
+`should` example rather than a `shall` requirement.
+
+The BID-to-binary conversions (`bid32_to_binary32`, `bid32_to_binary64`,
+`bid32_to_binary128`) are excluded for lane-runtime budget, measured on
+this gate's own path as a same-run cross-lane comparison: with a
+single-chunk shard (one 2^24-case chunk on one worker, 1/256 of a lane)
+every adopted lane finishes at or under the ~1s log resolution floor
+while a `to_binary32` lane takes ~8s and a `to_binary64` lane ~12s, and a
+full unsharded run of a candidate table ran the binary lanes in hours
+where every adopted lane ran in minutes. The adopted 20-lane table
+completes in 33m16s with a per-lane range of 58s to 6m42s, so ten lanes
+an order of magnitude above that range would dominate the gate entirely,
+and a gate too slow to actually be run is not verification. Their exact
+per-case Intel C differential coverage stays with the Tier 1
+compare/conversion long domain, which exercises `to_binary32/64/128`
+across all five rounding modes.
+
 Requirements:
 
 - every lane compares result bits and the raw `_IDEC_flags` word exactly,
-  per input, between the pinned Intel C entry point and the Go mechanical
-  port function; there is no skip, no tolerance, and no sampling
-- the gate is exhaustive, so there is no case corpus: the cgo shim, the
-  runner, the stub, the lane table, and the loop-bound/count constants are
-  all testgen batch outputs, and the lane/operation/total counts are
-  re-pinned by hand in `devtools/verification_anchors.json`
+  per input, between the pinned Intel C entry point and the leg's
+  mechanical-port function (the Go mechanical port in the Go runner, the
+  go2rs-generated Rust port in the Rust runner); there is no skip, no
+  tolerance, and no sampling
+- the gate is exhaustive, so there is no case corpus: the cgo shim, the Go
+  runner, the stub, the generated Rust runner (including its own Intel C
+  FFI shim declarations), the lane table, and the loop-bound/count
+  constants are all testgen batch outputs, and the lane/operation/total
+  counts and the runner-consumer count are re-pinned by hand in
+  `devtools/verification_anchors.json`
 - each lane folds every case's (Intel bits, Intel flags, port bits, port
   flags) into an ordered FNV-style result digest; the per-lane digests are
   execution evidence, not generator output — they are hand-pinned in
   `devtools/verification_anchors.json` from a completed full run and bound
-  to the runner's per-lane digest log lines by `cmd/verifylog` (domain
-  `d32-exhaustive`), so a common-mode change in both legs' observed
-  behavior, a weakened comparator, or a silently shrunk sweep fails the
-  evidence binding even though the in-run differential still agrees
+  to both runners' per-lane digest log lines by `cmd/verifylog` (domains
+  `d32-exhaustive` and `d32-exhaustive-rust`; on a passing run every leg
+  folds the identical Intel C results and matching port results, so both
+  runners bind to the same pinned digest values and a Go/Rust port
+  divergence anywhere in the space breaks the binding), so a common-mode
+  change in observed behavior, a weakened comparator, or a silently shrunk
+  sweep fails the evidence binding even though the in-run differential
+  still agrees
 - routing sentinels (hand-pinned in `devtools/verification_sentinels.json`,
   byte-equal to the generated runner literal) resolve through the same lane
   dispatch as the exhaustive sweep and cover operation-miswire and
@@ -496,16 +532,25 @@ Requirements:
   (`round_integral_exact` carries the full mode separation; two sqrt mode
   equivalences — nearest_even/nearest_away and toward_zero/toward_negative
   — are mathematical identities of the operation, asserted as such at
-  generation time)
-- the gate is an independent long-running target
-  (`make test-native-d32-exhaustive`, `_test-native-d32-exhaustive-full`)
-  with the same standing as the Decimal32 codec exhaustive harness; it is
-  not part of the `verify-all` native gate chain, and a sharded run is a
-  development aid that suppresses digests and cannot produce the full-count
-  evidence lines
-- a PASS means the two legs agree exactly over the full space for the
+  generation time; the modeless `nextup`/`nextdown` pair additionally must
+  pin distinct result vectors over its shared input set, so a direction
+  miswire between the two cannot replay clean)
+- each leg is an independent long-running target
+  (`make test-native-d32-exhaustive` / `_test-native-d32-exhaustive-full`
+  for the Go leg, `make test-rust-native-d32-exhaustive` /
+  `_test-rust-native-d32-exhaustive-full` for the generated Rust leg) with
+  the same standing as the Decimal32 codec exhaustive harness; neither is
+  part of the `verify-all` native gate chain, and a sharded run is a
+  development aid that suppresses digests and cannot produce the
+  full-count evidence lines
+- lane adoption is bounded by that long-gate budget: a candidate whose
+  full-space lane cost is an order of magnitude above the adopted lanes is
+  left to the sampling domains rather than allowed to make the gate
+  unrunnable
+- a PASS of one runner means its two legs (pinned Intel C and that
+  runner's mechanical port) agree exactly over the full space for the
   declared lanes; it is not a statement about any other operation, width,
-  or leg
+  or runner
 
 ## Scope Classification
 

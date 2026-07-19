@@ -205,10 +205,10 @@ BID codec language target set is:
 - JavaScript/TypeScript
 - Swift
 
-The Rust full `bid754-rs` implementation may also consume the same vectors, but
-that does not replace the standalone Rust BID codec target. Reporting BID codec
-verification as complete requires the generated vector artifact to be consumed
-by all six required language targets.
+The full `bid754-rs` and `bid754-go` implementations may also consume the same
+vectors, but that does not replace the standalone Rust and Go BID codec
+targets. Reporting BID codec verification as complete requires the generated
+vector artifact to be consumed by all six required language targets.
 
 Regular verification is batch-generated from authoritative source inputs. Do not grow regular verification one function, one file, or one hand-curated subset at a time.
 
