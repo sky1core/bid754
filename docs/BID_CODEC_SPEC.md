@@ -287,10 +287,13 @@ encode directly.
 Full BID codec vector verification requires all six standalone consumers: Go,
 Rust, Java, Python, JavaScript/TypeScript, and Swift. The full Rust decimal
 library and the full Go decimal library are additional consumers and cannot
-replace the standalone Rust and Go consumers. A full-library consumer reaches
-the reject and string channels through its own public parse surface, so a
-vector whose channel that surface cannot express is reported as a counted
-channel skip rather than silently dropped.
+replace the standalone Rust and Go consumers. The full Rust library carries
+two generated consumer legs: the round-trip vector consumer over the reject
+and string channels, and the parse-only reject consumer that drives every
+parse-channel reject row through the library's public error surface. A
+full-library consumer reaches its channels through the library's own public
+surface, so a vector whose channel that surface cannot express is reported
+as a counted channel skip rather than silently dropped.
 
 All consumers read the same generated vector artifact. They may not maintain
 language-specific copies of expected records or substitute native decimal
