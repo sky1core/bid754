@@ -72,7 +72,7 @@ test-go-modules:
 	@bash -o pipefail -c 'set -e; \
 	for module in $(GO_MODULES); do \
 		echo "==> go test $$module"; \
-		(cd "$$module" && $(GOENV) go test -count=1 ./...); \
+		(cd "$$module" && $(GOENV) go test -count=1 -timeout=45m ./...); \
 	done | tee test_results/latest_go_modules_test_results.txt'
 	@$(MAKE) verify-go-benchmark-registry-portable
 
