@@ -286116,6 +286116,136 @@
       "reason": "nan_payload_exceeds_schema_max"
     },
     {
+      "channel": "from_string",
+      "input": "1é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "12é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "123é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "1234é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "-123é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "+123é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "1.23é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "1中",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "123中",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "1234中",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "😀",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "1😀",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "12😀",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "123😀",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "1234😀",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "snané",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "snaé",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "中文字",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "12345678é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "1.2345678é",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "aé",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "aaé",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "aaaé",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "nané",
+      "reason": "non_ascii"
+    },
+    {
+      "channel": "from_string",
+      "input": "İnf",
+      "reason": "non_ascii"
+    },
+    {
       "channel": "encode",
       "type": "bid32",
       "kind": "normal",

@@ -130,6 +130,22 @@ for go_full_test in TestGoFullBidCodecRejectVectors TestGoFullBidCodecStringVect
   fi
 done
 
+echo "==> Rust bid754 public parse BID codec vector tests: bid754-rs"
+# Same "test not executed" guard as the go_full leg above: cargo exits 0 when a
+# filter matches nothing, so require the explicit PASS line. This leg is the
+# only one that reaches the generated Rust public parse path -- rust_full next
+# door exercises the embedded Components codec -- so a silently skipped run
+# would leave that surface unverified while the gate reported success.
+rust_parse_out=$(cd bid754-rs && cargo test --locked --test bid_codec_parse_vectors 2>&1) || {
+  printf '%s\n' "$rust_parse_out"
+  exit 1
+}
+printf '%s\n' "$rust_parse_out"
+if ! grep -qF -- "test test_rust_full_parse_reject_vectors ... ok" <<<"$rust_parse_out"; then
+  echo "rust_full_parse BID codec consumer did not execute test_rust_full_parse_reject_vectors" >&2
+  exit 1
+fi
+
 echo "==> Java BID codec vector tests: bid754-codec-java"
 java_out=$(mktemp -d)
 javac -d "$java_out" \

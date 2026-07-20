@@ -69,8 +69,8 @@ struct RejectVector {
 }
 
 const EXPECTED_FORMAT_VERSION: u32 = 5;
-const EXPECTED_REJECT_TOTAL: usize = 98;
-const EXPECTED_REJECT_CONSUMED: usize = 93;
+const EXPECTED_REJECT_TOTAL: usize = 124;
+const EXPECTED_REJECT_CONSUMED: usize = 119;
 const EXPECTED_REJECT_SKIPPED: usize = 5;
 const EXPECTED_STRING_TOTAL: usize = 20;
 const EXPECTED_TOTAL: usize = 23545;

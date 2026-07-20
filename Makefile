@@ -694,6 +694,7 @@ verify-generated:
 		bid754-codec-go/decimal64_128_long_test.go \
 		bid754-codec-rs/tests/vectors.rs \
 		bid754-rs/tests/bid_codec_vectors.rs \
+		bid754-rs/tests/bid_codec_parse_vectors.rs \
 		bid754-go/generated_bid_codec_vectors_test.go \
 		bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java \
 		bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java \
@@ -787,6 +788,7 @@ verify-generated:
 	cmp -s bid754-codec-go/decimal64_128_long_test.go $$tmpdir/backup/bid754-codec-go/decimal64_128_long_test.go || failed="$$failed bid754-codec-go/decimal64_128_long_test.go"; \
 	cmp -s bid754-codec-rs/tests/vectors.rs $$tmpdir/backup/bid754-codec-rs/tests/vectors.rs || failed="$$failed bid754-codec-rs/tests/vectors.rs"; \
 	cmp -s bid754-rs/tests/bid_codec_vectors.rs $$tmpdir/backup/bid754-rs/tests/bid_codec_vectors.rs || failed="$$failed bid754-rs/tests/bid_codec_vectors.rs"; \
+	cmp -s bid754-rs/tests/bid_codec_parse_vectors.rs $$tmpdir/backup/bid754-rs/tests/bid_codec_parse_vectors.rs || failed="$$failed bid754-rs/tests/bid_codec_parse_vectors.rs"; \
 	cmp -s bid754-go/generated_bid_codec_vectors_test.go $$tmpdir/backup/bid754-go/generated_bid_codec_vectors_test.go || failed="$$failed bid754-go/generated_bid_codec_vectors_test.go"; \
 	cmp -s bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java $$tmpdir/backup/bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java || failed="$$failed bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java"; \
 	cmp -s bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java $$tmpdir/backup/bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java || failed="$$failed bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java"; \

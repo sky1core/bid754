@@ -45,30 +45,43 @@ func TestEqualFoldASCIIMatchesPerByteFold(t *testing.T) {
 	}
 	for _, lit := range lits {
 		for _, in := range inputs {
-			perByte := len(in) == len(lit)
-			if perByte {
-				for i := 0; i < len(in); i++ {
-					if cTolowerMacro(in[i]) != lit[i] {
-						perByte = false
-						break
+			// Sweep past the two offsets the port actually uses (0 and 1) so an
+			// off-by-one in the offset arithmetic cannot hide, and past the end
+			// of the shortest inputs so the out-of-range guard is covered too.
+			//
+			// The reference folds the sliced remainder. Test code may slice a
+			// string; only the ported source may not, because go2rs lowers that
+			// to a &str cut. Comparing the two spellings here is what pins the
+			// offset form as an exact replacement for the slice it replaced.
+			for off := 0; off <= 3; off++ {
+				var wantEqual, wantPrefix bool
+				if off <= len(in) {
+					rest := in[off:]
+					wantEqual = len(rest) == len(lit)
+					if wantEqual {
+						for i := 0; i < len(lit); i++ {
+							if cTolowerMacro(rest[i]) != lit[i] {
+								wantEqual = false
+								break
+							}
+						}
+					}
+					wantPrefix = len(rest) >= len(lit)
+					if wantPrefix {
+						for i := 0; i < len(lit); i++ {
+							if cTolowerMacro(rest[i]) != lit[i] {
+								wantPrefix = false
+								break
+							}
+						}
 					}
 				}
-			}
-			if got := equalFoldASCII(in, lit); got != perByte {
-				t.Fatalf("equalFoldASCII(%q, %q) = %v, per-byte fold = %v", in, lit, got, perByte)
-			}
-
-			prefix := len(in) >= len(lit)
-			if prefix {
-				for i := 0; i < len(lit); i++ {
-					if cTolowerMacro(in[i]) != lit[i] {
-						prefix = false
-						break
-					}
+				if got := equalFoldASCIIAt(in, off, lit); got != wantEqual {
+					t.Fatalf("equalFoldASCIIAt(%q, %d, %q) = %v, sliced per-byte fold = %v", in, off, lit, got, wantEqual)
 				}
-			}
-			if got := hasPrefixFoldASCII(in, lit); got != prefix {
-				t.Fatalf("hasPrefixFoldASCII(%q, %q) = %v, per-byte fold = %v", in, lit, got, prefix)
+				if got := hasPrefixFoldASCIIAt(in, off, lit); got != wantPrefix {
+					t.Fatalf("hasPrefixFoldASCIIAt(%q, %d, %q) = %v, sliced per-byte fold = %v", in, off, lit, got, wantPrefix)
+				}
 			}
 		}
 	}
@@ -191,18 +204,19 @@ func TestBid32FromStringRejectsMultiByteInputWithoutPanic(t *testing.T) {
 //
 // It deliberately does NOT pin the character-boundary property. Go slices
 // strings by byte and never faults, so no Go test can observe the &str slicing
-// rule that made a sliced prefix probe panic in the generated Rust — this test
-// passes against both the indexed and the sliced form. The actual guard for
-// that failure mode is bid754-rs/tests/parse_non_ascii.rs, which fails with the
-// boundary panic when the sliced form is restored. What this test does catch is
-// a probe that drops its length guard and reads past the end.
+// rule under which a sliced prefix probe panics in the generated Rust — this
+// test passes against both the indexed and the sliced form. Two other gates
+// cover that failure mode: go2rs rejectGoStringSlicing fails generation on the
+// sliced form, and the generated rust_full_parse consumer
+// (bid754-rs/tests/bid_codec_parse_vectors.rs) runs the non_ascii reject rows
+// through the public Rust parse surface under catch_unwind. What this test does
+// catch is a probe that drops its length guard and reads past the end.
 func TestFoldHelpersStayInBoundsOnMultiByteInput(t *testing.T) {
 	for _, s := range []string{"é", "aé", "aaé", "aaaé", "中文字", "İnf", "snané"} {
 		for _, lit := range []string{"inf", "infinity", "nan", "snan"} {
-			_ = equalFoldASCII(s, lit)
-			_ = hasPrefixFoldASCII(s, lit)
-			for i := 1; i < len(s); i++ {
-				_ = hasPrefixFoldASCII(s[:i], lit)
+			for off := 0; off <= len(s)+1; off++ {
+				_ = equalFoldASCIIAt(s, off, lit)
+				_ = hasPrefixFoldASCIIAt(s, off, lit)
 			}
 		}
 	}

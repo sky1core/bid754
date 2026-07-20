@@ -88,8 +88,8 @@ type rejectEntry struct {
 
 const (
 	expectedFormatVersion          = 5
-	expectedRejectTotal            = 98
-	expectedRejectConsumed         = 98
+	expectedRejectTotal            = 124
+	expectedRejectConsumed         = 124
 	expectedRejectSkipped          = 0
 	expectedStringVectorTotal      = 20
 	expectedVectorTotal            = 23545

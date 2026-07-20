@@ -36,8 +36,8 @@ class VectorTest {
     private static final int EXPECTED_BID64_CANONICAL = 4583;
     private static final int EXPECTED_BID128_CANONICAL = 6047;
     private static final int EXPECTED_FORMAT_VERSION = 5;
-    private static final int EXPECTED_REJECT_TOTAL = 98;
-    private static final int EXPECTED_REJECT_CONSUMED = 98;
+    private static final int EXPECTED_REJECT_TOTAL = 124;
+    private static final int EXPECTED_REJECT_CONSUMED = 124;
     private static final int EXPECTED_REJECT_SKIPPED = 0;
     private static final int EXPECTED_STRING_TOTAL = 20;
     private static final Set<String> REJECT_CAPABILITIES = Set.of("bignum_coefficient", "negative_coefficient", "negative_payload");

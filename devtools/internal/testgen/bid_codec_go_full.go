@@ -3,6 +3,8 @@ package testgen
 import (
 	"fmt"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // This file is the single source of the `go_full` BID codec vector consumer's
@@ -27,7 +29,7 @@ import (
 //
 // The classes are generator-owned pinned data with the same standing as the
 // string_vectors `expected` literals: they were cross-measured against the
-// public API (all 53 rows x 3 widths x 3 families, 2026-07 probe; the extreme
+// public API (all 79 rows x 3 widths x 3 families, 2026-07 probe; the extreme
 // rows are additionally bit+flag pinned by the hand-written
 // bid754-go/parse_literal_boundary_public_test.go), and the generated runner
 // re-executes them on every `make test-bidcodec` run. Both maps are
@@ -91,6 +93,37 @@ var bidCodecGoFullFromStringClasses = map[string]string{
 	"1E-9007199254740992":                 "rounded", // underflow+inexact
 	"1.0E-9223372036854775808":            "rounded", // underflow+inexact
 	"1E" + strings.Repeat("9", 25):        "rounded", // overflow+inexact
+	// Multi-byte UTF-8 carrying a valid ASCII prefix. The public grammar is
+	// ASCII, so every family rejects; what these rows add over the other
+	// grammar rejects is that the parser walks INTO the multi-byte character
+	// before rejecting, which is where a &str cut in the generated Rust
+	// panics instead of returning the error.
+	"1é":         "rejected",
+	"12é":        "rejected",
+	"123é":       "rejected",
+	"1234é":      "rejected",
+	"12345678é":  "rejected",
+	"1.2345678é": "rejected",
+	"-123é":      "rejected",
+	"+123é":      "rejected",
+	"1.23é":      "rejected",
+	"1中":         "rejected",
+	"123中":       "rejected",
+	"1234中":      "rejected",
+	"😀":          "rejected",
+	"1😀":         "rejected",
+	"12😀":        "rejected",
+	"123😀":       "rejected",
+	"1234😀":      "rejected",
+	"snané":      "rejected",
+	"snaé":       "rejected",
+	"é":          "rejected",
+	"中文字":        "rejected",
+	"aé":         "rejected",
+	"aaé":        "rejected",
+	"aaaé":       "rejected",
+	"nané":       "rejected",
+	"İnf":        "rejected", // Unicode lowers U+0130 to ASCII 'i'; the ASCII fold must not
 }
 
 // bidCodecGoFullStringVectorClasses maps every string_vectors input to its
@@ -213,6 +246,59 @@ func bidCodecGoFullFromStringClassElems() string {
 	var b strings.Builder
 	for _, r := range bidCodecGoFullFromStringRecords() {
 		fmt.Fprintf(&b, "\n\t%q: %q,", *r.Input, bidCodecGoFullFromStringClasses[*r.Input])
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+// rustStringLiteral renders s as a Rust string literal.
+//
+// Go's %q is not usable for Rust source: it escapes a non-printable rune in
+// Go's \uXXXX form, which Rust rejects (Rust spells it \u{XXXX}), and the
+// from_string reject corpus carries exactly such a rune (U+00A0, the
+// non-breaking space row). Printable non-ASCII stays literal because Rust
+// source is UTF-8, which keeps the multi-byte rows readable as the characters
+// they are testing.
+func rustStringLiteral(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '\\':
+			b.WriteString(`\\`)
+		case '"':
+			b.WriteString(`\"`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\t':
+			b.WriteString(`\t`)
+		default:
+			if r == utf8.RuneError || !unicode.IsPrint(r) {
+				fmt.Fprintf(&b, `\u{%x}`, r)
+				continue
+			}
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+	return b.String()
+}
+
+// bidCodecRustFullParseFromStringClassElems renders the Rust public-parse
+// consumer's expectation rows `(input, class),` in record emission order.
+//
+// The rows come from the same bidCodecGoFullFromStringClasses table the Go
+// consumer uses. Sharing the table is deliberate: the Rust public API is
+// generated from the same mechanical port the Go public API routes through, so
+// a class that differs between the two languages is a defect, and generating
+// both runners from one table makes that divergence a test failure rather than
+// a pair of independently maintained expectations that can drift apart.
+func bidCodecRustFullParseFromStringClassElems() string {
+	var b strings.Builder
+	for _, r := range bidCodecGoFullFromStringRecords() {
+		fmt.Fprintf(&b, "\n    (%s, %s),", rustStringLiteral(*r.Input), rustStringLiteral(bidCodecGoFullFromStringClasses[*r.Input]))
 	}
 	b.WriteString("\n")
 	return b.String()

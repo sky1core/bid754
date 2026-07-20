@@ -142,42 +142,54 @@ func Bid32ToStringRaw(x uint32) string {
 	return string(ps[:istart])
 }
 
-// equalFoldASCII reports whether s matches the lower-case ASCII literal lit
-// under the same tolower_macro fold the other widths already use.
+// equalFoldASCIIAt reports whether the bytes of s from off onward match the
+// lower-case ASCII literal lit exactly, under the same tolower_macro fold the
+// other widths already use.
 //
 // The pinned C spells these probes as a chain of tolower_macro(ps[i]) == 'x'
 // byte comparisons (bid32_string.c bid32_from_string), which bid64 and bid128
 // port directly. bid32 compares whole strings instead, so this helper applies
 // the identical per-byte fold across the comparison and keeps the probe
 // allocation-free.
-func equalFoldASCII(s string, lit string) bool {
-	if len(s) != len(lit) {
+//
+// The start position is a parameter rather than a slice of s taken at the call
+// site. This is defense in depth, not a bug fix: the call site it replaced
+// (s[1:]) was reached only after a branch proving s[0] is '.', '-', '+', or a
+// digit — all single-byte — so byte 1 was always a character boundary and the
+// generated &str cut was safe there.
+//
+// What the offset form removes is the dependence on that argument. Go slices a
+// string at any byte offset, but the generated Rust cuts a &str, which panics
+// when the cut lands inside a multi-byte character, and a panic on a public
+// parse path is forbidden outright (docs/SPEC.md). A probe whose safety rests
+// on a proof about a distant branch stays correct only while that branch does;
+// indexed byte reads carry no boundary rule at all, and they mirror the pinned
+// C, which compares fixed positions one byte at a time.
+//
+// There is deliberately no offset-free spelling of these probes: go2rs
+// rejectGoStringSlicing now fails generation on the sliced form, and leaving a
+// two-argument form would invite a caller to re-create it.
+func equalFoldASCIIAt(s string, off int, lit string) bool {
+	if len(s)-off != len(lit) {
 		return false
 	}
-	for i := 0; i < len(s); i++ {
-		if tolower_macro(s[i]) != lit[i] {
+	for i := 0; i < len(lit); i++ {
+		if tolower_macro(s[off+i]) != lit[i] {
 			return false
 		}
 	}
 	return true
 }
 
-// hasPrefixFoldASCII applies the same fold across the leading len(lit) bytes of
-// s, matching the pinned C sNaN probe, which tests only ps[0..3] and ignores any
-// trailing payload characters.
-//
-// This indexes rather than slicing s. Go slices strings by byte, but the
-// generated Rust counterpart slices &str, which panics when the cut lands
-// inside a multi-byte character — so a sliced form here would turn an ordinary
-// rejected input such as "1234é" into a panic on the public parse path. Indexed
-// byte reads carry no such boundary rule, and they mirror the pinned C, which
-// compares fixed positions ps[0]..ps[3] one byte at a time.
-func hasPrefixFoldASCII(s string, lit string) bool {
-	if len(s) < len(lit) {
+// hasPrefixFoldASCIIAt applies the same fold across the len(lit) bytes of s
+// starting at off, matching the pinned C sNaN probe, which tests only
+// ps[0..3] and ignores any trailing payload characters.
+func hasPrefixFoldASCIIAt(s string, off int, lit string) bool {
+	if len(s)-off < len(lit) {
 		return false
 	}
 	for i := 0; i < len(lit); i++ {
-		if tolower_macro(s[i]) != lit[i] {
+		if tolower_macro(s[off+i]) != lit[i] {
 			return false
 		}
 	}
@@ -203,10 +215,10 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 
 	// detect special cases
 	if c != '.' && c != '-' && c != '+' && (c < '0' || c > '9') {
-		if equalFoldASCII(s, "inf") || equalFoldASCII(s, "infinity") {
+		if equalFoldASCIIAt(s, 0, "inf") || equalFoldASCIIAt(s, 0, "infinity") {
 			return 0x78000000, 0
 		}
-		if hasPrefixFoldASCII(s, "snan") {
+		if hasPrefixFoldASCIIAt(s, 0, "snan") {
 			return 0x7e000000, 0
 		}
 		return 0x7c000000, 0
@@ -214,11 +226,10 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 
 	// detect +/-INF, +/-sNaN
 	if len(s) > 1 {
-		// Reaching here means the branch above did not return, so c is '.', '-',
-		// '+', or a digit — all single-byte. Offset 1 is therefore a character
-		// boundary, which the generated Rust &str slice below relies on.
-		sl1 := s[1:]
-		if equalFoldASCII(sl1, "inf") || equalFoldASCII(sl1, "infinity") {
+		// The probes start one byte past the sign/radix/digit character rather
+		// than slicing it off, so no &str cut exists for a multi-byte character
+		// to land inside.
+		if equalFoldASCIIAt(s, 1, "inf") || equalFoldASCIIAt(s, 1, "infinity") {
 			if c == '+' {
 				return 0x78000000, 0
 			} else if c == '-' {
@@ -226,14 +237,14 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 			}
 			return 0x7c000000, 0
 		}
-		if hasPrefixFoldASCII(sl1, "snan") {
+		if hasPrefixFoldASCIIAt(s, 1, "snan") {
 			if c == '-' {
 				return 0xfe000000, 0
 			}
 			return 0x7e000000, 0
 		}
 		// +NaN or -NaN
-		if equalFoldASCII(sl1, "nan") {
+		if equalFoldASCIIAt(s, 1, "nan") {
 			if c == '-' {
 				return 0xfc000000, 0
 			}

@@ -234,8 +234,8 @@ function verifyErrorSemantics() {
   // generated reject_vectors domain (verifyRejectVectors), not a hardcoded list.
 }
 
-const expectedRejectTotal = 98;
-const expectedRejectConsumed = 98;
+const expectedRejectTotal = 124;
+const expectedRejectConsumed = 124;
 const expectedRejectSkipped = 0;
 const rejectCapabilities = new Set(["bignum_coefficient", "negative_coefficient", "negative_payload"]);
 const rejectUnsupported = new Set([]);

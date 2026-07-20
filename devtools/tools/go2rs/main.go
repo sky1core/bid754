@@ -846,18 +846,30 @@ func rejectResidualMatchArmBreak(base, code string) error {
 	return nil
 }
 
-// convertFile parses a Go file and converts it to Rust source.
+// convertFile converts one file the way main does: type-check the package the
+// file belongs to, publish the resulting types.Info, then convert. A bare
+// parser.ParseFile here would leave activeTypeInfo unset, and every check that
+// consults the type checker -- string slicing, string vs []byte borrows --
+// would silently fall back to the parameter-name heuristic, so a caller would
+// be exercising a weaker pipeline than the generator actually runs.
+//
+// Note for callers writing fixtures: parseTypeCheckedPackage reports a
+// type-check failure through fatal(), which exits the process. A fixture that
+// does not compile therefore terminates the run instead of returning an error
+// here, and the returned error covers only conversion-stage rejections.
 func convertFile(path string, reg *Registry) (string, error) {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
-	if err != nil {
-		return "", err
-	}
-	return convertParsedFile(fset, f, path, reg)
+	fset, parsedTargets, info := parseTypeCheckedPackage(filepath.Dir(path), []string{path})
+	prevInfo := activeTypeInfo
+	activeTypeInfo = info
+	defer func() { activeTypeInfo = prevInfo }()
+	return convertParsedFile(fset, parsedTargets[path], path, reg)
 }
 
 func convertParsedFile(fset *token.FileSet, f *ast.File, path string, reg *Registry) (string, error) {
 	if err := rejectReceiverMethods(fset, f, path); err != nil {
+		return "", err
+	}
+	if err := rejectGoStringSlicing(fset, f, path); err != nil {
 		return "", err
 	}
 	if activeSourceFunctions == nil {
@@ -931,6 +943,132 @@ func rejectReceiverMethods(fset *token.FileSet, f *ast.File, path string) error 
 		return fmt.Errorf("go2rs input %s:%d declares receiver method %s; the C-shaped mechanical-port source must contain package-level functions only", filepath.Base(path), pos.Line, fn.Name.Name)
 	}
 	return nil
+}
+
+// rejectGoStringSlicing fails generation when the port source slices a Go
+// string. The two languages do not agree on the operation: Go slices a string
+// at any byte offset, while Rust panics when a &str cut lands inside a
+// multi-byte character. No total &str counterpart exists, because a Go string
+// is an arbitrary byte sequence and a &str must stay valid UTF-8, so this is
+// the same class as strings.ToLower above -- the port must spell the intended
+// operation explicitly rather than let the generator pick a lowering that
+// silently disagrees on some inputs.
+//
+// The sharp case is a public parse path, where the disagreement is not a wrong
+// value but a panic: a probe whose cut can land mid-character traps on ordinary
+// rejected input such as "1234é", which docs/SPEC.md forbids outright for
+// unsupported input on any public API path. Whether a given cut can land
+// mid-character depends on facts about branches elsewhere in the function, so
+// the check does not try to decide it -- it refuses the construct. Byte reads
+// carry no boundary rule at all, so index the string (s[i], lowered to
+// as_bytes()[i]) or carry a []byte.
+//
+// The walk covers the whole file rather than sitting in the expression
+// converter because convertAssignStmt lowers the self-slice assignment form
+// (s = s[1:]) on its own path, so an expression-level check alone would let
+// that shape through.
+func rejectGoStringSlicing(fset *token.FileSet, f *ast.File, path string) error {
+	// The check is fail-closed: it does not ask "is this base a string?" and
+	// let everything else through, it asks "is this base provably a slice or
+	// array?" and refuses everything else. The two are not equivalent. A
+	// string-detecting form has to enumerate every spelling of a string --
+	// typed, untyped constant, named type, alias -- and every spelling it fails
+	// to recognize silently becomes a &str cut in the output, which is the
+	// exact failure this check exists to stop. Only slice and array bases lower
+	// to a real Rust slice borrow, so anything else -- including a type the
+	// checker could not resolve -- is refused, and the message carries the type
+	// actually observed.
+	if activeTypeInfo == nil {
+		return fmt.Errorf("go2rs input %s: no type information available; cannot prove the file is free of Go string slicing", filepath.Base(path))
+	}
+	// types.Info maps are keyed by AST node pointer, so info built from a
+	// different parse of the same source resolves nothing here and would let
+	// every base through as merely "unresolved". Confirm this info describes
+	// THIS file before trusting a single lookup against it. The anchor is a
+	// declared name, not the package clause: go/types leaves Defs nil for the
+	// identifier in a package clause, so that one proves nothing.
+	if anchor := firstDeclaredIdent(f); anchor != nil {
+		if activeTypeInfo.Defs[anchor] == nil {
+			return fmt.Errorf("go2rs input %s: the active type information does not describe this file (declared name %q does not resolve); cannot prove it is free of Go string slicing", filepath.Base(path), anchor.Name)
+		}
+	}
+	var found error
+	ast.Inspect(f, func(n ast.Node) bool {
+		if found != nil {
+			return false
+		}
+		slice, ok := n.(*ast.SliceExpr)
+		if !ok {
+			return true
+		}
+		name := sliceExprBaseName(slice)
+		if name == "" {
+			name = "<expression>"
+		}
+		pos := fset.Position(slice.Pos())
+		if sliceBaseLowersToSliceBorrow(slice.X) {
+			return true
+		}
+		typ := resolveExprType(slice.X)
+		if typ == nil {
+			found = fmt.Errorf("go2rs input %s:%d slices %s, whose type the checker did not resolve; only a slice or array base lowers to a Rust slice borrow, so an unresolved base cannot be shown to avoid a panicking &str cut", filepath.Base(path), pos.Line, name)
+			return false
+		}
+		found = fmt.Errorf("go2rs input %s:%d slices %s of type %s; Go slices a string at any byte offset but the generated Rust cut panics inside a multi-byte character, and a panic on a public parse path is forbidden. Index the bytes instead (%s[i], which lowers to as_bytes()[i]) or carry a []byte", filepath.Base(path), pos.Line, name, typ, name)
+		return false
+	})
+	return found
+}
+
+// firstDeclaredIdent returns the first top-level declared name in f, or nil
+// when the file declares nothing. It is the anchor used to confirm the active
+// types.Info actually describes f.
+func firstDeclaredIdent(f *ast.File) *ast.Ident {
+	for _, decl := range f.Decls {
+		switch d := decl.(type) {
+		case *ast.FuncDecl:
+			if d.Name != nil {
+				return d.Name
+			}
+		case *ast.GenDecl:
+			for _, spec := range d.Specs {
+				switch s := spec.(type) {
+				case *ast.TypeSpec:
+					if s.Name != nil {
+						return s.Name
+					}
+				case *ast.ValueSpec:
+					if len(s.Names) > 0 {
+						return s.Names[0]
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// sliceBaseLowersToSliceBorrow reports whether expr's type-checked type is one
+// whose Go slice expression lowers to a real Rust slice borrow: a slice, an
+// array, or a pointer to an array. Every other base -- a string in any of its
+// spellings, and any type the checker could not resolve -- returns false.
+//
+// The predicate is deliberately positive. Asking "is it a slice?" fails closed
+// on an unfamiliar type; asking "is it a string?" fails open on one, and an
+// unrecognized string is exactly how a panicking &str cut reaches the output.
+func sliceBaseLowersToSliceBorrow(expr ast.Expr) bool {
+	typ := resolveExprType(expr)
+	if typ == nil {
+		return false
+	}
+	switch under := typ.Underlying().(type) {
+	case *types.Slice, *types.Array:
+		return true
+	case *types.Pointer:
+		_, isArray := under.Elem().Underlying().(*types.Array)
+		return isArray
+	}
+	return false
 }
 
 // comparisonOperandsRe captures the two bare operands (identifier or integer
@@ -1981,11 +2119,9 @@ func convertAssignStmt(fset *token.FileSet, s *ast.AssignStmt, src []byte, inden
 	if len(s.Lhs) == 1 && len(s.Rhs) == 1 {
 		lhs := convertExprStr(fset, s.Lhs[0], src)
 		rhs := convertExprStr(fset, s.Rhs[0], src)
-		if activeStringVars[lhs] {
-			if slice, ok := s.Rhs[0].(*ast.SliceExpr); ok && sliceExprBaseName(slice) == lhs {
-				return fmt.Sprintf("%s%s = (%s).to_string();\n", ind, lhs, rhs)
-			}
-		}
+		// The self-slice assignment form (s = s[1:]) once lowered here by
+		// re-owning the &str borrow. rejectGoStringSlicing now refuses that
+		// source shape outright, so the case is gone rather than reshaped.
 		if strings.HasSuffix(lhs, ".coeff") && !strings.HasSuffix(rhs, ".clone()") {
 			rhs += ".clone()"
 		}
@@ -2244,29 +2380,43 @@ func wrappingBinaryMethod(tok token.Token, expr ast.Expr) (string, bool) {
 // Deciding this from the type checker rather than from a name set keeps string
 // locals correct, not just string parameters.
 func isGoStringExpr(expr ast.Expr) bool {
-	if activeTypeInfo != nil {
-		if tv, ok := activeTypeInfo.Types[expr]; ok && tv.Type != nil {
-			if basic, ok := tv.Type.Underlying().(*types.Basic); ok && basic.Kind() == types.String {
-				return true
-			}
+	if typ := resolveExprType(expr); typ != nil {
+		if basic, ok := typ.Underlying().(*types.Basic); ok {
+			// Info()&IsString rather than Kind()==String: an untyped string
+			// constant ("abc", or an untyped const) has Kind UntypedString and
+			// is just as much a string to every lowering below.
+			return basic.Info()&types.IsString != 0
 		}
-		if ident, ok := expr.(*ast.Ident); ok {
-			obj := activeTypeInfo.Uses[ident]
-			if obj == nil {
-				obj = activeTypeInfo.Defs[ident]
-			}
-			if obj != nil && obj.Type() != nil {
-				if basic, ok := obj.Type().Underlying().(*types.Basic); ok && basic.Kind() == types.String {
-					return true
-				}
-			}
-		}
+		return false
 	}
 	// Fall back to the string-parameter name set when type info is absent.
 	if ident, ok := expr.(*ast.Ident); ok {
 		return activeStringVars[rustIdent(ident.Name)]
 	}
 	return false
+}
+
+// resolveExprType returns the type-checked type of expr, or nil when the type
+// checker has no record of it. Identifiers that denote objects are looked up in
+// Uses/Defs as well as Types, because go/types records some identifier forms
+// only in the object maps.
+func resolveExprType(expr ast.Expr) types.Type {
+	if activeTypeInfo == nil {
+		return nil
+	}
+	if tv, ok := activeTypeInfo.Types[expr]; ok && tv.Type != nil {
+		return tv.Type
+	}
+	if ident, ok := expr.(*ast.Ident); ok {
+		obj := activeTypeInfo.Uses[ident]
+		if obj == nil {
+			obj = activeTypeInfo.Defs[ident]
+		}
+		if obj != nil && obj.Type() != nil {
+			return obj.Type()
+		}
+	}
+	return nil
 }
 
 func isIntegerExpr(expr ast.Expr) bool {
@@ -2944,10 +3094,23 @@ func convertExprStr(fset *token.FileSet, expr ast.Expr, src []byte) string {
 		if e.High != nil {
 			high = convertExprStr(fset, e.High, src) + " as usize"
 		}
-		prefix := "&mut "
-		if isGoStringExpr(e.X) {
-			prefix = "&"
+		// An assertion, NOT independent coverage: this calls the same predicate
+		// rejectGoStringSlicing uses, so it returns the same verdict on the same
+		// expression and cannot catch a base the pass let through. What it does
+		// buy is that the emitted `&mut base[..]` borrow is never written for a
+		// base that has no slice borrow, on any path that reaches the emitter
+		// without having gone through the pass first (a future caller, a
+		// synthesized AST). Independent coverage of the failure mode itself
+		// lives outside the generator, in the generated rust_full_parse consumer
+		// that parses multi-byte input through the public Rust API.
+		if !sliceBaseLowersToSliceBorrow(e.X) {
+			fatal("convert %s: slicing %s has no semantics-preserving Rust counterpart "+
+				"(a &str cut panics inside a multi-byte character, and a non-slice base has "+
+				"no slice borrow at all); index the bytes in the Go port instead",
+				fset.Position(e.Pos()), sliceExprBaseName(e))
+			return ""
 		}
+		prefix := "&mut "
 		if low != "" && high != "" {
 			return fmt.Sprintf("%s%s[%s..%s]", prefix, x, low, high)
 		} else if low != "" {

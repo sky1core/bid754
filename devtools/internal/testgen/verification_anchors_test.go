@@ -98,6 +98,8 @@ type verificationAnchors struct {
 	BidCodecRejectConsumedByLanguage             map[string]int               `json:"bid_codec_reject_vectors_consumed_by_language"`
 	BidCodecRejectGoFullConsumed                 int                          `json:"bid_codec_reject_vectors_go_full_consumed"`
 	BidCodecRejectGoFullChannelSkipped           int                          `json:"bid_codec_reject_vectors_go_full_channel_skipped"`
+	BidCodecRejectRustFullParseConsumed          int                          `json:"bid_codec_reject_vectors_rust_full_parse_consumed"`
+	BidCodecRejectRustFullParseChannelSkipped    int                          `json:"bid_codec_reject_vectors_rust_full_parse_channel_skipped"`
 	BidCodecStringGoFullConsumed                 int                          `json:"bid_codec_string_vectors_go_full_consumed"`
 	BidCodecStringVectorsTotal                   int                          `json:"bid_codec_string_vectors_total"`
 	BidCodecStringConsumedByLanguage             map[string]int               `json:"bid_codec_string_vectors_consumed_by_language"`
@@ -1879,6 +1881,24 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 			anchors.BidCodecStringGoFullConsumed, len(vectors.StringVectors))
 	}
 
+	// rust_full_parse consumer: the bid754-rs public parse surface. It splits
+	// the reject channels exactly like go_full (the public Decimal API exposes
+	// no Components construction surface in either language), so its counts are
+	// equal to the go_full counts by construction. They are pinned separately
+	// anyway: the equality is the contract being checked, and collapsing the
+	// two onto one anchor would let a Rust leg that silently stopped consuming
+	// the channel keep passing on the Go leg's count.
+	if goFullConsumed != anchors.BidCodecRejectRustFullParseConsumed {
+		t.Errorf("rust_full_parse recomputed reject consumed = %d, anchor = %d", goFullConsumed, anchors.BidCodecRejectRustFullParseConsumed)
+	}
+	if goFullSkipped != anchors.BidCodecRejectRustFullParseChannelSkipped {
+		t.Errorf("rust_full_parse recomputed reject channel-skipped = %d, anchor = %d", goFullSkipped, anchors.BidCodecRejectRustFullParseChannelSkipped)
+	}
+	if anchors.BidCodecRejectRustFullParseConsumed != anchors.BidCodecRejectGoFullConsumed {
+		t.Errorf("rust_full_parse consumed anchor = %d, go_full = %d; the two public parse surfaces must consume the same channel",
+			anchors.BidCodecRejectRustFullParseConsumed, anchors.BidCodecRejectGoFullConsumed)
+	}
+
 	// string_vectors consumed pins. The success channel is capability-ungated
 	// by design: every record is a pure ASCII input/expected string pair
 	// constructible in every language, so each consumer must consume every
@@ -2344,6 +2364,7 @@ func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 		"bid754-codec-go/decimal64_128_long_test.go",
 		"bid754-codec-rs/tests/vectors.rs",
 		"bid754-rs/tests/bid_codec_vectors.rs",
+		"bid754-rs/tests/bid_codec_parse_vectors.rs",
 		"bid754-go/generated_bid_codec_vectors_test.go",
 		"bid754-rs/tests/bid_string_vectors.rs",
 		"bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java",

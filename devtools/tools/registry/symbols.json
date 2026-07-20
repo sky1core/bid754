@@ -15957,11 +15957,15 @@
       "exported": false,
       "group": "misc"
     },
-    "equalFoldASCII": {
+    "equalFoldASCIIAt": {
       "params": [
         {
           "name": "s",
           "type": "String"
+        },
+        {
+          "name": "off",
+          "type": "i32"
         },
         {
           "name": "lit",
@@ -15972,7 +15976,7 @@
         "bool"
       ],
       "go_file": "bid32_string.go",
-      "go_name": "equalFoldASCII",
+      "go_name": "equalFoldASCIIAt",
       "exported": false,
       "group": "misc"
     },
@@ -16485,11 +16489,15 @@
       "exported": false,
       "group": "misc"
     },
-    "hasPrefixFoldASCII": {
+    "hasPrefixFoldASCIIAt": {
       "params": [
         {
           "name": "s",
           "type": "String"
+        },
+        {
+          "name": "off",
+          "type": "i32"
         },
         {
           "name": "lit",
@@ -16500,7 +16508,7 @@
         "bool"
       ],
       "go_file": "bid32_string.go",
-      "go_name": "hasPrefixFoldASCII",
+      "go_name": "hasPrefixFoldASCIIAt",
       "exported": false,
       "group": "misc"
     },

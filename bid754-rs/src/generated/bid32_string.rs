@@ -148,15 +148,15 @@ pub fn bid32_to_string_raw(mut x: u32) -> String {
     return go_string_from_bytes(&mut ps[..istart as usize]);
 }
 
-pub(crate) fn equal_fold_ascii(s: impl AsRef<str>, lit: impl AsRef<str>) -> bool {
+pub(crate) fn equal_fold_ascii_at(s: impl AsRef<str>, mut off: i64, lit: impl AsRef<str>) -> bool {
     let s = s.as_ref();
     let lit = lit.as_ref();
-    if ((s.len() as i64) != (lit.len() as i64)) {
+    if (((s.len() as i64).wrapping_sub(off)) != (lit.len() as i64)) {
         return false;
     }
     let mut i: i64 = 0;
-    while (i < (s.len() as i64)) {
-        if (tolower_macro(s.as_bytes()[i as usize]) != lit.as_bytes()[i as usize]) {
+    while (i < (lit.len() as i64)) {
+        if (tolower_macro(s.as_bytes()[(off.wrapping_add(i)) as usize]) != lit.as_bytes()[i as usize]) {
             return false;
         }
         i = i.wrapping_add(1);
@@ -164,15 +164,15 @@ pub(crate) fn equal_fold_ascii(s: impl AsRef<str>, lit: impl AsRef<str>) -> bool
     return true;
 }
 
-pub(crate) fn has_prefix_fold_ascii(s: impl AsRef<str>, lit: impl AsRef<str>) -> bool {
+pub(crate) fn has_prefix_fold_ascii_at(s: impl AsRef<str>, mut off: i64, lit: impl AsRef<str>) -> bool {
     let s = s.as_ref();
     let lit = lit.as_ref();
-    if ((s.len() as i64) < (lit.len() as i64)) {
+    if (((s.len() as i64).wrapping_sub(off)) < (lit.len() as i64)) {
         return false;
     }
     let mut i: i64 = 0;
     while (i < (lit.len() as i64)) {
-        if (tolower_macro(s.as_bytes()[i as usize]) != lit.as_bytes()[i as usize]) {
+        if (tolower_macro(s.as_bytes()[(off.wrapping_add(i)) as usize]) != lit.as_bytes()[i as usize]) {
             return false;
         }
         i = i.wrapping_add(1);
@@ -204,17 +204,16 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
     let mut c = s.as_bytes()[0];
     let mut idx: i64 = 0;
     if ((((c != b'.') && (c != b'-')) && (c != b'+')) && (((c < b'0') || (c > b'9')))) {
-        if (equal_fold_ascii(s, "inf") || equal_fold_ascii(s, "infinity")) {
+        if (equal_fold_ascii_at(s, 0, "inf") || equal_fold_ascii_at(s, 0, "infinity")) {
             return (0x78000000, 0);
         }
-        if has_prefix_fold_ascii(s, "snan") {
+        if has_prefix_fold_ascii_at(s, 0, "snan") {
             return (0x7e000000, 0);
         }
         return (0x7c000000, 0);
     }
     if ((s.len() as i64) > 1) {
-        let mut sl1 = &s[1 as usize..];
-        if (equal_fold_ascii(sl1, "inf") || equal_fold_ascii(sl1, "infinity")) {
+        if (equal_fold_ascii_at(s, 1, "inf") || equal_fold_ascii_at(s, 1, "infinity")) {
             if (c == b'+') {
                 return (0x78000000, 0);
             } else if (c == b'-') {
@@ -222,13 +221,13 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
             }
             return (0x7c000000, 0);
         }
-        if has_prefix_fold_ascii(sl1, "snan") {
+        if has_prefix_fold_ascii_at(s, 1, "snan") {
             if (c == b'-') {
                 return (0xfe000000, 0);
             }
             return (0x7e000000, 0);
         }
-        if equal_fold_ascii(sl1, "nan") {
+        if equal_fold_ascii_at(s, 1, "nan") {
             if (c == b'-') {
                 return (0xfc000000, 0);
             }

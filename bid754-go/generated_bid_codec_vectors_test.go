@@ -54,8 +54,8 @@ type goFullVectorFile struct {
 
 const (
 	goFullExpectedFormatVersion  = 5
-	goFullExpectedRejectTotal    = 98
-	goFullExpectedRejectConsumed = 33
+	goFullExpectedRejectTotal    = 124
+	goFullExpectedRejectConsumed = 59
 	goFullExpectedRejectSkipped  = 65
 	goFullExpectedStringTotal    = 20
 )
@@ -96,6 +96,32 @@ var goFullFromStringClasses = map[string]string{
 	"1000000000000000000000000000000000000000":    "rejected",
 	"1E9999999999999999999999999":                 "rounded",
 	"NaN1000000000000000000000000000000000000000": "rejected",
+	"1é":         "rejected",
+	"12é":        "rejected",
+	"123é":       "rejected",
+	"1234é":      "rejected",
+	"-123é":      "rejected",
+	"+123é":      "rejected",
+	"1.23é":      "rejected",
+	"1中":         "rejected",
+	"123中":       "rejected",
+	"1234中":      "rejected",
+	"😀":          "rejected",
+	"1😀":         "rejected",
+	"12😀":        "rejected",
+	"123😀":       "rejected",
+	"1234😀":      "rejected",
+	"snané":      "rejected",
+	"snaé":       "rejected",
+	"é":          "rejected",
+	"中文字":        "rejected",
+	"12345678é":  "rejected",
+	"1.2345678é": "rejected",
+	"aé":         "rejected",
+	"aaé":        "rejected",
+	"aaaé":       "rejected",
+	"nané":       "rejected",
+	"İnf":        "rejected",
 }
 
 // goFullStringVectorClasses pins the go_full classes of every string_vectors

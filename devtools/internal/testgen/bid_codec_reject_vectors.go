@@ -142,6 +142,71 @@ var bidCodecFromStringRejectCases = []bidCodecFromStringRejectCase{
 	{"1" + strings.Repeat("0", 39), "coefficient_exceeds_schema_max"},    // coefficient 10^39 overflows u128 accumulation
 	{"1E" + strings.Repeat("9", 25), "exponent_out_of_int32"},            // exponent literal beyond i64 accumulation and the 2^53 bound
 	{"NaN1" + strings.Repeat("0", 39), "nan_payload_exceeds_schema_max"}, // payload 10^39 overflows u128 accumulation
+	// Multi-byte UTF-8 at a range of byte offsets. A Go parser slices a string
+	// at any byte offset and never faults, so a probe written as a slice passes
+	// every Go-side gate; the generated Rust cuts a &str at the same offset and
+	// panics when the cut is inside a character. The public parse surface must
+	// reject all of these through its error type in both languages, never by
+	// unwinding, which docs/SPEC.md requires of every public API path.
+	//
+	// Some of the non_ascii rows above already trip a cut at some offsets, so
+	// these rows are not what first made the class detectable -- what was
+	// missing was a consumer that ran ANY of them through the generated Rust
+	// public parse path (bid754-rs/tests/bid_codec_parse_vectors.rs, added with
+	// this block). What the rows add is a full offset grid, so detection does
+	// not depend on which pre-existing input happens to collide with the probe
+	// width a future defect uses.
+	//
+	// Measured over the whole non_ascii class, the first-non-ASCII byte offset
+	// by character width is:
+	//
+	//   2-byte: 0 1 2 3 4 8 9
+	//   3-byte: 0 1 2 3 4
+	//   4-byte: 0 1 2 3 4
+	//
+	// 0..4 spans every fixed-position read on the parse path (the sign/radix/
+	// digit probe at 1 and the four-byte "snan"/"infi" prefix probes), and the
+	// 8/9 rows land inside the digit loop, past every fixed probe. Both the
+	// numeric and the letter entry path are represented.
+	{"1é", "non_ascii"},    // cut at offset 1, 2-byte character
+	{"12é", "non_ascii"},   // cut at offset 2
+	{"123é", "non_ascii"},  // cut at offset 3
+	{"1234é", "non_ascii"}, // cut at offset 4, the four-byte prefix probe width
+	{"-123é", "non_ascii"}, // minus consumed first, so the probe cuts past it
+	{"+123é", "non_ascii"}, // plus takes the other sign branch
+	{"1.23é", "non_ascii"}, // radix point on the path to the same cut
+	{"1中", "non_ascii"},    // 3-byte character, cut at offset 1
+	{"123中", "non_ascii"},  // 3-byte, offset 3
+	{"1234中", "non_ascii"}, // 3-byte, offset 4
+	{"😀", "non_ascii"},     // 4-byte character, offset 0
+	{"1😀", "non_ascii"},    // 4-byte, offset 1
+	{"12😀", "non_ascii"},   // 4-byte, offset 2
+	{"123😀", "non_ascii"},  // 4-byte, offset 3
+	{"1234😀", "non_ascii"}, // 4-byte, offset 4
+	{"snané", "non_ascii"}, // sNaN prefix probe with a multi-byte tail
+	{"snaé", "non_ascii"},  // one byte SHORT of the probe width, so the cut is inside the character
+	{"é", "non_ascii"},     // leading 2-byte character, no ASCII prefix
+	{"中文字", "non_ascii"},   // 3-byte characters, no ASCII prefix
+	// Past every probe width, inside the digit loop. The rows above all place
+	// the character within the first four bytes, where the fixed-width Inf/NaN
+	// probes read; a coefficient long enough to clear them reaches the loop
+	// that walks digits one at a time, which is a separate read site.
+	{"12345678é", "non_ascii"},
+	{"1.2345678é", "non_ascii"},
+	// The rows above all start with a digit or sign, so they enter the numeric
+	// path. A leading letter takes the special-case branch instead, where the
+	// Inf/NaN probes run against the whole token -- a different set of probes
+	// reading the same offsets. The short forms put the character at offsets 1
+	// and 2 on that path, which the digit rows cover only on the numeric path.
+	{"aé", "non_ascii"},
+	{"aaé", "non_ascii"},
+	{"aaaé", "non_ascii"},
+	{"nané", "non_ascii"},
+	// U+0130 LATIN CAPITAL LETTER I WITH DOT ABOVE. Unicode simple case
+	// mapping lowers it to ASCII 'i', so a parser that folds with Unicode
+	// semantics reads this as "inf" and returns Infinity, while the pinned
+	// Intel C and its ASCII byte fold reject it. The row pins the ASCII fold.
+	{"İnf", "non_ascii"},
 }
 
 // bidCodecEncodeRejectVectors derives the encode-channel reject records from the

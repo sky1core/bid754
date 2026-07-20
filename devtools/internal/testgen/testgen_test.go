@@ -74,8 +74,8 @@ func TestBidCodecToStringRejectVectorsCloseSharedSchema(t *testing.T) {
 	}
 
 	wantCounts := map[string][2]int{
-		"go": {98, 0}, "java": {98, 0}, "python": {98, 0}, "js": {98, 0},
-		"rust": {93, 5}, "rust_full": {93, 5}, "swift": {93, 5},
+		"go": {124, 0}, "java": {124, 0}, "python": {124, 0}, "js": {124, 0},
+		"rust": {119, 5}, "rust_full": {119, 5}, "swift": {119, 5},
 	}
 	for lang, counts := range wantCounts {
 		consumed, skipped := bidCodecRejectExpectedCounts(lang)
@@ -158,8 +158,32 @@ func TestBidCodecGoFullExpectationTablesClosedWorld(t *testing.T) {
 	for _, r := range fromString {
 		classCounts[bidCodecGoFullFromStringClasses[*r.Input]]++
 	}
-	if classCounts["rejected"] != 24 || classCounts["rounded"] != 9 || classCounts["exact"] != 0 {
-		t.Fatalf("go_full from_string class partition = %v, want rejected=24 rounded=9 exact=0", classCounts)
+	if classCounts["rejected"] != 50 || classCounts["rounded"] != 9 || classCounts["exact"] != 0 {
+		t.Fatalf("go_full from_string class partition = %v, want rejected=50 rounded=9 exact=0", classCounts)
+	}
+
+	// The Rust public-parse consumer renders the same table. Rendering, not
+	// re-deriving, is the point: one table drives both public surfaces, so a
+	// row that reaches the Go runner must reach the Rust runner with the same
+	// class. Check the rendered form row-for-row so a renderer that dropped or
+	// reordered rows cannot pass on a matching count alone.
+	rendered := bidCodecRustFullParseFromStringClassElems()
+	renderedRows := 0
+	for _, line := range strings.Split(rendered, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		renderedRows++
+	}
+	if renderedRows != len(fromString) {
+		t.Fatalf("rust_full_parse rendered %d expectation rows, want %d", renderedRows, len(fromString))
+	}
+	for _, r := range fromString {
+		want := fmt.Sprintf("(%s, %s),", rustStringLiteral(*r.Input), rustStringLiteral(bidCodecGoFullFromStringClasses[*r.Input]))
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("rust_full_parse rendering is missing the row %s", want)
+		}
 	}
 
 	stringRecords := bidCodecGoFullStringVectorRecords()

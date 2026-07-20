@@ -248,8 +248,8 @@ def test_error_semantics():
     # generated reject_vectors domain (test_reject_vectors), not a hardcoded list.
 
 
-_REJECT_TOTAL = 98
-_REJECT_CONSUMED = 98
+_REJECT_TOTAL = 124
+_REJECT_CONSUMED = 124
 _REJECT_SKIPPED = 0
 _REJECT_CAPABILITIES = frozenset(["bignum_coefficient", "negative_coefficient", "negative_payload"])
 _REJECT_UNSUPPORTED = frozenset([])

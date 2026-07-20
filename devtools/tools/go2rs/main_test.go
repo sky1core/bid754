@@ -603,6 +603,9 @@ func TestConvertNilComparisons(t *testing.T) {
 
 func TestConvertMutableStringParam(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "string_param.go")
+	// The rebinding here is a whole-string assignment, not a slice: slicing a
+	// Go string is rejected outright (TestRejectGoStringSlicing), so a fixture
+	// that sliced would no longer reach the binding logic under test.
 	src := []byte(`package bidgo
 
 import "strings"
@@ -610,7 +613,7 @@ import "strings"
 func parse(s string) string {
     s = strings.TrimSpace(s)
     if s[0] == '+' {
-        s = s[1:]
+        s = strings.TrimSpace(s)
     }
     return s
 }
@@ -632,12 +635,174 @@ func parse(s string) string {
 	for _, required := range []string{
 		"let mut s = s.as_ref().to_string();",
 		"s.as_bytes()[0 as usize]",
-		"s = (&s[1 as usize..]).to_string();",
 		"return s;",
 	} {
 		if !strings.Contains(code, required) {
 			t.Fatalf("converted string-param code missing %q:\n%s", required, code)
 		}
+	}
+}
+
+// TestRejectGoStringSlicing pins the generation-time block on Go string
+// slicing. Go slices a string at any byte offset; the generated Rust cuts a
+// &str and panics when the cut lands inside a multi-byte character, so a sliced
+// probe on the public parse path traps on ordinary rejected input such as
+// "1234é" whenever its cut can land mid-character. No Go-side test can observe
+// that (Go never faults on the slice), so the block has to happen where the
+// Rust is produced.
+//
+// The block refuses the construct rather than trying to decide whether a
+// particular cut is reachable mid-character, because that depends on branches
+// elsewhere in the function.
+//
+// The []byte and array rows are the other half: the block admits exactly the
+// bases that have a Rust slice borrow, so it must leave byte slicing alone,
+// which is how the bid64/bid128 parse ports read their input.
+func TestRejectGoStringSlicing(t *testing.T) {
+	cases := []struct {
+		name     string
+		body     string
+		rejected bool
+	}{
+		{
+			name:     "string param open slice",
+			body:     "func probe(s string) string {\n    return s[1:]\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "string param prefix slice",
+			body:     "func probe(s string) string {\n    return s[:4]\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "string local slice",
+			body:     "func probe(s string) string {\n    t := s\n    return t[1:]\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "string self slice assignment",
+			body:     "func probe(s string) string {\n    s = s[1:]\n    return s\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "string slice inside call argument",
+			body:     "func probe(s string) int {\n    return len(s[1:])\n}\n",
+			rejected: true,
+		},
+		// An untyped string constant has types.Basic kind UntypedString, not
+		// String. A check that matched on kind let both of these through and
+		// emitted a &str cut; the fail-closed form refuses them because neither
+		// base is a slice or array.
+		{
+			name:     "untyped string constant slice",
+			body:     "const k = \"abcd\"\n\nfunc probe() string {\n    return k[1:]\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "string literal slice",
+			body:     "func probe() string {\n    return \"abcd\"[1:]\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "named string type slice",
+			body:     "type token string\n\nfunc probe(t token) token {\n    return t[1:]\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "three index string slice",
+			body:     "func probe(s string) string {\n    return s[1:2]\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "string slice inside closure",
+			body:     "func probe(s string) func() string {\n    return func() string { return s[1:] }\n}\n",
+			rejected: true,
+		},
+		{
+			name:     "byte slice param stays allowed",
+			body:     "func probe(b []byte) []byte {\n    return b[1:]\n}\n",
+			rejected: false,
+		},
+		{
+			name:     "three index byte slice stays allowed",
+			body:     "func probe(b []byte) []byte {\n    return b[1:2:2]\n}\n",
+			rejected: false,
+		},
+		{
+			name:     "named byte slice type stays allowed",
+			body:     "type buf []byte\n\nfunc probe(b buf) buf {\n    return b[1:]\n}\n",
+			rejected: false,
+		},
+		{
+			name:     "pointer to array stays allowed",
+			body:     "func probe(p *[8]byte) []byte {\n    return p[1:]\n}\n",
+			rejected: false,
+		},
+		{
+			name:     "byte array local stays allowed",
+			body:     "func probe() []byte {\n    var buf [8]byte\n    return buf[:4]\n}\n",
+			rejected: false,
+		},
+		{
+			name:     "string byte index stays allowed",
+			body:     "func probe(s string) byte {\n    return s[1]\n}\n",
+			rejected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "slice_probe.go")
+			if err := os.WriteFile(path, []byte("package bidgo\n\n"+tc.body), 0o644); err != nil {
+				t.Fatalf("WriteFile: %v", err)
+			}
+			reg := &Registry{
+				Types:     map[string]TypeDef{},
+				Constants: map[string]ConstDef{},
+				Tables:    map[string]TableDef{},
+				Functions: map[string]FuncDef{},
+			}
+			activeRegistry = reg
+			activeSourceFunctions = nil
+			code, err := convertFile(path, reg)
+			if !tc.rejected {
+				if err != nil {
+					t.Fatalf("convertFile rejected a non-string slice: %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("convertFile accepted a Go string slice; generated code:\n%s", code)
+			}
+			// The message must name the base and the reason, so a future reader
+			// of a failing build learns what to change rather than only that
+			// something was refused.
+			if !strings.Contains(err.Error(), "panics inside a multi-byte character") {
+				t.Fatalf("convertFile error = %q, want the string-slicing identity", err)
+			}
+			if !strings.Contains(err.Error(), "slice_probe.go:") {
+				t.Fatalf("convertFile error = %q, want a file:line location", err)
+			}
+		})
+	}
+}
+
+// TestRejectGoStringSlicingRequiresTypeInfo keeps the block from degrading into
+// a no-op. isGoStringExpr falls back to a parameter-name set when type info is
+// absent, and that fallback cannot see string locals, so a pass that ran
+// without the type checker would report a clean file it never checked.
+func TestRejectGoStringSlicingRequiresTypeInfo(t *testing.T) {
+	prevInfo := activeTypeInfo
+	activeTypeInfo = nil
+	defer func() { activeTypeInfo = prevInfo }()
+
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, "probe.go", "package bidgo\n", parser.ParseComments)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	if err := rejectGoStringSlicing(fset, f, "probe.go"); err == nil {
+		t.Fatal("rejectGoStringSlicing passed a file it could not type-check")
 	}
 }
 

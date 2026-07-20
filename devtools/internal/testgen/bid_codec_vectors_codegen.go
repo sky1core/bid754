@@ -17,6 +17,7 @@ const (
 	bidCodecVectorsGoLong64And128TestPath = "../bid754-codec-go/decimal64_128_long_test.go"
 	bidCodecVectorsRustTestPath           = "../bid754-rs/tests/bid_codec_vectors.rs"
 	bidCodecVectorsGoFullTestPath         = "../bid754-go/generated_bid_codec_vectors_test.go"
+	bidCodecVectorsRustFullParseTestPath  = "../bid754-rs/tests/bid_codec_parse_vectors.rs"
 	bidCodecVectorsStandaloneRustTestPath = "../bid754-codec-rs/tests/vectors.rs"
 	bidCodecVectorsJavaRunnerPath         = "../bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorRunner.java"
 	bidCodecVectorsJavaTestPath           = "../bid754-codec-java/src/test/java/io/github/sky1core/bidcodec/VectorTest.java"
@@ -107,11 +108,15 @@ func applyBidCodecConsumerTemplateReplacements(src string) string {
 		// channel against generator-owned expectation classes; the remaining
 		// reject channels are channel-skipped (no public Components surface).
 		"{{BID_CODEC_GO_FULL_FROM_STRING_CLASSES}}": bidCodecGoFullFromStringClassElems(),
-		"{{BID_CODEC_GO_FULL_STRING_CLASSES}}":      bidCodecGoFullStringClassElems(),
-		"{{BID_CODEC_PY_REJECT_TYPE_DOMAIN}}":       bidCodecPyTypeDomainElems(),
-		"{{BID_CODEC_JS_REJECT_TYPE_DOMAIN}}":       bidCodecJsTypeDomainElems(),
-		"{{BID_CODEC_PY_RAW_DECODE_REJECTS}}":       bidCodecPyRawDecodeRejectElems(),
-		"{{BID_CODEC_JS_RAW_DECODE_REJECTS}}":       bidCodecJsRawDecodeRejectElems(),
+		// rust_full_parse consumer: the same expectation rows rendered as Rust
+		// literals for the bid754-rs public parse surface. One table, two
+		// languages, so a Go/Rust public-parse divergence fails a gate.
+		"{{BID_CODEC_RUST_FULL_PARSE_FROM_STRING_CLASSES}}": bidCodecRustFullParseFromStringClassElems(),
+		"{{BID_CODEC_GO_FULL_STRING_CLASSES}}":              bidCodecGoFullStringClassElems(),
+		"{{BID_CODEC_PY_REJECT_TYPE_DOMAIN}}":               bidCodecPyTypeDomainElems(),
+		"{{BID_CODEC_JS_REJECT_TYPE_DOMAIN}}":               bidCodecJsTypeDomainElems(),
+		"{{BID_CODEC_PY_RAW_DECODE_REJECTS}}":               bidCodecPyRawDecodeRejectElems(),
+		"{{BID_CODEC_JS_RAW_DECODE_REJECTS}}":               bidCodecJsRawDecodeRejectElems(),
 	}
 	// go_full consumed/skipped pins are channel-derived, not capability-derived:
 	// the from_string channel is the consumed set, every other channel is the
@@ -1771,6 +1776,249 @@ func TestGoFullBidCodecStringVectors(t *testing.T) {
 			len(goFullStringVectorClasses), consumed)
 	}
 	t.Logf("go_full string_vectors: consumed=%d", consumed)
+}
+`)),
+		bidCodecVectorsRustFullParseTestPath: []byte(applyBidCodecConsumerTemplateReplacements(genmarker.Line("testgen") + `
+//! Additional (non-required) BID codec vector consumer: the bid754-rs full
+//! decimal library's PUBLIC parse surface (Decimal{32,64,128}::parse,
+//! ::parse_with_flags, ::parse_with_mode).
+//!
+//! This is the Rust analog of the ` + "`go_full`" + ` consumer, and it exists because no
+//! other consumer can see this surface. The ` + "`rust_full`" + ` runner next door
+//! re-verifies the embedded Components codec (bid754::bid_codec::from_string);
+//! the public Decimal parse path is generated from the Go mechanical port and
+//! shares none of that code, so a defect introduced by the Go-to-Rust lowering
+//! is invisible to every other leg.
+//!
+//! The failure mode that motivated the leg: Go slices a string at any byte
+//! offset and never faults, so a probe written as a slice passes every Go-side
+//! gate, while the generated Rust cuts a &str at the same offset and panics
+//! when the cut lands inside a multi-byte character. Ordinary rejected input
+//! such as "1234é" then traps on a public API path, which docs/SPEC.md forbids
+//! outright: unsupported input must fail through the language error mechanism,
+//! never by unwinding. Every call below therefore runs inside catch_unwind, so
+//! a panic is reported as a named failing row instead of aborting the process.
+//!
+//! Expectation classes are shared with the Go consumer (one generator table),
+//! so a class that differs between the two public surfaces fails here.
+//!
+//! Only the crate's public API is imported. That is a convention here, not a
+//! structural guarantee: bid_codec is exported as #[doc(hidden)] pub, so a
+//! future edit could reach it (the rust_full runner next door does exactly
+//! that, deliberately). Keep the import list above limited to the public
+//! Decimal surface, or this runner stops describing that surface.
+
+use std::panic::catch_unwind;
+
+use bid754::{Decimal128, Decimal32, Decimal64, RoundingMode};
+
+#[derive(serde::Deserialize)]
+struct RejectEntry {
+    channel: String,
+    #[serde(default)]
+    input: Option<String>,
+    reason: String,
+}
+
+#[derive(serde::Deserialize)]
+struct VectorFile {
+    format_version: i64,
+    reject_vectors: Vec<RejectEntry>,
+}
+
+const EXPECTED_FORMAT_VERSION: i64 = {{BID_CODEC_VECTOR_FORMAT_VERSION}};
+const EXPECTED_REJECT_TOTAL: usize = {{BID_CODEC_REJECT_TOTAL}};
+const EXPECTED_REJECT_CONSUMED: usize = {{BID_CODEC_GO_FULL_REJECT_CONSUMED}};
+const EXPECTED_REJECT_SKIPPED: usize = {{BID_CODEC_GO_FULL_REJECT_SKIPPED}};
+
+/// The public observation class of every reject_vectors from_string input,
+/// width-independent on this channel. Shared with the Go consumer's table.
+const FROM_STRING_CLASSES: &[(&str, &str)] = &[ {{BID_CODEC_RUST_FULL_PARSE_FROM_STRING_CLASSES}} ];
+
+fn class_of(input: &str) -> Option<&'static str> {
+    FROM_STRING_CLASSES
+        .iter()
+        .find(|(k, _)| *k == input)
+        .map(|(_, v)| *v)
+}
+
+fn load_vectors() -> VectorFile {
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../bid754-codec-vectors/vectors.json");
+    let data = std::fs::read_to_string(path)
+        .unwrap_or_else(|e| panic!("read BID codec vectors {path}: {e}"));
+    let file: VectorFile = serde_json::from_str(&data)
+        .unwrap_or_else(|e| panic!("parse BID codec vectors {path}: {e}"));
+    assert_eq!(
+        file.format_version, EXPECTED_FORMAT_VERSION,
+        "unsupported BID codec vectors format_version"
+    );
+    file
+}
+
+/// Runs one parse family under catch_unwind and folds a panic into the failure
+/// list. A panic here is the defect the leg exists to catch, so it must be
+/// reported with the input that caused it rather than aborting the run.
+fn guard<T>(failures: &mut Vec<String>, label: &str, input: &str, family: &str, call: impl FnOnce() -> T + std::panic::UnwindSafe) -> Option<T> {
+    match catch_unwind(call) {
+        Ok(v) => Some(v),
+        Err(_) => {
+            failures.push(format!(
+                "{label} {input:?}: {family} PANICKED; unsupported input must fail through the error type, never by unwinding"
+            ));
+            None
+        }
+    }
+}
+
+// $bits names the width's raw-pattern accessor: Decimal32/Decimal64 expose
+// to_bits(), Decimal128 exposes to_le_bytes() (there is no u128 bits form), so
+// the comparison accessor is a macro parameter rather than a fixed method.
+macro_rules! assert_class {
+    ($ty:ty, $bits:ident, $failures:expr, $label:expr, $input:expr, $class:expr) => {{
+        let failures: &mut Vec<String> = $failures;
+        let label: &str = $label;
+        let input: &str = $input;
+        let class: &str = $class;
+        let width = stringify!($ty);
+
+        let direct = guard(failures, label, input, &format!("{width}::parse"), || <$ty>::parse(input));
+        let with_flags = guard(failures, label, input, &format!("{width}::parse_with_flags"), || {
+            <$ty>::parse_with_flags(input)
+        });
+        let with_mode = guard(failures, label, input, &format!("{width}::parse_with_mode"), || {
+            <$ty>::parse_with_mode(input, RoundingMode::NearestEven)
+        });
+
+        if let (Some(direct), Some(with_flags), Some(with_mode)) = (direct, with_flags, with_mode) {
+            // The explicit-mode family must agree with the default-mode family
+            // at the IEEE default rounding, independent of class.
+            match (&with_flags, &with_mode) {
+                (Ok((wv, wf)), Ok((mv, mf))) => {
+                    if wv.$bits() != mv.$bits() || wf.bits() != mf.bits() {
+                        failures.push(format!(
+                            "{label} {input:?} {width}: parse_with_mode(NearestEven) = ({:x?}, {:?}) disagrees with parse_with_flags = ({:x?}, {:?})",
+                            mv.$bits(), mf.bits(), wv.$bits(), wf.bits()
+                        ));
+                    }
+                }
+                (Err(_), Err(_)) => {}
+                _ => failures.push(format!(
+                    "{label} {input:?} {width}: parse_with_flags and parse_with_mode disagree on success"
+                )),
+            }
+
+            match class {
+                // No from_string reject row is "exact" today, and the generator
+                // test pins that count at zero, so this arm is unreachable from
+                // the current corpus. It is kept because the class set is
+                // shared with the Go consumer, where the string_vectors channel
+                // does use it: a shared table with a missing arm here would be
+                // a silent asymmetry the moment a row moved channels.
+                "exact" => {
+                    match (&direct, &with_flags) {
+                        (Ok(d), Ok((w, f))) => {
+                            if f.bits() != 0 {
+                                failures.push(format!(
+                                    "{label} {input:?} {width}: want exact with zero flags, got flags {:?}", f.bits()
+                                ));
+                            }
+                            if d.$bits() != w.$bits() {
+                                failures.push(format!(
+                                    "{label} {input:?} {width}: parse and parse_with_flags disagree on bits"
+                                ));
+                            }
+                        }
+                        _ => failures.push(format!(
+                            "{label} {input:?} {width}: want exact success from both families"
+                        )),
+                    }
+                }
+                "rounded" => {
+                    if direct.is_ok() {
+                        failures.push(format!(
+                            "{label} {input:?} {width}: want parse reject on the exact-only contract, got success"
+                        ));
+                    }
+                    match &with_flags {
+                        Ok((_, f)) if f.bits() != 0 => {}
+                        Ok((_, f)) => failures.push(format!(
+                            "{label} {input:?} {width}: want parse_with_flags to report the excursion, got flags {:?}", f.bits()
+                        )),
+                        Err(e) => failures.push(format!(
+                            "{label} {input:?} {width}: want parse_with_flags success with flags, got error {e:?}"
+                        )),
+                    }
+                }
+                "rejected" => {
+                    if direct.is_ok() {
+                        failures.push(format!(
+                            "{label} {input:?} {width}: want parse reject, got success"
+                        ));
+                    }
+                    if with_flags.is_ok() {
+                        failures.push(format!(
+                            "{label} {input:?} {width}: want parse_with_flags reject, got success"
+                        ));
+                    }
+                }
+                other => panic!("{label} {input:?} {width}: unknown class {other:?}"),
+            }
+        }
+    }};
+}
+
+#[test]
+fn test_rust_full_parse_reject_vectors() {
+    let file = load_vectors();
+    assert_eq!(
+        file.reject_vectors.len(),
+        EXPECTED_REJECT_TOTAL,
+        "reject_vectors total changed"
+    );
+
+    let mut failures: Vec<String> = Vec::new();
+    let mut consumed = 0usize;
+    let mut skipped = 0usize;
+
+    for r in &file.reject_vectors {
+        match r.channel.as_str() {
+            "from_string" => {
+                consumed += 1;
+                let input = r
+                    .input
+                    .as_deref()
+                    .unwrap_or_else(|| panic!("from_string reject record without an input field"));
+                let class = class_of(input).unwrap_or_else(|| {
+                    panic!("reject from_string input {input:?} ({}) has no expectation class", r.reason)
+                });
+                let label = format!("reject from_string ({})", r.reason);
+                assert_class!(Decimal32, to_bits, &mut failures, &label, input, class);
+                assert_class!(Decimal64, to_bits, &mut failures, &label, input, class);
+                assert_class!(Decimal128, to_le_bytes, &mut failures, &label, input, class);
+            }
+            // Channel skip: these channels address a Components construction
+            // surface, which the public Decimal API does not expose.
+            "encode" | "to_string" => skipped += 1,
+            other => panic!("unknown reject channel {other:?}"),
+        }
+    }
+
+    assert_eq!(consumed, EXPECTED_REJECT_CONSUMED, "consumed count changed");
+    assert_eq!(skipped, EXPECTED_REJECT_SKIPPED, "channel-skipped count changed");
+    assert_eq!(
+        FROM_STRING_CLASSES.len(),
+        consumed,
+        "expectation table has stale or missing entries"
+    );
+
+    assert!(
+        failures.is_empty(),
+        "rust_full_parse reject_vectors failures ({}):\n{}",
+        failures.len(),
+        failures.join("\n")
+    );
+
+    eprintln!("rust_full_parse reject_vectors: consumed={consumed} channel_skipped={skipped}");
 }
 `)),
 	}
