@@ -3,16 +3,20 @@
 Comparative benchmarks of `bid754-go` against
 [shopspring/decimal](https://github.com/shopspring/decimal) (pinned v1.4.0),
 the most widely used Go decimal library, over parse, to-string, parts
-encode/decode, and the add/mul/div arithmetic core.
+encode/decode, and the add/mul/div arithmetic core, at every product width:
+Decimal32, Decimal64, and Decimal128.
 
 This is benchmark infrastructure, not a verification domain. The two
 libraries implement different arithmetic models, so every row compares cost
 on a shared operand set, never result equality:
 
-- `bid754-go` is fixed-width IEEE 754-2019 Decimal64 (16 significant digits,
-  rounding modes, status flags); `shopspring/decimal` is arbitrary-precision
-  over `big.Int`.
-- Operand literals are exactly representable in both.
+- `bid754-go` is fixed-width IEEE 754-2019 Decimal32/64/128 (7/16/34
+  significant digits, rounding modes, status flags); `shopspring/decimal`
+  is arbitrary-precision over `big.Int`.
+- Each width's operand literals are exactly representable at that BID
+  width (7/16/28 significant digits) and in shopspring; the Decimal128 list
+  is capped at 28 significant digits so the identical list also stays exact
+  in the Rust module's rust_decimal counterpart.
 - Division rows compare cost only: the division rules differ by design.
 - shopspring stores (coefficient, exponent) natively, so its parts accessors
   are near-free by construction, while the BID side decodes the interchange

@@ -3,16 +3,23 @@
 Comparative benchmarks of `bid754-rs` against
 [rust_decimal](https://crates.io/crates/rust_decimal) (pinned 1.42.1), the
 most widely used Rust decimal crate, over parse, to-string, parts
-encode/decode, and the add/mul/div arithmetic core.
+encode/decode, and the add/mul/div arithmetic core, at every product width:
+Decimal32, Decimal64, and Decimal128.
 
 This is benchmark infrastructure, not a verification domain. The two crates
 implement different arithmetic models, so every row compares cost on a
 shared operand set, never result equality:
 
-- `bid754` is fixed-width IEEE 754-2019 Decimal64 (16 significant digits,
-  rounding modes, status flags); `rust_decimal` is a 96-bit binary mantissa
-  with a decimal scale of 0..=28 and no IEEE status/rounding surface.
-- Operand literals are exactly representable in both.
+- `bid754` is fixed-width IEEE 754-2019 Decimal32/64/128 (7/16/34
+  significant digits, rounding modes, status flags); `rust_decimal` is a
+  96-bit binary mantissa with a decimal scale of 0..=28 and no IEEE
+  status/rounding surface.
+- Each width's operand literals are exactly representable at that BID
+  width and in rust_decimal: the Decimal128 list is capped at 28
+  significant digits with value magnitudes in [1e-8, 1e12], because
+  rust_decimal cannot represent the wider Decimal128 range and its
+  operators panic on overflow (the operand-contract test checks every
+  benchmark pair with checked add/mul/div).
 - Division rows compare cost only: the division rules differ by design.
 - rust_decimal stores (mantissa, scale) natively, so its parts accessors are
   near-free by construction, while the BID side decodes the interchange
