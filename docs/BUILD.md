@@ -380,12 +380,14 @@ comparison is an independent value anchor for hand-ported tables; for the
 c-tablegen-owned `tables_binarydecimal.go`, it is a closed-world value census,
 while `make verify-generated` supplies byte reproducibility.
 
-`devtools/verification_sentinels.json` adds two independent hand-maintained
-pin families. The Tier 1 routing arrays bind the long runners' glue (operand
-slots, rounding-mode wiring, dispatch-row labels) to expected results computed
-at generation time through the public `bid754-go` API. `devtools` requires no
-public module, so the routing-sentinel codegen reaches that API through the
-pin-time oracle subprocess: it runs `go run ./internal/cmd/sentineloracle`
+`devtools/verification_sentinels.json` adds independent hand-maintained pin
+families of two kinds. The routing-sentinel arrays — the Tier 1 long runners,
+the decNumber differential runners, the D32 exhaustive runners, and the
+mixed-format FFI rows — bind their runners' glue (operand slots, rounding-mode
+wiring, dispatch-row labels, operation/mode lane selection) to expected results
+computed at generation time through the public `bid754-go` API. `devtools`
+requires no public module, so the routing-sentinel codegens reach that API
+through the pin-time oracle subprocess: it runs `go run ./internal/cmd/sentineloracle`
 inside the sibling `bid754-go` module directory (a filesystem relationship,
 not a module dependency) and receives each expected result over a line
 protocol. Generation fails explicitly when the oracle is unavailable.

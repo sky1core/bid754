@@ -162,15 +162,15 @@ grammar-edge normalizations (surrounding ASCII whitespace trim, empty
 integer/fraction sides, leading-zero collapse, NaN payload leading-zero
 normalization, case-insensitive special tokens). Rows are capability-ungated
 pure ASCII string pairs: every consumer (the six required languages plus the
-`bid754-rs` full-library consumer) consumes every row and reports the consumed
-count. Totals are pinned in `devtools/verification_anchors.json` outside the
+`bid754-rs` and `bid754-go` full-library consumers) consumes every row and
+reports the consumed count. Totals are pinned in `devtools/verification_anchors.json` outside the
 generation path.
 
 The closure leg on every row pins that `parse(render(x))` is total: the fuzzer
 found that `fromString("10E2147483647")` succeeded while its rendering
 `"+1.0E+2147483648"` (adjusted exponent int32 max + 1) was rejected by the
 parser's own old literal-must-fit-int32 rule, identically in all seven
-consumers. The exponent rule is final-value-based exactly so that every
+consumers of the time. The exponent rule is final-value-based exactly so that every
 rendered adjusted-exponent literal (at most int32 max + 33, far below the
 shared `2^53` literal bound) reparses to the same `Components`.
 
