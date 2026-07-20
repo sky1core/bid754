@@ -116,19 +116,35 @@ func TestNativeReadtestEvidenceRejectsImpossibleAnchors(t *testing.T) {
 }
 
 func TestNativeFFIEvidencePinsCompactLifecycleCounts(t *testing.T) {
-	required, err := nativeFFIEvidence(anchors{FFIBitcompareCasesTotal: 10})
+	path := filepath.Join(t.TempDir(), "verification_sentinels.json")
+	pin := `{"mixed_format_ffi_routing_sentinel_rows": ["row a", "row b"]}`
+	if err := os.WriteFile(path, []byte(pin), 0o644); err != nil {
+		t.Fatalf("write sentinel pin fixture: %v", err)
+	}
+	required, err := nativeFFIEvidence(anchors{FFIBitcompareCasesTotal: 10}, path)
 	if err != nil {
 		t.Fatalf("nativeFFIEvidence: %v", err)
 	}
 	log := strings.Split(
 		"--- PASS: TestGeneratedFFIBitCompareSubset (1.00s)\n"+
-			"testlogcompact: suppressed 20 subtest lifecycle lines (run=10 pass=10 skip=0) for TestGeneratedFFIBitCompareSubset\n",
+			"testlogcompact: suppressed 20 subtest lifecycle lines (run=10 pass=10 skip=0) for TestGeneratedFFIBitCompareSubset\n"+
+			"--- PASS: TestGeneratedMixedFormatFFIRoutingSentinels (0.01s)\n"+
+			"    x_test.go:1: mixed-format FFI routing sentinels: 2/2\n",
 		"\n",
 	)
 	if missing := missingEvidence(log, required); len(missing) != 0 {
 		t.Fatalf("valid compact native FFI evidence missing=%v", missing)
 	}
-	if _, err := nativeFFIEvidence(anchors{}); err == nil {
+	// Dropping the mixed-format routing sentinel evidence must fail the gate.
+	withoutSentinel := strings.Split(
+		"--- PASS: TestGeneratedFFIBitCompareSubset (1.00s)\n"+
+			"testlogcompact: suppressed 20 subtest lifecycle lines (run=10 pass=10 skip=0) for TestGeneratedFFIBitCompareSubset\n",
+		"\n",
+	)
+	if missing := missingEvidence(withoutSentinel, required); len(missing) != 2 {
+		t.Fatalf("native FFI evidence did not require the mixed-format routing sentinel PASS and count line: missing=%v", missing)
+	}
+	if _, err := nativeFFIEvidence(anchors{}, path); err == nil {
 		t.Fatal("nativeFFIEvidence accepted a zero FFI case anchor")
 	}
 }

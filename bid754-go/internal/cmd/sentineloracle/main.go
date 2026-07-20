@@ -17,6 +17,7 @@
 //
 //	str <width> <value>                       -> ok <decimal string>
 //	rounded <width> <op> <mode> <x> <y>       -> ok <bits>/<rawflags>
+//	mixed <function> <mode> <x> <y>           -> ok <bits>/<rawflags>
 //	unrounded <width> <op> <x> <y>            -> ok <bits>/<rawflags>
 //	fma <width> <mode> <x> <y> <z>            -> ok <bits>/<rawflags>
 //	sqrt <width> <mode> <x>                   -> ok <bits>/<rawflags>
@@ -286,6 +287,15 @@ func evalRequest(line string) (string, error) {
 			return "", err
 		}
 		return evalRounded(width, fields[2], x, y, mode)
+	case "mixed":
+		if err := requireFields(fields, 4); err != nil {
+			return "", err
+		}
+		mode, err := parseMode(fields[2])
+		if err != nil {
+			return "", err
+		}
+		return evalMixed(fields[1], fields[3], fields[4], mode)
 	case "unrounded":
 		if err := requireFields(fields, 4); err != nil {
 			return "", err
@@ -613,6 +623,58 @@ func evalRounded(width int, op string, x, y oracleValue, mode bid754.RoundingMod
 		return result128(value, flags)
 	default:
 		return "", fmt.Errorf("unsupported tier1 sentinel width %d", width)
+	}
+}
+
+// mixedRoutingSentinelOperandWidth returns the operand width for one supported
+// mixed-format routing-sentinel function. Only the four equal-width
+// non-commutative CORE functions are wired (bid64qq_sub/div read two
+// Decimal128 operands, bid128dd_sub/div read two Decimal64 operands); any
+// other function fails the request and, with it, the generation run — never a
+// silent fallback.
+func mixedRoutingSentinelOperandWidth(function string) (int, error) {
+	switch function {
+	case "bid64qq_sub", "bid64qq_div":
+		return 128, nil
+	case "bid128dd_sub", "bid128dd_div":
+		return 64, nil
+	default:
+		return 0, fmt.Errorf("unsupported mixed routing-sentinel function %q", function)
+	}
+}
+
+// evalMixed answers `mixed <function> <mode> <x> <y>` through the public mixed
+// bid754-go API (the publicroute gate proves that surface routes through the
+// Go mechanical port). Operands are decoded at the function's operand width;
+// bid64qq results are Decimal64, bid128dd results are Decimal128.
+func evalMixed(function, xText, yText string, mode bid754.RoundingMode) (string, error) {
+	operandWidth, err := mixedRoutingSentinelOperandWidth(function)
+	if err != nil {
+		return "", err
+	}
+	x, err := parseValue(operandWidth, xText)
+	if err != nil {
+		return "", err
+	}
+	y, err := parseValue(operandWidth, yText)
+	if err != nil {
+		return "", err
+	}
+	switch function {
+	case "bid64qq_sub":
+		value, flags := bid754.Sub64QQBIDWithMode(decimal128(x), decimal128(y), mode)
+		return result64(value, flags)
+	case "bid64qq_div":
+		value, flags := bid754.Div64QQBIDWithMode(decimal128(x), decimal128(y), mode)
+		return result64(value, flags)
+	case "bid128dd_sub":
+		value, flags := bid754.Sub128DDBIDWithMode(bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo), mode)
+		return result128(value, flags)
+	case "bid128dd_div":
+		value, flags := bid754.Div128DDBIDWithMode(bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo), mode)
+		return result128(value, flags)
+	default:
+		return "", fmt.Errorf("unsupported mixed routing-sentinel function %q", function)
 	}
 }
 

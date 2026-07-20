@@ -178,6 +178,7 @@ type verificationSentinels struct {
 	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
 	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
 	MixedFMAFusednessRows             []string `json:"mixed_fma_fusedness_rows"`
+	MixedFormatFFIRoutingRows         []string `json:"mixed_format_ffi_routing_sentinel_rows"`
 	DecnumberDifferentialRows         []string `json:"decnumber_differential_sentinel_rows"`
 	D32ExhaustiveRows                 []string `json:"d32_exhaustive_sentinel_rows"`
 }
@@ -240,6 +241,36 @@ func loadGeneratedGoStringSliceLiteral(t *testing.T, path, varName string) []str
 	}
 	t.Fatalf("generated %s: string-slice literal %s not found", path, varName)
 	return nil
+}
+
+// loadGeneratedGoUintConstant extracts one `const <name> = uint64(<n>)` value
+// from a generated Go artifact so a count constant can be bound to the literal
+// length outside the native runtime path.
+func loadGeneratedGoUintConstant(t *testing.T, path, name string) uint64 {
+	t.Helper()
+	file, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+	if err != nil {
+		t.Fatalf("parse generated artifact %s: %v", path, err)
+	}
+	for _, decl := range file.Decls {
+		gen, ok := decl.(*ast.GenDecl)
+		if !ok || gen.Tok != token.CONST {
+			continue
+		}
+		for _, spec := range gen.Specs {
+			values, ok := spec.(*ast.ValueSpec)
+			if !ok || len(values.Names) != 1 || values.Names[0].Name != name || len(values.Values) != 1 {
+				continue
+			}
+			value, err := evalGeneratedUintConstant(values.Values[0], map[string]uint64{})
+			if err != nil {
+				t.Fatalf("generated %s: constant %s: %v", path, name, err)
+			}
+			return value
+		}
+	}
+	t.Fatalf("generated %s: uint64 constant %s not found", path, name)
+	return 0
 }
 
 var rustRoutingSentinelRowRe = regexp.MustCompile(`^\s*"([ -~]+)",$`)
@@ -1095,6 +1126,28 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		t.Errorf("generated Rust mixed FMA fusedness rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
 			len(rustFusednessRows), len(sentinels.MixedFMAFusednessRows),
 			firstSentinelRowDivergence(rustFusednessRows, sentinels.MixedFMAFusednessRows))
+	}
+	// Mixed-format FFI operand-swap routing sentinels are a Go-only native
+	// differential domain (no Rust FFI leg exists), so — like the decNumber
+	// differential sentinel — only the generated Go literal is bound. The
+	// generated row count constant is bound to the literal length here so the
+	// count cannot drift outside the native runtime replay.
+	if len(sentinels.MixedFormatFFIRoutingRows) == 0 {
+		t.Errorf("verification_sentinels.json pins no mixed-format FFI routing sentinel rows")
+	}
+	goMixedFFIRoutingRows := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_ffi_bitcompare_native_test.go"),
+		"mixedFormatFFIRoutingSentinelRows")
+	if !reflect.DeepEqual(goMixedFFIRoutingRows, sentinels.MixedFormatFFIRoutingRows) {
+		t.Errorf("generated Go mixed-format FFI routing sentinel rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(goMixedFFIRoutingRows), len(sentinels.MixedFormatFFIRoutingRows),
+			firstSentinelRowDivergence(goMixedFFIRoutingRows, sentinels.MixedFormatFFIRoutingRows))
+	}
+	mixedFFIRoutingRowCount := loadGeneratedGoUintConstant(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_ffi_bitcompare_native_test.go"),
+		"mixedFormatFFIRoutingSentinelRowCount")
+	if got := uint64(len(goMixedFFIRoutingRows)); got != mixedFFIRoutingRowCount {
+		t.Errorf("generated mixed-format FFI routing sentinel row literal count %d diverges from the generated constant %d", got, mixedFFIRoutingRowCount)
 	}
 	if len(sentinels.Tier1ArithmeticRoutingRows) == 0 {
 		t.Errorf("verification_sentinels.json pins no Tier 1 arithmetic routing sentinel rows")

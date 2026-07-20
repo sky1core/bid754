@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -1137,4 +1138,211 @@ func loadGeneratedFFISpecForTest(t *testing.T) testspec.SharedSpec {
 		t.Fatalf("load shared spec: %v", err)
 	}
 	return spec
+}
+
+// mixedFormatFFIRoutingSentinelRows are hand-pinned known-answer rows for the
+// four equal-width non-commutative CORE mixed-format functions. The
+// mixed-format FFI differential reads both legs from the same operand slots, so
+// an operand-slot swap (x<->y) applied identically to both legs' shared
+// dispatch passes the differential (C == port on an agreed wrong answer) while
+// the result is op(y,x) instead of op(x,y). Each row replays through the SAME
+// runGeneratedFFICase dispatch and requires pinned == C == port, so a
+// common-mode swap or rounding-mode miswire in that shared dispatch diverges
+// from the frozen pin. The pins are byte-equal with
+// verification_sentinels.json (TestVerificationAnchorsMatchGeneratedArtifacts).
+var mixedFormatFFIRoutingSentinelRows = []string{
+	"bid64qq_sub x=3040000000000000:0000000000000007 y=3040000000000000:0000000000000003 m=0 -> 31c0000000000004/00000000",
+	"bid64qq_sub x=3040000000000000:0000000000000007 y=3040000000000000:0000000000000003 m=1 -> 31c0000000000004/00000000",
+	"bid64qq_sub x=3040000000000000:0000000000000001 y=3018000000000000:0000000000000001 m=0 -> 2fe38d7ea4c68000/00000020",
+	"bid64qq_sub x=3040000000000000:0000000000000001 y=3018000000000000:0000000000000001 m=1 -> 6bf386f26fc0ffff/00000020",
+	"bid64qq_sub x=3040000000000000:0000000000000001 y=3018000000000000:0000000000000001 m=3 -> 6bf386f26fc0ffff/00000020",
+	"bid64qq_div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=0 -> 2fcbd7a625405555/00000020",
+	"bid64qq_div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=2 -> 2fcbd7a625405556/00000020",
+	"bid64qq_div x=3040000000000000:0000000000000001 y=3040000000000000:0000000000000003 m=3 -> 2fcbd7a625405555/00000020",
+	"bid64qq_div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000007 m=0 -> 2fca268e69129249/00000020",
+	"bid64qq_div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000007 m=2 -> 2fca268e6912924a/00000020",
+	"bid64qq_div x=3040000000000000:0000000000000002 y=3040000000000000:0000000000000007 m=3 -> 2fca268e69129249/00000020",
+	"bid128dd_sub x=31c0000000000007 y=31c0000000000003 m=0 -> 3040000000000000:0000000000000004/00000000",
+	"bid128dd_sub x=31c0000000000007 y=31c0000000000003 m=1 -> 3040000000000000:0000000000000004/00000000",
+	"bid128dd_sub x=31c0000000000003 y=31c0000000000008 m=0 -> b040000000000000:0000000000000005/00000000",
+	"bid128dd_sub x=31c0000000000003 y=31c0000000000008 m=2 -> b040000000000000:0000000000000005/00000000",
+	"bid128dd_div x=31c0000000000001 y=31c0000000000003 m=0 -> 2ffca45894e48295:67d9da2155555555/00000020",
+	"bid128dd_div x=31c0000000000001 y=31c0000000000003 m=2 -> 2ffca45894e48295:67d9da2155555556/00000020",
+	"bid128dd_div x=31c0000000000001 y=31c0000000000003 m=3 -> 2ffca45894e48295:67d9da2155555555/00000020",
+	"bid128dd_div x=31c0000000000002 y=31c0000000000007 m=0 -> 2ffc8cde367ab912:5903df8a49249249/00000020",
+	"bid128dd_div x=31c0000000000002 y=31c0000000000007 m=2 -> 2ffc8cde367ab912:5903df8a4924924a/00000020",
+	"bid128dd_div x=31c0000000000002 y=31c0000000000007 m=3 -> 2ffc8cde367ab912:5903df8a49249249/00000020",
+}
+
+const mixedFormatFFIRoutingSentinelRowCount = uint64(21)
+
+// mixedFormatFFIRoutingSentinelShape resolves one CORE function's mixed shape,
+// rejecting any function outside the four-function equal-width non-commutative
+// set so the sentinel cannot silently drift onto a commutative or cross-width
+// family that a swap could not witness.
+func mixedFormatFFIRoutingSentinelShape(function string) (generatedFFIMixedDecimalShape, error) {
+	switch function {
+	case "bid64qq_sub", "bid64qq_div", "bid128dd_sub", "bid128dd_div":
+	default:
+		return generatedFFIMixedDecimalShape{}, fmt.Errorf("function %q is outside the mixed-format routing sentinel CORE set", function)
+	}
+	shape, ok := generatedFFIMixedDecimalShapeFor(function)
+	if !ok {
+		return generatedFFIMixedDecimalShape{}, fmt.Errorf("mixed decimal shape for %q not found", function)
+	}
+	if len(shape.operandBits) != 2 {
+		return generatedFFIMixedDecimalShape{}, fmt.Errorf("CORE function %q must be binary, got %d operands", function, len(shape.operandBits))
+	}
+	return shape, nil
+}
+
+// mixedFormatFFIRoutingSentinelParseRow splits one pinned row:
+//
+//	<function> x=<xtext> y=<ytext> m=<mode> -> <result>/<flags>
+func mixedFormatFFIRoutingSentinelParseRow(row string) (function, xText, yText string, mode int, expected string, err error) {
+	fields := strings.Fields(row)
+	if len(fields) != 6 || fields[4] != "->" {
+		return "", "", "", 0, "", fmt.Errorf("row %q is not <function> x=.. y=.. m=.. -> <result>/<flags>", row)
+	}
+	function = fields[0]
+	var ok bool
+	if xText, ok = strings.CutPrefix(fields[1], "x="); !ok {
+		return "", "", "", 0, "", fmt.Errorf("row %q operand 1 is not x=<value>", row)
+	}
+	if yText, ok = strings.CutPrefix(fields[2], "y="); !ok {
+		return "", "", "", 0, "", fmt.Errorf("row %q operand 2 is not y=<value>", row)
+	}
+	modeText, ok := strings.CutPrefix(fields[3], "m=")
+	if !ok {
+		return "", "", "", 0, "", fmt.Errorf("row %q is missing m=<mode>", row)
+	}
+	mode, err = strconv.Atoi(modeText)
+	if err != nil {
+		return "", "", "", 0, "", fmt.Errorf("row %q mode %q: %w", row, modeText, err)
+	}
+	expected = fields[5]
+	return function, xText, yText, mode, expected, nil
+}
+
+// mixedFormatFFIRoutingSentinelWideOperand converts one human-auditable
+// 128-bit "hi:lo" operand into the little-endian 16-byte hex image the mixed
+// decimal parse (parseFFIUint128Bits) consumes. Wrong conversion is a
+// false-fail (safe direction).
+func mixedFormatFFIRoutingSentinelWideOperand(hilo string) (string, error) {
+	hiText, loText, ok := strings.Cut(hilo, ":")
+	if !ok {
+		return "", fmt.Errorf("128-bit operand %q is not <hi>:<lo>", hilo)
+	}
+	if len(hiText) != 16 || len(loText) != 16 {
+		return "", fmt.Errorf("128-bit operand %q words must be 16 hex digits each", hilo)
+	}
+	hi, err := strconv.ParseUint(hiText, 16, 64)
+	if err != nil {
+		return "", fmt.Errorf("128-bit operand hi %q: %w", hiText, err)
+	}
+	lo, err := strconv.ParseUint(loText, 16, 64)
+	if err != nil {
+		return "", fmt.Errorf("128-bit operand lo %q: %w", loText, err)
+	}
+	var raw [16]byte
+	for i := 0; i < 8; i++ {
+		raw[i] = byte(lo >> (8 * i))
+		raw[8+i] = byte(hi >> (8 * i))
+	}
+	return hex.EncodeToString(raw[:]), nil
+}
+
+// mixedFormatFFIRoutingSentinelCanon128 rewrites a 128-bit result leg from the
+// runner-internal little-endian image ("<32-hex>/<flags>") into the
+// human-auditable "hi:lo/<flags>" pin form, so the runner output can be
+// compared byte-for-byte against the frozen row.
+func mixedFormatFFIRoutingSentinelCanon128(row, leg, ffi string) (string, error) {
+	if len(ffi) < 34 || ffi[32] != '/' {
+		return "", fmt.Errorf("mixed-format routing sentinel row [%s]: unexpected %s 128-bit result %q", row, leg, ffi)
+	}
+	raw, err := hex.DecodeString(ffi[:32])
+	if err != nil {
+		return "", fmt.Errorf("mixed-format routing sentinel row [%s]: undecodable %s 128-bit result %q: %w", row, leg, ffi, err)
+	}
+	var lo, hi uint64
+	for i := 0; i < 8; i++ {
+		lo |= uint64(raw[i]) << (8 * i)
+		hi |= uint64(raw[8+i]) << (8 * i)
+	}
+	return fmt.Sprintf("%016x:%016x/%s", hi, lo, ffi[33:]), nil
+}
+
+// TestGeneratedMixedFormatFFIRoutingSentinels replays each pinned row through
+// the same runGeneratedFFICase parse+dispatch the mixed-format differential
+// uses, requiring both the Intel C and Go-port legs to reproduce the frozen
+// (bits, flags). An operand-slot swap or rounding-mode miswire in that shared
+// dispatch skews both legs identically — the differential still passes — but
+// both legs then diverge from the frozen op(x,y) pin (false-fail direction,
+// never false-pass).
+func TestGeneratedMixedFormatFFIRoutingSentinels(t *testing.T) {
+	requireNative(t)
+	if testing.Short() {
+		t.Skip("mixed-format FFI routing sentinels require non-short native run; use make test-native-ffi")
+	}
+	if uint64(len(mixedFormatFFIRoutingSentinelRows)) != mixedFormatFFIRoutingSentinelRowCount {
+		t.Fatalf("mixed-format FFI routing sentinel row literal count %d diverges from the generated constant %d", len(mixedFormatFFIRoutingSentinelRows), mixedFormatFFIRoutingSentinelRowCount)
+	}
+	if mixedFormatFFIRoutingSentinelRowCount == 0 {
+		t.Fatal("mixed-format FFI routing sentinels pin zero rows; an empty gate would be a green no-op")
+	}
+	executed := uint64(0)
+	for _, row := range mixedFormatFFIRoutingSentinelRows {
+		function, xText, yText, mode, expected, err := mixedFormatFFIRoutingSentinelParseRow(row)
+		if err != nil {
+			t.Fatalf("parse mixed-format FFI routing sentinel row: %v", err)
+		}
+		shape, err := mixedFormatFFIRoutingSentinelShape(function)
+		if err != nil {
+			t.Fatalf("mixed-format FFI routing sentinel row [%s]: %v", row, err)
+		}
+		operands := make([]string, 2)
+		for i, operandText := range []string{xText, yText} {
+			switch shape.operandBits[i] {
+			case 64:
+				operands[i] = operandText
+			case 128:
+				wide, err := mixedFormatFFIRoutingSentinelWideOperand(operandText)
+				if err != nil {
+					t.Fatalf("mixed-format FFI routing sentinel row [%s]: %v", row, err)
+				}
+				operands[i] = wide
+			default:
+				t.Fatalf("mixed-format FFI routing sentinel row [%s]: operand %d has unsupported width %d", row, i, shape.operandBits[i])
+			}
+		}
+		generated := generatedFFICase{
+			Function:    function,
+			Format:      shape.format,
+			Operation:   shape.operation,
+			ResultBits:  shape.resultBits,
+			OperandBits: shape.operandBits,
+			Rounding:    mode,
+			Operands:    operands,
+		}
+		gotNative, gotExposed, err := runGeneratedFFICase(generated)
+		if err != nil {
+			t.Fatalf("mixed-format FFI routing sentinel row [%s]: runGeneratedFFICase: %v", row, err)
+		}
+		if shape.resultBits == 128 {
+			if gotNative, err = mixedFormatFFIRoutingSentinelCanon128(row, "C", gotNative); err != nil {
+				t.Fatal(err)
+			}
+			if gotExposed, err = mixedFormatFFIRoutingSentinelCanon128(row, "port", gotExposed); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if gotNative != expected || gotExposed != expected {
+			t.Fatalf("mixed-format FFI routing sentinel mismatch [%s]:\n  pinned=%s C=%s port=%s\n  (a common-mode operand-slot swap or rounding-mode miswire in the shared dispatch skews both legs but diverges from the frozen pin)", row, expected, gotNative, gotExposed)
+		}
+		executed++
+	}
+	if executed != mixedFormatFFIRoutingSentinelRowCount {
+		t.Fatalf("executed %d mixed-format FFI routing sentinel rows, want %d", executed, mixedFormatFFIRoutingSentinelRowCount)
+	}
+	t.Logf("mixed-format FFI routing sentinels: %d/%d", executed, executed)
 }

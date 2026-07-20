@@ -404,8 +404,8 @@ test-native-smoke:
 test-native-ffi:
 	@echo "🧬 generated FFI bit-compare native non-short 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedFFIBitCompareSubset$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedFFIBitCompareSubset) | tee test_results/latest_native_ffi_results.txt'
-	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_ffi_results.txt -domain native-ffi
+	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedFFIBitCompareSubset|TestGeneratedMixedFormatFFIRoutingSentinels)$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedFFIBitCompareSubset) | tee test_results/latest_native_ffi_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_ffi_results.txt -domain native-ffi
 
 test-native-tier1-arithmetic-long:
 	@echo "🏦 Tier 1 산술 structured + 대량 결정론 Intel C exact bit/flag 장기 검증 실행..."

@@ -518,7 +518,7 @@
     "testspec_tree": "76e5535c46430c31cb6c5746b6efb1ed1c71b2daf586769e6fd2d73bcb5759db",
     "bidcodec_vectors": "479cf685b4d209ce4cf2389dd3399502039025033a49796551159f8bc797768b",
     "bidcodec_harnesses": "ae7d1a3d7d5de7178ccd36eb0c9ff021d29035bf532312f16526baf36fc1f7b8",
-    "goport_verification_runners": "5b4d02a332ad3b56679a43300e5d617e7c69d8b73f9f6e6ffa2177e9f4ae72c7",
+    "goport_verification_runners": "8dd8be9f68eadc168a2a02a31429485ebbb45515b8b874943aa1ac8543183c44",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
     "d32_exhaustive_runners": "c7cd9761c7b152027adfcf8fd68adf48d8db86dec1e0c765f4a696a6bbce8093",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",

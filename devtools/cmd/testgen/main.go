@@ -17,6 +17,8 @@ func main() {
 		"print the proposed verification_sentinels.json decNumber differential sentinel rows to stdout and exit; writes no file and reads no anchor")
 	printD32ExhaustiveSentinelAnchors := flag.Bool("print-d32-exhaustive-sentinel-anchors", false,
 		"print the proposed verification_sentinels.json d32 exhaustive sentinel rows to stdout and exit; writes no file and reads no anchor")
+	printMixedFFISentinelAnchors := flag.Bool("print-mixed-ffi-sentinel-anchors", false,
+		"print the proposed verification_sentinels.json mixed-format FFI routing sentinel rows to stdout and exit; writes no file and reads no anchor")
 	flag.Parse()
 
 	if *printSentinelAnchors {
@@ -39,6 +41,14 @@ func main() {
 		proposal, err := testgen.D32ExhaustiveSentinelAnchorProposal()
 		if err != nil {
 			log.Fatalf("compute d32 exhaustive sentinel anchor proposal: %v", err)
+		}
+		fmt.Print(proposal)
+		return
+	}
+	if *printMixedFFISentinelAnchors {
+		proposal, err := testgen.MixedFFIRoutingSentinelAnchorProposal()
+		if err != nil {
+			log.Fatalf("compute mixed-format FFI routing sentinel anchor proposal: %v", err)
 		}
 		fmt.Print(proposal)
 		return

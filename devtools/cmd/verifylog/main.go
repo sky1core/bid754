@@ -48,6 +48,7 @@ type anchors struct {
 type sentinels struct {
 	Tier1ArithmeticRoutingRows        []string `json:"tier1_arithmetic_long_routing_sentinel_rows"`
 	Tier1CompareConversionRoutingRows []string `json:"tier1_compare_conversion_long_routing_sentinel_rows"`
+	MixedFormatFFIRoutingRows         []string `json:"mixed_format_ffi_routing_sentinel_rows"`
 	DecnumberDifferentialRows         []string `json:"decnumber_differential_sentinel_rows"`
 	D32ExhaustiveRows                 []string `json:"d32_exhaustive_sentinel_rows"`
 }
@@ -165,7 +166,7 @@ func main() {
 			}
 			required = append(required, goportEvidence...)
 		case "native-ffi":
-			nativeEvidence, err := nativeFFIEvidence(a)
+			nativeEvidence, err := nativeFFIEvidence(a, *sentinelsPath)
 			if err != nil {
 				fail("native FFI evidence: %v", err)
 			}
@@ -286,13 +287,24 @@ func goportReadtestEvidence(a anchors) ([]evidence, error) {
 	)
 }
 
-func nativeFFIEvidence(a anchors) ([]evidence, error) {
-	return compactGoSubtestEvidence(
+func nativeFFIEvidence(a anchors, sentinelsPath string) ([]evidence, error) {
+	required, err := compactGoSubtestEvidence(
 		"TestGeneratedFFIBitCompareSubset",
 		"native FFI",
 		a.FFIBitcompareCasesTotal,
 		0,
 	)
+	if err != nil {
+		return nil, err
+	}
+	// The mixed-format FFI operand-swap routing sentinels run in the same gate
+	// as a separate top-level test; bind their top-level PASS and full-count
+	// log line so the gate cannot silently drop them.
+	required = append(required,
+		topLevelPass("TestGeneratedMixedFormatFFIRoutingSentinels"),
+		mixedFFIRoutingSentinelCountEvidence(sentinelsPath, "mixed-format FFI routing sentinels"),
+	)
+	return required, nil
 }
 
 func compactGoSubtestEvidence(rootTest, label string, total, skips uint64) ([]evidence, error) {
@@ -350,6 +362,16 @@ func sentinelCCCountEvidence(sentinelsPath, prefix string) evidence {
 	n := len(loadSentinels(sentinelsPath).Tier1CompareConversionRoutingRows)
 	if n == 0 {
 		fail("verification_sentinels.json pins zero Tier 1 compare/conversion routing sentinel rows")
+	}
+	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
+}
+
+// mixedFFIRoutingSentinelCountEvidence is the mixed-format FFI routing
+// analogue of sentinelCountEvidence.
+func mixedFFIRoutingSentinelCountEvidence(sentinelsPath, prefix string) evidence {
+	n := len(loadSentinels(sentinelsPath).MixedFormatFFIRoutingRows)
+	if n == 0 {
+		fail("verification_sentinels.json pins zero mixed-format FFI routing sentinel rows")
 	}
 	return countLine(fmt.Sprintf("%s: %d/%d", prefix, n, n))
 }
