@@ -14513,6 +14513,7 @@
     "readtest/bid128_scalbln.json",
     "readtest/bid32_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid32_from_string_ieee754_overflow_cmatch.json",
+    "readtest/bid32_from_string_underflow_boundary_cmatch.json",
     "readtest/bid64_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid64_from_string_ieee754_overflow_cmatch.json",
     "readtest/bid128_from_string_ieee754_overflow_cmatch.json"

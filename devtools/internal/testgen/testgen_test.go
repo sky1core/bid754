@@ -516,10 +516,11 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.ReadCases) == 0 {
 		t.Fatal("expected generated read cases")
 	}
-	// 86917 = 86689 exact-comparator surface (profile + IEEE regression rows)
+	// 86927 = 86699 exact-comparator surface (profile + IEEE regression rows
+	// + the bid32_from_string underflow-boundary C-match regression rows)
 	// + 228 Tier 3 fmod CMP_RELATIVEERR duplicate rows (59 + 79 + 90).
-	if len(spec.ReadCases) != 86917 {
-		t.Fatalf("generated read case count = %d, want pinned current-surface plus IEEE regression case count 86917", len(spec.ReadCases))
+	if len(spec.ReadCases) != 86927 {
+		t.Fatalf("generated read case count = %d, want pinned current-surface plus regression case count 86927", len(spec.ReadCases))
 	}
 	assertGeneratedReadtestProfileInventory(t, spec)
 	expectedReads := make(map[string]ReadTestSpec)
@@ -606,11 +607,11 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	// same source rows the CMP_FUZZYSTATUS fmod suites keep unchanged.
 	assertCountMap(t, "generated readtest case compare groups", readCaseCompareCounts, map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 85662,
+		"CMP_FUZZYSTATUS": 85672,
 		"CMP_RELATIVEERR": 228,
 	})
 	assertCountMap(t, "generated readtest case formats", readCaseFormatCounts, map[string]int{
-		"decimal32":  20921,
+		"decimal32":  20931,
 		"decimal64":  21789,
 		"decimal128": 44070,
 		"status":     137,
@@ -619,14 +620,14 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"unary_op":       61366,
 		"binary_op":      23256,
 		"ternary_op":     1817,
-		"from_string":    278,
+		"from_string":    288,
 		"to_string":      63,
 		"status_control": 137,
 	})
 	assertCountMap(t, "generated readtest case groups", readCaseGroupCounts, map[string]int{
 		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
-		"decimal32_ieee754_regressions":  15,
+		"decimal32_ieee754_regressions":  25,
 		"decimal64_ieee754_regressions":  15,
 		"decimal128_ieee754_regressions": 15,
 		"decimal64_operations":           21689,

@@ -313,14 +313,19 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
             coefficient_x = (((go_checked_shl_u64(coefficient_x, go_shift_count_u64((1) as u64)))).wrapping_add(((go_checked_shl_u64(coefficient_x, go_shift_count_u64((3) as u64))))));
             coefficient_x = coefficient_x.wrapping_add(((c.wrapping_sub(b'0')) as u64));
         } else if (ndigits == 8) {
+            let mut doOverflowCheck = false;
             match rnd_mode {
                 0 => {
                     if ((c == b'5') && ((coefficient_x & 1) == 0)) {
                         midpoint = 1;
+                    } else {
+                        midpoint = 0;
                     }
                     if ((c > b'5') || (((c == b'5') && ((coefficient_x & 1) != 0)))) {
                         coefficient_x = coefficient_x.wrapping_add(1);
                         rounded_up = 1;
+                    } else {
+                        doOverflowCheck = true;
                     }
                 }
                 1 => {
@@ -349,11 +354,14 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
                         rounded_up = 1;
                     }
                 }
-                _ => {}
+                _ => {
+                }
             }
-            if (coefficient_x == 10000000) {
-                coefficient_x = 1000000;
-                add_expon = 1;
+            if doOverflowCheck {
+                if (coefficient_x == 10000000) {
+                    coefficient_x = 1000000;
+                    add_expon = 1;
+                }
             }
             if (c > b'0') {
                 rounded = 1;

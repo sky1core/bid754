@@ -339,16 +339,31 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 			coefficient_x = (coefficient_x << 1) + (coefficient_x << 3)
 			coefficient_x += uint64(c - '0')
 		} else if ndigits == 8 {
+			// coefficient rounding
+			// CRITICAL: Intel's switch has Duff's device structure
+			// case DOWN/UP/TIES_AWAY are INSIDE the if block for TO_NEAREST
+			// Only TO_NEAREST with condition=false runs the overflow check
+			// TO_ZERO (3) has no case, so switch is skipped entirely
+
+			doOverflowCheck := false
+
 			switch rnd_mode {
-			case BID_ROUNDING_TO_NEAREST:
+			case BID_ROUNDING_TO_NEAREST: // 0
 				if c == '5' && (coefficient_x&1) == 0 {
 					midpoint = 1
+				} else {
+					midpoint = 0
 				}
 				if c > '5' || (c == '5' && (coefficient_x&1) != 0) {
 					coefficient_x++
 					rounded_up = 1
+					// break - no overflow check
+				} else {
+					// condition false: will run overflow check
+					doOverflowCheck = true
 				}
-			case BID_ROUNDING_DOWN:
+
+			case BID_ROUNDING_DOWN: // 1
 				if sign_x != 0 {
 					if c > '0' {
 						coefficient_x++
@@ -357,7 +372,9 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 						dround = 1
 					}
 				}
-			case BID_ROUNDING_UP:
+				// break - no overflow check
+
+			case BID_ROUNDING_UP: // 2
 				if sign_x == 0 {
 					if c > '0' {
 						coefficient_x++
@@ -366,16 +383,28 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 						dround = 1
 					}
 				}
-			case BID_ROUNDING_TIES_AWAY:
+				// break - no overflow check
+
+			case BID_ROUNDING_TIES_AWAY: // 4
 				if c >= '5' {
 					coefficient_x++
 					rounded_up = 1
 				}
+				// break - no overflow check
+
+			default:
+				// BID_ROUNDING_TO_ZERO (3) has no case in Intel code
+				// switch is effectively skipped
 			}
-			if coefficient_x == 10000000 {
-				coefficient_x = 1000000
-				add_expon = 1
+
+			// overflow check - only for TO_NEAREST with condition false
+			if doOverflowCheck {
+				if coefficient_x == 10000000 {
+					coefficient_x = 1000000
+					add_expon = 1
+				}
 			}
+
 			if c > '0' {
 				rounded = 1
 			}

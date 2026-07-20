@@ -1,0 +1,26 @@
+{
+  "suite": "bid32_from_string_underflow_boundary_cmatch",
+  "group": "decimal32_ieee754_regressions",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "testdata/readtest_underflow_boundary_bid32_cmatch.in",
+  "function": "bid32_from_string",
+  "kind": "from_string",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "cases": [
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_8","line":8,"operands":["99999995E-103"],"expected":"[000f4240]","status":"30","rounding":0},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_9","line":9,"operands":["99999995E-103"],"expected":"[000f4240]","status":"30","rounding":2},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_10","line":10,"operands":["99999995E-103"],"expected":"[000f4240]","status":"30","rounding":3},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_11","line":11,"operands":["99999995E-103"],"expected":"[000f4240]","status":"30","rounding":4},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_12","line":12,"operands":["-99999995E-103"],"expected":"[800f4240]","status":"30","rounding":1},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_13","line":13,"operands":["999999999999999.3379320293506171796E-110"],"expected":"[000f4240]","status":"30","rounding":0},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_14","line":14,"operands":["-0.99999999999999999999999999999999999999E-95"],"expected":"[800f4240]","status":"30","rounding":1},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_15","line":15,"operands":[".99999999999999999999999999999999999999E-95"],"expected":"[000f4240]","status":"30","rounding":2},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_16","line":16,"operands":["999999995E-104"],"expected":"[000f4240]","status":"30","rounding":3},
+    {"id":"bid32_from_string_underflow_boundary_cmatch_line_17","line":17,"operands":["-99999996E-103"],"expected":"[800f4240]","status":"30","rounding":4}
+  ]
+}

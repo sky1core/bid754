@@ -32,11 +32,11 @@ type generatedReadCaseCounts struct {
 }
 
 var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
-	Total:         86917,
-	Decimal32:     20921,
+	Total:         86927,
+	Decimal32:     20931,
 	Decimal64:     21789,
 	Decimal128:    44070,
-	FromString:    278,
+	FromString:    288,
 	ToString:      63,
 	UnaryOp:       61366,
 	BinaryOp:      23256,
@@ -245,7 +245,7 @@ var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
 		"bid32_frexp":                        49,
 		"bid32_from_int32":                   125,
 		"bid32_from_int64":                   120,
-		"bid32_from_string":                  105,
+		"bid32_from_string":                  115,
 		"bid32_from_uint32":                  120,
 		"bid32_from_uint64":                  114,
 		"bid32_ilogb":                        73,
@@ -606,7 +606,7 @@ var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
 		"decimal128_ieee754_regressions": 15,
 		"decimal128_operations":          43954,
 		"decimal128_strings":             101,
-		"decimal32_ieee754_regressions":  15,
+		"decimal32_ieee754_regressions":  25,
 		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
 		"decimal64_ieee754_regressions":  15,
@@ -616,7 +616,7 @@ var expectedGeneratedReadCaseCounts = generatedReadCaseCounts{
 	},
 	CompareGroups: map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 85662,
+		"CMP_FUZZYSTATUS": 85672,
 		"CMP_RELATIVEERR": 228,
 	},
 	NativeCompareSkips: map[string]int{

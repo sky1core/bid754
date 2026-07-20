@@ -182,6 +182,30 @@
       ]
     },
     {
+      "name": "bid32_from_string_underflow_boundary_cmatch",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_underflow_boundary_bid32_cmatch.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
       "name": "bid64_from_string_ieee754_overflow_cdiverge",
       "group": "decimal64_ieee754_regressions",
       "format": "decimal64",

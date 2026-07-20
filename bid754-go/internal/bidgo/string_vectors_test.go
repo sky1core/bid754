@@ -24,6 +24,7 @@ var generatedBIDStringShardFiles = []string{
 	"readtest/bid32_from_string.json",
 	"readtest/bid32_from_string_ieee754_overflow_cdiverge.json",
 	"readtest/bid32_from_string_ieee754_overflow_cmatch.json",
+	"readtest/bid32_from_string_underflow_boundary_cmatch.json",
 	"readtest/bid64_from_string_ieee754_overflow_cdiverge.json",
 	"readtest/bid64_from_string_ieee754_overflow_cmatch.json",
 	"readtest/bid128_from_string_ieee754_overflow_cmatch.json",
@@ -73,13 +74,13 @@ type generatedBIDStringCounts struct {
 }
 
 var expectedGeneratedBIDStringCounts = generatedBIDStringCounts{
-	Total:                341,
-	FromString:           278,
+	Total:                351,
+	FromString:           288,
 	ToString:             63,
-	Decimal32:            125,
+	Decimal32:            135,
 	Decimal64:            100,
 	Decimal128:           116,
-	Decimal32FromString:  105,
+	Decimal32FromString:  115,
 	Decimal64FromString:  88,
 	Decimal128FromString: 85,
 	Decimal32ToString:    20,

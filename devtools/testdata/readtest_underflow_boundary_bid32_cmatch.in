@@ -1,0 +1,17 @@
+-- bid32_from_string tiny/min-normal rounding-boundary regression rows that are
+-- not present in Intel readtest.in. The 8th-significant-digit round-up must
+-- keep Intel's dead in-switch coefficient rollover dead (Duff's-device case
+-- placement in bid32_string.c), so the biased exponent stays -1 and the
+-- underflow path raises UNDERFLOW|INEXACT (status 30). Pinned Intel BID C
+-- matches every row; the native comparison runs for this block.
+
+bid32_from_string 0 99999995E-103 [000f4240] 30
+bid32_from_string 2 99999995E-103 [000f4240] 30
+bid32_from_string 3 99999995E-103 [000f4240] 30
+bid32_from_string 4 99999995E-103 [000f4240] 30
+bid32_from_string 1 -99999995E-103 [800f4240] 30
+bid32_from_string 0 999999999999999.3379320293506171796E-110 [000f4240] 30
+bid32_from_string 1 -0.99999999999999999999999999999999999999E-95 [800f4240] 30
+bid32_from_string 2 .99999999999999999999999999999999999999E-95 [000f4240] 30
+bid32_from_string 3 999999995E-104 [000f4240] 30
+bid32_from_string 4 -99999996E-103 [800f4240] 30

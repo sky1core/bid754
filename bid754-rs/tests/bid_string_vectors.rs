@@ -20,6 +20,7 @@ const GENERATED_BID_STRING_SHARD_FILES: &[&str] = &[
     "readtest/bid32_from_string.json",
     "readtest/bid32_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid32_from_string_ieee754_overflow_cmatch.json",
+    "readtest/bid32_from_string_underflow_boundary_cmatch.json",
     "readtest/bid64_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid64_from_string_ieee754_overflow_cmatch.json",
     "readtest/bid128_from_string_ieee754_overflow_cmatch.json",
@@ -72,13 +73,13 @@ struct GeneratedBIDStringCounts {
 }
 
 const EXPECTED_GENERATED_BID_STRING_COUNTS: GeneratedBIDStringCounts = GeneratedBIDStringCounts {
-    total: 341,
-    from_string: 278,
+    total: 351,
+    from_string: 288,
     to_string: 63,
-    decimal32: 125,
+    decimal32: 135,
     decimal64: 100,
     decimal128: 116,
-    decimal32_from_string: 105,
+    decimal32_from_string: 115,
     decimal64_from_string: 88,
     decimal128_from_string: 85,
     decimal32_to_string: 20,
