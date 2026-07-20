@@ -1,0 +1,21 @@
+[package]
+name = "benchcompare"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Comparative benchmark harness only — never a dependency of the product
+# crate. The comparison library rust_decimal is pinned only here and never
+# enters the product crate's dependency set.
+[dependencies]
+bid754 = { path = "../bid754-rs" }
+rust_decimal = "=1.42.1"
+
+[dev-dependencies]
+criterion = "=0.5.1"
+
+[[bench]]
+name = "compare"
+harness = false
+
+[workspace]

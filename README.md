@@ -104,6 +104,7 @@ list live in `THIRD_PARTY_NOTICES.md`.
 | `bid754-rs/libbid-sys/` | repo-internal FFI test bindings (`publish = false`) |
 | `bid754-rs/ffi-verify/` | repo-internal FFI verification harness against the Intel BID C oracle (`publish = false`) |
 | `devtools/` | non-published tooling module (generators, scripts, pinned inputs); never tagged or consumed as a dependency |
+| `benchcompare-go/`, `benchcompare-rs/` | standalone comparative benchmark modules against shopspring/decimal and rust_decimal (cost comparison only, never a verification domain; the comparison dependencies are pinned here and never enter the product modules) |
 | `bid754-go/internal/bidgo/cexport/` | inactive C ABI compatibility snapshot outside normal link inputs |
 
 ## Toolchain Prerequisites

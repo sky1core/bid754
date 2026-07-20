@@ -99,6 +99,7 @@ Swift Package Manager 용 저장소 스냅샷을 버전합니다.
 | `bid754-rs/libbid-sys/` | repo 내부 FFI 테스트 바인딩 (`publish = false`) |
 | `bid754-rs/ffi-verify/` | Intel BID C oracle 대조용 repo 내부 FFI 검증 하네스 (`publish = false`) |
 | `devtools/` | 발행하지 않는 도구 모듈 (생성기, 스크립트, pinned 입력). 태그/의존 대상 아님 |
+| `benchcompare-go/`, `benchcompare-rs/` | shopspring/decimal·rust_decimal 대비 독립 비교 벤치마크 모듈 (비용 비교 전용, 검증 도메인 아님; 비교용 의존성은 이 모듈에만 핀되고 제품 모듈로 유입되지 않음) |
 | `bid754-go/internal/bidgo/cexport/` | 일반 링크 입력 밖의 비활성 C ABI 호환 스냅샷 |
 
 ## 툴체인 전제조건
