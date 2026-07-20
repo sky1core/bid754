@@ -1,10 +1,8 @@
 package benchrows
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
-	"unsafe"
 
 	"github.com/sky1core/bid754/bid754-go/internal/bidgo"
 )
@@ -514,19 +512,18 @@ func GroupRows(p Prepared, group string) ([]Row, error) {
 	}
 }
 
-// bid128Bits reads a bidgo 128-bit value as its little-endian low/high words
-// through the same 16-byte reinterpretation the module root uses for
-// Decimal128BID (types_bidgo_runtime.go).
+// bid128Bits reads a bidgo 128-bit value as its low/high 64-bit words through
+// the endian-agnostic word accessors the module root uses for Decimal128BID
+// (types_bidgo_runtime.go). The word view keeps the low/high split correct on
+// big-endian platforms, where a native-endian pointer reinterpretation would
+// byte-swap each word.
 func bid128Bits(x bidgo.BID_UINT128) (lo, hi uint64) {
-	raw := *(*[16]byte)(unsafe.Pointer(&x))
-	return binary.LittleEndian.Uint64(raw[0:8]), binary.LittleEndian.Uint64(raw[8:16])
+	hi, lo = bidgo.Bid128Words(x)
+	return lo, hi
 }
 
 func bid128FromBits(lo, hi uint64) bidgo.BID_UINT128 {
-	var raw [16]byte
-	binary.LittleEndian.PutUint64(raw[0:8], lo)
-	binary.LittleEndian.PutUint64(raw[8:16], hi)
-	return *(*bidgo.BID_UINT128)(unsafe.Pointer(&raw))
+	return bidgo.Bid128FromWords(hi, lo)
 }
 
 // Observation is one normalized untimed benchmark row execution result:
