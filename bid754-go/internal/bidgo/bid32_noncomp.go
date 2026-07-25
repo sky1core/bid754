@@ -169,7 +169,14 @@ func Bid32Copy(x uint32) uint32 {
 }
 
 // Bid32Negate returns -x.
-// The exported wrapper is defined in bid32_exports.go.
+func Bid32Negate(x uint32) uint32 {
+	return x ^ MASK_SIGN32
+}
+
+// Bid32Abs returns |x|.
+func Bid32Abs(x uint32) uint32 {
+	return x & 0x7fffffff
+}
 
 // Bid32CopySign returns x with the sign of y.
 func Bid32CopySign(x, y uint32) uint32 {

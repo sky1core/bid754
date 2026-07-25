@@ -5335,7 +5335,7 @@
       "returns": [
         "u32"
       ],
-      "go_file": "bid32_exports.go",
+      "go_file": "bid32_noncomp.go",
       "go_name": "Bid32Abs",
       "exported": true,
       "group": "bid32"
@@ -5609,21 +5609,6 @@
       ],
       "go_file": "bid32_to_int.go",
       "go_name": "Bid32FromInt64",
-      "exported": true,
-      "group": "bid32"
-    },
-    "Bid32FromString": {
-      "params": [
-        {
-          "name": "s",
-          "type": "String"
-        }
-      ],
-      "returns": [
-        "u32"
-      ],
-      "go_file": "bid32_exports.go",
-      "go_name": "Bid32FromString",
       "exported": true,
       "group": "bid32"
     },
@@ -6310,7 +6295,7 @@
       "returns": [
         "u32"
       ],
-      "go_file": "bid32_exports.go",
+      "go_file": "bid32_noncomp.go",
       "go_name": "Bid32Negate",
       "exported": true,
       "group": "bid32"

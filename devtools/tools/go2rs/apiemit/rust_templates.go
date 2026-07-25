@@ -214,7 +214,7 @@ var portPath = map[string]struct{ module, fn string }{
 	// bid32_status, bid32_noncomp, bid32_misc, bid32_to_int); each module
 	// value below was verified against the actual generated::* source (not
 	// assumed from the Decimal64 naming precedent).
-	"Bid32Abs":                       {"bid32_exports", "bid32_abs"},
+	"Bid32Abs":                       {"bid32_noncomp", "bid32_abs"},
 	"Bid32Add":                       {"bid32_exports", "bid32_add"},
 	"Bid32AddWithFlags":              {"bid32_status", "bid32_add_with_flags"},
 	"Bid32Class":                     {"bid32_misc", "bid32_class"},
@@ -246,7 +246,7 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid32MinNumWithFlags":           {"bid32_status", "bid32_min_num_with_flags"},
 	"Bid32Mul":                       {"bid32_exports", "bid32_mul"},
 	"Bid32MulWithFlags":              {"bid32_status", "bid32_mul_with_flags"},
-	"Bid32Negate":                    {"bid32_exports", "bid32_negate"},
+	"Bid32Negate":                    {"bid32_noncomp", "bid32_negate"},
 	"Bid32NextDown":                  {"bid32_next", "bid32_next_down"},
 	"Bid32NextToward":                {"bid32_misc", "bid32_next_toward"},
 	"Bid32NextUp":                    {"bid32_next", "bid32_next_up"},

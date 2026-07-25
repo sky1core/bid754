@@ -56,19 +56,6 @@ func Bid32IsZero(x uint32) bool {
 	return Bid32IsZero32(x) != 0
 }
 
-func Bid32Abs(x uint32) uint32 {
-	return x & 0x7fffffff
-}
-
-func Bid32Negate(x uint32) uint32 {
-	return x ^ MASK_SIGN32
-}
-
 func Bid32ToString(x uint32) string {
 	return Bid32ToStringRaw(x)
-}
-
-func Bid32FromString(s string) uint32 {
-	r, _ := Bid32FromStringRaw(s, 0)
-	return r
 }

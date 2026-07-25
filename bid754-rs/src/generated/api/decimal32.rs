@@ -335,12 +335,12 @@ impl Decimal32 {
     }
 
     pub fn abs(self) -> Decimal32 {
-        Decimal32(crate::generated::bid32_exports::bid32_abs(self.0))
+        Decimal32(crate::generated::bid32_noncomp::bid32_abs(self.0))
     }
 
     #[allow(clippy::should_implement_trait)]
     pub fn neg(self) -> Decimal32 {
-        Decimal32(crate::generated::bid32_exports::bid32_negate(self.0))
+        Decimal32(crate::generated::bid32_noncomp::bid32_negate(self.0))
     }
 
     pub fn copysign(self, sign_source: Decimal32) -> Decimal32 {

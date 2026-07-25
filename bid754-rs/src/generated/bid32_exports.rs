@@ -80,20 +80,6 @@ pub fn bid32_is_zero(mut x: u32) -> bool {
     return (bid32_is_zero32(x) != 0);
 }
 
-pub fn bid32_abs(mut x: u32) -> u32 {
-    return (x & 0x7fffffff);
-}
-
-pub fn bid32_negate(mut x: u32) -> u32 {
-    return (x ^ 0x80000000);
-}
-
 pub fn bid32_to_string(mut x: u32) -> String {
     return bid32_to_string_raw(x);
-}
-
-pub fn bid32_from_string(s: impl AsRef<str>) -> u32 {
-    let s = s.as_ref();
-    let (mut r, _) = bid32_from_string_raw(s, 0);
-    return r;
 }

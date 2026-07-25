@@ -181,6 +181,14 @@ pub fn bid32_copy(mut x: u32) -> u32 {
     return x;
 }
 
+pub fn bid32_negate(mut x: u32) -> u32 {
+    return (x ^ 0x80000000);
+}
+
+pub fn bid32_abs(mut x: u32) -> u32 {
+    return (x & 0x7fffffff);
+}
+
 pub fn bid32_copy_sign(mut x: u32, mut y: u32) -> u32 {
     return ((x & 0x7fffffff) | (y & 0x80000000));
 }

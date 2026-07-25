@@ -2905,7 +2905,7 @@ fn parity_decimal32_bid_abs(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &v0 in CORPUS_32 {
         let pv = Decimal32::from_bits(v0).abs();
-        let pr = bid754::generated::bid32_exports::bid32_abs(v0);
+        let pr = bid754::generated::bid32_noncomp::bid32_abs(v0);
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal32BID.Abs: operand {:#x}: result mismatch public={:#x} port={:#x}", v0, pv.to_bits(), pr));
         }
@@ -3928,7 +3928,7 @@ fn parity_decimal32_bid_negate(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &v0 in CORPUS_32 {
         let pv = Decimal32::from_bits(v0).neg();
-        let pr = bid754::generated::bid32_exports::bid32_negate(v0);
+        let pr = bid754::generated::bid32_noncomp::bid32_negate(v0);
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal32BID.Negate: operand {:#x}: result mismatch public={:#x} port={:#x}", v0, pv.to_bits(), pr));
         }

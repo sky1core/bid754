@@ -68,7 +68,7 @@ const (
 // verified), and must carry a non-empty reason.
 var nonIntelOriginFiles = map[string]string{
 	"bid128_words.go":          "bid754-authored (hi, lo) word constructor/accessor pair for BID_UINT128 so the public package and platformdigest convert the little-endian byte image with explicit endianness instead of native-endian unsafe reinterpretation; no ported Intel logic",
-	"bid32_exports.go":         "bid754-authored exported wrapper glue around the mechanically ported bid32 functions defined in files that carry the Intel references",
+	"bid32_exports.go":         "bid754-authored exported wrapper glue: every function in this file is a single delegating call into a mechanically ported bid32 body that lives in a file carrying the Intel references, differing from that callee only by a rename (unexported-to-exported, or a Raw/32 suffix drop) and optionally the int-to-bool `!= 0` adaptation, so the file holds no operation logic of its own and has no Intel source file to point at",
 	"tables_round_const128.go": "bid754-authored init-time construction of bid_round_const_table_128 from bid_power10_table_128; the value surface is anchored by the tablecrosscheck exclusion entry for bid_round_const_table_128",
 	"types.go":                 "Go-side type and rounding-mode constant definitions for the bidgo package; no ported Intel logic",
 }
@@ -82,7 +82,7 @@ var nonIntelExportedFunctions = map[string]string{
 	"BID_normalize":      "ported from the static helper BID_normalize in Intel bid_inline_add.h; internal static helpers are not extern declarations in bid_functions.h",
 	"Bid128FromWords":    "bid754-authored constructor of BID_UINT128 from explicit (hi, lo) words; Intel C has no extern counterpart because C callers initialize the struct fields directly",
 	"Bid128Words":        "bid754-authored accessor returning the explicit (hi, lo) words of BID_UINT128; Intel C has no extern counterpart because C callers read the struct fields directly",
-	"Bid32FromStringRaw": "raw-uint32 and explicit-status naming variant of the mechanically ported bid32_from_string; Bid32FromString is reserved for the one-result wrapper",
+	"Bid32FromStringRaw": "raw-uint32 and explicit-status-return naming variant of the mechanically ported bid32_from_string, and the only exported bidgo entrypoint for it; the Raw suffix is not stripped by normalizeFunctionName (only WithFlags is), so the name cannot match the Intel extern",
 	"Bid32ToStringRaw":   "raw-uint32 naming variant of the ported bid32_to_string",
 	"Bid32IsInf32":       "uint32-typed naming variant of the ported bid32_isInf",
 	"Bid32IsNaN32":       "uint32-typed naming variant of the ported bid32_isNaN",
