@@ -64,6 +64,67 @@ type goportArgPlan struct {
 	GoType       string // empty means parsed for validation and dropped
 }
 
+// goportStatusControlShape pins the readtest row wiring and the expected Go
+// mechanical-port signature of one IEEE 754-2019 section 5.7.4 status-control
+// operation. classifyReadtestParameters does not model the by-value
+// _IDEC_flags / _IDEC_round parameters these eight functions take (the native
+// C generator special-cases them for the same reason), so the shape is declared
+// here instead of inferred, and every part of it is verified against the parsed
+// bidgo signature at generation time.
+//
+// Operands are the readtest row's operand slots. ValueOperands are passed to
+// the port as uint32 value arguments in Go parameter order; InitialFlagsOperand
+// (-1 when the port takes no status-word pointer) is the incoming status word,
+// masked with BID_FLAG_MASK into a local status word exactly like the native C
+// wrapper does. Any remaining operand is parsed for validation parity and
+// dropped, mirroring the native dispatch.
+type goportStatusControlShape struct {
+	Operands            int
+	ValueOperands       []int
+	InitialFlagsOperand int
+	PassRounding        bool
+	HasFlagsPointer     bool
+	HasResult           bool
+}
+
+// expectedParams derives the Go port parameter types this shape requires:
+// one uint32 per value operand, then the rounding mode, then the status-word
+// pointer.
+func (shape goportStatusControlShape) expectedParams() []string {
+	params := make([]string, 0, len(shape.ValueOperands)+2)
+	for range shape.ValueOperands {
+		params = append(params, "uint32")
+	}
+	if shape.PassRounding {
+		params = append(params, "uint32")
+	}
+	if shape.HasFlagsPointer {
+		params = append(params, "*uint32")
+	}
+	return params
+}
+
+func (shape goportStatusControlShape) expectedResults() []string {
+	if shape.HasResult {
+		return []string{"uint32"}
+	}
+	return nil
+}
+
+// goportStatusControlShapes is the closed world of status-control rows the
+// goport readtest dispatch drives. A readtest status-control function without
+// an entry here is a generation-time failure rather than a silent skip.
+var goportStatusControlShapes = map[string]goportStatusControlShape{
+	"bid_testFlags":                   {Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1, HasFlagsPointer: true, HasResult: true},
+	"bid_lowerFlags":                  {Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1, HasFlagsPointer: true},
+	"bid_signalException":             {Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1, HasFlagsPointer: true},
+	"bid_saveFlags":                   {Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1, HasFlagsPointer: true, HasResult: true},
+	"bid_restoreFlags":                {Operands: 3, ValueOperands: []int{0, 1}, InitialFlagsOperand: 2, HasFlagsPointer: true},
+	"bid_testSavedFlags":              {Operands: 2, ValueOperands: []int{0, 1}, InitialFlagsOperand: -1, HasResult: true},
+	"bid_getDecimalRoundingDirection": {Operands: 1, InitialFlagsOperand: -1, PassRounding: true, HasResult: true},
+	"bid_setDecimalRoundingDirection": {Operands: 1, ValueOperands: []int{0}, InitialFlagsOperand: -1, PassRounding: true, HasResult: true},
+}
+
 type goportCallPlan struct {
 	Function     string
 	GoName       string
@@ -73,6 +134,9 @@ type goportCallPlan struct {
 	FlagsKind    goportFlagsKind
 	CHasFlags    bool
 	Results      []bidgoParam
+	// StatusControl is non-nil only for the section 5.7.4 status-control rows,
+	// which carry their own declared shape instead of an inferred Args plan.
+	StatusControl *goportStatusControlShape
 	// SecondaryKind/SecondaryOperandIndex describe the Intel in/out pointer
 	// parameter (frexp exponent, modf integral part). The Go port returns
 	// that output as its second result; the runner compares it against the
@@ -91,11 +155,10 @@ type goportInventoryRow struct {
 }
 
 type goportInventory struct {
-	Version               string               `json:"version"`
-	Source                string               `json:"source"`
-	Dispatched            int                  `json:"dispatched"`
-	ExcludedStatusControl int                  `json:"excluded_status_control"`
-	Functions             []goportInventoryRow `json:"functions"`
+	Version    string               `json:"version"`
+	Source     string               `json:"source"`
+	Dispatched int                  `json:"dispatched"`
+	Functions  []goportInventoryRow `json:"functions"`
 }
 
 func WriteReadtestGoportOutputs(repoRoot string, manifest Manifest, spec SharedSpec) error {
@@ -483,6 +546,94 @@ func resolveGoportDispatch(read ReadTestSpec, kinds []readtestParamKind, sigs ma
 	return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: no shape-fit bidgo candidate for %q:\n  %s", read.Function, strings.Join(failures, "\n  "))
 }
 
+// resolveGoportStatusControlDispatch resolves the Go mechanical-port function
+// for one status-control readtest row and verifies it against the declared
+// shape: the row's operand count and operand types, the exact port name (no
+// *WithFlags/*Raw variant is accepted here — these operations have a single
+// port entry), and the port's parameter and result types.
+func resolveGoportStatusControlDispatch(read ReadTestSpec, sigs map[string]bidgoFuncSig) (goportCallPlan, error) {
+	shape, ok := goportStatusControlShapes[read.Function]
+	if !ok {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: status-control function %q has no declared shape", read.Function)
+	}
+	if read.Kind != "status_control" {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s is a status-control function but its spec kind is %q", read.Function, read.Kind)
+	}
+	if !isReadtestUnsignedOutput(read.OutputType) {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s status-control output type %q is not an unsigned scalar", read.Function, read.OutputType)
+	}
+	if len(read.InputTypes) != shape.Operands {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s has %d readtest operands, declared shape expects %d", read.Function, len(read.InputTypes), shape.Operands)
+	}
+	for index, inputType := range read.InputTypes {
+		parser, err := goportOperandParser(readtestParamU32, inputType)
+		if err != nil {
+			return goportCallPlan{}, fmt.Errorf("%s: %w", read.Function, err)
+		}
+		if parser != "parseReadtestUint" {
+			return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s operand %d input type %q does not parse as an unsigned status/mode word", read.Function, index, inputType)
+		}
+	}
+	for _, operand := range shape.ValueOperands {
+		if operand < 0 || operand >= shape.Operands {
+			return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s declared value operand %d is outside its %d operands", read.Function, operand, shape.Operands)
+		}
+		if operand == shape.InitialFlagsOperand {
+			return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s operand %d cannot be both a value argument and the incoming status word", read.Function, operand)
+		}
+	}
+	if shape.InitialFlagsOperand >= shape.Operands {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s declared status-word operand %d is outside its %d operands", read.Function, shape.InitialFlagsOperand, shape.Operands)
+	}
+	if shape.HasFlagsPointer != (shape.InitialFlagsOperand >= 0) {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s status-word pointer and incoming status-word operand disagree", read.Function)
+	}
+
+	base := normalizeGoportFuncName(read.Function)
+	var fits []bidgoFuncSig
+	for _, candidate := range goportCandidateSigs(read.Function, sigs) {
+		if normalizeGoportFuncName(candidate.Name) == base {
+			fits = append(fits, candidate)
+		}
+	}
+	if len(fits) != 1 {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: expected exactly one bidgo entry named %q for status-control function %q, found %d", base, read.Function, len(fits))
+	}
+	sig := fits[0]
+	gotParams := make([]string, 0, len(sig.Params))
+	for _, param := range sig.Params {
+		gotParams = append(gotParams, param.Type)
+	}
+	gotResults := make([]string, 0, len(sig.Results))
+	for _, result := range sig.Results {
+		gotResults = append(gotResults, result.Type)
+	}
+	if !equalStringSlices(gotParams, shape.expectedParams()) {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s port %s has parameters %v, declared shape expects %v", read.Function, sig.Name, gotParams, shape.expectedParams())
+	}
+	if !equalStringSlices(gotResults, shape.expectedResults()) {
+		return goportCallPlan{}, fmt.Errorf("readtest goport dispatch: %s port %s has results %v, declared shape expects %v", read.Function, sig.Name, gotResults, shape.expectedResults())
+	}
+	flagsKind := goportFlagsNone
+	if shape.HasFlagsPointer {
+		flagsKind = goportFlagsPointer
+	}
+	// Args stays nil: StatusControl carries the operand wiring instead of the
+	// inferred per-operand plan.
+	return goportCallPlan{
+		Function:              read.Function,
+		GoName:                sig.Name,
+		OperandCount:          shape.Operands,
+		HasRounding:           shape.PassRounding,
+		FlagsKind:             flagsKind,
+		CHasFlags:             shape.HasFlagsPointer,
+		Results:               sig.Results,
+		SecondaryKind:         "none",
+		SecondaryOperandIndex: -1,
+		StatusControl:         &shape,
+	}, nil
+}
+
 type goportStringEntry struct {
 	Width  string // "32", "64", "128"
 	GoName string
@@ -557,6 +708,11 @@ func resolveGoportDispatchSet(reads []ReadTestSpec, symbols map[string]symbolSpe
 	var set goportDispatchSet
 	for _, read := range reads {
 		if isReadtestStatusControlFunction(read.Function) {
+			plan, err := resolveGoportStatusControlDispatch(read, sigs)
+			if err != nil {
+				return set, err
+			}
+			set.Unsigned = append(set.Unsigned, plan)
 			continue
 		}
 		switch read.Kind {
@@ -799,7 +955,78 @@ func goportSecondaryEmit(plan goportCallPlan) (string, error) {
 	}
 }
 
+// emitGoportStatusControlDispatchCase emits one section 5.7.4 status-control
+// case. It mirrors the native C wrapper (readtest_codegen.go
+// emitReadtestStatusControlCWrapper) line for line with bidgo in place of the
+// Intel C entry point: the incoming status word becomes a local word masked
+// with BID_FLAG_MASK, the port is called with the row's value operands (and the
+// row's rounding mode where the C prototype takes rnd_mode), and the compared
+// status is that local word afterwards — 0 for the operations whose C prototype
+// has no *pfpsf parameter, matching the upstream harness which compares
+// expected_status against an untouched status word there.
+func emitGoportStatusControlDispatchCase(buf *bytes.Buffer, category, zero string, plan goportCallPlan, withSecondary bool) error {
+	shape := plan.StatusControl
+	if withSecondary {
+		return fmt.Errorf("%s: status-control rows have no secondary output group", plan.Function)
+	}
+	if category != "unsigned" {
+		return fmt.Errorf("%s: status-control rows belong in the unsigned dispatch group, got %q", plan.Function, category)
+	}
+	fmt.Fprintf(buf, "\tcase %q:\n", plan.Function)
+	fmt.Fprintf(buf, "\t\tif len(operands) != %d {\n", shape.Operands)
+	fmt.Fprintf(buf, "\t\t\treturn %s, \"\", fmt.Errorf(\"%s expects %d operands, got %%d\", len(operands))\n", zero, plan.Function, shape.Operands)
+	buf.WriteString("\t\t}\n")
+	for operand := 0; operand < shape.Operands; operand++ {
+		fmt.Fprintf(buf, "\t\targ%dRaw, err := parseReadtestUint(operands[%d])\n", operand, operand)
+		buf.WriteString("\t\tif err != nil {\n")
+		fmt.Fprintf(buf, "\t\t\treturn %s, \"\", err\n", zero)
+		buf.WriteString("\t\t}\n")
+	}
+	for operand := 0; operand < shape.Operands; operand++ {
+		if operand == shape.InitialFlagsOperand || containsInt(shape.ValueOperands, operand) {
+			continue
+		}
+		fmt.Fprintf(buf, "\t\t_ = arg%dRaw\n", operand)
+	}
+
+	callArgs := make([]string, 0, len(shape.ValueOperands)+2)
+	for _, operand := range shape.ValueOperands {
+		callArgs = append(callArgs, fmt.Sprintf("uint32(arg%dRaw)", operand))
+	}
+	if shape.PassRounding {
+		callArgs = append(callArgs, "uint32(rounding)")
+	}
+	statusExpr := "0"
+	if shape.HasFlagsPointer {
+		fmt.Fprintf(buf, "\t\tflags := uint32(arg%dRaw) & bidgo.BID_FLAG_MASK\n", shape.InitialFlagsOperand)
+		callArgs = append(callArgs, "&flags")
+		statusExpr = "flags"
+	}
+	call := fmt.Sprintf("bidgo.%s(%s)", plan.GoName, strings.Join(callArgs, ", "))
+	resultExpr := zero
+	if shape.HasResult {
+		fmt.Fprintf(buf, "\t\tresult := %s\n", call)
+		resultExpr = "uint64(result)"
+	} else {
+		fmt.Fprintf(buf, "\t\t%s\n", call)
+	}
+	fmt.Fprintf(buf, "\t\treturn %s, formatReadtestStatus(%s), nil\n", resultExpr, statusExpr)
+	return nil
+}
+
+func containsInt(values []int, want int) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
 func emitGoportDispatchCase(buf *bytes.Buffer, category, zero string, plan goportCallPlan, withSecondary bool) error {
+	if plan.StatusControl != nil {
+		return emitGoportStatusControlDispatchCase(buf, category, zero, plan, withSecondary)
+	}
 	hasSecondary := plan.SecondaryKind != "none"
 	if hasSecondary && !withSecondary {
 		return fmt.Errorf("%s: pointer output parameter is only supported in the decimal dispatch groups", plan.Function)
@@ -1011,16 +1238,17 @@ func generateReadtestGoportInventory(reads []ReadTestSpec, symbols map[string]sy
 		Source:  "generated/testspec/spec_index.json + generated/json/intel_dfp_symbols.json + bid754-go/internal/bidgo",
 	}
 	for _, read := range reads {
+		row := goportInventoryRow{Function: read.Function, Status: "dispatched"}
 		if isReadtestStatusControlFunction(read.Function) {
-			inventory.ExcludedStatusControl++
-			inventory.Functions = append(inventory.Functions, goportInventoryRow{
-				Function: read.Function,
-				Status:   "excluded_status_control",
-				Reason:   "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows",
-			})
+			plan, err := resolveGoportStatusControlDispatch(read, sigs)
+			if err != nil {
+				return nil, err
+			}
+			row.GoFunction = plan.GoName
+			inventory.Dispatched++
+			inventory.Functions = append(inventory.Functions, row)
 			continue
 		}
-		row := goportInventoryRow{Function: read.Function, Status: "dispatched"}
 		switch read.Kind {
 		case "from_string":
 			width := strings.TrimSuffix(strings.TrimPrefix(read.Function, "bid"), "_from_string")
@@ -1081,9 +1309,11 @@ type readtestGoportCaseCounts struct {
 
 func countReadtestGoportCases(spec SharedSpec) readtestGoportCaseCounts {
 	counts := readtestGoportCaseCounts{readtestGeneratedCaseCounts: countReadtestGeneratedCases(spec)}
-	counts.Executed = counts.Total - counts.StatusControl
+	// Every generated readtest row runs against the Go mechanical port,
+	// status_control rows included; the goport gate has no exclusion.
+	counts.Executed = counts.Total
 	for _, tc := range spec.ReadCases {
-		if tc.Kind != "status_control" && tc.NativeCompareSkipReason != "" {
+		if tc.NativeCompareSkipReason != "" {
 			counts.CDivergeExecuted++
 		}
 	}
@@ -1165,16 +1395,15 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 	},
 }
 
-// The goport gate runs every non-status-control readtest case directly
-// against the Go mechanical port. status_control rows are the only pinned
-// exclusion (the Intel global-status helpers are not part of the
-// explicit-flags port surface); they stay covered by the C-oracle and Rust
-// readtest gates. Rows carrying a native-compare skip reason (cdiverge) pin
-// intended IEEE behavior, so they must execute and pass here.
+// The goport gate runs every generated readtest case directly against the Go
+// mechanical port, with no exclusion: the IEEE 754-2019 section 5.7.4
+// status_control rows drive the ported bid_*Flags / bid_*DecimalRoundingDirection
+// operations with the row's status word and rounding mode passed explicitly.
+// Rows carrying a native-compare skip reason (cdiverge) pin intended IEEE
+// behavior, so they must execute and pass here too.
 const (
-	expectedGoportExecutedReadCases              = @@EXECUTED@@
-	expectedGoportExcludedStatusControlReadCases = @@STATUS_CONTROL@@
-	expectedGoportCDivergeExecutedReadCases      = @@CDIVERGE_EXECUTED@@
+	expectedGoportExecutedReadCases         = @@EXECUTED@@
+	expectedGoportCDivergeExecutedReadCases = @@CDIVERGE_EXECUTED@@
 )
 
 // goportReadtestStringBackend routes the readtest.c check_results string
@@ -1207,13 +1436,8 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 	goportAssertReadCaseCounts(t, goportCountReadCases(spec.ReadCases), expectedGoportReadCaseCounts)
 
 	executed := 0
-	excludedStatusControl := 0
 	cdivergeExecuted := 0
 	for _, tc := range spec.ReadCases {
-		if tc.Kind == "status_control" {
-			excludedStatusControl++
-			continue
-		}
 		executed++
 		if tc.NativeCompareSkipReason != "" {
 			cdivergeExecuted++
@@ -1265,7 +1489,7 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 				if normalizeReadtestStatus(combined) != normalizeReadtestStatus(tc.Status) {
 					t.Fatalf("goport read case %s line %d: expected status %q, got %q", tc.ID, tc.Line, normalizeReadtestStatus(tc.Status), normalizeReadtestStatus(combined))
 				}
-			case "binary_op", "unary_op", "ternary_op":
+			case "binary_op", "unary_op", "ternary_op", "status_control":
 				if isReadtestScalarOutput(tc.OutputType) {
 					got, status, err := goportReadCaseScalarString(tc)
 					if err != nil {
@@ -1355,9 +1579,6 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 	}
 	if executed != expectedGoportExecutedReadCases {
 		t.Fatalf("goport executed read case count = %d, want %d", executed, expectedGoportExecutedReadCases)
-	}
-	if excludedStatusControl != expectedGoportExcludedStatusControlReadCases {
-		t.Fatalf("goport excluded status_control read case count = %d, want %d", excludedStatusControl, expectedGoportExcludedStatusControlReadCases)
 	}
 	if cdivergeExecuted != expectedGoportCDivergeExecutedReadCases {
 		t.Fatalf("goport executed cdiverge read case count = %d, want %d", cdivergeExecuted, expectedGoportCDivergeExecutedReadCases)

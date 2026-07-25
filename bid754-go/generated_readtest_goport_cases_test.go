@@ -619,16 +619,15 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 	},
 }
 
-// The goport gate runs every non-status-control readtest case directly
-// against the Go mechanical port. status_control rows are the only pinned
-// exclusion (the Intel global-status helpers are not part of the
-// explicit-flags port surface); they stay covered by the C-oracle and Rust
-// readtest gates. Rows carrying a native-compare skip reason (cdiverge) pin
-// intended IEEE behavior, so they must execute and pass here.
+// The goport gate runs every generated readtest case directly against the Go
+// mechanical port, with no exclusion: the IEEE 754-2019 section 5.7.4
+// status_control rows drive the ported bid_*Flags / bid_*DecimalRoundingDirection
+// operations with the row's status word and rounding mode passed explicitly.
+// Rows carrying a native-compare skip reason (cdiverge) pin intended IEEE
+// behavior, so they must execute and pass here too.
 const (
-	expectedGoportExecutedReadCases              = 86790
-	expectedGoportExcludedStatusControlReadCases = 137
-	expectedGoportCDivergeExecutedReadCases      = 8
+	expectedGoportExecutedReadCases         = 86927
+	expectedGoportCDivergeExecutedReadCases = 8
 )
 
 // goportReadtestStringBackend routes the readtest.c check_results string
@@ -661,13 +660,8 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 	goportAssertReadCaseCounts(t, goportCountReadCases(spec.ReadCases), expectedGoportReadCaseCounts)
 
 	executed := 0
-	excludedStatusControl := 0
 	cdivergeExecuted := 0
 	for _, tc := range spec.ReadCases {
-		if tc.Kind == "status_control" {
-			excludedStatusControl++
-			continue
-		}
 		executed++
 		if tc.NativeCompareSkipReason != "" {
 			cdivergeExecuted++
@@ -719,7 +713,7 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 				if normalizeReadtestStatus(combined) != normalizeReadtestStatus(tc.Status) {
 					t.Fatalf("goport read case %s line %d: expected status %q, got %q", tc.ID, tc.Line, normalizeReadtestStatus(tc.Status), normalizeReadtestStatus(combined))
 				}
-			case "binary_op", "unary_op", "ternary_op":
+			case "binary_op", "unary_op", "ternary_op", "status_control":
 				if isReadtestScalarOutput(tc.OutputType) {
 					got, status, err := goportReadCaseScalarString(tc)
 					if err != nil {
@@ -809,9 +803,6 @@ func TestGeneratedReadCasesGoPort(t *testing.T) {
 	}
 	if executed != expectedGoportExecutedReadCases {
 		t.Fatalf("goport executed read case count = %d, want %d", executed, expectedGoportExecutedReadCases)
-	}
-	if excludedStatusControl != expectedGoportExcludedStatusControlReadCases {
-		t.Fatalf("goport excluded status_control read case count = %d, want %d", excludedStatusControl, expectedGoportExcludedStatusControlReadCases)
 	}
 	if cdivergeExecuted != expectedGoportCDivergeExecutedReadCases {
 		t.Fatalf("goport executed cdiverge read case count = %d, want %d", cdivergeExecuted, expectedGoportCDivergeExecutedReadCases)

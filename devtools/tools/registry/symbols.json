@@ -235,6 +235,20 @@
       "group": "flags",
       "exported": true
     },
+    "BID_FLAG_MASK": {
+      "value": "63",
+      "type": "u64",
+      "go_file": "internal.go",
+      "group": "internal",
+      "exported": true
+    },
+    "BID_IEEE_FLAGS": {
+      "value": "61",
+      "type": "u64",
+      "go_file": "internal.go",
+      "group": "internal",
+      "exported": true
+    },
     "BID_INEXACT_EXCEPTION": {
       "value": "32",
       "type": "u64",
@@ -12123,6 +12137,157 @@
       "exported": true,
       "group": "bid64"
     },
+    "BidGetDecimalRoundingDirection": {
+      "params": [
+        {
+          "name": "rnd_mode",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "go_file": "flag_operations.go",
+      "go_name": "BidGetDecimalRoundingDirection",
+      "exported": true,
+      "group": "misc"
+    },
+    "BidLowerFlags": {
+      "params": [
+        {
+          "name": "flagsmask",
+          "type": "u32"
+        },
+        {
+          "name": "pfpsf",
+          "type": "u32",
+          "pointer": true
+        }
+      ],
+      "returns": null,
+      "go_file": "flag_operations.go",
+      "go_name": "BidLowerFlags",
+      "exported": true,
+      "group": "misc"
+    },
+    "BidRestoreFlags": {
+      "params": [
+        {
+          "name": "flagsvalues",
+          "type": "u32"
+        },
+        {
+          "name": "flagsmask",
+          "type": "u32"
+        },
+        {
+          "name": "pfpsf",
+          "type": "u32",
+          "pointer": true
+        }
+      ],
+      "returns": null,
+      "go_file": "flag_operations.go",
+      "go_name": "BidRestoreFlags",
+      "exported": true,
+      "group": "misc"
+    },
+    "BidSaveFlags": {
+      "params": [
+        {
+          "name": "flagsmask",
+          "type": "u32"
+        },
+        {
+          "name": "pfpsf",
+          "type": "u32",
+          "pointer": true
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "go_file": "flag_operations.go",
+      "go_name": "BidSaveFlags",
+      "exported": true,
+      "group": "misc"
+    },
+    "BidSetDecimalRoundingDirection": {
+      "params": [
+        {
+          "name": "rounding_mode",
+          "type": "u32"
+        },
+        {
+          "name": "rnd_mode",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "go_file": "flag_operations.go",
+      "go_name": "BidSetDecimalRoundingDirection",
+      "exported": true,
+      "group": "misc"
+    },
+    "BidSignalException": {
+      "params": [
+        {
+          "name": "flagsmask",
+          "type": "u32"
+        },
+        {
+          "name": "pfpsf",
+          "type": "u32",
+          "pointer": true
+        }
+      ],
+      "returns": null,
+      "go_file": "flag_operations.go",
+      "go_name": "BidSignalException",
+      "exported": true,
+      "group": "misc"
+    },
+    "BidTestFlags": {
+      "params": [
+        {
+          "name": "flagsmask",
+          "type": "u32"
+        },
+        {
+          "name": "pfpsf",
+          "type": "u32",
+          "pointer": true
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "go_file": "flag_operations.go",
+      "go_name": "BidTestFlags",
+      "exported": true,
+      "group": "misc"
+    },
+    "BidTestSavedFlags": {
+      "params": [
+        {
+          "name": "savedflags",
+          "type": "u32"
+        },
+        {
+          "name": "flagsmask",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u32"
+      ],
+      "go_file": "flag_operations.go",
+      "go_name": "BidTestSavedFlags",
+      "exported": true,
+      "group": "misc"
+    },
     "__add_128_128": {
       "params": [
         {
@@ -17298,6 +17463,8 @@
       "BID_ZERO_DIVIDE_EXCEPTION"
     ],
     "internal": [
+      "BID_FLAG_MASK",
+      "BID_IEEE_FLAGS",
       "BINARY_EXPONENT_BIAS",
       "DECIMAL_EXPONENT_BIAS",
       "MASK_BINARY_EXPONENT",

@@ -6283,6 +6283,120 @@ func goportReadtestGeneratedUnsigned(function string, rounding int, operands []s
 		}
 		result, flags := bidgo.Bid64ToUint8Xrninta(arg0Raw)
 		return uint64(result), formatReadtestStatus(flags), nil
+	case "bid_getDecimalRoundingDirection":
+		if len(operands) != 1 {
+			return 0, "", fmt.Errorf("bid_getDecimalRoundingDirection expects 1 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		_ = arg0Raw
+		result := bidgo.BidGetDecimalRoundingDirection(uint32(rounding))
+		return uint64(result), formatReadtestStatus(0), nil
+	case "bid_lowerFlags":
+		if len(operands) != 2 {
+			return 0, "", fmt.Errorf("bid_lowerFlags expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		arg1Raw, err := parseReadtestUint(operands[1])
+		if err != nil {
+			return 0, "", err
+		}
+		flags := uint32(arg1Raw) & bidgo.BID_FLAG_MASK
+		bidgo.BidLowerFlags(uint32(arg0Raw), &flags)
+		return 0, formatReadtestStatus(flags), nil
+	case "bid_restoreFlags":
+		if len(operands) != 3 {
+			return 0, "", fmt.Errorf("bid_restoreFlags expects 3 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		arg1Raw, err := parseReadtestUint(operands[1])
+		if err != nil {
+			return 0, "", err
+		}
+		arg2Raw, err := parseReadtestUint(operands[2])
+		if err != nil {
+			return 0, "", err
+		}
+		flags := uint32(arg2Raw) & bidgo.BID_FLAG_MASK
+		bidgo.BidRestoreFlags(uint32(arg0Raw), uint32(arg1Raw), &flags)
+		return 0, formatReadtestStatus(flags), nil
+	case "bid_saveFlags":
+		if len(operands) != 2 {
+			return 0, "", fmt.Errorf("bid_saveFlags expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		arg1Raw, err := parseReadtestUint(operands[1])
+		if err != nil {
+			return 0, "", err
+		}
+		flags := uint32(arg1Raw) & bidgo.BID_FLAG_MASK
+		result := bidgo.BidSaveFlags(uint32(arg0Raw), &flags)
+		return uint64(result), formatReadtestStatus(flags), nil
+	case "bid_setDecimalRoundingDirection":
+		if len(operands) != 1 {
+			return 0, "", fmt.Errorf("bid_setDecimalRoundingDirection expects 1 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		result := bidgo.BidSetDecimalRoundingDirection(uint32(arg0Raw), uint32(rounding))
+		return uint64(result), formatReadtestStatus(0), nil
+	case "bid_signalException":
+		if len(operands) != 2 {
+			return 0, "", fmt.Errorf("bid_signalException expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		arg1Raw, err := parseReadtestUint(operands[1])
+		if err != nil {
+			return 0, "", err
+		}
+		flags := uint32(arg1Raw) & bidgo.BID_FLAG_MASK
+		bidgo.BidSignalException(uint32(arg0Raw), &flags)
+		return 0, formatReadtestStatus(flags), nil
+	case "bid_testFlags":
+		if len(operands) != 2 {
+			return 0, "", fmt.Errorf("bid_testFlags expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		arg1Raw, err := parseReadtestUint(operands[1])
+		if err != nil {
+			return 0, "", err
+		}
+		flags := uint32(arg1Raw) & bidgo.BID_FLAG_MASK
+		result := bidgo.BidTestFlags(uint32(arg0Raw), &flags)
+		return uint64(result), formatReadtestStatus(flags), nil
+	case "bid_testSavedFlags":
+		if len(operands) != 2 {
+			return 0, "", fmt.Errorf("bid_testSavedFlags expects 2 operands, got %d", len(operands))
+		}
+		arg0Raw, err := parseReadtestUint(operands[0])
+		if err != nil {
+			return 0, "", err
+		}
+		arg1Raw, err := parseReadtestUint(operands[1])
+		if err != nil {
+			return 0, "", err
+		}
+		result := bidgo.BidTestSavedFlags(uint32(arg0Raw), uint32(arg1Raw))
+		return uint64(result), formatReadtestStatus(0), nil
 	default:
 		return 0, "", fmt.Errorf("unsupported goport readtest unsigned function %q", function)
 	}

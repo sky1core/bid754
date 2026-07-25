@@ -92,9 +92,11 @@ This is pinned down as follows.
    native FFI bit-compare (direct comparison against Intel C) is not run on this platform. The
    arm64 production bits are cross-covered by macOS arm64 (native FFI on the same ISA). For the
    readtest half, the concrete gate is the generated `TestGeneratedReadCasesGoPort` runner. It
-   executes every generated row except the `status_control` rows, which model Intel global-state
-   helpers rather than the explicit-flags Go mechanical-port surface. The full, executed, and
-   excluded counts are generated and independently pinned under the count-ownership rules in
+   executes every generated row with no exclusion, including the `status_control` rows: the
+   IEEE 754-2019 §5.7.4 status-control operations are part of the Go mechanical port and are driven
+   with the row's status word and rounding mode passed explicitly instead of through Intel's
+   global state. The full and executed counts are generated and independently pinned under the
+   count-ownership rules in
    `TEST_GENERATION_SPEC.md`; they are not duplicated as a platform contract here. The runner
    needs no cgo and therefore runs inside `make test-go-modules` on the portable arm64 Linux leg.
 4. QEMU execution results are used only as auxiliary signals; bit-reproducibility confirmation is

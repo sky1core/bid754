@@ -13,7 +13,7 @@
   "readtest_profile_row_skip_reasons": {
     "longintsize32": 6652
   },
-  "goport_readtest_executed_cases": 86790,
+  "goport_readtest_executed_cases": 86927,
   "ffi_bitcompare_cases_total": 28433,
   "tier1_arithmetic_long_boundary_values_by_width": {
     "decimal32": 1238,
@@ -203,7 +203,7 @@
   },
   "readtest_profile_functions_total": 680,
   "readtest_profile_functions_selected": 561,
-  "goport_readtest_dispatched_functions": 550,
+  "goport_readtest_dispatched_functions": 558,
   "rust_readtest_dispatched_functions": 561,
   "rust_readtest_suite_passes": {
     "decimal64": 21722,
@@ -517,10 +517,10 @@
   },
   "d32_exhaustive_unary_consumers": 2,
   "verification_artifact_sha256": {
-    "testspec_tree": "ba718933cca1fbf4cc9c15d3c8ea183ca662ffeb637778ee1ccf267bb156d59e",
+    "testspec_tree": "97084c1a580f7b23f6c4edc806c3ce05929c5ed74014c5ee1df922649dac980b",
     "bidcodec_vectors": "ba8f77bbf4816346d6d11f2b00320eaf5d197397268e5e36f8e5b784b40374a7",
     "bidcodec_harnesses": "3edd46062a7c0a849c462e49bd3e0235a1b348a0b4799ceb8142382dbaece8aa",
-    "goport_verification_runners": "53a8e16a88089e8d49a770058f6d36da19524c0b5503402cb83b0a81b644e51a",
+    "goport_verification_runners": "4edca5b19a06b1f48402516fe4c20617ae6953d4491532059304fa3d5fc6dc92",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
     "d32_exhaustive_runners": "c7cd9761c7b152027adfcf8fd68adf48d8db86dec1e0c765f4a696a6bbce8093",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",

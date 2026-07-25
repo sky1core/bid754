@@ -20,6 +20,8 @@ pub const BID_UNDERFLOW_EXCEPTION: u64 = 16;
 pub const BID_ZERO_DIVIDE_EXCEPTION: u64 = 4;
 
 // === internal ===
+pub const BID_FLAG_MASK: u64 = 63;
+pub const BID_IEEE_FLAGS: u64 = 61;
 pub const BINARY_EXPONENT_BIAS: u64 = 0x3ff;
 pub const DECIMAL_EXPONENT_BIAS: u64 = 0x18e;
 pub const MASK_BINARY_EXPONENT: u64 = 0x7ff0000000000000;

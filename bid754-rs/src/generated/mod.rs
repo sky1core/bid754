@@ -59,6 +59,7 @@ pub mod compare64;
 pub mod convert64;
 pub mod div64;
 pub mod fdim64;
+pub mod flag_operations;
 pub mod fma64;
 pub mod fmod64;
 pub mod frexp64;

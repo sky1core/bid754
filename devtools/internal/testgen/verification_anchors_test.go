@@ -938,8 +938,12 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	if nativeCompareSkips != anchors.ReadtestNativeCompareSkipCases {
 		t.Errorf("generated readtest native-compare skip case count = %d, anchor = %d", nativeCompareSkips, anchors.ReadtestNativeCompareSkipCases)
 	}
-	if executed := readTotal - statusControl; executed != anchors.GoportReadtestExecutedCases {
-		t.Errorf("goport executed readtest case count = %d, anchor = %d", executed, anchors.GoportReadtestExecutedCases)
+	// The goport gate executes every generated readtest row, status_control
+	// included (the section 5.7.4 status-control operations are ported into
+	// bidgo and driven with an explicit status word and rounding mode), so the
+	// executed count is the full corpus with nothing subtracted.
+	if readTotal != anchors.GoportReadtestExecutedCases {
+		t.Errorf("goport executed readtest case count = %d, anchor = %d", readTotal, anchors.GoportReadtestExecutedCases)
 	}
 	if len(spec.FFICases) != anchors.FFIBitcompareCasesTotal {
 		t.Errorf("generated FFI bit-compare case total = %d, anchor = %d", len(spec.FFICases), anchors.FFIBitcompareCasesTotal)

@@ -1,8 +1,7 @@
 {
   "version": "1.0",
   "source": "generated/testspec/spec_index.json + generated/json/intel_dfp_symbols.json + bid754-go/internal/bidgo",
-  "dispatched": 550,
-  "excluded_status_control": 8,
+  "dispatched": 558,
   "functions": [
     {
       "function": "bid128_abs",
@@ -2759,43 +2758,43 @@
     },
     {
       "function": "bid_getDecimalRoundingDirection",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidGetDecimalRoundingDirection",
+      "status": "dispatched"
     },
     {
       "function": "bid_lowerFlags",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidLowerFlags",
+      "status": "dispatched"
     },
     {
       "function": "bid_restoreFlags",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidRestoreFlags",
+      "status": "dispatched"
     },
     {
       "function": "bid_saveFlags",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidSaveFlags",
+      "status": "dispatched"
     },
     {
       "function": "bid_setDecimalRoundingDirection",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidSetDecimalRoundingDirection",
+      "status": "dispatched"
     },
     {
       "function": "bid_signalException",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidSignalException",
+      "status": "dispatched"
     },
     {
       "function": "bid_testFlags",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidTestFlags",
+      "status": "dispatched"
     },
     {
       "function": "bid_testSavedFlags",
-      "status": "excluded_status_control",
-      "reason": "Intel global status helpers are not part of the explicit-flags Go port surface; the C-oracle and Rust readtest gates keep covering these rows"
+      "go_function": "BidTestSavedFlags",
+      "status": "dispatched"
     }
   ]
 }

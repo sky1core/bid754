@@ -113,6 +113,11 @@ const (
 	BID_ZERO_DIVIDE_EXCEPTION = 0x04
 	BID_INVALID_EXCEPTION     = 0x01
 	BID_EXACT_STATUS          = 0x00
+	// Status word masks from bid_functions.h: BID_FLAG_MASK covers every bit
+	// the status word holds, BID_IEEE_FLAGS covers only the five IEEE 754
+	// exception flags the §5.7.4 flag operations may read or write.
+	BID_FLAG_MASK  = 0x3f
+	BID_IEEE_FLAGS = 0x3d
 )
 
 // __shr_128 performs right shift on 128-bit value

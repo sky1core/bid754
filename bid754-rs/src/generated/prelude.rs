@@ -225,6 +225,7 @@ pub use super::compare64::*;
 pub use super::convert64::*;
 pub use super::div64::*;
 pub use super::fdim64::*;
+pub use super::flag_operations::*;
 pub use super::fma64::*;
 pub use super::fmod64::*;
 pub use super::frexp64::*;
