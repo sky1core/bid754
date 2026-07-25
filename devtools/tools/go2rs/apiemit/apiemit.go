@@ -360,6 +360,13 @@ var shapeSigs = map[string]shapeSig{
 	// 1-operand ops with flags, no rounding mode: LogB/NextMinus/NextPlus/RoundIntegralNearestAway/
 	// RoundIntegralNearestEven/RoundIntegralNegative/RoundIntegralPositive/RoundIntegralZero
 	"unary_with_flags_no_round": {method: true, params: nil, results: []sigForm{formValue, formFlags}},
+	// 1-operand ops with flags and no rounding mode whose primary result is the
+	// integer logBFormat rather than a decimal value: ILogB. Structurally
+	// unary_with_flags_no_round with formInt in the value slot, kept a separate
+	// shape because the Rust return type (i64, matching the generated port's
+	// own result type) is not the receiver's own decimal type and therefore
+	// must not go through widthSpec.wrapResult.
+	"unary_int_with_flags_no_round": {method: true, params: nil, results: []sigForm{formInt, formFlags}},
 	// 1-operand ops with flags, default (nearest-even) rounding: Sqrt, RoundIntegralExactWithFlags
 	"unary_with_flags_default_round": {method: true, params: nil, results: []sigForm{formValue, formFlags}},
 	// RoundIntegralExact() Decimal<w>BID -- value-only wrapper dropping the port's flags, default rounding

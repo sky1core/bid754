@@ -192,6 +192,15 @@ func (d Decimal32BID) LogB() (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDLogBPort(d)
 }
 
+// ILogB returns the IEEE 754 logB result for d in the integer logBFormat and
+// the exception flags raised by the operation.
+// A zero, infinite, or NaN operand raises FlagInvalidOperation and returns a
+// value far outside the format's exponent range: math.MaxInt32 for an infinity
+// and math.MinInt32 for a zero or NaN operand.
+func (d Decimal32BID) ILogB() (int, ExceptionFlags) {
+	return decimal32BIDILogBPort(d)
+}
+
 // ScaleB returns the IEEE 754 scaleB result for d scaled by exponent and the exception flags raised by the operation.
 func (d Decimal32BID) ScaleB(exponent int) (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDScaleBPort(d, exponent)
@@ -502,6 +511,15 @@ func (d Decimal64BID) RoundIntegralNegative() (Decimal64BID, ExceptionFlags) {
 // LogB returns the IEEE 754 logB result for d and the exception flags raised by the operation.
 func (d Decimal64BID) LogB() (Decimal64BID, ExceptionFlags) {
 	return decimal64BIDLogBPort(d)
+}
+
+// ILogB returns the IEEE 754 logB result for d in the integer logBFormat and
+// the exception flags raised by the operation.
+// A zero, infinite, or NaN operand raises FlagInvalidOperation and returns a
+// value far outside the format's exponent range: math.MaxInt32 for an infinity
+// and math.MinInt32 for a zero or NaN operand.
+func (d Decimal64BID) ILogB() (int, ExceptionFlags) {
+	return decimal64BIDILogBPort(d)
 }
 
 // ScaleB returns the IEEE 754 scaleB result for d scaled by exponent and the exception flags raised by the operation.
@@ -834,6 +852,15 @@ func (d Decimal128BID) RoundIntegralNegative() (Decimal128BID, ExceptionFlags) {
 // LogB returns the IEEE 754 logB result for d and the exception flags raised by the operation.
 func (d Decimal128BID) LogB() (Decimal128BID, ExceptionFlags) {
 	return decimal128BIDLogBPort(d)
+}
+
+// ILogB returns the IEEE 754 logB result for d in the integer logBFormat and
+// the exception flags raised by the operation.
+// A zero, infinite, or NaN operand raises FlagInvalidOperation and returns a
+// value far outside the format's exponent range: math.MaxInt32 for an infinity
+// and math.MinInt32 for a zero or NaN operand.
+func (d Decimal128BID) ILogB() (int, ExceptionFlags) {
+	return decimal128BIDILogBPort(d)
 }
 
 // ScaleB returns the IEEE 754 scaleB result for d scaled by exponent and the exception flags raised by the operation.

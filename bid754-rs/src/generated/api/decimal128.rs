@@ -524,6 +524,12 @@ impl Decimal128 {
         (Decimal128(super::types::bid_uint128_to_le_bytes(bits)), ExceptionFlags::from_bidgo(raw))
     }
 
+    pub fn ilogb(self) -> (i64, ExceptionFlags) {
+        let mut raw = 0u32;
+        let value = crate::generated::bid128_misc::bid128_ilogb(super::types::bid_uint128_from_le_bytes(self.0), &mut raw);
+        (value, ExceptionFlags::from_bidgo(raw))
+    }
+
     pub fn round_integral_exact_with_flags(self) -> (Decimal128, ExceptionFlags) {
         let mut raw = 0u32;
         let bits = crate::generated::bid128_round_integral::bid128_round_integral_exact(super::types::bid_uint128_from_le_bytes(self.0), BIDGO_ROUND_NEAREST_EVEN, &mut raw);

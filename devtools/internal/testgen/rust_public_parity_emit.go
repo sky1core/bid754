@@ -992,6 +992,8 @@ func emitRustParityUnit(b *strings.Builder, row rustParityInventoryRow, corpus p
 		return emitSimpleOp(b, row, corpus, w, 1, false, false, false, resultDec64)
 	case "unary_with_flags_no_round":
 		return emitSimpleOp(b, row, corpus, w, 1, false, true, false, resultDec64)
+	case "unary_int_with_flags_no_round":
+		return emitSimpleOp(b, row, corpus, w, 1, false, true, false, resultInt)
 	case "unary_with_flags_default_round":
 		return emitSimpleOp(b, row, corpus, w, 1, true, true, false, resultDec64)
 	case "unary_mode_drop_flags":
@@ -1603,12 +1605,17 @@ type simpleOpResultKind int
 const (
 	resultDec64 simpleOpResultKind = iota
 	resultBool
+	// resultInt is the integer logBFormat primary result (ILogB): both the
+	// public wrapper and the port return i64, so the two sides are compared
+	// directly with no bit-normalization and no "!= 0" truth conversion.
+	resultInt
 )
 
 // emitSimpleOp handles every arity-1/2/3 same-width-operand shape with an
 // optional BIDGO_ROUND_NEAREST_EVEN rounding argument on the port side and a
 // none/returned/dropped flags shape: unary, unary_with_flags_no_round,
-// unary_with_flags_default_round, unary_mode_drop_flags, predicate (arity
+// unary_int_with_flags_no_round, unary_with_flags_default_round,
+// unary_mode_drop_flags, predicate (arity
 // 1); binary, binary_with_flags, binary_flags_no_round, binary_drop_flags,
 // copysign, same_quantum, compare_bool_flags (arity 2); fma (arity 3). This
 // single generic template, parameterized by width w, covers the large
@@ -1701,6 +1708,10 @@ func emitSimpleOp(b *strings.Builder, row rustParityInventoryRow, corpus publicP
 		}
 		fmt.Fprintf(b, "%sif pv != %s {\n", indent, prBool)
 		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s %s: result mismatch public={} port={}\", %s, pv, %s));\n", indent, row.GoSymbol, label, placeholders, ctxArgs, prBool)
+		fmt.Fprintf(b, "%s}\n", indent)
+	case resultInt:
+		fmt.Fprintf(b, "%sif pv != pr {\n", indent)
+		fmt.Fprintf(b, "%s    failures.push(format!(\"public parity %s: %s %s: result mismatch public={} port={}\", %s, pv, pr));\n", indent, row.GoSymbol, label, placeholders, ctxArgs)
 		fmt.Fprintf(b, "%s}\n", indent)
 	default:
 		pubBits, portBits, fmtSpec := w.pubBitsExpr("pv"), w.portBitsExpr("pr"), w.resultFmtSpec()

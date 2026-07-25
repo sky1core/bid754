@@ -1517,6 +1517,23 @@ fn parity_decimal128_bid_fmod(failures: &mut Vec<String>) -> usize {
     count
 }
 
+fn parity_decimal128_bid_ilog_b(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &v0 in CORPUS_128 {
+        let (pv, pf) = Decimal128::from_le_bytes(v0).ilogb();
+        let mut praw = 0u32;
+        let pr = bid754::generated::bid128_misc::bid128_ilogb(to_port128(v0), &mut praw);
+        if pv != pr {
+            failures.push(format!("public parity Decimal128BID.ILogB: operand {:x?}: result mismatch public={} port={}", v0, pv, pr));
+        }
+        if pf.bits() != map_port_flags(praw) {
+            failures.push(format!("public parity Decimal128BID.ILogB: operand {:x?}: flag mismatch public={:#x} port={:#x}", v0, pf.bits(), map_port_flags(praw)));
+        }
+        count += 1;
+    }
+    count
+}
+
 fn parity_decimal128_bid_is_canonical(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &v0 in CORPUS_128 {
@@ -3609,6 +3626,22 @@ fn parity_decimal32_bid_fmod(failures: &mut Vec<String>) -> usize {
     count
 }
 
+fn parity_decimal32_bid_ilog_b(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &v0 in CORPUS_32 {
+        let (pv, pf) = Decimal32::from_bits(v0).ilogb();
+        let (pr, praw) = bid754::generated::bid32_logb::bid32_i_logb(v0);
+        if pv != pr {
+            failures.push(format!("public parity Decimal32BID.ILogB: operand {:#x}: result mismatch public={} port={}", v0, pv, pr));
+        }
+        if pf.bits() != map_port_flags(praw) {
+            failures.push(format!("public parity Decimal32BID.ILogB: operand {:#x}: flag mismatch public={:#x} port={:#x}", v0, pf.bits(), map_port_flags(praw)));
+        }
+        count += 1;
+    }
+    count
+}
+
 fn parity_decimal32_bid_is_canonical(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for &v0 in CORPUS_32 {
@@ -5666,6 +5699,22 @@ fn parity_decimal64_bid_fmod(failures: &mut Vec<String>) -> usize {
         }
         if pf.bits() != map_port_flags(praw) {
             failures.push(format!("public parity Decimal64BID.Fmod: operands {:#x},{:#x}: flag mismatch public={:#x} port={:#x}", v0, v1, pf.bits(), map_port_flags(praw)));
+        }
+        count += 1;
+    }
+    count
+}
+
+fn parity_decimal64_bid_ilog_b(failures: &mut Vec<String>) -> usize {
+    let mut count = 0usize;
+    for &v0 in CORPUS_64 {
+        let (pv, pf) = Decimal64::from_bits(v0).ilogb();
+        let (pr, praw) = bid754::generated::logb64::bid64_i_logb(v0);
+        if pv != pr {
+            failures.push(format!("public parity Decimal64BID.ILogB: operand {:#x}: result mismatch public={} port={}", v0, pv, pr));
+        }
+        if pf.bits() != map_port_flags(praw) {
+            failures.push(format!("public parity Decimal64BID.ILogB: operand {:#x}: flag mismatch public={:#x} port={:#x}", v0, pf.bits(), map_port_flags(praw)));
         }
         count += 1;
     }
@@ -10579,6 +10628,7 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal128BID.FMA", shape: "fma", run: parity_decimal128_bid_fma },
     ParityUnit { go_symbol: "Decimal128BID.FMAWithMode", shape: "ternary_mode_flags", run: parity_decimal128_bid_fmawith_mode },
     ParityUnit { go_symbol: "Decimal128BID.Fmod", shape: "binary_flags_no_round", run: parity_decimal128_bid_fmod },
+    ParityUnit { go_symbol: "Decimal128BID.ILogB", shape: "unary_int_with_flags_no_round", run: parity_decimal128_bid_ilog_b },
     ParityUnit { go_symbol: "Decimal128BID.IsCanonical", shape: "predicate", run: parity_decimal128_bid_is_canonical },
     ParityUnit { go_symbol: "Decimal128BID.IsFinite", shape: "predicate", run: parity_decimal128_bid_is_finite },
     ParityUnit { go_symbol: "Decimal128BID.IsInf", shape: "predicate", run: parity_decimal128_bid_is_inf },
@@ -10681,6 +10731,7 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal32BID.FMA", shape: "fma", run: parity_decimal32_bid_fma },
     ParityUnit { go_symbol: "Decimal32BID.FMAWithMode", shape: "ternary_mode_flags", run: parity_decimal32_bid_fmawith_mode },
     ParityUnit { go_symbol: "Decimal32BID.Fmod", shape: "binary_flags_no_round", run: parity_decimal32_bid_fmod },
+    ParityUnit { go_symbol: "Decimal32BID.ILogB", shape: "unary_int_with_flags_no_round", run: parity_decimal32_bid_ilog_b },
     ParityUnit { go_symbol: "Decimal32BID.IsCanonical", shape: "predicate", run: parity_decimal32_bid_is_canonical },
     ParityUnit { go_symbol: "Decimal32BID.IsFinite", shape: "predicate", run: parity_decimal32_bid_is_finite },
     ParityUnit { go_symbol: "Decimal32BID.IsInf", shape: "predicate", run: parity_decimal32_bid_is_inf },
@@ -10783,6 +10834,7 @@ const PARITY_UNITS: &[ParityUnit] = &[
     ParityUnit { go_symbol: "Decimal64BID.FMA", shape: "fma", run: parity_decimal64_bid_fma },
     ParityUnit { go_symbol: "Decimal64BID.FMAWithMode", shape: "ternary_mode_flags", run: parity_decimal64_bid_fmawith_mode },
     ParityUnit { go_symbol: "Decimal64BID.Fmod", shape: "binary_flags_no_round", run: parity_decimal64_bid_fmod },
+    ParityUnit { go_symbol: "Decimal64BID.ILogB", shape: "unary_int_with_flags_no_round", run: parity_decimal64_bid_ilog_b },
     ParityUnit { go_symbol: "Decimal64BID.IsCanonical", shape: "predicate", run: parity_decimal64_bid_is_canonical },
     ParityUnit { go_symbol: "Decimal64BID.IsFinite", shape: "predicate", run: parity_decimal64_bid_is_finite },
     ParityUnit { go_symbol: "Decimal64BID.IsInf", shape: "predicate", run: parity_decimal64_bid_is_inf },
@@ -10928,8 +10980,8 @@ const PARITY_UNITS: &[ParityUnit] = &[
 /// regular verification domain (same framing as the Go leg). Case counts are
 /// pinned here at generation time so a generator regression that shrinks the
 /// corpus cannot silently re-pin a smaller surface.
-pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 379;
-pub(crate) const EXPECTED_PARITY_CASES: usize = 28721;
+pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 382;
+pub(crate) const EXPECTED_PARITY_CASES: usize = 28793;
 
 const EXPECTED_MIXED_FMA_FUSEDNESS_SENTINELS: usize = 14;
 
@@ -11011,6 +11063,7 @@ const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("total_cmp", 72),
     ("total_cmp_mag", 72),
     ("unary", 144),
+    ("unary_int_with_flags_no_round", 72),
     ("unary_mode_drop_flags", 72),
     ("unary_mode_flags", 840),
     ("unary_with_flags_default_round", 144),

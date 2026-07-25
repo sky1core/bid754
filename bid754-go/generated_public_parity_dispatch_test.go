@@ -1861,6 +1861,24 @@ func publicParity_Decimal128BID_Fmod(t *testing.T) int {
 	return count
 }
 
+func publicParity_Decimal128BID_ILogB(t *testing.T) int {
+	count := 0
+	for _, elem := range publicParityCorpus128 {
+		a := Decimal128BID(elem)
+		pv, pf := a.ILogB()
+		var prf uint32
+		pr := bidgo.Bid128Ilogb(publicParityToBidgo128(elem), &prf)
+		if pv != pr {
+			t.Errorf("public parity Decimal128BID.ILogB: operand %#x: result mismatch public=%v port=%v", elem, pv, pr)
+		}
+		if pf != mapPortFlagsForParity(prf) {
+			t.Errorf("public parity Decimal128BID.ILogB: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
+		}
+		count++
+	}
+	return count
+}
+
 func publicParity_Decimal128BID_IsCanonical(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
@@ -4396,6 +4414,23 @@ func publicParity_Decimal32BID_Fmod(t *testing.T) int {
 	return count
 }
 
+func publicParity_Decimal32BID_ILogB(t *testing.T) int {
+	count := 0
+	for _, elem := range publicParityCorpus32 {
+		a := Decimal32BID(elem)
+		pv, pf := a.ILogB()
+		pr, prf := bidgo.Bid32ILogb(elem)
+		if pv != pr {
+			t.Errorf("public parity Decimal32BID.ILogB: operand %#x: result mismatch public=%v port=%v", elem, pv, pr)
+		}
+		if pf != mapPortFlagsForParity(prf) {
+			t.Errorf("public parity Decimal32BID.ILogB: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
+		}
+		count++
+	}
+	return count
+}
+
 func publicParity_Decimal32BID_IsCanonical(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
@@ -6898,6 +6933,23 @@ func publicParity_Decimal64BID_Fmod(t *testing.T) int {
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.Fmod: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
+		}
+		count++
+	}
+	return count
+}
+
+func publicParity_Decimal64BID_ILogB(t *testing.T) int {
+	count := 0
+	for _, elem := range publicParityCorpus64 {
+		a := Decimal64BID(elem)
+		pv, pf := a.ILogB()
+		pr, prf := bidgo.Bid64ILogb(elem)
+		if pv != pr {
+			t.Errorf("public parity Decimal64BID.ILogB: operand %#x: result mismatch public=%v port=%v", elem, pv, pr)
+		}
+		if pf != mapPortFlagsForParity(prf) {
+			t.Errorf("public parity Decimal64BID.ILogB: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
 		}
 		count++
 	}
@@ -12263,6 +12315,7 @@ var publicParityUnits = []struct {
 	{"Decimal128BID.FMA", "vm_ternary", publicParity_Decimal128BID_FMA},
 	{"Decimal128BID.FMAWithMode", "vm_mode_ternary", publicParity_Decimal128BID_FMAWithMode},
 	{"Decimal128BID.Fmod", "vm_binary", publicParity_Decimal128BID_Fmod},
+	{"Decimal128BID.ILogB", "vm_unary", publicParity_Decimal128BID_ILogB},
 	{"Decimal128BID.IsCanonical", "vm_unary", publicParity_Decimal128BID_IsCanonical},
 	{"Decimal128BID.IsFinite", "vm_unary", publicParity_Decimal128BID_IsFinite},
 	{"Decimal128BID.IsInf", "vm_unary", publicParity_Decimal128BID_IsInf},
@@ -12365,6 +12418,7 @@ var publicParityUnits = []struct {
 	{"Decimal32BID.FMA", "vm_ternary", publicParity_Decimal32BID_FMA},
 	{"Decimal32BID.FMAWithMode", "vm_mode_ternary", publicParity_Decimal32BID_FMAWithMode},
 	{"Decimal32BID.Fmod", "vm_binary", publicParity_Decimal32BID_Fmod},
+	{"Decimal32BID.ILogB", "vm_unary", publicParity_Decimal32BID_ILogB},
 	{"Decimal32BID.IsCanonical", "vm_unary", publicParity_Decimal32BID_IsCanonical},
 	{"Decimal32BID.IsFinite", "vm_unary", publicParity_Decimal32BID_IsFinite},
 	{"Decimal32BID.IsInf", "vm_unary", publicParity_Decimal32BID_IsInf},
@@ -12467,6 +12521,7 @@ var publicParityUnits = []struct {
 	{"Decimal64BID.FMA", "vm_ternary", publicParity_Decimal64BID_FMA},
 	{"Decimal64BID.FMAWithMode", "vm_mode_ternary", publicParity_Decimal64BID_FMAWithMode},
 	{"Decimal64BID.Fmod", "vm_binary", publicParity_Decimal64BID_Fmod},
+	{"Decimal64BID.ILogB", "vm_unary", publicParity_Decimal64BID_ILogB},
 	{"Decimal64BID.IsCanonical", "vm_unary", publicParity_Decimal64BID_IsCanonical},
 	{"Decimal64BID.IsFinite", "vm_unary", publicParity_Decimal64BID_IsFinite},
 	{"Decimal64BID.IsInf", "vm_unary", publicParity_Decimal64BID_IsInf},

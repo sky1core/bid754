@@ -75,7 +75,10 @@ anchors in `devtools/verification_anchors.json` pin those two counts).
   `is_normal`/`is_finite`/`is_subnormal`/`is_signaling`/`is_canonical`/
   `is_sign_negative`, `sign`, `class() -> DecimalClass`, `same_quantum`, and
   the `RADIX: u32` associated constant.
-- **Other IEEE operations** — `logb`/`scaleb` (exponent manipulation),
+- **Other IEEE operations** — `logb`/`ilogb`/`scaleb` (exponent manipulation;
+  `ilogb` is the integer-`logBFormat` form and returns
+  `(i64, ExceptionFlags)`, signalling invalid operation with `i32::MAX` for an
+  infinite operand and `i32::MIN` for a zero or NaN operand),
   `next_up`/`next_down`/`next_toward` (the IEEE nextUp/nextDown/nextAfter
   family), `abs`/`neg`/`copysign` (sign manipulation).
 - **Conversions** — `to_i8..to_i64`/`to_u8..to_u64` and their `_exact`

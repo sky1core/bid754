@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "source": "bid754-go module-root package bid754 (all non-test files, generated included) + bid754-go/internal/bidgo + devtools/testgen_manifest.json public_api",
-  "total": 426,
-  "mapped": 379,
+  "total": 429,
+  "mapped": 382,
   "excluded": 47,
   "excluded_by_class": {
     "composition_plumbing": 6,
@@ -375,6 +375,12 @@
       "kind": "method",
       "status": "mapped",
       "bidgo_function": "Bid128Fmod"
+    },
+    {
+      "symbol": "Decimal128BID.ILogB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid128Ilogb"
     },
     {
       "symbol": "Decimal128BID.IsCanonical",
@@ -1043,6 +1049,12 @@
       "bidgo_function": "Bid32Fmod"
     },
     {
+      "symbol": "Decimal32BID.ILogB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid32ILogb"
+    },
+    {
       "symbol": "Decimal32BID.IsCanonical",
       "kind": "method",
       "status": "mapped",
@@ -1705,6 +1717,12 @@
       "kind": "method",
       "status": "mapped",
       "bidgo_function": "Bid64Fmod"
+    },
+    {
+      "symbol": "Decimal64BID.ILogB",
+      "kind": "method",
+      "status": "mapped",
+      "bidgo_function": "Bid64ILogb"
     },
     {
       "symbol": "Decimal64BID.IsCanonical",

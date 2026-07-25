@@ -12,8 +12,8 @@ import "testing"
 // Case counts are pinned here at generation time so a generator regression that
 // shrinks the corpus cannot silently re-pin a smaller surface.
 const (
-	expectedPublicParityWrappers = 379
-	expectedPublicParityCases    = 29038
+	expectedPublicParityWrappers = 382
+	expectedPublicParityCases    = 29110
 )
 
 // The flagless-sibling equivalence leg's counts are pinned separately from
@@ -66,7 +66,7 @@ var expectedPublicParityCasesByShape = map[string]int{
 	"vm_signaling_not_equal":  72,
 	"vm_string":               57,
 	"vm_ternary":              42,
-	"vm_unary":                1728,
+	"vm_unary":                1800,
 }
 
 func TestGeneratedPublicAPIParity(t *testing.T) {

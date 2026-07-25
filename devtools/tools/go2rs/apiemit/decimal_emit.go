@@ -168,6 +168,24 @@ func emitUnaryFlagsNoRoundOps(b *strings.Builder, ops []decOp, w widthSpec) {
 	}
 }
 
+// emitUnaryIntFlagsNoRoundOps renders unary ops returning (i64,
+// ExceptionFlags) whose port call takes no rounding-mode argument (ILogB).
+// Identical to emitUnaryFlagsNoRoundOps except that the primary result is the
+// port's own i64 logBFormat integer, so it is returned as-is instead of being
+// wrapped back into the receiver's decimal type by widthSpec.wrapResult.
+func emitUnaryIntFlagsNoRoundOps(b *strings.Builder, ops []decOp, w widthSpec) {
+	sortDecOps(ops)
+	for _, op := range ops {
+		stmt := flagsCallStmt(op, []string{w.selfArg("self")}, "value", "raw")
+		fmt.Fprintf(b, `
+    pub fn %s(self) -> (i64, ExceptionFlags) {
+        %s
+        (value, ExceptionFlags::from_bidgo(raw))
+    }
+`, op.method, stmt)
+	}
+}
+
 // emitUnaryFlagsDefaultRoundOps renders unary ops returning (Decimal<w>,
 // ExceptionFlags) whose port call takes a rounding mode; the wrapper always
 // passes default round-nearest-even (Sqrt, RoundIntegralExactWithFlags).

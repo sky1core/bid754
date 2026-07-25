@@ -81,34 +81,42 @@ var (
 
 // bidgoFuncToRustFn maps a bidgo (Go mechanical port) exported function name to
 // the go2rs-convention Rust snake_case function name, re-derived here from the
-// census bidgo_function INDEPENDENTLY of apiemit's portPath table: an uppercase
-// letter starts a new word (preceded by '_' when it follows a lowercase letter
-// or a digit), digits attach to the current run. This reproduces the same
-// lowering go2rs applies (Bid64Div->bid64_div, Bid64IsNaN->bid64_is_na_n,
-// Bid64ToInt16Rnint->bid64_to_int16_rnint, Bid64FromUint32->bid64_from_uint32)
-// so the expectation never passes through the routing source under test. The
-// happy-path test cross-checks this transform against the real wrapper calls,
-// so a lowering drift surfaces as a routing mismatch rather than passing
-// silently.
+// census bidgo_function INDEPENDENTLY of apiemit's portPath table. Two word
+// boundaries produce a '_' before a lowercased uppercase letter, and digits
+// attach to the current run:
+//
+//   - a lowercase letter or a digit followed by an uppercase letter
+//     ("aB"/"4B" -> "a_b"/"4_b"): Bid64Div->bid64_div,
+//     Bid64IsNaN->bid64_is_na_n, Bid64ToInt16Rnint->bid64_to_int16_rnint,
+//     Bid64FromUint32->bid64_from_uint32
+//   - the end of an all-uppercase acronym, i.e. an uppercase letter that both
+//     follows an uppercase letter and precedes a lowercase one ("ABc" ->
+//     "a_bc"): Bid32ILogb->bid32_i_logb, Bid64ILogb->bid64_i_logb. Without
+//     this arm the derivation would answer bid32_ilogb, which is a real port
+//     function name at Decimal128 (Bid128Ilogb->bid128_ilogb, no consecutive
+//     capitals) but not at Decimal32/64, so the arm must be modelled rather
+//     than assumed absent.
+//
+// This reproduces the same lowering go2rs applies so the expectation never
+// passes through the routing source under test. The happy-path test
+// cross-checks this transform against the real wrapper calls, so a lowering
+// drift surfaces as a routing mismatch rather than passing silently.
 func bidgoFuncToRustFn(name string) string {
+	runes := []rune(name)
+	isUpper := func(i int) bool { return i >= 0 && i < len(runes) && runes[i] >= 'A' && runes[i] <= 'Z' }
+	isLower := func(i int) bool { return i >= 0 && i < len(runes) && runes[i] >= 'a' && runes[i] <= 'z' }
+	isDigit := func(i int) bool { return i >= 0 && i < len(runes) && runes[i] >= '0' && runes[i] <= '9' }
+
 	var b strings.Builder
-	var prevLower, prevDigit bool
-	for _, r := range name {
+	for i, r := range runes {
 		switch {
-		case r >= 'A' && r <= 'Z':
-			if b.Len() > 0 && (prevLower || prevDigit) {
+		case isUpper(i):
+			if b.Len() > 0 && (isLower(i-1) || isDigit(i-1) || (isUpper(i-1) && isLower(i+1))) {
 				b.WriteByte('_')
 			}
 			b.WriteRune(r - 'A' + 'a')
-			prevLower, prevDigit = false, false
-		case r >= 'a' && r <= 'z':
+		case isLower(i), isDigit(i):
 			b.WriteRune(r)
-			prevLower, prevDigit = true, false
-		case r >= '0' && r <= '9':
-			b.WriteRune(r)
-			prevLower, prevDigit = false, true
-		default:
-			prevLower, prevDigit = false, false
 		}
 	}
 	return b.String()
@@ -389,6 +397,9 @@ func TestBidgoFuncToRustFnLowering(t *testing.T) {
 	cases := map[string]string{
 		"Bid64Div":                   "bid64_div",
 		"Bid64Mul":                   "bid64_mul",
+		"Bid32ILogb":                 "bid32_i_logb",
+		"Bid64ILogb":                 "bid64_i_logb",
+		"Bid128Ilogb":                "bid128_ilogb",
 		"Bid64IsNaN":                 "bid64_is_na_n",
 		"Bid64ToInt16Rnint":          "bid64_to_int16_rnint",
 		"Bid64ToUint32Xceil":         "bid64_to_uint32_xceil",

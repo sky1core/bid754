@@ -328,16 +328,16 @@
       "noncanonical": 0
     }
   },
-  "public_api_symbols_total": 426,
-  "public_api_parity_wrappers": 379,
+  "public_api_symbols_total": 429,
+  "public_api_parity_wrappers": 382,
   "public_api_parity_excluded": 47,
-  "public_api_parity_cases_total": 29038,
+  "public_api_parity_cases_total": 29110,
   "public_api_flagless_sibling_targets": 6,
   "public_api_flagless_sibling_cases_total": 21029792,
-  "rust_public_api_parity_wrappers": 379,
-  "rust_public_api_direct_routing_wrappers": 361,
+  "rust_public_api_parity_wrappers": 382,
+  "rust_public_api_direct_routing_wrappers": 364,
   "rust_public_api_delegated_routing_wrappers": 18,
-  "rust_public_api_parity_cases_total": 28721,
+  "rust_public_api_parity_cases_total": 28793,
   "rust_public_api_constants_total": 12,
   "rust_public_api_parity_cases_by_shape": {
     "binary": 288,
@@ -418,6 +418,7 @@
     "total_cmp_mag": 72,
     "unary": 144,
     "unary_mode_flags": 840,
+    "unary_int_with_flags_no_round": 72,
     "unary_mode_drop_flags": 72,
     "unary_with_flags_default_round": 144,
     "unary_with_flags_no_round": 576
@@ -517,16 +518,16 @@
   },
   "d32_exhaustive_unary_consumers": 2,
   "verification_artifact_sha256": {
-    "testspec_tree": "97084c1a580f7b23f6c4edc806c3ce05929c5ed74014c5ee1df922649dac980b",
+    "testspec_tree": "6dd50c226fad1dc7cf0b0b2a3bf5a462c29b94b77c024f0291fdea07a4b57c56",
     "bidcodec_vectors": "ba8f77bbf4816346d6d11f2b00320eaf5d197397268e5e36f8e5b784b40374a7",
     "bidcodec_harnesses": "3edd46062a7c0a849c462e49bd3e0235a1b348a0b4799ceb8142382dbaece8aa",
-    "goport_verification_runners": "8e6727d20f97554e81a564710a832aba1ca1d8a7d04c6cb570429ec401765ab4",
+    "goport_verification_runners": "be2a0364801ec87242129abb1dc68ab8551fcce6eadfe9f09a4220a57642f5fe",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
     "d32_exhaustive_runners": "c7cd9761c7b152027adfcf8fd68adf48d8db86dec1e0c765f4a696a6bbce8093",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",
     "spec_loader": "faf099578397b4e39c0d02005a32d61301f10d86fb414ca5e2941cb4080d0425",
     "rust_readtest_runner": "a700fe5027e7ea644b1320180913a03c2dbefd363d85e45d5cb66435c9bf4ad5",
-    "rust_public_parity_runner": "3eb38339ab52f7bacdbab956d4149763d6efcdf0a0e463454eec1d851f206fde",
+    "rust_public_parity_runner": "e0a7d24a9b6b9453f07021fb14e3e135e79c9f7b1da255a8638782902d02f321",
     "rust_dectest_runner": "d24e687c18929322d79943ec07b9507697bc605e320381e3dbced6dc356cdc5a",
     "rust_tier1_long_runners": "7236dcf5b97173f9f9a4a10615e2a2e414239a4b639b1da5caf98c93d89ab6b1"
   }

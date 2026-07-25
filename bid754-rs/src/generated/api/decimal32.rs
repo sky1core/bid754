@@ -422,6 +422,11 @@ impl Decimal32 {
         (Decimal32(bits), ExceptionFlags::from_bidgo(raw))
     }
 
+    pub fn ilogb(self) -> (i64, ExceptionFlags) {
+        let (value, raw) = crate::generated::bid32_logb::bid32_i_logb(self.0);
+        (value, ExceptionFlags::from_bidgo(raw))
+    }
+
     pub fn round_integral_exact_with_flags(self) -> (Decimal32, ExceptionFlags) {
         let (bits, raw) = crate::generated::bid32_round_integral::bid32_round_integral_exact(self.0, BIDGO_ROUND_NEAREST_EVEN);
         (Decimal32(bits), ExceptionFlags::from_bidgo(raw))

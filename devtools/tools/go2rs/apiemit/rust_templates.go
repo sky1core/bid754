@@ -53,6 +53,7 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid64DivWithFlags":             {"div64", "bid64_div_with_flags"},
 	"Bid64Fma":                      {"fma64", "bid64_fma"},
 	"Bid64Fmod":                     {"fmod64", "bid64_fmod"},
+	"Bid64ILogb":                    {"logb64", "bid64_i_logb"},
 	"Bid64IsCanonical":              {"noncomp64", "bid64_is_canonical"},
 	"Bid64IsFinite":                 {"noncomp64", "bid64_is_finite"},
 	"Bid64IsInf":                    {"noncomp64", "bid64_is_inf"},
@@ -228,6 +229,7 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid32FromStringRaw":             {"bid32_string", "bid32_from_string_raw"},
 	"Bid32FromUint32":                {"bid32_from_int", "bid32_from_uint32"},
 	"Bid32FromUint64":                {"bid32_to_int", "bid32_from_uint64"},
+	"Bid32ILogb":                     {"bid32_logb", "bid32_i_logb"},
 	"Bid32IsCanonical":               {"bid32_noncomp", "bid32_is_canonical"},
 	"Bid32IsFinite":                  {"bid32_noncomp", "bid32_is_finite"},
 	"Bid32IsInf":                     {"bid32_exports", "bid32_is_inf"},
@@ -411,6 +413,7 @@ var portPath = map[string]struct{ module, fn string }{
 	"Bid128FromString":                {"bid128_string", "bid128_from_string"},
 	"Bid128FromUint32":                {"bid128_from_int", "bid128_from_uint32"},
 	"Bid128FromUint64":                {"bid128_from_int", "bid128_from_uint64"},
+	"Bid128Ilogb":                     {"bid128_misc", "bid128_ilogb"},
 	"Bid128IsCanonical":               {"bid128_noncomp", "bid128_is_canonical"},
 	"Bid128IsFinite":                  {"bid128_noncomp", "bid128_is_finite"},
 	"Bid128IsInf":                     {"bid128_internal", "bid128_is_inf"},
@@ -593,7 +596,9 @@ var boolResultPorts = map[string]bool{
 // tuple-return but Bid128Maxnum/Bid128MaxnumMag/Bid128Minnum/Bid128MinnumMag
 // in that same shape are pfpsf; unary_with_flags_no_round's
 // Bid128NextUp/Bid128NextDown are tuple-return but Bid128Logb and every
-// Bid128RoundIntegral* in that shape are pfpsf), so this table -- not the
+// Bid128RoundIntegral* in that shape are pfpsf, and
+// unary_int_with_flags_no_round's Bid128Ilogb is pfpsf while its 32/64
+// siblings Bid32ILogb/Bid64ILogb are tuple-return), so this table -- not the
 // shape name -- is the single source of truth a decOp consults (via
 // decOp.pfpsf, set when the op is built, mirroring boolResultPorts/
 // decOp.boolPort immediately above). Every 32/64 bidgo function, and every
@@ -603,6 +608,7 @@ var boolResultPorts = map[string]bool{
 var portPfpsf = map[string]bool{
 	"Bid128Add":                      true,
 	"Bid128Sub":                      true,
+	"Bid128Ilogb":                    true,
 	"Bid128Logb":                     true,
 	"Bid128Scalbn":                   true,
 	"Bid128Scalbln":                  true,
@@ -1741,6 +1747,7 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 	var unaryModeFlagsOps, ternaryModeFlagsOps, scalebModeOps []decOp
 	var unaryOps, predicateOps []decOp
 	var unaryFlagsNoRoundOps, unaryFlagsDefaultRoundOps []decOp
+	var unaryIntFlagsNoRoundOps []decOp
 	var binaryFlagsNoRoundOps, compareBoolFlagsOps []decOp
 	var convOps []decConvOp
 
@@ -1876,6 +1883,8 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 			}
 		case "unary_with_flags_no_round":
 			unaryFlagsNoRoundOps = append(unaryFlagsNoRoundOps, op)
+		case "unary_int_with_flags_no_round":
+			unaryIntFlagsNoRoundOps = append(unaryIntFlagsNoRoundOps, op)
 		case "unary_with_flags_default_round":
 			unaryFlagsDefaultRoundOps = append(unaryFlagsDefaultRoundOps, op)
 		case "binary_flags_no_round":
@@ -2024,6 +2033,7 @@ func buildDecimalRs(manifest *manifestFile, w widthSpec) (string, error) {
 	needFlags := emitParseRaw || emitParseWithFlags || emitParseMode || len(binsFlags) > 0 || len(binModeFlags) > 0 || len(mixedBinModeFlags) > 0 || len(mixedTernaryModeFlags) > 0 || len(mixedUnaryModeFlags) > 0 ||
 		len(unaryModeFlagsOps) > 0 || len(ternaryModeFlagsOps) > 0 || len(scalebModeOps) > 0 ||
 		len(unaryFlagsNoRoundOps) > 0 || len(unaryFlagsDefaultRoundOps) > 0 ||
+		len(unaryIntFlagsNoRoundOps) > 0 ||
 		len(binaryFlagsNoRoundOps) > 0 || len(compareBoolFlagsOps) > 0 ||
 		len(convOps) > 0 || fmaOp != nil || nextTowardOp != nil || scalebOp != nil ||
 		signalingEqMethod != "" || signalingNotEqMethod != "" ||
@@ -2355,6 +2365,7 @@ impl @SELF@ {
 	}
 
 	emitUnaryFlagsNoRoundOps(&b, unaryFlagsNoRoundOps, w)
+	emitUnaryIntFlagsNoRoundOps(&b, unaryIntFlagsNoRoundOps, w)
 	emitUnaryFlagsDefaultRoundOps(&b, unaryFlagsDefaultRoundOps, w)
 	if roundIntegralExactDropOp != nil {
 		emitRoundIntegralExactDropOp(&b, *roundIntegralExactDropOp, w)

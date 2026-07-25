@@ -282,6 +282,14 @@
       "reason": "width-parameterized reuse of the existing 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Fmod'."
     },
     {
+      "go_symbol": "Decimal128BID.ILogB",
+      "rust_owner": "Decimal128",
+      "rust_surface": "ilogb",
+      "shape": "unary_int_with_flags_no_round",
+      "bidgo_function": "Bid128Ilogb",
+      "reason": "IEEE 5.3.3 logB in the integer logBFormat; no rounding mode. Width-parameterized reuse of the 'unary_int_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid128Ilogb'."
+    },
+    {
       "go_symbol": "Decimal128BID.IsCanonical",
       "rust_owner": "Decimal128",
       "rust_surface": "is_canonical",
@@ -1098,6 +1106,14 @@
       "reason": "width-parameterized reuse of the Decimal64 'binary_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32Fmod'."
     },
     {
+      "go_symbol": "Decimal32BID.ILogB",
+      "rust_owner": "Decimal32",
+      "rust_surface": "ilogb",
+      "shape": "unary_int_with_flags_no_round",
+      "bidgo_function": "Bid32ILogb",
+      "reason": "IEEE 5.3.3 logB in the integer logBFormat; no rounding mode. Width-parameterized reuse of the 'unary_int_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid32ILogb'."
+    },
+    {
       "go_symbol": "Decimal32BID.IsCanonical",
       "rust_owner": "Decimal32",
       "rust_surface": "is_canonical",
@@ -1912,6 +1928,14 @@
       "shape": "binary_flags_no_round",
       "bidgo_function": "Bid64Fmod",
       "reason": "truncated-division remainder (GDA decTest remainder op), not the IEEE remainder; no rounding mode"
+    },
+    {
+      "go_symbol": "Decimal64BID.ILogB",
+      "rust_owner": "Decimal64",
+      "rust_surface": "ilogb",
+      "shape": "unary_int_with_flags_no_round",
+      "bidgo_function": "Bid64ILogb",
+      "reason": "IEEE 5.3.3 logB in the integer logBFormat; no rounding mode. Width-parameterized reuse of the 'unary_int_with_flags_no_round' shape template; routes through the Go mechanical port bidgo function 'Bid64ILogb'."
     },
     {
       "go_symbol": "Decimal64BID.IsCanonical",
