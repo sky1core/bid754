@@ -536,7 +536,7 @@ test:
 bench-quick:
 	@echo "⚡ native 빠른 벤치마크 실행 (public API 계층, count=1 스모크)..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '( echo "BENCH-META target=bench-quick count=1 tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="^BenchmarkAligned" -benchmem -run=^$$ -timeout 300s ) | tee test_results/quick_benchmark_results.txt'
+	@bash -o pipefail -lc '( echo "BENCH-META target=bench-quick count=1 go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="^BenchmarkAligned" -benchmem -run=^$$ -timeout 300s ) | tee test_results/quick_benchmark_results.txt'
 
 # 전체 벤치마크: Intel C, root public API, Go mechanical port, and generated Rust.
 bench:
@@ -549,14 +549,14 @@ bench:
 bench-native:
 	@echo "📊 Intel C direct + root public API native-tag 벤치마크 실행 (count=$(BENCH_COUNT))..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '( echo "BENCH-META target=bench-native count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ) | tee test_results/latest_benchmark_root_results.txt'
+	@bash -o pipefail -lc '( echo "BENCH-META target=bench-native count=$(BENCH_COUNT) go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ) | tee test_results/latest_benchmark_root_results.txt'
 	@cp test_results/latest_benchmark_root_results.txt test_results/latest_benchmark_results.txt
 
 # Go mechanical-port direct 벤치마크
 bench-bidgo:
 	@echo "📊 bidgo mechanical-port direct 벤치마크 실행 (count=$(BENCH_COUNT))..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-bidgo count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-go && $(GOENV) go test -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ./internal/bidgo ) | tee test_results/latest_benchmark_bid_go_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-bidgo count=$(BENCH_COUNT) go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-go && $(GOENV) go test -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ./internal/bidgo ) | tee test_results/latest_benchmark_bid_go_results.txt'
 
 # generated Rust Criterion 벤치마크. Criterion의 change% 는 명명된 기준점
 # 대비로만 의미가 있으므로 'pinned' 기준점과 비교한다. 기준점이 없으면 이번
@@ -565,18 +565,20 @@ bench-bidgo:
 bench-rust:
 	@echo "📊 generated Rust Criterion 벤치마크 실행 (기준점: pinned)..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench core -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench core -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_rust_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench core -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench core -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_rust_results.txt'
 
 # Criterion 'pinned' 기준점 갱신 (개선을 확정 반영할 때만 명시적으로 실행)
 bench-rust-baseline:
 	@echo "📌 generated Rust Criterion pinned 기준점 저장/갱신..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust-baseline save-baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && cargo bench --locked --bench core -- --save-baseline pinned ) | tee test_results/latest_benchmark_rust_baseline_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust-baseline save-baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && cargo bench --locked --bench core -- --save-baseline pinned ) | tee test_results/latest_benchmark_rust_baseline_results.txt'
 
 # Go 벤치 기준점 저장: 직전 make bench-native / make bench-bidgo 결과를 기준점
 # 파일로 복사한다 (Criterion 'pinned' 기준점과 동일 철학 — 기준점은 이
 # 명시적 타깃으로만 갱신하고, 벤치 실행이 기준점을 암시적으로 덮어쓰지
-# 않는다).
+# 않는다). Go 툴체인을 올렸으면 인라이닝/코드 정렬이 바뀌어 기존 기준점이
+# 무효가 되므로 재측정 후 이 타깃으로 재저장해라 (bench-go-check 의
+# BENCH-META go= 비교가 이를 강제한다).
 bench-go-baseline:
 	@echo "📌 Go 벤치 기준점 저장 (직전 bench-native + bench-bidgo 결과)..."
 	@test -f test_results/latest_benchmark_root_results.txt || { echo "❌ test_results/latest_benchmark_root_results.txt 없음 — 먼저 make bench-native 를 실행해라"; exit 1; }
@@ -597,6 +599,12 @@ bench-go-baseline:
 # 행의 build-to-build 재현성(인라이닝/코드 정렬 wobble) 범위 안이라 게이트가
 # 판정을 보류한 것이므로 출력된 change% 로 사람이 판단해라
 # (상세: docs/BUILD.md).
+# 비교 전제로 BENCH-META count=/go= 와 goos/goarch(및 있으면 cpu)가 양쪽에
+# 존재하고 일치해야 한다 — 불일치는 성능 판정이 아니라 입력 에러(exit 2)다.
+# 현재 커밋된 기준점은 go= 토큰 이전에 측정된 것이라 첫 check 가 'BENCH-META
+# go mismatch' 로 실패한다 (의도된 동작 — 툴체인 업그레이드로 이미 무효화된
+# 기준점이다). 조용한 호스트에서 bench-native + bench-bidgo 재측정 후
+# bench-go-baseline 으로 재저장해라.
 # Criterion pinned 대비 change% 게이트의 Go 매트릭스 대응물.
 bench-go-check:
 	@echo "🔍 Go 벤치 회귀 비교 (저장된 기준점 대비, benchdiff)..."
@@ -622,7 +630,7 @@ bench-codec:
 bench-codec-go:
 	@echo "📊 standalone 코덱 Go 벤치마크 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-go count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-go && $(GOENV) go test -bench="^BenchmarkCodecBID" -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 600s ) | tee test_results/latest_benchmark_codec_go_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-go count=$(BENCH_COUNT) go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-go && $(GOENV) go test -bench="^BenchmarkCodecBID" -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 600s ) | tee test_results/latest_benchmark_codec_go_results.txt'
 
 # 코덱 Rust Criterion 벤치. bench-rust 와 동일 철학: change% 는 명명된
 # 'pinned' 기준점 대비로만 읽고, 기준점 갱신은 bench-codec-rs-baseline 으로만
@@ -630,13 +638,13 @@ bench-codec-go:
 bench-codec-rs:
 	@echo "📊 standalone 코덱 Rust Criterion 벤치마크 실행 (기준점: pinned)..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-rs baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench codec -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench codec -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_codec_rs_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-rs baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench codec -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench codec -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_codec_rs_results.txt'
 
 # 코덱 Criterion 'pinned' 기준점 갱신 (개선을 확정 반영할 때만 명시적으로 실행)
 bench-codec-rs-baseline:
 	@echo "📌 standalone 코덱 Rust Criterion pinned 기준점 저장/갱신..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-rs-baseline save-baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-rs && cargo bench --locked --bench codec -- --save-baseline pinned ) | tee test_results/latest_benchmark_codec_rs_baseline_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-rs-baseline save-baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-rs && cargo bench --locked --bench codec -- --save-baseline pinned ) | tee test_results/latest_benchmark_codec_rs_baseline_results.txt'
 
 bench-codec-js:
 	@echo "📊 standalone 코덱 JS 벤치마크 실행..."
@@ -654,7 +662,7 @@ bench-codec-py:
 bench-compare-go:
 	@echo "📊 bid754-go vs shopspring/decimal 비교 벤치마크 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-compare-go count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd benchcompare-go && GOWORK=off $(GOENV) go test -v -bench=. -benchmem -count=$(BENCH_COUNT) -run="^TestOperandContract$$" -timeout 900s ) | tee test_results/latest_benchmark_compare_go_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-compare-go count=$(BENCH_COUNT) go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd benchcompare-go && GOWORK=off $(GOENV) go test -v -bench=. -benchmem -count=$(BENCH_COUNT) -run="^TestOperandContract$$" -timeout 900s ) | tee test_results/latest_benchmark_compare_go_results.txt'
 
 # bench-rust / bench-codec-rs와 같은 기준점 정책을 쓴다. Criterion의 익명
 # 기본 기준점은 이름도 출처도 없이 target/criterion에 누적되므로, 벤치 행
@@ -664,13 +672,13 @@ bench-compare-go:
 bench-compare-rs:
 	@echo "📊 bid754-rs vs rust_decimal 비교 벤치마크 실행 (기준점: pinned)..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-compare-rs baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd benchcompare-rs && cargo test --locked && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench compare -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench compare -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_compare_rs_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-compare-rs baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd benchcompare-rs && cargo test --locked && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench compare -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench compare -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_compare_rs_results.txt'
 
 # 비교 벤치 Criterion 'pinned' 기준점 갱신 (기준점을 옮길 때만 명시적으로 실행)
 bench-compare-rs-baseline:
 	@echo "📌 비교 벤치마크 Criterion pinned 기준점 저장/갱신..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-compare-rs-baseline save-baseline=pinned tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd benchcompare-rs && cargo bench --locked --bench compare -- --save-baseline pinned ) | tee test_results/latest_benchmark_compare_rs_baseline_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-compare-rs-baseline save-baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd benchcompare-rs && cargo bench --locked --bench compare -- --save-baseline pinned ) | tee test_results/latest_benchmark_compare_rs_baseline_results.txt'
 
 # generated IBM decTest 스위트만 실행
 test-dectest: test-native-dectest

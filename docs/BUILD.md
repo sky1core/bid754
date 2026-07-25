@@ -203,9 +203,17 @@ Every benchmark target stamps a `BENCH-META` line (tree id, date, and — on
 the Go targets — the repetition count; the Rust targets record the Criterion
 baseline name instead, since Criterion does its own sampling) into its
 `test_results/` output so a result file is attributable to the exact source
-state that produced it. The Go matrix targets repeat each benchmark
-`BENCH_COUNT` times (default 5) for stable before/after samples;
-`bench-quick` is a single-sample smoke and is not regression evidence.
+state that produced it. The Go and Rust legs also record the toolchain they
+were built with: the Go legs stamp `go=$(go env GOVERSION)` and the Rust legs
+stamp `rustc=<version>`. The JS and Python codec legs record no runtime
+version, so a `node` or `python3` upgrade is not visible in their result files.
+A toolchain change redoes inlining and code-layout
+decisions, so it moves medians on source that did not change at all —
+`IntelCBID128/minnum` has been observed shifting 6.93 → 8.17 ns from layout
+alone — which makes the toolchain part of a result's identity, not incidental
+environment detail. The Go matrix targets repeat each benchmark `BENCH_COUNT`
+times (default 5) for stable before/after samples; `bench-quick` is a
+single-sample smoke and is not regression evidence.
 
 The Go benchmark legs have a saved-baseline regression gate mirroring the
 Criterion `pinned` baseline on the Rust leg. Workflow:
@@ -265,7 +273,9 @@ unrelated edits — which is the same mechanism as the `timer/inlining wobble`
 on the canary row above, and which no amount of resampling one binary
 removes.
 
-Scope on the committed baselines: 12 of the 259 pinned rows have a median
+Scope on the saved baselines (`test_results/` is git-ignored, so these are
+local measurement artifacts, not committed ones): 12 of the 259 rows have a
+median
 under 3.125 ns and are therefore floor-governed rather than
 percentage-governed. Two are sub-nanosecond (`FairBID128/from_int64` at
 0.548 ns, `AlignedBID128/from_int64` at 0.877 ns) and ten sit in a 2.20–2.55 ns
@@ -294,6 +304,33 @@ Residual risk, and how to read a report:
   inline-budget overflow fixed in `be6d0d1`, where losing inlining took the row
   from 0.668 ns to 4.16 ns — is a 3.49 ns delta, about 14× the floor, and
   fails the gate on the absolute rule alone.
+
+Before comparing any row, `benchdiff` requires the two logs to describe
+comparable runs. The `BENCH-META` `count=` and `go=` tokens and the
+`goos`/`goarch` lines must be present in both logs and must match, and any
+`cpu` line must match too (it may be absent, but then on both sides). Any
+disagreement is an input error (exit 2), not a performance verdict — comparing
+medians across sample counts, toolchains, or machines would launder an
+environment change as a result. A `BENCH-META` line that omits a token records
+`(none)` for it, so two logs that both predate a token still compare with each
+other, while a log without the token never pairs silently with one that has it.
+
+**Any baseline saved before the `go=` token existed will fail the first
+`make bench-go-check` after this change with a `BENCH-META go` mismatch
+(`baseline (none) vs candidate go1.26.5`).** That is the intended outcome, not
+a bug: the baselines currently in `test_results/` were captured on 2026-07-20,
+before the host Go toolchain was upgraded, so they were already stale in a way
+the gate could not see. Clearing it requires re-measuring on an idle host and
+re-saving:
+
+```bash
+make bench-native && make bench-bidgo   # on the current toolchain, idle host
+make bench-go-baseline
+```
+
+The Rust legs stamp `rustc=` for provenance only. Criterion owns its own
+baseline comparison, so nothing enforces a `rustc=` match; the token exists so
+a Criterion `change%` can be attributed to a toolchain after the fact.
 
 When benchmarks are added (they start as `new`), re-run
 `make bench-go-baseline` — and `make bench-rust-baseline` for the Criterion

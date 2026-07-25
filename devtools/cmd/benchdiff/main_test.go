@@ -10,7 +10,7 @@ import (
 // the production log shape rather than a bare row list.
 func benchLog(rows ...string) string {
 	return benchLogWithMeta([]string{
-		"BENCH-META target=bench-bidgo count=5 tree=synthetic date=2026-07-13T00:00:00Z",
+		"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
 		"goos: darwin",
 		"goarch: arm64",
 		"pkg: github.com/sky1core/bid754/bid754-go/internal/bidgo",
@@ -427,6 +427,9 @@ func TestParseBenchLogCollectsComparabilityMeta(t *testing.T) {
 	if len(meta.counts) != 1 || meta.counts[0] != "5" {
 		t.Fatalf("counts = %v, want [5]", meta.counts)
 	}
+	if len(meta.toolchains) != 1 || meta.toolchains[0] != "go1.26.5" {
+		t.Fatalf("toolchains = %v, want [go1.26.5]", meta.toolchains)
+	}
 	if len(meta.goos) != 1 || meta.goos[0] != "darwin" {
 		t.Fatalf("goos = %v, want [darwin]", meta.goos)
 	}
@@ -449,12 +452,18 @@ func TestRequireComparableMetaPassesOnIdenticalRuns(t *testing.T) {
 func TestRequireComparableMetaFailsOnCountMismatch(t *testing.T) {
 	baseline := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
 	candidate := mustParseMeta(t, benchLogWithMeta([]string{
-		"BENCH-META target=bench-bidgo count=1 tree=synthetic date=2026-07-13T00:00:00Z",
+		"BENCH-META target=bench-bidgo count=1 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
 		"goos: darwin", "goarch: arm64", "cpu: Apple M1",
 	}, "BenchmarkX-10 \t1\t1.0 ns/op"))
 	err := requireComparableMeta(baseline, candidate)
 	if err == nil || !strings.Contains(err.Error(), "BENCH-META count") {
 		t.Fatalf("count mismatch err = %v, want BENCH-META count mismatch", err)
+	}
+	// The remediation hint belongs to the go= item only. Leaking it onto another
+	// comparability item would tell the reader to re-measure for a toolchain
+	// change that did not happen, mis-diagnosing the actual mismatch.
+	if strings.Contains(err.Error(), "toolchain provenance mismatch") {
+		t.Fatalf("count mismatch err carries the toolchain hint: %v", err)
 	}
 }
 
@@ -465,15 +474,15 @@ func TestRequireComparableMetaFailsOnEnvironmentMismatch(t *testing.T) {
 		meta []string
 	}{
 		{"goos", []string{
-			"BENCH-META target=bench-bidgo count=5 tree=synthetic date=2026-07-13T00:00:00Z",
+			"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
 			"goos: linux", "goarch: arm64", "cpu: Apple M1",
 		}},
 		{"goarch", []string{
-			"BENCH-META target=bench-bidgo count=5 tree=synthetic date=2026-07-13T00:00:00Z",
+			"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
 			"goos: darwin", "goarch: amd64", "cpu: Apple M1",
 		}},
 		{"cpu", []string{
-			"BENCH-META target=bench-bidgo count=5 tree=synthetic date=2026-07-13T00:00:00Z",
+			"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
 			"goos: darwin", "goarch: arm64", "cpu: Apple M4",
 		}},
 	} {
@@ -482,6 +491,12 @@ func TestRequireComparableMetaFailsOnEnvironmentMismatch(t *testing.T) {
 			err := requireComparableMeta(baseline, candidate)
 			if err == nil || !strings.Contains(err.Error(), tc.name) {
 				t.Fatalf("%s mismatch err = %v, want %s mismatch", tc.name, err, tc.name)
+			}
+			// Same containment rule as the count item: the go= remediation hint
+			// must not surface on an environment mismatch and send the reader
+			// re-measuring for a toolchain change that did not happen.
+			if strings.Contains(err.Error(), "toolchain provenance mismatch") {
+				t.Fatalf("%s mismatch err carries the toolchain hint: %v", tc.name, err)
 			}
 		})
 	}
@@ -510,7 +525,7 @@ func TestRequireComparableMetaAllowsCpuAbsentOnBothSides(t *testing.T) {
 	// Go omits the cpu line on platforms it cannot identify; absent-on-both
 	// is legitimate, absent-on-one is a mismatch.
 	meta := []string{
-		"BENCH-META target=bench-bidgo count=5 tree=synthetic date=2026-07-13T00:00:00Z",
+		"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
 		"goos: linux", "goarch: arm64",
 	}
 	baseline := mustParseMeta(t, benchLogWithMeta(meta, "BenchmarkX-10 \t1\t1.0 ns/op"))
@@ -520,10 +535,79 @@ func TestRequireComparableMetaAllowsCpuAbsentOnBothSides(t *testing.T) {
 	}
 }
 
+// benchLogToolchainMeta builds the standard synthetic metadata block with a
+// caller-chosen go= token, or with the token omitted entirely when goToken is
+// empty — the shape of every baseline saved before toolchain recording existed.
+func benchLogToolchainMeta(goToken string) []string {
+	meta := "BENCH-META target=bench-bidgo count=5"
+	if goToken != "" {
+		meta += " go=" + goToken
+	}
+	meta += " tree=synthetic date=2026-07-13T00:00:00Z"
+	return []string{meta, "goos: darwin", "goarch: arm64", "cpu: Apple M1"}
+}
+
+func TestRequireComparableMetaPassesOnMatchingToolchain(t *testing.T) {
+	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t1.0 ns/op"))
+	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t2.0 ns/op"))
+	if err := requireComparableMeta(baseline, candidate); err != nil {
+		t.Fatalf("runs on the same toolchain rejected: %v", err)
+	}
+}
+
+func TestRequireComparableMetaFailsWhenBaselinePredatesToolchainRecording(t *testing.T) {
+	// The concrete situation this token exists for: the saved baselines were
+	// captured before go= was emitted, then the host Go toolchain was upgraded.
+	// Without the token the comparison silently spanned two toolchains; with it
+	// the pairing is "(none)" vs "go1.26.5" and must be an input error carrying
+	// the re-measure instruction.
+	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta(""), "BenchmarkX-10 \t1\t1.0 ns/op"))
+	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t1.0 ns/op"))
+	err := requireComparableMeta(baseline, candidate)
+	if err == nil {
+		t.Fatal("pre-token baseline compared against a toolchain-recording candidate, want error")
+	}
+	for _, want := range []string{
+		"BENCH-META go", "(none)", "go1.26.5",
+		"toolchain provenance mismatch",
+		"re-measure and re-save the baseline",
+		"make bench-go-baseline",
+	} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("toolchain mismatch err = %v, missing %q", err, want)
+		}
+	}
+}
+
+func TestRequireComparableMetaAllowsToolchainAbsentOnBothSides(t *testing.T) {
+	// Two logs that both predate the token still describe one toolchain era, so
+	// they remain comparable; adding the token must not retroactively break
+	// baseline/candidate pairs captured before it existed.
+	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta(""), "BenchmarkX-10 \t1\t1.0 ns/op"))
+	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta(""), "BenchmarkX-10 \t1\t2.0 ns/op"))
+	if err := requireComparableMeta(baseline, candidate); err != nil {
+		t.Fatalf("two pre-token logs rejected: %v", err)
+	}
+}
+
+func TestRequireComparableMetaFailsOnToolchainVersionMismatch(t *testing.T) {
+	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.1"), "BenchmarkX-10 \t1\t1.0 ns/op"))
+	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t1.0 ns/op"))
+	err := requireComparableMeta(baseline, candidate)
+	if err == nil {
+		t.Fatal("medians from two different Go toolchains compared, want error")
+	}
+	for _, want := range []string{"BENCH-META go", "go1.26.1", "go1.26.5", "toolchain provenance mismatch"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("toolchain version mismatch err = %v, missing %q", err, want)
+		}
+	}
+}
+
 func TestRequireComparableMetaFailsOnCountlessBenchMetaLine(t *testing.T) {
 	baseline := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
 	candidate := mustParseMeta(t, benchLogWithMeta([]string{
-		"BENCH-META target=bench-bidgo tree=synthetic date=2026-07-13T00:00:00Z",
+		"BENCH-META target=bench-bidgo go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
 		"goos: darwin", "goarch: arm64", "cpu: Apple M1",
 	}, "BenchmarkX-10 \t1\t1.0 ns/op"))
 	err := requireComparableMeta(baseline, candidate)

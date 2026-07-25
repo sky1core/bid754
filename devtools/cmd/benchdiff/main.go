@@ -33,10 +33,15 @@
 //   - the threshold and every ns/op sample must be finite and positive, and
 //     the minimum delta must be finite and non-negative
 //     (NaN/Inf/out-of-range values are input errors, never silently compared);
-//   - the two logs must describe comparable runs: the BENCH-META count and
-//     the goos/goarch lines must be present in both logs and, together with
-//     any cpu lines, must match between baseline and candidate, otherwise
-//     the comparison fails as an input error.
+//   - the two logs must describe comparable runs: the BENCH-META count and go=
+//     tokens and the goos/goarch lines must be present in both logs and,
+//     together with any cpu lines, must match between baseline and candidate,
+//     otherwise the comparison fails as an input error. go= records the Go
+//     toolchain the samples were taken with, because a toolchain change redoes
+//     inlining and code layout and so moves medians on unchanged source; a
+//     BENCH-META line that omits a token carries "(none)" for it, so logs
+//     predating the token still compare with each other but never silently
+//     against a log that records one.
 //
 // Exit codes: 0 pass, 1 regression or vanished benchmark, 2 usage/input
 // errors (unreadable log, no benchmark rows, bad threshold, bad minimum delta
@@ -62,6 +67,7 @@ const (
 	thresholdEnvVar               = "BENCH_REGRESSION_THRESHOLD"
 	defaultRegressionMinDeltaNs   = 0.25
 	minDeltaEnvVar                = "BENCH_REGRESSION_MIN_DELTA_NS"
+	benchMetaPrefix               = "BENCH-META "
 )
 
 type diffStatus string
@@ -165,13 +171,14 @@ func regressionMinDeltaNs(raw string) (float64, error) {
 }
 
 // benchLogMeta carries the comparability identity of one captured log: the
-// BENCH-META count= values and the goos/goarch/cpu environment lines, each
-// as a sorted set of the distinct values seen.
+// BENCH-META count= and go= values and the goos/goarch/cpu environment lines,
+// each as a sorted set of the distinct values seen.
 type benchLogMeta struct {
-	counts []string
-	goos   []string
-	goarch []string
-	cpu    []string
+	counts     []string
+	toolchains []string
+	goos       []string
+	goarch     []string
+	cpu        []string
 }
 
 func parseBenchLogFile(path string) (map[string][]float64, benchLogMeta, error) {
@@ -193,7 +200,7 @@ func parseBenchLogFile(path string) (map[string][]float64, benchLogMeta, error) 
 // parseBenchLog collects every ns/op sample per benchmark name (the full
 // name including the -GOMAXPROCS suffix, so runs from a different parallelism
 // setting never silently pair up) from a `go test -bench` log, plus the
-// BENCH-META/goos/goarch/cpu comparability metadata.
+// BENCH-META count=/go= and goos/goarch/cpu comparability metadata.
 func parseBenchLog(r io.Reader) (map[string][]float64, benchLogMeta, error) {
 	samples := make(map[string][]float64)
 	var meta benchLogMeta
@@ -201,8 +208,9 @@ func parseBenchLog(r io.Reader) (map[string][]float64, benchLogMeta, error) {
 	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if value, ok := benchMetaCount(line); ok {
-			meta.counts = appendDistinct(meta.counts, value)
+		if strings.HasPrefix(line, benchMetaPrefix) {
+			meta.counts = appendDistinct(meta.counts, benchMetaToken(line, "count"))
+			meta.toolchains = appendDistinct(meta.toolchains, benchMetaToken(line, "go"))
 			continue
 		}
 		if value, ok := strings.CutPrefix(line, "goos: "); ok {
@@ -244,20 +252,23 @@ func parseBenchLog(r io.Reader) (map[string][]float64, benchLogMeta, error) {
 	return samples, meta, nil
 }
 
-// benchMetaCount extracts the count= token value from a BENCH-META line.
-func benchMetaCount(line string) (string, bool) {
-	if !strings.HasPrefix(line, "BENCH-META ") {
-		return "", false
-	}
+// benchMetaToken extracts the value of the `key=` token from a BENCH-META
+// line, which the caller must already have identified by benchMetaPrefix.
+//
+// A BENCH-META line that omits the token still identifies the log as carrying
+// run metadata, so the absence is recorded as the distinct value "(none)"
+// rather than as nothing: a log missing the token then pairs only with another
+// log missing it, and never silently with a log that carries it. That is what
+// makes the go= token retroactively safe to add — two pre-token logs still
+// compare, while a pre-token baseline against a post-token candidate is a
+// reported mismatch instead of a silent comparison across toolchains.
+func benchMetaToken(line, key string) string {
 	for _, field := range strings.Fields(line)[1:] {
-		if value, ok := strings.CutPrefix(field, "count="); ok {
-			return value, true
+		if value, ok := strings.CutPrefix(field, key+"="); ok {
+			return value
 		}
 	}
-	// A BENCH-META line without a count token still identifies the log as
-	// carrying run metadata; record the absence explicitly so a countless
-	// baseline never pairs with a counted candidate.
-	return "(none)", true
+	return "(none)"
 }
 
 func appendDistinct(values []string, value string) []string {
@@ -269,36 +280,59 @@ func appendDistinct(values []string, value string) []string {
 	return values
 }
 
+// toolchainMismatchHint is the actionable half of a BENCH-META go= mismatch.
+// A Go toolchain change re-runs inlining and code-layout decisions, so it moves
+// medians on unchanged source — IntelCBID128/minnum has been observed shifting
+// 6.93 → 8.17 ns from layout alone — which silently invalidates a saved
+// baseline. The token was added after the current baselines were saved, so the
+// first check against a pre-token baseline lands here by design.
+const toolchainMismatchHint = "toolchain provenance mismatch — the baseline predates toolchain recording (or was measured on a different toolchain), " +
+	"and a Go toolchain change redoes inlining and code layout, so the saved medians are not comparable; " +
+	"re-measure and re-save the baseline on the current toolchain on an idle host " +
+	"(make bench-native && make bench-bidgo && make bench-go-baseline)"
+
 // requireComparableMeta fails when the two logs disagree on the BENCH-META
-// count or on any goos/goarch/cpu environment line: medians from different
-// sample counts or different machines are not a like-for-like comparison,
-// and a silent pass here would launder an environment change as a
-// performance result. BENCH-META count, goos, and goarch must be present in
-// both logs (every repo bench target and `go test -bench` run emits them), so
-// stripping the header lines cannot bypass the guard; the cpu line may be
-// absent on platforms Go cannot identify, but must then be absent on both
-// sides.
+// count or go= token or on any goos/goarch/cpu environment line: medians from
+// different sample counts, different toolchains, or different machines are not
+// a like-for-like comparison, and a silent pass here would launder an
+// environment change as a performance result. BENCH-META count and go=, goos,
+// and goarch must be present in both logs (every repo bench target and
+// `go test -bench` run emits them), so stripping the header lines cannot bypass
+// the guard; the cpu line may be absent on platforms Go cannot identify, but
+// must then be absent on both sides. A log whose BENCH-META line omits a token
+// carries "(none)" for it, so pre-token logs still compare with each other.
 func requireComparableMeta(baseline, candidate benchLogMeta) error {
 	for _, item := range []struct {
 		name                string
 		required            bool
 		baseline, candidate []string
+		hint                string
 	}{
-		{"BENCH-META count", true, baseline.counts, candidate.counts},
-		{"goos", true, baseline.goos, candidate.goos},
-		{"goarch", true, baseline.goarch, candidate.goarch},
-		{"cpu", false, baseline.cpu, candidate.cpu},
+		{name: "BENCH-META count", required: true, baseline: baseline.counts, candidate: candidate.counts},
+		{name: "BENCH-META go", required: true, baseline: baseline.toolchains, candidate: candidate.toolchains, hint: toolchainMismatchHint},
+		{name: "goos", required: true, baseline: baseline.goos, candidate: candidate.goos},
+		{name: "goarch", required: true, baseline: baseline.goarch, candidate: candidate.goarch},
+		{name: "cpu", required: false, baseline: baseline.cpu, candidate: candidate.cpu},
 	} {
 		if item.required && (len(item.baseline) == 0 || len(item.candidate) == 0) {
-			return fmt.Errorf("%s is missing from baseline and/or candidate (baseline %s, candidate %s); a log without run metadata cannot prove comparability",
-				item.name, formatMetaValues(item.baseline), formatMetaValues(item.candidate))
+			return withHint(fmt.Errorf("%s is missing from baseline and/or candidate (baseline %s, candidate %s); a log without run metadata cannot prove comparability",
+				item.name, formatMetaValues(item.baseline), formatMetaValues(item.candidate)), item.hint)
 		}
 		if !slices.Equal(item.baseline, item.candidate) {
-			return fmt.Errorf("%s mismatch: baseline %s vs candidate %s",
-				item.name, formatMetaValues(item.baseline), formatMetaValues(item.candidate))
+			return withHint(fmt.Errorf("%s mismatch: baseline %s vs candidate %s",
+				item.name, formatMetaValues(item.baseline), formatMetaValues(item.candidate)), item.hint)
 		}
 	}
 	return nil
+}
+
+// withHint appends an actionable remediation clause to err, when the failing
+// comparability item carries one.
+func withHint(err error, hint string) error {
+	if hint == "" {
+		return err
+	}
+	return fmt.Errorf("%w; %s", err, hint)
 }
 
 func formatMetaValues(values []string) string {
