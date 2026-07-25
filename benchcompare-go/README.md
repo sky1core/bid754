@@ -38,7 +38,10 @@ cd benchcompare-go && GOWORK=off go test -run '^TestOperandContract$' -bench . -
 `TestOperandContract` enforces the shared input contract (every parse input
 exact and flag-clean on the BID side and accepted by shopspring, every parts
 row accepted by the validating codec encode); the make target runs it before
-the benchmarks.
+the benchmarks. The per-width operand lists are shared with `benchcompare-rs`
+by hand; edit them here and in the Rust module in the same change.
+
+This module is separate benchmark tooling and is outside `make verify-all`.
 
 Numbers are environment-specific; treat any published figures as one
 machine's snapshot, not a portable claim.

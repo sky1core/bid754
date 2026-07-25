@@ -32,16 +32,30 @@ Run:
 make bench-compare-rs        # from the repository root
 ```
 
-or directly:
+or directly — `--baseline` requires the baseline to already exist, so save it
+once before comparing:
 
 ```
-cd benchcompare-rs && cargo test --locked && cargo bench --locked --bench compare
+cd benchcompare-rs && cargo test --locked
+cargo bench --locked --bench compare -- --save-baseline pinned   # first run only
+cargo bench --locked --bench compare -- --baseline pinned        # every run after
 ```
+
+The make target handles that split itself: it compares against the named
+Criterion baseline `pinned` and saves it when it is missing, the same policy
+as `make bench-rust` and `make bench-codec-rs`; `make bench-compare-rs-baseline`
+is the only target that moves an existing baseline. Criterion's anonymous
+default baseline is deliberately not used: it accumulates unnamed results from
+other trees and older row names, so its change percentages point at an
+unidentifiable predecessor.
 
 The `operand_contract` unit test enforces the shared input contract (every
 parse input exact and flag-clean on the BID side, every parts row encodable
 and within rust_decimal's scale range); the make target runs it before the
-benches.
+benches. The per-width operand lists are shared with `benchcompare-go` by
+hand; edit them here and in the Go module in the same change.
+
+This package is separate benchmark tooling and is outside `make verify-all`.
 
 Numbers are environment-specific; treat any published figures as one
 machine's snapshot, not a portable claim.

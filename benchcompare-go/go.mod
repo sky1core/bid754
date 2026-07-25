@@ -2,6 +2,8 @@ module github.com/sky1core/bid754/benchcompare-go
 
 go 1.23
 
+toolchain go1.25.12
+
 require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/sky1core/bid754/bid754-codec-go v0.0.0

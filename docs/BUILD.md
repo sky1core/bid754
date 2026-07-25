@@ -18,8 +18,9 @@ make test
 ```
 
 Direct `go` commands must run inside one of the checked-in Go modules
-(`bid754-go/`, `bid754-codec-go/`, `devtools/`); the Make targets handle the
-module directories for you.
+(`bid754-go/`, `bid754-codec-go/`, `devtools/`, and the comparative benchmark
+module `benchcompare-go/`); the Make targets handle the module directories for
+you.
 
 This path is intentionally portable and does not require local C libraries.
 It also does not require untracked authoritative generator input trees. Tests
@@ -27,11 +28,15 @@ that need those inputs skip explicitly when they are absent; use
 `make verify-generated` when the goal is to require generator inputs and compare
 freshly regenerated artifacts against the checked-in tree.
 
-To verify every checked-in language module with a portable test path:
+To verify every checked-in product language module with a portable test path:
 
 ```bash
 make test-all
 ```
+
+`make test-all` covers the product modules only. The two comparative
+benchmark modules under `benchcompare-go/` and `benchcompare-rs/` are separate
+benchmark tooling, not product modules, and are run from their own targets.
 
 To run the current project-level verification boundary:
 
@@ -153,6 +158,24 @@ fixtures. The Rust leg's `benchmark_contracts_match_shared_descriptor`
 against the descriptor's rust layer, while its existing independent Intel BID
 C oracle test keeps closing the Rust rows' observed results. Preflight
 executions are untimed wiring evidence, never performance evidence.
+
+## Comparative Benchmarks Against External Libraries
+
+`make bench-compare-go` and `make bench-compare-rs` measure `bid754-go`
+against `shopspring/decimal` and `bid754-rs` against `rust_decimal` in the
+standalone modules `benchcompare-go/` and `benchcompare-rs/`. These are cost
+comparisons on a shared operand set, never result-equality checks, and the
+comparison libraries are not product dependencies — each module's README
+records the semantic differences and the isolation. They are separate
+benchmark tooling: not a verification domain, outside `make verify-all`, and
+outside the benchmark row descriptor and the registry gates. Each target runs
+its module's operand-contract test before measuring.
+
+`make bench-compare-rs` compares against the named Criterion baseline
+`pinned`, saving it on first run, like `make bench-rust` and
+`make bench-codec-rs`; `make bench-compare-rs-baseline` is the only target
+that moves it. Criterion's anonymous default baseline is not used because it
+accumulates unnamed results from other trees and older row names.
 
 Benchmark name to layer mapping (`make summary` groups by these):
 
