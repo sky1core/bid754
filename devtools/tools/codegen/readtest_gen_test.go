@@ -1700,3 +1700,164 @@ func TestRustReadtestBid128EqualityUsesNamedLimbs(t *testing.T) {
 		t.Fatal("generated Rust readtest lacks whole-value BID_UINT128 equality")
 	}
 }
+
+// statusControlPortRoute pins one IEEE 754-2019 section 5.7.4 status-control
+// readtest arm: the Go mechanical-port entry the goport gate calls, the
+// generated Rust port entry the Rust gate calls, and the exact wiring lines the
+// generated Rust arm carries between its operand parsing and its comparison.
+//
+// Both port names and the wiring are spelled out here instead of being read
+// from the generator's own shape table, because a pin derived from the
+// generator can only re-assert whatever the generator did. The wiring is what
+// makes these 137 readtest rows exercise the generated Rust port at all: they
+// used to compare against bit expressions inlined by this generator, which
+// passed no matter what the port computed.
+type statusControlPortRoute struct {
+	goFunction   string
+	rustFunction string
+	operands     int
+	wiring       []string
+}
+
+var statusControlPortRoutes = map[string]statusControlPortRoute{
+	"bid_testFlags": {goFunction: "BidTestFlags", rustFunction: "bid_test_flags", operands: 2, wiring: []string{
+		"let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;",
+		"let got: u32 = bid_test_flags(a0, &mut flags);",
+	}},
+	"bid_lowerFlags": {goFunction: "BidLowerFlags", rustFunction: "bid_lower_flags", operands: 2, wiring: []string{
+		"let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;",
+		"bid_lower_flags(a0, &mut flags);",
+		"let got: u32 = 0;",
+	}},
+	"bid_signalException": {goFunction: "BidSignalException", rustFunction: "bid_signal_exception", operands: 2, wiring: []string{
+		"let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;",
+		"bid_signal_exception(a0, &mut flags);",
+		"let got: u32 = 0;",
+	}},
+	"bid_saveFlags": {goFunction: "BidSaveFlags", rustFunction: "bid_save_flags", operands: 2, wiring: []string{
+		"let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;",
+		"let got: u32 = bid_save_flags(a0, &mut flags);",
+	}},
+	"bid_restoreFlags": {goFunction: "BidRestoreFlags", rustFunction: "bid_restore_flags", operands: 3, wiring: []string{
+		"let mut flags: u32 = a2 & READTEST_BID_FLAG_MASK;",
+		"bid_restore_flags(a0, a1, &mut flags);",
+		"let got: u32 = 0;",
+	}},
+	"bid_testSavedFlags": {goFunction: "BidTestSavedFlags", rustFunction: "bid_test_saved_flags", operands: 2, wiring: []string{
+		"let got: u32 = bid_test_saved_flags(a0, a1);",
+		"let flags: u32 = 0;",
+	}},
+	"bid_getDecimalRoundingDirection": {goFunction: "BidGetDecimalRoundingDirection", rustFunction: "bid_get_decimal_rounding_direction", operands: 1, wiring: []string{
+		"let _ = a0;",
+		"let got: u32 = bid_get_decimal_rounding_direction(rm as u32);",
+		"let flags: u32 = 0;",
+	}},
+	"bid_setDecimalRoundingDirection": {goFunction: "BidSetDecimalRoundingDirection", rustFunction: "bid_set_decimal_rounding_direction", operands: 1, wiring: []string{
+		"let got: u32 = bid_set_decimal_rounding_direction(a0, rm as u32);",
+		"let flags: u32 = 0;",
+	}},
+}
+
+// expectedStatusControlArm rebuilds the whole generated dispatch arm for one
+// pinned status-control route. Only the operand/expected/compare boilerplate is
+// derived; every line that decides which function runs and what status word it
+// receives comes from the pin, so an inlined recomputation, a shadowed `got` or
+// `flags`, or a dropped port call cannot survive as an equal arm.
+func expectedStatusControlArm(function string, route statusControlPortRoute) string {
+	flagsIdx := route.operands + 3
+	var arm strings.Builder
+	fmt.Fprintf(&arm, "        %q => {\n", function)
+	fmt.Fprintf(&arm, "            if parts.len() <= %d { return DispatchResult::Skip; }\n", flagsIdx)
+	for operand := 0; operand < route.operands; operand++ {
+		fmt.Fprintf(&arm, "            let Some(a%d) = parse_u32(parts[%d]) else { return DispatchResult::Skip };\n", operand, operand+2)
+	}
+	fmt.Fprintf(&arm, "            let Some(expected) = parse_u32(parts[%d]) else { return DispatchResult::Skip };\n", route.operands+2)
+	fmt.Fprintf(&arm, "            let expected_flags = parse_flags(parts[%d]);\n", flagsIdx)
+	for _, line := range route.wiring {
+		fmt.Fprintf(&arm, "            %s\n", line)
+	}
+	arm.WriteString("            let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);\n")
+	arm.WriteString("            if !matches!(result, DispatchResult::Pass) { return result; }\n")
+	arm.WriteString("            DispatchResult::Pass\n")
+	arm.WriteString("        },\n")
+	return arm.String()
+}
+
+func TestStatusControlReadtestArmsCallTheGeneratedPort(t *testing.T) {
+	if len(statusControlPortRoutes) != 8 {
+		t.Fatalf("closed section 5.7.4 status-control route list has %d entries, want 8", len(statusControlPortRoutes))
+	}
+	projectRoot := filepath.Clean(filepath.Join("..", ".."))
+
+	runnerPath := filepath.Join(projectRoot, "..", "bid754-rs", "ffi-verify", "tests", "readtest_generated.rs")
+	runnerBytes, err := os.ReadFile(runnerPath)
+	if err != nil {
+		t.Fatalf("read generated Rust readtest runner: %v", err)
+	}
+	runner := string(runnerBytes)
+	if count := strings.Count(runner, "const READTEST_BID_FLAG_MASK: u32 = 0x3f;"); count != 1 {
+		t.Errorf("generated Rust readtest runner declares BID_FLAG_MASK 0x3f %d times, want exactly 1", count)
+	}
+
+	rustData, err := os.ReadFile(filepath.Join(projectRoot, "generated", "testspec", "rust_readtest_dispatch_inventory.json"))
+	if err != nil {
+		t.Fatalf("read Rust readtest dispatch inventory: %v", err)
+	}
+	var rustInventory RustReadtestDispatchInventory
+	if err := json.Unmarshal(rustData, &rustInventory); err != nil {
+		t.Fatalf("parse Rust readtest dispatch inventory: %v", err)
+	}
+
+	type goportInventory struct {
+		Functions []struct {
+			Function   string `json:"function"`
+			GoFunction string `json:"go_function"`
+			Status     string `json:"status"`
+		} `json:"functions"`
+	}
+	goData, err := os.ReadFile(filepath.Join(projectRoot, "generated", "testspec", "goport_readtest_dispatch_inventory.json"))
+	if err != nil {
+		t.Fatalf("read Go-port readtest dispatch inventory: %v", err)
+	}
+	var goInventory goportInventory
+	if err := json.Unmarshal(goData, &goInventory); err != nil {
+		t.Fatalf("parse Go-port readtest dispatch inventory: %v", err)
+	}
+
+	rustSeen := make(map[string]int, len(statusControlPortRoutes))
+	for _, row := range rustInventory.Functions {
+		if _, ok := statusControlPortRoutes[row.Function]; !ok {
+			continue
+		}
+		rustSeen[row.Function]++
+		if row.Status != "dispatched" || row.Route != "custom" {
+			t.Errorf("Rust readtest inventory row for %q = status %q route %q, want dispatched custom", row.Function, row.Status, row.Route)
+		}
+	}
+	goSeen := make(map[string]int, len(statusControlPortRoutes))
+	for _, row := range goInventory.Functions {
+		route, ok := statusControlPortRoutes[row.Function]
+		if !ok {
+			continue
+		}
+		goSeen[row.Function]++
+		if row.Status != "dispatched" || row.GoFunction != route.goFunction {
+			t.Errorf("Go-port readtest inventory row for %q = status %q function %q, want dispatched %q", row.Function, row.Status, row.GoFunction, route.goFunction)
+		}
+	}
+
+	for function, route := range statusControlPortRoutes {
+		if rustSeen[function] != 1 {
+			t.Errorf("Rust readtest inventory rows for %q = %d, want exactly 1", function, rustSeen[function])
+		}
+		if goSeen[function] != 1 {
+			t.Errorf("Go-port readtest inventory rows for %q = %d, want exactly 1", function, goSeen[function])
+		}
+		if normalizeFuncName(route.rustFunction) != normalizeFuncName(route.goFunction) {
+			t.Errorf("pinned ports for %q disagree under the shared normalizer: rust %q, goport %q", function, route.rustFunction, route.goFunction)
+		}
+		if count := strings.Count(runner, expectedStatusControlArm(function, route)); count != 1 {
+			t.Errorf("generated Rust readtest arm for %q does not match the pinned port-call wiring (found %d matches); regenerate or re-review:\n%s", function, count, expectedStatusControlArm(function, route))
+		}
+	}
+}

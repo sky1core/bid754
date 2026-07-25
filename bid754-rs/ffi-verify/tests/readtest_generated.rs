@@ -849,6 +849,13 @@ fn compare_bool_int(got: bool, expected: i32, got_flags: u32, exp_flags: u32, mo
 }
 
 
+// Intel bid_functions.h BID_FLAG_MASK: every bit the status word holds. The
+// IEEE 754-2019 section 5.7.4 status-control rows carry the incoming status
+// word as a value operand, and both the native C wrapper
+// (bid754_generated_readtest_bid_*) and the goport dispatch mask it with
+// BID_FLAG_MASK before handing it to the port, so this runner does the same.
+const READTEST_BID_FLAG_MASK: u32 = 0x3f;
+
 // Mirrors the Intel readtest.h bid*_nan call sites, which pass the operand
 // as the tagp C string and convert the literal operand "NULL" to a NULL
 // pointer. The Go/Rust mechanical ports represent a NULL tagp as the empty
@@ -6865,8 +6872,9 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a0) = parse_u32(parts[2]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[3]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[4]);
-            let got = rm as u32;
-            let flags = 0;
+            let _ = a0;
+            let got: u32 = bid_get_decimal_rounding_direction(rm as u32);
+            let flags: u32 = 0;
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
@@ -6877,8 +6885,9 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a1) = parse_u32(parts[3]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[4]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[5]);
-            let got = 0;
-            let flags = (a1 & 0x3f) & !(a0 & 0x3d);
+            let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;
+            bid_lower_flags(a0, &mut flags);
+            let got: u32 = 0;
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
@@ -6890,9 +6899,9 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a2) = parse_u32(parts[4]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[5]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[6]);
-            let got = 0;
-            let mask = a1 & 0x3d;
-            let flags = ((a2 & 0x3f) & !mask) | (a0 & mask);
+            let mut flags: u32 = a2 & READTEST_BID_FLAG_MASK;
+            bid_restore_flags(a0, a1, &mut flags);
+            let got: u32 = 0;
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
@@ -6903,8 +6912,8 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a1) = parse_u32(parts[3]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[4]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[5]);
-            let got = (a1 & 0x3f) & (a0 & 0x3d);
-            let flags = a1 & 0x3f;
+            let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;
+            let got: u32 = bid_save_flags(a0, &mut flags);
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
@@ -6914,8 +6923,8 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a0) = parse_u32(parts[2]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[3]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[4]);
-            let got = if a0 <= 4 { a0 } else { rm as u32 };
-            let flags = 0;
+            let got: u32 = bid_set_decimal_rounding_direction(a0, rm as u32);
+            let flags: u32 = 0;
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
@@ -6926,8 +6935,9 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a1) = parse_u32(parts[3]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[4]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[5]);
-            let got = 0;
-            let flags = (a1 & 0x3f) | (a0 & 0x3d);
+            let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;
+            bid_signal_exception(a0, &mut flags);
+            let got: u32 = 0;
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
@@ -6938,8 +6948,8 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a1) = parse_u32(parts[3]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[4]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[5]);
-            let got = (a1 & 0x3f) & (a0 & 0x3d);
-            let flags = a1 & 0x3f;
+            let mut flags: u32 = a1 & READTEST_BID_FLAG_MASK;
+            let got: u32 = bid_test_flags(a0, &mut flags);
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass
@@ -6950,8 +6960,8 @@ fn dispatch(func_name: &str, parts: &[&str], rm: i64, ulp_add: f64) -> DispatchR
             let Some(a1) = parse_u32(parts[3]) else { return DispatchResult::Skip };
             let Some(expected) = parse_u32(parts[4]) else { return DispatchResult::Skip };
             let expected_flags = parse_flags(parts[5]);
-            let got = a0 & (a1 & 0x3d);
-            let flags = 0;
+            let got: u32 = bid_test_saved_flags(a0, a1);
+            let flags: u32 = 0;
             let result = compare_u32(got, expected, flags, expected_flags, CmpMode::CmpFuzzy, rm, ulp_add);
             if !matches!(result, DispatchResult::Pass) { return result; }
             DispatchResult::Pass

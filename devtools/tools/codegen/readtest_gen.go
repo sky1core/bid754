@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -955,6 +956,16 @@ func generateReadtestRust(projectRoot string) {
 			os.Exit(1)
 		}
 	}
+	// The status-control shape list is a closed world in both directions: every
+	// declared shape must own a dispatched arm, so a shape that stops matching
+	// the selected surface fails generation instead of leaving a stale (and
+	// unexercised) declaration behind.
+	for name := range rustStatusControlShapes {
+		if !emittedNames[name] {
+			fmt.Fprintf(os.Stderr, "Rust readtest status-control shape %q was not used by current selected surface\n", name)
+			os.Exit(1)
+		}
+	}
 
 	sb.WriteString("        _ => DispatchResult::Skip,\n")
 	sb.WriteString("    }\n")
@@ -1497,6 +1508,195 @@ func generateMixedBidBinaryViaBid128DispatchCase(spec ReadtestSpec) string {
 	return buildProgrammableDispatchCase(inputParsers, expectedParse, cmp, bodyLines)
 }
 
+// rustStatusControlShape pins the readtest row wiring and the expected
+// generated-Rust port signature of one IEEE 754-2019 section 5.7.4
+// status-control operation. It is the Rust-side twin of
+// goportStatusControlShapes (devtools/internal/testgen/readtest_goport_codegen.go).
+//
+// These rows cannot go through the generic resolveRustFunc emission: the
+// readtest row carries the incoming status word as a value operand, while the
+// generic emission always starts the status word at 0 and would consume that
+// operand as a value argument. The native C generator special-cases them for
+// the same reason (readtest_codegen.go emitReadtestStatusControlCWrapper), so
+// the operand wiring is declared here and verified against the parsed
+// generated-Rust signature at generation time instead of being inferred.
+//
+// Operands are the readtest row's operand slots. ValueOperands are passed to
+// the port as u32 value arguments in Rust parameter order; InitialFlagsOperand
+// (-1 when the port takes no &mut u32 status word) is the incoming status word,
+// masked with Intel BID_FLAG_MASK into a local word exactly like the native C
+// wrapper and the goport dispatch do. Any remaining operand is parsed for
+// validation parity and dropped, mirroring both of those dispatches.
+type rustStatusControlShape struct {
+	// RustFunction is the generated Rust port entry point the arm calls. It is
+	// spelled out rather than derived so a wrong resolution is visible in the
+	// declaration; generation still checks that it normalizes to the readtest
+	// function name and that its signature matches the declared shape.
+	RustFunction        string
+	Operands            int
+	ValueOperands       []int
+	InitialFlagsOperand int
+	PassRounding        bool
+	HasResult           bool
+}
+
+func (shape rustStatusControlShape) hasFlagsPointer() bool {
+	return shape.InitialFlagsOperand >= 0
+}
+
+// expectedParams derives the generated-Rust parameter types this shape
+// requires: one u32 per value operand, then the rounding mode, then the status
+// word pointer.
+func (shape rustStatusControlShape) expectedParams() []string {
+	params := make([]string, 0, len(shape.ValueOperands)+2)
+	for range shape.ValueOperands {
+		params = append(params, "u32")
+	}
+	if shape.PassRounding {
+		params = append(params, "u32")
+	}
+	if shape.hasFlagsPointer() {
+		params = append(params, "&mut u32")
+	}
+	return params
+}
+
+func (shape rustStatusControlShape) expectedReturns() []string {
+	if shape.HasResult {
+		return []string{"u32"}
+	}
+	return nil
+}
+
+// rustStatusControlShapes is the closed world of section 5.7.4 status-control
+// rows the Rust readtest dispatch drives through the generated port. Every
+// entry must be emitted by the current selected surface: generateReadtestRust
+// fails on an entry that matches no dispatched readtest function, so the list
+// cannot go stale or vacuous.
+var rustStatusControlShapes = map[string]rustStatusControlShape{
+	"bid_testFlags":                   {RustFunction: "bid_test_flags", Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1, HasResult: true},
+	"bid_lowerFlags":                  {RustFunction: "bid_lower_flags", Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1},
+	"bid_signalException":             {RustFunction: "bid_signal_exception", Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1},
+	"bid_saveFlags":                   {RustFunction: "bid_save_flags", Operands: 2, ValueOperands: []int{0}, InitialFlagsOperand: 1, HasResult: true},
+	"bid_restoreFlags":                {RustFunction: "bid_restore_flags", Operands: 3, ValueOperands: []int{0, 1}, InitialFlagsOperand: 2},
+	"bid_testSavedFlags":              {RustFunction: "bid_test_saved_flags", Operands: 2, ValueOperands: []int{0, 1}, InitialFlagsOperand: -1, HasResult: true},
+	"bid_getDecimalRoundingDirection": {RustFunction: "bid_get_decimal_rounding_direction", Operands: 1, InitialFlagsOperand: -1, PassRounding: true, HasResult: true},
+	"bid_setDecimalRoundingDirection": {RustFunction: "bid_set_decimal_rounding_direction", Operands: 1, ValueOperands: []int{0}, InitialFlagsOperand: -1, PassRounding: true, HasResult: true},
+}
+
+func rustStatusControlFail(function string, format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "rust readtest status-control dispatch: %s: %s\n", function, fmt.Sprintf(format, args...))
+	os.Exit(1)
+}
+
+// generateRustStatusControlDispatchCase emits one section 5.7.4 status-control
+// arm that calls the go2rs-generated Rust port, mirroring the goport dispatch
+// (emitGoportStatusControlDispatchCase) line for line with the generated Rust
+// entry point in place of bidgo: the incoming status word becomes a local word
+// masked with BID_FLAG_MASK, the port is called with the row's value operands
+// (and the row's rounding mode where the Intel prototype takes rnd_mode), and
+// the compared status is that local word afterwards — 0 for the operations
+// whose Intel prototype has no *pfpsf parameter, matching the upstream harness
+// which compares expected_status against an untouched status word there.
+//
+// A declared shape that does not fit the row or the generated port signature is
+// a generation-time failure, never a silently reshaped or inlined arm.
+func generateRustStatusControlDispatchCase(spec ReadtestSpec) string {
+	shape, ok := rustStatusControlShapes[spec.Name]
+	if !ok {
+		return ""
+	}
+	if len(spec.Inputs) != shape.Operands {
+		rustStatusControlFail(spec.Name, "row has %d operands, declared shape expects %d", len(spec.Inputs), shape.Operands)
+	}
+	for index, input := range spec.Inputs {
+		if parser := parseFunc(input); parser != "parse_u32" {
+			rustStatusControlFail(spec.Name, "operand %d input type %q does not parse as an unsigned status/mode word", index, input)
+		}
+	}
+	expectedParse := parseFunc(spec.Output)
+	cmp := compareFunc(spec.Output)
+	if expectedParse != "parse_u32" || cmp != "compare_u32" {
+		rustStatusControlFail(spec.Name, "output type %q is not an unsigned 32-bit status/mode word (parse %q, compare %q)", spec.Output, expectedParse, cmp)
+	}
+	for _, operand := range shape.ValueOperands {
+		if operand < 0 || operand >= shape.Operands {
+			rustStatusControlFail(spec.Name, "declared value operand %d is outside its %d operands", operand, shape.Operands)
+		}
+		if operand == shape.InitialFlagsOperand {
+			rustStatusControlFail(spec.Name, "operand %d cannot be both a value argument and the incoming status word", operand)
+		}
+	}
+	if shape.InitialFlagsOperand >= shape.Operands {
+		rustStatusControlFail(spec.Name, "declared status-word operand %d is outside its %d operands", shape.InitialFlagsOperand, shape.Operands)
+	}
+	if normalizeFuncName(shape.RustFunction) != normalizeFuncName(spec.Name) {
+		rustStatusControlFail(spec.Name, "declared Rust port %q is not the generated counterpart of the readtest function name", shape.RustFunction)
+	}
+	sig, ok := rustFuncSigMap[shape.RustFunction]
+	if !ok {
+		rustStatusControlFail(spec.Name, "declared Rust port %q is absent from the generated Rust sources", shape.RustFunction)
+	}
+	if rustSigHasTodo(sig) {
+		rustStatusControlFail(spec.Name, "declared Rust port %q is unimplemented", shape.RustFunction)
+	}
+	gotParams := make([]string, 0, len(sig.Params))
+	for _, param := range sig.Params {
+		gotParams = append(gotParams, param.Type)
+	}
+	if !slices.Equal(gotParams, shape.expectedParams()) {
+		rustStatusControlFail(spec.Name, "port %s has parameters %v, declared shape expects %v", sig.Name, gotParams, shape.expectedParams())
+	}
+	if !slices.Equal(sig.ReturnTypes, shape.expectedReturns()) {
+		rustStatusControlFail(spec.Name, "port %s returns %v, declared shape expects %v", sig.Name, sig.ReturnTypes, shape.expectedReturns())
+	}
+
+	inputParsers := make([]string, 0, shape.Operands)
+	for range spec.Inputs {
+		inputParsers = append(inputParsers, "parse_u32")
+	}
+
+	bodyLines := make([]string, 0, shape.Operands+3)
+	for operand := 0; operand < shape.Operands; operand++ {
+		if operand == shape.InitialFlagsOperand || containsRustOperand(shape.ValueOperands, operand) {
+			continue
+		}
+		bodyLines = append(bodyLines, fmt.Sprintf("let _ = a%d;", operand))
+	}
+	callArgs := make([]string, 0, len(shape.ValueOperands)+2)
+	for _, operand := range shape.ValueOperands {
+		callArgs = append(callArgs, fmt.Sprintf("a%d", operand))
+	}
+	if shape.PassRounding {
+		callArgs = append(callArgs, "rm as u32")
+	}
+	if shape.hasFlagsPointer() {
+		bodyLines = append(bodyLines, fmt.Sprintf("let mut flags: u32 = a%d & READTEST_BID_FLAG_MASK;", shape.InitialFlagsOperand))
+		callArgs = append(callArgs, "&mut flags")
+	}
+	call := fmt.Sprintf("%s(%s)", shape.RustFunction, strings.Join(callArgs, ", "))
+	if shape.HasResult {
+		bodyLines = append(bodyLines, fmt.Sprintf("let got: u32 = %s;", call))
+	} else {
+		bodyLines = append(bodyLines, call+";")
+		bodyLines = append(bodyLines, "let got: u32 = 0;")
+	}
+	if !shape.hasFlagsPointer() {
+		bodyLines = append(bodyLines, "let flags: u32 = 0;")
+	}
+
+	return buildProgrammableDispatchCase(inputParsers, expectedParse, cmp, bodyLines)
+}
+
+func containsRustOperand(operands []int, want int) bool {
+	for _, operand := range operands {
+		if operand == want {
+			return true
+		}
+	}
+	return false
+}
+
 func generateCustomDispatchCase(spec ReadtestSpec) string {
 	if code := generateBid32ViaBid64DispatchCase(spec); code != "" {
 		return code
@@ -1504,88 +1704,10 @@ func generateCustomDispatchCase(spec ReadtestSpec) string {
 	if code := generateMixedBidViaBid128DispatchCase(spec); code != "" {
 		return code
 	}
+	if code := generateRustStatusControlDispatchCase(spec); code != "" {
+		return code
+	}
 	switch spec.Name {
-	case "bid_testFlags":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32", "parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = (a1 & 0x3f) & (a0 & 0x3d);",
-				"let flags = a1 & 0x3f;",
-			},
-		)
-	case "bid_lowerFlags":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32", "parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = 0;",
-				"let flags = (a1 & 0x3f) & !(a0 & 0x3d);",
-			},
-		)
-	case "bid_signalException":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32", "parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = 0;",
-				"let flags = (a1 & 0x3f) | (a0 & 0x3d);",
-			},
-		)
-	case "bid_saveFlags":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32", "parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = (a1 & 0x3f) & (a0 & 0x3d);",
-				"let flags = a1 & 0x3f;",
-			},
-		)
-	case "bid_restoreFlags":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32", "parse_u32", "parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = 0;",
-				"let mask = a1 & 0x3d;",
-				"let flags = ((a2 & 0x3f) & !mask) | (a0 & mask);",
-			},
-		)
-	case "bid_testSavedFlags":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32", "parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = a0 & (a1 & 0x3d);",
-				"let flags = 0;",
-			},
-		)
-	case "bid_getDecimalRoundingDirection":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = rm as u32;",
-				"let flags = 0;",
-			},
-		)
-	case "bid_setDecimalRoundingDirection":
-		return buildProgrammableDispatchCase(
-			[]string{"parse_u32"},
-			"parse_u32",
-			"compare_u32",
-			[]string{
-				"let got = if a0 <= 4 { a0 } else { rm as u32 };",
-				"let flags = 0;",
-			},
-		)
 	case "bid128_lrint":
 		if rustFuncImplemented("bid128_lrint") {
 			return buildSimpleDispatchCase("parse_bid128_for_int_conversion_readtest", "parse_i64", "compare_i64", "bid128_lrint(a0, rm)")
@@ -2664,6 +2786,13 @@ fn compare_bool_int(got: bool, expected: i32, got_flags: u32, exp_flags: u32, mo
 
 func readtestCustomHelpers() string {
 	return `
+// Intel bid_functions.h BID_FLAG_MASK: every bit the status word holds. The
+// IEEE 754-2019 section 5.7.4 status-control rows carry the incoming status
+// word as a value operand, and both the native C wrapper
+// (bid754_generated_readtest_bid_*) and the goport dispatch mask it with
+// BID_FLAG_MASK before handing it to the port, so this runner does the same.
+const READTEST_BID_FLAG_MASK: u32 = 0x3f;
+
 // Mirrors the Intel readtest.h bid*_nan call sites, which pass the operand
 // as the tagp C string and convert the literal operand "NULL" to a NULL
 // pointer. The Go/Rust mechanical ports represent a NULL tagp as the empty

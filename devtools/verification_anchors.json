@@ -526,7 +526,7 @@
     "d32_exhaustive_runners": "c7cd9761c7b152027adfcf8fd68adf48d8db86dec1e0c765f4a696a6bbce8093",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",
     "spec_loader": "faf099578397b4e39c0d02005a32d61301f10d86fb414ca5e2941cb4080d0425",
-    "rust_readtest_runner": "a700fe5027e7ea644b1320180913a03c2dbefd363d85e45d5cb66435c9bf4ad5",
+    "rust_readtest_runner": "0da7f73583990123a5824807d2ec50b881e66b0b981ce4c9fc4289ccd7c1feaf",
     "rust_public_parity_runner": "f3fc6ec5efe798cb79052a1dd3cd2b12e9085832168e0b9f4d085765c60ced90",
     "rust_dectest_runner": "d24e687c18929322d79943ec07b9507697bc605e320381e3dbced6dc356cdc5a",
     "rust_tier1_long_runners": "7236dcf5b97173f9f9a4a10615e2a2e414239a4b639b1da5caf98c93d89ab6b1"
