@@ -41,6 +41,70 @@ tasks.withType(Javadoc).configureEach {
     options.addStringOption('Xdoclint:all,-missing', '-quiet')
 }
 
+// Maven Central deployment requires an opt-in switch on top of the
+// credentials:
+//
+//   bid754MavenCentralDeploy     must be exactly `true` to request deployment
+//   bid754CentralPortalUsername  Central Portal user token name
+//   bid754CentralPortalPassword  Central Portal user token password
+//   bid754SigningKey             ASCII-armored PGP secret key
+//   bid754SigningKeyPassword     passphrase for that key
+//
+// Supply them as `-P` flags, `ORG_GRADLE_PROJECT_<name>` environment
+// variables, or a `gradle.properties` in the Gradle user home. Do not put them
+// in a `gradle.properties` next to this build script: Gradle reads the
+// project-local file too, so credentials placed there sit in plaintext inside
+// the working tree. `bid754-codec-java/.gitignore` ignores that filename to
+// keep such a file from being staged, which bounds the accident but does not
+// make the location safe. This tree stores no credential value.
+//
+// The deployment switch is separate from the credentials on purpose. A release
+// maintainer keeps Central credentials in the Gradle user home permanently, so
+// keying deployment off credential presence alone would make every local
+// `make verify-bidcodec-packages` run on that machine sign and publish
+// differently than a machine without credentials. With the switch off the
+// signing plugin is never applied and no Central repository is registered, so
+// the build and the local `verification` repository publication below stay
+// exactly as they were no matter what credentials the environment carries.
+//
+// The switch itself is an ordinary Gradle property, so leaving it resident in
+// the Gradle user home or the environment reopens exactly that divergence:
+// treat it as a per-release flag and pass it on the release command line only.
+// An absent, empty, or whitespace-only value means off, which is also how a
+// resident value is neutralized for a verification run
+// (`-Pbid754MavenCentralDeploy=`); any other non-`true` value is rejected
+// rather than guessed at. Off is silent, so a release command must name
+// `publishMavenJavaPublicationToMavenCentralRepository`, which does not exist
+// while the switch is off, instead of the generic `publish` task, which would
+// succeed against the local `verification` repository alone.
+//
+// With the switch on, a missing or partial credential set is rejected rather
+// than degraded to an unsigned or anonymous deployment: Central refuses
+// unsigned artifacts, and a half-configured release must fail here instead of
+// at the registry.
+def mavenCentralDeploySwitch = findProperty('bid754MavenCentralDeploy')?.toString()?.trim()
+def mavenCentralDeploymentRequested = mavenCentralDeploySwitch != null && !mavenCentralDeploySwitch.isEmpty()
+if (mavenCentralDeploymentRequested && mavenCentralDeploySwitch != 'true') {
+    throw new GradleException(
+        "bid754MavenCentralDeploy accepts only 'true'; got: '" + mavenCentralDeploySwitch + "'")
+}
+if (mavenCentralDeploymentRequested) {
+    def missingCredentialProperties = [
+        'bid754CentralPortalUsername',
+        'bid754CentralPortalPassword',
+        'bid754SigningKey',
+        'bid754SigningKeyPassword',
+    ].findAll { propertyName ->
+        def value = findProperty(propertyName)
+        value == null || value.toString().trim().isEmpty()
+    }
+    if (!missingCredentialProperties.isEmpty()) {
+        throw new GradleException(
+            'bid754MavenCentralDeploy=true requires every Maven Central credential property; missing: '
+                + missingCredentialProperties)
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -75,5 +139,34 @@ publishing {
             name = 'verification'
             url = uri(findProperty('bid754VerificationMavenRepo') ?: layout.buildDirectory.dir('verify-maven-repo'))
         }
+        if (mavenCentralDeploymentRequested) {
+            // Gradle's maven-publish plugin speaks the Nexus 2 style upload the
+            // OSSRH Staging API compatibility service exposes; the Central
+            // Publisher Portal has no native maven-publish endpoint.
+            // https://central.sonatype.org/publish/publish-portal-ossrh-staging-api/
+            maven {
+                name = 'mavenCentral'
+                url = uri('https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/')
+                credentials {
+                    username = findProperty('bid754CentralPortalUsername').toString()
+                    password = findProperty('bid754CentralPortalPassword').toString()
+                }
+            }
+        }
+    }
+}
+
+// Uploading is only the transfer step of a release: maven-publish issues PUT
+// requests without signaling deployment completion, so a Central release also
+// needs the Portal's manual finalization call from the uploading IP
+// (POST /manual/upload/defaultRepository/<namespace>) and the deliberate
+// release decision that goes with it. Neither belongs to this build script.
+if (mavenCentralDeploymentRequested) {
+    apply plugin: 'signing'
+    signing {
+        useInMemoryPgpKeys(
+            findProperty('bid754SigningKey').toString(),
+            findProperty('bid754SigningKeyPassword').toString())
+        sign publishing.publications.mavenJava
     }
 }

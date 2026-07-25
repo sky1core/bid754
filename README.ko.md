@@ -22,8 +22,12 @@ Intel BID C 원본을 기준으로 하는 BID 중심 IEEE 754 decimal 프로젝�
   승인 단계로 남아 있습니다(그 전 패키지 형태 게이트는 `make
   verify-rust-package`).
 - 6개 언어 BID codec 패키지(Go, Rust, Java, Python, JavaScript/TypeScript,
-  Swift)는 공통 generated vector 로 트리 안에서 검증됩니다. Go 모듈/SwiftPM
-  경로 외의 레지스트리 발행은 현재 구성되어 있지 않습니다.
+  Swift)는 공통 generated vector 로 트리 안에서 검증됩니다. 이 트리는 어떤
+  codec 패키지도 레지스트리에 발행하지 않습니다. Go/Swift 경로는
+  레지스트리가 아니라 리포지토리에서 직접 소비되며, Java 패키지에는 Maven
+  Central 배포 경로가 있지만 명시적 opt-in 스위치와 Central 자격증명이
+  공급되지 않는 한 어떤 빌드도 그 경로를 활성화하지 않습니다. 실제 배포
+  수행은 별도 사용자 승인 단계로 남아 있습니다.
 - 비트 재현성 보장 플랫폼: macOS arm64, Linux amd64, Linux arm64 만.
   Windows amd64, 32-bit x86, big-endian 은 명시적으로 보장하지 않습니다
   (`docs/PLATFORM_SPEC.md`).

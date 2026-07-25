@@ -1,6 +1,7 @@
 {
   "name": "bid754-codec",
   "version": "0.2.0",
+  "private": true,
   "description": "BID (Binary Integer Decimal) encoding/decoding for IEEE 754 decimal floating-point",
   "keywords": [
     "ieee-754",

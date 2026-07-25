@@ -3,3 +3,9 @@ build/
 .idea/
 *.iml
 out/
+# Gradle reads a project-local gradle.properties, so this is where Maven
+# Central credentials would land if someone put them beside the build script;
+# keep it unstageable (build.gradle says to use the Gradle user home instead).
+# Anchored: only the file Gradle actually reads, so a nested gradle.properties
+# stays visible instead of being silently hidden.
+/gradle.properties

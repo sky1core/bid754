@@ -25,8 +25,12 @@ BID-oriented IEEE 754 decimal floating-point work rooted in Intel BID C sources.
   user-approved step (`make verify-rust-package` is the package-shape gate
   ahead of that step).
 - The six BID codec packages (Go, Rust, Java, Python, JavaScript/TypeScript,
-  Swift) are verified in-tree against shared generated vectors; registry
-  publication is currently configured only for the Go module and SwiftPM paths.
+  Swift) are verified in-tree against shared generated vectors; this tree
+  performs no registry publication for any of them. The Go and Swift paths are
+  consumed straight from the repository rather than through a registry, and the
+  Java package carries a Maven Central deployment path that no build activates
+  unless an explicit opt-in switch and Central credentials are supplied —
+  performing that deployment remains a separate user-approved step.
 - Guaranteed bit-reproducible platforms: macOS arm64, Linux amd64, and
   Linux arm64 only. Windows amd64, 32-bit x86, and big-endian targets are
   explicitly not guaranteed (`docs/PLATFORM_SPEC.md`).

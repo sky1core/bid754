@@ -8,12 +8,19 @@ version = "0.2.0"
 description = "BID (Binary Integer Decimal) encoding/decoding for IEEE 754 decimal floating-point"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+# PEP 639 form. The legacy `license = {text = "MIT"}` table also shipped
+# LICENSE in the sdist and the wheel, but only through setuptools' implicit
+# default license-file glob, and it emitted a deprecation that setuptools says
+# will become a build error; the SPDX expression plus an explicit license-file
+# list replaces both with a declaration. The pinned setuptools==80.9.0 rejects
+# a `License :: OSI Approved ::` classifier alongside an SPDX expression, so no
+# license classifier is declared below.
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = ["ieee-754", "decimal", "bid", "codec", "floating-point", "decimal32", "decimal64", "decimal128"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
