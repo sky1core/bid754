@@ -1,10 +1,14 @@
 # bid754-codec for Python
 
-`bid754-codec` is the Python BID codec helper package on PyPI; its import
+`bid754-codec` is the Python BID codec helper package; its import
 module is `bid_codec`. It is not a full decimal
 arithmetic implementation. Its scope is BID bit layout encode/decode,
 little-endian byte encode/decode, and the shared BID codec string format used by
 the cross-language vector suite.
+
+The package is not published to PyPI yet; consume it from this repository. The
+in-tree wheel build, install, and import checks below are the current
+package-boundary verification.
 
 ## API
 

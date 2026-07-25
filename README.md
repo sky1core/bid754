@@ -81,9 +81,11 @@ named import:
 import bid754 "github.com/sky1core/bid754/bid754-go"
 ```
 
-Release tags follow the Go multi-module convention: `bid754-go/v0.1.0` and
-`bid754-codec-go/v0.1.0` version the Go modules, while root `v0.1.0`-style
-tags version the repository snapshot for Swift Package Manager.
+Release tags follow the Go multi-module convention: `bid754-go/v0.2.0` and
+`bid754-codec-go/v0.2.0` version the Go modules, while root `v0.2.0`-style
+tags version the repository snapshot for Swift Package Manager. No release tag
+is pushed yet, so those are the first tags to publish, matching the 0.2.0
+package manifests.
 
 ## License
 

@@ -114,7 +114,13 @@ make verify-bidcodec-packages
 This package consumes `../bid754-codec-vectors/vectors.json` through a generated
 test harness. `make verify-bidcodec-packages` additionally checks the standalone
 package consumption boundary by creating an isolated local git release
-repository tagged `bid754-codec-go/v0.1.0` (Go multi-module subdirectory tag convention), then consuming `github.com/sky1core/bid754/bid754-codec-go v0.1.0`
-without a local `replace`. The generated vector harness is enabled by the
+repository tagged `bid754-codec-go/v<version>` (Go multi-module subdirectory tag
+convention), then consuming
+`github.com/sky1core/bid754/bid754-codec-go v<version>` without a local
+`replace`. That `<version>` is not hard-coded in the gate: it is read from the
+`Version` constant in `bid754-go/bid754.go`, the single scripted project version
+source that `make verify-package-versions` pins every package manifest to, so
+the synthetic release always matches the current tree. The generated vector
+harness is enabled by the
 `bid754_bidcodec_vectors` build tag so ordinary package consumers do not depend
 on repository-relative vector files.

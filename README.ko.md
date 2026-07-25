@@ -77,9 +77,10 @@ decimal 부동소수점 도메인이 처음인 독자를 위한 참고 문서:
 import bid754 "github.com/sky1core/bid754/bid754-go"
 ```
 
-릴리스 태그는 Go multi-module 규약을 따릅니다. `bid754-go/v0.1.0`,
-`bid754-codec-go/v0.1.0` 가 Go 모듈을 버전하고, 루트 `v0.1.0` 계열 태그는
-Swift Package Manager 용 저장소 스냅샷을 버전합니다.
+릴리스 태그는 Go multi-module 규약을 따릅니다. `bid754-go/v0.2.0`,
+`bid754-codec-go/v0.2.0` 가 Go 모듈을 버전하고, 루트 `v0.2.0` 계열 태그는
+Swift Package Manager 용 저장소 스냅샷을 버전합니다. 릴리스 태그는 아직 push
+되지 않았으므로, 0.2.0 패키지 manifest 에 맞춰 이 태그들이 첫 발행 대상입니다.
 
 ## 라이선스
 
