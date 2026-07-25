@@ -193,8 +193,6 @@ func historicalReadtestSkipReason(name string) (string, string) {
 		return "floating-point environment helper API is outside the public Go mechanical-port verification surface", "out_of_scope_not_required"
 	case name == "bid_is754" || name == "bid_is754R":
 		return "IEEE 754-2019 5.7.1 version-conformance predicate outside the supported BID decimal operation surface", "out_of_scope_not_required"
-	case isMixedWidthIntelReadtestExtension(name):
-		return "mixed-width Intel extension is not part of the current mandatory BID fixed-width surface", "optional_scope_gap"
 	default:
 		return "historical explicit readtest skip", "unresolved_required_review"
 	}
@@ -490,8 +488,7 @@ func isHistoricalReadtestSkipFunction(name string) bool {
 		"bid_to_dpd32", "bid_to_dpd64", "bid_to_dpd128",
 		"bid_dpd_to_bid32", "bid_dpd_to_bid64", "bid_dpd_to_bid128",
 		"bid_feclearexcept", "bid_fegetexceptflag", "bid_feraiseexcept", "bid_fesetexceptflag", "bid_fetestexcept",
-		"bid_is754", "bid_is754R",
-		"bid64qq_fma":
+		"bid_is754", "bid_is754R":
 		return true
 	default:
 		return false
