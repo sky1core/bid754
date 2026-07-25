@@ -15,17 +15,32 @@
 //   - a median regression above the threshold (default 8%, overridable via
 //     BENCH_REGRESSION_THRESHOLD; the default clears the ±3–4% run-to-run
 //     noise measured on the Apple M1 reference machine) fails the gate;
+//   - a row that clears the percentage threshold but whose absolute median
+//     delta is at or below the minimum delta (default 0.25 ns/op, overridable
+//     via BENCH_REGRESSION_MIN_DELTA_NS; 0 disables the floor and restores the
+//     pure-percentage gate) does not fail and is reported as
+//     "ok (below min delta)" — never as a plain "ok". The floor is global, so
+//     the effective threshold of a row is max(8%, 0.25 ns / baseline median):
+//     8% of 3.125 ns is exactly 0.25 ns, so at or above a 3.125 ns baseline
+//     median the percentage rule always binds first and the sensitivity is
+//     unchanged, while rows below that boundary are held to the absolute floor
+//     instead (sub-nanosecond rows are the extreme case, not the only one —
+//     the motivating row, the inline-budget canary
+//     BenchmarkAlignedBID128/from_int64, read +26.56% on a 0.1834 ns wobble
+//     of 0.6905 → 0.8739 ns/op). A held row is not evidence that it did not
+//     regress; see docs/BUILD.md for the masking bounds this accepts;
 //   - improvements are reported but never fail;
-//   - the threshold and every ns/op sample must be finite and positive
-//     (NaN/Inf/non-positive values are input errors, never silently compared);
+//   - the threshold and every ns/op sample must be finite and positive, and
+//     the minimum delta must be finite and non-negative
+//     (NaN/Inf/out-of-range values are input errors, never silently compared);
 //   - the two logs must describe comparable runs: the BENCH-META count and
 //     the goos/goarch lines must be present in both logs and, together with
 //     any cpu lines, must match between baseline and candidate, otherwise
 //     the comparison fails as an input error.
 //
 // Exit codes: 0 pass, 1 regression or vanished benchmark, 2 usage/input
-// errors (unreadable log, no benchmark rows, bad threshold or sample value,
-// incomparable run metadata).
+// errors (unreadable log, no benchmark rows, bad threshold, bad minimum delta
+// or bad sample value, incomparable run metadata).
 package main
 
 import (
@@ -45,16 +60,19 @@ import (
 const (
 	defaultRegressionThresholdPct = 8.0
 	thresholdEnvVar               = "BENCH_REGRESSION_THRESHOLD"
+	defaultRegressionMinDeltaNs   = 0.25
+	minDeltaEnvVar                = "BENCH_REGRESSION_MIN_DELTA_NS"
 )
 
 type diffStatus string
 
 const (
-	statusOK         diffStatus = "ok"
-	statusImproved   diffStatus = "improved"
-	statusRegression diffStatus = "REGRESSION"
-	statusMissing    diffStatus = "MISSING IN CANDIDATE"
-	statusNew        diffStatus = "new (no baseline)"
+	statusOK            diffStatus = "ok"
+	statusBelowMinDelta diffStatus = "ok (below min delta)"
+	statusImproved      diffStatus = "improved"
+	statusRegression    diffStatus = "REGRESSION"
+	statusMissing       diffStatus = "MISSING IN CANDIDATE"
+	statusNew           diffStatus = "new (no baseline)"
 )
 
 type diffRow struct {
@@ -78,6 +96,10 @@ func main() {
 	if err != nil {
 		fatal("%v", err)
 	}
+	minDeltaNs, err := regressionMinDeltaNs(os.Getenv(minDeltaEnvVar))
+	if err != nil {
+		fatal("%v", err)
+	}
 
 	baseline, baselineMeta, err := parseBenchLogFile(*baselinePath)
 	if err != nil {
@@ -91,8 +113,8 @@ func main() {
 		fatal("baseline %s and candidate %s are not comparable: %v", *baselinePath, *candidatePath, err)
 	}
 
-	rows, failed := compareBenchmarks(baseline, candidate, thresholdPct)
-	printReport(os.Stdout, rows, *baselinePath, *candidatePath, thresholdPct, failed)
+	rows, failed := compareBenchmarks(baseline, candidate, thresholdPct, minDeltaNs)
+	printReport(os.Stdout, rows, *baselinePath, *candidatePath, thresholdPct, minDeltaNs, failed)
 	if failed {
 		os.Exit(1)
 	}
@@ -118,6 +140,26 @@ func regressionThresholdPct(raw string) (float64, error) {
 	}
 	if math.IsNaN(value) || math.IsInf(value, 0) || value <= 0 {
 		return 0, fmt.Errorf("%s=%q must be a finite number > 0 (percent)", thresholdEnvVar, raw)
+	}
+	return value, nil
+}
+
+// regressionMinDeltaNs resolves the absolute median-delta floor in ns/op from
+// the raw environment value ("" means unset → default). Unlike the threshold,
+// 0 is a legal setting that disables the floor and restores the pure
+// percentage gate; NaN, ±Inf, and negative values are rejected for the same
+// reason as there — they pass a plain `< 0` comparison and would disable or
+// distort the gate instead of configuring it.
+func regressionMinDeltaNs(raw string) (float64, error) {
+	if raw == "" {
+		return defaultRegressionMinDeltaNs, nil
+	}
+	value, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%s=%q is not a number", minDeltaEnvVar, raw)
+	}
+	if math.IsNaN(value) || math.IsInf(value, 0) || value < 0 {
+		return 0, fmt.Errorf("%s=%q must be a finite number >= 0 (ns/op; 0 disables the floor)", minDeltaEnvVar, raw)
 	}
 	return value, nil
 }
@@ -281,8 +323,13 @@ func median(values []float64) float64 {
 
 // compareBenchmarks pairs baseline and candidate medians by benchmark name.
 // It fails (second return true) on any baseline benchmark missing from the
-// candidate and on any median regression strictly above thresholdPct.
-func compareBenchmarks(baseline, candidate map[string][]float64, thresholdPct float64) ([]diffRow, bool) {
+// candidate and on any median regression that is strictly above thresholdPct
+// *and* strictly above minDeltaNs ns/op in absolute median delta. A row that
+// clears only the percentage half of that conjunction keeps its own
+// statusBelowMinDelta status, so a row that survived on the floor alone stays
+// visible in the report instead of collapsing into a plain "ok"; the floor
+// suppresses a failure verdict, it never suppresses the row or its change%.
+func compareBenchmarks(baseline, candidate map[string][]float64, thresholdPct, minDeltaNs float64) ([]diffRow, bool) {
 	names := make([]string, 0, len(baseline)+len(candidate))
 	for name := range baseline {
 		names = append(names, name)
@@ -308,12 +355,16 @@ func compareBenchmarks(baseline, candidate map[string][]float64, thresholdPct fl
 		default:
 			baseMedian := median(baseSamples)
 			candMedian := median(candSamples)
-			changePct := (candMedian - baseMedian) / baseMedian * 100
+			deltaNs := candMedian - baseMedian
+			changePct := deltaNs / baseMedian * 100
 			status := statusOK
-			if changePct > thresholdPct {
+			switch {
+			case changePct > thresholdPct && deltaNs > minDeltaNs:
 				status = statusRegression
 				failed = true
-			} else if changePct < 0 {
+			case changePct > thresholdPct:
+				status = statusBelowMinDelta
+			case changePct < 0:
 				status = statusImproved
 			}
 			rows = append(rows, diffRow{
@@ -328,8 +379,9 @@ func compareBenchmarks(baseline, candidate map[string][]float64, thresholdPct fl
 	return rows, failed
 }
 
-func printReport(w io.Writer, rows []diffRow, baselinePath, candidatePath string, thresholdPct float64, failed bool) {
-	fmt.Fprintf(w, "benchdiff: baseline=%s candidate=%s threshold=+%.4g%% (median ns/op)\n", baselinePath, candidatePath, thresholdPct)
+func printReport(w io.Writer, rows []diffRow, baselinePath, candidatePath string, thresholdPct, minDeltaNs float64, failed bool) {
+	fmt.Fprintf(w, "benchdiff: baseline=%s candidate=%s threshold=+%.4g%% min-delta=+%.4gns (median ns/op)\n",
+		baselinePath, candidatePath, thresholdPct, minDeltaNs)
 	tw := tabwriter.NewWriter(w, 2, 4, 2, ' ', 0)
 	fmt.Fprintln(tw, "benchmark\tbaseline ns/op\tcandidate ns/op\tchange\tstatus")
 	for _, row := range rows {
@@ -338,7 +390,8 @@ func printReport(w io.Writer, rows []diffRow, baselinePath, candidatePath string
 	}
 	tw.Flush()
 	if failed {
-		fmt.Fprintf(w, "benchdiff: FAIL — regression above +%.4g%% or benchmark missing from candidate\n", thresholdPct)
+		fmt.Fprintf(w, "benchdiff: FAIL — regression above both +%.4g%% and +%.4gns, or benchmark missing from candidate\n",
+			thresholdPct, minDeltaNs)
 	} else {
 		fmt.Fprintln(w, "benchdiff: PASS")
 	}

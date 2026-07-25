@@ -88,7 +88,7 @@ func TestCompareFailsOnRegressionAboveThreshold(t *testing.T) {
 		"BenchmarkFairBID64/fma-10 \t1000\t90.0 ns/op",
 		"BenchmarkFairBID64/fma-10 \t1000\t120.0 ns/op",
 	))
-	rows, failed := compareBenchmarks(baseline, candidate, 8)
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
 	if !failed {
 		t.Fatal("compareBenchmarks passed, want regression failure")
 	}
@@ -103,7 +103,7 @@ func TestCompareFailsOnRegressionAboveThreshold(t *testing.T) {
 func TestComparePassesOnRegressionAtOrBelowThreshold(t *testing.T) {
 	baseline := mustParse(t, benchLog("BenchmarkFairBID64/fma-10 \t1000\t100.0 ns/op"))
 	candidate := mustParse(t, benchLog("BenchmarkFairBID64/fma-10 \t1000\t108.0 ns/op"))
-	rows, failed := compareBenchmarks(baseline, candidate, 8)
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
 	if failed {
 		t.Fatalf("compareBenchmarks failed on +8%% at threshold 8%%: %+v", rows)
 	}
@@ -115,7 +115,7 @@ func TestComparePassesOnRegressionAtOrBelowThreshold(t *testing.T) {
 func TestCompareReportsImprovementWithoutFailing(t *testing.T) {
 	baseline := mustParse(t, benchLog("BenchmarkFairBID64/fma-10 \t1000\t100.0 ns/op"))
 	candidate := mustParse(t, benchLog("BenchmarkFairBID64/fma-10 \t1000\t80.0 ns/op"))
-	rows, failed := compareBenchmarks(baseline, candidate, 8)
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
 	if failed {
 		t.Fatalf("compareBenchmarks failed on an improvement: %+v", rows)
 	}
@@ -132,7 +132,7 @@ func TestCompareFailsWhenBaselineBenchmarkVanishes(t *testing.T) {
 	candidate := mustParse(t, benchLog(
 		"BenchmarkFairBID64/add-10 \t1000\t50.0 ns/op",
 	))
-	rows, failed := compareBenchmarks(baseline, candidate, 8)
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
 	if !failed {
 		t.Fatal("compareBenchmarks passed although a baseline benchmark vanished")
 	}
@@ -153,7 +153,7 @@ func TestCompareReportsCandidateOnlyBenchmarkAsNewWithoutFailing(t *testing.T) {
 		"BenchmarkFairBID64/add-10 \t1000\t50.0 ns/op",
 		"BenchmarkFairBID64/sqrt-10 \t1000\t9.0 ns/op",
 	))
-	rows, failed := compareBenchmarks(baseline, candidate, 8)
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
 	if failed {
 		t.Fatalf("compareBenchmarks failed on a candidate-only benchmark: %+v", rows)
 	}
@@ -181,12 +181,190 @@ func TestCompareUsesMedianNotMeanAcrossRepeatedSamples(t *testing.T) {
 		"BenchmarkFairBID64/fma-10 \t1000\t220.0 ns/op",
 		"BenchmarkFairBID64/fma-10 \t1000\t100.0 ns/op",
 	))
-	rows, failed := compareBenchmarks(baseline, candidate, 8)
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
 	if failed {
 		t.Fatalf("compareBenchmarks failed although the median is unchanged: %+v", rows)
 	}
 	if rows[0].changePct != 0 {
 		t.Fatalf("changePct = %v, want 0 (median comparison)", rows[0].changePct)
+	}
+}
+
+func TestCompareDoesNotFailSubNanosecondRowWithinMinDelta(t *testing.T) {
+	// The inline-budget canary row BenchmarkAlignedBID128/from_int64-10 moved
+	// 0.6905 → 0.8739 ns/op on the Apple M1 reference machine: delta 0.1834 ns,
+	// +26.56%. The percentage half of the gate is meaningless at that scale, so
+	// the absolute floor must hold the row — but the row must stay visibly
+	// distinct from an unchanged "ok" row.
+	//
+	// The raw `go test -bench` log of that run is not retained in the tree (it
+	// exists only in a local bench_watch working record), so these two medians
+	// are the transcribed values, not a checked-in fixture.
+	baseline := mustParse(t, benchLog("BenchmarkAlignedBID128/from_int64-10 \t1000000000\t0.6905 ns/op"))
+	candidate := mustParse(t, benchLog("BenchmarkAlignedBID128/from_int64-10 \t1000000000\t0.8739 ns/op"))
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
+	if failed {
+		t.Fatalf("compareBenchmarks failed on a 0.1834 ns sub-nanosecond delta: %+v", rows)
+	}
+	if len(rows) != 1 || rows[0].status != statusBelowMinDelta {
+		t.Fatalf("rows = %+v, want one %q row", rows, statusBelowMinDelta)
+	}
+	if rows[0].changePct < 26.5 || rows[0].changePct > 26.6 {
+		t.Fatalf("changePct = %v, want ~26.56 (still reported, just not failing)", rows[0].changePct)
+	}
+}
+
+func TestCompareHoldsRowsBelowTheSensitivityBoundaryToTheFloor(t *testing.T) {
+	// The floor is global, not a sub-nanosecond special case: it binds on every
+	// row whose baseline median is under 3.125 ns. On the committed baselines
+	// that is 12 of 259 rows — 2 sub-nanosecond rows and a 10-row 2.20–2.55 ns
+	// band. This row sits in that band (BenchmarkFairBID64/to_decimal128-10,
+	// median 2.217 ns): +9.16% clears the 8% threshold while the 0.203 ns delta
+	// stays under the floor, so it must be held, not failed.
+	baseline := mustParse(t, benchLog("BenchmarkFairBID64/to_decimal128-10 \t1000\t2.217 ns/op"))
+	candidate := mustParse(t, benchLog("BenchmarkFairBID64/to_decimal128-10 \t1000\t2.420 ns/op"))
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
+	if failed {
+		t.Fatalf("compareBenchmarks failed on a 0.203 ns delta in the 2.20–2.55 ns band: %+v", rows)
+	}
+	if len(rows) != 1 || rows[0].status != statusBelowMinDelta {
+		t.Fatalf("rows = %+v, want one %q row", rows, statusBelowMinDelta)
+	}
+	if rows[0].changePct <= 8 {
+		t.Fatalf("changePct = %v, want > 8 (the row must clear the percentage threshold, so only the floor holds it)", rows[0].changePct)
+	}
+}
+
+func TestCompareTreatsDeltaExactlyAtTheFloorAsBelowIt(t *testing.T) {
+	// The floor comparison is strict (`delta > minDeltaNs`), mirroring the
+	// strict percentage comparison. 2.0 → 2.25 is +12.5% on a delta of exactly
+	// 0.25 ns — both values and the floor are exactly representable, so this
+	// pins the boundary itself rather than a value near it.
+	baseline := mustParse(t, benchLog("BenchmarkX-10 \t1000\t2.00 ns/op"))
+	candidate := mustParse(t, benchLog("BenchmarkX-10 \t1000\t2.25 ns/op"))
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
+	if failed {
+		t.Fatalf("compareBenchmarks failed on a delta exactly at the floor: %+v", rows)
+	}
+	if len(rows) != 1 || rows[0].status != statusBelowMinDelta {
+		t.Fatalf("rows = %+v, want one %q row (delta == floor is not above it)", rows, statusBelowMinDelta)
+	}
+	if rows[0].changePct != 12.5 {
+		t.Fatalf("changePct = %v, want exactly 12.5", rows[0].changePct)
+	}
+}
+
+func TestCompareFailsWhenBothThresholdAndMinDeltaAreExceeded(t *testing.T) {
+	for _, tc := range []struct {
+		name             string
+		baseNs, candNs   string
+		wantChangePctMin float64
+	}{
+		// 8% of 3.125 ns is exactly 0.25 ns, so 3.125 ns is the median at
+		// which the two rules meet: at or above it, every row that clears the
+		// percentage threshold also clears the floor and the 8% sensitivity is
+		// unchanged. 3.125 → 3.38 is +8.16% on a 0.255 ns delta.
+		{"at_the_sensitivity_boundary", "3.125", "3.380", 8.1},
+		// The second REGRESSION row of the same real failing run
+		// (BenchmarkIntelCBID128/minnum-10, 7.04 → 8.26): a 1.22 ns delta is a
+		// real regression and the floor must not rescue it.
+		{"well_above_the_floor", "7.040", "8.260", 17.3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			baseline := mustParse(t, benchLog("BenchmarkX-10 \t1000\t"+tc.baseNs+" ns/op"))
+			candidate := mustParse(t, benchLog("BenchmarkX-10 \t1000\t"+tc.candNs+" ns/op"))
+			rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
+			if !failed {
+				t.Fatalf("compareBenchmarks passed although both the threshold and the floor were exceeded: %+v", rows)
+			}
+			if len(rows) != 1 || rows[0].status != statusRegression {
+				t.Fatalf("rows = %+v, want one regression row", rows)
+			}
+			if rows[0].changePct < tc.wantChangePctMin {
+				t.Fatalf("changePct = %v, want >= %v", rows[0].changePct, tc.wantChangePctMin)
+			}
+		})
+	}
+}
+
+func TestCompareWithZeroMinDeltaRestoresPurePercentageGate(t *testing.T) {
+	// BENCH_REGRESSION_MIN_DELTA_NS=0 disables the floor: the same 0.1834 ns
+	// sub-nanosecond move that passes under the default must fail again, so
+	// the pre-floor behaviour stays reachable for deliberate sub-ns work.
+	baseline := mustParse(t, benchLog("BenchmarkAlignedBID128/from_int64-10 \t1000000000\t0.6905 ns/op"))
+	candidate := mustParse(t, benchLog("BenchmarkAlignedBID128/from_int64-10 \t1000000000\t0.8739 ns/op"))
+	rows, failed := compareBenchmarks(baseline, candidate, 8, 0)
+	if !failed {
+		t.Fatalf("compareBenchmarks passed with the floor disabled: %+v", rows)
+	}
+	if len(rows) != 1 || rows[0].status != statusRegression {
+		t.Fatalf("rows = %+v, want one regression row", rows)
+	}
+}
+
+// reportRowStatus returns the trailing status cell of the printReport row for
+// the named benchmark. Status texts contain spaces ("ok (below min delta)"), so
+// the cell is taken as everything after the change column — the one field
+// ending in "%" — rather than as the last whitespace-separated field.
+func reportRowStatus(t *testing.T, report, name string) string {
+	t.Helper()
+	for _, line := range strings.Split(report, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 0 || fields[0] != name {
+			continue
+		}
+		for i, field := range fields[1:] {
+			if strings.HasSuffix(field, "%") {
+				return strings.Join(fields[i+2:], " ")
+			}
+		}
+		t.Fatalf("row %q has no change column: %q", name, line)
+	}
+	t.Fatalf("report has no row for %q:\n%s", name, report)
+	return ""
+}
+
+func TestPrintReportLabelsBelowFloorRowDistinctlyFromUnchangedRow(t *testing.T) {
+	// The floor must not launder a threshold-clearing row into a plain "ok".
+	// Both kinds of row go into one report so the two labels are pinned against
+	// each other, and the status is read as a parsed cell rather than inferred
+	// from tabwriter padding.
+	baseline := mustParse(t, benchLog(
+		"BenchmarkAlignedBID128/from_int64-10 \t1000000000\t0.6905 ns/op",
+		"BenchmarkFairBID64/add-10 \t1000\t51.00 ns/op",
+	))
+	candidate := mustParse(t, benchLog(
+		"BenchmarkAlignedBID128/from_int64-10 \t1000000000\t0.8739 ns/op",
+		"BenchmarkFairBID64/add-10 \t1000\t51.00 ns/op",
+	))
+	rows, failed := compareBenchmarks(baseline, candidate, 8, defaultRegressionMinDeltaNs)
+	if failed {
+		t.Fatalf("compareBenchmarks failed: %+v", rows)
+	}
+	var out strings.Builder
+	printReport(&out, rows, "base.txt", "cand.txt", 8, defaultRegressionMinDeltaNs, failed)
+	got := out.String()
+
+	// The expected statuses are spelled as literals, not as string(statusFoo).
+	// Routing them through the constants would make this table agree with any
+	// text the constant happens to hold, including a statusBelowMinDelta
+	// redefined to "ok" — which is exactly the collapse the package doc forbids
+	// ("never as a plain \"ok\"") and which the bench_watch summary grep for
+	// "below min delta" depends on. The literal text is part of the contract.
+	for _, tc := range []struct{ name, want string }{
+		{"BenchmarkAlignedBID128/from_int64-10", "ok (below min delta)"},
+		{"BenchmarkFairBID64/add-10", "ok"},
+	} {
+		if status := reportRowStatus(t, got, tc.name); status != tc.want {
+			t.Fatalf("row %s status = %q, want %q:\n%s", tc.name, status, tc.want, got)
+		}
+	}
+	// The header must name the floor in force, and the held row must keep its
+	// change% so a reader can judge the move the floor suppressed a verdict on.
+	for _, want := range []string{"min-delta=+0.25ns", "+26.56%", "benchdiff: PASS"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("report is missing %q:\n%s", want, got)
+		}
 	}
 }
 
@@ -206,6 +384,31 @@ func TestRegressionThresholdPct(t *testing.T) {
 	for _, raw := range []string{"-1", "0", "NaN", "nan", "Inf", "+Inf", "-Inf"} {
 		if _, err := regressionThresholdPct(raw); err == nil {
 			t.Fatalf("threshold %q accepted, want error", raw)
+		}
+	}
+}
+
+func TestRegressionMinDeltaNs(t *testing.T) {
+	if got, err := regressionMinDeltaNs(""); err != nil || got != defaultRegressionMinDeltaNs {
+		t.Fatalf("unset min delta = (%v, %v), want (%v, nil)", got, err, defaultRegressionMinDeltaNs)
+	}
+	if got, err := regressionMinDeltaNs("0.5"); err != nil || got != 0.5 {
+		t.Fatalf("min delta 0.5 = (%v, %v), want (0.5, nil)", got, err)
+	}
+	// Unlike the threshold, 0 is a legal setting: it disables the floor and
+	// restores the pure percentage gate.
+	if got, err := regressionMinDeltaNs("0"); err != nil || got != 0 {
+		t.Fatalf("min delta 0 = (%v, %v), want (0, nil)", got, err)
+	}
+	if _, err := regressionMinDeltaNs("quarter"); err == nil {
+		t.Fatal("non-numeric min delta accepted, want error")
+	}
+	// ParseFloat accepts NaN/Inf spellings and a plain `< 0` comparison passes
+	// them; every non-finite or negative floor must be an input error, not a
+	// silently disabled or distorted gate.
+	for _, raw := range []string{"-1", "-0.25", "NaN", "nan", "Inf", "+Inf", "-Inf"} {
+		if _, err := regressionMinDeltaNs(raw); err == nil {
+			t.Fatalf("min delta %q accepted, want error", raw)
 		}
 	}
 }

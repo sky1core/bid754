@@ -229,7 +229,73 @@ compares candidate against baseline: a median regression above the threshold
 ±3–4% run-to-run noise measured on the Apple M1 reference machine) or a
 benchmark that vanished from the candidate fails the gate, while
 candidate-only benchmarks are reported as `new (no baseline)` without
-failing. When benchmarks are added (they start as `new`), re-run
+failing.
+
+The percentage threshold is paired with an absolute median-delta floor: a row
+that clears the threshold but whose absolute median delta is at or below the
+floor (default 0.25 ns/op, tunable via `BENCH_REGRESSION_MIN_DELTA_NS`; 0
+disables the floor and restores the pure-percentage gate) does not fail and is
+reported as `ok (below min delta)` — with its change% — rather than as a plain
+`ok`. Both comparisons are strict, so a delta of exactly 0.25 ns is *not*
+above the floor. The effective threshold of a row is therefore
+`max(8%, 0.25 ns / baseline median)`. 8% of 3.125 ns is exactly 0.25 ns, so at
+or above a 3.125 ns baseline median the percentage rule always binds first and
+the gate's sensitivity is unchanged; only rows below that boundary are held to
+the absolute floor. The motivating case is the inline-budget canary
+`BenchmarkAlignedBID128/from_int64`, where a 0.1834 ns timer/inlining wobble
+(0.6905 → 0.8739 ns/op) reads as +26.56% and used to break the gate on noise.
+Both knobs are passed through by `make bench-go-check`.
+
+The floor is deliberately global rather than scoped to sub-nanosecond rows. A
+scoped variant (apply the floor only when the baseline median is under 1 ns)
+was considered and rejected: it introduces a discontinuous step at an
+arbitrary 1 ns line, where two rows measured 0.99 ns and 1.01 ns would be held
+to incomparable standards. The global floor instead encodes one monotone
+principle — a median delta at or under 0.25 ns is within a single row's
+build-to-build reproducibility, regardless of which row produced it — and the
+`max(8%, 0.25 ns / baseline)` formula it yields is continuous in the baseline
+median.
+
+The 0.25 ns figure is a reproducibility bound, not a sampling-noise bound: it
+is not the harness's measurement resolution, which is an order of magnitude
+finer (the 5-sample spread within one binary is 0.0013–0.086 ns across the
+twelve floor-governed rows). What 0.25 ns covers is the wobble a *single* row
+shows between builds — inlining decisions and code alignment shifting under
+unrelated edits — which is the same mechanism as the `timer/inlining wobble`
+on the canary row above, and which no amount of resampling one binary
+removes.
+
+Scope on the committed baselines: 12 of the 259 pinned rows have a median
+under 3.125 ns and are therefore floor-governed rather than
+percentage-governed. Two are sub-nanosecond (`FairBID128/from_int64` at
+0.548 ns, `AlignedBID128/from_int64` at 0.877 ns) and ten sit in a 2.20–2.55 ns
+band (the `scaleb`, `from_int64` and format-widening conversion rows). The
+sub-nanosecond rows are the extreme case of the floor's reach, not the whole
+of it.
+
+Residual risk, and how to read a report:
+
+- `ok (below min delta)` is **not** evidence that a row did not regress. It
+  states only that the gate declined to render a verdict because the absolute
+  move is within a single row's build-to-build reproducibility. Every such row
+  is a human judgement call; the change% is printed precisely so it can be
+  judged.
+- Worst-case masking on the current baselines follows directly from the
+  formula: the 0.548 ns row passes up to +45.6% and the 0.877 ns row up to
+  +28.5%. A uniform +0.2 ns regression across the ten-row 2.20–2.55 ns band
+  would also pass on every row, though for two different reasons: the eight
+  rows from 2.201 to 2.328 ns clear 8% (+8.6% to +9.1%) and are held by the
+  floor, while the two `scaleb` rows at 2.536 and 2.552 ns reach only +7.9%
+  and +7.8% and so never engage the floor at all. A change expected to touch
+  those rows should be judged on the printed change% or re-run with
+  `BENCH_REGRESSION_MIN_DELTA_NS=0`.
+- The floor does not blind the canary rows to what they were added to catch.
+  The failure mode `AlignedBID128/from_int64` exists to detect — the
+  inline-budget overflow fixed in `be6d0d1`, where losing inlining took the row
+  from 0.668 ns to 4.16 ns — is a 3.49 ns delta, about 14× the floor, and
+  fails the gate on the absolute rule alone.
+
+When benchmarks are added (they start as `new`), re-run
 `make bench-go-baseline` — and `make bench-rust-baseline` for the Criterion
 leg, whose strict `--baseline pinned` comparison fails outright on
 benchmarks missing from an older pinned baseline — to fold them into the

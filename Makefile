@@ -588,7 +588,16 @@ bench-go-baseline:
 # Go 벤치 회귀 게이트: latest 결과 2종(root native, bidgo)을 저장된 기준점
 # 2종과 devtools/cmd/benchdiff 로 비교한다 (벤치별 ns/op 중앙값 비교, 임계
 # 초과 회귀 또는 기준점 벤치 소실 시 실패; 임계는 BENCH_REGRESSION_THRESHOLD
-# 로 조정, 기본 8%). Criterion pinned 대비 change% 게이트의 Go 매트릭스 대응물.
+# 로 조정, 기본 8%). 임계는 넘었지만 중앙값 절대 delta 가 하한 이하인 행은
+# 실패시키지 않고 'ok (below min delta)' 로 구분 보고한다 (하한은
+# BENCH_REGRESSION_MIN_DELTA_NS 로 조정, 기본 0.25ns, 0 이면 하한 비활성 —
+# 유효 임계는 max(8%, 0.25ns/baseline) 이라 중앙값 3.125ns 이상 행에서는 8%
+# 감도가 그대로 유지되고, 그 아래 행만 절대 하한이 지배한다).
+# 'ok (below min delta)' 는 회귀가 없다는 근거가 아니다 — 절대 이동량이 단일
+# 행의 build-to-build 재현성(인라이닝/코드 정렬 wobble) 범위 안이라 게이트가
+# 판정을 보류한 것이므로 출력된 change% 로 사람이 판단해라
+# (상세: docs/BUILD.md).
+# Criterion pinned 대비 change% 게이트의 Go 매트릭스 대응물.
 bench-go-check:
 	@echo "🔍 Go 벤치 회귀 비교 (저장된 기준점 대비, benchdiff)..."
 	@test -f test_results/bench_baseline_root.txt || { echo "❌ Go 벤치 기준점 없음: test_results/bench_baseline_root.txt — make bench-native && make bench-bidgo 후 make bench-go-baseline 으로 기준점을 먼저 저장해라"; exit 1; }
@@ -596,8 +605,8 @@ bench-go-check:
 	@test -f test_results/latest_benchmark_root_results.txt || { echo "❌ 비교 대상 없음: test_results/latest_benchmark_root_results.txt — 먼저 make bench-native 를 실행해라"; exit 1; }
 	@test -f test_results/latest_benchmark_bid_go_results.txt || { echo "❌ 비교 대상 없음: test_results/latest_benchmark_bid_go_results.txt — 먼저 make bench-bidgo 를 실행해라"; exit 1; }
 	@bash -o pipefail -c '( rc=0; \
-		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_root.txt -candidate ../test_results/latest_benchmark_root_results.txt) || rc=1; \
-		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_bidgo.txt -candidate ../test_results/latest_benchmark_bid_go_results.txt) || rc=1; \
+		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" BENCH_REGRESSION_MIN_DELTA_NS="$(BENCH_REGRESSION_MIN_DELTA_NS)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_root.txt -candidate ../test_results/latest_benchmark_root_results.txt) || rc=1; \
+		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" BENCH_REGRESSION_MIN_DELTA_NS="$(BENCH_REGRESSION_MIN_DELTA_NS)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_bidgo.txt -candidate ../test_results/latest_benchmark_bid_go_results.txt) || rc=1; \
 		exit $$rc ) | tee test_results/latest_bench_go_check_results.txt'
 
 # standalone 코덱 벤치마크 (Go/Rust/JS/Py 4레그; Java/Swift 제외). 4레그 모두
@@ -1066,7 +1075,7 @@ help:
 	@echo "  make bench-rust     generated Rust Criterion 벤치마크 (pinned 기준점 대비)"
 	@echo "  make bench-rust-baseline Criterion pinned 기준점 저장/갱신"
 	@echo "  make bench-go-baseline 직전 bench-native+bench-bidgo 결과를 Go 벤치 기준점으로 저장"
-	@echo "  make bench-go-check latest Go 벤치 결과를 기준점과 비교 (중앙값 회귀 게이트, BENCH_REGRESSION_THRESHOLD 기본 8%)"
+	@echo "  make bench-go-check latest Go 벤치 결과를 기준점과 비교 (중앙값 회귀 게이트, BENCH_REGRESSION_THRESHOLD 기본 8%, BENCH_REGRESSION_MIN_DELTA_NS 기본 0.25ns)"
 	@echo "  make bench-compare-go bid754-go vs shopspring/decimal 비교 벤치마크 (별도 모듈, count=$(BENCH_COUNT))"
 	@echo "  make bench-compare-rs bid754-rs vs rust_decimal Criterion 비교 벤치마크 (별도 모듈, pinned 기준점 대비)"
 	@echo "  make bench-compare-rs-baseline 비교 벤치마크 Criterion pinned 기준점 저장/갱신"
