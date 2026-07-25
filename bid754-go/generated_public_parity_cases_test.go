@@ -13,7 +13,7 @@ import "testing"
 // shrinks the corpus cannot silently re-pin a smaller surface.
 const (
 	expectedPublicParityWrappers = 379
-	expectedPublicParityCases    = 29011
+	expectedPublicParityCases    = 29038
 )
 
 // The flagless-sibling equivalence leg's counts are pinned separately from
@@ -53,11 +53,11 @@ var expectedPublicParityCasesByShape = map[string]int{
 	"vm_class":                72,
 	"vm_compare_total":        144,
 	"vm_convert":              5760,
-	"vm_mode_binary":          2100,
-	"vm_mode_scaleb":          4740,
-	"vm_mode_ternary":         270,
+	"vm_mode_binary":          2115,
+	"vm_mode_scaleb":          4743,
+	"vm_mode_ternary":         273,
 	"vm_mode_unary":           1440,
-	"vm_mode_unary_arith":     840,
+	"vm_mode_unary_arith":     846,
 	"vm_nexttoward":           240,
 	"vm_nullary":              3,
 	"vm_scaleb":               936,

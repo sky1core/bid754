@@ -477,10 +477,14 @@ func publicParity_Add128DDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Add128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Add128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Add128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -544,10 +548,14 @@ func publicParity_Add128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Add128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Add128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Add128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -611,10 +619,14 @@ func publicParity_Add128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Add128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Add128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Add128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -746,10 +758,14 @@ func publicParity_Add64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Add64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Add64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Add64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -813,10 +829,14 @@ func publicParity_Add64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Add64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Add64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Add64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -880,10 +900,14 @@ func publicParity_Add64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Add64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Add64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Add64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -997,6 +1021,17 @@ func publicParity_Decimal128BID_AddWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.AddWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := invalidLeft.AddWithMode(invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.AddWithMode(invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.AddWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1700,6 +1735,17 @@ func publicParity_Decimal128BID_DivWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.DivWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := invalidLeft.DivWithMode(invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.DivWithMode(invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.DivWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1780,6 +1826,18 @@ func publicParity_Decimal128BID_FMAWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.FMAWithMode: discriminant operands %#x,%#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dt[0], dt[1], dt[2])
 		}
 	}
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := invalidA.FMAWithMode(invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidA.FMAWithMode(invalidB, invalidC, RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.FMAWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -2120,6 +2178,17 @@ func publicParity_Decimal128BID_MulWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.MulWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := invalidLeft.MulWithMode(invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.MulWithMode(invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.MulWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -2280,6 +2349,17 @@ func publicParity_Decimal128BID_QuantizeWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.QuantizeWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := invalidLeft.QuantizeWithMode(invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.QuantizeWithMode(invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.QuantizeWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -2638,6 +2718,16 @@ func publicParity_Decimal128BID_RoundIntegralExactWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.RoundIntegralExactWithMode(publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.RoundIntegralExactWithMode(RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -2823,6 +2913,16 @@ func publicParity_Decimal128BID_ScaleBWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.ScaleBWithMode: discriminant operand %#x exp %d: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dc.v, dc.exp)
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ScaleBWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3119,6 +3219,16 @@ func publicParity_Decimal128BID_SqrtWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.SqrtWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.SqrtWithMode(publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.SqrtWithMode(RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.SqrtWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3232,6 +3342,17 @@ func publicParity_Decimal128BID_SubWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.SubWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := invalidLeft.SubWithMode(invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.SubWithMode(invalidRight, RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.SubWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3435,6 +3556,17 @@ func publicParity_Decimal32BID_AddWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.AddWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	controlValue, controlFlags := invalidLeft.AddWithMode(invalidRight, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.AddWithMode(invalidRight, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.AddWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4138,6 +4270,17 @@ func publicParity_Decimal32BID_DivWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.DivWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	controlValue, controlFlags := invalidLeft.DivWithMode(invalidRight, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.DivWithMode(invalidRight, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.DivWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4218,6 +4361,18 @@ func publicParity_Decimal32BID_FMAWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.FMAWithMode: discriminant operands %#x,%#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dt[0], dt[1], dt[2])
 		}
 	}
+	invalidA := Decimal32BID(publicParityCorpus32[publicParityTernaryTriples32[0][0]])
+	invalidB := Decimal32BID(publicParityCorpus32[publicParityTernaryTriples32[0][1]])
+	invalidC := Decimal32BID(publicParityCorpus32[publicParityTernaryTriples32[0][2]])
+	controlValue, controlFlags := invalidA.FMAWithMode(invalidB, invalidC, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidA.FMAWithMode(invalidB, invalidC, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.FMAWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4553,6 +4708,17 @@ func publicParity_Decimal32BID_MulWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.MulWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	controlValue, controlFlags := invalidLeft.MulWithMode(invalidRight, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.MulWithMode(invalidRight, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.MulWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4713,6 +4879,17 @@ func publicParity_Decimal32BID_QuantizeWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.QuantizeWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	controlValue, controlFlags := invalidLeft.QuantizeWithMode(invalidRight, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.QuantizeWithMode(invalidRight, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.QuantizeWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5067,6 +5244,16 @@ func publicParity_Decimal32BID_RoundIntegralExactWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.RoundIntegralExactWithMode(publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.RoundIntegralExactWithMode(RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5244,6 +5431,16 @@ func publicParity_Decimal32BID_ScaleBWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.ScaleBWithMode: discriminant operand %#x exp %d: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dc.v, dc.exp)
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ScaleBWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5540,6 +5737,16 @@ func publicParity_Decimal32BID_SqrtWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.SqrtWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.SqrtWithMode(publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.SqrtWithMode(RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SqrtWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5649,6 +5856,17 @@ func publicParity_Decimal32BID_SubWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.SubWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	controlValue, controlFlags := invalidLeft.SubWithMode(invalidRight, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.SubWithMode(invalidRight, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SubWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5846,6 +6064,17 @@ func publicParity_Decimal64BID_AddWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.AddWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := invalidLeft.AddWithMode(invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.AddWithMode(invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.AddWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6549,6 +6778,17 @@ func publicParity_Decimal64BID_DivWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.DivWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := invalidLeft.DivWithMode(invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.DivWithMode(invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.DivWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6629,6 +6869,18 @@ func publicParity_Decimal64BID_FMAWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.FMAWithMode: discriminant operands %#x,%#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dt[0], dt[1], dt[2])
 		}
 	}
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := invalidA.FMAWithMode(invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidA.FMAWithMode(invalidB, invalidC, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.FMAWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6964,6 +7216,17 @@ func publicParity_Decimal64BID_MulWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.MulWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := invalidLeft.MulWithMode(invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.MulWithMode(invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.MulWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -7124,6 +7387,17 @@ func publicParity_Decimal64BID_QuantizeWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.QuantizeWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := invalidLeft.QuantizeWithMode(invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.QuantizeWithMode(invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.QuantizeWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -7478,6 +7752,16 @@ func publicParity_Decimal64BID_RoundIntegralExactWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.RoundIntegralExactWithMode(publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.RoundIntegralExactWithMode(RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -7655,6 +7939,16 @@ func publicParity_Decimal64BID_ScaleBWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.ScaleBWithMode: discriminant operand %#x exp %d: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dc.v, dc.exp)
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ScaleBWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -7951,6 +8245,16 @@ func publicParity_Decimal64BID_SqrtWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.SqrtWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.SqrtWithMode(publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.SqrtWithMode(RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SqrtWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -8060,6 +8364,17 @@ func publicParity_Decimal64BID_SubWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.SubWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := invalidLeft.SubWithMode(invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidLeft.SubWithMode(invalidRight, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SubWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -8213,10 +8528,14 @@ func publicParity_Div128DDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Div128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Div128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Div128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8280,10 +8599,14 @@ func publicParity_Div128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Div128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Div128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Div128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8347,10 +8670,14 @@ func publicParity_Div128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Div128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Div128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Div128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8414,10 +8741,14 @@ func publicParity_Div64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Div64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Div64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Div64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -8481,10 +8812,14 @@ func publicParity_Div64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Div64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Div64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Div64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -8548,10 +8883,14 @@ func publicParity_Div64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Div64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Div64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Div64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -8620,11 +8959,15 @@ func publicParity_FMA128DDDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DDDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[0])
-	invalidB := Decimal64BID(publicParityCorpus64[0])
-	invalidC := Decimal64BID(publicParityCorpus64[0])
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := FMA128DDDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA128DDDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA128DDDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA128DDDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8693,11 +9036,15 @@ func publicParity_FMA128DDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[0])
-	invalidB := Decimal64BID(publicParityCorpus64[0])
-	invalidC := Decimal128BID(publicParityCorpus128[0])
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := FMA128DDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA128DDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA128DDQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA128DDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8766,11 +9113,15 @@ func publicParity_FMA128DQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[0])
-	invalidB := Decimal128BID(publicParityCorpus128[0])
-	invalidC := Decimal64BID(publicParityCorpus64[0])
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := FMA128DQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA128DQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA128DQDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA128DQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8839,11 +9190,15 @@ func publicParity_FMA128DQQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DQQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[0])
-	invalidB := Decimal128BID(publicParityCorpus128[0])
-	invalidC := Decimal128BID(publicParityCorpus128[0])
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := FMA128DQQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA128DQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA128DQQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA128DQQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8912,11 +9267,15 @@ func publicParity_FMA128QDDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128QDDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[0])
-	invalidB := Decimal64BID(publicParityCorpus64[0])
-	invalidC := Decimal64BID(publicParityCorpus64[0])
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := FMA128QDDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA128QDDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA128QDDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA128QDDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -8985,11 +9344,15 @@ func publicParity_FMA128QDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128QDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[0])
-	invalidB := Decimal64BID(publicParityCorpus64[0])
-	invalidC := Decimal128BID(publicParityCorpus128[0])
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := FMA128QDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA128QDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA128QDQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA128QDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -9058,11 +9421,15 @@ func publicParity_FMA128QQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128QQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[0])
-	invalidB := Decimal128BID(publicParityCorpus128[0])
-	invalidC := Decimal64BID(publicParityCorpus64[0])
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := FMA128QQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA128QQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA128QQDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA128QQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -9131,11 +9498,15 @@ func publicParity_FMA64DDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64DDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[0])
-	invalidB := Decimal64BID(publicParityCorpus64[0])
-	invalidC := Decimal128BID(publicParityCorpus128[0])
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := FMA64DDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64DDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA64DDQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA64DDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9204,11 +9575,15 @@ func publicParity_FMA64DQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64DQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[0])
-	invalidB := Decimal128BID(publicParityCorpus128[0])
-	invalidC := Decimal64BID(publicParityCorpus64[0])
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := FMA64DQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64DQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA64DQDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA64DQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9277,11 +9652,15 @@ func publicParity_FMA64DQQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64DQQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[0])
-	invalidB := Decimal128BID(publicParityCorpus128[0])
-	invalidC := Decimal128BID(publicParityCorpus128[0])
+	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := FMA64DQQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64DQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA64DQQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA64DQQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9350,11 +9729,15 @@ func publicParity_FMA64QDDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QDDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[0])
-	invalidB := Decimal64BID(publicParityCorpus64[0])
-	invalidC := Decimal64BID(publicParityCorpus64[0])
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := FMA64QDDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QDDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA64QDDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA64QDDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9423,11 +9806,15 @@ func publicParity_FMA64QDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[0])
-	invalidB := Decimal64BID(publicParityCorpus64[0])
-	invalidC := Decimal128BID(publicParityCorpus128[0])
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := FMA64QDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA64QDQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA64QDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9496,11 +9883,15 @@ func publicParity_FMA64QQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[0])
-	invalidB := Decimal128BID(publicParityCorpus128[0])
-	invalidC := Decimal64BID(publicParityCorpus64[0])
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	controlValue, controlFlags := FMA64QQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA64QQDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA64QQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9569,11 +9960,15 @@ func publicParity_FMA64QQQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QQQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[0])
-	invalidB := Decimal128BID(publicParityCorpus128[0])
-	invalidC := Decimal128BID(publicParityCorpus128[0])
+	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	controlValue, controlFlags := FMA64QQQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := FMA64QQQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity FMA64QQQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9601,10 +9996,14 @@ func publicParity_Mul128DDBIDWithMode(t *testing.T) int {
 			count++
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Mul128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Mul128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Mul128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -9668,10 +10067,14 @@ func publicParity_Mul128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Mul128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Mul128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Mul128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -9735,10 +10138,14 @@ func publicParity_Mul128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Mul128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Mul128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Mul128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -9802,10 +10209,14 @@ func publicParity_Mul64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Mul64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Mul64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Mul64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9869,10 +10280,14 @@ func publicParity_Mul64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Mul64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Mul64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Mul64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -9936,10 +10351,14 @@ func publicParity_Mul64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Mul64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Mul64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Mul64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -11299,9 +11718,13 @@ func publicParity_Sqrt128DBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sqrt128DBIDWithMode: discriminant operand %v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[0])
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := Sqrt128DBIDWithMode(invalidOperand, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sqrt128DBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Sqrt128DBIDWithMode(invalidOperand, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sqrt128DBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -11356,9 +11779,13 @@ func publicParity_Sqrt64QBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sqrt64QBIDWithMode: discriminant operand %v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[0])
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := Sqrt64QBIDWithMode(invalidOperand, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sqrt64QBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Sqrt64QBIDWithMode(invalidOperand, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sqrt64QBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -11422,10 +11849,14 @@ func publicParity_Sub128DDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Sub128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Sub128DDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sub128DDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -11489,10 +11920,14 @@ func publicParity_Sub128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Sub128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Sub128DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sub128DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -11556,10 +11991,14 @@ func publicParity_Sub128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Sub128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
 	invalidValue, invalidFlags := Sub128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if invalidValue.ToBytes() != canonicalQNaN128BID().ToBytes() || invalidFlags != FlagInvalidOperation {
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sub128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
 	}
 	count++
@@ -11623,10 +12062,14 @@ func publicParity_Sub64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Sub64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Sub64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sub64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -11690,10 +12133,14 @@ func publicParity_Sub64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal64BID(publicParityCorpus64[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlValue, controlFlags := Sub64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Sub64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sub64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++
@@ -11757,10 +12204,14 @@ func publicParity_Sub64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[0])
-	invalidRight := Decimal128BID(publicParityCorpus128[0])
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlValue, controlFlags := Sub64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
 	invalidValue, invalidFlags := Sub64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != uint64(canonicalQNaN64BID()) || invalidFlags != FlagInvalidOperation {
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Sub64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
 	}
 	count++

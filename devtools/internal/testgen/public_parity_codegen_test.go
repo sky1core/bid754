@@ -426,13 +426,23 @@ func TestResolveParityUnitRejectsUnsupportedMixedFMAAndSqrtSurfaces(t *testing.T
 	}
 }
 
-func TestEmitMixedFMAAndSqrtParityPinsDiscriminantsAndInvalidMode(t *testing.T) {
+// TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection pins, per
+// explicit-RoundingMode parity shape, that the emitter still renders the
+// mode-discriminant table, the invalid-mode rejection call on the shape's own
+// operand slots, and the rejection expectation as a *pinned bit literal*
+// rather than a call into the production canonicalQNaN*BID helpers (a wrong
+// constant there would otherwise make the wrapper and the gate wrong
+// together). Without this generator-level anchor an emitter regression that
+// drops the leg is invisible: the gate would simply run fewer cases and the
+// pinned case counts would be regenerated along with it.
+func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 	tests := []struct {
 		name               string
 		unit               parityUnit
 		discriminant       string
 		expectedBoundCalls []generatedGoBoundCallExpectation
-		canonicalCall      string
+		wantComparisons    []string
+		forbiddenCalls     []string
 	}{
 		{
 			name: "FMA64DQQ",
@@ -442,8 +452,7 @@ func TestEmitMixedFMAAndSqrtParityPinsDiscriminantsAndInvalidMode(t *testing.T) 
 				TernaryOperandWidths: [3]int{64, 128, 128}, ResultClass: "dec64",
 				Port: parityPortPlan{GoName: "Bid64dqqFma", HasRounding: true, FlagsKind: "result", PrimaryResult: "uint64"},
 			},
-			discriminant:  "discTriples",
-			canonicalCall: "canonicalQNaN64BID",
+			discriminant: "discTriples",
 			expectedBoundCalls: []generatedGoBoundCallExpectation{
 				{binding: "pv, pf", callee: "FMA64DQQBIDWithMode", args: [][]string{
 					{"a", "bv", "c", "mode.pub"},
@@ -453,10 +462,20 @@ func TestEmitMixedFMAAndSqrtParityPinsDiscriminantsAndInvalidMode(t *testing.T) 
 					{"aBits", "publicParityToBidgo128(bBits)", "publicParityToBidgo128(cBits)", "mode.port"},
 					{"triple.a", "publicParityToBidgo128(triple.b)", "publicParityToBidgo128(triple.c)", "mode.port"},
 				}},
+				{binding: "controlValue, controlFlags", callee: "FMA64DQQBIDWithMode", args: [][]string{
+					{"invalidA", "invalidB", "invalidC", "publicParityModes[0].pub"},
+				}},
 				{binding: "invalidValue, invalidFlags", callee: "FMA64DQQBIDWithMode", args: [][]string{
 					{"invalidA", "invalidB", "invalidC", "RoundingMode(99)"},
 				}},
 			},
+			wantComparisons: []string{
+				"uint64(controlValue) == 0x7c00000000000000",
+				"controlFlags == FlagInvalidOperation",
+				"uint64(invalidValue) != 0x7c00000000000000",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN64BID"},
 		},
 		{
 			name: "Sqrt128D",
@@ -466,8 +485,7 @@ func TestEmitMixedFMAAndSqrtParityPinsDiscriminantsAndInvalidMode(t *testing.T) 
 				UnaryOperandWidth: 64, ResultClass: "dec128",
 				Port: parityPortPlan{GoName: "Bid128dSqrt", HasRounding: true, FlagsKind: "result", PrimaryResult: "BID_UINT128"},
 			},
-			discriminant:  "discVals",
-			canonicalCall: "canonicalQNaN128BID",
+			discriminant: "discVals",
 			expectedBoundCalls: []generatedGoBoundCallExpectation{
 				{binding: "pv, pf", callee: "Sqrt128DBIDWithMode", args: [][]string{
 					{"operand", "mode.pub"},
@@ -477,10 +495,116 @@ func TestEmitMixedFMAAndSqrtParityPinsDiscriminantsAndInvalidMode(t *testing.T) 
 					{"elem", "mode.port"},
 					{"dv", "mode.port"},
 				}},
+				{binding: "controlValue, controlFlags", callee: "Sqrt128DBIDWithMode", args: [][]string{
+					{"invalidOperand", "publicParityModes[0].pub"},
+				}},
 				{binding: "invalidValue, invalidFlags", callee: "Sqrt128DBIDWithMode", args: [][]string{
 					{"invalidOperand", "RoundingMode(99)"},
 				}},
 			},
+			wantComparisons: []string{
+				"controlValue.ToBytes() == ([16]byte{15: 0x7c})",
+				"controlFlags == FlagInvalidOperation",
+				"invalidValue.ToBytes() != ([16]byte{15: 0x7c})",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN128BID"},
+		},
+		{
+			name: "Decimal32BID.SqrtWithMode",
+			unit: parityUnit{
+				Symbol: "Decimal32BID.SqrtWithMode", FuncName: "publicParity_Decimal32BID_SqrtWithMode",
+				Shape: shapeVMModeUnaryArith, Width: 32, Method: "SqrtWithMode", ResultClass: "dec32",
+				Port: parityPortPlan{GoName: "Bid32Sqrt", ValueParams: []string{"uint32"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "uint32"},
+			},
+			discriminant: "discVals",
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "controlValue, controlFlags", callee: "invalidOperand.SqrtWithMode", args: [][]string{
+					{"publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "invalidOperand.SqrtWithMode", args: [][]string{
+					{"RoundingMode(99)"},
+				}},
+			},
+			wantComparisons: []string{
+				"uint32(controlValue) == 0x7c000000",
+				"controlFlags == FlagInvalidOperation",
+				"uint32(invalidValue) != 0x7c000000",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN32BID"},
+		},
+		{
+			name: "Decimal64BID.AddWithMode",
+			unit: parityUnit{
+				Symbol: "Decimal64BID.AddWithMode", FuncName: "publicParity_Decimal64BID_AddWithMode",
+				Shape: shapeVMModeBinary, Width: 64, Method: "AddWithMode", ResultClass: "dec64",
+				Port: parityPortPlan{GoName: "Bid64AddWithFlags", ValueParams: []string{"uint64", "uint64"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "uint64"},
+			},
+			discriminant: "discPairs",
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "controlValue, controlFlags", callee: "invalidLeft.AddWithMode", args: [][]string{
+					{"invalidRight", "publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "invalidLeft.AddWithMode", args: [][]string{
+					{"invalidRight", "RoundingMode(99)"},
+				}},
+			},
+			wantComparisons: []string{
+				"uint64(controlValue) == 0x7c00000000000000",
+				"controlFlags == FlagInvalidOperation",
+				"uint64(invalidValue) != 0x7c00000000000000",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN64BID"},
+		},
+		{
+			name: "Decimal128BID.FMAWithMode",
+			unit: parityUnit{
+				Symbol: "Decimal128BID.FMAWithMode", FuncName: "publicParity_Decimal128BID_FMAWithMode",
+				Shape: shapeVMModeTernary, Width: 128, Method: "FMAWithMode", ResultClass: "dec128",
+				Port: parityPortPlan{GoName: "Bid128Fma", ValueParams: []string{"BID_UINT128", "BID_UINT128", "BID_UINT128"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "BID_UINT128"},
+			},
+			discriminant: "discTriples",
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "controlValue, controlFlags", callee: "invalidA.FMAWithMode", args: [][]string{
+					{"invalidB", "invalidC", "publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "invalidA.FMAWithMode", args: [][]string{
+					{"invalidB", "invalidC", "RoundingMode(99)"},
+				}},
+			},
+			wantComparisons: []string{
+				"controlValue.ToBytes() == ([16]byte{15: 0x7c})",
+				"controlFlags == FlagInvalidOperation",
+				"invalidValue.ToBytes() != ([16]byte{15: 0x7c})",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN128BID"},
+		},
+		{
+			name: "Decimal32BID.ScaleBWithMode",
+			unit: parityUnit{
+				Symbol: "Decimal32BID.ScaleBWithMode", FuncName: "publicParity_Decimal32BID_ScaleBWithMode",
+				Shape: shapeVMModeScaleB, Width: 32, Method: "ScaleBWithMode", ResultClass: "dec32",
+				Port: parityPortPlan{GoName: "Bid32ScalblnWithFlags", ValueParams: []string{"uint32", "int64"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "uint32"},
+			},
+			discriminant: "discCases",
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "controlValue, controlFlags", callee: "invalidOperand.ScaleBWithMode", args: [][]string{
+					{"publicParityScaleBExps[0]", "publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "invalidOperand.ScaleBWithMode", args: [][]string{
+					{"publicParityScaleBExps[0]", "RoundingMode(99)"},
+				}},
+			},
+			wantComparisons: []string{
+				"uint32(controlValue) == 0x7c000000",
+				"controlFlags == FlagInvalidOperation",
+				"uint32(invalidValue) != 0x7c000000",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN32BID"},
 		},
 	}
 	for _, tc := range tests {
@@ -496,7 +620,16 @@ func TestEmitMixedFMAAndSqrtParityPinsDiscriminantsAndInvalidMode(t *testing.T) 
 			for _, want := range tc.expectedBoundCalls {
 				assertGeneratedGoBoundCallArgs(t, structure, want)
 			}
-			assertGeneratedGoCallArgs(t, structure.calls[tc.canonicalCall], tc.canonicalCall, [][]string{{}})
+			for _, want := range tc.wantComparisons {
+				if got := structure.comparisons[want]; got != 1 {
+					t.Errorf("emitted parity body has comparison %q %d times, want exactly 1; comparisons %v", want, got, structure.comparisons)
+				}
+			}
+			for _, forbidden := range tc.forbiddenCalls {
+				if calls := structure.calls[forbidden]; len(calls) != 0 {
+					t.Errorf("emitted parity body calls production helper %s %d times; the invalid-mode expectation must be a pinned literal", forbidden, len(calls))
+				}
+			}
 		})
 	}
 }
@@ -511,6 +644,10 @@ type generatedGoStructure struct {
 	calls       map[string][][]string
 	boundCalls  map[string]map[string][][]string
 	identifiers map[string]int
+	// comparisons counts rendered "<lhs> == <rhs>" / "<lhs> != <rhs>" forms so a
+	// test can pin an expected bit literal, which structure.calls and
+	// structure.identifiers cannot see (a literal is neither).
+	comparisons map[string]int
 }
 
 func parseGeneratedGoStructure(t *testing.T, source string) generatedGoStructure {
@@ -524,11 +661,18 @@ func parseGeneratedGoStructure(t *testing.T, source string) generatedGoStructure
 		calls:       map[string][][]string{},
 		boundCalls:  map[string]map[string][][]string{},
 		identifiers: map[string]int{},
+		comparisons: map[string]int{},
 	}
 	ast.Inspect(file, func(node ast.Node) bool {
 		switch node := node.(type) {
 		case *ast.Ident:
 			structure.identifiers[node.Name]++
+		case *ast.BinaryExpr:
+			if node.Op == token.EQL || node.Op == token.NEQ {
+				lhs := formatGeneratedGoExpr(t, fset, node.X)
+				rhs := formatGeneratedGoExpr(t, fset, node.Y)
+				structure.comparisons[lhs+" "+node.Op.String()+" "+rhs]++
+			}
 		case *ast.CallExpr:
 			callee := formatGeneratedGoExpr(t, fset, node.Fun)
 			args := make([]string, len(node.Args))

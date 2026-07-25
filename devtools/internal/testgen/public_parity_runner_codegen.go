@@ -1788,7 +1788,8 @@ func resolveValueMethodUnit(u parityUnit, sym publicAPISymbol, corpus publicPari
 			if err != nil {
 				return u, err
 			}
-			u.Cases = (publicParityCorpusLen + len(disc)) * len(parityModeOrder)
+			// + 1: the trailing invalid-mode rejection case.
+			u.Cases = (publicParityCorpusLen+len(disc))*len(parityModeOrder) + 1
 		} else {
 			u.Shape = shapeVMModeUnary
 			u.Cases = publicParityCorpusLen * len(parityModeOrder)
@@ -1802,7 +1803,8 @@ func resolveValueMethodUnit(u parityUnit, sym publicAPISymbol, corpus publicPari
 		if err != nil {
 			return u, err
 		}
-		u.Cases = (len(parityLabelPairs) + len(disc)) * len(parityModeOrder)
+		// + 1: the trailing invalid-mode rejection case.
+		u.Cases = (len(parityLabelPairs)+len(disc))*len(parityModeOrder) + 1
 	case len(valueParams) == 1 && valueParams[0] == sym.Recv:
 		u.Shape = shapeVMBinary
 		u.Cases = len(parityLabelPairs)
@@ -1812,7 +1814,8 @@ func resolveValueMethodUnit(u parityUnit, sym publicAPISymbol, corpus publicPari
 		if err != nil {
 			return u, err
 		}
-		u.Cases = (len(parityLabelTriples) + len(discT)) * len(parityModeOrder)
+		// + 1: the trailing invalid-mode rejection case.
+		u.Cases = (len(parityLabelTriples)+len(discT))*len(parityModeOrder) + 1
 	case len(valueParams) == 2 && valueParams[0] == sym.Recv && valueParams[1] == sym.Recv:
 		u.Shape = shapeVMTernary
 		u.Cases = len(parityLabelTriples)
@@ -1822,7 +1825,8 @@ func resolveValueMethodUnit(u parityUnit, sym publicAPISymbol, corpus publicPari
 		if err != nil {
 			return u, err
 		}
-		u.Cases = (publicParityCorpusLen*len(publicParityScaleBExps) + len(discS)) * len(parityModeOrder)
+		// + 1: the trailing invalid-mode rejection case.
+		u.Cases = (publicParityCorpusLen*len(publicParityScaleBExps)+len(discS))*len(parityModeOrder) + 1
 	case len(valueParams) == 1 && valueParams[0] == "int":
 		u.Shape = shapeVMScaleB
 		u.Cases = publicParityCorpusLen * len(publicParityScaleBExps)

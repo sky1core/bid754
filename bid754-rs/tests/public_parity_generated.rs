@@ -23,23 +23,34 @@
 //! still reports an error on any emitted row whose bidgo_function does not resolve
 //! to one of the three widths rather than guessing at its convention.
 //!
-//! Invalid-RoundingMode accounting: the Go public API's ConvertToInt*(mode
-//! RoundingMode) family has a defined behavior for a mode value outside the
-//! five IEEE directions (types_bidgo_invalid_mode.go: FlagInvalidOperation +
-//! a canonical qNaN mirror), because Go's RoundingMode is an open int. Rust's
-//! RoundingMode (bid754-rs/src/generated/api/types.rs) is a closed five-
-//! variant enum, so an invalid mode value is not constructible at all: the
-//! type system represents the constraint (docs/IEEE754_SPEC.md's constructibility
-//! principle), not a runtime branch this gate could exercise. This is
-//! reported here rather than silently omitted: the Go generated public-API
-//! parity corpus (bid754-go/generated_public_parity_cases_test.go /
-//! generated_public_parity_dispatch_test.go) was checked and, as of this
-//! generation, does not itself contain an invalid-mode case either -- the
-//! Go RoundingMode open-int behavior is covered by a hand-written unit test
-//! elsewhere in bid754-go, not by the generated parity corpus -- so there is
-//! no specific Go parity case count for this gate to carry over as a skip
-//! bucket. The accounting is: 0 cases affected; the case is not constructible
-//! in the Rust API.
+//! Invalid-RoundingMode accounting: Go's RoundingMode is an open int, so every
+//! public Go surface taking one has a defined behavior for a value outside the
+//! five IEEE directions (types_bidgo_invalid_mode.go: FlagInvalidOperation
+//! plus either the canonical quiet NaN of the result width or the mirrored
+//! NaN-input result of the conversion families). Rust's RoundingMode
+//! (bid754-rs/src/generated/api/types.rs) is a closed five-variant enum, so an
+//! invalid mode value is not constructible at all: the type system represents
+//! the constraint (docs/IEEE754_SPEC.md's constructibility principle), not a
+//! runtime branch this gate could exercise.
+//!
+//! This is reported here rather than silently omitted. The Go generated
+//! public-API parity corpus does carry that contract for the arithmetic mode
+//! shapes: the generated body of every same-width explicit-mode arithmetic
+//! wrapper ({Add,Sub,Mul,Div,Quantize,FMA,ScaleB,Sqrt,RoundIntegralExact}
+//! WithMode) and every mixed-width explicit-mode free function ends in a
+//! rejection case that calls the wrapper with RoundingMode(99) and compares
+//! the result against a pinned canonical quiet-NaN bit literal plus exactly
+//! FlagInvalidOperation, preceded by a valid-mode control asserting the case
+//! is not vacuous. Those cases are counted inside their own shapes'
+//! expectedPublicParityCasesByShape entries in
+//! bid754-go/generated_public_parity_cases_test.go, one per wrapper; no total
+//! is restated in this comment because a hand-carried count here would drift
+//! from the Go leg. The conversion, integer-constructor, string-constructor,
+//! and context mode shapes do not carry a generated rejection case yet: their
+//! expected rejection value is derived per target type rather than from the
+//! result width. The accounting for this Rust leg is unchanged either way:
+//! 0 cases affected, because the input does not exist in this API and so
+//! there is nothing to skip.
 
 use bid754::{Context, Decimal128, Decimal32, Decimal64, RoundingMode};
 

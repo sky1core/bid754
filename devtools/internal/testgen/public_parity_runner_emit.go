@@ -536,6 +536,72 @@ func emitFlagCheck(b *strings.Builder, indent, symbol, pubFlags, portFlags, ctxF
 	fmt.Fprintf(b, "%s}\n", indent)
 }
 
+// pwFinitePairElem and pwFiniteTripleElem render a label-resolved finite
+// corpus element expression at a width. Row 0 of the shared binary direction
+// matrix is {finite,0},{finite,1} and row 0 of the ternary matrix is
+// {finite,0},{finite,1},{finite,2} by construction (parityLabelPairs /
+// parityLabelTriples), so these resolve to nonzero finite operands at every
+// width no matter where those bit patterns sit in that width's edge list.
+func pwFinitePairElem(w, slot int) string {
+	return fmt.Sprintf("%s[%s[0][%d]]", pwCorpus(w), pwPairs(w), slot)
+}
+
+func pwFiniteTripleElem(w, slot int) string {
+	return fmt.Sprintf("%s[%s[0][%d]]", pwCorpus(w), pwTriples(w), slot)
+}
+
+// parityInvalidModeQNaNLiteral renders the canonical quiet-NaN bit pattern an
+// invalid-RoundingMode rejection must return, as a Go literal comparable
+// against pubBitsExpr(class, …). The width-128 form is parenthesized because a
+// bare composite literal cannot open an if condition. Pinning the literal here
+// instead of calling the production canonicalQNaN*BID helpers keeps a wrong
+// constant in those helpers from making the wrapper and this gate wrong
+// together, the same reason emitRawRejectedStringCheck pins its literals.
+func parityInvalidModeQNaNLiteral(class string) (string, error) {
+	switch class {
+	case "dec32":
+		return "0x7c000000", nil
+	case "dec64":
+		return "0x7c00000000000000", nil
+	case "dec128":
+		return "([16]byte{15: 0x7c})", nil
+	default:
+		return "", fmt.Errorf("invalid-mode rejection check has unsupported result class %q", class)
+	}
+}
+
+// emitInvalidModeRejectionTail writes the invalid-public-mode rejection leg
+// shared by every explicit-RoundingMode parity shape. call renders the wrapper
+// invocation for one mode expression. The port is never invoked with the
+// unsupported integer because it has no defined behavior for one, so the
+// expectation is the pinned canonical quiet-NaN literal of the result width
+// plus exactly FlagInvalidOperation.
+//
+// A valid-mode control call on the same operands runs first. The leg only
+// detects a missing rejection when the operands' ordinary result differs from
+// the rejection value, and that is not automatic: with +0 operands a division's
+// own 0/0 invalid-operation result is bit- and flag-identical to the rejection,
+// so such a leg passes with the rejection guard removed. The control turns a
+// corpus edit that moves the finite anchor into a failure instead of silent
+// vacuity.
+func emitInvalidModeRejectionTail(b *strings.Builder, u parityUnit, call func(modeExpr string) string) error {
+	want, err := parityInvalidModeQNaNLiteral(u.ResultClass)
+	if err != nil {
+		return fmt.Errorf("%s: %w", u.Symbol, err)
+	}
+	controlBits := pubBitsExpr(u.ResultClass, "controlValue")
+	invalidBits := pubBitsExpr(u.ResultClass, "invalidValue")
+	fmt.Fprintf(b, "\tcontrolValue, controlFlags := %s\n", call("publicParityModes[0].pub"))
+	fmt.Fprintf(b, "\tif %s == %s && controlFlags == FlagInvalidOperation {\n", controlBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid-mode leg is vacuous: valid-mode result=%%v flags=%%v already equals the rejection value, so a dropped rejection would pass\", %s, controlFlags)\n", u.Symbol, controlBits)
+	fmt.Fprintf(b, "\t}\n")
+	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s\n", call("RoundingMode(99)"))
+	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", invalidBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, invalidBits)
+	fmt.Fprintf(b, "\t}\n\tcount++\n")
+	return nil
+}
+
 func emitParityUnitFunc(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "func %s(t *testing.T) int {\n", u.FuncName)
 	fmt.Fprintf(b, "\tcount := 0\n")
@@ -672,14 +738,11 @@ func emitFuncMixedModeBinary(b *strings.Builder, u parityUnit) error {
 	}
 
 	// Invalid public mode: do not call Intel with an unsupported integer.
-	fmt.Fprintf(b, "\tinvalidLeft := %s\n", pwPublicVal(leftWidth, pwCorpus(leftWidth)+"[0]"))
-	fmt.Fprintf(b, "\tinvalidRight := %s\n", pwPublicVal(rightWidth, pwCorpus(rightWidth)+"[0]"))
-	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s(invalidLeft, invalidRight, RoundingMode(99))\n", u.Func)
-	canonical := fmt.Sprintf("canonicalQNaN%dBID()", u.Width)
-	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", pubBitsExpr(u.ResultClass, "invalidValue"), pubBitsExpr(u.ResultClass, canonical))
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, pubBitsExpr(u.ResultClass, "invalidValue"))
-	fmt.Fprintf(b, "\t}\n\tcount++\n")
-	return nil
+	fmt.Fprintf(b, "\tinvalidLeft := %s\n", pwPublicVal(leftWidth, pwFinitePairElem(leftWidth, 0)))
+	fmt.Fprintf(b, "\tinvalidRight := %s\n", pwPublicVal(rightWidth, pwFinitePairElem(rightWidth, 1)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("%s(invalidLeft, invalidRight, %s)", u.Func, mode)
+	})
 }
 
 // emitFuncMixedModeTernary renders the Intel D/Q mixed-width FMA free
@@ -740,15 +803,13 @@ func emitFuncMixedModeTernary(b *strings.Builder, u parityUnit) error {
 	emitModeDiscAssertion(b, u.Symbol, "discriminant operands %v,%v,%v", "triple.a, triple.b, triple.c")
 	fmt.Fprintf(b, "\t}\n")
 
-	fmt.Fprintf(b, "\tinvalidA := %s\n", pwPublicVal(widths[0], pwCorpus(widths[0])+"[0]"))
-	fmt.Fprintf(b, "\tinvalidB := %s\n", pwPublicVal(widths[1], pwCorpus(widths[1])+"[0]"))
-	fmt.Fprintf(b, "\tinvalidC := %s\n", pwPublicVal(widths[2], pwCorpus(widths[2])+"[0]"))
-	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s(invalidA, invalidB, invalidC, RoundingMode(99))\n", u.Func)
-	canonical := fmt.Sprintf("canonicalQNaN%dBID()", u.Width)
-	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", pubBitsExpr(u.ResultClass, "invalidValue"), pubBitsExpr(u.ResultClass, canonical))
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, pubBitsExpr(u.ResultClass, "invalidValue"))
-	fmt.Fprintf(b, "\t}\n\tcount++\n")
-	return nil
+	// Invalid public mode: do not call Intel with an unsupported integer.
+	fmt.Fprintf(b, "\tinvalidA := %s\n", pwPublicVal(widths[0], pwFiniteTripleElem(widths[0], 0)))
+	fmt.Fprintf(b, "\tinvalidB := %s\n", pwPublicVal(widths[1], pwFiniteTripleElem(widths[1], 1)))
+	fmt.Fprintf(b, "\tinvalidC := %s\n", pwPublicVal(widths[2], pwFiniteTripleElem(widths[2], 2)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("%s(invalidA, invalidB, invalidC, %s)", u.Func, mode)
+	})
 }
 
 // emitFuncMixedModeUnary renders the two unlike-width sqrt free functions.
@@ -792,13 +853,11 @@ func emitFuncMixedModeUnary(b *strings.Builder, u parityUnit) error {
 	emitModeDiscAssertion(b, u.Symbol, "discriminant operand %v", "dv")
 	fmt.Fprintf(b, "\t}\n")
 
-	fmt.Fprintf(b, "\tinvalidOperand := %s\n", pwPublicVal(operandWidth, pwCorpus(operandWidth)+"[0]"))
-	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s(invalidOperand, RoundingMode(99))\n", u.Func)
-	canonical := fmt.Sprintf("canonicalQNaN%dBID()", u.Width)
-	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", pubBitsExpr(u.ResultClass, "invalidValue"), pubBitsExpr(u.ResultClass, canonical))
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, pubBitsExpr(u.ResultClass, "invalidValue"))
-	fmt.Fprintf(b, "\t}\n\tcount++\n")
-	return nil
+	// Invalid public mode: do not call Intel with an unsupported integer.
+	fmt.Fprintf(b, "\tinvalidOperand := %s\n", pwPublicVal(operandWidth, pwFinitePairElem(operandWidth, 0)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("%s(invalidOperand, %s)", u.Func, mode)
+	})
 }
 
 func emitVMUnary(b *strings.Builder, u parityUnit) error {
@@ -933,6 +992,9 @@ func emitVMModeUnary(b *strings.Builder, u parityUnit) error {
 //     per-mode bit compare and this discrimination assertion, and a future
 //     corpus edit that stops discriminating fails the gate instead of
 //     silently making it vacuous.
+//
+// A final case pins the public invalid-mode rejection contract on the width's
+// finite anchor operands without passing an out-of-domain mode to Intel.
 func emitVMModeBinary(b *strings.Builder, u parityUnit) error {
 	w := u.Width
 	op := strings.TrimSuffix(u.Method, "WithMode")
@@ -995,7 +1057,13 @@ func emitVMModeBinary(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\t\tif modeInsensitive {\n")
 	fmt.Fprintf(b, "\t\t\tt.Errorf(\"public parity %s: discriminant operands %%#x,%%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates\", dp[0], dp[1])\n", u.Symbol)
 	fmt.Fprintf(b, "\t\t}\n\t}\n")
-	return nil
+
+	// Invalid public mode: do not call Intel with an unsupported integer.
+	fmt.Fprintf(b, "\tinvalidLeft := %s\n", pwPublicVal(w, pwFinitePairElem(w, 0)))
+	fmt.Fprintf(b, "\tinvalidRight := %s\n", pwPublicVal(w, pwFinitePairElem(w, 1)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("invalidLeft.%s(invalidRight, %s)", u.Method, mode)
+	})
 }
 
 // modeDiscGoType / modeDiscSeenDecl give the Go corpus element type name for
@@ -1030,7 +1098,9 @@ func emitModeDiscAssertion(b *strings.Builder, symbol, ctxFmt, ctxArgs string) {
 // mode-discriminant table (irrational-result operands) with the per-case
 // discrimination assertion, so a wrapper that drops its mode argument fails
 // both the per-mode bit compare and the assertion, and a corpus edit that
-// stops discriminating fails the gate.
+// stops discriminating fails the gate. A final case pins the public
+// invalid-mode rejection contract on the width's finite anchor operand without
+// passing an out-of-domain mode to Intel.
 func emitVMModeUnaryArith(b *strings.Builder, u parityUnit) error {
 	w := u.Width
 	op := strings.TrimSuffix(u.Method, "WithMode")
@@ -1072,13 +1142,19 @@ func emitVMModeUnaryArith(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
 	emitModeDiscAssertion(b, u.Symbol, "discriminant operand %#x", "dv")
 	fmt.Fprintf(b, "\t}\n")
-	return nil
+
+	// Invalid public mode: do not call Intel with an unsupported integer.
+	fmt.Fprintf(b, "\tinvalidOperand := %s\n", pwPublicVal(w, pwFinitePairElem(w, 0)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("invalidOperand.%s(%s)", u.Method, mode)
+	})
 }
 
 // emitVMModeTernary renders the FMAWithMode parity body: two same-width
 // operands plus a RoundingMode, always returning flags. Shared triples leg
 // plus the ternary mode-discriminant leg with the per-case assertion (same
-// two-leg structure as emitVMModeBinary at arity 3).
+// two-leg structure as emitVMModeBinary at arity 3), then the invalid-mode
+// rejection case on the width's finite anchor operands.
 func emitVMModeTernary(b *strings.Builder, u parityUnit) error {
 	w := u.Width
 	op := strings.TrimSuffix(u.Method, "WithMode")
@@ -1135,7 +1211,14 @@ func emitVMModeTernary(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
 	emitModeDiscAssertion(b, u.Symbol, "discriminant operands %#x,%#x,%#x", "dt[0], dt[1], dt[2]")
 	fmt.Fprintf(b, "\t}\n")
-	return nil
+
+	// Invalid public mode: do not call Intel with an unsupported integer.
+	fmt.Fprintf(b, "\tinvalidA := %s\n", pwPublicVal(w, pwFiniteTripleElem(w, 0)))
+	fmt.Fprintf(b, "\tinvalidB := %s\n", pwPublicVal(w, pwFiniteTripleElem(w, 1)))
+	fmt.Fprintf(b, "\tinvalidC := %s\n", pwPublicVal(w, pwFiniteTripleElem(w, 2)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("invalidA.%s(invalidB, invalidC, %s)", u.Method, mode)
+	})
 }
 
 // emitVMModeScaleB renders the ScaleBWithMode parity body: an int exponent
@@ -1144,7 +1227,9 @@ func emitVMModeTernary(b *strings.Builder, u parityUnit) error {
 // with the per-case assertion. scaleB is exact inside the format range, so
 // the shared leg alone cannot prove mode forwarding; the discriminant
 // exponents sit at the overflow/underflow boundary where the five directions
-// split.
+// split. A final case pins the public invalid-mode rejection contract on the
+// width's finite anchor operand and the first shared exponent without passing
+// an out-of-domain mode to Intel.
 func emitVMModeScaleB(b *strings.Builder, u parityUnit) error {
 	w := u.Width
 	op := strings.TrimSuffix(u.Method, "WithMode")
@@ -1192,7 +1277,12 @@ func emitVMModeScaleB(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
 	emitModeDiscAssertion(b, u.Symbol, "discriminant operand %#x exp %d", "dc.v, dc.exp")
 	fmt.Fprintf(b, "\t}\n")
-	return nil
+
+	// Invalid public mode: do not call Intel with an unsupported integer.
+	fmt.Fprintf(b, "\tinvalidOperand := %s\n", pwPublicVal(w, pwFinitePairElem(w, 0)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("invalidOperand.%s(publicParityScaleBExps[0], %s)", u.Method, mode)
+	})
 }
 
 // modeDiscGoLiteral renders one encoded mode-discriminant operand as a Go
