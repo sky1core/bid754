@@ -12729,6 +12729,8 @@ var publicParityFlaglessWitnessRows64 = []struct {
 	{"Bid64Mul", 0x2de38d7ea4c68000, 0x6000000000000000, 0}, // mutant mul64.go:5435:const:-1
 	{"Bid64Mul", 0x31c000000000000a, 0x6000000000000000, 0}, // mutant mul64.go:5859:const:+1
 	{"Bid64Mul", 0x000000000000000a, 0x77fb86f26fc0ffff, 0}, // mutant mul64.go:6598:aor:-->+
+	{"Bid64Div", 0x31c71afd498d0001, 0x31c0000000000002, 4}, // mutant div64.go:7610:const:-1
+	{"Bid64Mul", 0x31c0000000000002, 0x31d1c37937e08003, 0}, // mutant mul64.go:6698:cmp:<-><=
 }
 
 // publicParityFlaglessNext is a splitmix-style deterministic stream emitted

@@ -11812,6 +11812,8 @@ const FLAGLESS_WITNESS_ROWS_64: &[FlaglessWitnessRow64] = &[
     FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x2de38d7ea4c68000, y: 0x6000000000000000, mode: 0 }, // mutant mul64.go:5435:const:-1
     FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x31c000000000000a, y: 0x6000000000000000, mode: 0 }, // mutant mul64.go:5859:const:+1
     FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x000000000000000a, y: 0x77fb86f26fc0ffff, mode: 0 }, // mutant mul64.go:6598:aor:-->+
+    FlaglessWitnessRow64 { target: "Bid64Div", x: 0x31c71afd498d0001, y: 0x31c0000000000002, mode: 4 }, // mutant div64.go:7610:const:-1
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x31c0000000000002, y: 0x31d1c37937e08003, mode: 0 }, // mutant mul64.go:6698:cmp:<-><=
 ];
 
 fn flagless_sibling_check_32(target: &FlaglessSiblingTarget32, x: u32, y: u32, mode: i64) {
@@ -11862,7 +11864,7 @@ fn flagless_sibling_next(state: &mut u64) -> u64 {
 /// from the same generator tables so their case counts are equal by
 /// construction. Accounted separately from EXPECTED_PARITY_CASES.
 const EXPECTED_FLAGLESS_SIBLING_TARGETS: usize = 6;
-const EXPECTED_FLAGLESS_SIBLING_CASES: usize = 21029792;
+const EXPECTED_FLAGLESS_SIBLING_CASES: usize = 21029794;
 
 #[test]
 fn generated_public_api_flagless_sibling_equivalence() {

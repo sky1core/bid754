@@ -357,6 +357,29 @@ var parityFlaglessWitnessRows = []parityFlaglessWitnessRow{
 	{Target: "Bid64Mul", X: 0x2de38d7ea4c68000, Y: 0x6000000000000000, Mode: 0, MutantID: "mul64.go:5435:const:-1"},       // mul64.go:178 Bid64Mul
 	{Target: "Bid64Mul", X: 0x31c000000000000a, Y: 0x6000000000000000, Mode: 0, MutantID: "mul64.go:5859:const:+1"},       // mul64.go:195 Bid64Mul
 	{Target: "Bid64Mul", X: 0x000000000000000a, Y: 0x77fb86f26fc0ffff, Mode: 0, MutantID: "mul64.go:6598:aor:-->+"},       // mul64.go:217 Bid64Mul
+
+	// Batch C-7 residual rows. Both mutants sit on the round-to-nearest tail of
+	// a flagless body, on a line the leg already executes, and both need an
+	// operand whose discarded remainder is *adjacent* to the exact halfway
+	// point rather than at it - which no corpus row happened to hit.
+	//
+	// div64.go:320 is Intel's `R -= (Q | (rmode >> 2)) & 1` ties-away
+	// correction: only rmode == BID_ROUNDING_TIES_AWAY reaches it with a
+	// nonzero shift result, so the mutated shift count changes the correction
+	// to `Q & 1`, and the two disagree exactly on an even quotient at an exact
+	// midpoint. 2000000000000001E+0 / 2E+0 = 1000000000000000.5 is that
+	// midpoint with an even truncated quotient; ties-away must deliver
+	// ...0001 and the mutant truncates to ...0000.
+	//
+	// mul64.go:221 is the 128-bit `Q_low < reciprocals10_128[k]` exactness test
+	// of the round-half-to-even correction. Widening its high-word compare to
+	// `<=` only matters when Q_low's high word equals the reciprocal's, which
+	// happens exactly when the pre-rounding remainder is one unit above the
+	// halfway point (Q_low = k*d + reciprocal). 2E+0 * 5000000000000003E+0 =
+	// 10000000000000006 puts the discarded digit at 6 with an odd rounded
+	// coefficient, so the mutant wrongly applies the tie-to-even decrement.
+	{Target: "Bid64Div", X: 0x31c71afd498d0001, Y: 0x31c0000000000002, Mode: 4, MutantID: "div64.go:7610:const:-1"},  // div64.go:320 Bid64Div
+	{Target: "Bid64Mul", X: 0x31c0000000000002, Y: 0x31d1c37937e08003, Mode: 0, MutantID: "mul64.go:6698:cmp:<-><="}, // mul64.go:221 Bid64Mul
 }
 
 // validateParityFlaglessSiblingTables enforces the closed world of the

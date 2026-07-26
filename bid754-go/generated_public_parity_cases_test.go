@@ -24,7 +24,7 @@ const (
 // symbol census.
 const (
 	expectedPublicParityFlaglessSiblingTargets = 6
-	expectedPublicParityFlaglessSiblingCases   = 21029792
+	expectedPublicParityFlaglessSiblingCases   = 21029794
 )
 
 func TestGeneratedPublicAPIFlaglessSiblingEquivalence(t *testing.T) {
