@@ -28,26 +28,6 @@
 
 use super::prelude::*;
 
-pub(crate) fn bid32_to_bid64_local(mut x: u32) -> u64 {
-    let (mut sign, mut exp, mut coeff, mut valid) = unpack_bid32(x);
-    if (!valid) {
-        if ((x & 0x7c000000) == 0x7c000000) {
-            let mut payload = ((x & 0x000fffff) as u64);
-            if ((x & 0x7e000000) == 0x7e000000) {
-                return (((go_checked_shl_u64((sign as u64), go_shift_count_u64((32) as u64))) | 0x7e00000000000000) | payload);
-            }
-            return (((go_checked_shl_u64((sign as u64), go_shift_count_u64((32) as u64))) | 0x7c00000000000000) | payload);
-        }
-        if ((x & 0x78000000) == 0x78000000) {
-            return ((go_checked_shl_u64((sign as u64), go_shift_count_u64((32) as u64))) | 0x7800000000000000);
-        }
-        let mut exp64 = (exp.wrapping_add(0x18e - 101));
-        return ((go_checked_shl_u64((sign as u64), go_shift_count_u64((32) as u64))) | ((go_checked_shl_u64((exp64 as u64), go_shift_count_u64((53) as u64)))));
-    }
-    let mut exp64 = (exp.wrapping_add(0x18e - 101));
-    return (((go_checked_shl_u64((sign as u64), go_shift_count_u64((32) as u64))) | ((go_checked_shl_u64((exp64 as u64), go_shift_count_u64((53) as u64))))) | (coeff as u64));
-}
-
 pub(crate) fn bid64_to_bid32_local(mut x: u64) -> u32 {
     let (mut r, _) = bid64_to_bid32(x, 0);
     return r;

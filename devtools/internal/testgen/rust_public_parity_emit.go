@@ -486,6 +486,13 @@ struct NanCase {
 	if err := emitRustConstParityTests(&b, constRows); err != nil {
 		return nil, err
 	}
+
+	// Flagless-sibling equivalence leg (rust_public_parity_flagless_emit.go):
+	// the Rust mirror of the Go leg, accounted separately from
+	// EXPECTED_PARITY_CASES like the trait/NaN/constants legs above.
+	if err := emitRustParityFlaglessSibling(&b); err != nil {
+		return nil, err
+	}
 	return []byte(b.String()), nil
 }
 

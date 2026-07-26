@@ -123,6 +123,8 @@ type verificationAnchors struct {
 	RustPublicAPIDelegatedRoutingWrappers        int                          `json:"rust_public_api_delegated_routing_wrappers"`
 	RustPublicAPIParityCasesTotal                int                          `json:"rust_public_api_parity_cases_total"`
 	RustPublicAPIConstantsTotal                  int                          `json:"rust_public_api_constants_total"`
+	RustPublicAPIFlaglessSiblingTargets          int                          `json:"rust_public_api_flagless_sibling_targets"`
+	RustPublicAPIFlaglessSiblingCasesTotal       int                          `json:"rust_public_api_flagless_sibling_cases_total"`
 	RustPublicAPIParityCasesByShape              map[string]int               `json:"rust_public_api_parity_cases_by_shape"`
 	DecnumberDiffBoundaryValues                  map[string]uint64            `json:"decnumber_differential_boundary_values_by_width"`
 	DecnumberDiffProbeValues                     map[string]uint64            `json:"decnumber_differential_probe_values_by_width"`
@@ -2060,6 +2062,36 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		}
 	})
 
+	// Rust flagless-sibling equivalence leg: the Rust mirror of the Go leg
+	// checked above. Both legs are emitted from the same generator tables
+	// (mutation_witness_corpus.go) and the same shared corpus, so their target
+	// and case counts are equal by construction; that equality is asserted
+	// here, outside the generation path, so a change that shrinks one language's
+	// leg without the other fails even though each runner's own self-check
+	// would still pass.
+	t.Run("RustPublicAPIFlaglessSiblingLeg", func(t *testing.T) {
+		rustTargets, rustCases := loadRustParityFlaglessConstants(t)
+		if rustTargets != anchors.RustPublicAPIFlaglessSiblingTargets {
+			t.Errorf("generated rust runner EXPECTED_FLAGLESS_SIBLING_TARGETS = %d, anchor rust_public_api_flagless_sibling_targets = %d", rustTargets, anchors.RustPublicAPIFlaglessSiblingTargets)
+		}
+		if rustCases != anchors.RustPublicAPIFlaglessSiblingCasesTotal {
+			t.Errorf("generated rust runner EXPECTED_FLAGLESS_SIBLING_CASES = %d, anchor rust_public_api_flagless_sibling_cases_total = %d", rustCases, anchors.RustPublicAPIFlaglessSiblingCasesTotal)
+		}
+		if anchors.RustPublicAPIFlaglessSiblingTargets != anchors.PublicAPIFlaglessSiblingTargets {
+			t.Errorf("anchor rust_public_api_flagless_sibling_targets = %d != anchor public_api_flagless_sibling_targets = %d; the two legs are emitted from the same generator tables and must stay equal", anchors.RustPublicAPIFlaglessSiblingTargets, anchors.PublicAPIFlaglessSiblingTargets)
+		}
+		if anchors.RustPublicAPIFlaglessSiblingCasesTotal != anchors.PublicAPIFlaglessSiblingCasesTotal {
+			t.Errorf("anchor rust_public_api_flagless_sibling_cases_total = %d != anchor public_api_flagless_sibling_cases_total = %d; the two legs consume the same corpus, seeds, and witness rows and must stay equal", anchors.RustPublicAPIFlaglessSiblingCasesTotal, anchors.PublicAPIFlaglessSiblingCasesTotal)
+		}
+		goTargets, goCases := loadPublicParityFlaglessConstants(t)
+		if rustTargets != goTargets {
+			t.Errorf("generated rust runner EXPECTED_FLAGLESS_SIBLING_TARGETS = %d disagrees with the Go runner's expectedPublicParityFlaglessSiblingTargets = %d", rustTargets, goTargets)
+		}
+		if rustCases != goCases {
+			t.Errorf("generated rust runner EXPECTED_FLAGLESS_SIBLING_CASES = %d disagrees with the Go runner's expectedPublicParityFlaglessSiblingCases = %d", rustCases, goCases)
+		}
+	})
+
 	// Rust public-API constants gate: rust_api_surface_inventory.json's
 	// SEPARATE "constants" section (the 12 ZERO/ONE/PI/E census excluded_constant_accessor
 	// symbols -- outside the mapped public-symbol set the gate above covers) and the generated
@@ -2270,6 +2302,45 @@ func loadRustParityRunnerConstants(t *testing.T) (wrappers, cases int, byShape m
 		byShape[row[1]] = n
 	}
 	return wrappers, cases, byShape
+}
+
+var (
+	rustFlaglessTargetsConstRe = regexp.MustCompile(`(?m)^const EXPECTED_FLAGLESS_SIBLING_TARGETS: usize = (\d+);$`)
+	rustFlaglessCasesConstRe   = regexp.MustCompile(`(?m)^const EXPECTED_FLAGLESS_SIBLING_CASES: usize = (\d+);$`)
+)
+
+// loadRustParityFlaglessConstants extracts the generation-time count constants
+// of the Rust flagless-sibling equivalence leg
+// (rust_public_parity_flagless_emit.go) from the generated runner, mirroring
+// loadRustParityRunnerConstants's fixed-literal-form regex approach (there is
+// no Rust parser in the Go standard toolchain).
+func loadRustParityFlaglessConstants(t *testing.T) (targets, cases int) {
+	t.Helper()
+	path := filepath.Join("..", "..", "..", "bid754-rs", "tests", "public_parity_generated.rs")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	src := string(data)
+
+	tm := rustFlaglessTargetsConstRe.FindStringSubmatch(src)
+	if tm == nil {
+		t.Fatalf("EXPECTED_FLAGLESS_SIBLING_TARGETS constant not found in %s", path)
+	}
+	targets, err = strconv.Atoi(tm[1])
+	if err != nil {
+		t.Fatalf("EXPECTED_FLAGLESS_SIBLING_TARGETS in %s: %v", path, err)
+	}
+
+	cm := rustFlaglessCasesConstRe.FindStringSubmatch(src)
+	if cm == nil {
+		t.Fatalf("EXPECTED_FLAGLESS_SIBLING_CASES constant not found in %s", path)
+	}
+	cases, err = strconv.Atoi(cm[1])
+	if err != nil {
+		t.Fatalf("EXPECTED_FLAGLESS_SIBLING_CASES in %s: %v", path, err)
+	}
+	return targets, cases
 }
 
 // rustConstParityCasesConstRe extracts a per-width EXPECTED_CONST_PARITY_CASES_

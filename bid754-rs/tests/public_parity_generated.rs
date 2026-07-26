@@ -11693,3 +11693,241 @@ fn generated_public_api_const_parity_128() {
         failures.join("\n")
     );
 }
+
+/// One flagless/with-flags sibling pair of the generated Rust port at width
+/// 32. The two function-pointer field types are the leg's structural
+/// signature check: a port function that stops matching the flagless or the
+/// with-flags shape fails to compile in the table below.
+struct FlaglessSiblingTarget32 {
+    name: &'static str,
+    flagless: fn(u32, u32, i64) -> u32,
+    with_flags: fn(u32, u32, i64) -> (u32, u32),
+}
+
+const FLAGLESS_SIBLING_TARGETS_32: &[FlaglessSiblingTarget32] = &[
+    // separately ported flagless BID32 add body (bid32_add_pure)
+    FlaglessSiblingTarget32 {
+        name: "Bid32Add",
+        flagless: bid754::generated::bid32_exports::bid32_add,
+        with_flags: bid754::generated::bid32_status::bid32_add_with_flags,
+    },
+    // separately ported flagless BID32 sub body (routes through bid32_add_pure)
+    FlaglessSiblingTarget32 {
+        name: "Bid32Sub",
+        flagless: bid754::generated::bid32_exports::bid32_sub,
+        with_flags: bid754::generated::bid32_status::bid32_sub_with_flags,
+    },
+    // separately ported flagless BID32 mul body (bid32_mul_pure)
+    FlaglessSiblingTarget32 {
+        name: "Bid32Mul",
+        flagless: bid754::generated::bid32_exports::bid32_mul,
+        with_flags: bid754::generated::bid32_status::bid32_mul_with_flags,
+    },
+    // separately ported flagless BID32 div body (bid32_div_pure)
+    FlaglessSiblingTarget32 {
+        name: "Bid32Div",
+        flagless: bid754::generated::bid32_exports::bid32_div,
+        with_flags: bid754::generated::bid32_status::bid32_div_with_flags,
+    },
+];
+
+/// One flagless/with-flags sibling pair of the generated Rust port at width
+/// 64. The two function-pointer field types are the leg's structural
+/// signature check: a port function that stops matching the flagless or the
+/// with-flags shape fails to compile in the table below.
+struct FlaglessSiblingTarget64 {
+    name: &'static str,
+    flagless: fn(u64, u64, i64) -> u64,
+    with_flags: fn(u64, u64, i64) -> (u64, u32),
+}
+
+const FLAGLESS_SIBLING_TARGETS_64: &[FlaglessSiblingTarget64] = &[
+    // separately ported flagless BID64 mul body (mul64.go Bid64Mul)
+    FlaglessSiblingTarget64 {
+        name: "Bid64Mul",
+        flagless: bid754::generated::mul64::bid64_mul,
+        with_flags: bid754::generated::mul64::bid64_mul_with_flags,
+    },
+    // separately ported flagless BID64 div body (div64.go Bid64Div)
+    FlaglessSiblingTarget64 {
+        name: "Bid64Div",
+        flagless: bid754::generated::div64::bid64_div,
+        with_flags: bid754::generated::div64::bid64_div_with_flags,
+    },
+];
+
+/// Pinned distinguishing inputs of the mutation-audit survivors that lived on
+/// these flagless bodies (mutation_witness_corpus.go). They are re-run here on
+/// the generated Rust port so a witness stays exercised in both languages.
+struct FlaglessWitnessRow32 {
+    target: &'static str,
+    x: u32,
+    y: u32,
+    mode: i64,
+}
+
+const FLAGLESS_WITNESS_ROWS_32: &[FlaglessWitnessRow32] = &[
+    FlaglessWitnessRow32 { target: "Bid32Add", x: 0x78000000, y: 0x78000000, mode: 0 }, // mutant bid32_add.go:1309:negcond:negate
+    FlaglessWitnessRow32 { target: "Bid32Add", x: 0x78000000, y: 0x00000000, mode: 0 }, // mutant bid32_add.go:1477:bit:&->|
+    FlaglessWitnessRow32 { target: "Bid32Add", x: 0x32800000, y: 0xb2800000, mode: 0 }, // mutant bid32_add.go:1717:const:+1
+    FlaglessWitnessRow32 { target: "Bid32Add", x: 0x32800000, y: 0x00000000, mode: 0 }, // mutant bid32_add.go:1987:negcond:negate
+    FlaglessWitnessRow32 { target: "Bid32Add", x: 0x32800001, y: 0x32800001, mode: 0 }, // mutant bid32_add.go:3309:aor:+->-
+    FlaglessWitnessRow32 { target: "Bid32Add", x: 0x0ddca526, y: 0x0d56c291, mode: 0 }, // mutant bid32_add.go:4371:aor:*->+
+    FlaglessWitnessRow32 { target: "Bid32Add", x: 0x32800000, y: 0x77f8967f, mode: 1 }, // mutant bid32_add.go:4422:cmp:==->!=
+    FlaglessWitnessRow32 { target: "Bid32Div", x: 0x32800000, y: 0x32800000, mode: 0 }, // mutant bid32_div.go:1138:negcond:negate
+    FlaglessWitnessRow32 { target: "Bid32Div", x: 0x32800000, y: 0x32800000, mode: 0 }, // mutant bid32_div.go:1491:negcond:negate
+    FlaglessWitnessRow32 { target: "Bid32Div", x: 0x43421f4e, y: 0x2885003c, mode: 0 }, // mutant bid32_div.go:3539:aor:-->+
+    FlaglessWitnessRow32 { target: "Bid32Div", x: 0x77f8967f, y: 0x3280007b, mode: 0 }, // mutant bid32_div.go:3570:aor:-->+
+    FlaglessWitnessRow32 { target: "Bid32Div", x: 0x32800001, y: 0x3280007b, mode: 0 }, // mutant bid32_div.go:3870:aor:*->+
+    FlaglessWitnessRow32 { target: "Bid32Div", x: 0xb2db13aa, y: 0x608d5802, mode: 0 }, // mutant bid32_div.go:5615:aor:-->+
+    FlaglessWitnessRow32 { target: "Bid32Mul", x: 0x00000000, y: 0x32800000, mode: 0 }, // mutant bid32_mul.go:1030:bit:&->|
+    FlaglessWitnessRow32 { target: "Bid32Mul", x: 0x78000000, y: 0x32800000, mode: 0 }, // mutant bid32_mul.go:1121:cmp:!=->==
+    FlaglessWitnessRow32 { target: "Bid32Mul", x: 0x78000000, y: 0x32800001, mode: 0 }, // mutant bid32_mul.go:1264:cmp:==->!=
+    FlaglessWitnessRow32 { target: "Bid32Mul", x: 0x3280007b, y: 0x77f8967f, mode: 0 }, // mutant bid32_mul.go:3066:aor:+=->-=
+    FlaglessWitnessRow32 { target: "Bid32Mul", x: 0xacb27555, y: 0x07000005, mode: 0 }, // mutant bid32_mul.go:3696:aor:-->+
+    FlaglessWitnessRow32 { target: "Bid32Mul", x: 0x6cb8967f, y: 0x6cb8967f, mode: 2 }, // mutant bid32_mul.go:3744:negcond:negate
+];
+
+/// Pinned distinguishing inputs of the mutation-audit survivors that lived on
+/// these flagless bodies (mutation_witness_corpus.go). They are re-run here on
+/// the generated Rust port so a witness stays exercised in both languages.
+struct FlaglessWitnessRow64 {
+    target: &'static str,
+    x: u64,
+    y: u64,
+    mode: i64,
+}
+
+const FLAGLESS_WITNESS_ROWS_64: &[FlaglessWitnessRow64] = &[
+    FlaglessWitnessRow64 { target: "Bid64Div", x: 0x0000000000000000, y: 0x0000000000000000, mode: 0 }, // mutant div64.go:1512:cmp:==->!=
+    FlaglessWitnessRow64 { target: "Bid64Div", x: 0x0000000000000000, y: 0x0000000000000001, mode: 0 }, // mutant div64.go:1983:negcond:negate
+    FlaglessWitnessRow64 { target: "Bid64Div", x: 0x31c0000000000001, y: 0x77fb86f26fc0ffff, mode: 0 }, // mutant div64.go:2767:bit:>>-><<
+    FlaglessWitnessRow64 { target: "Bid64Div", x: 0x0000000000000001, y: 0x0000000000000009, mode: 0 }, // mutant div64.go:4329:aor:+->-
+    FlaglessWitnessRow64 { target: "Bid64Div", x: 0x6000000000000000, y: 0x31c000000000000a, mode: 0 }, // mutant div64.go:6196:const:+1
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x7800000000000000, y: 0x0000000000000000, mode: 0 }, // mutant mul64.go:1493:negcond:negate
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x7800000000000000, y: 0x0000000000000000, mode: 0 }, // mutant mul64.go:1516:cmp:!=->==
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x7800000000000000, y: 0x0000000000000000, mode: 0 }, // mutant mul64.go:1556:const:+1
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x0000000000000000, y: 0x7800000000000000, mode: 0 }, // mutant mul64.go:2748:cmp:==->!=
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x31c0000000000001, y: 0x0000000000000000, mode: 0 }, // mutant mul64.go:2924:aor:+=->-=
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x2de38d7ea4c68000, y: 0x6000000000000000, mode: 0 }, // mutant mul64.go:5435:const:-1
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x31c000000000000a, y: 0x6000000000000000, mode: 0 }, // mutant mul64.go:5859:const:+1
+    FlaglessWitnessRow64 { target: "Bid64Mul", x: 0x000000000000000a, y: 0x77fb86f26fc0ffff, mode: 0 }, // mutant mul64.go:6598:aor:-->+
+];
+
+fn flagless_sibling_check_32(target: &FlaglessSiblingTarget32, x: u32, y: u32, mode: i64) {
+    let got = (target.flagless)(x, y, mode);
+    let (want, _) = (target.with_flags)(x, y, mode);
+    if got != want {
+        panic!(
+            "public parity flagless sibling {}({:#010x}, {:#010x}, mode {}) = {:#010x}, want with-flags value {:#010x}",
+            target.name, x, y, mode, got, want
+        );
+    }
+}
+
+fn flagless_sibling_check_64(target: &FlaglessSiblingTarget64, x: u64, y: u64, mode: i64) {
+    let got = (target.flagless)(x, y, mode);
+    let (want, _) = (target.with_flags)(x, y, mode);
+    if got != want {
+        panic!(
+            "public parity flagless sibling {}({:#018x}, {:#018x}, mode {}) = {:#018x}, want with-flags value {:#018x}",
+            target.name, x, y, mode, got, want
+        );
+    }
+}
+
+/// flagless_sibling_next is the same splitmix-style deterministic stream the Go
+/// leg emits (publicParityFlaglessNext), so both languages consume the identical
+/// pseudo-random operand sequence for a given seed and pair count.
+fn flagless_sibling_next(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9e37_79b9_7f4a_7c15);
+    let mut z = *state;
+    z ^= z >> 30;
+    z = z.wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    z ^= z >> 27;
+    z = z.wrapping_mul(0x94d0_49bb_1331_11eb);
+    z ^= z >> 31;
+    z
+}
+
+/// The flagless-sibling equivalence leg: the 6 separately generated flagless
+/// port bodies have no direct oracle in the Rust regular chain (the generated
+/// readtest runner dispatches their *_with_flags siblings, and the value-only
+/// public wrapper calls the very flagless function under test), so this leg
+/// pins flagless(x, y, mode) == value(with_flags(x, y, mode)) bit-exactly over
+/// the shared parity corpus crossed both ways, a seeded pseudo-random
+/// supplement, and the pinned mutation-audit witness rows. Mirrors
+/// bid754-go/generated_public_parity_cases_test.go's
+/// TestGeneratedPublicAPIFlaglessSiblingEquivalence, and both legs are emitted
+/// from the same generator tables so their case counts are equal by
+/// construction. Accounted separately from EXPECTED_PARITY_CASES.
+const EXPECTED_FLAGLESS_SIBLING_TARGETS: usize = 6;
+const EXPECTED_FLAGLESS_SIBLING_CASES: usize = 21029792;
+
+#[test]
+fn generated_public_api_flagless_sibling_equivalence() {
+    assert_eq!(
+        FLAGLESS_SIBLING_TARGETS_32.len() + FLAGLESS_SIBLING_TARGETS_64.len(),
+        EXPECTED_FLAGLESS_SIBLING_TARGETS,
+        "flagless-sibling target census drifted"
+    );
+    let mut count = 0usize;
+    for target in FLAGLESS_SIBLING_TARGETS_32 {
+        for &x in CORPUS_32 {
+            for &y in CORPUS_32 {
+                for mode in 0..5 {
+                    flagless_sibling_check_32(target, x, y, mode);
+                    count += 1;
+                }
+            }
+        }
+        let mut state: u64 = 0x754c1f32a95;
+        for _ in 0..1048576 {
+            let x = flagless_sibling_next(&mut state) as u32;
+            let y = flagless_sibling_next(&mut state) as u32;
+            for mode in 0..5 {
+                flagless_sibling_check_32(target, x, y, mode);
+                count += 1;
+            }
+        }
+    }
+    for target in FLAGLESS_SIBLING_TARGETS_64 {
+        for &x in CORPUS_64 {
+            for &y in CORPUS_64 {
+                for mode in 0..5 {
+                    flagless_sibling_check_64(target, x, y, mode);
+                    count += 1;
+                }
+            }
+        }
+        let mut state: u64 = 0x754c1f64a95;
+        for _ in 0..4096 {
+            let x = flagless_sibling_next(&mut state) as u64;
+            let y = flagless_sibling_next(&mut state) as u64;
+            for mode in 0..5 {
+                flagless_sibling_check_64(target, x, y, mode);
+                count += 1;
+            }
+        }
+    }
+    for row in FLAGLESS_WITNESS_ROWS_32 {
+        let target = FLAGLESS_SIBLING_TARGETS_32
+            .iter()
+            .find(|t| t.name == row.target)
+            .unwrap_or_else(|| panic!("flagless witness row targets unknown function {:?}", row.target));
+        flagless_sibling_check_32(target, row.x, row.y, row.mode);
+        count += 1;
+    }
+    for row in FLAGLESS_WITNESS_ROWS_64 {
+        let target = FLAGLESS_SIBLING_TARGETS_64
+            .iter()
+            .find(|t| t.name == row.target)
+            .unwrap_or_else(|| panic!("flagless witness row targets unknown function {:?}", row.target));
+        flagless_sibling_check_64(target, row.x, row.y, row.mode);
+        count += 1;
+    }
+    assert_eq!(
+        count, EXPECTED_FLAGLESS_SIBLING_CASES,
+        "flagless-sibling case count drifted"
+    );
+}

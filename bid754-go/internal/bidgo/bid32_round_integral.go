@@ -3,29 +3,6 @@
 
 package bidgo
 
-// bid32_to_bid64 converts BID32 to BID64 (lossless widening).
-func bid32_to_bid64_local(x uint32) uint64 {
-	sign, exp, coeff, valid := unpack_BID32(x)
-	if !valid {
-		if (x & NAN_MASK32) == NAN_MASK32 {
-			// NaN
-			payload := uint64(x & 0x000fffff)
-			if (x & SNAN_MASK32) == SNAN_MASK32 {
-				return uint64(sign)<<32 | 0x7e00000000000000 | payload
-			}
-			return uint64(sign)<<32 | 0x7c00000000000000 | payload
-		}
-		if (x & INFINITY_MASK32) == INFINITY_MASK32 {
-			return uint64(sign)<<32 | 0x7800000000000000
-		}
-		// zero
-		exp64 := exp + (DECIMAL_EXPONENT_BIAS - DECIMAL_EXPONENT_BIAS_32)
-		return uint64(sign)<<32 | (uint64(exp64) << 53)
-	}
-	exp64 := exp + (DECIMAL_EXPONENT_BIAS - DECIMAL_EXPONENT_BIAS_32)
-	return uint64(sign)<<32 | (uint64(exp64) << 53) | uint64(coeff)
-}
-
 // bid64_to_bid32_local converts BID64 to BID32 (with rounding).
 func bid64_to_bid32_local(x uint64) uint32 {
 	r, _ := Bid64ToBid32(x, 0)

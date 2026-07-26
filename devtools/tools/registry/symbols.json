@@ -14391,21 +14391,6 @@
       "exported": false,
       "group": "bid32"
     },
-    "bid32_to_bid64_local": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u32"
-        }
-      ],
-      "returns": [
-        "u64"
-      ],
-      "go_file": "bid32_round_integral.go",
-      "go_name": "bid32_to_bid64_local",
-      "exported": false,
-      "group": "bid32"
-    },
     "bid32_to_small_int": {
       "params": [
         {
