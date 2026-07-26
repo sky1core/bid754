@@ -1648,9 +1648,13 @@ impl Context {
         self.flags
     }
 
-    /// Restores a previously saved flag set (5.7.4 restoreFlags).
-    pub fn restore_flags(&mut self, flags: ExceptionFlags) {
-        self.flags = flags;
+    /// Restores the flags selected by ` + "`mask`" + ` to their values in ` + "`saved`" + `
+    /// and preserves the rest (IEEE 754-2019 5.7.4 restoreFlags). This is the
+    /// same masked write as the Go ArithmeticContext.RestoreFlags: the whole
+    /// ExceptionFlags domain is public, so no implicit masking is applied and
+    /// bits outside ` + "`mask`" + ` keep their current value.
+    pub fn restore_flags(&mut self, saved: ExceptionFlags, mask: ExceptionFlags) {
+        self.flags = self.flags.difference(mask) | (saved & mask);
     }
 `)
 	if add64Op != nil {

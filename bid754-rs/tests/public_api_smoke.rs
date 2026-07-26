@@ -228,8 +228,19 @@ fn context_accumulates_flags() {
     ctx.clear_flag(ExceptionFlags::INEXACT);
     assert!(!ctx.has_flag(ExceptionFlags::INEXACT));
 
-    ctx.restore_flags(saved);
+    // restore_flags is a masked write (5.7.4 restoreFlags): the mask selects
+    // which bits are taken from `saved`; every bit outside the mask keeps its
+    // current value. OVERFLOW is raised here and is not in the mask, so it must
+    // survive a restore whose `saved` snapshot does not contain it. The full
+    // masked-write contract is pinned in tests/context_save_restore_flags.rs.
+    ctx.set_flag(ExceptionFlags::OVERFLOW);
+    ctx.restore_flags(saved, ExceptionFlags::INEXACT);
     assert!(ctx.has_flag(ExceptionFlags::INEXACT));
+    assert!(
+        ctx.has_flag(ExceptionFlags::OVERFLOW),
+        "restore_flags must preserve bits outside the mask, got {}",
+        ctx.flags
+    );
 
     ctx.clear_all_flags();
     assert!(ctx.flags.is_empty());

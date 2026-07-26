@@ -120,8 +120,13 @@ anchors in `devtools/verification_anchors.json` pin those two counts).
   pair (also `Default`, equivalent to `Context::new()`) with `set_flag`/
   `clear_flag`/`has_flag`/`clear_all_flags`/`save_all_flags`/`restore_flags`
   (IEEE 754-2019 5.7.4 vocabulary) and the per-width `add32`/`add64`/`add128`
-  context-driven operations. No heap or pointer indirection (flag
-  accumulation is through `&mut self`), unlike the Go `ArithmeticContext`;
+  context-driven operations. `restore_flags(saved, mask)` is a masked write —
+  the mask selects which flags are taken from `saved` and every flag outside
+  it keeps its current value — matching the Go
+  `ArithmeticContext.RestoreFlags` contract; the whole `ExceptionFlags`
+  domain is public, so no implicit masking is applied. No heap or pointer
+  indirection (flag accumulation is through `&mut self`), unlike the Go
+  `ArithmeticContext`;
   and no nil-context default either, since Rust has no implicit global
   rounding setting for a method to fall back to — the mode always comes
   from `self.rounding`.
