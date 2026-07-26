@@ -105,7 +105,7 @@ var ffiMutationWitnessCases = []ffiMutationWitnessCase{
 	// Batch C-7 coverage-guided witnesses. The audit's residual "gate never
 	// executed this line" group was re-measured at this tree against the union
 	// of the portable chain, the native FFI/readtest/decTest chain, the
-	// decNumber differential and the full Tier 1 long legs: the five mutants
+	// decNumber differential and the full Tier 1 long legs: the six mutants
 	// below sit on lines that no gate corpus executes at all, so no gate could
 	// distinguish them regardless of comparison strength. A directed search at
 	// the public port entrypoints (Bid64Fma, Bid64qqqFma, Bid128Fma) found the
@@ -121,7 +121,8 @@ var ffiMutationWitnessCases = []ffiMutationWitnessCase{
 	// result with an unbiased exponent above emax but few enough digits to be
 	// scaled back in (the scale-down arm), and the bid128_fma row cancels the
 	// product against z at the 10^33 decade boundary so the subnormal
-	// half-ulp classification runs.
+	// half-ulp classification runs, and the last bid128_fma row forces the
+	// 256-bit midpoint-addition double carry described above it.
 	{Function: "bid64_fma", Rounding: 1, Operands: []string{"b1a05af3107a3ffd", "818000174876e802", "00078f1a37d5699b"},
 		MutantID: "add128_inline.go:7046:aor:inc->dec", Reason: "add128_inline.go:263 bid_get_add128 RD/RZ rounding-up correction (reached through Bid64Fma)"},
 	{Function: "bid64_fma", Rounding: 2, Operands: []string{"39438d7ea4c67fff", "22c38d7ea4c68001", "29000002540be400"},
@@ -132,6 +133,23 @@ var ffiMutationWitnessCases = []ffiMutationWitnessCase{
 		MutantID: "bid128_fma.go:23977:aor:*=->+=", Reason: "bid128_fma.go:834 bid64qqqFmaCore unbexp>369 scale-down arm"},
 	{Function: "bid128_fma", Rounding: 1, Operands: []string{"000000000a5bc138938d44c64d31f6a5", "0100000000000000000000000000060a", "000000000a5bc138938d44c64d310000"},
 		MutantID: "bid128_fma_body.go:24677:const:+1", Reason: "bid128_fma_body.go:792 bid_fma_case1ppB_psign_ne_zsign e3==emin lt_half_ulp arm"},
+
+	// The sixth batch C-7 row closes the same kind of unexecuted-line gap
+	// inside bid_round256_58_76's 38 <= ind <= 57 midpoint192 arm. Its target
+	// is the innermost double-carry tail of the w1 addition: reaching it needs
+	// the w1 addition to overflow while C.w2 is already all ones, so that
+	// C.w2++ wraps to zero and the w3 increment runs. The operands make the
+	// exact product 2^112 * (2^80-1) = 2^192 - 2^112, whose 256-bit image is
+	// exactly {w3:0, w2:ffffffffffffffff, w1:ffff000000000000, w0:0} - the only
+	// C.w2 value that lets the wrap happen - and whose 58 significant digits
+	// with z = 1E72 drive bid_fma_cases_2_to_6 into
+	// bid_round256_58_76(q=58, x=39), i.e. ind=38, the first midpoint192 index.
+	// bid_midpoint192[0].w1 = 0x78287f49c4a1d662 then overflows w1. Under the
+	// mutant the carry decrements w3 to 2^64-1 instead of raising it to 1, so
+	// the 512-bit product against bid_Kx256[38] and the rounded coefficient
+	// both change and the exact bit compare against pinned Intel C diverges.
+	{Function: "bid128_fma", Rounding: 0, Operands: []string{"00000000000000000000000000004130", "ffffffffffffffffffff000000004030", "0100000000000000000000000000d030"},
+		MutantID: "bid128_round.go:11702:aor:inc->dec", Reason: "bid128_round.go:389 bid_round256_58_76 ind=38 midpoint192 w1-carry w2-wrap tail (reached through Bid128Fma -> bid_fma_cases_2_to_6)"},
 }
 
 // ffiMutationWitnessIndex groups the witness rows by FFI function for

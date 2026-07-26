@@ -652,7 +652,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	// 26369 manifest-driven cases + 21 mutation-audit witness rows + 2048
+	// 26369 manifest-driven cases + 22 mutation-audit witness rows + 2048
 	// bid_factors32 exactness sweep cases (mutation_witness_corpus.go).
 	//
 	// The manifest-driven total grew by 2707 when the 24 Intel mixed-format
@@ -662,10 +662,11 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	// the four non-baseline modes) and bid128dd_mul carries 108, having no
 	// rounding-probe group because every finite Decimal64 x Decimal64 product
 	// is exact in Decimal128. The witness rows grew from 5 to 16 with the
-	// eleven batch C-2 detection-gap witnesses and to 21 with the five batch
-	// C-7 coverage-guided witnesses (bid64_fma x3, bid64qqq_fma, bid128_fma).
-	if len(spec.FFICases) != 28438 {
-		t.Fatalf("generated %d ffi cases, want 28438", len(spec.FFICases))
+	// eleven batch C-2 detection-gap witnesses and to 22 with the six batch
+	// C-7 coverage-guided witnesses (bid64_fma x3, bid64qqq_fma,
+	// bid128_fma x2).
+	if len(spec.FFICases) != 28439 {
+		t.Fatalf("generated %d ffi cases, want 28439", len(spec.FFICases))
 	}
 	ffiSymbols, err := loadSymbolFile(filepath.Join(repoRoot, "generated", "json", "intel_dfp_symbols.json"))
 	if err != nil {
@@ -770,12 +771,12 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	// pre-existing bid128_fma (x2), bid128_round_integral_exact (x2), and
 	// bid128d_sqrt.
 	//
-	// Batch C-7 adds 4 decimal64 (bid64_fma x3, bid64qqq_fma) and 1 decimal128
-	// (bid128_fma) coverage-guided witnesses.
+	// Batch C-7 adds 4 decimal64 (bid64_fma x3, bid64qqq_fma) and 2 decimal128
+	// (bid128_fma x2) coverage-guided witnesses.
 	assertCountMap(t, "ffi formats", ffiFormatCaseCounts, map[string]int{
 		"decimal32":  9648,
 		"decimal64":  9399,
-		"decimal128": 9391,
+		"decimal128": 9392,
 	})
 	expectedFFIOperations := map[string]int{
 		"abs":                         144,
@@ -784,7 +785,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"copy":                        144,
 		"copySign":                    144,
 		"div":                         3053, // +2048 bid_factors32 sweep (bid32_div); +681 mixed-format div (5 x 113 + bid64qq_div 116)
-		"fma":                         911,  // +11 mutation-audit witnesses (bid64_fma x5, bid128_fma x5, bid64qqq_fma)
+		"fma":                         912,  // +12 mutation-audit witnesses (bid64_fma x5, bid128_fma x6, bid64qqq_fma)
 		"fmod":                        144,
 		"from_int32":                  144,
 		"from_int64":                  144,

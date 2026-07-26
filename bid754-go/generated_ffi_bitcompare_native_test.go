@@ -16,7 +16,7 @@ import (
 )
 
 var expectedGeneratedFFIFormatCounts = map[string]int{
-	"decimal128": 9391,
+	"decimal128": 9392,
 	"decimal32":  9648,
 	"decimal64":  9399,
 }
@@ -28,7 +28,7 @@ var expectedGeneratedFFIOperationCounts = map[string]int{
 	"copy":                        144,
 	"copySign":                    144,
 	"div":                         3053,
-	"fma":                         911,
+	"fma":                         912,
 	"fmod":                        144,
 	"from_int32":                  144,
 	"from_int64":                  144,
@@ -183,7 +183,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 	"bid128_copy":                        48,
 	"bid128_copySign":                    48,
 	"bid128_div":                         108,
-	"bid128_fma":                         53,
+	"bid128_fma":                         54,
 	"bid128_fmod":                        48,
 	"bid128_from_int32":                  48,
 	"bid128_from_int64":                  48,
@@ -673,7 +673,7 @@ var expectedGeneratedFFIFunctionCounts = map[string]int{
 }
 
 var expectedGeneratedFFIRoundingCounts = map[int]int{
-	0: 22814,
+	0: 22815,
 	1: 1451,
 	2: 1450,
 	3: 1361,
@@ -1040,8 +1040,8 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	if len(spec.FFICases) == 0 {
 		t.Fatal("expected generated ffi cases")
 	}
-	if len(spec.FFICases) != 28438 {
-		t.Fatalf("generated ffi case count = %d, want 28438", len(spec.FFICases))
+	if len(spec.FFICases) != 28439 {
+		t.Fatalf("generated ffi case count = %d, want 28439", len(spec.FFICases))
 	}
 	assertGeneratedFFICoverage(t, spec.FFICases)
 	probeTracker, err := validateGeneratedFFIProbeContract(spec.FFICases)
