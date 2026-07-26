@@ -154,6 +154,38 @@ EOF
 echo "==> Java BID codec package build"
 (
   cd bid754-codec-java
+  # Gradle accepts project properties from ORG_GRADLE_PROJECT_* environment
+  # variables, so a release operator's shell can carry the Maven Central
+  # deploy switch and its credentials into this gate and change what the gate
+  # builds (signed artifacts, a registered Central repository). Drop them for
+  # this leg so the result describes the tree rather than the environment.
+  # This does not neutralize a value resident in the Gradle user home; the
+  # publishing-repository check below is what catches that case.
+  unset ORG_GRADLE_PROJECT_bid754MavenCentralDeploy \
+    ORG_GRADLE_PROJECT_bid754CentralPortalUsername \
+    ORG_GRADLE_PROJECT_bid754CentralPortalPassword \
+    ORG_GRADLE_PROJECT_bid754SigningKey \
+    ORG_GRADLE_PROJECT_bid754SigningKeyPassword
+
+  # Ask Gradle which publishing repositories it actually resolved instead of
+  # grepping the build script for names or phrases: maven-publish derives one
+  # `publish…To<Repo>Repository` task per declared repository, so the task
+  # graph is Gradle's own answer about the configured state. `verification`
+  # must be the only one. A Central repository registered by a deploy switch
+  # resident outside the environment, or by a future build-script change,
+  # appears here as an extra name and fails the gate before anything is
+  # signed, uploaded, or published. `tasks` only lists the graph; no publish
+  # task is invoked.
+  echo "-- Gradle-resolved publishing repositories"
+  resolved_publish_repos=$("$repo_root/devtools/scripts/run_pinned_gradle.sh" -q tasks --all \
+    | sed -n 's/^publish[A-Za-z0-9_]*To\([A-Za-z0-9_]\{1,\}\)Repository\( .*\)\{0,1\}$/\1/p' \
+    | sort -u)
+  if [ "$resolved_publish_repos" != "Verification" ]; then
+    echo "unexpected Gradle publishing repository set: want exactly 'Verification', got:" >&2
+    printf '%s\n' "${resolved_publish_repos:-(none)}" >&2
+    exit 1
+  fi
+  echo "  publishing repositories: Verification (only)"
   java_maven_repo="$verify_tmp/java-maven"
   "$repo_root/devtools/scripts/run_pinned_gradle.sh" -q clean build publishMavenJavaPublicationToVerificationRepository -Pbid754VerificationMavenRepo="$java_maven_repo"
   java_smoke="$verify_tmp/java-smoke"

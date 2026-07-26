@@ -204,9 +204,9 @@ the Go targets — the repetition count; the Rust targets record the Criterion
 baseline name instead, since Criterion does its own sampling) into its
 `test_results/` output so a result file is attributable to the exact source
 state that produced it. The Go and Rust legs also record the toolchain they
-were built with: the Go legs stamp `go=$(go env GOVERSION)` and the Rust legs
-stamp `rustc=<version>`. The JS and Python codec legs record no runtime
-version, so a `node` or `python3` upgrade is not visible in their result files.
+were built with: the Go legs stamp `go=$(go env GOVERSION)`, the Rust legs
+stamp `rustc=<version>`, and the JS and Python codec legs stamp
+`node=<version>` and `python=<version>` respectively.
 A toolchain change redoes inlining and code-layout
 decisions, so it moves medians on source that did not change at all —
 `IntelCBID128/minnum` has been observed shifting 6.93 → 8.17 ns from layout
@@ -330,7 +330,12 @@ make bench-go-baseline
 
 The Rust legs stamp `rustc=` for provenance only. Criterion owns its own
 baseline comparison, so nothing enforces a `rustc=` match; the token exists so
-a Criterion `change%` can be attributed to a toolchain after the fact.
+a Criterion `change%` can be attributed to a toolchain after the fact. The JS
+and Python codec legs' `node=`/`python=` tokens are provenance only for the
+same reason and one more: those legs have no saved-baseline comparison at all
+and `benchdiff` never reads their logs, so nothing enforces a match — the
+tokens exist so a later reader can tell whether a runtime upgrade sits between
+two result files.
 
 When benchmarks are added (they start as `new`), re-run
 `make bench-go-baseline` — and `make bench-rust-baseline` for the Criterion
@@ -375,6 +380,15 @@ consumers:
 ```bash
 make verify-bidcodec-packages
 ```
+
+The Java leg additionally asks Gradle which publishing repositories it actually
+resolved (`tasks --all`, one `publish…To<Repo>Repository` task per declared
+repository) and fails unless `verification` is the only one, so a Maven Central
+repository switched on by a resident deploy property is caught before anything
+is built, signed, or uploaded. That leg also drops the
+`ORG_GRADLE_PROJECT_bid754{MavenCentralDeploy,CentralPortal*,Signing*}`
+variables from its own environment, so a release operator's shell cannot change
+what the gate builds.
 
 To verify the `bid754-rs` publish-package shape: a closed-set `cargo package
 --list` file check (only `src/**`, `LICENSE`, `NOTICE`, `README.md`,

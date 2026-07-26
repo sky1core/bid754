@@ -1,2 +1,10 @@
 node_modules/
 dist/
+
+# npm reads a project-local .npmrc, so this is where a registry auth token
+# (`//registry.npmjs.org/:_authToken=...`) would land if someone put it beside
+# the package manifest — the usual CI recipe writes exactly that file; keep it
+# unstageable (`npm login` writes the user-level ~/.npmrc instead, which is
+# where a token belongs). Anchored: only the file npm reads for this package,
+# so a nested .npmrc stays visible instead of being silently hidden.
+/.npmrc

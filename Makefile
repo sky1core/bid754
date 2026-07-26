@@ -649,12 +649,12 @@ bench-codec-rs-baseline:
 bench-codec-js:
 	@echo "📊 standalone 코덱 JS 벤치마크 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-js count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-js && npm ci --no-audit --no-fund && npm run build && node bench_runner.mjs $(BENCH_COUNT) ) | tee test_results/latest_benchmark_codec_js_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-js count=$(BENCH_COUNT) node=$$(node --version) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-js && npm ci --no-audit --no-fund && npm run build && node bench_runner.mjs $(BENCH_COUNT) ) | tee test_results/latest_benchmark_codec_js_results.txt'
 
 bench-codec-py:
 	@echo "📊 standalone 코덱 Python 벤치마크 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-py count=$(BENCH_COUNT) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-py && python3 benchmarks/bench_runner.py $(BENCH_COUNT) ) | tee test_results/latest_benchmark_codec_py_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-codec-py count=$(BENCH_COUNT) python=$$(python3 --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-codec-py && python3 benchmarks/bench_runner.py $(BENCH_COUNT) ) | tee test_results/latest_benchmark_codec_py_results.txt'
 
 # 외부 대표 decimal 라이브러리 대비 비교 벤치마크 (별도 모듈, 검증 도메인 아님).
 # 결과 동일성 비교가 아니라 공유 오퍼랜드에서의 비용 비교다 — 의미론 차이는

@@ -1,1 +1,12 @@
 target/
+
+# Cargo layers a project-local .cargo/ config on top of $CARGO_HOME, and a
+# `[registry] token` placed there is consumed as a live credential (`cargo
+# logout` reports a token present with only this file supplying it), so this is
+# where a crates.io token would land if someone put it beside the manifest;
+# keep it unstageable (`cargo login` writes $CARGO_HOME/credentials.toml
+# instead, which is where a token belongs). Anchored to the crate root: only
+# the directory Cargo reads for this crate, so a nested .cargo path stays
+# visible instead of being silently hidden. Cargo also consults ancestor
+# directories, which this crate-local pattern does not reach.
+/.cargo/
