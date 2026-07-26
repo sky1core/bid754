@@ -378,6 +378,7 @@ check-scripts:
 		devtools/scripts/test_bid_string.sh \
 		devtools/scripts/run_pinned_gradle.sh \
 		devtools/scripts/lib/project_version.sh \
+		devtools/scripts/lib/npm_audit_gate_selftest.sh \
 		devtools/scripts/check_generated_marker_coverage.sh \
 		devtools/scripts/compute_verification_artifact_hashes.sh
 	@sh -n devtools/third_party/intel_dfp/download.sh

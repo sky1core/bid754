@@ -277,6 +277,33 @@ echo "==> JavaScript/TypeScript BID codec package build and pack"
 (
   cd bid754-codec-js
   npm ci
+
+  # Dependency advisory gate for the installed lockfile tree. The build/test
+  # toolchain (tsup, vitest) pulls a large transitive dev tree, so a
+  # high/critical advisory can reach this package without any direct dependency
+  # changing; the lockfile is the only place it can be resolved, and this is the
+  # gate that notices.
+  #
+  # `npm audit`'s own exit status is not usable as the verdict: it is 1 both for
+  # "found something at or above the configured level" and for several failure
+  # modes, and the level it compares against is npm config that an untracked
+  # `.npmrc` can lower. Capture the report and let the in-tree gate apply the
+  # threshold. The self-test runs first because a healthy tree produces the same
+  # green output from a working detector and from one that has silently stopped
+  # detecting.
+  bash "$repo_root/devtools/scripts/lib/npm_audit_gate_selftest.sh"
+  echo "-- npm audit (blocking on actionable high/critical)"
+  npm_audit_report="$verify_tmp/npm-audit.json"
+  npm_audit_stderr="$verify_tmp/npm-audit.stderr"
+  # Status deliberately dropped: a non-zero audit is expected gate input, not a
+  # script failure. A run that produced no usable report fails closed below.
+  npm audit --json >"$npm_audit_report" 2>"$npm_audit_stderr" || true
+  if ! node "$repo_root/devtools/scripts/lib/npm_audit_gate.mjs" <"$npm_audit_report"; then
+    echo "-- npm audit stderr:" >&2
+    cat "$npm_audit_stderr" >&2
+    exit 1
+  fi
+
   npm run build
   npm test
   pack_dir="$verify_tmp/npm-pack"

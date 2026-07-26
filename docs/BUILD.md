@@ -390,6 +390,20 @@ is built, signed, or uploaded. That leg also drops the
 variables from its own environment, so a release operator's shell cannot change
 what the gate builds.
 
+The JavaScript/TypeScript leg audits the tree `npm ci` just installed and fails
+on any high/critical advisory for which npm reports a fix, since the build/test
+toolchain's transitive dev tree can pick one up without a direct dependency
+changing and the lockfile is where it gets resolved. The threshold is applied by
+`devtools/scripts/lib/npm_audit_gate.mjs` rather than by `npm audit
+--audit-level=…`, because that level is npm config an untracked `.npmrc` could
+lower; a report npm could not produce, or one carrying a severity or a fix
+status the gate cannot classify, fails closed instead of reading as clean, and a
+high/critical advisory npm explicitly marks unfixable is printed as an
+unresolved risk rather than wedging the gate on a release that does not exist
+yet. A clean tree cannot show that the detector still works, so
+`devtools/scripts/lib/npm_audit_gate_selftest.sh` drives it with fixed reports of
+known verdict immediately before the live audit.
+
 To verify the `bid754-rs` publish-package shape: a closed-set `cargo package
 --list` file check (only `src/**`, `LICENSE`, `NOTICE`, `README.md`,
 `Cargo.toml`, plus Cargo's own bookkeeping files may ship) and a
