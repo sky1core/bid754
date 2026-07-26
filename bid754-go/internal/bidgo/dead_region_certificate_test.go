@@ -1,14 +1,16 @@
-// Hand-written unreachability certificates for four mutation sites of the
+// Hand-written unreachability certificates for six mutation sites of the
 // mechanical port. It lives outside every generation path and must stay
 // hand-written.
 //
-// Why this gate exists. The 2026-07 mutation audit left four mutants that no
+// Why this gate exists. The 2026-07 mutation audit left six mutants that no
 // verification corpus can distinguish, because the mutated token sits in a
 // region no input reaches:
 //
 //	add128_inline.go:117  bid_get_add128  bit:<<->>>
 //	bid128_add.go:1248    Bid128Add       aor:dec->inc
 //	bid128_add.go:1388    Bid128Add       aor:dec->inc
+//	bid128_fma_body.go:1813 bid_fma_cases_11_12 negcond:negate
+//	bid128_fma_body.go:1832 bid_fma_cases_11_12 bit:|->&
 //	div64.go:267          Bid64Div        cmp:==->!=
 //
 // For a provably dead region no behavioural test can ever kill the mutant, so
@@ -161,6 +163,45 @@ func (p *portFile) pinNode(t *testing.T, label string, n ast.Node, want string) 
 	}
 }
 
+// stmtWithText returns the single statement below root whose flattened source
+// matches want. Requiring a single hit makes the statement text both a locator
+// and a fail-closed source pin.
+func (p *portFile) stmtWithText(t *testing.T, root ast.Node, want string) ast.Stmt {
+	t.Helper()
+	var hits []ast.Stmt
+	ast.Inspect(root, func(n ast.Node) bool {
+		s, ok := n.(ast.Stmt)
+		if ok && p.flat(t, s) == want {
+			hits = append(hits, s)
+		}
+		return true
+	})
+	if len(hits) != 1 {
+		t.Fatalf("%s: expected exactly one statement %q below line %d, found %d",
+			p.name, want, p.line(root), len(hits))
+	}
+	return hits[0]
+}
+
+// ifWithCond returns the single if statement below root whose condition has
+// the pinned flattened form.
+func (p *portFile) ifWithCond(t *testing.T, root ast.Node, want string) *ast.IfStmt {
+	t.Helper()
+	var hits []*ast.IfStmt
+	ast.Inspect(root, func(n ast.Node) bool {
+		is, ok := n.(*ast.IfStmt)
+		if ok && p.flat(t, is.Cond) == want {
+			hits = append(hits, is)
+		}
+		return true
+	})
+	if len(hits) != 1 {
+		t.Fatalf("%s: expected exactly one if condition %q below line %d, found %d",
+			p.name, want, p.line(root), len(hits))
+	}
+	return hits[0]
+}
+
 func (p *portFile) pinStmtCount(t *testing.T, label string, blk *ast.BlockStmt, want int) {
 	t.Helper()
 	if len(blk.List) != want {
@@ -207,6 +248,7 @@ func (p *portFile) elseIf(t *testing.T, label string, is *ast.IfStmt) *ast.IfStm
 // portWrite is one statement that can change target's value.
 type portWrite struct {
 	line int
+	pos  token.Pos
 	text string
 }
 
@@ -218,7 +260,7 @@ func (p *portFile) writes(t *testing.T, root ast.Node, target string) []portWrit
 	t.Helper()
 	var out []portWrite
 	add := func(n ast.Node, text string) {
-		out = append(out, portWrite{line: p.line(n), text: text})
+		out = append(out, portWrite{line: p.line(n), pos: n.Pos(), text: text})
 	}
 	ast.Inspect(root, func(n ast.Node) bool {
 		switch s := n.(type) {
@@ -851,6 +893,298 @@ func TestBid128AddSubtractOneLowWordBorrowIsUnreachable(t *testing.T) {
 	// is [0, maxRoundedC2]; it must stay clear of the low word of 10^34.
 	if maxRoundedC2 >= lowWordOf10Pow34 {
 		t.Fatalf("the single-digit bound %d is not below the low word of 10^34 (%016x)", maxRoundedC2, lowWordOf10Pow34)
+	}
+}
+
+// TestBid128FmaCases1112UnderflowTailIsUnreachable certifies both mutation
+// sites in the x0 == ind tail of bid_fma_cases_11_12:
+//
+//	else if R128.hi == bid_midpoint128[ind-20].hi &&
+//	        R128.lo == bid_midpoint128[ind-20].lo {
+//		...
+//	}
+//	...
+//	res.hi = p_sign | res.hi
+//
+// The whole underflow block that contains them is dead for Cases 11 and 12.
+// At the caller, delta is initially q3+e3-q4-e4 and is negated on entry to the
+// delta-lt-zero dispatcher. Both Case 11 and Case 12 require
+// q4 < delta+q3, so at the callee boundary
+//
+//	e4-e3 = delta+q3-q4 >= 1.
+//
+// The finite addend exponent is e3=(z_exp>>49)-6176 >= -6176, hence the
+// callee starts with e4 >= -6175. Before the underflow guard, e4 can change
+// only in the ind > P34 rounding arm: it first gains
+// (ind-P34)+incr_exp, where the three rounding helpers only produce
+// incr_exp in {0,1}; the sole following decrement is nested in that same arm.
+// The net change is therefore non-negative. The guard e4 < -6176 cannot be
+// true, so both audited tokens below it are unreachable.
+func TestBid128FmaCases1112UnderflowTailIsUnreachable(t *testing.T) {
+	callerFile := loadPortFile(t, "bid128_fma.go")
+	caller := callerFile.funcDecl(t, "bid128_ext_fma")
+	bodyFile := loadPortFile(t, "bid128_fma_body.go")
+	dispatch := bodyFile.funcDecl(t, "bid_fma_delta_lt_zero")
+	cases := bodyFile.funcDecl(t, "bid_fma_cases_11_12")
+
+	// --- caller anchor: e3 comes from an unsigned exponent field, and that
+	// assignment plus the address handed to the main body are the closed world
+	// of writes to e3 in the caller, so e3 >= -6176 holds at the call.
+	callerFile.pinWrites(t, caller, "e3", []string{
+		"e3 = int(z_exp>>49) - 6176",
+		"ADDRESS-TAKEN &e3",
+	})
+	// delta has the pinned algebraic definition and no other write, and that
+	// definition is contiguous with the only call that consumes it: nothing can
+	// be inserted between them to rewrite e3, e4 or delta.
+	callerFile.pinWrites(t, caller, "delta", []string{"delta := q3 + e3 - q4 - e4"})
+	callerFile.blockWithRun(t, caller, []string{
+		"delta := q3 + e3 - q4 - e4",
+		"bid_fma_main_body(p34, &res, &is_midpoint_lt_even, &is_midpoint_gt_even, " +
+			"&is_inexact_lt_midpoint, &is_inexact_gt_midpoint, p_sign, z_sign, &z_exp, &p_exp, " +
+			"q3, q4, &e3, &e4, delta, &C3, C4, rnd_mode, pfpsf)",
+	})
+
+	// --- wrapper anchor: bid_fma_main_body copies e3/e4 by value out of the
+	// caller's pointers and, on the delta < 0 side, hands them straight to the
+	// dispatcher. The copies are a contiguous run, the delta split is the only
+	// if in that block, its else body is exactly the dispatcher call, and
+	// nothing writes e3, e4 or delta between the copies and the split.
+	mainBody := bodyFile.funcDecl(t, "bid_fma_main_body")
+	mainBlock := bodyFile.blockWithRun(t, mainBody, []string{"e3 := *e3_ptr", "e4 := *e4_ptr"})
+	var e4Copy ast.Stmt
+	var deltaSplits []*ast.IfStmt
+	for _, stmt := range mainBlock.List {
+		if bodyFile.flat(t, stmt) == "e4 := *e4_ptr" {
+			e4Copy = stmt
+		}
+		if is, ok := stmt.(*ast.IfStmt); ok {
+			deltaSplits = append(deltaSplits, is)
+		}
+	}
+	if e4Copy == nil || len(deltaSplits) != 1 {
+		t.Fatalf("%s: bid_fma_main_body body drifted: e4 copy found=%v, top-level ifs=%d",
+			bodyFile.name, e4Copy != nil, len(deltaSplits))
+	}
+	deltaSplit := deltaSplits[0]
+	bodyFile.pinNode(t, "main-body delta split", deltaSplit.Cond, "delta >= 0")
+	for _, v := range []string{"e3", "e4", "delta"} {
+		bodyFile.noWriteBetween(t, mainBody, v, e4Copy, deltaSplit)
+	}
+	bodyFile.pinWrites(t, mainBody, "delta", nil)
+	deltaLtZero := bodyFile.elseBlock(t, "main-body delta < 0 arm", deltaSplit)
+	bodyFile.pinStmtCount(t, "main-body delta < 0 arm", deltaLtZero, 1)
+	bodyFile.pinNode(t, "main-body dispatcher call", deltaLtZero.List[0],
+		"bid_fma_delta_lt_zero(p34, res, &is_midpoint_lt_even, &is_midpoint_gt_even, "+
+			"&is_inexact_lt_midpoint, &is_inexact_gt_midpoint, p_sign, z_sign, &z_exp, &p_exp, "+
+			"q3, q4, &e3, &e4, delta, C3, C4, rnd_mode, pfpsf)")
+
+	// --- dispatcher anchor: negation immediately precedes the closed if/else
+	// case chain. The Cases 11/12 arm has the exact common strict inequality
+	// used by the proof and contains only the pinned call.
+	// Closed world of delta writes in the whole dispatcher: only the negation
+	// that dominates the case chain and the swap-arm recomputation in the
+	// mutually exclusive Cases 8/9/10/13/14/18 arm. A delta write added
+	// anywhere else in the function - including in an earlier arm's if Init -
+	// breaks this pin.
+	bodyFile.pinWrites(t, dispatch, "delta", []string{
+		"delta = -delta",
+		"delta = q3 + e3 - q4 - e4",
+	})
+	dispatchBlock := bodyFile.blockWithRun(t, dispatch, []string{"delta = -delta"})
+	negateIndex := -1
+	for i, stmt := range dispatchBlock.List {
+		if bodyFile.flat(t, stmt) == "delta = -delta" {
+			negateIndex = i
+			break
+		}
+	}
+	if negateIndex < 0 || negateIndex+1 >= len(dispatchBlock.List) {
+		t.Fatalf("%s: delta negation no longer immediately dominates the case dispatch", bodyFile.name)
+	}
+	chain := bodyFile.asIf(t, "delta-lt case dispatch", dispatchBlock.List[negateIndex+1])
+	// Walk that one if/else-if chain object; the Cases 11/12 arm has to be an
+	// arm of it, not merely some if somewhere in the function.
+	wantCaseCond := "(p34 <= delta && delta < q4 && q4 < delta+q3) || " +
+		"(delta < p34 && p34 < q4 && q4 < delta+q3)"
+	var caseArm *ast.IfStmt
+	arms := 0
+	for cur := chain; cur != nil; {
+		arms++
+		if bodyFile.flat(t, cur.Cond) == wantCaseCond {
+			if caseArm != nil {
+				t.Fatalf("%s: Cases 11/12 condition appears in more than one arm of the dispatch chain",
+					bodyFile.name)
+			}
+			caseArm = cur
+		}
+		next, ok := cur.Else.(*ast.IfStmt)
+		if !ok {
+			break
+		}
+		cur = next
+	}
+	if caseArm == nil {
+		t.Fatalf("%s: Cases 11/12 arm is not part of the if/else-if chain dominated by the delta negation (walked %d arms)",
+			bodyFile.name, arms)
+	}
+	bodyFile.pinStmtCount(t, "Cases 11/12 arm", caseArm.Body, 1)
+	bodyFile.pinNode(t, "Cases 11/12 call", caseArm.Body.List[0],
+		"bid_fma_cases_11_12(p34, res, &is_midpoint_lt_even, &is_midpoint_gt_even, "+
+			"&is_inexact_lt_midpoint, &is_inexact_gt_midpoint, p_sign, z_sign, q3, q4, "+
+			"&e3, &e4, delta, C3, C4, rnd_mode, pfpsf)")
+
+	// --- callee anchor: pin the exponent floor and every write to e4 before
+	// the dead guard. This closes the proof against a new hidden mutation of
+	// e4 or an address-taking call being inserted before the guard.
+	// Closed world of expmin128 writes in the whole callee: the declaration is
+	// the only one, and its address is never taken. Pinning the declaration's
+	// existence alone would let a later `expmin128 = ...` or `f(&expmin128)`
+	// move the floor the guard compares against without failing the test.
+	bodyFile.pinWrites(t, cases, "expmin128", []string{"expmin128 := -6176"})
+	var underflowHits []*ast.IfStmt
+	ast.Inspect(cases, func(n ast.Node) bool {
+		is, ok := n.(*ast.IfStmt)
+		if ok && bodyFile.flat(t, is.Cond) == "e4 < expmin128" &&
+			len(is.Body.List) > 0 && bodyFile.flat(t, is.Body.List[0]) == "x0 = expmin128 - e4" {
+			underflowHits = append(underflowHits, is)
+		}
+		return true
+	})
+	if len(underflowHits) != 1 {
+		t.Fatalf("%s: expected one e4 underflow guard starting with x0 assignment, found %d",
+			bodyFile.name, len(underflowHits))
+	}
+	underflow := underflowHits[0]
+	var beforeGuard []string
+	// Position boundary, not a line comparison: everything textually before the
+	// guard's condition counts, so a write packed onto the guard's own line -
+	// including one in the guard's if Init - is caught instead of skipped.
+	for _, w := range bodyFile.writes(t, cases, "e4") {
+		if w.pos < underflow.Cond.Pos() {
+			beforeGuard = append(beforeGuard, w.text)
+		}
+	}
+	wantBeforeGuard := []string{
+		"e4 := *e4_ptr",
+		"e4 = e4 + x0 + incr_exp",
+		"e4--",
+	}
+	if len(beforeGuard) != len(wantBeforeGuard) {
+		t.Fatalf("%s: writes to e4 before the underflow guard = %v, want %v",
+			bodyFile.name, beforeGuard, wantBeforeGuard)
+	}
+	for i := range wantBeforeGuard {
+		if beforeGuard[i] != wantBeforeGuard[i] {
+			t.Fatalf("%s: write %d to e4 before the underflow guard = %q, want %q",
+				bodyFile.name, i, beforeGuard[i], wantBeforeGuard[i])
+		}
+	}
+
+	// The increase and the only decrement are both nested in the ind>P34
+	// block, with the decrement after the increase.
+	digitSplit := bodyFile.ifWithCond(t, cases, "ind < p34")
+	equalDigits := bodyFile.elseIf(t, "ind == p34 arm", digitSplit)
+	bodyFile.pinNode(t, "ind == p34 guard", equalDigits.Cond, "ind == p34")
+	wideDigits := bodyFile.elseBlock(t, "ind > p34 arm", equalDigits)
+	increase := bodyFile.stmtWithText(t, wideDigits, "e4 = e4 + x0 + incr_exp")
+	decrement := bodyFile.stmtWithText(t, wideDigits, "e4--")
+	if increase.Pos() >= decrement.Pos() {
+		t.Fatalf("%s: e4 decrement no longer follows the pinned ind>P34 increase", bodyFile.name)
+	}
+	bodyFile.stmtWithText(t, wideDigits, "x0 = ind - p34")
+
+	// Closed world of incr_exp writes inside that arm: exactly the three
+	// rounding-helper tuple assignments, so the value read by the increase can
+	// only come from a helper and nothing can pre-set it.
+	bodyFile.pinWrites(t, wideDigits, "incr_exp", []string{
+		"R128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint = bid_round128_19_38(ind, x0, P128)",
+		"R192, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint = bid_round192_39_57(ind, x0, P192)",
+		"R256, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint = bid_round256_58_76(ind, x0, R256)",
+	})
+
+	// Every helper that can set incr_exp on this path is closed to literal
+	// zero/one assignments. Named result parameters start at zero, so this
+	// proves incr_exp >= 0 without replaying the rounding algorithms.
+	roundFile := loadPortFile(t, "bid128_round.go")
+	for _, name := range []string{"bid_round128_19_38", "bid_round192_39_57", "bid_round256_58_76"} {
+		fn := roundFile.funcDecl(t, name)
+		writes := roundFile.writes(t, fn, "incr_exp")
+		if len(writes) == 0 {
+			t.Fatalf("%s: %s no longer assigns incr_exp", roundFile.name, name)
+		}
+		for _, w := range writes {
+			if w.text != "incr_exp = 0" && w.text != "incr_exp = 1" {
+				t.Fatalf("%s: %s writes incr_exp outside {0,1} at line %d: %s",
+					roundFile.name, name, w.line, w.text)
+			}
+		}
+	}
+
+	// --- mutation-sensitive dead-region anchor. The first pin fails on the
+	// negated equality mutant; the second fails on the |->& mutant.
+	x0Greater := bodyFile.asIf(t, "x0 underflow split", bodyFile.stmtAt(t, "underflow body", underflow.Body, 9))
+	x0Equal := bodyFile.elseIf(t, "x0 == ind arm", x0Greater)
+	bodyFile.pinNode(t, "x0 == ind guard", x0Equal.Cond, "x0 == ind")
+	wideMidpoint := bodyFile.elseBlock(t, "ind > 19 midpoint arm",
+		bodyFile.ifWithCond(t, x0Equal.Body, "ind <= 19"))
+	midpointEqual := bodyFile.ifWithCond(t, wideMidpoint,
+		"R128.hi == bid_midpoint128[ind-20].hi && R128.lo == bid_midpoint128[ind-20].lo")
+	bodyFile.pinNode(t, "128-bit midpoint equality", midpointEqual.Cond,
+		"R128.hi == bid_midpoint128[ind-20].hi && R128.lo == bid_midpoint128[ind-20].lo")
+	bodyFile.stmtWithText(t, x0Equal.Body, "res.hi = p_sign | res.hi")
+
+	// --- exact finite-domain premise. Decimal128 addends have at most 34
+	// digits and products at most 68. The Case 11/12 predicates themselves
+	// bound delta below q4, so this enumeration is the complete integer domain
+	// at the dispatcher boundary. It computes the smallest possible initial
+	// e4 directly from the pinned algebra.
+	if P34 != 34 || MASK_EXP_128>>49 < 1 {
+		t.Fatalf("Decimal128 precision/exponent anchors drifted: P34=%d MASK_EXP_128>>49=%d",
+			P34, MASK_EXP_128>>49)
+	}
+	minE4 := int(^uint(0) >> 1)
+	reached := 0
+	for q3 := 1; q3 <= P34; q3++ {
+		for q4 := 1; q4 <= 2*P34; q4++ {
+			for delta := 0; delta < q4; delta++ {
+				case11 := P34 <= delta && delta < q4 && q4 < delta+q3
+				case12 := delta < P34 && P34 < q4 && q4 < delta+q3
+				if !case11 && !case12 {
+					continue
+				}
+				reached++
+				gap := delta + q3 - q4
+				if gap < 1 {
+					t.Fatalf("Cases 11/12 q3=%d q4=%d delta=%d gives e4-e3=%d, want >=1",
+						q3, q4, delta, gap)
+				}
+				e4 := -6176 + gap
+				if e4 < minE4 {
+					minE4 = e4
+				}
+			}
+		}
+	}
+	if reached == 0 || minE4 != -6175 {
+		t.Fatalf("Cases 11/12 domain: reached=%d minimum initial e4=%d, want nonzero and -6175",
+			reached, minE4)
+	}
+	// In the only arm that can change e4 before the guard, ind>P34 gives
+	// x0>=1, incr_exp is 0/1, and the optional decrement is at most one.
+	for ind := P34 + 1; ind <= 2*P34; ind++ {
+		for incrExp := 0; incrExp <= 1; incrExp++ {
+			for decrement := 0; decrement <= 1; decrement++ {
+				net := ind - P34 + incrExp - decrement
+				if net < 0 {
+					t.Fatalf("ind=%d incr_exp=%d decrement=%d gives negative e4 correction %d",
+						ind, incrExp, decrement, net)
+				}
+			}
+		}
+	}
+	if minE4 < -6176 {
+		t.Fatalf("minimum e4 %d reaches the pinned underflow guard", minE4)
 	}
 }
 
