@@ -101,6 +101,37 @@ var ffiMutationWitnessCases = []ffiMutationWitnessCase{
 		MutantID: "div64.go:24267:negcond:negate", Reason: "div64.go:936 Bid64qqDiv"},
 	{Function: "bid64qq_div", Rounding: 4, Operands: []string{"47b99912a426f80b2c000000000066c4", "48b99912a426f80b2c000000000066c4"},
 		MutantID: "div64.go:24735:aor:+=->-=", Reason: "div64.go:953 Bid64qqDiv"},
+
+	// Batch C-7 coverage-guided witnesses. The audit's residual "gate never
+	// executed this line" group was re-measured at this tree against the union
+	// of the portable chain, the native FFI/readtest/decTest chain, the
+	// decNumber differential and the full Tier 1 long legs: the five mutants
+	// below sit on lines that no gate corpus executes at all, so no gate could
+	// distinguish them regardless of comparison strength. A directed search at
+	// the public port entrypoints (Bid64Fma, Bid64qqqFma, Bid128Fma) found the
+	// operands below, which both execute the line and make the mutated port
+	// return a different result or different status flags than the pinned
+	// port. Each row therefore converts an unexecuted line into an executed
+	// one and pins a distinguishing input for it.
+	//
+	// The operand shapes are the ones the lines require, not arbitrary
+	// samples: the three bid64_fma rows drive the 64-bit wide-add helper
+	// (bid_get_add128) and its rounding tail with an addend whose exponent
+	// sits just under the product's, the bid64qqq_fma row lands a Decimal64
+	// result with an unbiased exponent above emax but few enough digits to be
+	// scaled back in (the scale-down arm), and the bid128_fma row cancels the
+	// product against z at the 10^33 decade boundary so the subnormal
+	// half-ulp classification runs.
+	{Function: "bid64_fma", Rounding: 1, Operands: []string{"b1a05af3107a3ffd", "818000174876e802", "00078f1a37d5699b"},
+		MutantID: "add128_inline.go:7046:aor:inc->dec", Reason: "add128_inline.go:263 bid_get_add128 RD/RZ rounding-up correction (reached through Bid64Fma)"},
+	{Function: "bid64_fma", Rounding: 2, Operands: []string{"39438d7ea4c67fff", "22c38d7ea4c68001", "29000002540be400"},
+		MutantID: "add128_inline.go:7375:const:+1", Reason: "add128_inline.go:277 bid_get_add128 RU exact-fraction clear (reached through Bid64Fma); mutant changes the status flags only"},
+	{Function: "bid64_fma", Rounding: 0, Operands: []string{"5621c6bf52634000", "8bdce92c535a7821", "32a0000089035b8b"},
+		MutantID: "inline_round64.go:2607:aor:dec->inc", Reason: "inline_round64.go:97 __bid_full_round64 RN-even tie correction (reached through Bid64Fma -> bid_get_add128)"},
+	{Function: "bid64qqq_fma", Rounding: 0, Operands: []string{"6400000000000000000000000000deb1", "0a000000000000000000000000009031", "64000000000000000000000000002eb3"},
+		MutantID: "bid128_fma.go:23977:aor:*=->+=", Reason: "bid128_fma.go:834 bid64qqqFmaCore unbexp>369 scale-down arm"},
+	{Function: "bid128_fma", Rounding: 1, Operands: []string{"000000000a5bc138938d44c64d31f6a5", "0100000000000000000000000000060a", "000000000a5bc138938d44c64d310000"},
+		MutantID: "bid128_fma_body.go:24677:const:+1", Reason: "bid128_fma_body.go:792 bid_fma_case1ppB_psign_ne_zsign e3==emin lt_half_ulp arm"},
 }
 
 // ffiMutationWitnessIndex groups the witness rows by FFI function for

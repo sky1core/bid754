@@ -66,6 +66,7 @@
     {"id":"bid_native_bitcompare_subset_bid64qqq_fma_051","probe":"rounding-discriminant","probe_group":"bid64qqq_fma/rounding/1","rounding":2,"operands":["01000000000000000000000000004030","01000000000000000000000000004030","05000000000000000000000000002030"]},
     {"id":"bid_native_bitcompare_subset_bid64qqq_fma_052","probe":"rounding-discriminant","probe_group":"bid64qqq_fma/rounding/1","rounding":3,"operands":["01000000000000000000000000004030","01000000000000000000000000004030","05000000000000000000000000002030"]},
     {"id":"bid_native_bitcompare_subset_bid64qqq_fma_053","probe":"rounding-discriminant","probe_group":"bid64qqq_fma/rounding/1","rounding":4,"operands":["01000000000000000000000000004030","01000000000000000000000000004030","05000000000000000000000000002030"]},
-    {"id":"bid_native_bitcompare_subset_bid64qqq_fma_054","probe":"fusedness","probe_group":"bid64qqq_fma/fusedness","expected":"2fe38d7ea4c68001/00000020","forbidden":"2fe38d7ea4c68000/00000020","rounding":0,"operands":["0100fc16a20afb7e9582e49458a4fc2f","03000000000000000000000000004030","00000000000000000000000000004030"]}
+    {"id":"bid_native_bitcompare_subset_bid64qqq_fma_054","probe":"fusedness","probe_group":"bid64qqq_fma/fusedness","expected":"2fe38d7ea4c68001/00000020","forbidden":"2fe38d7ea4c68000/00000020","rounding":0,"operands":["0100fc16a20afb7e9582e49458a4fc2f","03000000000000000000000000004030","00000000000000000000000000004030"]},
+    {"id":"bid_native_bitcompare_subset_bid64qqq_fma_055","rounding":0,"operands":["6400000000000000000000000000deb1","0a000000000000000000000000009031","64000000000000000000000000002eb3"]}
   ]
 }
