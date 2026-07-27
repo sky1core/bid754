@@ -913,68 +913,27 @@ pub(crate) fn __mul_192x192_to_384(mut a: BID_UINT192, mut b: BID_UINT192) -> BI
 
 pub(crate) fn __mul_256x256_to_512(mut a: BID_UINT256, mut b: BID_UINT256) -> BID_UINT512 {
     let mut p: BID_UINT512 = BID_UINT512 { w0: 0, w1: 0, w2: 0, w3: 0, w4: 0, w5: 0, w6: 0, w7: 0 };
-    let mut aL = BID_UINT128 { lo: a.w0, hi: a.w1, ..Default::default() };
-    let mut aH = BID_UINT128 { lo: a.w2, hi: a.w3, ..Default::default() };
-    let mut bL = BID_UINT128 { lo: b.w0, hi: b.w1, ..Default::default() };
-    let mut bH = BID_UINT128 { lo: b.w2, hi: b.w3, ..Default::default() };
-    let mut p0 = __mul_128x128_to_256(aL, bL);
-    let mut p1 = __mul_128x128_to_256(aH, bL);
-    let mut p2 = __mul_128x128_to_256(aL, bH);
-    let mut p3 = __mul_128x128_to_256(aH, bH);
-    p.w0 = p0.w0;
-    p.w1 = p0.w1;
     let mut cy: u64 = 0;
-    p.w2 = (p0.w2.wrapping_add(p1.w0));
-    cy = 0;
-    if (p.w2 < p0.w2) {
-        cy = 1;
-    }
-    p.w3 = ((p0.w3.wrapping_add(p1.w1)).wrapping_add(cy));
-    cy = 0;
-    if ((p.w3 < p1.w1) || (((cy == 0) && (p.w3 < p0.w3)))) {
-        cy = 1;
-    }
-    let mut c4 = (p1.w2.wrapping_add(cy));
-    cy = 0;
-    if (c4 < p1.w2) {
-        cy = 1;
-    }
-    let mut c5 = (p1.w3.wrapping_add(cy));
-    let mut tmp = p.w2;
-    p.w2 = p.w2.wrapping_add(p2.w0);
-    cy = 0;
-    if (p.w2 < tmp) {
-        cy = 1;
-    }
-    tmp = p.w3;
-    p.w3 = p.w3.wrapping_add((p2.w1.wrapping_add(cy)));
-    cy = 0;
-    if ((p.w3 < tmp) || (((p.w3 == tmp) && (cy > 0)))) {
-        cy = 1;
-    }
-    tmp = c4;
-    c4 = c4.wrapping_add((p2.w2.wrapping_add(cy)));
-    cy = 0;
-    if ((c4 < tmp) || (((c4 == tmp) && (cy > 0)))) {
-        cy = 1;
-    }
-    c5 = c5.wrapping_add((p2.w3.wrapping_add(cy)));
-    p.w4 = (c4.wrapping_add(p3.w0));
-    cy = 0;
-    if (p.w4 < c4) {
-        cy = 1;
-    }
-    p.w5 = ((c5.wrapping_add(p3.w1)).wrapping_add(cy));
-    cy = 0;
-    if ((p.w5 < c5) || (((p.w5 == c5) && (cy > 0)))) {
-        cy = 1;
-    }
-    p.w6 = (p3.w2.wrapping_add(cy));
-    cy = 0;
-    if (p.w6 < p3.w2) {
-        cy = 1;
-    }
-    p.w7 = (p3.w3.wrapping_add(cy));
+    let mut P0 = __mul_64x256_to_320(a.w0, b);
+    let mut P1 = __mul_64x256_to_320(a.w1, b);
+    let mut P2 = __mul_64x256_to_320(a.w2, b);
+    let mut P3 = __mul_64x256_to_320(a.w3, b);
+    p.w0 = P0.w0;
+    (p.w1, cy) = __add_carry_out(P1.w0, P0.w1);
+    (p.w2, cy) = __add_carry_in_out(P1.w1, P0.w2, cy);
+    (p.w3, cy) = __add_carry_in_out(P1.w2, P0.w3, cy);
+    (p.w4, cy) = __add_carry_in_out(P1.w3, P0.w4, cy);
+    p.w5 = (P1.w4.wrapping_add(cy));
+    (p.w2, cy) = __add_carry_out(P2.w0, p.w2);
+    (p.w3, cy) = __add_carry_in_out(P2.w1, p.w3, cy);
+    (p.w4, cy) = __add_carry_in_out(P2.w2, p.w4, cy);
+    (p.w5, cy) = __add_carry_in_out(P2.w3, p.w5, cy);
+    p.w6 = (P2.w4.wrapping_add(cy));
+    (p.w3, cy) = __add_carry_out(P3.w0, p.w3);
+    (p.w4, cy) = __add_carry_in_out(P3.w1, p.w4, cy);
+    (p.w5, cy) = __add_carry_in_out(P3.w2, p.w5, cy);
+    (p.w6, cy) = __add_carry_in_out(P3.w3, p.w6, cy);
+    p.w7 = (P3.w4.wrapping_add(cy));
     return p;
 }
 

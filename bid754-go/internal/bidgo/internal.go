@@ -1200,91 +1200,30 @@ func __mul_192x192_to_384(a, b BID_UINT192) BID_UINT384 {
 }
 
 // __mul_256x256_to_512 multiplies two 256-bit values to get 512-bit result.
+// Ported from Intel BID library bid_internal.h __mul_256x256_to_512 macro.
 func __mul_256x256_to_512(a, b BID_UINT256) BID_UINT512 {
-	// Split into 128-bit halves and use schoolbook multiplication
-	// a = aH * 2^128 + aL, b = bH * 2^128 + bL
-	// a*b = aH*bH*2^256 + (aH*bL + aL*bH)*2^128 + aL*bL
 	var p BID_UINT512
-	aL := BID_UINT128{lo: a.w0, hi: a.w1}
-	aH := BID_UINT128{lo: a.w2, hi: a.w3}
-	bL := BID_UINT128{lo: b.w0, hi: b.w1}
-	bH := BID_UINT128{lo: b.w2, hi: b.w3}
-
-	p0 := __mul_128x128_to_256(aL, bL) // aL * bL
-	p1 := __mul_128x128_to_256(aH, bL) // aH * bL
-	p2 := __mul_128x128_to_256(aL, bH) // aL * bH
-	p3 := __mul_128x128_to_256(aH, bH) // aH * bH
-
-	// p = p0 + (p1+p2)<<128 + p3<<256
-	p.w0 = p0.w0
-	p.w1 = p0.w1
-
 	var cy uint64
-	// Add p1 shifted by 128 bits
-	p.w2 = p0.w2 + p1.w0
-	cy = 0
-	if p.w2 < p0.w2 {
-		cy = 1
-	}
-
-	p.w3 = p0.w3 + p1.w1 + cy
-	cy = 0
-	if p.w3 < p1.w1 || (cy == 0 && p.w3 < p0.w3) {
-		cy = 1
-	}
-
-	c4 := p1.w2 + cy
-	cy = 0
-	if c4 < p1.w2 {
-		cy = 1
-	}
-	c5 := p1.w3 + cy
-
-	// Add p2 shifted by 128 bits
-	tmp := p.w2
-	p.w2 += p2.w0
-	cy = 0
-	if p.w2 < tmp {
-		cy = 1
-	}
-
-	tmp = p.w3
-	p.w3 += p2.w1 + cy
-	cy = 0
-	if p.w3 < tmp || (p.w3 == tmp && cy > 0) {
-		cy = 1
-	}
-
-	tmp = c4
-	c4 += p2.w2 + cy
-	cy = 0
-	if c4 < tmp || (c4 == tmp && cy > 0) {
-		cy = 1
-	}
-
-	c5 += p2.w3 + cy
-
-	// Add p3 shifted by 256 bits
-	p.w4 = c4 + p3.w0
-	cy = 0
-	if p.w4 < c4 {
-		cy = 1
-	}
-
-	p.w5 = c5 + p3.w1 + cy
-	cy = 0
-	if p.w5 < c5 || (p.w5 == c5 && cy > 0) {
-		cy = 1
-	}
-
-	p.w6 = p3.w2 + cy
-	cy = 0
-	if p.w6 < p3.w2 {
-		cy = 1
-	}
-
-	p.w7 = p3.w3 + cy
-
+	P0 := __mul_64x256_to_320(a.w0, b)
+	P1 := __mul_64x256_to_320(a.w1, b)
+	P2 := __mul_64x256_to_320(a.w2, b)
+	P3 := __mul_64x256_to_320(a.w3, b)
+	p.w0 = P0.w0
+	p.w1, cy = __add_carry_out(P1.w0, P0.w1)
+	p.w2, cy = __add_carry_in_out(P1.w1, P0.w2, cy)
+	p.w3, cy = __add_carry_in_out(P1.w2, P0.w3, cy)
+	p.w4, cy = __add_carry_in_out(P1.w3, P0.w4, cy)
+	p.w5 = P1.w4 + cy
+	p.w2, cy = __add_carry_out(P2.w0, p.w2)
+	p.w3, cy = __add_carry_in_out(P2.w1, p.w3, cy)
+	p.w4, cy = __add_carry_in_out(P2.w2, p.w4, cy)
+	p.w5, cy = __add_carry_in_out(P2.w3, p.w5, cy)
+	p.w6 = P2.w4 + cy
+	p.w3, cy = __add_carry_out(P3.w0, p.w3)
+	p.w4, cy = __add_carry_in_out(P3.w1, p.w4, cy)
+	p.w5, cy = __add_carry_in_out(P3.w2, p.w5, cy)
+	p.w6, cy = __add_carry_in_out(P3.w3, p.w6, cy)
+	p.w7 = P3.w4 + cy
 	return p
 }
 
