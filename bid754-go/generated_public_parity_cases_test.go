@@ -13,7 +13,7 @@ import "testing"
 // shrinks the corpus cannot silently re-pin a smaller surface.
 const (
 	expectedPublicParityWrappers = 382
-	expectedPublicParityCases    = 29110
+	expectedPublicParityCases    = 29185
 )
 
 // The flagless-sibling equivalence leg's counts are pinned separately from
@@ -41,22 +41,22 @@ func TestGeneratedPublicAPIFlaglessSiblingEquivalence(t *testing.T) {
 }
 
 var expectedPublicParityCasesByShape = map[string]int{
-	"func_context":            720,
+	"func_context":            726,
 	"func_from_int":           55,
-	"func_int_ctor":           585,
+	"func_int_ctor":           591,
 	"func_mixed_mode_binary":  3364,
 	"func_mixed_mode_ternary": 1274,
 	"func_mixed_mode_unary":   282,
 	"func_string":             588,
-	"func_string_mode":        795,
+	"func_string_mode":        798,
 	"vm_binary":               2760,
 	"vm_class":                72,
 	"vm_compare_total":        144,
-	"vm_convert":              5760,
+	"vm_convert":              5808,
 	"vm_mode_binary":          2115,
 	"vm_mode_scaleb":          4743,
 	"vm_mode_ternary":         273,
-	"vm_mode_unary":           1440,
+	"vm_mode_unary":           1452,
 	"vm_mode_unary_arith":     846,
 	"vm_nexttoward":           240,
 	"vm_nullary":              3,

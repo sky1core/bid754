@@ -550,32 +550,84 @@ func pwFiniteTripleElem(w, slot int) string {
 	return fmt.Sprintf("%s[%s[0][%d]]", pwCorpus(w), pwTriples(w), slot)
 }
 
-// parityInvalidModeQNaNLiteral renders the canonical quiet-NaN bit pattern an
-// invalid-RoundingMode rejection must return, as a Go literal comparable
-// against pubBitsExpr(class, …). The width-128 form is parenthesized because a
-// bare composite literal cannot open an if condition. Pinning the literal here
-// instead of calling the production canonicalQNaN*BID helpers keeps a wrong
-// constant in those helpers from making the wrapper and this gate wrong
-// together, the same reason emitRawRejectedStringCheck pins its literals.
-func parityInvalidModeQNaNLiteral(class string) (string, error) {
-	switch class {
+// parityInvalidModeRejectionExpectation renders both halves of the
+// invalid-RoundingMode rejection expectation off one key: the bit pattern the
+// rejection must return, as a Go literal comparable against
+// pubBitsExpr(u.ResultClass, …), and the "want …" phrase the failure message
+// names that value by. They are produced together so a message can never
+// describe a different value than the comparison beside it enforces — only the
+// decimal classes want a canonical qNaN, and a message saying so on an
+// integer-target or binary-target surface misdirects whoever reads the failure.
+// The 16-byte literals are parenthesized because a bare composite literal
+// cannot open an if condition. Pinning the literals here instead of calling the
+// production canonicalQNaN*BID helpers — or deriving the integer sentinels from
+// a production converter — keeps a wrong constant in production from making the
+// wrapper and this gate wrong together, the same reason
+// emitRawRejectedStringCheck pins its literals.
+//
+// Decimal-, binary-float-, and binary128-producing surfaces return the target
+// format's canonical quiet NaN (types_bidgo_invalid_mode.go). A to-integer
+// conversion has no NaN to return, so it mirrors the value that conversion
+// yields for a NaN input; that value is fixed per target integer type and
+// independent of the source decimal width, so the integer classes key on the
+// port's primary result type instead of on the unit's width, and their phrase
+// carries the sentinel itself since no format name identifies it.
+func parityInvalidModeRejectionExpectation(u parityUnit) (string, string, error) {
+	switch u.ResultClass {
 	case "dec32":
-		return "0x7c000000", nil
+		return "0x7c000000", "want canonical qNaN", nil
 	case "dec64":
-		return "0x7c00000000000000", nil
+		return "0x7c00000000000000", "want canonical qNaN", nil
 	case "dec128":
-		return "([16]byte{15: 0x7c})", nil
+		return "([16]byte{15: 0x7c})", "want canonical qNaN", nil
+	case "f32":
+		return "0x7fc00000", "want the binary NaN payload", nil
+	case "f64":
+		return "0x7ff8000000000000", "want the binary NaN payload", nil
+	case "bin128":
+		return "([16]byte{13: 0x80, 14: 0xff, 15: 0x7f})", "want the binary NaN payload", nil
+	case "intn":
+		var sentinel string
+		switch u.Port.PrimaryResult {
+		case "int8":
+			sentinel = "-128"
+		case "int16":
+			sentinel = "-32768"
+		case "int32":
+			sentinel = "-2147483648"
+		case "int64":
+			sentinel = "-9223372036854775808"
+		}
+		if sentinel != "" {
+			return sentinel, "want the NaN-conversion sentinel " + sentinel, nil
+		}
+	case "uintn":
+		var sentinel string
+		switch u.Port.PrimaryResult {
+		case "uint8":
+			sentinel = "128"
+		case "uint16":
+			sentinel = "32768"
+		case "uint32":
+			sentinel = "2147483648"
+		case "uint64":
+			sentinel = "9223372036854775808"
+		}
+		if sentinel != "" {
+			return sentinel, "want the NaN-conversion sentinel " + sentinel, nil
+		}
 	default:
-		return "", fmt.Errorf("invalid-mode rejection check has unsupported result class %q", class)
+		return "", "", fmt.Errorf("invalid-mode rejection check has unsupported result class %q", u.ResultClass)
 	}
+	return "", "", fmt.Errorf("invalid-mode rejection check has result class %q with unsupported integer result type %q", u.ResultClass, u.Port.PrimaryResult)
 }
 
 // emitInvalidModeRejectionTail writes the invalid-public-mode rejection leg
-// shared by every explicit-RoundingMode parity shape. call renders the wrapper
-// invocation for one mode expression. The port is never invoked with the
-// unsupported integer because it has no defined behavior for one, so the
-// expectation is the pinned canonical quiet-NaN literal of the result width
-// plus exactly FlagInvalidOperation.
+// shared by every explicit-RoundingMode parity shape returning (value, flags).
+// call renders the wrapper invocation for one mode expression. The port is
+// never invoked with the unsupported integer because it has no defined
+// behavior for one, so the expectation is the pinned rejection literal of the
+// result class plus exactly FlagInvalidOperation.
 //
 // A valid-mode control call on the same operands runs first. The leg only
 // detects a missing rejection when the operands' ordinary result differs from
@@ -585,7 +637,7 @@ func parityInvalidModeQNaNLiteral(class string) (string, error) {
 // corpus edit that moves the finite anchor into a failure instead of silent
 // vacuity.
 func emitInvalidModeRejectionTail(b *strings.Builder, u parityUnit, call func(modeExpr string) string) error {
-	want, err := parityInvalidModeQNaNLiteral(u.ResultClass)
+	want, wantPhrase, err := parityInvalidModeRejectionExpectation(u)
 	if err != nil {
 		return fmt.Errorf("%s: %w", u.Symbol, err)
 	}
@@ -597,7 +649,92 @@ func emitInvalidModeRejectionTail(b *strings.Builder, u parityUnit, call func(mo
 	fmt.Fprintf(b, "\t}\n")
 	fmt.Fprintf(b, "\tinvalidValue, invalidFlags := %s\n", call("RoundingMode(99)"))
 	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation {\n", invalidBits, want)
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, want canonical qNaN and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, invalidBits)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v, %s and FlagInvalidOperation\", %s, invalidFlags)\n", u.Symbol, wantPhrase, invalidBits)
+	fmt.Fprintf(b, "\t}\n\tcount++\n")
+	return nil
+}
+
+// emitInvalidModeRejectionTailWithErr is emitInvalidModeRejectionTail for the
+// three-channel string constructors, which return (value, flags, error). Their
+// documented contract keeps the two rejection channels structurally
+// distinguishable: an invalid mode is reported through the flag channel with a
+// *nil* error, while a rejected input string is reported through the error
+// channel with zero flags, and string rejection takes precedence so a bad mode
+// cannot mask a rejected string. The two calls use that channel differently.
+// On the rejection call it is asserted fail-closed: a non-nil invalidErr fails
+// the leg. On the control call it is only one more conjunct of the vacuity
+// condition, so an anchor string that is itself rejected (controlErr != nil)
+// silences the vacuity report rather than failing it; that the anchor parses
+// at every valid mode is pinned by the caller's own valid-mode leg instead.
+func emitInvalidModeRejectionTailWithErr(b *strings.Builder, u parityUnit, call func(modeExpr string) string) error {
+	want, wantPhrase, err := parityInvalidModeRejectionExpectation(u)
+	if err != nil {
+		return fmt.Errorf("%s: %w", u.Symbol, err)
+	}
+	controlBits := pubBitsExpr(u.ResultClass, "controlValue")
+	invalidBits := pubBitsExpr(u.ResultClass, "invalidValue")
+	fmt.Fprintf(b, "\tcontrolValue, controlFlags, controlErr := %s\n", call("publicParityModes[0].pub"))
+	fmt.Fprintf(b, "\tif %s == %s && controlFlags == FlagInvalidOperation && controlErr == nil {\n", controlBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid-mode leg is vacuous: valid-mode result=%%v flags=%%v with a nil error already equals the rejection outcome, so a dropped rejection would pass\", %s, controlFlags)\n", u.Symbol, controlBits)
+	fmt.Fprintf(b, "\t}\n")
+	fmt.Fprintf(b, "\tinvalidValue, invalidFlags, invalidErr := %s\n", call("RoundingMode(99)"))
+	fmt.Fprintf(b, "\tif %s != %s || invalidFlags != FlagInvalidOperation || invalidErr != nil {\n", invalidBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid rounding mode result=%%v flags=%%v err=%%v, %s, FlagInvalidOperation and a nil error\", %s, invalidFlags, invalidErr)\n", u.Symbol, wantPhrase, invalidBits)
+	fmt.Fprintf(b, "\t}\n\tcount++\n")
+	return nil
+}
+
+// emitInvalidModeRejectionTailContext is emitInvalidModeRejectionTail for the
+// context free functions, which return a bare value and accumulate flags into
+// the caller's context. call renders the wrapper invocation for one context
+// expression. The two documented ways an invalid mode reaches such an
+// operation get one sub-leg each, because they differ in what is observable:
+//
+//   - an explicit context built with ArithmeticContext.WithRounding carries the
+//     bad mode into the call, and the rejection is observable as the canonical
+//     quiet NaN plus FlagInvalidOperation accumulated into that context;
+//   - a nil context resolves the process-global default instead, and having no
+//     flag field it drops every raised flag, so the canonical quiet NaN is the
+//     only observable signal and the sub-leg asserts the value alone.
+//
+// Each sub-leg carries its own valid-mode control, because they resolve the
+// mode through different code and the flagless one cannot borrow the other's
+// flag comparison. The caller must place this inside its own save/restore
+// window for the global default, since the second sub-leg overwrites it.
+func emitInvalidModeRejectionTailContext(b *strings.Builder, u parityUnit, call func(ctxExpr string) string) error {
+	want, wantPhrase, err := parityInvalidModeRejectionExpectation(u)
+	if err != nil {
+		return fmt.Errorf("%s: %w", u.Symbol, err)
+	}
+	controlBits := pubBitsExpr(u.ResultClass, "controlValue")
+	invalidBits := pubBitsExpr(u.ResultClass, "invalidValue")
+	controlNilBits := pubBitsExpr(u.ResultClass, "controlNilValue")
+	invalidNilBits := pubBitsExpr(u.ResultClass, "invalidNilValue")
+	fmt.Fprintf(b, "\tcontrolCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}\n")
+	fmt.Fprintf(b, "\tcontrolValue := %s\n", call("controlCtx"))
+	fmt.Fprintf(b, "\tif %s == %s && controlCtx.Flags == FlagInvalidOperation {\n", controlBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid-mode leg is vacuous: valid-mode result=%%v flags=%%v already equals the rejection value, so a dropped rejection would pass\", %s, controlCtx.Flags)\n", u.Symbol, controlBits)
+	fmt.Fprintf(b, "\t}\n")
+	// A fresh context, not a copy of the control one: WithRounding clones the
+	// flag field too, so reusing the control context would let its raised
+	// flags decide this assertion.
+	fmt.Fprintf(b, "\tinvalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))\n")
+	fmt.Fprintf(b, "\tinvalidValue := %s\n", call("invalidCtx"))
+	fmt.Fprintf(b, "\tif %s != %s || invalidCtx.Flags != FlagInvalidOperation {\n", invalidBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid context rounding mode result=%%v flags=%%v, %s and FlagInvalidOperation\", %s, invalidCtx.Flags)\n", u.Symbol, wantPhrase, invalidBits)
+	fmt.Fprintf(b, "\t}\n\tcount++\n")
+	// Nil-context sub-leg. Its control pins the value channel only: the flag
+	// this path raises has no field to accumulate into and is dropped, so a
+	// flag comparison here would assert nothing.
+	fmt.Fprintf(b, "\tSetDefaultRounding(publicParityModes[0].pub)\n")
+	fmt.Fprintf(b, "\tcontrolNilValue := %s\n", call("nil"))
+	fmt.Fprintf(b, "\tif %s == %s {\n", controlNilBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid-mode leg is vacuous: valid default result=%%v already equals the rejection value, so a dropped rejection would pass\", %s)\n", u.Symbol, controlNilBits)
+	fmt.Fprintf(b, "\t}\n")
+	fmt.Fprintf(b, "\tSetDefaultRounding(RoundingMode(99))\n")
+	fmt.Fprintf(b, "\tinvalidNilValue := %s\n", call("nil"))
+	fmt.Fprintf(b, "\tif %s != %s {\n", invalidNilBits, want)
+	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid default rounding mode resolved through a nil context: result=%%v, %s\", %s)\n", u.Symbol, wantPhrase, invalidNilBits)
 	fmt.Fprintf(b, "\t}\n\tcount++\n")
 	return nil
 }
@@ -971,7 +1108,15 @@ func emitVMModeUnary(b *strings.Builder, u parityUnit) error {
 		emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", pfPort, "operand %#x mode %v", "elem, mode.pub")
 	}
 	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n\t}\n")
-	return nil
+
+	// Invalid public mode: do not call Intel with an unsupported integer. The
+	// format conversions on this shape all return flags, and their rejection
+	// value is the target format's canonical quiet NaN rather than the
+	// receiver width's.
+	fmt.Fprintf(b, "\tinvalidOperand := %s\n", pwPublicVal(w, pwFinitePairElem(w, 0)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("invalidOperand.%s(%s)", u.Method, mode)
+	})
 }
 
 // emitVMModeBinary renders the {Add,Sub,Mul,Div}WithMode parity body: one
@@ -1339,7 +1484,19 @@ func emitVMConvert(b *strings.Builder, u parityUnit) error {
 	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "operand %#x mode %v", "elem, mode.pub")
 	emitFlagCheck(b, "\t\t\t", u.Symbol, "pf", "prf", "operand %#x mode %v", "elem, mode.pub")
 	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n\t}\n")
-	return nil
+
+	// Invalid public mode: do not call Intel with an unsupported integer. The
+	// rejection value here is an integer sentinel, not a NaN, so the anchor
+	// must be a decimal that converts to something else under *every* target
+	// type the shape carries: slot 0 of the width's finite pair resolves to
+	// +1, which is in range and exact for all sixteen, while slot 1 (-1) is
+	// out of domain for the eight unsigned targets and a NaN or infinity
+	// anchor would convert to exactly the sentinel with exactly
+	// FlagInvalidOperation and make the leg vacuous.
+	fmt.Fprintf(b, "\tinvalidOperand := %s\n", pwPublicVal(w, pwFinitePairElem(w, 0)))
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("invalidOperand.%s(%s)", u.Method, mode)
+	})
 }
 
 func emitVMNullary(b *strings.Builder, u parityUnit) error {
@@ -1476,7 +1633,23 @@ func emitFuncIntCtor(b *strings.Builder, u parityUnit) error {
 	}
 	fmt.Fprintf(b, "%scount++\n", indent)
 	b.WriteString(loopClose)
-	return nil
+	if !u.HasMode {
+		// Half of this shape's units are exact modeless conversions with no
+		// mode argument to reject.
+		return nil
+	}
+
+	// Invalid public mode: do not call Intel with an unsupported integer. The
+	// anchor is corpus index 1, the value 1, not index 0, the value 0, as a
+	// conservative echo of the c6a01f3 post-mortem in which corpus-zero anchors
+	// left arithmetic legs vacuous. No lane of this shape can degenerate that
+	// way: an integer operand always converts to a finite decimal, so index 0
+	// would yield the zero encoding and never the rejection qNaN. What keeps
+	// the leg honest is the emitted valid-mode control, not the index choice.
+	fmt.Fprintf(b, "\tinvalidOperand := %s[1]\n", corpus)
+	return emitInvalidModeRejectionTail(b, u, func(mode string) string {
+		return fmt.Sprintf("%s(invalidOperand, %s)", u.Func, mode)
+	})
 }
 
 func emitFuncFromInt(b *strings.Builder, u parityUnit) error {
@@ -1716,12 +1889,25 @@ func emitFuncStringMode(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
 	emitModeDiscAssertion(b, u.Symbol, "discriminant input %q", "ds")
 	fmt.Fprintf(b, "\t}\n")
-	return nil
+
+	// Invalid public mode: do not call Intel with an unsupported integer. The
+	// anchor is the first discriminant string, which the leg above already
+	// asserts parses without an error at every valid mode, so a corpus edit
+	// that makes it a rejected input fails there rather than silently moving
+	// this leg onto the string-rejection branch where the mode is never
+	// consulted.
+	return emitInvalidModeRejectionTailWithErr(b, u, func(mode string) string {
+		return fmt.Sprintf("%s(discInputs[0], %s)", u.Func, mode)
+	})
 }
 
 func emitFuncContext(b *strings.Builder, u parityUnit) error {
 	w := u.Width
+	// The restore is deferred at the point of save rather than trailed at the
+	// end of the body: a t.Fatal or any other Goexit below would otherwise leak
+	// the unsupported mode into the process-global default for every later unit.
 	fmt.Fprintf(b, "\tprevDefaultRounding := DefaultArithmeticContext().RoundingMode\n")
+	fmt.Fprintf(b, "\tdefer SetDefaultRounding(prevDefaultRounding)\n")
 	fmt.Fprintf(b, "\tfor _, pair := range %s {\n", pwPairs(w))
 	fmt.Fprintf(b, "\t\tav := %s[pair[0]]\n", pwCorpus(w))
 	fmt.Fprintf(b, "\t\tbv := %s[pair[1]]\n", pwCorpus(w))
@@ -1737,8 +1923,8 @@ func emitFuncContext(b *strings.Builder, u parityUnit) error {
 	// A nil ctx uses the process-global default rounding mode
 	// (context_v2.go contextBIDRoundingMode -> defaultRoundingMode), so the
 	// comparison must not depend on whatever the global happens to be: pin
-	// the default to each mode, compare against the port at that mode, and
-	// restore the previous default afterwards.
+	// the default to each mode, compare against the port at that mode, and let
+	// the deferred restore put the previous default back on the way out.
 	fmt.Fprintf(b, "\t\tfor _, mode := range publicParityModes {\n")
 	fmt.Fprintf(b, "\t\t\tSetDefaultRounding(mode.pub)\n")
 	fmt.Fprintf(b, "\t\t\tpvNil := %s(a, b, nil)\n", u.Func)
@@ -1747,7 +1933,19 @@ func emitFuncContext(b *strings.Builder, u parityUnit) error {
 	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pvNil", "prNil", u.Port.PrimaryResult, "operands %#x,%#x nil-ctx default %v", "av, bv, mode.pub")
 	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
 	fmt.Fprintf(b, "\t}\n")
-	fmt.Fprintf(b, "\tSetDefaultRounding(prevDefaultRounding)\n")
+
+	// Invalid resolved mode, in both the ways this shape can reach one, on the
+	// width's finite anchor pair (+1 and -1, whose ordinary sum +0 is neither
+	// the rejection value nor flag-raising). Both sub-legs stay inside the
+	// deferred global-default restore opened above, because the nil-context one
+	// sets that global to the unsupported mode.
+	fmt.Fprintf(b, "\tinvalidLeft := %s\n", pwPublicVal(w, pwFinitePairElem(w, 0)))
+	fmt.Fprintf(b, "\tinvalidRight := %s\n", pwPublicVal(w, pwFinitePairElem(w, 1)))
+	if err := emitInvalidModeRejectionTailContext(b, u, func(ctx string) string {
+		return fmt.Sprintf("%s(invalidLeft, invalidRight, %s)", u.Func, ctx)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 

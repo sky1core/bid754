@@ -728,18 +728,32 @@ const rustParityFileDoc = `//! Public-API parity gate: exercises every emitted p
 //! wrapper ({Add,Sub,Mul,Div,Quantize,FMA,ScaleB,Sqrt,RoundIntegralExact}
 //! WithMode) and every mixed-width explicit-mode free function ends in a
 //! rejection case that calls the wrapper with RoundingMode(99) and compares
-//! the result against a pinned canonical quiet-NaN bit literal plus exactly
+//! the result against a pinned rejection bit literal plus exactly
 //! FlagInvalidOperation, preceded by a valid-mode control asserting the case
-//! is not vacuous. Those cases are counted inside their own shapes'
+//! is not vacuous. That literal is not one constant: the wrapper's result
+//! class selects one of three families, which are the decimal canonical quiet
+//! NaN of the result width for decimal-producing surfaces, the
+//! binary32/binary64/binary128 NaN payload for the ToBinary* conversions, and
+//! a per-target-type NaN-conversion integer sentinel for the to-integer
+//! conversions, which have no NaN to return and so mirror the fixed value a
+//! NaN input yields for that integer type rather than a NaN of any width.
+//! Those cases are counted inside their own shapes'
 //! expectedPublicParityCasesByShape entries in
-//! bid754-go/generated_public_parity_cases_test.go, one per wrapper; no total
-//! is restated in this comment because a hand-carried count here would drift
-//! from the Go leg. The conversion, integer-constructor, string-constructor,
-//! and context mode shapes do not carry a generated rejection case yet: their
-//! expected rejection value is derived per target type rather than from the
-//! result width. The accounting for this Rust leg is unchanged either way:
-//! 0 cases affected, because the input does not exist in this API and so
-//! there is nothing to skip.
+//! bid754-go/generated_public_parity_cases_test.go: one case per mode-taking
+//! wrapper, so six of the twelve integer-constructor wrappers are exact
+//! modeless conversions and carry none, and the context functions carry two
+//! because the leg there splits into the two sub-legs described below; no
+//! total is restated in this comment because a hand-carried count here would
+//! drift from the Go leg. The conversion, integer-constructor,
+//! string-constructor, and context mode shapes carry the same rejection case
+//! with two further differences: the string constructors additionally pin a
+//! nil error so the flag and error rejection channels stay distinguishable,
+//! and the context
+//! functions pin both an explicit bad-mode context and the global default
+//! resolved through a nil context, where the flag has no field to accumulate
+//! into and the result is the only observable signal. The accounting for this
+//! Rust leg is unchanged either way: 0 cases affected, because the input does
+//! not exist in this API and so there is nothing to skip.
 `
 
 func emitRustParityStaticHelpers(b *strings.Builder, masks publicParityExceptionMasks) {

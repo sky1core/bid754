@@ -435,12 +435,22 @@ func TestResolveParityUnitRejectsUnsupportedMixedFMAAndSqrtSurfaces(t *testing.T
 // together). Without this generator-level anchor an emitter regression that
 // drops the leg is invisible: the gate would simply run fewer cases and the
 // pinned case counts would be regenerated along with it.
+//
+// Shapes that carry no mode-discriminant table (the conversion, integer
+// constructor and context shapes) leave discriminant empty and pin only the
+// rejection leg. wantAssignments pins an anchor whose expression is neither a
+// call nor a bare identifier, which is how the integer constructors' anchor is
+// held at corpus index 1 instead of the zero element: a conservative echo of
+// the c6a01f3 post-mortem rather than a live degeneracy guard, since an integer
+// operand always converts to a finite decimal and so no lane of that shape can
+// have the rejection value as its ordinary result.
 func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 	tests := []struct {
 		name               string
 		unit               parityUnit
 		discriminant       string
 		expectedBoundCalls []generatedGoBoundCallExpectation
+		wantAssignments    []string
 		wantComparisons    []string
 		forbiddenCalls     []string
 	}{
@@ -606,6 +616,169 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 			},
 			forbiddenCalls: []string{"canonicalQNaN32BID"},
 		},
+		{
+			// Conversion shape: the rejection value is a per-target-type
+			// integer sentinel, so it is keyed on the port's primary result
+			// type and the anchor must convert to something else under it.
+			name: "Decimal32BID.ConvertToInt8",
+			unit: parityUnit{
+				Symbol: "Decimal32BID.ConvertToInt8", FuncName: "publicParity_Decimal32BID_ConvertToInt8",
+				Shape: shapeVMConvert, Width: 32, Method: "ConvertToInt8", BidgoFn: "Bid32ToInt8Rnint",
+				ResultClass: "intn", HasFlags: true, HasMode: true,
+				Port: parityPortPlan{GoName: "Bid32ToInt8Rnint", ValueParams: []string{"uint32"}, FlagsKind: "result", PrimaryResult: "int8"},
+			},
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "invalidOperand", callee: "Decimal32BID", args: [][]string{
+					{"publicParityCorpus32[publicParityBinaryPairs32[0][0]]"},
+				}},
+				{binding: "controlValue, controlFlags", callee: "invalidOperand.ConvertToInt8", args: [][]string{
+					{"publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "invalidOperand.ConvertToInt8", args: [][]string{
+					{"RoundingMode(99)"},
+				}},
+			},
+			wantComparisons: []string{
+				"int64(controlValue) == -128",
+				"controlFlags == FlagInvalidOperation",
+				"int64(invalidValue) != -128",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN32BID"},
+		},
+		{
+			// Format-conversion shape: the rejection value is the *target*
+			// format's quiet NaN, so a binary128 result must not compare
+			// against the decimal qNaN literal or helper of any width.
+			name: "Decimal64BID.ToBinary128",
+			unit: parityUnit{
+				Symbol: "Decimal64BID.ToBinary128", FuncName: "publicParity_Decimal64BID_ToBinary128",
+				Shape: shapeVMModeUnary, Width: 64, Method: "ToBinary128", BidgoFn: "Bid64ToBinary128",
+				ResultClass: "bin128", HasFlags: true, HasMode: true,
+				Port: parityPortPlan{GoName: "Bid64ToBinary128", ValueParams: []string{"uint64"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "BID_UINT128"},
+			},
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "invalidOperand", callee: "Decimal64BID", args: [][]string{
+					{"publicParityCorpus64[publicParityBinaryPairs64[0][0]]"},
+				}},
+				{binding: "controlValue, controlFlags", callee: "invalidOperand.ToBinary128", args: [][]string{
+					{"publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "invalidOperand.ToBinary128", args: [][]string{
+					{"RoundingMode(99)"},
+				}},
+			},
+			wantComparisons: []string{
+				"controlValue.ToBytes() == ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f})",
+				"controlFlags == FlagInvalidOperation",
+				"invalidValue.ToBytes() != ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f})",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN128BID", "bidNaN128Bidgo"},
+		},
+		{
+			// Integer-constructor shape: half its units are modeless, so the
+			// leg is guarded on HasMode; the anchor is corpus index 1, keeping
+			// it off the zero element at index 0 (see the header comment).
+			name: "NewDecimal32FromInt32",
+			unit: parityUnit{
+				Symbol: "NewDecimal32FromInt32", FuncName: "publicParity_NewDecimal32FromInt32",
+				Shape: shapeFuncIntCtor, Width: 32, Func: "NewDecimal32FromInt32", BidgoFn: "Bid32FromInt32",
+				ResultClass: "dec32", HasFlags: true, HasMode: true, IntParam: "int32",
+				Port: parityPortPlan{GoName: "Bid32FromInt32", ValueParams: []string{"int32"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "uint32"},
+			},
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "controlValue, controlFlags", callee: "NewDecimal32FromInt32", args: [][]string{
+					{"invalidOperand", "publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags", callee: "NewDecimal32FromInt32", args: [][]string{
+					{"invalidOperand", "RoundingMode(99)"},
+				}},
+			},
+			wantAssignments: []string{"invalidOperand = publicParityIntCorpus32[1]"},
+			wantComparisons: []string{
+				"uint32(controlValue) == 0x7c000000",
+				"controlFlags == FlagInvalidOperation",
+				"uint32(invalidValue) != 0x7c000000",
+				"invalidFlags != FlagInvalidOperation",
+			},
+			forbiddenCalls: []string{"canonicalQNaN32BID"},
+		},
+		{
+			// String-constructor shape: three channels. String rejection takes
+			// precedence over mode rejection, so both calls pin the error
+			// channel as well, on an anchor the discriminant leg above already
+			// asserts parses cleanly.
+			name: "NewDecimal128WithMode",
+			unit: parityUnit{
+				Symbol: "NewDecimal128WithMode", FuncName: "publicParity_NewDecimal128WithMode",
+				Shape: shapeFuncStringMode, Width: 128, Func: "NewDecimal128WithMode", BidgoFn: "Bid128FromString",
+				ResultClass: "dec128", HasFlags: true, HasMode: true, HasErr: true,
+				Port: parityPortPlan{GoName: "Bid128FromString", ValueParams: []string{"string"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "BID_UINT128"},
+			},
+			discriminant: "discInputs",
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "controlValue, controlFlags, controlErr", callee: "NewDecimal128WithMode", args: [][]string{
+					{"discInputs[0]", "publicParityModes[0].pub"},
+				}},
+				{binding: "invalidValue, invalidFlags, invalidErr", callee: "NewDecimal128WithMode", args: [][]string{
+					{"discInputs[0]", "RoundingMode(99)"},
+				}},
+			},
+			wantComparisons: []string{
+				"controlValue.ToBytes() == ([16]byte{15: 0x7c})",
+				"controlFlags == FlagInvalidOperation",
+				"controlErr == nil",
+				"invalidValue.ToBytes() != ([16]byte{15: 0x7c})",
+				"invalidFlags != FlagInvalidOperation",
+				"invalidErr != nil",
+			},
+			forbiddenCalls: []string{"canonicalQNaN128BID"},
+		},
+		{
+			// Context shape: two sub-legs, because the two documented routes
+			// to an unsupported mode differ in what is observable. Both sit
+			// inside the emitter's global-default save/restore window.
+			name: "Add32BIDWithContext",
+			unit: parityUnit{
+				Symbol: "Add32BIDWithContext", FuncName: "publicParity_Add32BIDWithContext",
+				Shape: shapeFuncContext, Width: 32, Func: "Add32BIDWithContext", BidgoFn: "Bid32AddWithFlags",
+				ResultClass: "dec32",
+				Port:        parityPortPlan{GoName: "Bid32AddWithFlags", ValueParams: []string{"uint32", "uint32"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "uint32"},
+			},
+			expectedBoundCalls: []generatedGoBoundCallExpectation{
+				{binding: "invalidLeft", callee: "Decimal32BID", args: [][]string{
+					{"publicParityCorpus32[publicParityBinaryPairs32[0][0]]"},
+				}},
+				{binding: "invalidRight", callee: "Decimal32BID", args: [][]string{
+					{"publicParityCorpus32[publicParityBinaryPairs32[0][1]]"},
+				}},
+				{binding: "invalidCtx", callee: "(&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding", args: [][]string{
+					{"RoundingMode(99)"},
+				}},
+				{binding: "controlValue", callee: "Add32BIDWithContext", args: [][]string{
+					{"invalidLeft", "invalidRight", "controlCtx"},
+				}},
+				{binding: "invalidValue", callee: "Add32BIDWithContext", args: [][]string{
+					{"invalidLeft", "invalidRight", "invalidCtx"},
+				}},
+				{binding: "controlNilValue", callee: "Add32BIDWithContext", args: [][]string{
+					{"invalidLeft", "invalidRight", "nil"},
+				}},
+				{binding: "invalidNilValue", callee: "Add32BIDWithContext", args: [][]string{
+					{"invalidLeft", "invalidRight", "nil"},
+				}},
+			},
+			wantComparisons: []string{
+				"uint32(controlValue) == 0x7c000000",
+				"controlCtx.Flags == FlagInvalidOperation",
+				"uint32(invalidValue) != 0x7c000000",
+				"invalidCtx.Flags != FlagInvalidOperation",
+				"uint32(controlNilValue) == 0x7c000000",
+				"uint32(invalidNilValue) != 0x7c000000",
+			},
+			forbiddenCalls: []string{"canonicalQNaN32BID"},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -614,11 +787,16 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 				t.Fatalf("emit parity unit: %v", err)
 			}
 			structure := parseGeneratedGoStructure(t, b.String())
-			if structure.identifiers[tc.discriminant] == 0 {
+			if tc.discriminant != "" && structure.identifiers[tc.discriminant] == 0 {
 				t.Errorf("emitted parity body has no AST identifier %q", tc.discriminant)
 			}
 			for _, want := range tc.expectedBoundCalls {
 				assertGeneratedGoBoundCallArgs(t, structure, want)
+			}
+			for _, want := range tc.wantAssignments {
+				if got := structure.assignments[want]; got != 1 {
+					t.Errorf("emitted parity body has assignment %q %d times, want exactly 1; assignments %v", want, got, structure.assignments)
+				}
 			}
 			for _, want := range tc.wantComparisons {
 				if got := structure.comparisons[want]; got != 1 {
@@ -648,6 +826,11 @@ type generatedGoStructure struct {
 	// test can pin an expected bit literal, which structure.calls and
 	// structure.identifiers cannot see (a literal is neither).
 	comparisons map[string]int
+	// assignments counts rendered "<binding> = <rhs>" forms whose right side is
+	// not a call, so a test can pin an anchor element expression: a corpus
+	// index is neither a call nor a bare identifier, and which index the leg
+	// anchors on is exactly what decides whether it is vacuous.
+	assignments map[string]int
 }
 
 func parseGeneratedGoStructure(t *testing.T, source string) generatedGoStructure {
@@ -662,6 +845,7 @@ func parseGeneratedGoStructure(t *testing.T, source string) generatedGoStructure
 		boundCalls:  map[string]map[string][][]string{},
 		identifiers: map[string]int{},
 		comparisons: map[string]int{},
+		assignments: map[string]int{},
 	}
 	ast.Inspect(file, func(node ast.Node) bool {
 		switch node := node.(type) {
@@ -684,15 +868,16 @@ func parseGeneratedGoStructure(t *testing.T, source string) generatedGoStructure
 			if len(node.Rhs) != 1 {
 				break
 			}
-			call, ok := node.Rhs[0].(*ast.CallExpr)
-			if !ok {
-				break
-			}
 			lhs := make([]string, len(node.Lhs))
 			for i, expr := range node.Lhs {
 				lhs[i] = formatGeneratedGoExpr(t, fset, expr)
 			}
 			binding := strings.Join(lhs, ", ")
+			call, ok := node.Rhs[0].(*ast.CallExpr)
+			if !ok {
+				structure.assignments[binding+" = "+formatGeneratedGoExpr(t, fset, node.Rhs[0])]++
+				break
+			}
 			callee := formatGeneratedGoExpr(t, fset, call.Fun)
 			args := make([]string, len(call.Args))
 			for i, arg := range call.Args {

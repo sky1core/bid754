@@ -386,6 +386,7 @@ var publicParityStringCases = []struct {
 func publicParity_Add128BIDWithContext(t *testing.T) int {
 	count := 0
 	prevDefaultRounding := DefaultArithmeticContext().RoundingMode
+	defer SetDefaultRounding(prevDefaultRounding)
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
@@ -416,7 +417,30 @@ func publicParity_Add128BIDWithContext(t *testing.T) int {
 			count++
 		}
 	}
-	SetDefaultRounding(prevDefaultRounding)
+	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	controlCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}
+	controlValue := Add128BIDWithContext(invalidLeft, invalidRight, controlCtx)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlCtx.Flags == FlagInvalidOperation {
+		t.Errorf("public parity Add128BIDWithContext: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlCtx.Flags)
+	}
+	invalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))
+	invalidValue := Add128BIDWithContext(invalidLeft, invalidRight, invalidCtx)
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidCtx.Flags != FlagInvalidOperation {
+		t.Errorf("public parity Add128BIDWithContext: invalid context rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidCtx.Flags)
+	}
+	count++
+	SetDefaultRounding(publicParityModes[0].pub)
+	controlNilValue := Add128BIDWithContext(invalidLeft, invalidRight, nil)
+	if controlNilValue.ToBytes() == ([16]byte{15: 0x7c}) {
+		t.Errorf("public parity Add128BIDWithContext: invalid-mode leg is vacuous: valid default result=%v already equals the rejection value, so a dropped rejection would pass", controlNilValue.ToBytes())
+	}
+	SetDefaultRounding(RoundingMode(99))
+	invalidNilValue := Add128BIDWithContext(invalidLeft, invalidRight, nil)
+	if invalidNilValue.ToBytes() != ([16]byte{15: 0x7c}) {
+		t.Errorf("public parity Add128BIDWithContext: invalid default rounding mode resolved through a nil context: result=%v, want canonical qNaN", invalidNilValue.ToBytes())
+	}
+	count++
 	return count
 }
 
@@ -636,6 +660,7 @@ func publicParity_Add128QDBIDWithMode(t *testing.T) int {
 func publicParity_Add32BIDWithContext(t *testing.T) int {
 	count := 0
 	prevDefaultRounding := DefaultArithmeticContext().RoundingMode
+	defer SetDefaultRounding(prevDefaultRounding)
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
@@ -663,13 +688,37 @@ func publicParity_Add32BIDWithContext(t *testing.T) int {
 			count++
 		}
 	}
-	SetDefaultRounding(prevDefaultRounding)
+	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	controlCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}
+	controlValue := Add32BIDWithContext(invalidLeft, invalidRight, controlCtx)
+	if uint32(controlValue) == 0x7c000000 && controlCtx.Flags == FlagInvalidOperation {
+		t.Errorf("public parity Add32BIDWithContext: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlCtx.Flags)
+	}
+	invalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))
+	invalidValue := Add32BIDWithContext(invalidLeft, invalidRight, invalidCtx)
+	if uint32(invalidValue) != 0x7c000000 || invalidCtx.Flags != FlagInvalidOperation {
+		t.Errorf("public parity Add32BIDWithContext: invalid context rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidCtx.Flags)
+	}
+	count++
+	SetDefaultRounding(publicParityModes[0].pub)
+	controlNilValue := Add32BIDWithContext(invalidLeft, invalidRight, nil)
+	if uint32(controlNilValue) == 0x7c000000 {
+		t.Errorf("public parity Add32BIDWithContext: invalid-mode leg is vacuous: valid default result=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlNilValue))
+	}
+	SetDefaultRounding(RoundingMode(99))
+	invalidNilValue := Add32BIDWithContext(invalidLeft, invalidRight, nil)
+	if uint32(invalidNilValue) != 0x7c000000 {
+		t.Errorf("public parity Add32BIDWithContext: invalid default rounding mode resolved through a nil context: result=%v, want canonical qNaN", uint32(invalidNilValue))
+	}
+	count++
 	return count
 }
 
 func publicParity_Add64BIDWithContext(t *testing.T) int {
 	count := 0
 	prevDefaultRounding := DefaultArithmeticContext().RoundingMode
+	defer SetDefaultRounding(prevDefaultRounding)
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
@@ -697,7 +746,30 @@ func publicParity_Add64BIDWithContext(t *testing.T) int {
 			count++
 		}
 	}
-	SetDefaultRounding(prevDefaultRounding)
+	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	controlCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}
+	controlValue := Add64BIDWithContext(invalidLeft, invalidRight, controlCtx)
+	if uint64(controlValue) == 0x7c00000000000000 && controlCtx.Flags == FlagInvalidOperation {
+		t.Errorf("public parity Add64BIDWithContext: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlCtx.Flags)
+	}
+	invalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))
+	invalidValue := Add64BIDWithContext(invalidLeft, invalidRight, invalidCtx)
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidCtx.Flags != FlagInvalidOperation {
+		t.Errorf("public parity Add64BIDWithContext: invalid context rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidCtx.Flags)
+	}
+	count++
+	SetDefaultRounding(publicParityModes[0].pub)
+	controlNilValue := Add64BIDWithContext(invalidLeft, invalidRight, nil)
+	if uint64(controlNilValue) == 0x7c00000000000000 {
+		t.Errorf("public parity Add64BIDWithContext: invalid-mode leg is vacuous: valid default result=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlNilValue))
+	}
+	SetDefaultRounding(RoundingMode(99))
+	invalidNilValue := Add64BIDWithContext(invalidLeft, invalidRight, nil)
+	if uint64(invalidNilValue) != 0x7c00000000000000 {
+		t.Errorf("public parity Add64BIDWithContext: invalid default rounding mode resolved through a nil context: result=%v, want canonical qNaN", uint64(invalidNilValue))
+	}
+	count++
 	return count
 }
 
@@ -1132,6 +1204,16 @@ func publicParity_Decimal128BID_ConvertToInt16(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt16(publicParityModes[0].pub)
+	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt16(RoundingMode(99))
+	if int64(invalidValue) != -32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt16: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -32768 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1164,6 +1246,16 @@ func publicParity_Decimal128BID_ConvertToInt16Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt16Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt16Exact(RoundingMode(99))
+	if int64(invalidValue) != -32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt16Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -32768 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1196,6 +1288,16 @@ func publicParity_Decimal128BID_ConvertToInt32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt32(publicParityModes[0].pub)
+	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt32(RoundingMode(99))
+	if int64(invalidValue) != -2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt32: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -2147483648 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1228,6 +1330,16 @@ func publicParity_Decimal128BID_ConvertToInt32Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt32Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt32Exact(RoundingMode(99))
+	if int64(invalidValue) != -2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt32Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -2147483648 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1260,6 +1372,16 @@ func publicParity_Decimal128BID_ConvertToInt64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt64(publicParityModes[0].pub)
+	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt64(RoundingMode(99))
+	if int64(invalidValue) != -9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt64: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -9223372036854775808 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1292,6 +1414,16 @@ func publicParity_Decimal128BID_ConvertToInt64Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt64Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt64Exact(RoundingMode(99))
+	if int64(invalidValue) != -9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt64Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -9223372036854775808 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1324,6 +1456,16 @@ func publicParity_Decimal128BID_ConvertToInt8(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt8(publicParityModes[0].pub)
+	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt8(RoundingMode(99))
+	if int64(invalidValue) != -128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt8: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -128 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1356,6 +1498,16 @@ func publicParity_Decimal128BID_ConvertToInt8Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt8Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt8Exact(RoundingMode(99))
+	if int64(invalidValue) != -128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToInt8Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -128 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1388,6 +1540,16 @@ func publicParity_Decimal128BID_ConvertToUint16(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint16(publicParityModes[0].pub)
+	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint16(RoundingMode(99))
+	if uint64(invalidValue) != 32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint16: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 32768 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1420,6 +1582,16 @@ func publicParity_Decimal128BID_ConvertToUint16Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint16Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint16Exact(RoundingMode(99))
+	if uint64(invalidValue) != 32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint16Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 32768 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1452,6 +1624,16 @@ func publicParity_Decimal128BID_ConvertToUint32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint32(publicParityModes[0].pub)
+	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint32(RoundingMode(99))
+	if uint64(invalidValue) != 2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint32: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 2147483648 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1484,6 +1666,16 @@ func publicParity_Decimal128BID_ConvertToUint32Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint32Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint32Exact(RoundingMode(99))
+	if uint64(invalidValue) != 2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint32Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 2147483648 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1516,6 +1708,16 @@ func publicParity_Decimal128BID_ConvertToUint64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint64(publicParityModes[0].pub)
+	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint64(RoundingMode(99))
+	if uint64(invalidValue) != 9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint64: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 9223372036854775808 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1548,6 +1750,16 @@ func publicParity_Decimal128BID_ConvertToUint64Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint64Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint64Exact(RoundingMode(99))
+	if uint64(invalidValue) != 9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint64Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 9223372036854775808 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1580,6 +1792,16 @@ func publicParity_Decimal128BID_ConvertToUint8(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint8(publicParityModes[0].pub)
+	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint8(RoundingMode(99))
+	if uint64(invalidValue) != 128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint8: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 128 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -1612,6 +1834,16 @@ func publicParity_Decimal128BID_ConvertToUint8Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint8Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint8Exact(RoundingMode(99))
+	if uint64(invalidValue) != 128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ConvertToUint8Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 128 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3390,6 +3622,16 @@ func publicParity_Decimal128BID_ToBinary128(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary128(publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToBinary128: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary128(RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToBinary128: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3410,6 +3652,16 @@ func publicParity_Decimal128BID_ToBinary32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary32(publicParityModes[0].pub)
+	if math.Float32bits(controlValue) == 0x7fc00000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToBinary32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float32bits(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary32(RoundingMode(99))
+	if math.Float32bits(invalidValue) != 0x7fc00000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToBinary32: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", math.Float32bits(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3430,6 +3682,16 @@ func publicParity_Decimal128BID_ToBinary64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary64(publicParityModes[0].pub)
+	if math.Float64bits(controlValue) == 0x7ff8000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToBinary64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float64bits(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary64(RoundingMode(99))
+	if math.Float64bits(invalidValue) != 0x7ff8000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToBinary64: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", math.Float64bits(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3449,6 +3711,16 @@ func publicParity_Decimal128BID_ToDecimal32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ToDecimal32(publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToDecimal32(RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3468,6 +3740,16 @@ func publicParity_Decimal128BID_ToDecimal64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	controlValue, controlFlags := invalidOperand.ToDecimal64(publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToDecimal64(RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3685,6 +3967,16 @@ func publicParity_Decimal32BID_ConvertToInt16(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt16(publicParityModes[0].pub)
+	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt16(RoundingMode(99))
+	if int64(invalidValue) != -32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt16: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -32768 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3717,6 +4009,16 @@ func publicParity_Decimal32BID_ConvertToInt16Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt16Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt16Exact(RoundingMode(99))
+	if int64(invalidValue) != -32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt16Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -32768 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3749,6 +4051,16 @@ func publicParity_Decimal32BID_ConvertToInt32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt32(publicParityModes[0].pub)
+	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt32(RoundingMode(99))
+	if int64(invalidValue) != -2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt32: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -2147483648 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3781,6 +4093,16 @@ func publicParity_Decimal32BID_ConvertToInt32Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt32Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt32Exact(RoundingMode(99))
+	if int64(invalidValue) != -2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt32Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -2147483648 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3813,6 +4135,16 @@ func publicParity_Decimal32BID_ConvertToInt64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt64(publicParityModes[0].pub)
+	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt64(RoundingMode(99))
+	if int64(invalidValue) != -9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt64: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -9223372036854775808 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3845,6 +4177,16 @@ func publicParity_Decimal32BID_ConvertToInt64Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt64Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt64Exact(RoundingMode(99))
+	if int64(invalidValue) != -9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt64Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -9223372036854775808 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3877,6 +4219,16 @@ func publicParity_Decimal32BID_ConvertToInt8(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt8(publicParityModes[0].pub)
+	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt8(RoundingMode(99))
+	if int64(invalidValue) != -128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt8: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -128 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3909,6 +4261,16 @@ func publicParity_Decimal32BID_ConvertToInt8Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt8Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt8Exact(RoundingMode(99))
+	if int64(invalidValue) != -128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToInt8Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -128 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3941,6 +4303,16 @@ func publicParity_Decimal32BID_ConvertToUint16(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint16(publicParityModes[0].pub)
+	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint16(RoundingMode(99))
+	if uint64(invalidValue) != 32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint16: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 32768 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -3973,6 +4345,16 @@ func publicParity_Decimal32BID_ConvertToUint16Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint16Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint16Exact(RoundingMode(99))
+	if uint64(invalidValue) != 32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint16Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 32768 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4005,6 +4387,16 @@ func publicParity_Decimal32BID_ConvertToUint32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint32(publicParityModes[0].pub)
+	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint32(RoundingMode(99))
+	if uint64(invalidValue) != 2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint32: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 2147483648 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4037,6 +4429,16 @@ func publicParity_Decimal32BID_ConvertToUint32Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint32Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint32Exact(RoundingMode(99))
+	if uint64(invalidValue) != 2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint32Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 2147483648 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4069,6 +4471,16 @@ func publicParity_Decimal32BID_ConvertToUint64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint64(publicParityModes[0].pub)
+	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint64(RoundingMode(99))
+	if uint64(invalidValue) != 9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint64: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 9223372036854775808 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4101,6 +4513,16 @@ func publicParity_Decimal32BID_ConvertToUint64Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint64Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint64Exact(RoundingMode(99))
+	if uint64(invalidValue) != 9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint64Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 9223372036854775808 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4133,6 +4555,16 @@ func publicParity_Decimal32BID_ConvertToUint8(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint8(publicParityModes[0].pub)
+	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint8(RoundingMode(99))
+	if uint64(invalidValue) != 128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint8: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 128 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -4165,6 +4597,16 @@ func publicParity_Decimal32BID_ConvertToUint8Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint8Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint8Exact(RoundingMode(99))
+	if uint64(invalidValue) != 128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ConvertToUint8Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 128 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5921,6 +6363,16 @@ func publicParity_Decimal32BID_ToBinary128(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary128(publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ToBinary128: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary128(RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ToBinary128: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5940,6 +6392,16 @@ func publicParity_Decimal32BID_ToBinary32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary32(publicParityModes[0].pub)
+	if math.Float32bits(controlValue) == 0x7fc00000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ToBinary32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float32bits(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary32(RoundingMode(99))
+	if math.Float32bits(invalidValue) != 0x7fc00000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ToBinary32: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", math.Float32bits(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -5959,6 +6421,16 @@ func publicParity_Decimal32BID_ToBinary64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary64(publicParityModes[0].pub)
+	if math.Float64bits(controlValue) == 0x7ff8000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ToBinary64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float64bits(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary64(RoundingMode(99))
+	if math.Float64bits(invalidValue) != 0x7ff8000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ToBinary64: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", math.Float64bits(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6210,6 +6682,16 @@ func publicParity_Decimal64BID_ConvertToInt16(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt16(publicParityModes[0].pub)
+	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt16(RoundingMode(99))
+	if int64(invalidValue) != -32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt16: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -32768 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6242,6 +6724,16 @@ func publicParity_Decimal64BID_ConvertToInt16Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt16Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt16Exact(RoundingMode(99))
+	if int64(invalidValue) != -32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt16Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -32768 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6274,6 +6766,16 @@ func publicParity_Decimal64BID_ConvertToInt32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt32(publicParityModes[0].pub)
+	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt32(RoundingMode(99))
+	if int64(invalidValue) != -2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt32: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -2147483648 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6306,6 +6808,16 @@ func publicParity_Decimal64BID_ConvertToInt32Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt32Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt32Exact(RoundingMode(99))
+	if int64(invalidValue) != -2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt32Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -2147483648 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6338,6 +6850,16 @@ func publicParity_Decimal64BID_ConvertToInt64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt64(publicParityModes[0].pub)
+	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt64(RoundingMode(99))
+	if int64(invalidValue) != -9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt64: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -9223372036854775808 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6370,6 +6892,16 @@ func publicParity_Decimal64BID_ConvertToInt64Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt64Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt64Exact(RoundingMode(99))
+	if int64(invalidValue) != -9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt64Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -9223372036854775808 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6402,6 +6934,16 @@ func publicParity_Decimal64BID_ConvertToInt8(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt8(publicParityModes[0].pub)
+	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt8(RoundingMode(99))
+	if int64(invalidValue) != -128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt8: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -128 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6434,6 +6976,16 @@ func publicParity_Decimal64BID_ConvertToInt8Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToInt8Exact(publicParityModes[0].pub)
+	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToInt8Exact(RoundingMode(99))
+	if int64(invalidValue) != -128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToInt8Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel -128 and FlagInvalidOperation", int64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6466,6 +7018,16 @@ func publicParity_Decimal64BID_ConvertToUint16(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint16(publicParityModes[0].pub)
+	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint16(RoundingMode(99))
+	if uint64(invalidValue) != 32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint16: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 32768 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6498,6 +7060,16 @@ func publicParity_Decimal64BID_ConvertToUint16Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint16Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint16Exact(RoundingMode(99))
+	if uint64(invalidValue) != 32768 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint16Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 32768 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6530,6 +7102,16 @@ func publicParity_Decimal64BID_ConvertToUint32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint32(publicParityModes[0].pub)
+	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint32(RoundingMode(99))
+	if uint64(invalidValue) != 2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint32: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 2147483648 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6562,6 +7144,16 @@ func publicParity_Decimal64BID_ConvertToUint32Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint32Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint32Exact(RoundingMode(99))
+	if uint64(invalidValue) != 2147483648 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint32Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 2147483648 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6594,6 +7186,16 @@ func publicParity_Decimal64BID_ConvertToUint64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint64(publicParityModes[0].pub)
+	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint64(RoundingMode(99))
+	if uint64(invalidValue) != 9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint64: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 9223372036854775808 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6626,6 +7228,16 @@ func publicParity_Decimal64BID_ConvertToUint64Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint64Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint64Exact(RoundingMode(99))
+	if uint64(invalidValue) != 9223372036854775808 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint64Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 9223372036854775808 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6658,6 +7270,16 @@ func publicParity_Decimal64BID_ConvertToUint8(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint8(publicParityModes[0].pub)
+	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint8(RoundingMode(99))
+	if uint64(invalidValue) != 128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint8: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 128 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -6690,6 +7312,16 @@ func publicParity_Decimal64BID_ConvertToUint8Exact(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ConvertToUint8Exact(publicParityModes[0].pub)
+	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ConvertToUint8Exact(RoundingMode(99))
+	if uint64(invalidValue) != 128 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ConvertToUint8Exact: invalid rounding mode result=%v flags=%v, want the NaN-conversion sentinel 128 and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -8446,6 +9078,16 @@ func publicParity_Decimal64BID_ToBinary128(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary128(publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToBinary128: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary128(RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToBinary128: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -8465,6 +9107,16 @@ func publicParity_Decimal64BID_ToBinary32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary32(publicParityModes[0].pub)
+	if math.Float32bits(controlValue) == 0x7fc00000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToBinary32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float32bits(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary32(RoundingMode(99))
+	if math.Float32bits(invalidValue) != 0x7fc00000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToBinary32: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", math.Float32bits(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -8484,6 +9136,16 @@ func publicParity_Decimal64BID_ToBinary64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ToBinary64(publicParityModes[0].pub)
+	if math.Float64bits(controlValue) == 0x7ff8000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToBinary64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float64bits(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToBinary64(RoundingMode(99))
+	if math.Float64bits(invalidValue) != 0x7ff8000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToBinary64: invalid rounding mode result=%v flags=%v, want the binary NaN payload and FlagInvalidOperation", math.Float64bits(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -8520,6 +9182,16 @@ func publicParity_Decimal64BID_ToDecimal32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	controlValue, controlFlags := invalidOperand.ToDecimal32(publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToDecimal32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := invalidOperand.ToDecimal32(RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToDecimal32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -10791,6 +11463,15 @@ func publicParity_NewDecimal128WithMode(t *testing.T) int {
 			t.Errorf("public parity NewDecimal128WithMode: discriminant input %q: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", ds)
 		}
 	}
+	controlValue, controlFlags, controlErr := NewDecimal128WithMode(discInputs[0], publicParityModes[0].pub)
+	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation && controlErr == nil {
+		t.Errorf("public parity NewDecimal128WithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v with a nil error already equals the rejection outcome, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
+	}
+	invalidValue, invalidFlags, invalidErr := NewDecimal128WithMode(discInputs[0], RoundingMode(99))
+	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation || invalidErr != nil {
+		t.Errorf("public parity NewDecimal128WithMode: invalid rounding mode result=%v flags=%v err=%v, want canonical qNaN, FlagInvalidOperation and a nil error", invalidValue.ToBytes(), invalidFlags, invalidErr)
+	}
+	count++
 	return count
 }
 
@@ -10953,6 +11634,16 @@ func publicParity_NewDecimal32FromInt32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := publicParityIntCorpus32[1]
+	controlValue, controlFlags := NewDecimal32FromInt32(invalidOperand, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := NewDecimal32FromInt32(invalidOperand, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -10971,6 +11662,16 @@ func publicParity_NewDecimal32FromInt64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := publicParityIntCorpus64[1]
+	controlValue, controlFlags := NewDecimal32FromInt64(invalidOperand, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := NewDecimal32FromInt64(invalidOperand, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -10989,6 +11690,16 @@ func publicParity_NewDecimal32FromUint32(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := publicParityUintCorpus32[1]
+	controlValue, controlFlags := NewDecimal32FromUint32(invalidOperand, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := NewDecimal32FromUint32(invalidOperand, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -11007,6 +11718,16 @@ func publicParity_NewDecimal32FromUint64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := publicParityUintCorpus64[1]
+	controlValue, controlFlags := NewDecimal32FromUint64(invalidOperand, publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := NewDecimal32FromUint64(invalidOperand, RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -11188,6 +11909,15 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 			t.Errorf("public parity NewDecimal32WithMode: discriminant input %q: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", ds)
 		}
 	}
+	controlValue, controlFlags, controlErr := NewDecimal32WithMode(discInputs[0], publicParityModes[0].pub)
+	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation && controlErr == nil {
+		t.Errorf("public parity NewDecimal32WithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v with a nil error already equals the rejection outcome, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags, invalidErr := NewDecimal32WithMode(discInputs[0], RoundingMode(99))
+	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation || invalidErr != nil {
+		t.Errorf("public parity NewDecimal32WithMode: invalid rounding mode result=%v flags=%v err=%v, want canonical qNaN, FlagInvalidOperation and a nil error", uint32(invalidValue), invalidFlags, invalidErr)
+	}
+	count++
 	return count
 }
 
@@ -11363,6 +12093,16 @@ func publicParity_NewDecimal64FromInt64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := publicParityIntCorpus64[1]
+	controlValue, controlFlags := NewDecimal64FromInt64(invalidOperand, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := NewDecimal64FromInt64(invalidOperand, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromInt64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -11394,6 +12134,16 @@ func publicParity_NewDecimal64FromUint64(t *testing.T) int {
 			count++
 		}
 	}
+	invalidOperand := publicParityUintCorpus64[1]
+	controlValue, controlFlags := NewDecimal64FromUint64(invalidOperand, publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags := NewDecimal64FromUint64(invalidOperand, RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromUint64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	}
+	count++
 	return count
 }
 
@@ -11575,6 +12325,15 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 			t.Errorf("public parity NewDecimal64WithMode: discriminant input %q: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", ds)
 		}
 	}
+	controlValue, controlFlags, controlErr := NewDecimal64WithMode(discInputs[0], publicParityModes[0].pub)
+	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation && controlErr == nil {
+		t.Errorf("public parity NewDecimal64WithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v with a nil error already equals the rejection outcome, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	}
+	invalidValue, invalidFlags, invalidErr := NewDecimal64WithMode(discInputs[0], RoundingMode(99))
+	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation || invalidErr != nil {
+		t.Errorf("public parity NewDecimal64WithMode: invalid rounding mode result=%v flags=%v err=%v, want canonical qNaN, FlagInvalidOperation and a nil error", uint64(invalidValue), invalidFlags, invalidErr)
+	}
+	count++
 	return count
 }
 

@@ -1535,8 +1535,11 @@ func resolveParityUnit(sym publicAPISymbol, bidgoFn string, sigs map[string]bidg
 		u.Shape = shapeFuncContext
 		u.ResultClass = decClass(u.Width)
 		// per pair: 5 explicit-context modes + 5 nil-context runs (one per
-		// pinned global default mode)
-		u.Cases = len(parityLabelPairs) * len(parityModeOrder) * 2
+		// pinned global default mode).
+		// + 2: the trailing invalid-mode rejection sub-legs, one per way this
+		// shape can reach an unsupported mode (an explicit context carrying
+		// it, and the global default resolved through a nil context).
+		u.Cases = len(parityLabelPairs)*len(parityModeOrder)*2 + 2
 		return u, nil
 	case parseDecimalWidthRe.MatchString(sym.Name):
 		m := parseDecimalWidthRe.FindStringSubmatch(sym.Name)
@@ -1563,7 +1566,9 @@ func resolveParityUnit(sym publicAPISymbol, bidgoFn string, sigs map[string]bidg
 		u.IntParam = sym.Params[0]
 		u.Cases = intCorpusLen(u.IntParam)
 		if u.HasMode {
-			u.Cases *= len(parityModeOrder)
+			// + 1: the trailing invalid-mode rejection case. The modeless
+			// half of this shape has no mode argument to reject.
+			u.Cases = u.Cases*len(parityModeOrder) + 1
 		}
 		return u, nil
 	case newDecimalWidthRe.MatchString(sym.Name) && strings.HasSuffix(sym.Name, "WithMode"):
@@ -1577,7 +1582,8 @@ func resolveParityUnit(sym publicAPISymbol, bidgoFn string, sigs map[string]bidg
 		if err != nil {
 			return u, err
 		}
-		u.Cases = (len(publicParityStringCorpusCases) + len(discP)) * len(parityModeOrder)
+		// + 1: the trailing invalid-mode rejection case.
+		u.Cases = (len(publicParityStringCorpusCases)+len(discP))*len(parityModeOrder) + 1
 		return u, nil
 	case newDecimalWidthRe.MatchString(sym.Name):
 		// String constructors: NewDecimal*, NewDecimal*WithFlags, NewDecimal*BIDDirect.
@@ -1765,7 +1771,8 @@ func resolveValueMethodUnit(u parityUnit, sym publicAPISymbol, corpus publicPari
 	if strings.HasPrefix(m, "ConvertTo") {
 		u.Shape = shapeVMConvert
 		u.ResultClass = convertResultClass(sym.Results[0])
-		u.Cases = publicParityCorpusLen * len(parityModeOrder)
+		// + 1: the trailing invalid-mode rejection case.
+		u.Cases = publicParityCorpusLen*len(parityModeOrder) + 1
 		return u, nil
 	}
 
@@ -1792,7 +1799,8 @@ func resolveValueMethodUnit(u parityUnit, sym publicAPISymbol, corpus publicPari
 			u.Cases = (publicParityCorpusLen+len(disc))*len(parityModeOrder) + 1
 		} else {
 			u.Shape = shapeVMModeUnary
-			u.Cases = publicParityCorpusLen * len(parityModeOrder)
+			// + 1: the trailing invalid-mode rejection case.
+			u.Cases = publicParityCorpusLen*len(parityModeOrder) + 1
 		}
 	case len(valueParams) == 0:
 		u.Shape = shapeVMUnary
