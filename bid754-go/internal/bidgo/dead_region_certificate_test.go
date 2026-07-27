@@ -1,8 +1,8 @@
-// Hand-written unreachability certificates for ten mutation sites of the
+// Hand-written unreachability certificates for twelve mutation sites of the
 // mechanical port. It lives outside every generation path and must stay
 // hand-written.
 //
-// Why this gate exists. The 2026-07 mutation audit left ten mutants that no
+// Why this gate exists. The 2026-07 mutation audit left twelve mutants that no
 // verification corpus can distinguish, because the mutated token sits in a
 // region no input reaches:
 //
@@ -16,6 +16,8 @@
 //	bid128_round.go:347   bid_round256_58_76 cmp: C.w2 == 0x0
 //	bid128_round.go:430   bid_round256_58_76 shift: P512.w5 >> shift
 //	bid128_round.go:613   bid_round256_58_76 aor: ind-39
+//	bid128_sqrt.go:423    Bid128Sqrt      aor:inc->dec  (audit site 16)
+//	bid128_sqrt.go:661    Bid128dSqrt     aor:inc->dec  (audit site 19)
 //
 // For a provably dead region no behavioural test can ever kill the mutant, so
 // the only verification available is a certificate: a machine-checked proof of
@@ -319,6 +321,47 @@ func (p *portFile) pinWrites(t *testing.T, root ast.Node, target string, want []
 	return got
 }
 
+// portWritePin is one entry of a pinned write world. text is the exact flattened
+// rendering the write must have. anyIncDec loosens exactly one thing about that
+// entry: the write may render either as text or as text with its trailing `++`
+// turned into `--`, so the entry still fixes the write's position in the ordered
+// world and its operand, and only stops fixing the increment direction. It exists
+// for writes this file deliberately does not certify - see the site 17 boundary
+// note in certificate 6 - and every use is a scope statement, not a convenience.
+type portWritePin struct {
+	text      string
+	anyIncDec bool
+}
+
+func exactWritePins(want []string) []portWritePin {
+	out := make([]portWritePin, len(want))
+	for i, w := range want {
+		out[i] = portWritePin{text: w}
+	}
+	return out
+}
+
+// pinWriteWorld is pinWrites over entries that may carry a relaxation.
+func (p *portFile) pinWriteWorld(t *testing.T, root ast.Node, target string, want []portWritePin) []portWrite {
+	t.Helper()
+	got := p.writes(t, root, target)
+	if len(got) != len(want) {
+		t.Fatalf("%s: writes to %s: found %d, pinned %d\ngot: %v", p.name, target, len(got), len(want), got)
+	}
+	for i, w := range want {
+		if got[i].text == w.text {
+			continue
+		}
+		if w.anyIncDec && strings.HasSuffix(w.text, "++") &&
+			got[i].text == strings.TrimSuffix(w.text, "++")+"--" {
+			continue
+		}
+		t.Fatalf("%s: write %d to %s (line %d) drifted\n got: %s\nwant: %s",
+			p.name, i, target, got[i].line, got[i].text, w.text)
+	}
+	return got
+}
+
 // noWriteBetween asserts nothing inside root changes target strictly between
 // the end of from and the start of to.
 func (p *portFile) noWriteBetween(t *testing.T, root ast.Node, target string, from, to ast.Node) {
@@ -440,8 +483,8 @@ func (p *portFile) pinNoPointerRebind(t *testing.T, fd *ast.FuncDecl, target str
 // spelled as a value rather than called, so it is not the callee of any call - is the same AST shape as a field read,
 // and untyped AST cannot separate the two; it binds target as a receiver and so hands the pointer a second name that
 // this classification would wave through as "field select". This helper cannot close that itself, so every caller has
-// to pin it separately: TestBid128RoundBoundaryArmsAreUnreachable carries the package-wide receiver census that keeps
-// BID_UINT128 - the type of the C3 pointer it censuses - method-free, and the field-select admission here rests on it.
+// to pin it separately with pinTypeIsMethodFree: TestBid128RoundBoundaryArmsAreUnreachable runs that census over
+// BID_UINT128 - the type of the C3 pointer it censuses - and the field-select admission here rests on it.
 func (p *portFile) pinPointerUseContexts(t *testing.T, fd *ast.FuncDecl, target string, allowed map[token.Pos][]int) {
 	t.Helper()
 	parent := map[ast.Node]ast.Node{}
@@ -2076,6 +2119,206 @@ func (p *portFile) pinNoGoto(t *testing.T, fd *ast.FuncDecl) {
 	})
 }
 
+// pinNoLoops fails on any for or range statement anywhere in fd. pinNoGoto excludes the one backward jump a goto can
+// make, but a loop reintroduces re-entry without any goto at all: a closed world of writes plus a dominating chain then
+// says which statements may write a variable and under which conditions, yet no longer says that the write the
+// certificate reads is the last one to have run before the read. Where a certificate needs a value to still be the one a
+// single dominating assignment produced, the enclosing body has to be single-pass.
+func (p *portFile) pinNoLoops(t *testing.T, fd *ast.FuncDecl) {
+	t.Helper()
+	ast.Inspect(fd, func(n ast.Node) bool {
+		switch n.(type) {
+		case *ast.ForStmt, *ast.RangeStmt:
+			t.Fatalf("%s: %s: the loop at line %d lets a certified statement be re-entered on a state its dominating "+
+				"chain was only ever established for on the first pass", p.name, fd.Name.Name, p.line(n))
+		}
+		return true
+	})
+}
+
+// pinBlockAlwaysReturns fails unless every path out of blk is a return, so nothing after blk runs on the state blk
+// catches. A certificate that reasons about a value only some earlier test admits needs exactly that: an early-exit
+// guard is only a premise while it is impossible to fall out of it into the code below. blk's last statement being a
+// return rules out reaching the end of the list, and banning every branch statement inside it - break, continue, goto,
+// fallthrough - together with labels leaves a return, or a panic that reaches nothing below either, as the only way out.
+func (p *portFile) pinBlockAlwaysReturns(t *testing.T, label string, blk *ast.BlockStmt) {
+	t.Helper()
+	if len(blk.List) == 0 {
+		t.Fatalf("%s: %s: the block at line %d is empty, so control falls straight through it", p.name, label, p.line(blk))
+	}
+	last := blk.List[len(blk.List)-1]
+	if _, ok := last.(*ast.ReturnStmt); !ok {
+		t.Fatalf("%s: %s: the block at line %d ends in a %T rather than a return, so control can fall out of it into "+
+			"the code this certificate reads", p.name, label, p.line(blk), last)
+	}
+	ast.Inspect(blk, func(n ast.Node) bool {
+		switch s := n.(type) {
+		case *ast.BranchStmt:
+			t.Fatalf("%s: %s: the %v at line %d leaves the block at line %d without returning",
+				p.name, label, s.Tok, p.line(s), p.line(blk))
+		case *ast.LabeledStmt:
+			t.Fatalf("%s: %s: the label %s at line %d gives the block at line %d an exit this scan cannot follow",
+				p.name, label, s.Label.Name, p.line(s), p.line(blk))
+		}
+		return true
+	})
+}
+
+// pinReturnWorld asserts the closed world of return statements in fd, in source order. A function's exits need a census
+// rather than a text pin per exit for two reasons, both live in the unpackers this certificate reads: two of
+// unpack_BID128_value's three returns render identically, so stmtWithText cannot name either, and a return added later
+// would simply be an exit no pin mentions. Pinning the whole list fails on both.
+func (p *portFile) pinReturnWorld(t *testing.T, fd *ast.FuncDecl, want []string) {
+	t.Helper()
+	var got []ast.Stmt
+	ast.Inspect(fd.Body, func(n ast.Node) bool {
+		if r, ok := n.(*ast.ReturnStmt); ok {
+			got = append(got, r)
+		}
+		return true
+	})
+	if len(got) != len(want) {
+		var texts []string
+		for _, r := range got {
+			texts = append(texts, p.flat(t, r))
+		}
+		t.Fatalf("%s: %s returns from %d places, pinned %d: %v", p.name, fd.Name.Name, len(got), len(want), texts)
+	}
+	for i, w := range want {
+		if g := p.flat(t, got[i]); g != w {
+			t.Fatalf("%s: %s: return %d (line %d) drifted\n got: %s\nwant: %s",
+				p.name, fd.Name.Name, i, p.line(got[i]), g, w)
+		}
+	}
+}
+
+// The struct renderings the no-method censuses pin. Each admits only explicitly named scalar fields, so the type has no
+// embedded field to promote a method from and no func-typed field a selector could call.
+const (
+	pinnedUint128Shape = "struct { lo uint64 hi uint64 }"
+	pinnedUint256Shape = "struct { w0 uint64 w1 uint64 w2 uint64 w3 uint64 }"
+)
+
+// pinTypeIsMethodFree is the package-wide census that keeps a port type method-free, so that `v.name` on a variable of
+// that type can only ever be a field selector. Two AST shapes need it, and writes()/noWriteBetween see neither. A call
+// `v.m(...)` to a pointer-receiver method takes &v implicitly and can rewrite v with no assignment, inc/dec or
+// address-of anywhere in the caller, so a pinned write world over v would be fail-open. The method *value* `v.m`,
+// spelled rather than called, renders as the same AST shape as a field read and binds v as a receiver, so
+// pinPointerUseContexts' field-select admission would wave it through. Neither exists while the type carries no method
+// at all, which is what this census establishes.
+//
+// Two ways a method reaches the type without any receiver spelling typeName, so a match on the written receiver name
+// alone would be fail-open. First, promotion: an embedded field's methods are the outer type's methods, with no
+// receiver naming the outer type anywhere. shape pins the struct's exact rendering, so it holds only explicitly named
+// fields and there is nothing to promote from. Second, a package-level type alias: `type A = T` makes `func (a A) m()`
+// a method on T itself, so the name match runs on the alias-resolved receiver root rather than the written one.
+//
+// Where this scan stops. It reads every package-level type and method declaration in the non-test files portPkg parses,
+// which is the whole world of methods on typeName: Go requires a method's receiver base type to be defined in the same
+// package, so no other package can add one, and a type this package does not declare fails the lookup below rather than
+// passing silently. It does not reason about func values or interface method sets - a func-typed struct field or an
+// interface value called through a selector names a func, not the receiver storage, and the shape pin admits neither
+// into the type. Anything the alias walk cannot decide - a cycle, a generic alias, a right-hand side with no root
+// identifier - fails rather than resolving to a name that would pass the typeName check. consequence names, in the
+// calling certificate's own terms, what stops holding if a method does appear.
+func pinTypeIsMethodFree(t *testing.T, files []*portFile, typeName, shape, consequence string) {
+	t.Helper()
+	type portTypeSpec struct {
+		file *portFile
+		spec *ast.TypeSpec
+	}
+	typeSpecs := map[string]portTypeSpec{}
+	for _, p := range files {
+		for _, d := range p.file.Decls {
+			gd, ok := d.(*ast.GenDecl)
+			if !ok || gd.Tok != token.TYPE {
+				continue
+			}
+			for _, s := range gd.Specs {
+				ts, ok := s.(*ast.TypeSpec)
+				if !ok {
+					t.Fatalf("%s: a package-level type declaration holds a %T, so the alias graph cannot be read", p.name, s)
+				}
+				if prev, dup := typeSpecs[ts.Name.Name]; dup {
+					t.Fatalf("%s: type %s is declared again after %s, so the alias graph is ambiguous",
+						p.name, ts.Name.Name, prev.file.name)
+				}
+				typeSpecs[ts.Name.Name] = portTypeSpec{file: p, spec: ts}
+			}
+		}
+	}
+	target, ok := typeSpecs[typeName]
+	if !ok {
+		t.Fatalf("the package declares no package-level %s, so the no-method pin has no type to close", typeName)
+	}
+	if target.spec.Assign.IsValid() || target.spec.TypeParams != nil {
+		t.Fatalf("%s: %s is not a plain non-generic defined type, so its method set cannot be read off its own "+
+			"declaration: %s", target.file.name, typeName, target.file.flat(t, target.spec))
+	}
+	// The exact rendering is the pin: adding, embedding or retyping a field fails here, and with it any promoted method
+	// reachable as `v.m`.
+	if got := target.file.flat(t, target.spec.Type); got != shape {
+		t.Fatalf("%s: %s is no longer the pinned embedded-field-free shape, so promoted methods on it are no "+
+			"longer ruled out\n got: %s\nwant: %s", target.file.name, typeName, got, shape)
+	}
+	// resolveTypeName walks the alias graph from a written type name to the type it finally names. `type A = B` is
+	// followed; `type A B` is a distinct defined type whose methods are not typeName's, so it ends the walk, as does a
+	// name the package does not declare.
+	resolveTypeName := func(what, name string) string {
+		seen := map[string]bool{}
+		for {
+			ts, ok := typeSpecs[name]
+			if !ok || !ts.spec.Assign.IsValid() {
+				return name
+			}
+			if seen[name] {
+				t.Fatalf("%s: the alias chain from %s revisits %s, so it cannot be resolved and %s cannot be "+
+					"ruled out", ts.file.name, what, name, typeName)
+			}
+			seen[name] = true
+			if ts.spec.TypeParams != nil {
+				t.Fatalf("%s: %s, reached from %s, is a generic alias, so the chain resolves to no single type and "+
+					"%s cannot be ruled out", ts.file.name, name, what, typeName)
+			}
+			next := rootIdentName(ts.spec.Type)
+			if next == "" {
+				t.Fatalf("%s: alias %s, reached from %s, has the unrecognised right-hand side %s, so the chain cannot "+
+					"rule out %s", ts.file.name, name, what, ts.file.flat(t, ts.spec.Type), typeName)
+			}
+			name = next
+		}
+	}
+	for _, p := range files {
+		for _, d := range p.file.Decls {
+			fd, ok := d.(*ast.FuncDecl)
+			if !ok || fd.Recv == nil {
+				continue
+			}
+			// Fail-closed on shape: a receiver list that is not exactly one field, or a receiver type whose root
+			// identifier this file cannot name - parenthesised, generic-instantiated with several type arguments, or
+			// anything else unexpected - fails here instead of being skipped as "not typeName".
+			if len(fd.Recv.List) != 1 {
+				t.Fatalf("%s: %s has a %d-field receiver list, so the no-method pin cannot read its receiver type",
+					p.name, fd.Name.Name, len(fd.Recv.List))
+			}
+			recv := fd.Recv.List[0].Type
+			// rootIdentName peels *, (), [] and selectors, so both `T` and `*T` land on the same root name, and an
+			// unpeelable shape returns "" and fails just above the check rather than below it.
+			root := rootIdentName(recv)
+			if root == "" {
+				t.Fatalf("%s: %s has the unrecognised receiver type %s, so the no-method pin cannot rule out %s",
+					p.name, fd.Name.Name, p.flat(t, recv), typeName)
+			}
+			// Resolve through the alias graph before matching: `type A = T` puts a method on T under a receiver that
+			// spells A. Value, pointer and parenthesised receivers all peel to the same root above.
+			if root = resolveTypeName("the receiver of "+fd.Name.Name, root); root == typeName {
+				t.Fatalf("%s: %s is a method with receiver %s, so %s",
+					p.name, fd.Name.Name, p.flat(t, recv), consequence)
+			}
+		}
+	}
+}
+
 // conjunctPrefix reports whether the guard path a is b or one of its outermost conjunct prefixes, i.e. whether a's
 // position is dominated by everything that dominates b - the form guardPath emits, joined with " && ".
 func conjunctPrefix(a, b string) bool {
@@ -3158,113 +3401,13 @@ func TestBid128RoundBoundaryArmsAreUnreachable(t *testing.T) {
 	// `C3.m(...)` by spotting that the selector is the callee of a call. The method *value* `C3.m` escapes both: it is
 	// never the callee of anything here, it renders as the same AST shape as a field read, and it binds C3 as a receiver,
 	// so `f(C3.m)` or `g := C3.m` would hand *C3 a second name that the by-context census passes as a field select. C3 is
-	// a *BID_UINT128, so such a method value can exist only if BID_UINT128 has a method at all - and this census fails the
-	// moment one is declared in any file of the package this certificate reads, in either receiver form. That is what
-	// makes the field-select admission below closed rather than fail-open; the direct-call check alone does not.
-	//
-	// Two ways a method reaches *C3 without any receiver spelling BID_UINT128, so a match on the written receiver name
-	// alone would be fail-open. First, promotion: if BID_UINT128 embedded a type, that type's methods would be
-	// BID_UINT128's methods with no receiver naming BID_UINT128 anywhere. Pin the struct's exact shape, so it has two
-	// explicitly named scalar fields and no embedded field to promote from. Second, a package-level type alias:
-	// `type A = BID_UINT128` makes `func (a A) m()` a method on BID_UINT128 itself, so the name match has to run on the
-	// alias-resolved receiver root rather than the written one.
-	type portTypeSpec struct {
-		file *portFile
-		spec *ast.TypeSpec
-	}
-	typeSpecs := map[string]portTypeSpec{}
-	for _, p := range files {
-		for _, d := range p.file.Decls {
-			gd, ok := d.(*ast.GenDecl)
-			if !ok || gd.Tok != token.TYPE {
-				continue
-			}
-			for _, s := range gd.Specs {
-				ts, ok := s.(*ast.TypeSpec)
-				if !ok {
-					t.Fatalf("%s: a package-level type declaration holds a %T, so the alias graph cannot be read", p.name, s)
-				}
-				if prev, dup := typeSpecs[ts.Name.Name]; dup {
-					t.Fatalf("%s: type %s is declared again after %s, so the alias graph is ambiguous",
-						p.name, ts.Name.Name, prev.file.name)
-				}
-				typeSpecs[ts.Name.Name] = portTypeSpec{file: p, spec: ts}
-			}
-		}
-	}
-	u128, ok := typeSpecs["BID_UINT128"]
-	if !ok {
-		t.Fatal("the package declares no package-level BID_UINT128, so the C3 no-method pin has no type to close")
-	}
-	if u128.spec.Assign.IsValid() || u128.spec.TypeParams != nil {
-		t.Fatalf("%s: BID_UINT128 is not a plain non-generic defined type, so its method set cannot be read off its own "+
-			"declaration: %s", u128.file.name, u128.file.flat(t, u128.spec))
-	}
-	// The exact rendering is the pin: it admits exactly two fields, both with explicit names, so no embedded field - and
-	// so no promoted method reachable as `C3.m` - can exist. Adding, embedding or retyping a field fails here.
-	if got, want := u128.file.flat(t, u128.spec.Type), "struct { lo uint64 hi uint64 }"; got != want {
-		t.Fatalf("%s: BID_UINT128 is no longer the pinned embedded-field-free shape, so promoted methods on it are no "+
-			"longer ruled out\n got: %s\nwant: %s", u128.file.name, got, want)
-	}
-	// resolveTypeName walks the alias graph from a written type name to the type it finally names. `type A = B` is
-	// followed; `type A B` is a distinct defined type whose methods are not BID_UINT128's, so it ends the walk, as does a
-	// name the package does not declare. Anything the walk cannot decide - a cycle, a generic alias, an alias whose
-	// right-hand side has no root identifier this file can name - fails rather than returning a name that would pass the
-	// BID_UINT128 check below.
-	resolveTypeName := func(what, name string) string {
-		seen := map[string]bool{}
-		for {
-			ts, ok := typeSpecs[name]
-			if !ok || !ts.spec.Assign.IsValid() {
-				return name
-			}
-			if seen[name] {
-				t.Fatalf("%s: the alias chain from %s revisits %s, so it cannot be resolved and BID_UINT128 cannot be "+
-					"ruled out", ts.file.name, what, name)
-			}
-			seen[name] = true
-			if ts.spec.TypeParams != nil {
-				t.Fatalf("%s: %s, reached from %s, is a generic alias, so the chain resolves to no single type and "+
-					"BID_UINT128 cannot be ruled out", ts.file.name, name, what)
-			}
-			next := rootIdentName(ts.spec.Type)
-			if next == "" {
-				t.Fatalf("%s: alias %s, reached from %s, has the unrecognised right-hand side %s, so the chain cannot "+
-					"rule out BID_UINT128", ts.file.name, name, what, ts.file.flat(t, ts.spec.Type))
-			}
-			name = next
-		}
-	}
-	for _, p := range files {
-		for _, d := range p.file.Decls {
-			fd, ok := d.(*ast.FuncDecl)
-			if !ok || fd.Recv == nil {
-				continue
-			}
-			// Fail-closed on shape: a receiver list that is not exactly one field, or a receiver type whose root
-			// identifier this file cannot name - parenthesised, generic-instantiated with several type arguments, or
-			// anything else unexpected - fails here instead of being skipped as "not BID_UINT128".
-			if len(fd.Recv.List) != 1 {
-				t.Fatalf("%s: %s has a %d-field receiver list, so the no-method pin cannot read its receiver type",
-					p.name, fd.Name.Name, len(fd.Recv.List))
-			}
-			recv := fd.Recv.List[0].Type
-			// rootIdentName peels *, (), [] and selectors, so both `BID_UINT128` and `*BID_UINT128` land on the same
-			// root name, and an unpeelable shape returns "" and fails just above the check rather than below it.
-			root := rootIdentName(recv)
-			if root == "" {
-				t.Fatalf("%s: %s has the unrecognised receiver type %s, so the no-method pin cannot rule out BID_UINT128",
-					p.name, fd.Name.Name, p.flat(t, recv))
-			}
-			// Resolve through the alias graph before matching: `type A = BID_UINT128` puts a method on BID_UINT128 under
-			// a receiver that spells A. Value, pointer and parenthesised receivers all peel to the same root above.
-			if root = resolveTypeName("the receiver of "+fd.Name.Name, root); root == "BID_UINT128" {
-				t.Fatalf("%s: %s is a method with receiver %s, so `C3.%s` is a method value the by-context census admits "+
-					"as a field select and the C3 aliasing closure below stops being closed",
-					p.name, fd.Name.Name, p.flat(t, recv), fd.Name.Name)
-			}
-		}
-	}
+	// a *BID_UINT128, so such a method value can exist only if BID_UINT128 has a method at all - and the package-wide
+	// census below fails the moment one is declared in any file this certificate reads, in either receiver form, directly
+	// or through an alias or an embedded field. That is what makes the field-select admission below closed rather than
+	// fail-open; the direct-call check alone does not.
+	pinTypeIsMethodFree(t, files, "BID_UINT128", pinnedUint128Shape,
+		"a method value spelled `C3.<that method>` is the AST shape the by-context census admits as a field select, "+
+			"and the C3 aliasing closure below stops being closed")
 
 	// --- residual: C3 is a pointer in bid_fma_delta_ge_zero, so a call that hands the bare pointer on can rewrite the
 	// coefficient with no statement here naming C3 - invisible to the write census just above, which sees only
@@ -3674,6 +3817,1481 @@ func checkRoundHelperBound(t *testing.T) {
 				}
 				if incr != 0 && cstar.Cmp(pow10big(q-x-1)) != 0 {
 					t.Fatalf("q=%d x=%d C=%s: incr_exp set but Cstar = %s, want 10^%d", q, x, c, cstar, q-x-1)
+				}
+			}
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// certificate 6: bid128_sqrt.go directed-rounding undershoot arms
+//                (audit site 16 = :423, audit site 19 = :661)
+// ---------------------------------------------------------------------------
+
+// The certified regions are the round-up arms the directed-rounding path of each
+// sqrt entry point takes when the estimator has *undershot* isqrt(C256) - the
+// bodies of `if (CS+1)^2 <= C256 { CS.lo++; if CS.lo == 0 { CS.hi++ } }` at
+// Bid128Sqrt :415-427 (site16 is the CS.lo++ at :423) and at Bid128dSqrt :652-663
+// (site19 is the CS.hi++ at :661). Both mutants are aor:inc->dec.
+//
+// Sites 17 (bid128_sqrt.go:571) and 18 (bid128_sqrt.go:646) are NOT certified
+// here and nothing below claims them: both additionally require the estimator to
+// return CS with CS.lo == 2^64-1, which Theorem S does not exclude, and they
+// remain open pending an exact sweep that is currently running. Site 17's
+// increment operator is left free by the pins below, so this certificate does not
+// kill that mutant either. Site 18's is not: its cascade is what makes the guard
+// site19 sits behind read (CS+1)^2, and site19 fires only inside the wrap region
+// that cascade decides, so the :646 mutant fails this certificate as a structural
+// premise-integrity kill rather than as a reachability verdict on site 18 - see
+// the site 17/18 boundary note above pinnedSqrtCSWrites.
+//
+// # 1. Firing predicates, read off the pinned source
+//
+// A := C256 as a mathematical integer; M := isqrt(A); CS := the raw 128-bit return
+// of bid_long_sqrt128(C256) (:311 / :554), which both sites read before any
+// correction.
+//
+//	:313  (rnd_mode & 3) == 0 false                      -> the directed path
+//	:357  M256 = CS^2                                     (__sqr128_to_256, exact)
+//	:360  M256 > C256 false                               -> CS^2 <= A
+//	:401-414 M256 <- CS^2+2*CS+1 = (CS+1)^2               (three summands: CS^2 is
+//	         the M256 of :357; C8 = 2*CS is built at :358-359 and added in at
+//	         :401-404; the +1 is the carry cascade at :405-414 / :642-651)
+//	:415-421 M256 <= C256, final comparator "<=" at :421  -> (CS+1)^2 <= A
+//
+// so **site16 fires <=> (rnd_mode & 3) != 0 and (CS+1)^2 <= A**. The :360
+// condition is subsumed, and the predicate is the pure undershoot statement
+// **CS <= M-1**. site19 is the carry of the same arm in Bid128dSqrt (:556 mode
+// split, :595 CS^2, :598 not greater, :638-651 the (CS+1)^2 build, :652-658 the
+// guard with its "<=" at :658), reached when :659 CS.lo++ additionally wraps:
+//
+//	**site19 fires <=> (rnd_mode & 3) != 0 and (CS+1)^2 <= A and CS.lo == 2^64-1**,
+//
+// a subset of site16's set. The mode split only places the sites on the directed
+// path; everything after it is mode-independent, which is why the non-standard
+// BID_ROUNDING_NEAREST_DOWN = 5 (also directed under & 3) needs no separate case.
+//
+// # 2. Reachable band: A = C256 in [10^66, 10^68)
+//
+// Both callers build C256 the same way (Bid128Sqrt :257-303, Bid128dSqrt
+// :499-546), every step pinned below:
+//
+//	be' := binary exponent of the binary32 estimate fl32(CX)   (noFmaMulAddF32)
+//	digits := E[be'] + (CX >= P[be'] ? 1 : 0)                  (E, P are port tables)
+//	scale := 67 - digits ; exponent_q := exponent_x - scale ; scale += exponent_q & 1
+//	C256 := CX * 10^scale
+//
+// Lemma D1. be' in {be, be+1} with be = floor(log2 CX): f64_d = 0x5f800000 = 2^64
+// exactly in binary32 and noFmaMulAddF32(a,b,c) = fl32(fl32(a*b)+c), so monotone
+// rounding gives be' >= be, and fx_d <= CX*(1+2^-24)^2 < 2^(be+2) gives be' <= be+1.
+// CX.hi < 2^49 (SMALL_COEFF_MASK128) keeps fl32(CX.hi)*2^64 < 2^113, so binary32
+// cannot overflow.
+//
+// Lemma D2. digits is the *exact* decimal digit count D(CX). For be' = be that is
+// E[be] = D(2^be) plus the pinned decade correction; for be' = be+1 the correction
+// is 0 and the code yields E[be+1], which equals D(CX) as soon as
+// 2^j / 10^(D(2^j)-1) >= (1+2^-24)^2 for j = be+1 <= 114. That minimum is
+// 1.01412048... at j = 103 against a required 1.000000119..., a 1.4% margin. The
+// table facts (E[i] = D(2^i) for every entry, P[i] = 10^E[i] for i <= 113) and the
+// minimum are recomputed mechanically below.
+//
+// Index range. Bid128dSqrt has CX < 10^16 < 2^54 (unpack_BID64 maps a non-canonical
+// coefficient to 0, returning valid=false; the small path masks with
+// SMALL_COEFF_MASK64 < 10^16), so be <= 53; Bid128Sqrt has CX < 10^34
+// (unpack_BID128_value zeroes any coefficient >= 10^34, returning valid=false), so
+// be <= 112. With be' <= be+1 the used indices are <= 113, which is exactly the
+// range the P[i] = 10^E[i] check below covers. The identity is not a property of the
+// whole table - 118, 119, 121 and 122 fail it - so the bound on CX that keeps the
+// indices at or below 113 is load-bearing, and the closure of CX pinned below is
+// what keeps that bound attached to the value the band run reads.
+//
+// Scale. digits in [1,34] gives scale in [33,67]; digits in [1,16] gives scale in
+// [51,67]. Both branches multiply by a bid_power10_table_128 entry, and every
+// index either branch can reach is value-checked below (P5). The scale > 38
+// branch goes through the *truncating* __mul_128x128_low - whose body is pinned
+// under P10, since "truncating" is a statement about which product bits that
+// primitive keeps - and does not truncate: scale-37 = 30-D+p with p in {0,1}, so
+// CX*10^(scale-37) < 10^(30+p) <= 10^31 < 2^128. With CX in [10^(D-1), 10^D),
+//
+//	**A = C256 = CX*10^scale in [10^(66+p), 10^(67+p)) subset [10^66, 10^68)**
+//
+// for both entry points. The set over-approximates what is truly reachable (inputs
+// whose short-path A10 is a perfect square return at :277 / :519 and never reach the
+// estimator); a deadness proof over a superset is still a deadness proof.
+// A < 10^68 < 2^226 also zeroes the top two bits of C256.w3, so C4 = 4*A at
+// :306-309 / :549-552 is exact - not needed by sites 16/19, but it is what
+// separates this arm from its nearest-mode sibling.
+//
+// # 3. Theorem S: isqrt(A) <= CS <= isqrt(A)+1 on the whole band
+//
+// Exact symbolic model of the pinned body (:106-203); u := 2^-53, fl(x) := the
+// correctly rounded binary64 value of x.
+//
+// Step 1, lx (:114-121). float64(w3) is exact (w3 < 2^34) and the scalings by
+// 2^64 / 2^128 are exact, so the accumulator starts at v3 = w3*2^192 exactly;
+// p2 := fl(w2)*2^128 carries |p2 - w2*2^128| <= 2^138 (|fl(w2) - w2| <= 2^10 is the
+// half-ulp of a 64-bit integer rounded to 53 bits). Since A >= 10^66 > 2^219,
+// ulp(fl(v3+p2)) >= 2^167, so p1 = fl(w1)*2^64 and p0 = fl(w0) together are
+// < 2^128 + 2^64 < 1/2 ulp and get absorbed: lx = fl(v3+p2). With d := (lx-A)/A and
+// 2^kappa <= v3+p2 < 2^(kappa+1), the final rounding contributes 2^(kappa-53) and
+// the absorbed exact terms contribute w1*2^64 + w0 < 2^128 + 2^64 < 2^129, so
+// |lx - A| <= 2^(kappa-53) + 2^138 + 2^129. With A >= 10^66 > 2^219.2 the additive
+// part is (2^138+2^129)/A < 2^-81:
+//
+//	(E1) |d| <= 2^(kappa-53)/A + 2^-81.
+//
+// Step 2, the seed (:123-127). RS := ly_d = fl(1/fl(sqrt(lx))) = MY*2^(-ey-52)
+// exactly, MY in [2^52, 2^53). With 1+e := RS^2*A = (1+d2)^2/((1+d1)^2 (1+d)),
+//
+//	(E2) |e| <= 4u + |d| + 13u^2.
+//
+// Step 3, eps (:130-138). ARS0 = MY*A (320-bit, exact), ARS = MY*ARS0 = MY^2*A
+// (384-bit, exact) = (1+e)*2^(2ey+104). The word expressions extract
+// W = floor(ARS/2^(2ey-24)) mod 2^128 and arithmetic-shift ES.hi right by one, so
+// the signed 128-bit value is g = floor(e*2^127) =: e*2^127 - phi, phi in [0,1).
+//
+// Step 4 (:141-172). a1 := ARS1 = floor(P/2^192), a0 := ARS00 = floor(P/2^64) with
+// P = MY*A; both sign branches compute the same integer S1 = a0 - g*a1.
+// Step 5 (:175-184). h := |g| >> 64 = floor(H) (or floor(H)+1 in the e<0 edge case)
+// with H := |e|*2^63; ES32 = h + h>>1, ES2 = ES32*h = 1.5h^2 - psi*h/2 with
+// psi = h mod 2; S = S1 + ES2*a1. The edge case is not just named but bounded, and
+// T3's positive side below is the only thing that reads the bound. For e < 0 step 3's
+// g is floor(e*2^127) = -ceil(X) with X := |e|*2^127, and the negation at :175-178
+// makes h = floor(-g / 2^64) = floor(ceil(X)/2^64). That exceeds floor(X/2^64) =
+// floor(H) only when some multiple m*2^64 lies in (X, ceil(X)], an interval of length
+// < 1, which forces m - H = (m*2^64 - X)/2^64 < 2^-64; and then h is that m, since
+// (m+1)*2^64 > X + 2^64 > ceil(X). So **h > floor(H) only when h = ceil(H) and
+// |H - h| < 2^-64**, and zeta := H - h lies in [0,1) on the ordinary path and in
+// (-2^-64, 0] on the edge one - never in (-1, 0).
+//
+// Step 6 (:187-200). Q := floor(S/2^(ey-13)), CS = floor((Q+1)/2) - the pinned
+// body spells the divisor as a word re-index plus a shift by k = ey-77, and the
+// word step contributes the remaining 64. With
+// sigma := S/2^(ey-12), integer algebra gives
+//
+//	(E3) CS >= M   <=  sigma >= M - 1/2      (E4) CS <= M+1 <=  sigma < M + 3/2
+//
+// Decomposition, with a0 = P/2^64 - alpha and a1 = P/2^192 - beta in [0,1):
+//
+//	sigma - sqrt(A) = T1 + T2 + T3 + T4
+//	T1 = sqrt(A)*( sqrt(1+e)(1 - e/2 + 3e^2/8) - 1 )
+//	T2 = A*RS*phi / 2^128
+//	T3 = A*RS*( ES2 - 1.5H^2 ) / 2^128
+//	T4 = -( alpha - g*beta + ES2*beta ) / 2^(ey-12)
+//
+// Bounds, all recomputed as exact rationals in the error-bound test below:
+//
+//	T3 (dominant): ES2 - 1.5H^2 = -1.5*zeta*(2H-zeta) - psi*h/2 with zeta = H-h in
+//	  [0,1), so -3.5H <= ES2 - 1.5H^2 <= 3H*2^-64. The positive side is where step 5's
+//	  edge-case bound is spent: the expression can only be positive when zeta < 0, i.e.
+//	  when h = ceil(H), and step 5 shows that happens only with |zeta| < 2^-64, giving
+//	  1.5*|zeta|*(2H+|zeta|) < 3H*2^-64 + 1.5*2^-128. The residue is dropped from the
+//	  stated constant rather than carried, which the coded check pays for many times
+//	  over: it evaluates 3H*2^-64 at hMax = |e|max*2^63 + 1, an over-estimate of H by a
+//	  whole unit against a residue of 0.5*2^-64 units. Without the 2^-64 bound zeta
+//	  would only be known to be in (-1,1) and the positive side would be ~3H, twenty
+//	  orders of magnitude past the constant. With A*RS <= sqrt(A)(1+2^-51) and
+//	  (E1)+(E2), |T3| <= 3.5*2^-118*(1+2^-51)*F where F = |e|*2^53*sqrt(A) <=
+//	  4 sqrt(A) + (1+2^-80)*2^kappa/sqrt(A) + 2^-28 sqrt(A) + 13*2^-53 sqrt(A); the
+//	  second term is u*(2^kappa/A)*2^53*sqrt(A) = 2^kappa/sqrt(A) exactly, and the
+//	  (1+2^-80) written in front of it is pure extra conservatism, not a slack the
+//	  step needs; the third is (E1)'s additive 2^-81 times 2^53.
+//	  **F's maximum is joint in (A,kappa), not a sum of per-term maxima**: kappa is
+//	  the binade of v3+p2, and 2^kappa/sqrt(A) taken alone peaks at 2^112.5 =
+//	  7.343e33 at a binade's left edge, 36% above the value the maximising pair
+//	  produces - adding per-term maxima gives 4.734e34 and would carry |T3| to
+//	  0.4986, past the bound below. Inside one binade F increases in A (its
+//	  derivative is positive once (1+2^-80)*2^kappa <= 4*A, which the band gives),
+//	  so F_kappa is F at that binade's right end A_r = min(2^(kappa+1), 10^68)
+//	  widened by the same 2^-80 slack that relates A to v3+p2, and the maximum over
+//	  the admissible kappa in {219..225} is F_225 = 4.5392e34, attained where the
+//	  *band* cap 10^68 - not 2^226 - ends binade 225. Hence |T3| <= 0.478088 and,
+//	  on the positive side, T3 <= 2.5e-20. The binade set, the monotonicity
+//	  inequality, the per-binade maxima and the kappa-slack corner where v3+p2 sits
+//	  one binade above A are all recomputed as exact rationals below; the square
+//	  roots are bracketed by integer square roots with an explicit 2^-128 slack, so
+//	  no irrational value enters the chain.
+//	T2: 0 <= T2 <= sqrt(A)(1+2^-51)/2^128 <= 2.939e-5.
+//	T4: |alpha - g*beta + ES2*beta| <= 1 + |g| + ES2 < 2^76.4, 2^(ey-12) >= 2^98,
+//	  so |T4| <= 3.1e-7.
+//	T1: sqrt(1+e)(1-e/2+3e^2/8) - 1 = sqrt(1+e)(5e^3/16 - 35e^4/128 + ...), so
+//	  |T1| <= 0.3126*|e|^3*sqrt(A) <= 5.5e-13. The constant 0.3126 is the plan's
+//	  round-up of 5/16 for the alternating tail; the certificate checks the
+//	  arithmetic that uses it, not the series estimate itself.
+//
+// Range of ey. RS ~ A^(-1/2) and correctly rounded sqrt/divide put ly_d within a
+// factor (1 +- 3u) of 1/sqrt(A), pinning ey to {110,111,112,113}; every shift count
+// in the pinned body is therefore inside (0,64) - k = 2ey-216 in {4,6,8,10} at
+// :136-137, k = ey-77 in {33..36} at :189-190. Both endpoints are checked below.
+//
+//	**Theorem S.** For every A in [10^66,10^68) - in particular every A the two
+//	callers can build - sigma - sqrt(A) lies in [-0.478089, +2.970e-5], so
+//	sigma >= M - 0.478089 > M - 1/2 and sigma <= (M+1) + 2.97e-5 < M + 3/2; by
+//	(E3),(E4)  **M <= CS <= M+1**.
+//
+// The load-bearing lower bound has margin 0.5 - 0.478089 = 0.021911, i.e. 4.4%.
+// **Consequence.** Both arms need (CS+1)^2 <= A, i.e. CS <= M-1, contradicting
+// CS >= M: they are unreachable, so no input can distinguish CS.lo++ from CS.lo--
+// at :423 or CS.hi++ from CS.hi-- at :661.
+//
+// # 4. Premises
+//
+//	P1 STANDARD - Go float64 +, -, *, / are IEEE-754 binary64 round-to-nearest-even
+//	   and uint64 -> float64 rounds to nearest even (Go spec, "Floating-point
+//	   operators", "Conversions").
+//	P2 STANDARD - math.Sqrt is correctly rounded (IEEE-754 5.4.1).
+//	P3 STANDARD - Go never evaluates float64 expressions in a wider format, and
+//	   math.Float64frombits(math.Float64bits(x)) is the identity that forces an
+//	   explicit rounding and so suppresses FMA contraction. noFmaMulAddF64 relies on
+//	   exactly that; its body is pinned below. If a toolchain ever contracted
+//	   through that round trip, d and e in (E1)/(E2) change and section 3 has to be
+//	   redone.
+//	P4 STANDARD - binary32 semantics for noFmaMulAddF32, used only in Lemma D1; its
+//	   body is pinned below too.
+//	P5 PROVEN here - bid_estimate_decimal_digits[i] = D(2^i) for i <= 114, checked in
+//	   this certificate's own band test rather than inherited from the sibling table
+//	   test, so a coordinated edit of E[i] and P[i] together fails here too;
+//	   bid_power10_index_binexp_128[i] = 10^E[i] for i <= 113, which is every index
+//	   section 2's range argument leaves reachable; the check stops there because the
+//	   identity is not a property of the whole table - indices 118, 119, 121 and 122
+//	   do not satisfy it, and only the CX bound keeps them out of reach - and
+//	   bid_power10_table_128[i] = 10^i for every index the band code can reach:
+//	   [33,38] on the scale <= 38 branch, [2,30] and 37 on the scale > 38 branch,
+//	   and 34 inside unpack_BID128_value, whose comparison against that entry is
+//	   __unsigned_compare_ge_128 - pinned under P10, since the entry's value decides
+//	   nothing on its own if the comparison that reads it can answer anything else.
+//	   The check below runs over i = 0..38, the
+//	   whole table, which is a superset of those. Without it "C256 = CX*10^scale" is
+//	   a claim about a table entry nobody read, and section 2's band bound - the
+//	   premise the whole of Theorem S is stated over - would rest on it.
+//	P6 PROVEN here - Lemma D2's minimum 1.01412048... vs the required 1.000000119...
+//	P7 PROVEN here - scale ranges, non-truncation of the __mul_128x128_low branch,
+//	   and A in [10^66,10^68).
+//	P8 PROVEN here - ey in {110..113} and every shift count in (0,64).
+//	P9 PROVEN here - the four term bounds and the resulting interval, as exact
+//	   rationals.
+//	P10 PINNED, not re-proven - the integer primitives the exactness claims of steps
+//	   3-5 rest on (__mul_64x256_to_320, __mul_64x320_to_384, __mul_128x128_to_256,
+//	   __sqr128_to_256, __mul_64x64_to_128, the carry/borrow helpers, and the
+//	   __mul_64x128_full / __add_128_64 that two of them call) compute their
+//	   schoolbook limb decompositions exactly, plus two primitives section 2 rather
+//	   than steps 3-5 reads. __mul_128x128_low: its "does not truncate" step is a
+//	   statement about which bits of the 256-bit product that primitive keeps, so a
+//	   body that kept different ones would leave C256 = CX*10^scale unproven while
+//	   every other pin held. __unsigned_compare_ge_128: it is the comparison
+//	   unpack_BID128_value's canonicality test runs against entry 34, so "CX < 10^34"
+//	   - the bound that holds the digit-table indices at or below 113, and with them
+//	   the whole band - is a claim about its body on the one return that yields the
+//	   coefficient the band reads, and about nothing else pinned here. A body that
+//	   answered false would widen CX to [1, 2^113) with every other pin still holding.
+//	   That unpacker's other returns are outside this claim: what holds them is the
+//	   literal false valid flag on each, pinned by the return census of section 5, and
+//	   neither pin stands in for the other. Boundary choice, stated explicitly:
+//	   this file pins their *bodies*, not merely their call identity, so any token
+//	   change in them fails this certificate - but it does not re-derive their
+//	   exactness, which is the port-wide property the differential vector gates
+//	   exercise. Their transitive dependency is math/bits.Mul64, a standard-library
+//	   primitive, and that is where this scan stops.
+//	P11 NOT CLAIMED - sites 17 (:571) and 18 (:646) as behavioural questions;
+//	   Theorem S does not decide either. For site 17 the disclaimer also holds of the
+//	   pins: the write-world entry for :571 is relaxed by exactly that one token,
+//	   scoped to Bid128dSqrt, so the same-shaped nearest-path write in Bid128Sqrt
+//	   stays exact. For site 18 it holds of the claim only, not of the pins: the
+//	   :646 cascade is pinned exactly in both callers, because site19's guard reads
+//	   M256 = (CS+1)^2 exactly on the wrap inputs site19 can fire on, so a relaxed
+//	   cascade would reduce a certified site's firing predicate to the open site-18
+//	   question. The resulting :646 mutant kill is premise integrity, not a claim
+//	   that :646 is dead; that verdict waits on the exact sweep.
+//
+// # 5. What is pinned, and where each scan stops
+//
+//   - the whole statement sequence and signature of bid_long_sqrt128, which
+//     Theorem S analyses operation by operation. That pin also closes the world of
+//     calls the estimator makes, since a new call would be a new token. Likewise
+//     the bodies and signatures of noFmaMulAddF64, noFmaMulAddF32 and the P10
+//     primitives.
+//   - the digits/scale/C256 construction of both callers as one contiguous run
+//     each, plus the coefficient bounds inside unpack_BID128_value and
+//     unpack_BID64 and, on top of those, the closed return census of each unpacker.
+//     The bound runs pin one exit apiece; the census is what covers the rest, and it
+//     is a census rather than a text pin per exit because two of
+//     unpack_BID128_value's returns render identically.
+//   - CX itself, in both callers: the closed world of writes to it, no nested
+//     declaration that could shadow that world's binding, the text of the unpack
+//     statement that produces it, the `if !validBool` early exit pinned to sit
+//     immediately after that statement and to return on every path out of its body,
+//     and no write to CX from the unpack to the estimator call. Those are what make
+//     A = CX*10^scale a statement about the unpacker's output rather than about
+//     whatever happens to be in CX at the band run; without them the unpacker bounds
+//     pinned just above are attached to nothing. exponent_x is deliberately left
+//     open: the band reads it only through `scale += exponent_q & 1`, whose value is
+//     in {0,1} for every int, and P7 quantifies over both. The scan stops at the two
+//     unpackers, and what it stops on is this: their returns are a closed world, and on
+//     every one of them either the coefficient is held by the clamp pinned above it
+//     (< 10^34 in unpack_BID128_value, < 10^16 in unpack_BID64) or the valid flag is the
+//     literal false, which the `if !validBool` exit turns into a return before the band
+//     run. Nothing upstream of the unpackers can produce a third case, which is why the
+//     scan does not have to follow x any further back.
+//   - the package-wide census of calls to bid_long_sqrt128: exactly the two pinned
+//     sites, both unguarded, both passing C256. A third caller is not covered by
+//     the band premise and fails here.
+//   - the package-wide no-method censuses of BID_UINT128 and BID_UINT256, the types
+//     of CS and C256. Every write world and no-write scan in this certificate is an
+//     AST scan for assignments, inc/dec, ValueSpec initialisers and address-of, and
+//     a pointer-receiver method call is none of those shapes: `C256.m()` on a
+//     `func (c *BID_UINT256) m()` rewrites C256 invisibly to all of them. Both
+//     censuses run here rather than being inherited from certificate 5, so this
+//     certificate fails independently of it. They pin each type's exact struct
+//     shape too, which is what rules out a promoted method from an embedded field,
+//     and resolve receivers through package-level aliases. They stop at the
+//     package: Go requires a method's receiver base type to be declared in the same
+//     package, so no import can add one.
+//   - per site: the (rnd_mode & 3) == 0 mode split and the site's placement in its
+//     else; the CS^2 / +2CS / +1 cascade feeding the guard; the guard's condition
+//     text *and* its comparison operators in source order, whose last element is
+//     the "<=" the predicate derivation uses; the increment tokens, checked to be
+//     token.INC on the pinned operand so the aor:inc->dec mutant flips the
+//     certificate; the closed world of writes to CS and C256 in each caller; the absence
+//     of any loop or goto in either caller, without which that closed world would still
+//     not say *which* of those writes the guard reads; and no-write scans over the two
+//     stretches where the proof needs CS and M256 unchanged (estimator return -> mode
+//     split, and the (CS+1)^2 build -> guard). Those scans are scoped to the else block
+//     rather than the whole function because the sibling arm of the M256 > C256 test does
+//     write CS.
+
+// pinnedSqrtEstimatorBody is the complete statement sequence of bid_long_sqrt128
+// (bid128_sqrt.go:106-203) - the function Theorem S models operation by operation.
+var pinnedSqrtEstimatorBody = []string{
+	"var S BID_UINT256",
+	"var ES, ARS1, ES2 BID_UINT128",
+	"var ARS00 BID_UINT256",
+	"var AE, AE2 BID_UINT256",
+	"var CY, MY, ES32 uint64",
+	"l64 := math.Float64frombits(0x43f0000000000000)",
+	"l128 := l64 * l64",
+	"lx := math.Float64frombits(math.Float64bits(float64(C256.w3) * l64 * l128))",
+	"lx = noFmaMulAddF64(float64(C256.w2), l128, lx)",
+	"lx = noFmaMulAddF64(float64(C256.w1), l64, lx)",
+	"l0 := float64(C256.w0)",
+	"lx = lx + l0",
+	"ly_d := 1.0 / math.Sqrt(lx)",
+	"ly_i := math.Float64bits(ly_d)",
+	"MY = (ly_i & 0x000fffffffffffff) | 0x0010000000000000",
+	"ey := int(0x3ff - (ly_i >> 52))",
+	"ARS0 := __mul_64x256_to_320(MY, C256)",
+	"ARS := __mul_64x320_to_384(MY, ARS0)",
+	"k := (ey << 1) + 104 - 128 - 192",
+	"k2 := 64 - k",
+	"ES.lo = (ARS.w3 >> uint(k+1)) | (ARS.w4 << uint(k2-1))",
+	"ES.hi = (ARS.w4 >> uint(k)) | (ARS.w5 << uint(k2))",
+	"ES.hi = uint64(int64(ES.hi) >> 1)",
+	"ARS1.lo = ARS0.w3",
+	"ARS1.hi = ARS0.w4",
+	"ARS00.w0 = ARS0.w1",
+	"ARS00.w1 = ARS0.w2",
+	"ARS00.w2 = ARS0.w3",
+	"ARS00.w3 = ARS0.w4",
+	"if int64(ES.hi) < 0 { ES.lo = -ES.lo ES.hi = -ES.hi if ES.lo != 0 { ES.hi-- } " +
+		"AE = __mul_128x128_to_256(ES, ARS1) " +
+		"S.w0, CY = __add_carry_out(ARS00.w0, AE.w0) " +
+		"S.w1, CY = __add_carry_in_out(ARS00.w1, AE.w1, CY) " +
+		"S.w2, CY = __add_carry_in_out(ARS00.w2, AE.w2, CY) " +
+		"S.w3 = ARS00.w3 + AE.w3 + CY } else { " +
+		"AE = __mul_128x128_to_256(ES, ARS1) " +
+		"S.w0, CY = __sub_borrow_out(ARS00.w0, AE.w0) " +
+		"S.w1, CY = __sub_borrow_in_out(ARS00.w1, AE.w1, CY) " +
+		"S.w2, CY = __sub_borrow_in_out(ARS00.w2, AE.w2, CY) " +
+		"S.w3 = ARS00.w3 - AE.w3 - CY }",
+	"ES32 = ES.hi + (ES.hi >> 1)",
+	"ES2 = __mul_64x64_to_128(ES32, ES.hi)",
+	"AE2 = __mul_128x128_to_256(ES2, ARS1)",
+	"S.w0, CY = __add_carry_out(S.w0, AE2.w0)",
+	"S.w1, CY = __add_carry_in_out(S.w1, AE2.w1, CY)",
+	"S.w2, CY = __add_carry_in_out(S.w2, AE2.w2, CY)",
+	"S.w3 = S.w3 + AE2.w3 + CY",
+	"k = ey + 51 - 128",
+	"k2 = 64 - k",
+	"S.w0 = (S.w1 >> uint(k)) | (S.w2 << uint(k2))",
+	"S.w1 = (S.w2 >> uint(k)) | (S.w3 << uint(k2))",
+	"S.w0++",
+	"if S.w0 == 0 { S.w1++ }",
+	"var CS BID_UINT128",
+	"CS.lo = (S.w1 << 63) | (S.w0 >> 1)",
+	"CS.hi = S.w1 >> 1",
+	"return CS",
+}
+
+// pinnedSqrtHelper is one function whose body a premise of Theorem S reads: the
+// two FMA-suppressing wrappers of P3/P4, and the integer primitives of P10.
+type pinnedSqrtHelper struct {
+	file, fn, sig string
+	body          []string
+}
+
+var pinnedSqrtHelpers = []pinnedSqrtHelper{
+	{"internal.go", "noFmaMulAddF64", "func(a, b, c float64) float64", []string{
+		"return math.Float64frombits(math.Float64bits(a*b)) + c",
+	}},
+	{"internal.go", "noFmaMulAddF32", "func(a float32, b float32, c float32) float32", []string{
+		"return math.Float32frombits(math.Float32bits(a*b)) + c",
+	}},
+	{"internal.go", "__mul_64x256_to_320", "func(A uint64, B BID_UINT256) BID_UINT320", []string{
+		"var P BID_UINT320",
+		"var c uint64",
+		"lP0 := __mul_64x64_to_128(A, B.w0)",
+		"lP1 := __mul_64x64_to_128(A, B.w1)",
+		"lP2 := __mul_64x64_to_128(A, B.w2)",
+		"lP3 := __mul_64x64_to_128(A, B.w3)",
+		"P.w0 = lP0.lo",
+		"P.w1, c = __add_carry_out(lP1.lo, lP0.hi)",
+		"P.w2, c = __add_carry_in_out(lP2.lo, lP1.hi, c)",
+		"P.w3, c = __add_carry_in_out(lP3.lo, lP2.hi, c)",
+		"P.w4 = lP3.hi + c",
+		"return P",
+	}},
+	{"internal.go", "__mul_64x320_to_384", "func(A uint64, B BID_UINT320) BID_UINT384", []string{
+		"var P BID_UINT384",
+		"var c uint64",
+		"lP0 := __mul_64x64_to_128(A, B.w0)",
+		"lP1 := __mul_64x64_to_128(A, B.w1)",
+		"lP2 := __mul_64x64_to_128(A, B.w2)",
+		"lP3 := __mul_64x64_to_128(A, B.w3)",
+		"lP4 := __mul_64x64_to_128(A, B.w4)",
+		"P.w0 = lP0.lo",
+		"P.w1, c = __add_carry_out(lP1.lo, lP0.hi)",
+		"P.w2, c = __add_carry_in_out(lP2.lo, lP1.hi, c)",
+		"P.w3, c = __add_carry_in_out(lP3.lo, lP2.hi, c)",
+		"P.w4, c = __add_carry_in_out(lP4.lo, lP3.hi, c)",
+		"P.w5 = lP4.hi + c",
+		"return P",
+	}},
+	{"internal.go", "__mul_128x128_to_256", "func(a, b BID_UINT128) BID_UINT256", []string{
+		"var p256 BID_UINT256",
+		"var cy1, cy2 uint64",
+		"phl, qll := __mul_64x128_full(a.lo, b)",
+		"phh, qlh := __mul_64x128_full(a.hi, b)",
+		"p256.w0 = qll.lo",
+		"p256.w1, cy1 = __add_carry_out(qlh.lo, qll.hi)",
+		"p256.w2, cy2 = __add_carry_in_out(qlh.hi, phl, cy1)",
+		"p256.w3 = phh + cy2",
+		"return p256",
+	}},
+	{"internal.go", "__sqr128_to_256", "func(A BID_UINT128) BID_UINT256", []string{
+		"var P256 BID_UINT256",
+		"var c1, c2 uint64",
+		"Qhh := __mul_64x64_to_128(A.hi, A.hi)",
+		"Qlh := __mul_64x64_to_128(A.lo, A.hi)",
+		"Qhh.hi += (Qlh.hi >> 63)",
+		"Qlh.hi = (Qlh.hi + Qlh.hi) | (Qlh.lo >> 63)",
+		"Qlh.lo += Qlh.lo",
+		"Qll := __mul_64x64_to_128(A.lo, A.lo)",
+		"P256.w1, c1 = __add_carry_out(Qlh.lo, Qll.hi)",
+		"P256.w0 = Qll.lo",
+		"P256.w2, c2 = __add_carry_in_out(Qlh.hi, Qhh.lo, c1)",
+		"P256.w3 = Qhh.hi + c2",
+		"return P256",
+	}},
+	{"internal.go", "__mul_64x64_to_128", "func(cx, cy uint64) BID_UINT128", []string{
+		"hi, lo := bits.Mul64(cx, cy)",
+		"return BID_UINT128{lo: lo, hi: hi}",
+	}},
+	// Read by section 2, not by steps 3-5: the scale > 38 branch of both callers
+	// builds CX1 with this primitive, and the band argument's "does not truncate"
+	// step says the product it drops is zero. That is a claim about which bits the
+	// body keeps - the low 128 of the 256-bit product, with the high half never
+	// formed - so the body is pinned here alongside the exactness primitives.
+	{"bid128_div.go", "__mul_128x128_low", "func(A, B BID_UINT128) BID_UINT128", []string{
+		"var Ql BID_UINT128",
+		"ALBL := __mul_64x64_to_128(A.lo, B.lo)",
+		"QM64 := B.lo*A.hi + A.lo*B.hi",
+		"Ql.lo = ALBL.lo",
+		"Ql.hi = QM64 + ALBL.hi",
+		"return Ql",
+	}},
+	// Read by section 2 as well, on the other side of the band argument: this is the
+	// comparison unpack_BID128_value's canonicality test runs against 10^34, so the
+	// CX < 10^34 clamp - and with it the be <= 112 that keeps the digit-table indices
+	// inside the range P5 checks - is a claim about this body. A body that answered
+	// false would leave the clamp dead, CX as wide as [1, 2^113), and every other pin
+	// in this file still holding.
+	{"internal.go", "__unsigned_compare_ge_128", "func(a, b BID_UINT128) bool", []string{
+		"return (a.hi > b.hi) || ((a.hi == b.hi) && (a.lo >= b.lo))",
+	}},
+	{"internal.go", "__mul_64x128_full", "func(a uint64, b BID_UINT128) (ph uint64, ql BID_UINT128)", []string{
+		"albh := __mul_64x64_to_128(a, b.hi)",
+		"albl := __mul_64x64_to_128(a, b.lo)",
+		"ql.lo = albl.lo",
+		"qm2 := __add_128_64(albh, albl.hi)",
+		"ql.hi = qm2.lo",
+		"ph = qm2.hi",
+		"return",
+	}},
+	{"internal.go", "__add_128_64", "func(a BID_UINT128, b uint64) BID_UINT128", []string{
+		"var r BID_UINT128",
+		"r64h := a.hi",
+		"r.lo = b + a.lo",
+		"if r.lo < b { r64h++ }",
+		"r.hi = r64h",
+		"return r",
+	}},
+	{"internal.go", "__add_carry_out", "func(x, y uint64) (s uint64, cy uint64)", []string{
+		"s = x + y",
+		"if s < x { cy = 1 }",
+		"return",
+	}},
+	{"internal.go", "__add_carry_in_out", "func(x, y, ci uint64) (s uint64, cy uint64)", []string{
+		"x1 := x + ci",
+		"s = x1 + y",
+		"if (s < x1) || (x1 < ci) { cy = 1 }",
+		"return",
+	}},
+	{"internal.go", "__sub_borrow_out", "func(x, y uint64) (s uint64, cy uint64)", []string{
+		"s = x - y",
+		"if s > x { cy = 1 }",
+		"return",
+	}},
+	{"bid128_div.go", "__sub_borrow_in_out", "func(x, y, ci uint64) (s uint64, co uint64)", []string{
+		"x1 := x - ci",
+		"if x1 > x { co = 1 }",
+		"s = x1 - y",
+		"if s > x1 { co = 1 }",
+		"return",
+	}},
+}
+
+// sqrtBandRun is the digits / scale / C256 / estimator-call run of one caller.
+// The two callers differ in exactly two tokens: the exponent-bias constant the
+// perfect-square early exit repacks with, and whether the parity correction
+// parenthesises its operand. Both are parameters here rather than a wildcard, so
+// each caller is still pinned token for token.
+func sqrtBandRun(bias, parity string) []string {
+	return []string{
+		"f64_i := uint32(0x5f800000)",
+		"f64_d := math.Float32frombits(f64_i)",
+		"fx_d := noFmaMulAddF32(float32(CX.hi), f64_d, float32(CX.lo))",
+		"fx_i := math.Float32bits(fx_d)",
+		"bin_expon_cx = int((fx_i>>23)&0xff) - 0x7f",
+		"digits = bid_estimate_decimal_digits[bin_expon_cx]",
+		"A10 = CX",
+		"if (exponent_x & 1) != 0 { A10.hi = (CX.hi << 3) | (CX.lo >> 61) A10.lo = CX.lo << 3 " +
+			"CX2.hi = (CX.hi << 1) | (CX.lo >> 63) CX2.lo = CX.lo << 1 A10 = __add_128_128(A10, CX2) }",
+		"CS.lo = short_sqrt128(A10)",
+		"CS.hi = 0",
+		"if CS.lo*CS.lo == A10.lo { S2 = __mul_64x64_to_128_fast(CS.lo, CS.lo) " +
+			"if S2.hi == A10.hi { res = very_fast_get_BID128(0, (exponent_x+" + bias + ")>>1, CS) return res, pfpsf } }",
+		"D = int64(CX.hi) - int64(bid_power10_index_binexp_128[bin_expon_cx].hi)",
+		"if D > 0 || (D == 0 && CX.lo >= bid_power10_index_binexp_128[bin_expon_cx].lo) { digits++ }",
+		"scale = 67 - digits",
+		"exponent_q = exponent_x - scale",
+		"scale += " + parity,
+		"if scale > 38 { T128 = bid_power10_table_128[scale-37] CX1 = __mul_128x128_low(CX, T128) " +
+			"TP128 = bid_power10_table_128[37] C256 = __mul_128x128_to_256(CX1, TP128) } " +
+			"else { T128 = bid_power10_table_128[scale] C256 = __mul_128x128_to_256(CX, T128) }",
+		"C4.w3 = (C256.w3 << 2) | (C256.w2 >> 62)",
+		"C4.w2 = (C256.w2 << 2) | (C256.w1 >> 62)",
+		"C4.w1 = (C256.w1 << 2) | (C256.w0 >> 62)",
+		"C4.w0 = C256.w0 << 2",
+		"CS = bid_long_sqrt128(C256)",
+	}
+}
+
+// Boundary: sites 17 and 18 are disclaimed as *behavioural* questions - Theorem S
+// does not decide either, since both need the estimator to return CS.lo = 2^64-1,
+// which it does not exclude - and the two lines are handled differently here
+// because only one of them is load-bearing for a site this file does certify.
+//
+// Site 17 is bid128_sqrt.go:571, the CS.hi++ of the nearest-path round-up in
+// Bid128dSqrt. It is relaxed by exactly one token: the entry keeps its position in
+// the ordered write world and its operand CS.hi, and only the ++/-- direction is
+// free (portWritePin.anyIncDec). The relaxation is scoped to Bid128dSqrt - the
+// same-shaped nearest-path write in Bid128Sqrt stays an exact token. That arm is
+// the nearest-mode sibling of the certified region, disjoint from the chain sites
+// 16 and 19 sit on, so leaving its direction open loosens nothing the deadness
+// argument reads. It is temporary: once the exact sweep decides site 17 this entry
+// must be tightened back, since left loose past that point it stops being scope
+// honesty and becomes a hole in the closed write world.
+//
+// Site 18 is :646, the M256.w2++ inside the (CS+1)^2 carry cascade of the same
+// function, and it is pinned EXACTLY - in both callers - even though the
+// behavioural question about it stays open. The earlier two-variant rendering of
+// that cascade was unsound for site19: site19 fires only when CS.lo = 2^64-1, which
+// is precisely the region where the +1 carries out of w0 and w1 and reaches the w2
+// step, so under the `M256.w2--` rendering the guard at :652-658 no longer reads
+// M256 = (CS+1)^2 on any input site19 could fire on. Admitting it would reduce
+// site19's deadness claim to the open site-18 question instead of leaving it
+// untouched, so the relaxation is gone; Bid128Sqrt's cascade at :401-414, which
+// builds the (CS+1)^2 that site16's guard at :415-421 reads, was and stays exact
+// for the same reason.
+//
+// Consequence for mutation accounting, stated rather than left to be inferred: the
+// aor:inc->dec mutant at :646 now FAILS this certificate. That kill is a
+// **structural premise-integrity kill** - the cascade is the source of the
+// (CS+1)^2 premise site19's firing predicate is read off, and this file fails when
+// that premise is rewritten - and it is **not** a reachability decision about site
+// 18. Whether any reachable input runs the w0/w1 wrap path is still open pending
+// the exact sweep, and when the sweep decides it, the site-18 audit entry is closed
+// on that evidence, not on this pin.
+
+// pinnedSqrtCSWrites is the closed world of writes to CS in one caller: the
+// short-path seed, the estimator result, and the ten corrections of the two
+// rounding paths. Both callers have the same shape; they differ only in the site
+// 17 relaxation, which applies to Bid128dSqrt alone.
+func pinnedSqrtCSWrites(fn string) []portWritePin {
+	w := exactWritePins([]string{
+		"CS.lo = short_sqrt128(A10)",
+		"CS.hi = 0",
+		"CS = bid_long_sqrt128(C256)",
+		"CS.lo++", "CS.hi++", // nearest path, round up
+		"CS.hi--", "CS.lo--", // nearest path, round down
+		"CS.hi--", "CS.lo--", // directed path, CS^2 > C256, first decrement
+		"CS.hi--", "CS.lo--", // directed path, CS^2 > C256, second decrement
+		"CS.lo++", "CS.hi++", // directed path, the certified undershoot arm
+		"CS.lo++", "CS.hi++", // directed path, BID_ROUNDING_UP tail
+	})
+	const site17 = 4 // the nearest-path CS.hi++: bid128_sqrt.go:571 in Bid128dSqrt
+	if fn == "Bid128dSqrt" {
+		w[site17].anyIncDec = true
+	}
+	return w
+}
+
+// pinnedSqrtC256Writes is the closed world of writes to C256 in one caller: the
+// two arms of the scale dispatch and nothing after them, which is what lets the
+// guard at :415 / :652 read the same A the estimator was handed.
+var pinnedSqrtC256Writes = []string{
+	"C256 = __mul_128x128_to_256(CX1, TP128)",
+	"C256 = __mul_128x128_to_256(CX, T128)",
+}
+
+const pinnedSqrtOvershootCond = "M256.w3 > C256.w3 || (M256.w3 == C256.w3 && " +
+	"(M256.w2 > C256.w2 || (M256.w2 == C256.w2 && " +
+	"(M256.w1 > C256.w1 || (M256.w1 == C256.w1 && M256.w0 > C256.w0)))))"
+
+// pinnedSqrtUndershootCond is the guard both certified arms sit behind: with
+// M256 = (CS+1)^2 it is exactly (CS+1)^2 <= C256. The final comparator is the
+// "<=" at :421 / :658; pinSqrtComparisonOps re-checks the operator sequence so a
+// cmp mutation on it cannot slip through a text pin alone.
+const pinnedSqrtUndershootCond = "M256.w3 < C256.w3 || (M256.w3 == C256.w3 && " +
+	"(M256.w2 < C256.w2 || (M256.w2 == C256.w2 && " +
+	"(M256.w1 < C256.w1 || (M256.w1 == C256.w1 && M256.w0 <= C256.w0)))))"
+
+// pinnedSqrtPlusOneBuild is the M256 <- CS^2 + 2*CS part of the cascade that feeds
+// the guard, taken as one contiguous run of the else block it opens. The +1 carry
+// cascade that follows it is pinnedSqrtPlusOneCascade.
+var pinnedSqrtPlusOneBuild = []string{
+	"M256.w0, Carry = __add_carry_out(M256.w0, C8.w0)",
+	"M256.w1, Carry = __add_carry_in_out(M256.w1, C8.w1, Carry)",
+	"M256.w2, Carry = __add_carry_in_out(M256.w2, 0, Carry)",
+	"M256.w3 = M256.w3 + Carry",
+	"M256.w0++",
+}
+
+// pinnedSqrtPlusOneCascade is the statement the +1 of (CS+1)^2 carries through, in
+// both callers, as one exact text. It is deliberately *not* relaxed for the :646
+// M256.w2++ inside Bid128dSqrt's copy, even though site 18 is disclaimed: the
+// cascade is the premise that makes M256 equal (CS+1)^2 at the guard, and site19 -
+// which this file does certify - fires only when CS.lo == 2^64-1, which is exactly
+// the region where the w0/w1 wrap reaches the w2 step. Admitting `M256.w2--` there
+// would therefore leave site19's own firing predicate undecided. See the boundary
+// note above pinnedSqrtCSWrites for what the resulting :646 kill does and does not
+// mean.
+const pinnedSqrtPlusOneCascade = "if M256.w0 == 0 { M256.w1++ if M256.w1 == 0 { M256.w2++ if M256.w2 == 0 { M256.w3++ } } }"
+
+// comparisonOps returns e's comparison operators in source order. A text pin
+// already fails on a changed operator, but recording the sequence separately is
+// what lets the failure name the comparator the firing predicate was read off.
+func comparisonOps(e ast.Expr) []token.Token {
+	var out []token.Token
+	ast.Inspect(e, func(n ast.Node) bool {
+		if be, ok := n.(*ast.BinaryExpr); ok {
+			switch be.Op {
+			case token.LSS, token.LEQ, token.GTR, token.GEQ, token.EQL, token.NEQ:
+				out = append(out, be.Op)
+			}
+		}
+		return true
+	})
+	return out
+}
+
+func (p *portFile) pinComparisonOps(t *testing.T, label string, e ast.Expr, want []token.Token) {
+	t.Helper()
+	got := comparisonOps(e)
+	if len(got) != len(want) {
+		t.Fatalf("%s: %s (line %d): %d comparison operators, pinned %d: got %v want %v",
+			p.name, label, p.line(e), len(got), len(want), got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("%s: %s (line %d): comparison operator %d is %v, pinned %v",
+				p.name, label, p.line(e), i, got[i], want[i])
+		}
+	}
+}
+
+// pinIncrement fails unless s is exactly `operand++`. The token check is the
+// half that the aor:inc->dec mutant flips: a decrement at the same position
+// renders differently and carries token.DEC.
+func (p *portFile) pinIncrement(t *testing.T, label string, s ast.Stmt, operand string) {
+	t.Helper()
+	inc, ok := s.(*ast.IncDecStmt)
+	if !ok {
+		t.Fatalf("%s: %s: statement at line %d is %T, want `%s++`", p.name, label, p.line(s), s, operand)
+	}
+	if got := p.flat(t, inc.X); got != operand {
+		t.Fatalf("%s: %s (line %d): operand is %s, pinned %s", p.name, label, p.line(inc), got, operand)
+	}
+	if inc.Tok != token.INC {
+		t.Fatalf("%s: %s (line %d): operator is %v, pinned ++ - an aor:inc->dec mutation here is exactly what "+
+			"this certificate exists to fail on", p.name, label, p.line(inc), inc.Tok)
+	}
+}
+
+// theoremSNotice is appended to every label of a pin that Theorem S reads
+// operation by operation, so a drift report names the consequence rather than
+// only the token: the bound in section 3 is a statement about this exact source,
+// and re-pinning it without redoing the proof would leave the certificate
+// attached to an algorithm nobody has analysed.
+const theoremSNotice = " [the certificate reads this source operation by operation - Theorem S in section 3, or " +
+	"section 2's band argument for the primitive it names; that proof must be redone before this pin is updated]"
+
+// TestBid128SqrtEstimatorSourceIsPinned anchors everything Theorem S models: the
+// estimator body itself, the FMA-suppressing wrappers of premises P3/P4, the
+// integer primitives of P10, and the closed world of calls to the estimator.
+func TestBid128SqrtEstimatorSourceIsPinned(t *testing.T) {
+	p := loadPortFile(t, "bid128_sqrt.go")
+	fn := p.funcDecl(t, "bid_long_sqrt128")
+	p.pinNode(t, "bid_long_sqrt128 signature"+theoremSNotice, fn.Type, "func(C256 BID_UINT256) BID_UINT128")
+	p.pinStmtCount(t, "bid_long_sqrt128 body"+theoremSNotice, fn.Body, len(pinnedSqrtEstimatorBody))
+	p.pinRun(t, "bid_long_sqrt128 body"+theoremSNotice, fn.Body, 0, pinnedSqrtEstimatorBody)
+	p.pinForwardOnly(t, fn)
+
+	for _, h := range pinnedSqrtHelpers {
+		hp := loadPortFile(t, h.file)
+		hfn := hp.funcDecl(t, h.fn)
+		hp.pinNode(t, h.fn+" signature"+theoremSNotice, hfn.Type, h.sig)
+		hp.pinStmtCount(t, h.fn+" body"+theoremSNotice, hfn.Body, len(h.body))
+		hp.pinRun(t, h.fn+" body"+theoremSNotice, hfn.Body, 0, h.body)
+	}
+
+	// --- census: the estimator's closed world of callers. A third one would not
+	// be covered by the reachable-band premise of section 2.
+	files := portPkg(t)
+	calls := portCallsTo(t, files, "bid_long_sqrt128")
+	want := []struct{ key, guards string }{
+		{"bid128_sqrt.go/Bid128Sqrt/bid_long_sqrt128(C256)", ""},
+		{"bid128_sqrt.go/Bid128dSqrt/bid_long_sqrt128(C256)", ""},
+	}
+	if len(calls) != len(want) {
+		var keys []string
+		for _, c := range calls {
+			keys = append(keys, c.key)
+		}
+		t.Fatalf("bid_long_sqrt128 has %d call sites, pinned %d: %v", len(calls), len(want), keys)
+	}
+	for i, w := range want {
+		if calls[i].key != w.key || calls[i].guards != w.guards {
+			t.Fatalf("bid_long_sqrt128 call site %d drifted\n got: %s under %q\nwant: %s under %q",
+				i, calls[i].key, calls[i].guards, w.key, w.guards)
+		}
+		pinSlots(t, "bid_long_sqrt128 call "+w.key, fn, calls[i].args, map[int]string{0: "C256"})
+	}
+}
+
+// TestBid128SqrtReachableBandIsPinned anchors and then re-derives the band
+// premise: C256 in [10^66, 10^68) for every input that reaches the estimator.
+func TestBid128SqrtReachableBandIsPinned(t *testing.T) {
+	p := loadPortFile(t, "bid128_sqrt.go")
+	for _, c := range []struct {
+		fn, bias, parity string
+		unpack           string
+		cxWrites         []string
+	}{
+		{
+			fn: "Bid128Sqrt", bias: "EXPONENT_BIAS128", parity: "(exponent_q & 1)",
+			unpack:   "sign_x, exponent_x, CX, validBool := unpack_BID128_value(x)",
+			cxWrites: []string{"sign_x, exponent_x, CX, validBool := unpack_BID128_value(x)"},
+		},
+		{
+			fn: "Bid128dSqrt", bias: "DECIMAL_EXPONENT_BIAS_128", parity: "exponent_q & 1",
+			unpack:   "sign_x, exponent_x, CX.lo, validBool = unpack_BID64(x)",
+			cxWrites: []string{"CX.hi = 0", "sign_x, exponent_x, CX.lo, validBool = unpack_BID64(x)"},
+		},
+	} {
+		fn := p.funcDecl(t, c.fn)
+		blk := p.blockWithRun(t, fn, sqrtBandRun(c.bias, c.parity))
+		if blk != fn.Body {
+			t.Fatalf("bid128_sqrt.go: %s: the pinned band run is not at the top level of the function body (line %d)",
+				c.fn, p.line(blk))
+		}
+		p.pinWrites(t, fn, "C256", pinnedSqrtC256Writes)
+		p.pinNoNestedDecl(t, fn, "C256")
+		p.pinNoGoto(t, fn)
+
+		// --- anchor: CX, the operand the whole band premise is stated over. A = CX*10^scale
+		// is a claim about the coefficient the unpacker returned, and the unpacker bounds
+		// pinned below say nothing about any other value that could be sitting in CX by the
+		// time the band run reads it. Four pins close that: the whole world of writes to CX
+		// in the caller, no nested declaration that could shadow the binding those writes
+		// describe, the unpack statement's own text, and - since the unpacker's bound holds
+		// only for the coefficients it calls valid - the `if !validBool` early exit, pinned
+		// to sit immediately after the unpack (so nothing can re-decide validBool in
+		// between) and to return on every path out of its body. Without them a single
+		// `CX = x` before the digit estimate leaves every other pin in this file holding
+		// while CX carries exponent bits, indexes the part of bid_power10_index_binexp_128
+		// the P5 check below does not cover, and collapses the band Theorem S is stated over.
+		p.pinWrites(t, fn, "CX", c.cxWrites)
+		p.pinNoNestedDecl(t, fn, "CX")
+		topIndex := func(what string, s ast.Stmt) int {
+			for i, st := range fn.Body.List {
+				if st == s {
+					return i
+				}
+			}
+			t.Fatalf("bid128_sqrt.go: %s: %s (line %d) is not a top-level statement of the function body",
+				c.fn, what, p.line(s))
+			return -1
+		}
+		unpack := p.stmtWithText(t, fn, c.unpack)
+		invalid := p.ifWithCond(t, fn, "!validBool")
+		ui := topIndex("the unpack", unpack)
+		if ui+1 >= len(fn.Body.List) || fn.Body.List[ui+1] != ast.Stmt(invalid) {
+			t.Fatalf("bid128_sqrt.go: %s: the `if !validBool` early exit (line %d) does not immediately follow the "+
+				"unpack (line %d), so validBool can be re-decided in between",
+				c.fn, p.line(invalid), p.line(unpack))
+		}
+		p.pinBlockAlwaysReturns(t, c.fn+": the !validBool early exit", invalid.Body)
+		if bi := topIndex("the band run", p.stmtWithText(t, fn, "f64_i := uint32(0x5f800000)")); bi <= ui+1 {
+			t.Fatalf("bid128_sqrt.go: %s: the band run starts at top-level statement %d, not after the !validBool "+
+				"early exit at %d", c.fn, bi, ui+1)
+		}
+		// Nothing may change CX from the unpack to the estimator call, which is what makes
+		// the C256 the estimator is handed the CX*10^scale of section 2. exponent_x is
+		// deliberately *not* closed the same way: the band derivation reads it only through
+		// `scale += exponent_q & 1`, and that conjunction yields p in {0,1} for every int
+		// value it could hold, both of which premise P7 below quantifies over. No bound on
+		// exponent_x enters the band.
+		p.noWriteBetween(t, fn, "CX", unpack, p.stmtWithText(t, fn, "CS = bid_long_sqrt128(C256)"))
+	}
+
+	// --- residual for the C256 write world just pinned: writes() sees assignments, inc/dec, ValueSpec initialisers and
+	// address-of, and a pointer-receiver method is none of those. `C256.trim()` on a `func (c *BID_UINT256) trim()` takes
+	// &C256 implicitly and can rewrite the value this section calls A, with no statement in either caller that the write
+	// census can see. The census below rules that out for the whole package.
+	pinTypeIsMethodFree(t, portPkg(t), "BID_UINT256", pinnedUint256Shape,
+		"a call `C256.<that method>()` on a pointer receiver rewrites C256 with no assignment, inc/dec or address-of "+
+			"for the pinned write world above to see, so A stops being CX*10^scale at the estimator call")
+
+	// --- anchor: the two unpackers, which is where the CX bounds come from and
+	// where this scan stops.
+	pi := loadPortFile(t, "bid128_internal.go")
+	unpack128 := pi.funcDecl(t, "unpack_BID128_value")
+	pi.blockWithRun(t, unpack128, []string{
+		"coeff := BID_UINT128{lo: x.lo, hi: x.hi & SMALL_COEFF_MASK128}",
+		"T34 := bid_power10_table_128[34]",
+		"if __unsigned_compare_ge_128(coeff, T34) { coeff.lo = 0 coeff.hi = 0 }",
+		"coefficient_x.lo = coeff.lo",
+		"coefficient_x.hi = coeff.hi",
+		"ex := x.hi >> 49",
+		"exponent_x = int(ex) & EXPONENT_MASK128",
+		"return sign_x, exponent_x, coefficient_x, (coeff.lo | coeff.hi) != 0",
+	})
+	pu := loadPortFile(t, "internal.go")
+	unpack64 := pu.funcDecl(t, "unpack_BID64")
+	pu.blockWithRun(t, unpack64, []string{
+		"if coefficient >= 10000000000000000 { coefficient = 0 }",
+		"tmp := x >> EXPONENT_SHIFT_LARGE64",
+		"exponent = int(tmp & EXPONENT_MASK64)",
+		"return sign, exponent, coefficient, coefficient != 0",
+	})
+	pu.blockWithRun(t, unpack64, []string{
+		"tmp := x >> EXPONENT_SHIFT_SMALL64",
+		"exponent = int(tmp & EXPONENT_MASK64)",
+		"coefficient = x & SMALL_COEFF_MASK64",
+		"return sign, exponent, coefficient, coefficient != 0",
+	})
+
+	// --- and the closed return census of each unpacker, which is what makes the two runs
+	// above a statement about every path out of them. Each run pins one coefficient-yielding
+	// exit; neither says anything about the special-encoding exits beside it, which hand back
+	// a coefficient no clamp has touched - unpack_BID64's NaN/Inf return carries `x &
+	// 0xfe03ffffffffffff`, far above 10^16 - and rely entirely on the valid flag being the
+	// literal false for the caller's pinned `if !validBool` exit to fire. Flipping one of those
+	// literals to true is a one-token edit that leaves every other pin in this file holding
+	// while CX carries an unclamped payload into the digit estimate and the band premise of
+	// section 2 collapses. The census is taken over the whole function rather than statement by
+	// statement because two of unpack_BID128_value's returns render identically, so no text
+	// locator can name either, and because a return added later has to fail here rather than
+	// be an exit nobody pinned.
+	pi.pinReturnWorld(t, unpack128, []string{
+		"return sign_x, exponent_x, coefficient_x, false",
+		"return sign_x, exponent_x, coefficient_x, false",
+		"return sign_x, exponent_x, coefficient_x, (coeff.lo | coeff.hi) != 0",
+	})
+	pu.pinReturnWorld(t, unpack64, []string{
+		"return sign, exponent, coefficient, false",
+		"return sign, exponent, coefficient, coefficient != 0",
+		"return sign, exponent, coefficient, coefficient != 0",
+	})
+
+	// --- premise P5, both halves over the two tables the digit correction reads:
+	// E[b] = D(2^b) and P[b] = 10^E[b]. Lemma D2 needs both - E alone decides the
+	// uncorrected digit count and P alone decides the decade correction - and a
+	// *coordinated* edit of the pair (E[b] moved, P[b] moved with it to 10^E[b])
+	// satisfies the second identity while breaking the first, so checking only
+	// P[b] = 10^E[b] would leave the band premise resting on a digit count nobody
+	// verified. The E half deliberately duplicates TestPortDigitEstimateTablesAreExact
+	// - the sibling table test that owns it port-wide - rather than being inherited
+	// from it, so this certificate fails on its own evidence if either table drifts.
+	//
+	// The P half is checked over exactly the reachable range and no further, because
+	// that identity does not hold table-wide: entries 118, 119, 121 and 122 fail it,
+	// and what keeps them out of reach is the CX bound pinned above, so widening the
+	// loop past maxUsedIndex would fail here rather than prove anything more. The E
+	// half does hold table-wide and is run one index further, to maxUsedIndex+1, so
+	// the check covers the whole j-range Lemma D2's minimum below is taken over.
+	const maxUsedIndex = 113 // BID128: CX < 10^34 < 2^113, and be' <= be+1
+	if len(bid_power10_index_binexp_128) <= maxUsedIndex || len(bid_estimate_decimal_digits) <= maxUsedIndex+1 {
+		t.Fatalf("digit tables are too short: estimate=%d (need > %d) index_binexp_128=%d (need > %d)",
+			len(bid_estimate_decimal_digits), maxUsedIndex+1, len(bid_power10_index_binexp_128), maxUsedIndex)
+	}
+	for b := 0; b <= maxUsedIndex+1; b++ {
+		if got, want := bid_estimate_decimal_digits[b], decDigits(pow2big(b)); got != want {
+			t.Fatalf("bid_estimate_decimal_digits[%d] = %d, but 2^%d has %d decimal digits", b, got, b, want)
+		}
+	}
+	for b := 0; b <= maxUsedIndex; b++ {
+		want := pow10big(bid_estimate_decimal_digits[b])
+		got := new(big.Int).Lsh(new(big.Int).SetUint64(bid_power10_index_binexp_128[b].hi), 64)
+		got.Or(got, new(big.Int).SetUint64(bid_power10_index_binexp_128[b].lo))
+		if got.Cmp(want) != 0 {
+			t.Fatalf("bid_power10_index_binexp_128[%d] = %s, want 10^%d = %s",
+				b, got, bid_estimate_decimal_digits[b], want)
+		}
+	}
+
+	// --- premise P4/P6, Lemma D2: the digit formula is exact whenever
+	// 2^j / 10^(D(2^j)-1) >= (1+2^-24)^2 for every j the callers can reach.
+	need := new(big.Rat).Mul(
+		new(big.Rat).Add(new(big.Rat).SetInt64(1), ratPow2(-24)),
+		new(big.Rat).Add(new(big.Rat).SetInt64(1), ratPow2(-24)))
+	worst, worstJ := (*big.Rat)(nil), 0
+	for j := 1; j <= maxUsedIndex+1; j++ {
+		v := new(big.Rat).SetFrac(pow2big(j), pow10big(decDigits(pow2big(j))-1))
+		if worst == nil || v.Cmp(worst) < 0 {
+			worst, worstJ = v, j
+		}
+	}
+	if worst.Cmp(need) < 0 {
+		t.Fatalf("Lemma D2 fails: min 2^j/10^(D(2^j)-1) = %s at j = %d, below (1+2^-24)^2 = %s",
+			worst.FloatString(9), worstJ, need.FloatString(9))
+	}
+
+	// --- premise P4: CX.hi < 2^49, so float32(CX.hi)*2^64 < 2^113 cannot
+	// overflow binary32 in the digit estimate.
+	if SMALL_COEFF_MASK128 != (uint64(1)<<49)-1 {
+		t.Fatalf("SMALL_COEFF_MASK128 = %#x, the certificate needs 2^49-1", uint64(SMALL_COEFF_MASK128))
+	}
+	// --- premise: the BID64 small path can only carry CX < 10^16.
+	if new(big.Int).SetUint64(SMALL_COEFF_MASK64).Cmp(pow10big(16)) >= 0 {
+		t.Fatalf("SMALL_COEFF_MASK64 = %#x is not below 10^16", uint64(SMALL_COEFF_MASK64))
+	}
+
+	// --- premise P5, third clause: the values behind every bid_power10_table_128
+	// index the band code can reach. The scale arithmetic under P7 below re-derives
+	// which indices are read - [33,38] on the scale <= 38 branch, [2,30] and the
+	// literal 37 on the scale > 38 branch - but an index range says nothing about
+	// what sits at those indices, and "C256 = CX*10^scale" is a claim about the
+	// values. unpack_BID128_value's canonicality test reads entry 34 on top of that.
+	// Checked over i = 0..38, the whole table and a superset of all three uses, so
+	// a single corrupted entry fails here rather than silently widening the band.
+	if len(bid_power10_table_128) <= 38 {
+		t.Fatalf("bid_power10_table_128 has %d entries, too few for the indices the band code reaches",
+			len(bid_power10_table_128))
+	}
+	for i := 0; i <= 38; i++ {
+		if want := big128(pow10big(i)); bid_power10_table_128[i] != want {
+			t.Fatalf("bid_power10_table_128[%d] = %016x%016x, want 10^%d = %016x%016x",
+				i, bid_power10_table_128[i].hi, bid_power10_table_128[i].lo, i, want.hi, want.lo)
+		}
+	}
+
+	// --- premise P7: scale range, no truncation in the scale > 38 branch, and
+	// the band itself. digits is the exact digit count D by Lemma D2, and CX
+	// ranges over [10^(D-1), 10^D) for that D.
+	lo, hi := pow10big(66), pow10big(68)
+	for _, entry := range []struct {
+		name   string
+		maxDig int
+	}{{"Bid128Sqrt", 34}, {"Bid128dSqrt", 16}} {
+		for d := 1; d <= entry.maxDig; d++ {
+			for pp := 0; pp <= 1; pp++ {
+				scale := 67 - d + pp
+				if scale < 33 || scale > 67 {
+					t.Fatalf("%s: D = %d, p = %d gives scale = %d outside [33,67]", entry.name, d, pp, scale)
+				}
+				if scale > 38 {
+					if idx := scale - 37; idx < 2 || idx >= len(bid_power10_table_128) {
+						t.Fatalf("%s: scale = %d indexes bid_power10_table_128[%d]", entry.name, scale, idx)
+					}
+					// __mul_128x128_low truncates above 2^128; the largest
+					// intermediate is (10^d - 1) * 10^(scale-37) < 10^(30+p).
+					top := new(big.Int).Mul(new(big.Int).Sub(pow10big(d), big.NewInt(1)), pow10big(scale-37))
+					if top.Cmp(pow2big(128)) >= 0 {
+						t.Fatalf("%s: D = %d, scale = %d: CX1 = %s overflows 128 bits, so __mul_128x128_low truncates",
+							entry.name, d, scale, top)
+					}
+				} else if scale >= len(bid_power10_table_128) {
+					t.Fatalf("%s: scale = %d indexes bid_power10_table_128 out of range", entry.name, scale)
+				}
+				bandLo := new(big.Int).Mul(pow10big(d-1), pow10big(scale))
+				bandHi := new(big.Int).Mul(new(big.Int).Sub(pow10big(d), big.NewInt(1)), pow10big(scale))
+				if bandLo.Cmp(lo) < 0 || bandHi.Cmp(hi) >= 0 {
+					t.Fatalf("%s: D = %d, p = %d gives C256 in [%s, %s], outside [10^66, 10^68)",
+						entry.name, d, pp, bandLo, bandHi)
+				}
+			}
+		}
+	}
+
+	// --- a corollary of P7's band rather than a premise of its own, so it carries no
+	// number here: the plan files it as its P9, but P9 in section 4 of this file is
+	// the term-bound rationals, and one number per claim is what makes the premise
+	// list readable. With C256 < 10^68 < 2^226 the top two bits of C256.w3 are zero,
+	// so C4 = 4*C256 at :306-309 / :549-552 is exact. Sites 16 and 19 do not read C4;
+	// it is checked because it is what separates this arm from its nearest-mode
+	// sibling, not because the deadness argument rests on it.
+	if hi.Cmp(pow2big(226)) >= 0 {
+		t.Fatalf("10^68 is not below 2^226; the C4 = 4*C256 shift can truncate")
+	}
+}
+
+// ratPow2 and ratPow10 build exact rationals for the error chain, so no step of
+// TestBid128SqrtEstimatorErrorBoundExcludesUndershoot is evaluated in the same
+// arithmetic it is reasoning about.
+func ratPow2(n int) *big.Rat {
+	if n >= 0 {
+		return new(big.Rat).SetInt(pow2big(n))
+	}
+	return new(big.Rat).SetFrac(big.NewInt(1), pow2big(-n))
+}
+
+func ratPow10(n int) *big.Rat { return new(big.Rat).SetInt(pow10big(n)) }
+
+func ratDec(t *testing.T, s string) *big.Rat {
+	t.Helper()
+	r, ok := new(big.Rat).SetString(s)
+	if !ok {
+		t.Fatalf("cannot parse rational %q", s)
+	}
+	return r
+}
+
+func ratAtMost(t *testing.T, label string, got, want *big.Rat) {
+	t.Helper()
+	if got.Cmp(want) > 0 {
+		t.Fatalf("%s: bound recomputes to %s, above the certificate's %s",
+			label, got.FloatString(24), want.FloatString(24))
+	}
+}
+
+// ratSqrtBounds brackets sqrt(v) between two exact rationals for a positive
+// rational v. Naming the technique because the choice is load-bearing: sqrt(p/q)
+// = sqrt(p*q)/q, so a single big.Int.Sqrt - a floor - plus an explicit +1 slack
+// at the 2^-g scale gives lo <= sqrt(v) < hi with both ends exact rationals. No
+// irrational and no float64 enters the chain, and every use below picks the end
+// that turns its inequality into an over-estimate: hi where sqrt(A) appears in a
+// numerator, lo where it appears in a denominator. g = 128 makes the bracket at
+// most 2^-128 wide - an absolute width, in the units of sqrt(v) rather than a
+// fraction of v; the exact width is 1/(q*2^128) for v = p/q - which is twenty
+// orders of magnitude below the
+// tightest margin any comparison in this test has to survive (|T3| clears its
+// pinned bound by 7.7e-8).
+func ratSqrtBounds(v *big.Rat) (lo, hi *big.Rat) {
+	const g = 128
+	scaled := new(big.Int).Mul(v.Num(), v.Denom())
+	s := new(big.Int).Sqrt(scaled.Lsh(scaled, 2*g))
+	den := new(big.Int).Mul(v.Denom(), pow2big(g))
+	return new(big.Rat).SetFrac(s, den), new(big.Rat).SetFrac(new(big.Int).Add(s, big.NewInt(1)), den)
+}
+
+// TestBid128SqrtEstimatorErrorBoundExcludesUndershoot recomputes the four term
+// bounds of section 3 as exact rationals and checks that the resulting interval
+// for sigma - sqrt(A) keeps CS at or above isqrt(A) on the whole reachable band.
+// Everything here is arithmetic over the plan's symbolic decomposition; the
+// decomposition itself is the hand proof the comment transcribes, and the source
+// it describes is pinned by TestBid128SqrtEstimatorSourceIsPinned.
+func TestBid128SqrtEstimatorErrorBoundExcludesUndershoot(t *testing.T) {
+	one := new(big.Rat).SetInt64(1)
+	u := ratPow2(-53)
+
+	// Band endpoint: A < 10^68, so sqrt(A) <= 10^34 exactly. Used by every term
+	// whose bound depends on A alone; T3 below needs the joint (A,kappa) treatment
+	// instead and does not read this.
+	sqrtAMax := ratPow10(34)
+
+	// (E1)+(E2): |e| <= 4u + |d| + 13u^2 with |d| <= 2^(kappa-53)/A + 2^-81, and
+	// 2^kappa/A <= 1 + 2^-80 from |v3+p2 - A| <= 2^138 + 2^129 and A > 2^219.2.
+	eMax := new(big.Rat).Mul(new(big.Rat).SetInt64(4), u)
+	eMax.Add(eMax, new(big.Rat).Mul(new(big.Rat).Add(one, ratPow2(-80)), u))
+	eMax.Add(eMax, ratPow2(-81))
+	eMax.Add(eMax, new(big.Rat).Mul(new(big.Rat).SetInt64(13), new(big.Rat).Mul(u, u)))
+	ratAtMost(t, "|e|", eMax, ratDec(t, "5.6e-16"))
+
+	// P8: ey in {110..113}, hence every shift count in the pinned body lies in
+	// (0,64). ly_d is within (1 +- 3u) of 1/sqrt(A) (one rounding in sqrt, one in
+	// the divide, plus |d| <= ~u), so it suffices that
+	// (1+3u)^2 * 2^218 < 10^66 and (1-3u)^2 * 2^226 >= 10^68.
+	up := new(big.Rat).Add(one, new(big.Rat).Mul(new(big.Rat).SetInt64(3), u))
+	dn := new(big.Rat).Sub(one, new(big.Rat).Mul(new(big.Rat).SetInt64(3), u))
+	if new(big.Rat).Mul(new(big.Rat).Mul(up, up), ratPow2(218)).Cmp(ratPow10(66)) >= 0 {
+		t.Fatal("ey can fall below 110; the shift counts at :136-137 are no longer pinned to (0,64)")
+	}
+	if new(big.Rat).Mul(new(big.Rat).Mul(dn, dn), ratPow2(226)).Cmp(ratPow10(68)) < 0 {
+		t.Fatal("ey can exceed 113; the shift counts at :189-190 are no longer pinned to (0,64)")
+	}
+	for ey := 110; ey <= 113; ey++ {
+		for _, sh := range []int{2*ey - 216 + 1, 64 - (2*ey - 216) - 1, 2*ey - 216, 64 - (2*ey - 216), ey - 77, 64 - (ey - 77)} {
+			if sh <= 0 || sh >= 64 {
+				t.Fatalf("ey = %d yields a shift count of %d, outside (0,64)", ey, sh)
+			}
+		}
+	}
+
+	// T3, the dominant term. |T3| <= 3.5 * 2^-118 * (1+2^-51) * F with
+	// F = |e|*2^53*sqrt(A). Writing (E1)+(E2) out and keeping (E1)'s 2^kappa/A
+	// slack as an explicit (1+2^-80) factor rather than dropping it:
+	//
+	//	F(A,kappa) <= 4*sqrt(A) + (1+2^-80)*2^kappa/sqrt(A)
+	//	              + 2^-28*sqrt(A) + 13*2^-53*sqrt(A)
+	//
+	// - 4 sqrt(A) from the 4u of (E2); the second term is u*(2^kappa/A)*2^53*sqrt(A),
+	// which is exactly 2^kappa/sqrt(A), so the (1+2^-80) in front of it is pure extra
+	// conservatism rather than a step the derivation needs - that same slack is
+	// load-bearing further down, where it widens each binade's A-range - and the last
+	// two carry (E1)'s additive 2^-81 times 2^53 and (E2)'s 13u^2 explicitly instead
+	// of absorbing them into a (1+2^-50) factor as the plan's write-up does.
+	//
+	// This maximum is JOINT in (A,kappa) and has to be taken that way. Term by term
+	// it is not reachable: 2^kappa/sqrt(A) alone peaks at 2^112.5 = 7.343e33 at a
+	// binade's left edge, 36% above the 5.392e33 the maximising pair actually
+	// produces, and summing per-term maxima gives 4.734e34, which would carry |T3|
+	// to 0.4986 and break both the pinned bound and the load-bearing margin. The
+	// two leading terms move against each other, so the maximum is taken per binade
+	// and then over binades:
+	//
+	//	F_kappa = F(A_r(kappa), kappa),  A_r(kappa) = the right end of kappa's A-range
+	//
+	// which is where F sits because F is *increasing* in A inside a binade:
+	// dF/dA = (4 + 2^-28 + 13*2^-53)/(2 sqrt(A)) - (1+2^-80)*2^kappa/(2 A^(3/2)) is
+	// positive as soon as (1+2^-80)*2^kappa <= 4*A, and A never drops below
+	// 2^kappa*(1-2^-80). That inequality is checked per binade below, not asserted.
+	//
+	// kappa indexes the binade of v3+p2, not of A, and step 1 gives
+	// |v3+p2 - A| <= 2^138+2^129 < 2^-80*A on the band. So the admissible kappa are
+	// those whose binade meets [10^66*(1-2^-80), 10^68*(1+2^-80)) - derived below,
+	// not assumed - and for each of them A ranges over
+	// [2^kappa*(1-2^-80), 2^(kappa+1)/(1-2^-80)) intersected with the band - the low
+	// end below 2^kappa and the high end above 2^(kappa+1) by that same slack, which
+	// is what covers the kappa-slack corner where v3+p2 lands one binade above A's
+	// own. 1/(1-2^-80) is used through its over-bound 1+2^-79, checked below.
+	slackUp := new(big.Rat).Add(one, ratPow2(-80))
+	slackDn := new(big.Rat).Sub(one, ratPow2(-80))
+	widen := new(big.Rat).Add(one, ratPow2(-79)) // 1/(1-2^-80) < 1+2^-79
+	if new(big.Rat).Mul(slackDn, widen).Cmp(one) < 0 {
+		t.Fatal("(1-2^-80)*(1+2^-79) < 1, so 1+2^-79 is not an over-bound of 1/(1-2^-80)")
+	}
+	var kappas []int
+	for k := 0; k <= 512; k++ {
+		if ratPow2(k).Cmp(new(big.Rat).Mul(ratPow10(68), slackUp)) < 0 &&
+			ratPow2(k+1).Cmp(new(big.Rat).Mul(ratPow10(66), slackDn)) > 0 {
+			kappas = append(kappas, k)
+		}
+	}
+	if len(kappas) == 0 || kappas[0] != 219 || kappas[len(kappas)-1] != 225 {
+		t.Fatalf("the binades v3+p2 can occupy over [10^66,10^68) came out as %v, not {219..225}", kappas)
+	}
+	// The sub-leading pair of F, which rides on sqrt(A) exactly like the 4u term.
+	fSub := new(big.Rat).Add(ratPow2(-28), new(big.Rat).Mul(new(big.Rat).SetInt64(13), ratPow2(-53)))
+	// fOf evaluates the F bound at the right end aR of an A-interval on which F is
+	// increasing, so it is the maximum over that interval. The sqrt bracket is used
+	// in the direction that over-estimates: its high end multiplies (4+sub), its low
+	// end divides 2^kappa.
+	fOf := func(aR *big.Rat, kappa int) *big.Rat {
+		sLo, sHi := ratSqrtBounds(aR)
+		f := new(big.Rat).Mul(new(big.Rat).Add(new(big.Rat).SetInt64(4), fSub), sHi)
+		return f.Add(f, new(big.Rat).Quo(new(big.Rat).Mul(slackUp, ratPow2(kappa)), sLo))
+	}
+	fMax, fMaxKappa, cornerMax := (*big.Rat)(nil), 0, (*big.Rat)(nil)
+	for _, k := range kappas {
+		aLo := new(big.Rat).Mul(ratPow2(k), slackDn)
+		if aLo.Cmp(ratPow10(66)) < 0 {
+			aLo = ratPow10(66)
+		}
+		aHi := new(big.Rat).Mul(ratPow2(k+1), widen)
+		if aHi.Cmp(ratPow10(68)) > 0 {
+			aHi = ratPow10(68)
+		}
+		// Monotonicity of F in A over [aLo, aHi], the step that puts the per-binade
+		// maximum at aHi. Checked in the stronger form (1+2^-80)*2^kappa <= 4*aLo.
+		if new(big.Rat).Mul(slackUp, ratPow2(k)).Cmp(new(big.Rat).Mul(new(big.Rat).SetInt64(4), aLo)) > 0 {
+			t.Fatalf("F is not increasing in A on binade kappa = %d: (1+2^-80)*2^kappa exceeds 4*A at the low end %s",
+				k, aLo.FloatString(0))
+		}
+		f := fOf(aHi, k)
+		if fMax == nil || f.Cmp(fMax) > 0 {
+			fMax, fMaxKappa = f, k
+		}
+		// The kappa-slack corner, checked rather than argued: A just below 2^kappa,
+		// where v3+p2 has rounded up into the next binade and kappa sits one above A's
+		// own. That is where the 2^kappa/sqrt(A) term is largest *relative* to
+		// sqrt(A), and F degenerates to the (4 + 1 + 2^-80 + 2^-28 + 13*2^-53)*sqrt(A)
+		// shape. The corner interval [2^kappa*(1-2^-80), 2^kappa] lies inside
+		// [aLo,aHi] and F is increasing on it by the same check, so its maximum is F
+		// at A = 2^kappa; where the band's own lower end has clamped aLo above it the
+		// interval is empty and this is an over-estimate of nothing. It is evaluated
+		// separately because it is the only place the binade index and A's own binade
+		// disagree, and its value has to stay under the maximum found here for the
+		// monotonicity step to have covered it.
+		corner := fOf(ratPow2(k), k)
+		if cornerMax == nil || corner.Cmp(cornerMax) > 0 {
+			cornerMax = corner
+		}
+	}
+	if fMaxKappa != 225 {
+		t.Fatalf("the F maximum moved to binade kappa = %d; section 3's constants are stated for kappa = 225 "+
+			"with A capped at 10^68 by the band, not by 2^226", fMaxKappa)
+	}
+	ratAtMost(t, "F at the kappa-slack corner", cornerMax, fMax)
+	t3 := new(big.Rat).Mul(ratDec(t, "3.5"), fMax)
+	t3.Mul(t3, new(big.Rat).Add(one, ratPow2(-51)))
+	t3.Quo(t3, ratPow2(118))
+	ratAtMost(t, "|T3|", t3, ratDec(t, "0.478088"))
+
+	// T2 = A*RS*phi/2^128 with phi in [0,1), so 0 <= T2 <= sqrt(A)(1+2^-51)/2^128.
+	t2 := new(big.Rat).Mul(sqrtAMax, new(big.Rat).Add(one, ratPow2(-51)))
+	t2.Quo(t2, ratPow2(128))
+	ratAtMost(t, "T2", t2, ratDec(t, "2.939e-5"))
+
+	// T4 = -(alpha - g*beta + ES2*beta)/2^(ey-12), |alpha|,|beta| < 1, ey >= 110.
+	h := new(big.Rat).Mul(eMax, ratPow2(63))
+	// Step 5 bounds the e < 0 edge case at h <= H + 2^-64; +1 is that over-bound rounded
+	// up to a whole unit, which is also the slack T3's positive side below spends.
+	hMax := new(big.Rat).Add(h, one)
+	es2Max := new(big.Rat).Mul(ratDec(t, "1.5"), new(big.Rat).Mul(hMax, hMax))
+	gMax := new(big.Rat).Mul(eMax, ratPow2(127))
+	t4 := new(big.Rat).Add(one, gMax)
+	t4.Add(t4, es2Max)
+	t4.Quo(t4, ratPow2(98))
+	ratAtMost(t, "|T4|", t4, ratDec(t, "3.1e-7"))
+
+	// T1 = sqrt(A)*(sqrt(1+e)(1-e/2+3e^2/8) - 1), tail bounded by 0.3126|e|^3.
+	t1 := new(big.Rat).Mul(eMax, new(big.Rat).Mul(eMax, eMax))
+	t1.Mul(t1, ratDec(t, "0.3126"))
+	t1.Mul(t1, sqrtAMax)
+	ratAtMost(t, "|T1|", t1, ratDec(t, "5.5e-13"))
+
+	// T3's positive side: ES2 - 1.5H^2 <= 3H*2^-64, the 2^-64 coming from step 5's bound
+	// |H - h| < 2^-64 on the e < 0 edge case - the only case in which the expression is
+	// positive at all. Evaluating it at hMax rather than H covers the 1.5*2^-128 residue
+	// section 3 drops from the stated constant, with a whole unit of H to spare.
+	t3pos := new(big.Rat).Mul(sqrtAMax, new(big.Rat).Add(one, ratPow2(-51)))
+	t3pos.Mul(t3pos, new(big.Rat).Mul(new(big.Rat).SetInt64(3), hMax))
+	t3pos.Quo(t3pos, ratPow2(192))
+	ratAtMost(t, "T3 (positive side)", t3pos, ratDec(t, "2.5e-20"))
+
+	// The interval for sigma - sqrt(A).
+	lower := new(big.Rat).Neg(new(big.Rat).Add(t3, new(big.Rat).Add(t4, t1)))
+	upper := new(big.Rat).Add(t2, new(big.Rat).Add(t4, new(big.Rat).Add(t1, t3pos)))
+	if lower.Cmp(new(big.Rat).Neg(ratDec(t, "0.478089"))) < 0 {
+		t.Fatalf("sigma - sqrt(A) can reach %s, below the certificate's -0.478089", lower.FloatString(24))
+	}
+	ratAtMost(t, "sigma - sqrt(A), upper end", upper, ratDec(t, "2.970e-5"))
+
+	// (E3): sigma >= sqrt(A) + lower >= M + lower > M - 1/2, so CS >= M.
+	half := new(big.Rat).SetFrac64(1, 2)
+	margin := new(big.Rat).Sub(half, new(big.Rat).Neg(lower))
+	if margin.Sign() <= 0 {
+		t.Fatalf("the undershoot bound has no margin left: |lower| = %s vs 1/2", new(big.Rat).Neg(lower).FloatString(24))
+	}
+	// Section 3 states the margin as 0.021911; the floor checked here is the rounded-
+	// down 0.0219, and the message quotes that floor rather than the stated value.
+	const marginFloor = "0.0219"
+	if margin.Cmp(ratDec(t, marginFloor)) < 0 {
+		t.Fatalf("the load-bearing margin shrank to %s, below the certificate's floor of %s",
+			margin.FloatString(9), marginFloor)
+	}
+	// (E4): sigma <= sqrt(A) + upper < (M+1) + upper < M + 3/2, so CS <= M+1.
+	if upper.Cmp(half) >= 0 {
+		t.Fatalf("the overshoot bound %s no longer keeps sigma below M + 3/2", upper.FloatString(24))
+	}
+}
+
+// TestBid128SqrtDirectedUndershootArmsAreUnreachable certifies audit sites 16
+// (bid128_sqrt.go:423, CS.lo++ in Bid128Sqrt) and 19 (bid128_sqrt.go:661,
+// CS.hi++ in Bid128dSqrt): both sit behind the directed-rounding guard
+// (CS+1)^2 <= C256, which Theorem S makes false on every reachable input.
+//
+// Sites 17 (:571) and 18 (:646) are deliberately outside this certificate and
+// are not claimed by it; they remain open pending an exact sweep that is
+// currently running. The pins here leave site 17's increment operator free for
+// that reason, but site 18's cascade is pinned exactly, since site19's own
+// (CS+1)^2 premise is what that cascade builds - see the boundary note above
+// pinnedSqrtCSWrites.
+func TestBid128SqrtDirectedUndershootArmsAreUnreachable(t *testing.T) {
+	p := loadPortFile(t, "bid128_sqrt.go")
+
+	// --- residual for every write world and no-write scan below: they are AST scans for assignments, inc/dec, ValueSpec
+	// initialisers and address-of, and a pointer-receiver method call is none of those shapes. `CS.m()` on a
+	// `func (c *BID_UINT128) m()` takes &CS implicitly and can rewrite CS between the estimator call and the guard with
+	// no statement here for either scan to record. Both censuses run in this certificate rather than being inherited
+	// from certificate 5, so this one fails on its own: CS is a BID_UINT128 and C256 is a BID_UINT256.
+	files := portPkg(t)
+	pinTypeIsMethodFree(t, files, "BID_UINT128", pinnedUint128Shape,
+		"a call `CS.<that method>()` on a pointer receiver rewrites CS with no assignment, inc/dec or address-of for "+
+			"the pinned write world and the no-write scans below to see")
+	pinTypeIsMethodFree(t, files, "BID_UINT256", pinnedUint256Shape,
+		"a call `C256.<that method>()` on a pointer receiver rewrites C256 with no assignment, inc/dec or address-of "+
+			"for the no-write scans below to see, so the guard stops reading the A the estimator was handed")
+
+	for _, c := range []struct {
+		fn        string
+		siteLabel string
+	}{
+		{"Bid128Sqrt", "site16 (bid128_sqrt.go:423)"},
+		{"Bid128dSqrt", "site19 (bid128_sqrt.go:661)"},
+	} {
+		fn := p.funcDecl(t, c.fn)
+
+		// --- anchor: the closed world of writes to CS, so no correction outside
+		// the pinned rounding paths can reach the guard's operand.
+		csWrites := p.pinWriteWorld(t, fn, "CS", pinnedSqrtCSWrites(c.fn))
+		p.pinNoNestedDecl(t, fn, "CS")
+		p.pinNoGoto(t, fn)
+
+		// --- boundary: single-pass execution of the whole caller. Theorem S bounds
+		// the *raw* estimator return, and the deadness argument needs the guard to
+		// evaluate (CS+1)^2 on exactly that value. The closed CS-write world above
+		// says which statements may write CS and the dominating chain below says
+		// under which conditions each of them runs; it takes no-goto plus no-loop to
+		// turn that pair into the straight-line dataflow fact the argument actually
+		// uses, that the estimator call is the last write to CS the guard can see.
+		// The scan is the whole function rather than the site's dominators because
+		// guardPath already renders a loop that lexically encloses the certified
+		// increment (as a "for" conjunct) and fails closed on a range: what it cannot
+		// see is a loop that re-enters the estimator call and the guard-feeding
+		// cascade *without* enclosing the increment, which leaves every other pin in
+		// this test passing while the guard reads a CS from an earlier pass.
+		p.pinNoLoops(t, fn)
+
+		call := p.stmtWithText(t, fn, "CS = bid_long_sqrt128(C256)")
+
+		// --- anchor: the mode split, and the fact that the certified arm lives in
+		// its else. The nearest path (rnd_mode & 3 == 0) has its own round-up at
+		// :328 / :569, which is a different mutation site and is not certified here.
+		modeSplit := p.ifWithCond(t, fn, "(rnd_mode & 3) == 0")
+		if p.line(modeSplit) <= p.line(call) {
+			t.Fatalf("bid128_sqrt.go: %s: the mode split (line %d) does not follow the estimator call (line %d)",
+				c.fn, p.line(modeSplit), p.line(call))
+		}
+		p.noWriteBetween(t, fn, "CS", call, modeSplit)
+		p.noWriteBetween(t, fn, "C256", call, modeSplit)
+
+		directed := p.elseBlock(t, c.siteLabel+": directed-rounding arm", modeSplit)
+		p.pinStmtCount(t, c.siteLabel+": directed-rounding arm", directed, 5)
+		p.pinRun(t, c.siteLabel+": M256 = CS^2 and C8 = 2*CS", directed, 0, []string{
+			"M256 = __sqr128_to_256(CS)",
+			"C8.w1 = (CS.hi << 1) | (CS.lo >> 63)",
+			"C8.w0 = CS.lo << 1",
+		})
+		p.pinNode(t, c.siteLabel+": BID_ROUNDING_UP tail", p.stmtAt(t, "directed arm", directed, 4),
+			"if rnd_mode == BID_ROUNDING_UP { CS.lo++ if CS.lo == 0 { CS.hi++ } }")
+
+		// --- anchor: the CS^2 > C256 test. The certified arm is its else, i.e.
+		// the branch on which CS^2 <= C256 already holds.
+		overshoot := p.asIf(t, c.siteLabel+": CS^2 > C256 test", p.stmtAt(t, "directed arm", directed, 3))
+		p.pinNode(t, c.siteLabel+": CS^2 > C256 condition", overshoot.Cond, pinnedSqrtOvershootCond)
+		p.pinComparisonOps(t, c.siteLabel+": CS^2 > C256 condition", overshoot.Cond, []token.Token{
+			token.GTR, token.EQL, token.GTR, token.EQL, token.GTR, token.EQL, token.GTR,
+		})
+		p.noWriteBetween(t, directed, "M256", p.stmtAt(t, "directed arm", directed, 0), overshoot)
+		p.noWriteBetween(t, directed, "CS", p.stmtAt(t, "directed arm", directed, 0), overshoot)
+
+		// --- anchor: the M256 <- CS^2 + 2*CS + 1 cascade and the guard it feeds.
+		under := p.elseBlock(t, c.siteLabel+": undershoot arm", overshoot)
+		p.pinStmtCount(t, c.siteLabel+": undershoot arm", under, len(pinnedSqrtPlusOneBuild)+2)
+		p.pinRun(t, c.siteLabel+": (CS+1)^2 build", under, 0, pinnedSqrtPlusOneBuild)
+		cascade := p.stmtAt(t, "undershoot arm", under, len(pinnedSqrtPlusOneBuild))
+		p.pinNode(t, c.siteLabel+": (CS+1)^2 carry cascade", cascade, pinnedSqrtPlusOneCascade)
+		guard := p.asIf(t, c.siteLabel+": (CS+1)^2 <= C256 guard",
+			p.stmtAt(t, "undershoot arm", under, len(pinnedSqrtPlusOneBuild)+1))
+		p.pinNode(t, c.siteLabel+": (CS+1)^2 <= C256 guard", guard.Cond, pinnedSqrtUndershootCond)
+		p.pinComparisonOps(t, c.siteLabel+": (CS+1)^2 <= C256 guard", guard.Cond, []token.Token{
+			token.LSS, token.EQL, token.LSS, token.EQL, token.LSS, token.EQL, token.LEQ,
+		})
+		// Nothing may change CS or C256 while (CS+1)^2 is being built, and nothing
+		// may change M256 between the last cascade statement and the comparison.
+		p.noWriteBetween(t, under, "CS", p.stmtAt(t, "undershoot arm", under, 0), guard)
+		p.noWriteBetween(t, under, "C256", p.stmtAt(t, "undershoot arm", under, 0), guard)
+		p.noWriteBetween(t, under, "M256", cascade, guard)
+
+		// --- the dead region itself.
+		p.pinStmtCount(t, c.siteLabel+": dead region", guard.Body, 2)
+		p.pinIncrement(t, c.siteLabel+": low-word round up", p.stmtAt(t, "dead region", guard.Body, 0), "CS.lo")
+		carry := p.asIf(t, c.siteLabel+": carry into the high word", p.stmtAt(t, "dead region", guard.Body, 1))
+		p.pinNode(t, c.siteLabel+": carry condition", carry.Cond, "CS.lo == 0")
+		p.pinStmtCount(t, c.siteLabel+": carry body", carry.Body, 1)
+		p.pinIncrement(t, c.siteLabel+": high-word carry", p.stmtAt(t, "carry body", carry.Body, 0), "CS.hi")
+
+		// --- the certified mutation site, located inside the closed write world
+		// so that the two increments cannot drift apart from the pinned list.
+		site := carry.Body.List[0]
+		if c.fn == "Bid128Sqrt" {
+			site = guard.Body.List[0]
+		}
+		found := false
+		for _, w := range csWrites {
+			if w.pos == site.Pos() {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("bid128_sqrt.go: %s: the certified increment at line %d is not one of the pinned writes to CS",
+				c.fn, p.line(site))
+		}
+
+		// --- the guard's full dominating chain, rendered from the AST rather than
+		// restated: it is exactly the firing predicate of section 1.
+		wantGuards := "!((rnd_mode & 3) == 0) && !(" + pinnedSqrtOvershootCond + ") && " + pinnedSqrtUndershootCond
+		if c.fn == "Bid128dSqrt" {
+			wantGuards += " && CS.lo == 0"
+		}
+		if got := p.guardPath(t, fn, site); got != wantGuards {
+			t.Fatalf("bid128_sqrt.go: %s: the dominating chain of the certified increment drifted\n got: %s\nwant: %s",
+				c.fn, got, wantGuards)
+		}
+	}
+
+	// --- the arithmetic step the certificate closes with. Theorem S gives CS in
+	// {M, M+1} with M = isqrt(A), and for either value (CS+1)^2 >= (M+1)^2 > A, so
+	// the pinned guard is false. Checked at the band's boundaries rather than
+	// sampled: for each endpoint the residue window [M^2, M^2+2M] on which isqrt is
+	// M is taken at its extremes, the last being the largest A that guard could ever
+	// be evaluated at for that M.
+	one := big.NewInt(1)
+	for _, endpoint := range []*big.Int{pow10big(66), pow10big(67), new(big.Int).Sub(pow10big(68), one)} {
+		m := new(big.Int).Sqrt(endpoint)
+		msq := new(big.Int).Mul(m, m)
+		for _, off := range []*big.Int{new(big.Int), m, new(big.Int).Lsh(m, 1)} {
+			a := new(big.Int).Add(msq, off)
+			if got := new(big.Int).Sqrt(a); got.Cmp(m) != 0 {
+				t.Fatalf("isqrt(%s) = %s, expected the window of %s", a, got, m)
+			}
+			for d := 1; d <= 2; d++ { // CS = M and CS = M+1, so CS+1 = M+d
+				next := new(big.Int).Add(m, big.NewInt(int64(d)))
+				if next.Mul(next, next); next.Cmp(a) <= 0 {
+					t.Fatalf("(CS+1)^2 <= A for A = %s with CS = isqrt(A)+%d; Theorem S would not exclude the arm",
+						a, d-1)
 				}
 			}
 		}
