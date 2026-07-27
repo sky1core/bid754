@@ -29,7 +29,9 @@ jobs:
 
       - name: Set up Rust
         run: |
-          rustup toolchain install stable --profile minimal
+          # The minimal profile omits clippy, which make test-rust runs as the
+          # lint gate for the generated public API; request it explicitly.
+          rustup toolchain install stable --profile minimal --component clippy
           rustup default stable
 
       - name: Set up Java
@@ -66,6 +68,7 @@ jobs:
           go version
           rustc --version
           cargo --version
+          cargo clippy --version
           javac -version
           java -version
           python3 --version
@@ -143,7 +146,9 @@ jobs:
 
       - name: Set up Rust
         run: |
-          rustup toolchain install stable --profile minimal
+          # The minimal profile omits clippy, which make test-rust runs as the
+          # lint gate for the generated public API; request it explicitly.
+          rustup toolchain install stable --profile minimal --component clippy
           rustup default stable
 
       - name: Verify toolchains
@@ -151,6 +156,8 @@ jobs:
           go version
           uname -m
           rustc --version
+          cargo --version
+          cargo clippy --version
 
       # Pinned-archive cache (see the portable-test job for the full rationale):
       # keyed on the provisioning script hash, OS-agnostic, sha256 re-verified

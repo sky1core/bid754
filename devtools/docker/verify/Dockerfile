@@ -40,9 +40,11 @@ RUN set -eu; \
 # s390x image skips Rust: its only consumer is the Go-only digest-s390x
 # big-endian leg, and installing a toolchain under qemu-s390x emulation
 # would add substantial image-build time for gates that never run there.
+# The minimal profile omits clippy, which make test-rust runs as the lint
+# gate for the generated public API, so request the component explicitly.
 RUN set -eu; \
     if [ "$TARGETARCH" != "s390x" ]; then \
-        curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable; \
+        curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --component clippy; \
     fi
 
 ENV PATH=/usr/local/go/bin:/root/.cargo/bin:$PATH

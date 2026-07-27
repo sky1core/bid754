@@ -864,3 +864,92 @@ func TestLoadGoConstantLiteralsRejectsBuildVariantLiteralConflict(t *testing.T) 
 		t.Fatalf("loadGoConstantLiterals(build-tag literal conflict) error = %v, want conflict rejection", err)
 	}
 }
+
+// The public API subtree carries a no-panic contract, and `&s[a..b]` on a &str
+// panics on a non-boundary index. Clippy's type-aware string_slice restriction
+// lint is what enforces that (make test-rust runs cargo clippy), so mod.rs must
+// keep forbidding it at module scope: forbid, not deny, so no inner attribute
+// can re-allow it, and placed before the first item so it covers the whole
+// subtree. Losing the attribute would silently disarm that gate.
+func TestBuildModRsForbidsStringSliceAtModuleScope(t *testing.T) {
+	const want = "#![forbid(clippy::string_slice)]"
+
+	out := buildModRs([]string{"context.rs", "types.rs"})
+
+	lines := strings.Split(out, "\n")
+	attrIndex, firstItemIndex := -1, -1
+	for i, line := range lines {
+		if line == want && attrIndex == -1 {
+			attrIndex = i
+		}
+		if strings.HasPrefix(line, "mod ") && firstItemIndex == -1 {
+			firstItemIndex = i
+		}
+	}
+	if attrIndex == -1 {
+		t.Fatalf("buildModRs output missing %q; the Clippy string-slice gate would be silently disarmed:\n%s", want, out)
+	}
+	if firstItemIndex == -1 {
+		t.Fatalf("buildModRs output declared no `mod` item:\n%s", out)
+	}
+	if attrIndex > firstItemIndex {
+		t.Fatalf("buildModRs put %q at line %d, after the first item at line %d; an inner attribute must precede all items to scope the whole subtree", want, attrIndex+1, firstItemIndex+1)
+	}
+	// A `deny`/`allow` variant would compile but let a later inner attribute
+	// re-enable string slicing, so pin the level word too.
+	if strings.Contains(out, "deny(clippy::string_slice)") || strings.Contains(out, "allow(clippy::string_slice)") {
+		t.Fatalf("buildModRs weakened the string_slice level away from forbid:\n%s", out)
+	}
+}
+
+// The forbid attribute above is only enforced if something actually runs
+// Clippy, and the `-D unknown_lints -D renamed_and_removed_lints` tail is what
+// keeps a renamed or removed lint from being swallowed by `-A warnings`. Pin
+// the whole invocation inside the test-rust recipe: a matching comment or a
+// match in some other target must not satisfy this test.
+func TestMakefileTestRustRunsHardenedClippy(t *testing.T) {
+	// Exact executed recipe line, tab and subshell wrapper included: a comment or
+	// `@true # ...` line that merely mentions the command must not satisfy this.
+	const wantLine = "\t@(cd bid754-rs && cargo clippy --locked --lib -- -A warnings -D unknown_lints -D renamed_and_removed_lints)"
+
+	path := filepath.Join("..", "..", "..", "..", "Makefile")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+
+	lines := strings.Split(string(data), "\n")
+	start := -1
+	for i, line := range lines {
+		if line == "test-rust:" {
+			start = i + 1
+			break
+		}
+	}
+	if start == -1 {
+		t.Fatalf("%s has no `test-rust:` target line", path)
+	}
+
+	matches := 0
+	body := 0
+	for _, line := range lines[start:] {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		// A recipe line is indented; the first non-indented nonblank line ends
+		// the target body.
+		if !strings.HasPrefix(line, "\t") && !strings.HasPrefix(line, " ") {
+			break
+		}
+		body++
+		if line == wantLine {
+			matches++
+		}
+	}
+	if body == 0 {
+		t.Fatalf("%s: test-rust target body is empty", path)
+	}
+	if matches != 1 {
+		t.Fatalf("%s: test-rust body has %d lines exactly equal to %q, want exactly 1", path, matches, wantLine)
+	}
+}

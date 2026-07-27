@@ -121,6 +121,13 @@ verify-go-modules:
 test-rust:
 	@echo "🧪 Rust portable 테스트 실행 (Intel BID 불요, 고정 벡터)..."
 	@mkdir -p test_results
+	@echo "🔒 생성 public API의 lint 계약(clippy) 실행..."
+	@# generated/api/mod.rs가 모듈 범위로 forbid하는 lint(clippy::string_slice 등)를
+	@# 실제로 집행한다. `-A warnings`는 그 밖의 clippy 잡음만 끄며, 소스의
+	@# forbid 속성은 명령줄 lint 플래그보다 우선하므로 무력화되지 않는다.
+	@# lint 이름이 개명/삭제되면 `-A warnings`가 그 경고까지 삼켜 게이트가 조용히
+	@# 무력화되므로, unknown_lints/renamed_and_removed_lints만 deny로 되살린다.
+	@(cd bid754-rs && cargo clippy --locked --lib -- -A warnings -D unknown_lints -D renamed_and_removed_lints)
 	@bash -o pipefail -c '(cd bid754-rs && cargo test --locked) | tee test_results/latest_rust_test_results.txt'
 	@$(MAKE) verify-rust-benchmark-registry
 

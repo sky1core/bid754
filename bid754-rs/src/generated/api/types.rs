@@ -407,12 +407,15 @@ pub(crate) fn parse_bid_nan_literal(input: &str) -> Option<BidNaNLiteral> {
         return None;
     }
     let lower = rest.to_ascii_lowercase();
+    // to_ascii_lowercase is byte-length preserving, so a prefix match on the
+    // lowercased copy fixes the same ASCII byte count in rest; the total get
+    // cut keeps that reasoning off the panicking indexing path.
     let (signaling, payload) = if lower.starts_with("snan") {
-        (true, &rest[4..])
+        (true, rest.get(4..)?)
     } else if lower.starts_with("qnan") {
-        (false, &rest[4..])
+        (false, rest.get(4..)?)
     } else if lower.starts_with("nan") {
-        (false, &rest[3..])
+        (false, rest.get(3..)?)
     } else {
         return None;
     };

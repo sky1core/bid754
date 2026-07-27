@@ -1066,8 +1066,10 @@ struct BidFiniteLiteral {
 /// and huge fractional counts exact while they cancel.
 fn parse_bid_finite_literal(input: &str) -> Option<BidFiniteLiteral> {
     let mut rest = input.trim_start_matches(|c| c == ' ' || c == '\t');
-    if rest.starts_with('+') || rest.starts_with('-') {
-        rest = &rest[1..];
+    if let Some(after) = rest.strip_prefix('+') {
+        rest = after;
+    } else if let Some(after) = rest.strip_prefix('-') {
+        rest = after;
     }
     if rest.eq_ignore_ascii_case("inf") || rest.eq_ignore_ascii_case("infinity") {
         return Some(BidFiniteLiteral { quantum: None, coefficient_digits: 0 });

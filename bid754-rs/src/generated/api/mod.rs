@@ -7,6 +7,7 @@
 
 #![forbid(unsafe_code)]
 #![deny(arithmetic_overflow, overflowing_literals)]
+#![forbid(clippy::string_slice)]
 
 mod context;
 mod decimal128;
