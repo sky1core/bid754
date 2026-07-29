@@ -17,7 +17,7 @@ import (
 // conversion returns a fixed per-target-type sentinel and a NaN-to-float or
 // NaN-to-decimal conversion returns a NaN; the rejection mirrors exactly that
 // value so no sentinel is guessed. A decimal-producing surface that has no NaN
-// input to mirror (integer-to-decimal constructors, context arithmetic)
+// input to mirror (the integer-to-decimal constructors)
 // returns the canonical quiet NaN of the target width instead.
 //
 // This is a routing/plumbing behavior; the underlying Go mechanical port in

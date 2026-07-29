@@ -2,18 +2,10 @@
   "version": "1.0",
   "kind": "rust_api_surface_inventory",
   "source": "devtools/generated/testspec/public_api_routing_inventory.json (mapped + excluded_constant_accessor) + devtools/tools/registry/rust_api_manifest.json + bid754-go module-root signatures/literals",
-  "mapped_total": 382,
-  "emitted": 382,
+  "mapped_total": 379,
+  "emitted": 379,
   "deferred": 0,
   "rows": [
-    {
-      "go_symbol": "Add128BIDWithContext",
-      "status": "emitted",
-      "rust_owner": "Context",
-      "rust_surface": "add128",
-      "shape": "context_binary_with_flags",
-      "bidgo_function": "Bid128Add"
-    },
     {
       "go_symbol": "Add128DDBIDWithMode",
       "status": "emitted",
@@ -37,22 +29,6 @@
       "rust_surface": "add_qd_with_mode",
       "shape": "mixed_binary_mode_flags_qd",
       "bidgo_function": "Bid128qdAdd"
-    },
-    {
-      "go_symbol": "Add32BIDWithContext",
-      "status": "emitted",
-      "rust_owner": "Context",
-      "rust_surface": "add32",
-      "shape": "context_binary_with_flags",
-      "bidgo_function": "Bid32AddWithFlags"
-    },
-    {
-      "go_symbol": "Add64BIDWithContext",
-      "status": "emitted",
-      "rust_owner": "Context",
-      "rust_surface": "add64",
-      "shape": "context_binary_with_flags",
-      "bidgo_function": "Bid64AddWithFlags"
     },
     {
       "go_symbol": "Add64DQBIDWithMode",

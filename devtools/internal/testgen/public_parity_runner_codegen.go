@@ -1339,7 +1339,6 @@ const (
 	shapeFuncFromInt                             // NewDecimal*FromInt convenience
 	shapeFuncString                              // string constructors / raw parsers
 	shapeFuncStringMode                          // NewDecimal*WithMode(s, mode) explicit-mode string constructors
-	shapeFuncContext                             // Add*BIDWithContext
 	shapeFuncMixedModeBinary                     // Intel mixed-width {Add,Sub,Mul,Div} free functions
 	shapeFuncMixedModeTernary                    // Intel mixed-width FMA free functions
 	shapeFuncMixedModeUnary                      // Intel mixed-width sqrt free functions
@@ -1413,7 +1412,6 @@ func widthOfRecv(recv string) int {
 
 var newDecimalWidthRe = regexp.MustCompile(`^NewDecimal(32|64|128)`)
 var parseDecimalWidthRe = regexp.MustCompile(`^ParseDecimal(32|64|128)BIDRaw$`)
-var contextWidthRe = regexp.MustCompile(`^Add(32|64|128)BIDWithContext$`)
 var mixedArithmeticRe = regexp.MustCompile(`^(Add|Sub|Mul|Div)(64|128)(DD|DQ|QD|QQ)BIDWithMode$`)
 var mixedFMARe = regexp.MustCompile(`^FMA(64|128)([DQ]{3})BIDWithMode$`)
 var mixedSqrtRe = regexp.MustCompile(`^Sqrt(64|128)(D|Q)BIDWithMode$`)
@@ -1528,18 +1526,6 @@ func resolveParityUnit(sym publicAPISymbol, bidgoFn string, sigs map[string]bidg
 		// rounding modes. One final case pins invalid-mode rejection through
 		// the public flag channel (Intel itself only accepts the five modes).
 		u.Cases = (len(parityLabelPairs)+len(disc))*len(parityModeOrder) + 1
-		return u, nil
-	case contextWidthRe.MatchString(sym.Name):
-		m := contextWidthRe.FindStringSubmatch(sym.Name)
-		u.Width, _ = strconv.Atoi(m[1])
-		u.Shape = shapeFuncContext
-		u.ResultClass = decClass(u.Width)
-		// per pair: 5 explicit-context modes + 5 nil-context runs (one per
-		// pinned global default mode).
-		// + 2: the trailing invalid-mode rejection sub-legs, one per way this
-		// shape can reach an unsupported mode (an explicit context carrying
-		// it, and the global default resolved through a nil context).
-		u.Cases = len(parityLabelPairs)*len(parityModeOrder)*2 + 2
 		return u, nil
 	case parseDecimalWidthRe.MatchString(sym.Name):
 		m := parseDecimalWidthRe.FindStringSubmatch(sym.Name)

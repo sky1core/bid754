@@ -1,26 +1,19 @@
 {
   "version": "1.0",
   "source": "bid754-go module-root package bid754 (all non-test files, generated included) + bid754-go/internal/bidgo + devtools/testgen_manifest.json public_api",
-  "total": 429,
-  "mapped": 382,
-  "excluded": 47,
+  "total": 424,
+  "mapped": 379,
+  "excluded": 45,
   "excluded_by_class": {
     "composition_plumbing": 6,
     "constant_accessor": 12,
-    "context_flag_plumbing": 12,
+    "context_flag_plumbing": 10,
     "display_plumbing": 7,
     "layout_plumbing": 4,
     "string_util_plumbing": 2,
     "version_const": 4
   },
   "symbols": [
-    {
-      "symbol": "Add128BIDWithContext",
-      "kind": "func",
-      "status": "mapped",
-      "bidgo_function": "Bid128Add",
-      "reason": "context add routes through Bid128Add (pointer-flags form) and accumulates the mapped flags into the context"
-    },
     {
       "symbol": "Add128DDBIDWithMode",
       "kind": "func",
@@ -41,20 +34,6 @@
       "status": "mapped",
       "bidgo_function": "Bid128qdAdd",
       "reason": "Intel mixed-width bid128qd_add: Decimal128 plus Decimal64 producing Decimal128"
-    },
-    {
-      "symbol": "Add32BIDWithContext",
-      "kind": "func",
-      "status": "mapped",
-      "bidgo_function": "Bid32AddWithFlags",
-      "reason": "context add routes through Bid32AddWithFlags and accumulates the mapped flags into the context"
-    },
-    {
-      "symbol": "Add64BIDWithContext",
-      "kind": "func",
-      "status": "mapped",
-      "bidgo_function": "Bid64AddWithFlags",
-      "reason": "context add routes through Bid64AddWithFlags and accumulates the mapped flags into the context"
     },
     {
       "symbol": "Add64DQBIDWithMode",
@@ -2188,12 +2167,6 @@
       "reason": "human-readable IEEE class-name rendering; no port counterpart"
     },
     {
-      "symbol": "DefaultArithmeticContext",
-      "kind": "func",
-      "status": "excluded_context_flag_plumbing",
-      "reason": "snapshots the global default rounding into a new context; IEEE 754 5.7.4 flag/context plumbing with no port counterpart"
-    },
-    {
       "symbol": "Div128DDBIDWithMode",
       "kind": "func",
       "status": "mapped",
@@ -2704,12 +2677,6 @@
       "kind": "method",
       "status": "excluded_display_plumbing",
       "reason": "human-readable rounding-mode name rendering; no port counterpart"
-    },
-    {
-      "symbol": "SetDefaultRounding",
-      "kind": "func",
-      "status": "excluded_context_flag_plumbing",
-      "reason": "stores the global default rounding mode; IEEE 754 attribute plumbing with no port counterpart"
     },
     {
       "symbol": "Sqrt128DBIDWithMode",

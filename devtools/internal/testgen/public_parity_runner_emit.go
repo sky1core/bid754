@@ -684,61 +684,6 @@ func emitInvalidModeRejectionTailWithErr(b *strings.Builder, u parityUnit, call 
 	return nil
 }
 
-// emitInvalidModeRejectionTailContext is emitInvalidModeRejectionTail for the
-// context free functions, which return a bare value and accumulate flags into
-// the caller's context. call renders the wrapper invocation for one context
-// expression. The two documented ways an invalid mode reaches such an
-// operation get one sub-leg each, because they differ in what is observable:
-//
-//   - an explicit context built with ArithmeticContext.WithRounding carries the
-//     bad mode into the call, and the rejection is observable as the canonical
-//     quiet NaN plus FlagInvalidOperation accumulated into that context;
-//   - a nil context resolves the process-global default instead, and having no
-//     flag field it drops every raised flag, so the canonical quiet NaN is the
-//     only observable signal and the sub-leg asserts the value alone.
-//
-// Each sub-leg carries its own valid-mode control, because they resolve the
-// mode through different code and the flagless one cannot borrow the other's
-// flag comparison. The caller must place this inside its own save/restore
-// window for the global default, since the second sub-leg overwrites it.
-func emitInvalidModeRejectionTailContext(b *strings.Builder, u parityUnit, call func(ctxExpr string) string) error {
-	want, wantPhrase, err := parityInvalidModeRejectionExpectation(u)
-	if err != nil {
-		return fmt.Errorf("%s: %w", u.Symbol, err)
-	}
-	controlBits := pubBitsExpr(u.ResultClass, "controlValue")
-	invalidBits := pubBitsExpr(u.ResultClass, "invalidValue")
-	controlNilBits := pubBitsExpr(u.ResultClass, "controlNilValue")
-	invalidNilBits := pubBitsExpr(u.ResultClass, "invalidNilValue")
-	fmt.Fprintf(b, "\tcontrolCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}\n")
-	fmt.Fprintf(b, "\tcontrolValue := %s\n", call("controlCtx"))
-	fmt.Fprintf(b, "\tif %s == %s && controlCtx.Flags == FlagInvalidOperation {\n", controlBits, want)
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid-mode leg is vacuous: valid-mode result=%%v flags=%%v already equals the rejection value, so a dropped rejection would pass\", %s, controlCtx.Flags)\n", u.Symbol, controlBits)
-	fmt.Fprintf(b, "\t}\n")
-	// A fresh context, not a copy of the control one: WithRounding clones the
-	// flag field too, so reusing the control context would let its raised
-	// flags decide this assertion.
-	fmt.Fprintf(b, "\tinvalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))\n")
-	fmt.Fprintf(b, "\tinvalidValue := %s\n", call("invalidCtx"))
-	fmt.Fprintf(b, "\tif %s != %s || invalidCtx.Flags != FlagInvalidOperation {\n", invalidBits, want)
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid context rounding mode result=%%v flags=%%v, %s and FlagInvalidOperation\", %s, invalidCtx.Flags)\n", u.Symbol, wantPhrase, invalidBits)
-	fmt.Fprintf(b, "\t}\n\tcount++\n")
-	// Nil-context sub-leg. Its control pins the value channel only: the flag
-	// this path raises has no field to accumulate into and is dropped, so a
-	// flag comparison here would assert nothing.
-	fmt.Fprintf(b, "\tSetDefaultRounding(publicParityModes[0].pub)\n")
-	fmt.Fprintf(b, "\tcontrolNilValue := %s\n", call("nil"))
-	fmt.Fprintf(b, "\tif %s == %s {\n", controlNilBits, want)
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid-mode leg is vacuous: valid default result=%%v already equals the rejection value, so a dropped rejection would pass\", %s)\n", u.Symbol, controlNilBits)
-	fmt.Fprintf(b, "\t}\n")
-	fmt.Fprintf(b, "\tSetDefaultRounding(RoundingMode(99))\n")
-	fmt.Fprintf(b, "\tinvalidNilValue := %s\n", call("nil"))
-	fmt.Fprintf(b, "\tif %s != %s {\n", invalidNilBits, want)
-	fmt.Fprintf(b, "\t\tt.Errorf(\"public parity %s: invalid default rounding mode resolved through a nil context: result=%%v, %s\", %s)\n", u.Symbol, wantPhrase, invalidNilBits)
-	fmt.Fprintf(b, "\t}\n\tcount++\n")
-	return nil
-}
-
 func emitParityUnitFunc(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "func %s(t *testing.T) int {\n", u.FuncName)
 	fmt.Fprintf(b, "\tcount := 0\n")
@@ -794,8 +739,6 @@ func emitParityUnitBody(b *strings.Builder, u parityUnit) error {
 		return emitFuncString(b, u)
 	case shapeFuncStringMode:
 		return emitFuncStringMode(b, u)
-	case shapeFuncContext:
-		return emitFuncContext(b, u)
 	case shapeFuncMixedModeBinary:
 		return emitFuncMixedModeBinary(b, u)
 	case shapeFuncMixedModeTernary:
@@ -1901,56 +1844,8 @@ func emitFuncStringMode(b *strings.Builder, u parityUnit) error {
 	})
 }
 
-func emitFuncContext(b *strings.Builder, u parityUnit) error {
-	w := u.Width
-	// The restore is deferred at the point of save rather than trailed at the
-	// end of the body: a t.Fatal or any other Goexit below would otherwise leak
-	// the unsupported mode into the process-global default for every later unit.
-	fmt.Fprintf(b, "\tprevDefaultRounding := DefaultArithmeticContext().RoundingMode\n")
-	fmt.Fprintf(b, "\tdefer SetDefaultRounding(prevDefaultRounding)\n")
-	fmt.Fprintf(b, "\tfor _, pair := range %s {\n", pwPairs(w))
-	fmt.Fprintf(b, "\t\tav := %s[pair[0]]\n", pwCorpus(w))
-	fmt.Fprintf(b, "\t\tbv := %s[pair[1]]\n", pwCorpus(w))
-	fmt.Fprintf(b, "\t\ta := %s\n", pwPublicVal(w, "av"))
-	fmt.Fprintf(b, "\t\tb := %s\n", pwPublicVal(w, "bv"))
-	fmt.Fprintf(b, "\t\tfor _, mode := range publicParityModes {\n")
-	fmt.Fprintf(b, "\t\t\tctx := &ArithmeticContext{RoundingMode: mode.pub}\n")
-	fmt.Fprintf(b, "\t\t\tpv := %s(a, b, ctx)\n", u.Func)
-	pfPort := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(w, "av"), pwPortArg(w, "bv")}, "mode.port", true)
-	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "operands %#x,%#x mode %v", "av, bv, mode.pub")
-	emitFlagCheck(b, "\t\t\t", u.Symbol, "ctx.Flags", pfPort, "operands %#x,%#x mode %v", "av, bv, mode.pub")
-	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
-	// A nil ctx uses the process-global default rounding mode
-	// (context_v2.go contextBIDRoundingMode -> defaultRoundingMode), so the
-	// comparison must not depend on whatever the global happens to be: pin
-	// the default to each mode, compare against the port at that mode, and let
-	// the deferred restore put the previous default back on the way out.
-	fmt.Fprintf(b, "\t\tfor _, mode := range publicParityModes {\n")
-	fmt.Fprintf(b, "\t\t\tSetDefaultRounding(mode.pub)\n")
-	fmt.Fprintf(b, "\t\t\tpvNil := %s(a, b, nil)\n", u.Func)
-	pfNil := emitGenericPortNamed(b, "\t\t\t", u.Port, []string{pwPortArg(w, "av"), pwPortArg(w, "bv")}, "mode.port", false, "prNil", "pfNil")
-	_ = pfNil
-	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pvNil", "prNil", u.Port.PrimaryResult, "operands %#x,%#x nil-ctx default %v", "av, bv, mode.pub")
-	fmt.Fprintf(b, "\t\t\tcount++\n\t\t}\n")
-	fmt.Fprintf(b, "\t}\n")
-
-	// Invalid resolved mode, in both the ways this shape can reach one, on the
-	// width's finite anchor pair (+1 and -1, whose ordinary sum +0 is neither
-	// the rejection value nor flag-raising). Both sub-legs stay inside the
-	// deferred global-default restore opened above, because the nil-context one
-	// sets that global to the unsupported mode.
-	fmt.Fprintf(b, "\tinvalidLeft := %s\n", pwPublicVal(w, pwFinitePairElem(w, 0)))
-	fmt.Fprintf(b, "\tinvalidRight := %s\n", pwPublicVal(w, pwFinitePairElem(w, 1)))
-	if err := emitInvalidModeRejectionTailContext(b, u, func(ctx string) string {
-		return fmt.Sprintf("%s(invalidLeft, invalidRight, %s)", u.Func, ctx)
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
 // emitGenericPortNamed is emitGenericPort with caller-chosen result/flag var
-// names, used where two port invocations share one scope (context nil branch).
+// names, used where two port invocations share one scope.
 func emitGenericPortNamed(b *strings.Builder, indent string, plan parityPortPlan, argExprs []string, modeExpr string, compareFlags bool, resVar, flagVar string) string {
 	args := append([]string{}, argExprs...)
 	if plan.HasRounding {
@@ -2144,8 +2039,6 @@ func shapeName(s parityShape) string {
 		return "func_string"
 	case shapeFuncStringMode:
 		return "func_string_mode"
-	case shapeFuncContext:
-		return "func_context"
 	case shapeFuncMixedModeBinary:
 		return "func_mixed_mode_binary"
 	case shapeFuncMixedModeTernary:

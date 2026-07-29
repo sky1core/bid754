@@ -119,25 +119,24 @@ anchors in `devtools/verification_anchors.json` pin those two counts).
 - **`Context`** — an explicit `{ rounding: RoundingMode, flags: ExceptionFlags }`
   pair (also `Default`, equivalent to `Context::new()`) with `set_flag`/
   `clear_flag`/`has_flag`/`clear_all_flags`/`save_all_flags`/`restore_flags`
-  (IEEE 754-2019 5.7.4 vocabulary) and the per-width `add32`/`add64`/`add128`
-  context-driven operations. `restore_flags(saved, mask)` is a masked write —
+  (IEEE 754-2019 5.7.4 vocabulary). The caller threads `self.rounding` into
+  the `*_with_mode` operations and accumulates the returned flags via
+  `set_flag`. `restore_flags(saved, mask)` is a masked write —
   the mask selects which flags are taken from `saved` and every flag outside
   it keeps its current value — matching the Go
   `ArithmeticContext.RestoreFlags` contract; the whole `ExceptionFlags`
   domain is public, so no implicit masking is applied. No heap or pointer
   indirection (flag accumulation is through `&mut self`), unlike the Go
-  `ArithmeticContext`;
-  and no nil-context default either, since Rust has no implicit global
-  rounding setting for a method to fall back to — the mode always comes
-  from `self.rounding`.
+  `ArithmeticContext`.
 - The public API module (`src/generated/api/`) is `#![forbid(unsafe_code)]`
   and denies `arithmetic_overflow`/`overflowing_literals`; wrapper bodies
   only call into `crate::generated::*` port functions, convert value types,
   and map exception flags, never reproducing arithmetic.
 
-Not provided, by design: a global mutable default-rounding setter (the Go
-`SetDefaultRounding`/`DefaultArithmeticContext` pair — implicit global state
-is deliberately not part of this API; use `Context::with_rounding` instead),
+Not provided, by design: a global mutable default-rounding setter (implicit
+global rounding state is deliberately not part of this API — nor of the Go
+public API — use `Context::with_rounding` and the `*_with_mode` operations
+instead),
 the Go convenience surface `AddSlice*`/`IsValidDecimalString`/
 `GetRequiredPrecision`, and `std::ops` operator traits (`Add`, `Neg`, ...) —
 those are outside the current declared generated surface. The inventory entry

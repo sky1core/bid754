@@ -748,9 +748,8 @@ func assertInvalidFlag(t *testing.T, f ExceptionFlags) {
 // TestInvalidRoundingModeRejectedNotPanics pins the explicit-failure contract
 // across the public rounding-mode entrypoints: a RoundingMode outside the five
 // defined constants must be rejected through the surface's declared failure
-// channel — FlagInvalidOperation on a flag-carrying result, or accumulated into
-// an ArithmeticContext — never by panicking and never by silently falling back
-// to a valid mode. The returned value is the same result the operation yields
+// channel — FlagInvalidOperation on the flag-carrying result — never by
+// panicking and never by silently falling back to a valid mode. The returned value is the same result the operation yields
 // for a NaN input (an integer sentinel, a float NaN, or a canonical quiet NaN),
 // so an invalid mode cannot masquerade as a successful conversion.
 // See docs/SPEC.md: no public API path may panic/trap on unsupported input.
@@ -872,57 +871,32 @@ func TestInvalidRoundingModeRejectedNotPanics(t *testing.T) {
 				}
 			})
 
-			// Context arithmetic: canonical quiet NaN result + FlagInvalidOperation
-			// accumulated into the context.
-			t.Run("Add32BIDWithContext", func(t *testing.T) {
+			// Mode-taking arithmetic: NaN-class result + FlagInvalidOperation
+			// on the returned flag word.
+			t.Run("AddWithMode32", func(t *testing.T) {
 				defer assertNoPanic(t)
-				ctx := &ArithmeticContext{RoundingMode: bad}
-				got := Add32BIDWithContext(d32, d32, ctx)
+				got, f := d32.AddWithMode(d32, bad)
 				if !got.IsNaN() {
 					t.Errorf("result = %s, want NaN", got.String())
 				}
-				assertInvalidFlag(t, ctx.Flags)
+				assertInvalidFlag(t, f)
 			})
-			t.Run("Add64BIDWithContext", func(t *testing.T) {
+			t.Run("AddWithMode64", func(t *testing.T) {
 				defer assertNoPanic(t)
-				ctx := &ArithmeticContext{RoundingMode: bad}
-				got := Add64BIDWithContext(d64, d64, ctx)
+				got, f := d64.AddWithMode(d64, bad)
 				if !got.IsNaN() {
 					t.Errorf("result = %s, want NaN", got.String())
 				}
-				assertInvalidFlag(t, ctx.Flags)
+				assertInvalidFlag(t, f)
 			})
-			t.Run("Add128BIDWithContext", func(t *testing.T) {
+			t.Run("AddWithMode128", func(t *testing.T) {
 				defer assertNoPanic(t)
-				ctx := &ArithmeticContext{RoundingMode: bad}
-				got := Add128BIDWithContext(d128, d128, ctx)
+				got, f := d128.AddWithMode(d128, bad)
 				if !got.IsNaN() {
 					t.Errorf("result = %s, want NaN", got.String())
 				}
-				assertInvalidFlag(t, ctx.Flags)
+				assertInvalidFlag(t, f)
 			})
-		})
-	}
-}
-
-// TestInvalidDefaultRoundingModeNilContext covers the global-state path: after
-// SetDefaultRounding stores an undefined mode, a nil-context operation resolves
-// that default and must reject it without panicking. A nil context cannot
-// accumulate flags, so the canonical-quiet-NaN result is the failure signal.
-func TestInvalidDefaultRoundingModeNilContext(t *testing.T) {
-	prev := DefaultArithmeticContext().RoundingMode
-	t.Cleanup(func() { SetDefaultRounding(prev) })
-
-	a := mustDecimal64BID(t, "1")
-	for _, bad := range []RoundingMode{RoundingMode(99), RoundingMode(-1)} {
-		bad := bad
-		t.Run(fmt.Sprintf("mode%d", int(bad)), func(t *testing.T) {
-			defer assertNoPanic(t)
-			SetDefaultRounding(bad)
-			got := Add64BIDWithContext(a, a, nil)
-			if !got.IsNaN() {
-				t.Errorf("SetDefaultRounding(%d) + nil-ctx add = %s, want NaN", int(bad), got.String())
-			}
 		})
 	}
 }
@@ -945,9 +919,8 @@ func TestValidRoundingModesRemainAccepted(t *testing.T) {
 			if v, f := d32.ConvertToInt32(m); f&FlagInvalidOperation != 0 {
 				t.Errorf("ConvertToInt32 raised invalid (v=%d, f=%s)", v, f)
 			}
-			ctx := &ArithmeticContext{RoundingMode: m}
-			if got := Add32BIDWithContext(d32, d32, ctx); got.IsNaN() || ctx.Flags&FlagInvalidOperation != 0 {
-				t.Errorf("Add32BIDWithContext = %s flags=%s, want finite non-invalid", got.String(), ctx.Flags)
+			if got, f := d32.AddWithMode(d32, m); got.IsNaN() || f&FlagInvalidOperation != 0 {
+				t.Errorf("AddWithMode = %s flags=%s, want finite non-invalid", got.String(), f)
 			}
 			if got, f := NewDecimal32FromInt32(3, m); got.IsNaN() || f&FlagInvalidOperation != 0 {
 				t.Errorf("NewDecimal32FromInt32 = %s flags=%s, want finite non-invalid", got.String(), f)

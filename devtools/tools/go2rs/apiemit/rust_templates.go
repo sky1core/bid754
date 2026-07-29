@@ -945,14 +945,16 @@ func emitRustAPI(apiDir string, manifest *manifestFile) error {
 	files["context.rs"] = ctx
 
 	// Reject any owner in the manifest that has no wrapper file target yet:
-	// Decimal64, Decimal32, Decimal128, and Context all carry emitted
-	// wrappers. Any additional owner needs an explicit file builder.
+	// Decimal64, Decimal32, and Decimal128 are the only owners carrying
+	// emitted wrappers (Context is emitted as a static flag-plumbing type
+	// with no wrapper rows). Any additional owner needs an explicit file
+	// builder.
 	for _, r := range manifest.Emit {
 		if r.Shape == "parse_fold" || r.Shape == "copy_fold" {
 			continue
 		}
-		if r.RustOwner != "Decimal64" && r.RustOwner != "Decimal32" && r.RustOwner != "Decimal128" && r.RustOwner != "Context" {
-			return fmt.Errorf("apiemit: emit rule for go_symbol %q targets rust_owner %q which has no wrapper file builder yet (Decimal64, Decimal32, Decimal128, and Context are the only owners with a file builder today)", r.GoSymbol, r.RustOwner)
+		if r.RustOwner != "Decimal64" && r.RustOwner != "Decimal32" && r.RustOwner != "Decimal128" {
+			return fmt.Errorf("apiemit: emit rule for go_symbol %q targets rust_owner %q which has no wrapper file builder yet (Decimal64, Decimal32, and Decimal128 are the only owners with a file builder today)", r.GoSymbol, r.RustOwner)
 		}
 	}
 
@@ -1559,34 +1561,15 @@ func buildDecimal128Rs(manifest *manifestFile) (string, error) {
 	return buildDecimalRs(manifest, decimal128Width)
 }
 
-// buildContextRs emits the Context type plus every context-arithmetic
-// wrapper selected by the manifest for rust_owner="Context" (Add64/Add32/
-// Add128BIDWithContext).
+// buildContextRs emits the Context type: the IEEE 754-2019 5.7.4 flag
+// plumbing carrier (rounding mode + accumulated flags). No context-owned
+// arithmetic wrappers exist; a manifest emit rule targeting rust_owner
+// "Context" is rejected so a new one cannot appear without a deliberate
+// file-builder change here.
 func buildContextRs(manifest *manifestFile) (string, error) {
-	var add64Op, add32Op, add128Op *decOp
 	for _, r := range manifest.Emit {
-		if r.RustOwner != "Context" {
-			continue
-		}
-		switch r.Shape {
-		case "context_binary_with_flags":
-			p, ok := portPath[r.BidgoFunction]
-			if !ok {
-				return "", fmt.Errorf("apiemit: no port path for bidgo_function %q (go_symbol %q)", r.BidgoFunction, r.GoSymbol)
-			}
-			o := decOp{method: r.RustSurface, port: p.fn, module: p.module, boolPort: boolResultPorts[r.BidgoFunction], pfpsf: portPfpsf[r.BidgoFunction]}
-			switch r.GoSymbol {
-			case "Add64BIDWithContext":
-				add64Op = &o
-			case "Add32BIDWithContext":
-				add32Op = &o
-			case "Add128BIDWithContext":
-				add128Op = &o
-			default:
-				return "", fmt.Errorf("apiemit: unhandled Context context_binary_with_flags go_symbol %q (only Add64BIDWithContext/Add32BIDWithContext/Add128BIDWithContext are wired to a file builder today)", r.GoSymbol)
-			}
-		default:
-			return "", fmt.Errorf("apiemit: unhandled Context shape %q for go_symbol %q", r.Shape, r.GoSymbol)
+		if r.RustOwner == "Context" {
+			return "", fmt.Errorf("apiemit: emit rule for go_symbol %q targets rust_owner \"Context\", but Context carries no emitted wrappers", r.GoSymbol)
 		}
 	}
 
@@ -1594,15 +1577,6 @@ func buildContextRs(manifest *manifestFile) (string, error) {
 	b.WriteString(marker() + crlf)
 	b.WriteString("//! Arithmetic context: an explicit rounding mode plus accumulated flags." + crlf)
 	b.WriteString(crlf)
-	if add64Op != nil {
-		b.WriteString("use super::decimal64::Decimal64;" + crlf)
-	}
-	if add32Op != nil {
-		b.WriteString("use super::decimal32::Decimal32;" + crlf)
-	}
-	if add128Op != nil {
-		b.WriteString("use super::decimal128::Decimal128;" + crlf)
-	}
 	b.WriteString("use super::types::{ExceptionFlags, RoundingMode};" + crlf)
 	b.WriteString(crlf)
 	b.WriteString(`/// An explicit arithmetic context: a rounding mode and an accumulated set of
@@ -1610,7 +1584,7 @@ func buildContextRs(manifest *manifestFile) (string, error) {
 /// pointer indirection; flag accumulation is via ` + "`&mut self`" + `.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Context {
-    /// The rounding mode applied by context operations.
+    /// The carried rounding mode, for the caller to pass to *_with_mode operations.
     pub rounding: RoundingMode,
     /// The accumulated exception flags.
     pub flags: ExceptionFlags,
@@ -1667,15 +1641,6 @@ impl Context {
         self.flags = self.flags.difference(mask) | (saved & mask);
     }
 `)
-	if add64Op != nil {
-		emitContextAddOp(&b, *add64Op, decimal64Width)
-	}
-	if add32Op != nil {
-		emitContextAddOp(&b, *add32Op, decimal32Width)
-	}
-	if add128Op != nil {
-		emitContextAddOp(&b, *add128Op, decimal128Width)
-	}
 	b.WriteString(`}
 
 impl Default for Context {
@@ -1685,33 +1650,6 @@ impl Default for Context {
 }
 `)
 	return b.String(), nil
-}
-
-// emitContextAddOp renders the Context method for width w's
-// context_binary_with_flags row (Add64BIDWithContext / Add32BIDWithContext /
-// Add128BIDWithContext): applies the port op at the context's own rounding
-// mode and accumulates the raised flags into self.flags. Context lives in a
-// different module than decimal<w>.rs, so it uses the PUBLIC to_bits()/
-// from_bits() (or to_le_bytes()/from_le_bytes() for width 128) accessors via
-// crossModuleArg/crossModuleWrap, not the private tuple field selfArg/
-// wrapResult use for a receiver method inside that width's own module.
-// Add128BIDWithContext's port (Bid128Add) uses the status-pointer convention;
-// flagsCallStmt handles that the same way every other op does.
-func emitContextAddOp(b *strings.Builder, op decOp, w widthSpec) {
-	stmt := flagsCallStmt(op, []string{w.crossModuleArg("a"), w.crossModuleArg("b"), "super::types::to_bidgo_rounding(self.rounding)"}, "bits", "raw")
-	fmt.Fprintf(b, `
-    /// Adds a and b at the context's rounding mode and accumulates the
-    /// raised flags into self.flags (mirrors the Go Add%sBIDWithContext).
-    /// Rust has no nil-context default (the Go global SetDefaultRounding is
-    /// outside the declared Rust public surface); the mode always comes
-    /// from self.rounding, which the closed RoundingMode enum guarantees is
-    /// always one of the five defined IEEE modes.
-    pub fn %s(&mut self, a: %s, b: %s) -> %s {
-        %s
-        self.flags |= ExceptionFlags::from_bidgo(raw);
-        %s
-    }
-`, w.digits, op.method, w.selfType, w.selfType, w.selfType, stmt, w.crossModuleWrap("bits"))
 }
 
 // buildDecimal64Rs and buildDecimal32Rs (defined next to buildDecimal32Rs's

@@ -26,9 +26,7 @@
 // the call through its declared failure channel rather than panicking or
 // silently substituting a valid mode: a flag-carrying result raises
 // FlagInvalidOperation and returns the value the operation yields for a NaN
-// input (an integer sentinel, a float NaN, or a canonical quiet NaN), while
-// Add*BIDWithContext accumulates FlagInvalidOperation into the context and
-// returns a canonical quiet NaN.
+// input (an integer sentinel, a float NaN, or a canonical quiet NaN).
 //
 // String formatting follows the Intel BID to_string coefficient-exponent
 // output for every width, e.g. "+15E-1" or "+12400E-2". See the package

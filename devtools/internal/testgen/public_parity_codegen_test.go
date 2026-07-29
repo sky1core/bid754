@@ -735,50 +735,6 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 			},
 			forbiddenCalls: []string{"canonicalQNaN128BID"},
 		},
-		{
-			// Context shape: two sub-legs, because the two documented routes
-			// to an unsupported mode differ in what is observable. Both sit
-			// inside the emitter's global-default save/restore window.
-			name: "Add32BIDWithContext",
-			unit: parityUnit{
-				Symbol: "Add32BIDWithContext", FuncName: "publicParity_Add32BIDWithContext",
-				Shape: shapeFuncContext, Width: 32, Func: "Add32BIDWithContext", BidgoFn: "Bid32AddWithFlags",
-				ResultClass: "dec32",
-				Port:        parityPortPlan{GoName: "Bid32AddWithFlags", ValueParams: []string{"uint32", "uint32"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "uint32"},
-			},
-			expectedBoundCalls: []generatedGoBoundCallExpectation{
-				{binding: "invalidLeft", callee: "Decimal32BID", args: [][]string{
-					{"publicParityCorpus32[publicParityBinaryPairs32[0][0]]"},
-				}},
-				{binding: "invalidRight", callee: "Decimal32BID", args: [][]string{
-					{"publicParityCorpus32[publicParityBinaryPairs32[0][1]]"},
-				}},
-				{binding: "invalidCtx", callee: "(&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding", args: [][]string{
-					{"RoundingMode(99)"},
-				}},
-				{binding: "controlValue", callee: "Add32BIDWithContext", args: [][]string{
-					{"invalidLeft", "invalidRight", "controlCtx"},
-				}},
-				{binding: "invalidValue", callee: "Add32BIDWithContext", args: [][]string{
-					{"invalidLeft", "invalidRight", "invalidCtx"},
-				}},
-				{binding: "controlNilValue", callee: "Add32BIDWithContext", args: [][]string{
-					{"invalidLeft", "invalidRight", "nil"},
-				}},
-				{binding: "invalidNilValue", callee: "Add32BIDWithContext", args: [][]string{
-					{"invalidLeft", "invalidRight", "nil"},
-				}},
-			},
-			wantComparisons: []string{
-				"uint32(controlValue) == 0x7c000000",
-				"controlCtx.Flags == FlagInvalidOperation",
-				"uint32(invalidValue) != 0x7c000000",
-				"invalidCtx.Flags != FlagInvalidOperation",
-				"uint32(controlNilValue) == 0x7c000000",
-				"uint32(invalidNilValue) != 0x7c000000",
-			},
-			forbiddenCalls: []string{"canonicalQNaN32BID"},
-		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

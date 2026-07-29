@@ -14,8 +14,7 @@
 //! domain (same framing as the Go leg).
 //!
 //! Scope: emitted rows cover Decimal32, Decimal64, and Decimal128 value methods
-//! and constructors, plus the
-//! per-width Context::add methods. Each shape emitter is parameterized by a
+//! and constructors. Each shape emitter is parameterized by a
 //! parityWidth record resolved from the row's own census bidgo_function prefix
 //! (Bid64.../Bid32.../Bid128...), not a hardcoded width, so all widths share
 //! one template per shape. The width-128 records carry the pfpsf-pointer flag
@@ -52,21 +51,17 @@
 //! expectedPublicParityCasesByShape entries in
 //! bid754-go/generated_public_parity_cases_test.go: one case per mode-taking
 //! wrapper, so six of the twelve integer-constructor wrappers are exact
-//! modeless conversions and carry none, and the context functions carry two
-//! because the leg there splits into the two sub-legs described below; no
+//! modeless conversions and carry none; no
 //! total is restated in this comment because a hand-carried count here would
-//! drift from the Go leg. The conversion, integer-constructor,
-//! string-constructor, and context mode shapes carry the same rejection case
-//! with two further differences: the string constructors additionally pin a
-//! nil error so the flag and error rejection channels stay distinguishable,
-//! and the context
-//! functions pin both an explicit bad-mode context and the global default
-//! resolved through a nil context, where the flag has no field to accumulate
-//! into and the result is the only observable signal. The accounting for this
+//! drift from the Go leg. The conversion, integer-constructor, and
+//! string-constructor mode shapes carry the same rejection case
+//! with one further difference: the string constructors additionally pin a
+//! nil error so the flag and error rejection channels stay distinguishable.
+//! The accounting for this
 //! Rust leg is unchanged either way: 0 cases affected, because the input does
 //! not exist in this API and so there is nothing to skip.
 
-use bid754::{Context, Decimal128, Decimal32, Decimal64, RoundingMode};
+use bid754::{Decimal128, Decimal32, Decimal64, RoundingMode};
 
 /// bidgo-domain rounding value for round-ties-to-even (the IEEE default),
 /// used directly wherever a port call needs a rounding argument but the
@@ -460,28 +455,6 @@ const STRING_CASES: &[StringCase] = &[
     StringCase { input: "qnan999999", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0 },
 ];
 
-fn parity_add128_bidwith_context(failures: &mut Vec<String>) -> usize {
-    let mut count = 0usize;
-    for &(i0, i1) in PAIRS_128 {
-        let v0 = CORPUS_128[i0];
-        let v1 = CORPUS_128[i1];
-        for &(mode, port_mode) in PARITY_MODES {
-            let mut ctx = Context::with_rounding(mode);
-            let pv = ctx.add128(Decimal128::from_le_bytes(v0), Decimal128::from_le_bytes(v1));
-            let mut praw = 0u32;
-        let pr = bid754::generated::bid128_add::bid128_add(to_port128(v0), to_port128(v1), port_mode, &mut praw);
-            if pv.to_le_bytes() != from_port128(pr) {
-                failures.push(format!("public parity Add128BIDWithContext: operands {:x?},{:x?} mode {:?}: result mismatch public={:?} port={:?}", v0, v1, mode, pv.to_le_bytes(), from_port128(pr)));
-            }
-            if ctx.flags.bits() != map_port_flags(praw) {
-                failures.push(format!("public parity Add128BIDWithContext: operands {:x?},{:x?} mode {:?}: flag mismatch public={:#x} port={:#x}", v0, v1, mode, ctx.flags.bits(), map_port_flags(praw)));
-            }
-            count += 1;
-        }
-    }
-    count
-}
-
 fn parity_add128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
     let mut count = 0usize;
     for pair_index in 0..PAIRS_64.len() {
@@ -615,48 +588,6 @@ fn parity_add128_qdbidwith_mode(failures: &mut Vec<String>) -> usize {
         }
         if mode_seen.iter().all(|s| *s == mode_seen[0]) {
             failures.push(format!("public parity Add128QDBIDWithMode: discriminant operands {:x?},{:#x}: every rounding mode produced the same result", left_bits, right_bits));
-        }
-    }
-    count
-}
-
-fn parity_add32_bidwith_context(failures: &mut Vec<String>) -> usize {
-    let mut count = 0usize;
-    for &(i0, i1) in PAIRS_32 {
-        let v0 = CORPUS_32[i0];
-        let v1 = CORPUS_32[i1];
-        for &(mode, port_mode) in PARITY_MODES {
-            let mut ctx = Context::with_rounding(mode);
-            let pv = ctx.add32(Decimal32::from_bits(v0), Decimal32::from_bits(v1));
-            let (pr, praw) = bid754::generated::bid32_status::bid32_add_with_flags(v0, v1, port_mode);
-            if pv.to_bits() != pr {
-                failures.push(format!("public parity Add32BIDWithContext: operands {:#x},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", v0, v1, mode, pv.to_bits(), pr));
-            }
-            if ctx.flags.bits() != map_port_flags(praw) {
-                failures.push(format!("public parity Add32BIDWithContext: operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", v0, v1, mode, ctx.flags.bits(), map_port_flags(praw)));
-            }
-            count += 1;
-        }
-    }
-    count
-}
-
-fn parity_add64_bidwith_context(failures: &mut Vec<String>) -> usize {
-    let mut count = 0usize;
-    for &(i0, i1) in PAIRS_64 {
-        let v0 = CORPUS_64[i0];
-        let v1 = CORPUS_64[i1];
-        for &(mode, port_mode) in PARITY_MODES {
-            let mut ctx = Context::with_rounding(mode);
-            let pv = ctx.add64(Decimal64::from_bits(v0), Decimal64::from_bits(v1));
-            let (pr, praw) = bid754::generated::add64::bid64_add_with_flags(v0, v1, port_mode);
-            if pv.to_bits() != pr {
-                failures.push(format!("public parity Add64BIDWithContext: operands {:#x},{:#x} mode {:?}: result mismatch public={:#x} port={:#x}", v0, v1, mode, pv.to_bits(), pr));
-            }
-            if ctx.flags.bits() != map_port_flags(praw) {
-                failures.push(format!("public parity Add64BIDWithContext: operands {:#x},{:#x} mode {:?}: flag mismatch public={:#x} port={:#x}", v0, v1, mode, ctx.flags.bits(), map_port_flags(praw)));
-            }
-            count += 1;
         }
     }
     count
@@ -10602,12 +10533,9 @@ struct ParityUnit {
 }
 
 const PARITY_UNITS: &[ParityUnit] = &[
-    ParityUnit { go_symbol: "Add128BIDWithContext", shape: "context_binary_with_flags", run: parity_add128_bidwith_context },
     ParityUnit { go_symbol: "Add128DDBIDWithMode", shape: "mixed_binary_mode_flags_dd", run: parity_add128_ddbidwith_mode },
     ParityUnit { go_symbol: "Add128DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_add128_dqbidwith_mode },
     ParityUnit { go_symbol: "Add128QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_add128_qdbidwith_mode },
-    ParityUnit { go_symbol: "Add32BIDWithContext", shape: "context_binary_with_flags", run: parity_add32_bidwith_context },
-    ParityUnit { go_symbol: "Add64BIDWithContext", shape: "context_binary_with_flags", run: parity_add64_bidwith_context },
     ParityUnit { go_symbol: "Add64DQBIDWithMode", shape: "mixed_binary_mode_flags_dq", run: parity_add64_dqbidwith_mode },
     ParityUnit { go_symbol: "Add64QDBIDWithMode", shape: "mixed_binary_mode_flags_qd", run: parity_add64_qdbidwith_mode },
     ParityUnit { go_symbol: "Add64QQBIDWithMode", shape: "mixed_binary_mode_flags_qq", run: parity_add64_qqbidwith_mode },
@@ -10994,8 +10922,8 @@ const PARITY_UNITS: &[ParityUnit] = &[
 /// regular verification domain (same framing as the Go leg). Case counts are
 /// pinned here at generation time so a generator regression that shrinks the
 /// corpus cannot silently re-pin a smaller surface.
-pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 382;
-pub(crate) const EXPECTED_PARITY_CASES: usize = 28793;
+pub(crate) const EXPECTED_PARITY_WRAPPERS: usize = 379;
+pub(crate) const EXPECTED_PARITY_CASES: usize = 28433;
 
 const EXPECTED_MIXED_FMA_FUSEDNESS_SENTINELS: usize = 14;
 
@@ -11007,7 +10935,6 @@ const EXPECTED_PARITY_CASES_BY_SHAPE: &[(&str, usize)] = &[
     ("binary_with_flags", 360),
     ("class", 72),
     ("compare_bool_flags", 1440),
-    ("context_binary_with_flags", 360),
     ("copy_fold", 72),
     ("copysign", 72),
     ("display", 57),

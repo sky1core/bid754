@@ -53,8 +53,10 @@ func TestDecimal128BIDPublicHelpers(t *testing.T) {
 	}
 
 	ctx := NewArithmeticContext()
-	if got := Add128BIDWithContext(parse("1.25"), parse("0.75"), ctx).String(); got != "+200E-2" {
-		t.Fatalf("Add128BIDWithContext raw result = %q, want %q", got, "+200E-2")
+	sum, flags := parse("1.25").AddWithMode(parse("0.75"), ctx.RoundingMode)
+	ctx.SetFlag(flags)
+	if got := sum.String(); got != "+200E-2" {
+		t.Fatalf("AddWithMode raw result = %q, want %q", got, "+200E-2")
 	}
 }
 

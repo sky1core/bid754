@@ -161,7 +161,6 @@ const (
 	formUint16                              // the Go uint16 type
 	formUint32                              // the Go uint32 type
 	formUint64                              // the Go uint64 type
-	formArithmeticContextPtr                // the Go *ArithmeticContext type
 )
 
 func (f sigForm) matches(typeName string) bool {
@@ -204,8 +203,6 @@ func (f sigForm) matches(typeName string) bool {
 		return typeName == "uint32"
 	case formUint64:
 		return typeName == "uint64"
-	case formArithmeticContextPtr:
-		return typeName == "*ArithmeticContext"
 	default:
 		return false
 	}
@@ -251,8 +248,6 @@ func (f sigForm) String() string {
 		return "uint32"
 	case formUint64:
 		return "uint64"
-	case formArithmeticContextPtr:
-		return "*ArithmeticContext"
 	default:
 		return "?"
 	}
@@ -324,9 +319,6 @@ var shapeSigs = map[string]shapeSig{
 	"parse_mode": {method: false, params: []sigForm{formString, formRoundingMode}, results: []sigForm{formValue, formFlags, formError}},
 
 	// Decimal64 family shapes (devtools/tools/registry/rust_api_manifest.json).
-
-	// context arithmetic (free func): Op<w>BIDWithContext(a, b Decimal<w>BID, ctx *ArithmeticContext) Decimal<w>BID
-	"context_binary_with_flags": {method: false, params: []sigForm{formValue, formValue, formArithmeticContextPtr}, results: []sigForm{formValue}},
 
 	// unary, no flags, no rounding: (recv) Op() Decimal<w>BID  (Abs, Negate)
 	"unary": {method: true, params: nil, results: []sigForm{formValue}},

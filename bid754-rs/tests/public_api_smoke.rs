@@ -340,15 +340,23 @@ fn eq_and_partial_ord_use_ieee_quiet_semantics() {
 }
 
 #[test]
-fn context_add64_routes_through_port_and_accumulates_flags() {
+fn context_carries_mode_into_with_mode_operations() {
     let mut ctx = Context::with_rounding(RoundingMode::TowardZero);
-    let a = Decimal64::parse("1").expect("valid");
-    let b = Decimal64::parse("2").expect("valid");
-    let sum = ctx.add64(a, b);
+    // 16-digit operands whose 17-digit exact sum must round: the result
+    // differs between TowardZero and NearestEven (so a mode miswire changes
+    // the bits) and the operation raises INEXACT (so the flag-accumulation
+    // assertion below cannot pass vacuously on empty flags).
+    let a = Decimal64::parse("9.999999999999999").expect("valid");
+    let b = Decimal64::parse("9.999999999999999").expect("valid");
+    let (sum, flags) = a.add_with_mode(b, ctx.rounding);
+    ctx.set_flag(flags);
     // bidgo-domain TowardZero = 3 (independent literal, not the wrapper's own
     // to_bidgo_rounding converter, so a shared-converter bug stays visible).
     let (want_bits, want_raw) = bid754::generated::add64::bid64_add_with_flags(a.to_bits(), b.to_bits(), 3);
+    let (nearest_bits, _) = bid754::generated::add64::bid64_add_with_flags(a.to_bits(), b.to_bits(), 0);
+    assert_ne!(want_bits, nearest_bits, "operands must discriminate the rounding mode");
     assert_eq!(sum.to_bits(), want_bits);
+    assert!(!ctx.flags.is_empty(), "operands must raise flags so accumulation is observable");
     assert_eq!(ctx.flags.bits(), map_bidgo_flags(want_raw));
 }
 

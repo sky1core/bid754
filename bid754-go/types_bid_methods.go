@@ -146,10 +146,10 @@ func (d Decimal32BID) CompareTotalMag(other Decimal32BID) int {
 	return decimal32BIDCompareTotalMagPort(d, other)
 }
 
-// RoundIntegralExact returns d rounded to an integral Decimal32BID value using round-to-nearest-even (it does not consult SetDefaultRounding).
+// RoundIntegralExact returns d rounded to an integral Decimal32BID value using round-to-nearest-even.
 func (d Decimal32BID) RoundIntegralExact() Decimal32BID { return decimal32BIDRoundIntegralExactPort(d) }
 
-// RoundIntegralExactWithFlags returns d rounded to an integral Decimal32BID value using round-to-nearest-even (it does not consult SetDefaultRounding) and the exception flags raised by the operation.
+// RoundIntegralExactWithFlags returns d rounded to an integral Decimal32BID value using round-to-nearest-even and the exception flags raised by the operation.
 func (d Decimal32BID) RoundIntegralExactWithFlags() (Decimal32BID, ExceptionFlags) {
 	return decimal32BIDRoundIntegralExactPortFlags(d)
 }
@@ -467,10 +467,10 @@ func (d Decimal64BID) CompareTotalMag(other Decimal64BID) int {
 	return decimal64BIDCompareTotalMagPort(d, other)
 }
 
-// RoundIntegralExact returns d rounded to an integral Decimal64BID value using round-to-nearest-even (it does not consult SetDefaultRounding).
+// RoundIntegralExact returns d rounded to an integral Decimal64BID value using round-to-nearest-even.
 func (d Decimal64BID) RoundIntegralExact() Decimal64BID { return decimal64BIDRoundIntegralExactPort(d) }
 
-// RoundIntegralExactWithFlags returns d rounded to an integral Decimal64BID value using round-to-nearest-even (it does not consult SetDefaultRounding) and the exception flags raised by the operation.
+// RoundIntegralExactWithFlags returns d rounded to an integral Decimal64BID value using round-to-nearest-even and the exception flags raised by the operation.
 func (d Decimal64BID) RoundIntegralExactWithFlags() (Decimal64BID, ExceptionFlags) {
 	return decimal64BIDRoundIntegralExactPortFlags(d)
 }
@@ -806,12 +806,12 @@ func (d Decimal128BID) CompareTotalMag(other Decimal128BID) int {
 	return decimal128BIDCompareTotalMagPort(d, other)
 }
 
-// RoundIntegralExact returns d rounded to an integral Decimal128BID value using round-to-nearest-even (it does not consult SetDefaultRounding).
+// RoundIntegralExact returns d rounded to an integral Decimal128BID value using round-to-nearest-even.
 func (d Decimal128BID) RoundIntegralExact() Decimal128BID {
 	return decimal128BIDRoundIntegralExactPort(d)
 }
 
-// RoundIntegralExactWithFlags returns d rounded to an integral Decimal128BID value using round-to-nearest-even (it does not consult SetDefaultRounding) and the exception flags raised by the operation.
+// RoundIntegralExactWithFlags returns d rounded to an integral Decimal128BID value using round-to-nearest-even and the exception flags raised by the operation.
 func (d Decimal128BID) RoundIntegralExactWithFlags() (Decimal128BID, ExceptionFlags) {
 	return decimal128BIDRoundIntegralExactPortFlags(d)
 }

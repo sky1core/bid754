@@ -383,67 +383,6 @@ var publicParityStringCases = []struct {
 	{"qnan999999", "nan_literal", false, 32, 0},
 }
 
-func publicParity_Add128BIDWithContext(t *testing.T) int {
-	count := 0
-	prevDefaultRounding := DefaultArithmeticContext().RoundingMode
-	defer SetDefaultRounding(prevDefaultRounding)
-	for _, pair := range publicParityBinaryPairs128 {
-		av := publicParityCorpus128[pair[0]]
-		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
-		for _, mode := range publicParityModes {
-			ctx := &ArithmeticContext{RoundingMode: mode.pub}
-			pv := Add128BIDWithContext(a, b, ctx)
-			var prf uint32
-			pr := bidgo.Bid128Add(publicParityToBidgo128(av), publicParityToBidgo128(bv), mode.port, &prf)
-			if pv.ToBytes() != publicParityFromBidgo128(pr) {
-				t.Errorf("public parity Add128BIDWithContext: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, pv.ToBytes(), publicParityFromBidgo128(pr))
-			}
-			if ctx.Flags != mapPortFlagsForParity(prf) {
-				t.Errorf("public parity Add128BIDWithContext: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, ctx.Flags, mapPortFlagsForParity(prf))
-			}
-			count++
-		}
-		for _, mode := range publicParityModes {
-			SetDefaultRounding(mode.pub)
-			pvNil := Add128BIDWithContext(a, b, nil)
-			var pfNil uint32
-			prNil := bidgo.Bid128Add(publicParityToBidgo128(av), publicParityToBidgo128(bv), mode.port, &pfNil)
-			_ = pfNil
-			if pvNil.ToBytes() != publicParityFromBidgo128(prNil) {
-				t.Errorf("public parity Add128BIDWithContext: operands %#x,%#x nil-ctx default %v: result mismatch public=%v port=%v", av, bv, mode.pub, pvNil.ToBytes(), publicParityFromBidgo128(prNil))
-			}
-			count++
-		}
-	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
-	controlCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}
-	controlValue := Add128BIDWithContext(invalidLeft, invalidRight, controlCtx)
-	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlCtx.Flags == FlagInvalidOperation {
-		t.Errorf("public parity Add128BIDWithContext: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlCtx.Flags)
-	}
-	invalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))
-	invalidValue := Add128BIDWithContext(invalidLeft, invalidRight, invalidCtx)
-	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidCtx.Flags != FlagInvalidOperation {
-		t.Errorf("public parity Add128BIDWithContext: invalid context rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidCtx.Flags)
-	}
-	count++
-	SetDefaultRounding(publicParityModes[0].pub)
-	controlNilValue := Add128BIDWithContext(invalidLeft, invalidRight, nil)
-	if controlNilValue.ToBytes() == ([16]byte{15: 0x7c}) {
-		t.Errorf("public parity Add128BIDWithContext: invalid-mode leg is vacuous: valid default result=%v already equals the rejection value, so a dropped rejection would pass", controlNilValue.ToBytes())
-	}
-	SetDefaultRounding(RoundingMode(99))
-	invalidNilValue := Add128BIDWithContext(invalidLeft, invalidRight, nil)
-	if invalidNilValue.ToBytes() != ([16]byte{15: 0x7c}) {
-		t.Errorf("public parity Add128BIDWithContext: invalid default rounding mode resolved through a nil context: result=%v, want canonical qNaN", invalidNilValue.ToBytes())
-	}
-	count++
-	return count
-}
-
 func publicParity_Add128DDBIDWithMode(t *testing.T) int {
 	count := 0
 	for pairIndex := range publicParityBinaryPairs64 {
@@ -652,122 +591,6 @@ func publicParity_Add128QDBIDWithMode(t *testing.T) int {
 	invalidValue, invalidFlags := Add128QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
 	if invalidValue.ToBytes() != ([16]byte{15: 0x7c}) || invalidFlags != FlagInvalidOperation {
 		t.Errorf("public parity Add128QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", invalidValue.ToBytes(), invalidFlags)
-	}
-	count++
-	return count
-}
-
-func publicParity_Add32BIDWithContext(t *testing.T) int {
-	count := 0
-	prevDefaultRounding := DefaultArithmeticContext().RoundingMode
-	defer SetDefaultRounding(prevDefaultRounding)
-	for _, pair := range publicParityBinaryPairs32 {
-		av := publicParityCorpus32[pair[0]]
-		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
-		for _, mode := range publicParityModes {
-			ctx := &ArithmeticContext{RoundingMode: mode.pub}
-			pv := Add32BIDWithContext(a, b, ctx)
-			pr, prf := bidgo.Bid32AddWithFlags(av, bv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Add32BIDWithContext: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint32(pv), pr)
-			}
-			if ctx.Flags != mapPortFlagsForParity(prf) {
-				t.Errorf("public parity Add32BIDWithContext: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, ctx.Flags, mapPortFlagsForParity(prf))
-			}
-			count++
-		}
-		for _, mode := range publicParityModes {
-			SetDefaultRounding(mode.pub)
-			pvNil := Add32BIDWithContext(a, b, nil)
-			prNil, _ := bidgo.Bid32AddWithFlags(av, bv, mode.port)
-			if uint32(pvNil) != prNil {
-				t.Errorf("public parity Add32BIDWithContext: operands %#x,%#x nil-ctx default %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint32(pvNil), prNil)
-			}
-			count++
-		}
-	}
-	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
-	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
-	controlCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}
-	controlValue := Add32BIDWithContext(invalidLeft, invalidRight, controlCtx)
-	if uint32(controlValue) == 0x7c000000 && controlCtx.Flags == FlagInvalidOperation {
-		t.Errorf("public parity Add32BIDWithContext: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlCtx.Flags)
-	}
-	invalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))
-	invalidValue := Add32BIDWithContext(invalidLeft, invalidRight, invalidCtx)
-	if uint32(invalidValue) != 0x7c000000 || invalidCtx.Flags != FlagInvalidOperation {
-		t.Errorf("public parity Add32BIDWithContext: invalid context rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidCtx.Flags)
-	}
-	count++
-	SetDefaultRounding(publicParityModes[0].pub)
-	controlNilValue := Add32BIDWithContext(invalidLeft, invalidRight, nil)
-	if uint32(controlNilValue) == 0x7c000000 {
-		t.Errorf("public parity Add32BIDWithContext: invalid-mode leg is vacuous: valid default result=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlNilValue))
-	}
-	SetDefaultRounding(RoundingMode(99))
-	invalidNilValue := Add32BIDWithContext(invalidLeft, invalidRight, nil)
-	if uint32(invalidNilValue) != 0x7c000000 {
-		t.Errorf("public parity Add32BIDWithContext: invalid default rounding mode resolved through a nil context: result=%v, want canonical qNaN", uint32(invalidNilValue))
-	}
-	count++
-	return count
-}
-
-func publicParity_Add64BIDWithContext(t *testing.T) int {
-	count := 0
-	prevDefaultRounding := DefaultArithmeticContext().RoundingMode
-	defer SetDefaultRounding(prevDefaultRounding)
-	for _, pair := range publicParityBinaryPairs64 {
-		av := publicParityCorpus64[pair[0]]
-		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
-		for _, mode := range publicParityModes {
-			ctx := &ArithmeticContext{RoundingMode: mode.pub}
-			pv := Add64BIDWithContext(a, b, ctx)
-			pr, prf := bidgo.Bid64AddWithFlags(av, bv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Add64BIDWithContext: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint64(pv), pr)
-			}
-			if ctx.Flags != mapPortFlagsForParity(prf) {
-				t.Errorf("public parity Add64BIDWithContext: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, ctx.Flags, mapPortFlagsForParity(prf))
-			}
-			count++
-		}
-		for _, mode := range publicParityModes {
-			SetDefaultRounding(mode.pub)
-			pvNil := Add64BIDWithContext(a, b, nil)
-			prNil, _ := bidgo.Bid64AddWithFlags(av, bv, mode.port)
-			if uint64(pvNil) != prNil {
-				t.Errorf("public parity Add64BIDWithContext: operands %#x,%#x nil-ctx default %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint64(pvNil), prNil)
-			}
-			count++
-		}
-	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
-	controlCtx := &ArithmeticContext{RoundingMode: publicParityModes[0].pub}
-	controlValue := Add64BIDWithContext(invalidLeft, invalidRight, controlCtx)
-	if uint64(controlValue) == 0x7c00000000000000 && controlCtx.Flags == FlagInvalidOperation {
-		t.Errorf("public parity Add64BIDWithContext: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlCtx.Flags)
-	}
-	invalidCtx := (&ArithmeticContext{RoundingMode: publicParityModes[0].pub}).WithRounding(RoundingMode(99))
-	invalidValue := Add64BIDWithContext(invalidLeft, invalidRight, invalidCtx)
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidCtx.Flags != FlagInvalidOperation {
-		t.Errorf("public parity Add64BIDWithContext: invalid context rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidCtx.Flags)
-	}
-	count++
-	SetDefaultRounding(publicParityModes[0].pub)
-	controlNilValue := Add64BIDWithContext(invalidLeft, invalidRight, nil)
-	if uint64(controlNilValue) == 0x7c00000000000000 {
-		t.Errorf("public parity Add64BIDWithContext: invalid-mode leg is vacuous: valid default result=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlNilValue))
-	}
-	SetDefaultRounding(RoundingMode(99))
-	invalidNilValue := Add64BIDWithContext(invalidLeft, invalidRight, nil)
-	if uint64(invalidNilValue) != 0x7c00000000000000 {
-		t.Errorf("public parity Add64BIDWithContext: invalid default rounding mode resolved through a nil context: result=%v, want canonical qNaN", uint64(invalidNilValue))
 	}
 	count++
 	return count
@@ -13034,12 +12857,9 @@ var publicParityUnits = []struct {
 	shape string
 	run   func(*testing.T) int
 }{
-	{"Add128BIDWithContext", "func_context", publicParity_Add128BIDWithContext},
 	{"Add128DDBIDWithMode", "func_mixed_mode_binary", publicParity_Add128DDBIDWithMode},
 	{"Add128DQBIDWithMode", "func_mixed_mode_binary", publicParity_Add128DQBIDWithMode},
 	{"Add128QDBIDWithMode", "func_mixed_mode_binary", publicParity_Add128QDBIDWithMode},
-	{"Add32BIDWithContext", "func_context", publicParity_Add32BIDWithContext},
-	{"Add64BIDWithContext", "func_context", publicParity_Add64BIDWithContext},
 	{"Add64DQBIDWithMode", "func_mixed_mode_binary", publicParity_Add64DQBIDWithMode},
 	{"Add64QDBIDWithMode", "func_mixed_mode_binary", publicParity_Add64QDBIDWithMode},
 	{"Add64QQBIDWithMode", "func_mixed_mode_binary", publicParity_Add64QQBIDWithMode},

@@ -125,25 +125,13 @@ func TestConcurrentValueTypeOperationsRaceFree(t *testing.T) {
 	wg.Wait()
 }
 
-// TestConcurrentDefaultRoundingAndContextRaceFree runs three real usage
-// patterns simultaneously:
-//
-//   - writers calling SetDefaultRounding while readers call
-//     DefaultArithmeticContext(): the global default rounding mode is an
-//     atomic.Int64, so this must be race-free. If that global were ever
-//     downgraded to a plain (non-atomic) variable, the detector fails here.
-//   - each goroutine owning its own *ArithmeticContext and running
-//     Add{32,64,128}BIDWithContext: per-goroutine contexts must not affect
-//     shared state, so flag accumulation into a private context stays local.
-//   - a nil-context caller, which resolves the global default each call: this
-//     exercises the read side of the atomic against the writers above.
-//
-// The test restores the previous global default on cleanup so it does not
-// perturb other tests in the package.
-func TestConcurrentDefaultRoundingAndContextRaceFree(t *testing.T) {
-	previous := DefaultArithmeticContext().RoundingMode
-	t.Cleanup(func() { SetDefaultRounding(previous) })
-
+// TestConcurrentPerGoroutineContextRaceFree runs the documented carrier
+// pattern concurrently: each goroutine owns its own *ArithmeticContext,
+// feeds its rounding mode into *WithMode operations, and accumulates the
+// returned flags via SetFlag. Per-goroutine contexts must not touch shared
+// state, so flag accumulation into a private context stays local and the
+// race detector must stay silent.
+func TestConcurrentPerGoroutineContextRaceFree(t *testing.T) {
 	modes := []RoundingMode{
 		RoundNearestEven,
 		RoundNearestAway,
@@ -164,45 +152,22 @@ func TestConcurrentDefaultRoundingAndContextRaceFree(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	// Global default rounding writers: SetDefaultRounding (atomic store).
 	for w := 0; w < workers; w++ {
 		wg.Add(1)
 		go func(base int) {
 			defer wg.Done()
+			ctx := NewArithmeticContext().WithRounding(modes[base%len(modes)])
 			for n := 0; n < iterations; n++ {
-				SetDefaultRounding(modes[(n+base)%len(modes)])
-			}
-		}(w)
-	}
-
-	// Global default rounding readers: DefaultArithmeticContext (atomic load).
-	for w := 0; w < workers; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for n := 0; n < iterations; n++ {
-				ctx := DefaultArithmeticContext()
-				_, _ = contextBIDRoundingMode(ctx)
-			}
-		}()
-	}
-
-	// Per-goroutine ArithmeticContext owners; plus a nil-context caller that
-	// reads the global default concurrently with the writers above.
-	for w := 0; w < workers; w++ {
-		wg.Add(1)
-		go func(base int) {
-			defer wg.Done()
-			ctx := NewArithmeticContext()
-			ctx.RoundingMode = modes[base%len(modes)]
-			for n := 0; n < iterations; n++ {
-				_ = Add32BIDWithContext(a32, b32, ctx)
-				_ = Add64BIDWithContext(a64, b64, ctx)
-				_ = Add128BIDWithContext(a128, b128, ctx)
+				v32, f32 := a32.AddWithMode(b32, ctx.RoundingMode)
+				_ = v32
+				ctx.SetFlag(f32)
+				v64, f64 := a64.AddWithMode(b64, ctx.RoundingMode)
+				_ = v64
+				ctx.SetFlag(f64)
+				v128, f128 := a128.AddWithMode(b128, ctx.RoundingMode)
+				_ = v128
+				ctx.SetFlag(f128)
 				_ = ctx.SaveAllFlags()
-
-				// nil context resolves the global default each call.
-				_ = Add64BIDWithContext(a64, b64, nil)
 			}
 		}(w)
 	}

@@ -10,30 +10,6 @@
   ],
   "emit": [
     {
-      "go_symbol": "Add128BIDWithContext",
-      "rust_owner": "Context",
-      "rust_surface": "add128",
-      "shape": "context_binary_with_flags",
-      "bidgo_function": "Bid128Add",
-      "reason": "context add routes through the Bid128Add status-pointer form and accumulates the mapped flags into the context"
-    },
-    {
-      "go_symbol": "Add32BIDWithContext",
-      "rust_owner": "Context",
-      "rust_surface": "add32",
-      "shape": "context_binary_with_flags",
-      "bidgo_function": "Bid32AddWithFlags",
-      "reason": "width-parameterized reuse of the Decimal64 'context_binary_with_flags' shape template (free constructor); routes through the Go mechanical port bidgo function 'Bid32AddWithFlags'."
-    },
-    {
-      "go_symbol": "Add64BIDWithContext",
-      "rust_owner": "Context",
-      "rust_surface": "add64",
-      "shape": "context_binary_with_flags",
-      "bidgo_function": "Bid64AddWithFlags",
-      "reason": "context add routes through Bid64AddWithFlags at the context's rounding mode and accumulates flags into ctx.flags; Rust has no nil-context default (Go's SetDefaultRounding global is excluded), so the mode is always taken from the Context receiver"
-    },
-    {
       "go_symbol": "Decimal128BID.Abs",
       "rust_owner": "Decimal128",
       "rust_surface": "abs",
@@ -2255,7 +2231,7 @@
       "rust_surface": "round_integral_exact_with_flags",
       "shape": "unary_with_flags_default_round",
       "bidgo_function": "Bid64RoundIntegralExact",
-      "reason": "round-to-nearest-even to an integral value with flags (does not consult SetDefaultRounding)"
+      "reason": "round-to-nearest-even to an integral value with flags (fixed nearest-even compatibility path)"
     },
     {
       "go_symbol": "Decimal64BID.RoundIntegralExactWithMode",

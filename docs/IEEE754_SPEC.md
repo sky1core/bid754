@@ -101,11 +101,11 @@ Public Go BID methods use the following flag policy:
   call with the target width's canonical quiet NaN and
   `FlagInvalidOperation`; the raw Intel function does not define this public
   invalid-input contract
-- context-based operations accumulate flags into `ArithmeticContext.Flags` using
-  sticky OR semantics
-- `DefaultArithmeticContext()` returns a snapshot of the atomic default
-  rounding mode; callers must not rely on mutating the returned pointer to
-  change package-global state
+- `ArithmeticContext` is the IEEE 754-2019 5.7.4 flag-plumbing carrier: its
+  flag methods accumulate with sticky OR semantics (`SetFlag` is raiseFlags),
+  and the caller threads its rounding mode into the explicit-mode operations;
+  there are no context-consuming arithmetic operations and no package-global
+  default rounding state
 - slice helper APIs that perform flag-raising operations must have a
   flag-returning peer that accumulates per-step flags
 - flag-returning public methods must route through the Go mechanical port flag

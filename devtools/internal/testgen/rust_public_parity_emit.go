@@ -96,11 +96,8 @@ var decimal128ParityWidth = parityWidth{
 }
 
 // parityWidthForBidgoFunc resolves the width record from a census
-// bidgo_function name's own "Bid64"/"Bid32"/"Bid128" prefix. This works
-// uniformly for every row including Context's (Add64BIDWithContext's
-// BidgoFunction is Bid64AddWithFlags; Add128BIDWithContext's is Bid128Add),
-// where row.RustOwner is "Context" rather than a Decimal<w> type name and so
-// cannot itself be used to resolve the width. Bid128 is checked before Bid64/
+// bidgo_function name's own "Bid64"/"Bid32"/"Bid128" prefix, so all rows
+// share one resolution path. Bid128 is checked before Bid64/
 // Bid32 would ever be ambiguous with it (none of their names share the
 // "Bid128" prefix), so a fixed check order is safe here.
 func parityWidthForBidgoFunc(bidgoFn, goSymbol string) (parityWidth, error) {
@@ -430,7 +427,7 @@ func emitRustParityFile(rows []rustParityInventoryRow, constRows []rustConstInve
 	b.WriteString(genmarker.Line("testgen") + "\n")
 	b.WriteString(rustParityFileDoc)
 	b.WriteString("\n")
-	b.WriteString("use bid754::{Context, Decimal128, Decimal32, Decimal64, RoundingMode};\n\n")
+	b.WriteString("use bid754::{Decimal128, Decimal32, Decimal64, RoundingMode};\n\n")
 
 	emitRustParityStaticHelpers(&b, masks)
 	emitRustMixedFMAFusednessSentinelRows(&b)
@@ -703,8 +700,7 @@ const rustParityFileDoc = `//! Public-API parity gate: exercises every emitted p
 //! domain (same framing as the Go leg).
 //!
 //! Scope: emitted rows cover Decimal32, Decimal64, and Decimal128 value methods
-//! and constructors, plus the
-//! per-width Context::add methods. Each shape emitter is parameterized by a
+//! and constructors. Each shape emitter is parameterized by a
 //! parityWidth record resolved from the row's own census bidgo_function prefix
 //! (Bid64.../Bid32.../Bid128...), not a hardcoded width, so all widths share
 //! one template per shape. The width-128 records carry the pfpsf-pointer flag
@@ -741,17 +737,13 @@ const rustParityFileDoc = `//! Public-API parity gate: exercises every emitted p
 //! expectedPublicParityCasesByShape entries in
 //! bid754-go/generated_public_parity_cases_test.go: one case per mode-taking
 //! wrapper, so six of the twelve integer-constructor wrappers are exact
-//! modeless conversions and carry none, and the context functions carry two
-//! because the leg there splits into the two sub-legs described below; no
+//! modeless conversions and carry none; no
 //! total is restated in this comment because a hand-carried count here would
-//! drift from the Go leg. The conversion, integer-constructor,
-//! string-constructor, and context mode shapes carry the same rejection case
-//! with two further differences: the string constructors additionally pin a
-//! nil error so the flag and error rejection channels stay distinguishable,
-//! and the context
-//! functions pin both an explicit bad-mode context and the global default
-//! resolved through a nil context, where the flag has no field to accumulate
-//! into and the result is the only observable signal. The accounting for this
+//! drift from the Go leg. The conversion, integer-constructor, and
+//! string-constructor mode shapes carry the same rejection case
+//! with one further difference: the string constructors additionally pin a
+//! nil error so the flag and error rejection channels stay distinguishable.
+//! The accounting for this
 //! Rust leg is unchanged either way: 0 cases affected, because the input does
 //! not exist in this API and so there is nothing to skip.
 `
@@ -1108,9 +1100,6 @@ func emitRustParityUnit(b *strings.Builder, row rustParityInventoryRow, corpus p
 		return emitFromExact(b, row, w)
 	case "from_i64_mode", "from_u64_mode", "from_i32_mode", "from_u32_mode":
 		return emitFromMode(b, row, w)
-
-	case "context_binary_with_flags":
-		return emitContextBinaryWithFlags(b, row, corpus, w)
 
 	default:
 		if strings.HasPrefix(row.Shape, "to_i") || strings.HasPrefix(row.Shape, "to_u") {
@@ -1848,8 +1837,8 @@ func emitModeUnary(b *strings.Builder, row rustParityInventoryRow, corpus public
 	return funcName, cases, nil
 }
 
-// publicParityModeOrderNames gives emitModeUnary/emitConvertInt/emitFromMode/
-// emitContextBinaryWithFlags the mode count without importing the Go-side
+// publicParityModeOrderNames gives emitModeUnary/emitConvertInt/emitFromMode
+// the mode count without importing the Go-side
 // RoundingMode identifiers (this file only needs the count and, for
 // emitConvertInt, the ordered bidgo variant-name suffixes below).
 var publicParityModeOrderNames = []string{"NearestEven", "NearestAway", "TowardZero", "TowardPositive", "TowardNegative"}
@@ -3170,42 +3159,6 @@ func emitFromMode(b *strings.Builder, row rustParityInventoryRow, w parityWidth)
 }
 
 `, "@FUNC@", funcName, "@CORPUS@", corpusName, "@SELF@", w.selfType, "@SURF@", row.RustSurface, "@MOD@", module, "@FN@", fn, "@PVBITS@", w.pubBitsExpr("pv"), "@PORTBITS@", w.portBitsExpr("pr"), "@FMTSPEC@", w.resultFmtSpec(), "@SYM@", row.GoSymbol))
-	return funcName, cases, nil
-}
-
-func emitContextBinaryWithFlags(b *strings.Builder, row rustParityInventoryRow, corpus publicParityCorpus, w parityWidth) (string, int, error) {
-	module, fn, err := resolvePort(row.BidgoFunction, row.GoSymbol)
-	if err != nil {
-		return "", 0, err
-	}
-	funcName := normalizeRustFnName(row.GoSymbol)
-	cases := w.pairsLen(corpus) * len(publicParityModeOrderNames)
-	// Add128BIDWithContext's port (Bid128Add) uses the pfpsf convention;
-	// portCallStmt handles that the same way every other
-	// pfpsf op does.
-	portStmt := portCallStmt(row.BidgoFunction, module, fn, []string{w.portArg("v0"), w.portArg("v1"), "port_mode"})
-	b.WriteString(rustTmpl(`fn @FUNC@(failures: &mut Vec<String>) -> usize {
-    let mut count = 0usize;
-    for &(i0, i1) in @PAIRS@ {
-        let v0 = @CORPUS@[i0];
-        let v1 = @CORPUS@[i1];
-        for &(mode, port_mode) in PARITY_MODES {
-            let mut ctx = Context::with_rounding(mode);
-            let pv = ctx.@SURF@(@PUBFROM0@, @PUBFROM1@);
-            @PORTSTMT@
-            if @PVBITS@ != @PORTBITS@ {
-                failures.push(format!("public parity @SYM@: operands @OPFMT@,@OPFMT@ mode {:?}: result mismatch public=@FMTSPEC@ port=@FMTSPEC@", v0, v1, mode, @PVBITS@, @PORTBITS@));
-            }
-            if ctx.flags.bits() != map_port_flags(praw) {
-                failures.push(format!("public parity @SYM@: operands @OPFMT@,@OPFMT@ mode {:?}: flag mismatch public={:#x} port={:#x}", v0, v1, mode, ctx.flags.bits(), map_port_flags(praw)));
-            }
-            count += 1;
-        }
-    }
-    count
-}
-
-`, "@FUNC@", funcName, "@PAIRS@", w.pairs, "@CORPUS@", w.corpus, "@PUBFROM0@", w.pubFrom("v0"), "@PUBFROM1@", w.pubFrom("v1"), "@SURF@", row.RustSurface, "@PORTSTMT@", portStmt, "@PVBITS@", w.pubBitsExpr("pv"), "@PORTBITS@", w.portBitsExpr("pr"), "@OPFMT@", w.opFmtSpec(), "@FMTSPEC@", w.resultFmtSpec(), "@SYM@", row.GoSymbol))
 	return funcName, cases, nil
 }
 
