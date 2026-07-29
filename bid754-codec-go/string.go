@@ -63,7 +63,7 @@ func validateStringComponents(c Components) error {
 		if c.Coefficient.Sign() < 0 {
 			return fmt.Errorf("BID codec string: coefficient %s is negative", c.Coefficient.String())
 		}
-		if c.Coefficient.Cmp(ten34) >= 0 {
+		if c.Coefficient.Cmp(ten34()) >= 0 {
 			return fmt.Errorf("BID codec string: coefficient %s exceeds schema max %s", c.Coefficient.String(), bid128MaxCoeffDecimal)
 		}
 	case Zero, Infinity:
@@ -75,8 +75,8 @@ func validateStringComponents(c Components) error {
 		if c.Payload.Sign() < 0 {
 			return fmt.Errorf("BID codec string: NaN payload %s is negative", c.Payload.String())
 		}
-		if c.Payload.Cmp(ten33) >= 0 {
-			return fmt.Errorf("BID codec string: NaN payload %s exceeds schema max %s", c.Payload.String(), bid128PayMax.String())
+		if c.Payload.Cmp(ten33()) >= 0 {
+			return fmt.Errorf("BID codec string: NaN payload %s exceeds schema max %s", c.Payload.String(), bid128PayMax().String())
 		}
 	default:
 		return fmt.Errorf("BID codec string: unrecognized kind %d", uint8(c.Kind))
@@ -218,7 +218,7 @@ func FromString(s string) (Components, error) {
 	// hold. This is a shared schema constant, identical in all six language
 	// packages, so big-integer and fixed-width-integer languages fail the same
 	// inputs the same way. Per-width range validation stays in Encode*.
-	if coeff.Cmp(ten34) >= 0 {
+	if coeff.Cmp(ten34()) >= 0 {
 		return Components{}, fmt.Errorf("coefficient %s exceeds schema max %s", coeff.String(), bid128MaxCoeffDecimal)
 	}
 
@@ -307,8 +307,8 @@ func parseNaNPayload(s string) (*big.Int, error) {
 	if !ok {
 		return nil, fmt.Errorf("invalid NaN payload %q", s)
 	}
-	if v.Cmp(ten33) >= 0 {
-		return nil, fmt.Errorf("NaN payload %s exceeds schema max %s", v.String(), bid128PayMax.String())
+	if v.Cmp(ten33()) >= 0 {
+		return nil, fmt.Errorf("NaN payload %s exceeds schema max %s", v.String(), bid128PayMax().String())
 	}
 	return v, nil
 }

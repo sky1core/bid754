@@ -231,7 +231,7 @@ func bid32NaNPayloadBits(payload *big.Int) (uint32, error) {
 	if payload.Sign() < 0 {
 		return 0, fmt.Errorf("bid32 encode: NaN payload %s is negative", payload.String())
 	}
-	if payload.Cmp(bigBid32PayLimit) >= 0 {
+	if payload.Cmp(bigBid32PayLimit()) >= 0 {
 		return 0, fmt.Errorf("bid32 encode: NaN payload %s exceeds max %d", payload.String(), bid32PayLimit-1)
 	}
 	return uint32(payload.Uint64()) & 0x000fffff, nil
@@ -276,7 +276,7 @@ func Encode32(c Components) (uint32, error) {
 		if c.Coefficient.Sign() < 0 {
 			return 0, fmt.Errorf("bid32 encode: coefficient %s is negative", c.Coefficient.String())
 		}
-		if c.Coefficient.Cmp(bigBid32MaxCoeff) > 0 {
+		if c.Coefficient.Cmp(bigBid32MaxCoeff()) > 0 {
 			return 0, fmt.Errorf("bid32 encode: coefficient %s exceeds max %d", c.Coefficient.String(), bid32MaxCoeff)
 		}
 		if _, err := bid32BiasedExp(c.Exponent); err != nil {
@@ -427,7 +427,7 @@ func bid64NaNPayloadBits(payload *big.Int) (uint64, error) {
 	if payload.Sign() < 0 {
 		return 0, fmt.Errorf("bid64 encode: NaN payload %s is negative", payload.String())
 	}
-	if payload.Cmp(bigBid64PayLimit) >= 0 {
+	if payload.Cmp(bigBid64PayLimit()) >= 0 {
 		return 0, fmt.Errorf("bid64 encode: NaN payload %s exceeds max %d", payload.String(), uint64(bid64PayLimit-1))
 	}
 	return payload.Uint64() & 0x0003ffffffffffff, nil
@@ -472,7 +472,7 @@ func Encode64(c Components) (uint64, error) {
 		if c.Coefficient.Sign() < 0 {
 			return 0, fmt.Errorf("bid64 encode: coefficient %s is negative", c.Coefficient.String())
 		}
-		if c.Coefficient.Cmp(bigBid64MaxCoeff) > 0 {
+		if c.Coefficient.Cmp(bigBid64MaxCoeff()) > 0 {
 			return 0, fmt.Errorf("bid64 encode: coefficient %s exceeds max %d", c.Coefficient.String(), uint64(bid64MaxCoeff))
 		}
 		if _, err := bid64BiasedExp(c.Exponent); err != nil {
@@ -508,31 +508,39 @@ const (
 	bid128MaxCoeffDecimal = "9999999999999999999999999999999999"
 )
 
-// ten34 = 10^34, max coefficient + 1 for BID128
-var ten34 = func() *big.Int {
-	v, _ := new(big.Int).SetString("10000000000000000000000000000000000", 10)
-	return v
-}()
+// The big.Int limits below are constructed fresh on every call instead of
+// being shared package-level *big.Int values: big.Int methods write into
+// their receiver, so a shared pointer would be mutable process-wide state
+// that only convention keeps constant. A fresh value per call makes the
+// immutability structural.
 
-// ten33 = 10^33, the schema-wide NaN payload limit (max canonical BID128 NaN
-// payload + 1). A NaN payload must be strictly below this in every BID width,
-// mirroring the 10^34-1 coefficient cap.
-var ten33 = func() *big.Int {
-	v, _ := new(big.Int).SetString("1000000000000000000000000000000000", 10)
-	return v
-}()
+// ten34 returns 10^34, max coefficient + 1 for BID128, as
+// 10^17 * 10^17 (each factor fits uint64, so this is one small
+// multiplication rather than a generic exponentiation).
+func ten34() *big.Int {
+	t := new(big.Int).SetUint64(100000000000000000) // 10^17
+	return t.Mul(t, t)
+}
 
-// bid128PayMax = 10^33-1, the largest canonical BID128 NaN payload, used in
-// reject error messages.
-var bid128PayMax = new(big.Int).Sub(ten33, big.NewInt(1))
+// ten33 returns 10^33, the schema-wide NaN payload limit (max canonical
+// BID128 NaN payload + 1), as 10^16 * 10^17. A NaN payload must be strictly
+// below this in every BID width, mirroring the 10^34-1 coefficient cap.
+func ten33() *big.Int {
+	t := new(big.Int).SetUint64(10000000000000000) // 10^16
+	return t.Mul(t, new(big.Int).SetUint64(100000000000000000))
+}
 
-// Precomputed unsigned coefficient and NaN payload limits for encode validation.
-var (
-	bigBid32MaxCoeff = big.NewInt(bid32MaxCoeff) // 10^7-1
-	bigBid64MaxCoeff = big.NewInt(bid64MaxCoeff) // 10^16-1
-	bigBid32PayLimit = big.NewInt(bid32PayLimit) // 10^6
-	bigBid64PayLimit = big.NewInt(bid64PayLimit) // 10^15
-)
+// bid128PayMax returns 10^33-1, the largest canonical BID128 NaN payload,
+// used in reject error messages.
+func bid128PayMax() *big.Int {
+	return new(big.Int).Sub(ten33(), big.NewInt(1))
+}
+
+// Unsigned coefficient and NaN payload limits for encode validation.
+func bigBid32MaxCoeff() *big.Int { return big.NewInt(bid32MaxCoeff) } // 10^7-1
+func bigBid64MaxCoeff() *big.Int { return big.NewInt(bid64MaxCoeff) } // 10^16-1
+func bigBid32PayLimit() *big.Int { return big.NewInt(bid32PayLimit) } // 10^6
+func bigBid64PayLimit() *big.Int { return big.NewInt(bid64PayLimit) } // 10^15
 
 // Decode128 extracts components from BID128 encoded as [2]uint64{lo, hi}.
 func Decode128(lo, hi uint64) Components {
@@ -669,8 +677,8 @@ func bid128NaNPayloadWords(payload *big.Int) (lo, hi uint64, err error) {
 	if payload.Sign() < 0 {
 		return 0, 0, fmt.Errorf("bid128 encode: NaN payload %s is negative", payload.String())
 	}
-	if payload.Cmp(ten33) >= 0 {
-		return 0, 0, fmt.Errorf("bid128 encode: NaN payload %s exceeds max %s", payload.String(), bid128PayMax.String())
+	if payload.Cmp(ten33()) >= 0 {
+		return 0, 0, fmt.Errorf("bid128 encode: NaN payload %s exceeds max %s", payload.String(), bid128PayMax().String())
 	}
 	// payload < 10^33 < 2^110, so it fits 16 bytes and its high word occupies
 	// only the 46-bit payload field (bits 64..109), never the NaN/sign bits, so
@@ -737,7 +745,7 @@ func Encode128(c Components) (lo, hi uint64, err error) {
 		// Reject coefficient >= 10^34 before FillBytes. Because 10^34 < 2^128,
 		// this also prevents the 16-byte FillBytes below from panicking on a
 		// coefficient that does not fit 128 bits.
-		if c.Coefficient.Cmp(ten34) >= 0 {
+		if c.Coefficient.Cmp(ten34()) >= 0 {
 			return 0, 0, fmt.Errorf("bid128 encode: coefficient %s exceeds max %s", c.Coefficient.String(), bid128MaxCoeffDecimal)
 		}
 		if _, err := bid128BiasedExp(c.Exponent); err != nil {
