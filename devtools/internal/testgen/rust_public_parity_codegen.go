@@ -136,19 +136,17 @@ func GenerateRustPublicParityOutputs(repoRoot string) (map[string][]byte, error)
 			continue
 		}
 		// Strict width check: every emitted row is width-64 (Decimal64),
-		// width-32 (Decimal32), or width-128 (Decimal128); the check below
-		// also still admits a Context owner, which no current inventory row
-		// uses. Decimal128's 128-bit
+		// width-32 (Decimal32), or width-128 (Decimal128). Decimal128's 128-bit
 		// port convention (pfpsf pointer flags on a per-function subset,
 		// tuple return on the rest -- resolved via apiemit.PortPfpsf) and
 		// byte-accessor names (to_le_bytes/from_le_bytes rather than
 		// to_bits/from_bits) are handled by the width helpers in
 		// rust_public_parity_emit.go (parityWidth.pubFrom/portArg/
 		// pubBitsExpr/portBitsExpr and portCallStmt). A row for any owner
-		// beyond these four is still a generation-time hard failure that
-		// names the extension point instead of guessing.
-		if row.RustOwner != "Decimal64" && row.RustOwner != "Decimal32" && row.RustOwner != "Decimal128" && row.RustOwner != "Context" {
-			return nil, fmt.Errorf("rust public parity: emitted row %q has rust_owner %q; the generator supports Decimal64, Decimal32, Decimal128, and Context owners -- extend the per-shape emitters in rust_public_parity_emit.go for a new owner rather than guessing its calling convention", row.GoSymbol, row.RustOwner)
+		// beyond these three is a generation-time hard failure that names
+		// the extension point instead of guessing.
+		if row.RustOwner != "Decimal64" && row.RustOwner != "Decimal32" && row.RustOwner != "Decimal128" {
+			return nil, fmt.Errorf("rust public parity: emitted row %q has rust_owner %q; the generator supports Decimal64, Decimal32, and Decimal128 owners -- extend the per-shape emitters in rust_public_parity_emit.go for a new owner rather than guessing its calling convention", row.GoSymbol, row.RustOwner)
 		}
 		emittedRows = append(emittedRows, row)
 	}
