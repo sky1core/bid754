@@ -135,9 +135,10 @@ func GenerateRustPublicParityOutputs(repoRoot string) (map[string][]byte, error)
 		if row.Status != "emitted" {
 			continue
 		}
-		// Strict width check: every emitted row is width-64 (Decimal64,
-		// Context), width-32 (Decimal32), or width-128 (Decimal128 and the
-		// width-128 Context::add128). Decimal128's 128-bit
+		// Strict width check: every emitted row is width-64 (Decimal64),
+		// width-32 (Decimal32), or width-128 (Decimal128); the check below
+		// also still admits a Context owner, which no current inventory row
+		// uses. Decimal128's 128-bit
 		// port convention (pfpsf pointer flags on a per-function subset,
 		// tuple return on the rest -- resolved via apiemit.PortPfpsf) and
 		// byte-accessor names (to_le_bytes/from_le_bytes rather than

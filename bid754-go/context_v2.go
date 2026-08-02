@@ -6,12 +6,13 @@ package bid754
 // operations and accumulate the returned flags via SetFlag. Format and
 // precision are implied by the BID value types themselves. An
 // ArithmeticContext is not goroutine-safe; use one context per goroutine or
-// add external synchronization.
+// add external synchronization. Flags are sticky across operations: between
+// logically independent computations, clear them (ClearAllFlags, or
+// SaveAllFlags/RestoreFlags) or start a fresh context, or an earlier
+// computation's flags read as the later one's.
 type ArithmeticContext struct {
 	RoundingMode RoundingMode
 	Flags        ExceptionFlags
-	// Precision is implied by the value type. The BID public helpers route
-	// through the Go mechanical port for all three widths.
 }
 
 // NewArithmeticContext returns a context with round-to-nearest-even and no
