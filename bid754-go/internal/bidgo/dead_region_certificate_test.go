@@ -321,47 +321,6 @@ func (p *portFile) pinWrites(t *testing.T, root ast.Node, target string, want []
 	return got
 }
 
-// portWritePin is one entry of a pinned write world. text is the exact flattened
-// rendering the write must have. anyIncDec loosens exactly one thing about that
-// entry: the write may render either as text or as text with its trailing `++`
-// turned into `--`, so the entry still fixes the write's position in the ordered
-// world and its operand, and only stops fixing the increment direction. It exists
-// for writes this file deliberately does not certify - see the site 17 boundary
-// note in certificate 6 - and every use is a scope statement, not a convenience.
-type portWritePin struct {
-	text      string
-	anyIncDec bool
-}
-
-func exactWritePins(want []string) []portWritePin {
-	out := make([]portWritePin, len(want))
-	for i, w := range want {
-		out[i] = portWritePin{text: w}
-	}
-	return out
-}
-
-// pinWriteWorld is pinWrites over entries that may carry a relaxation.
-func (p *portFile) pinWriteWorld(t *testing.T, root ast.Node, target string, want []portWritePin) []portWrite {
-	t.Helper()
-	got := p.writes(t, root, target)
-	if len(got) != len(want) {
-		t.Fatalf("%s: writes to %s: found %d, pinned %d\ngot: %v", p.name, target, len(got), len(want), got)
-	}
-	for i, w := range want {
-		if got[i].text == w.text {
-			continue
-		}
-		if w.anyIncDec && strings.HasSuffix(w.text, "++") &&
-			got[i].text == strings.TrimSuffix(w.text, "++")+"--" {
-			continue
-		}
-		t.Fatalf("%s: write %d to %s (line %d) drifted\n got: %s\nwant: %s",
-			p.name, i, target, got[i].line, got[i].text, w.text)
-	}
-	return got
-}
-
 // noWriteBetween asserts nothing inside root changes target strictly between
 // the end of from and the start of to.
 func (p *portFile) noWriteBetween(t *testing.T, root ast.Node, target string, from, to ast.Node) {
@@ -3836,14 +3795,13 @@ func checkRoundHelperBound(t *testing.T) {
 //
 // Sites 17 (bid128_sqrt.go:571) and 18 (bid128_sqrt.go:646) are NOT certified
 // here and nothing below claims them: both additionally require the estimator to
-// return CS with CS.lo == 2^64-1, which Theorem S does not exclude, and they
-// remain open pending an exact sweep that is currently running. Site 17's
-// increment operator is left free by the pins below, so this certificate does not
-// kill that mutant either. Site 18's is not: its cascade is what makes the guard
-// site19 sits behind read (CS+1)^2, and site19 fires only inside the wrap region
-// that cascade decides, so the :646 mutant fails this certificate as a structural
-// premise-integrity kill rather than as a reachability verdict on site 18 - see
-// the site 17/18 boundary note above pinnedSqrtCSWrites.
+// return CS with CS.lo == 2^64-1, which Theorem S does not exclude. They are dead
+// on separate evidence - an exhaustive sweep for a reachable A with
+// isqrt(A) = -1 mod 2^64, 0 hits over all 487,890,977,618,477 candidate j - which
+// is recorded in the closure note above pinnedSqrtCSWrites but not re-derived by
+// anything here. Both lines are pinned exactly by the write worlds below, so both
+// aor:inc->dec mutants fail this file; those kills are structural, and the
+// reachability verdict on the two sites is the sweep, not this certificate.
 //
 // # 1. Firing predicates, read off the pinned source
 //
@@ -4093,15 +4051,14 @@ func checkRoundHelperBound(t *testing.T) {
 //	   exercise. Their transitive dependency is math/bits.Mul64, a standard-library
 //	   primitive, and that is where this scan stops.
 //	P11 NOT CLAIMED - sites 17 (:571) and 18 (:646) as behavioural questions;
-//	   Theorem S does not decide either. For site 17 the disclaimer also holds of the
-//	   pins: the write-world entry for :571 is relaxed by exactly that one token,
-//	   scoped to Bid128dSqrt, so the same-shaped nearest-path write in Bid128Sqrt
-//	   stays exact. For site 18 it holds of the claim only, not of the pins: the
-//	   :646 cascade is pinned exactly in both callers, because site19's guard reads
-//	   M256 = (CS+1)^2 exactly on the wrap inputs site19 can fire on, so a relaxed
-//	   cascade would reduce a certified site's firing predicate to the open site-18
-//	   question. The resulting :646 mutant kill is premise integrity, not a claim
-//	   that :646 is dead; that verdict waits on the exact sweep.
+//	   Theorem S does not decide either, and neither does this certificate. Both are
+//	   dead on the separate exhaustive-sweep evidence recorded in the closure note
+//	   above pinnedSqrtCSWrites. The disclaimer holds of the claims only, not of the
+//	   pins: :571 and the :646 cascade are both pinned exactly in both callers, the
+//	   latter because site19's guard reads M256 = (CS+1)^2 exactly on the wrap
+//	   inputs site19 can fire on, so a relaxed cascade would reduce a certified
+//	   site's firing predicate to the site-18 question. The resulting mutant kills at
+//	   both lines are token/premise integrity, not this file claiming them dead.
 //
 // # 5. What is pinned, and where each scan stops
 //
@@ -4395,64 +4352,139 @@ func sqrtBandRun(bias, parity string) []string {
 	}
 }
 
-// Boundary: sites 17 and 18 are disclaimed as *behavioural* questions - Theorem S
-// does not decide either, since both need the estimator to return CS.lo = 2^64-1,
-// which it does not exclude - and the two lines are handled differently here
-// because only one of them is load-bearing for a site this file does certify.
+// Closure note for sites 17 and 18. Both are *behavioural* questions Theorem S
+// does not decide, because both need the estimator to return CS.lo = 2^64-1 and
+// Theorem S does not exclude that. They are decided - both DEAD - by the exhaustive
+// sweep recorded below. That verdict is external evidence this file does not
+// re-derive: nothing here re-runs the sweep, and the pins below are exact-token
+// pins whose failures are structural, so the two must be read apart.
 //
-// Site 17 is bid128_sqrt.go:571, the CS.hi++ of the nearest-path round-up in
-// Bid128dSqrt. It is relaxed by exactly one token: the entry keeps its position in
-// the ordered write world and its operand CS.hi, and only the ++/-- direction is
-// free (portWritePin.anyIncDec). The relaxation is scoped to Bid128dSqrt - the
-// same-shaped nearest-path write in Bid128Sqrt stays an exact token. That arm is
-// the nearest-mode sibling of the certified region, disjoint from the chain sites
-// 16 and 19 sit on, so leaving its direction open loosens nothing the deadness
-// argument reads. It is temporary: once the exact sweep decides site 17 this entry
-// must be tightened back, since left loose past that point it stops being scope
-// honesty and becomes a hole in the closed write world.
+// # The sweep, and why it decides both sites
 //
-// Site 18 is :646, the M256.w2++ inside the (CS+1)^2 carry cascade of the same
-// function, and it is pinned EXACTLY - in both callers - even though the
-// behavioural question about it stays open. The earlier two-variant rendering of
-// that cascade was unsound for site19: site19 fires only when CS.lo = 2^64-1, which
-// is precisely the region where the +1 carries out of w0 and w1 and reaches the w2
-// step, so under the `M256.w2--` rendering the guard at :652-658 no longer reads
-// M256 = (CS+1)^2 on any input site19 could fire on. Admitting it would reduce
-// site19's deadness claim to the open site-18 question instead of leaving it
-// untouched, so the relaxation is gone; Bid128Sqrt's cascade at :401-414, which
-// builds the (CS+1)^2 that site16's guard at :415-421 reads, was and stays exact
-// for the same reason.
+// Firing predicates, read off the pinned source, with A := C256 as a mathematical
+// integer, M := isqrt(A), CS := the raw 128-bit return of bid_long_sqrt128 and
+// B := 2^64:
+//
+//	site17 (:571, the CS.hi++ of the nearest-path round-up) fires
+//	  <=> (rnd_mode & 3) == 0 and CS = -1 mod B and A >= CS^2 + CS + 1.
+//	      The guard at :562-568 is 4A > (2CS+1)^2; 4A = 0 mod 4 sharpens that to
+//	      A >= CS^2+CS+1, and :569-570 is the CS.lo++ wrap.
+//	site18 (:646, the M256.w2++ of the (CS+1)^2 carry cascade) fires
+//	  <=> (rnd_mode & 3) != 0 and CS = -1 mod B and CS^2 <= A.
+//	      The w0/w1 wraps at :642-645 say (CS+1)^2 = 0 mod 2^128, and with
+//	      CS+1 <= 10^34+1 < 2^114 that is v2(CS+1) >= 64, i.e. CS = -1 mod B.
+//
+// Both force M = CS: site18 requires CS^2 <= A and site17 requires
+// A >= CS^2+CS+1 > CS^2, so M >= CS either way, while Theorem S bounds the
+// estimator from the other side with CS >= M. Hence if any input fires either
+// site, its A is reachable and satisfies isqrt(A) = -1 mod B, so enumerating
+// {A reachable : isqrt(A) = -1 mod B} DECIDES both sites.
+//
+// Parametrise M+1 = j*B. Then M^2 = j^2B^2-2jB+1 and isqrt(A) = M <=> A lies in
+// [M^2, M^2+2M] = [j^2B^2-2jB+1, j^2B^2-1], a window of width 2M+1 <= 2*10^34.
+// M in [10^33, 10^34-1], from the reachable band A in [10^66,10^68) of section 2,
+// gives
+//
+//	j in [54210108624276, 542101086242752]  -  487,890,977,618,477 values.
+//
+// A reachable A is a multiple of P := 10^q, and where that comes from is
+// load-bearing rather than incidental. Both sites live in Bid128dSqrt, whose
+// CX < 10^16 bounds the digit count by D <= 16 (section 2), so scale = 67-D+p with
+// the band parity p in {0,1} gives scale >= 51+p, and A = CX*10^scale is a multiple
+// of 10^(51+p). Write q := 51+p, so q = 51 on [10^66,10^67) and q = 52 on
+// [10^67,10^68). The same step in Bid128Sqrt would only reach D <= 34, i.e. an
+// exponent floor of 33+p in place of 51+p, far too small for what follows - which
+// is why this argument runs on Bid128dSqrt's coefficient bound and not on one
+// shared by both entry points.
+//
+// The window is 5.0e16 times narrower than P, so it holds at most one multiple of
+// P. With G := (j^2*B^2) mod P, the largest multiple of P below j^2B^2 is j^2B^2-G
+// and the next one down is a whole P lower, far outside the window, so exactly:
+//
+//	a reachable A with isqrt(A) = jB-1 exists  <=>  1 <= G <= 2jB-1,
+//	and then A = j^2*2^128 - G.
+//
+// (The G = 0 escape, where the next multiple down could still land in the window,
+// needs P <= 2jB-1 and is impossible here.) Since P = 2^q*5^q and B^2 = 2^128 = 0
+// mod 2^q, the test runs on half the limbs as G = 2^q*G' with
+// G' = (j^2 * 2^(128-q)) mod 5^q.
+//
+// # Result
+//
+// Every j in that range was tested, in two legs split at the band boundary, with
+// the boundary j tested under both moduli:
+//
+//	leg 1  A in [10^66,10^67)  P=10^51  27,293 blocks  117,217,306,833,571 cands  0 hits
+//	leg 2  A in [10^67,10^68)  P=10^52  86,305 blocks  370,673,670,784,907 cands  0 hits
+//
+// 113,598 blocks, and no j admitted a reachable A. The two candidate counts sum to
+// 487,890,977,618,478, one more than the 487,890,977,618,477 distinct j, because
+// the shared boundary j is counted once per modulus.
+//
+// So no reachable input satisfies site17's or site18's firing predicate, and both
+// sites are unreachable. Stated exactly, because the difference matters: what the
+// sweep empties is {A reachable : isqrt(A) = -1 mod B}, and it is the CS = M
+// reduction above that turns emptiness of that set into the sites' CS = -1 mod B
+// condition. The sweep does *not* establish that the estimator never returns
+// CS = -1 mod B at all - Theorem S also permits CS = M+1, so a reachable A with
+// M = -2 mod B would produce such a CS without being enumerated here - and neither
+// site fires on that branch, since both require M >= CS while CS = M+1.
+//
+// The enumerator behind those counts carries its own validation. Its scaled-down
+// analogues (B = 2^8..2^14 against P = 10^7..10^13) reproduce brute force exactly
+// on ranges where brute force finds 9882, 41021, 1645 and 53 real hits, so the
+// production accept path is known to report hits when hits exist rather than being
+// vacuously empty, and its recurrence is cross-checked against math/big over 80,000
+// consecutive j through the production loop. Both of those are self-test modes, run
+// against the same code and not timestamped against the sweep; the one check the
+// binary does perform on every invocation before any sweep work starts is the
+// acceptance-bound overflow audit at j_hi. This matters more than the hit count
+// looks: on the density heuristic that G is equidistributed mod P - an estimate,
+// not a claim this file makes - the expected number of hits over the whole range is
+// ~1e-3, so 0 was the near-certain outcome and the run's discriminating power rests
+// on the enumerator being right rather than on the count being zero.
+//
+// The sweep says nothing about site19, and is not a second argument for it: the
+// enumeration is over M = -1 mod B, which coincides with a site's CS = -1 mod B
+// condition only through the CS = M reduction above, and that reduction is exactly
+// what fails for site19, whose guard requires CS <= M-1. Site19 stays closed by
+// Theorem S alone, as certified below.
+//
+// # What the pins do, which is a different thing
+//
+// Site 17's write-world entry is now exact in both callers, like every other entry.
+// The one-token ++/-- relaxation it used to carry was scope honesty while the
+// question was open; with the question closed it would be a hole in the closed
+// write world, so it is gone, and with it the machinery that expressed it. Site
+// 18's :646 cascade was already pinned exactly in both callers, for a reason that
+// never depended on the sweep: site19 fires only when CS.lo = 2^64-1, precisely
+// where the +1 carries out of w0 and w1 and reaches the w2 step, so an `M256.w2--`
+// rendering would stop the guard at :652-658 from reading M256 = (CS+1)^2 on any
+// input site19 could fire on, reducing site19's deadness claim to the site-18
+// question. Bid128Sqrt's cascade at :401-414, which builds the (CS+1)^2 that
+// site16's guard at :415-421 reads, is exact for the same reason.
 //
 // Consequence for mutation accounting, stated rather than left to be inferred: the
-// aor:inc->dec mutant at :646 now FAILS this certificate. That kill is a
-// **structural premise-integrity kill** - the cascade is the source of the
-// (CS+1)^2 premise site19's firing predicate is read off, and this file fails when
-// that premise is rewritten - and it is **not** a reachability decision about site
-// 18. Whether any reachable input runs the w0/w1 wrap path is still open pending
-// the exact sweep, and when the sweep decides it, the site-18 audit entry is closed
-// on that evidence, not on this pin.
+// aor:inc->dec mutants at :571 and :646 both FAIL this certificate, and both
+// failures are **structural** - a pinned token changed - not reachability verdicts
+// this file derives. The reachability verdict for those two lines is the sweep
+// above and nothing else.
 
 // pinnedSqrtCSWrites is the closed world of writes to CS in one caller: the
 // short-path seed, the estimator result, and the ten corrections of the two
-// rounding paths. Both callers have the same shape; they differ only in the site
-// 17 relaxation, which applies to Bid128dSqrt alone.
-func pinnedSqrtCSWrites(fn string) []portWritePin {
-	w := exactWritePins([]string{
-		"CS.lo = short_sqrt128(A10)",
-		"CS.hi = 0",
-		"CS = bid_long_sqrt128(C256)",
-		"CS.lo++", "CS.hi++", // nearest path, round up
-		"CS.hi--", "CS.lo--", // nearest path, round down
-		"CS.hi--", "CS.lo--", // directed path, CS^2 > C256, first decrement
-		"CS.hi--", "CS.lo--", // directed path, CS^2 > C256, second decrement
-		"CS.lo++", "CS.hi++", // directed path, the certified undershoot arm
-		"CS.lo++", "CS.hi++", // directed path, BID_ROUNDING_UP tail
-	})
-	const site17 = 4 // the nearest-path CS.hi++: bid128_sqrt.go:571 in Bid128dSqrt
-	if fn == "Bid128dSqrt" {
-		w[site17].anyIncDec = true
-	}
-	return w
+// rounding paths. Both callers have the same shape and every entry is exact in
+// both. The site 17 relaxation this list used to carry for Bid128dSqrt is gone,
+// retired by the sweep recorded in the closure note above.
+var pinnedSqrtCSWrites = []string{
+	"CS.lo = short_sqrt128(A10)",
+	"CS.hi = 0",
+	"CS = bid_long_sqrt128(C256)",
+	"CS.lo++", "CS.hi++", // nearest path, round up; the CS.hi++ is site 17 (:571)
+	"CS.hi--", "CS.lo--", // nearest path, round down
+	"CS.hi--", "CS.lo--", // directed path, CS^2 > C256, first decrement
+	"CS.hi--", "CS.lo--", // directed path, CS^2 > C256, second decrement
+	"CS.lo++", "CS.hi++", // directed path, the certified undershoot arm
+	"CS.lo++", "CS.hi++", // directed path, BID_ROUNDING_UP tail
 }
 
 // pinnedSqrtC256Writes is the closed world of writes to C256 in one caller: the
@@ -4492,7 +4524,7 @@ var pinnedSqrtPlusOneBuild = []string{
 // cascade is the premise that makes M256 equal (CS+1)^2 at the guard, and site19 -
 // which this file does certify - fires only when CS.lo == 2^64-1, which is exactly
 // the region where the w0/w1 wrap reaches the w2 step. Admitting `M256.w2--` there
-// would therefore leave site19's own firing predicate undecided. See the boundary
+// would therefore leave site19's own firing predicate undecided. See the closure
 // note above pinnedSqrtCSWrites for what the resulting :646 kill does and does not
 // mean.
 const pinnedSqrtPlusOneCascade = "if M256.w0 == 0 { M256.w1++ if M256.w1 == 0 { M256.w2++ if M256.w2 == 0 { M256.w3++ } } }"
@@ -5132,12 +5164,12 @@ func TestBid128SqrtEstimatorErrorBoundExcludesUndershoot(t *testing.T) {
 // CS.hi++ in Bid128dSqrt): both sit behind the directed-rounding guard
 // (CS+1)^2 <= C256, which Theorem S makes false on every reachable input.
 //
-// Sites 17 (:571) and 18 (:646) are deliberately outside this certificate and
-// are not claimed by it; they remain open pending an exact sweep that is
-// currently running. The pins here leave site 17's increment operator free for
-// that reason, but site 18's cascade is pinned exactly, since site19's own
-// (CS+1)^2 premise is what that cascade builds - see the boundary note above
-// pinnedSqrtCSWrites.
+// Sites 17 (:571) and 18 (:646) are deliberately outside this certificate and are
+// not claimed by it. They are dead on separate evidence - the exhaustive sweep
+// recorded in the closure note above pinnedSqrtCSWrites - which this test does not
+// re-run. Both lines are pinned exactly here, like every other write, so a token
+// change at either fails this file structurally rather than as a reachability
+// verdict.
 func TestBid128SqrtDirectedUndershootArmsAreUnreachable(t *testing.T) {
 	p := loadPortFile(t, "bid128_sqrt.go")
 
@@ -5165,7 +5197,7 @@ func TestBid128SqrtDirectedUndershootArmsAreUnreachable(t *testing.T) {
 
 		// --- anchor: the closed world of writes to CS, so no correction outside
 		// the pinned rounding paths can reach the guard's operand.
-		csWrites := p.pinWriteWorld(t, fn, "CS", pinnedSqrtCSWrites(c.fn))
+		csWrites := p.pinWrites(t, fn, "CS", pinnedSqrtCSWrites)
 		p.pinNoNestedDecl(t, fn, "CS")
 		p.pinNoGoto(t, fn)
 
