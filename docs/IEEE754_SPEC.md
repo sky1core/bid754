@@ -74,6 +74,19 @@ Clause 5.7.1 conformance predicates are satisfied by the hand-written
 constants, not by routing the helpers through the port. The exact current rows
 and reasons are emitted in the generated readtest profile inventory.
 
+Clause 5.7.4 flag-subset operations carry a split verification status. The
+Intel status-control helper ports run inside the generated readtest domain
+through their adopted status-control rows. The public carrier surface — the
+`ArithmeticContext` carrier methods and constructor plus
+`ExceptionFlags.HasFlag` — has no Intel port counterpart, so no generated
+differential domain can reach it; it is excluded from the generated
+verification domains under the `context_flag_plumbing` class, with the exact
+symbol list and per-symbol reasons closed by the generated public-API routing
+inventory, and its
+behaviour is covered by hand-written unit tests in the Go and Rust trees
+only. That surface is verified outside the generated domains; this is an
+explicit verification boundary, not a gated claim.
+
 Additional enforced principles:
 
 - If `Decimal32`, `Decimal64`, and `Decimal128` are documented as supported, all Clause 5 `shall` operations that apply to those formats are implementation targets

@@ -116,7 +116,7 @@ GitHub-hosted runners in CI workflows use image labels that expose the version r
 
 BID codec cross-language verification uses the following language tools in the current tree.
 
-- Go: `go`; standalone package verification creates an isolated local git release repository tagged `bid754-codec-go/v0.1.0` (the Go multi-module subdirectory tag convention) and consumes `github.com/sky1core/bid754/bid754-codec-go` through normal module version resolution without a local `replace`
+- Go: `go`; standalone package verification creates an isolated local git release repository tagged `bid754-codec-go/v<version>` (the Go multi-module subdirectory tag convention, with the version read from the `Version` constant in `bid754-go/bid754.go`, the single scripted project version source) and consumes `github.com/sky1core/bid754/bid754-codec-go` through normal module version resolution without a local `replace`
 - Rust: `cargo`
 - Java: `javac`/`java` standard toolchain for the no-external-dependency vector runner; package builds use pinned Gradle plus checked-in `bid754-codec-java/gradle.lockfile`, and standalone package verification publishes `io.github.sky1core:bid754-codec` to an isolated temporary Maven repository
 - Python: temporary virtualenv with pinned `pytest` from `bid754-codec-py/pyproject.toml`; package verification reads the `bid754-codec` version from that same `pyproject.toml` instead of hard-coding the wheel/install version
@@ -125,7 +125,7 @@ BID codec cross-language verification uses the following language tools in the c
 
 The 6 standalone BID codec package checks cover the package boundary in addition to the tools above.
 
-- Go: external module smoke plus generated vector verification through a tagged `github.com/sky1core/bid754/bid754-codec-go v0.1.0` module resolved from the isolated temporary git repository; local `replace` is not the package-consumer boundary
+- Go: external module smoke plus generated vector verification through a tagged `github.com/sky1core/bid754/bid754-codec-go` module at the scripted project version, resolved from the isolated temporary git repository; local `replace` is not the package-consumer boundary
 - Rust: `cargo package --locked` without `--allow-dirty`, `cargo doc`, `cargo clippy`, external path-consumer smoke, and external generated vector verification; the package gate must fail on dirty tracked crate source rather than masking unreproducible local edits
 - Java: pinned Gradle via `devtools/scripts/run_pinned_gradle.sh`, checked-in dependency lockfile verification, clean build of the exact expected library jar plus sources/javadoc jar output, external jar consumer smoke, and generated vector verification against the built jar
 - Python: wheel build with exact-pinned build backend, `py.typed` inclusion, venv install, import smoke, and generated vector verification against the installed wheel

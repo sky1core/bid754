@@ -119,11 +119,11 @@ artifact.
 
 Release tag convention:
 
-- root `v0.1.0`-style tags version the repository snapshot for Swift Package
+- root `vX.Y.Z` tags version the repository snapshot for Swift Package
   Manager; Go tooling ignores them because there is no root `go.mod`
-- `bid754-go/v0.1.0`-style tags version the public Go implementation module
-- `bid754-codec-go/v0.1.0`-style tags version the standalone Go codec module
-- `bid754-rs/v0.1.0`-style tags version the public Rust implementation crate
+- `bid754-go/vX.Y.Z` tags version the public Go implementation module
+- `bid754-codec-go/vX.Y.Z` tags version the standalone Go codec module
+- `bid754-rs/vX.Y.Z` tags version the public Rust implementation crate
 
 Changing this identity again requires an explicit repository-wide migration
 plan covering Go modules, package metadata, README examples, and release
