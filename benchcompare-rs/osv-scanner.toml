@@ -1,0 +1,8 @@
+# Scoped to this benchmark crate's lockfile only; every other lockfile in the
+# repository is scanned without overrides.
+[[PackageOverrides]]
+name = "rkyv"
+version = "0.7.46"
+ecosystem = "crates.io"
+ignore = true
+reason = "rkyv is an optional dependency of the rust_decimal comparison crate that no enabled feature activates, so it appears in Cargo.lock but is never compiled (cargo tree resolves no rkyv edge on any target). Advisories against it cannot affect this crate. The version pin re-surfaces findings automatically if a rust_decimal upgrade moves rkyv, forcing this exception to be re-justified."
