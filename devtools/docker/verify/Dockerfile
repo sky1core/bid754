@@ -16,14 +16,15 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
         libc6-dev \
         make \
         perl \
+        python3 \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Go pinned to the go.mod toolchain directive (toolchain go1.25.12).
-ARG GO_VERSION=1.25.12
-ARG GO_SHA256_AMD64=234828b7a89e0e303d2556310ee549fbcf253d28de937bac3da13d6294262ac1
-ARG GO_SHA256_ARM64=8b5884aef89600aef5b0b051fb971f11f49bb996521e911f30f02a66884f7bd2
-ARG GO_SHA256_S390X=09875de1d6cb3237437112271b9df3a96bac9fcd10cbf9bc777c00e67f4e3e3d
+# Go pinned to the go.mod toolchain directive (toolchain go1.26.8).
+ARG GO_VERSION=1.26.8
+ARG GO_SHA256_AMD64=d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b
+ARG GO_SHA256_ARM64=211ffced9dcb9633a55eac6364816ec0ddd951389a740e88fa8b3337971bdda0
+ARG GO_SHA256_S390X=339d1a09716815f737cb5ddd355e04e339312b449c268cc417118f4b8137ddd1
 RUN set -eu; \
     case "$TARGETARCH" in \
         amd64) go_sha="$GO_SHA256_AMD64" ;; \

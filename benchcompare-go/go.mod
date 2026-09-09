@@ -2,7 +2,7 @@ module github.com/sky1core/bid754/benchcompare-go
 
 go 1.23
 
-toolchain go1.25.12
+toolchain go1.26.8
 
 require (
 	github.com/shopspring/decimal v1.4.0
