@@ -7,10 +7,13 @@ from pathlib import Path
 
 import pytest
 
+from array import array
+
 from bid_codec.bid import (
     Components,
     Kind,
     decode32,
+    decode_bytes,
     decode_bytes32,
     decode64,
     decode_bytes64,
@@ -109,16 +112,57 @@ def test_vector_coverage_profile():
     assert len(_BID128_CANONICAL) == EXPECTED_BID128_CANONICAL
 
 
+class _ReportedLengthBytes(bytes):
+    def __new__(cls, data, reported_length):
+        value = super().__new__(cls, data)
+        value.reported_length = reported_length
+        return value
+
+    def __len__(self):
+        return self.reported_length
+
+    def __getitem__(self, index):
+        return 0
+
+
 def test_error_semantics():
-    for fn, size in [
+    widths = [
         (decode_bytes32, 4),
         (decode_bytes64, 8),
         (decode_bytes128, 16),
-    ]:
+    ]
+    for fn, size in widths:
+        for length in (0, size - 1, size + 1, size * 2):
+            with pytest.raises(ValueError):
+                fn(bytes(length))
+        forged = memoryview(array("H", [1] + [0] * (size - 1)))
+        assert len(forged) == size and forged.nbytes == 2 * size
+        for decoder in (fn, decode_bytes):
+            with pytest.raises(ValueError):
+                decoder(forged)
+        raw = bytes(range(1, size + 1))
+        expected = fn(raw)
+        for data in (raw, bytearray(raw), memoryview(raw),
+                     memoryview(array("B", raw)), _ReportedLengthBytes(raw, 0)):
+            assert fn(data) == expected
+            assert decode_bytes(data) == expected
+        wrong_raw = bytes(size * 2)
+        liar = _ReportedLengthBytes(wrong_raw, size)
         with pytest.raises(ValueError):
-            fn(b"\x00" * (size - 1))
+            fn(liar)
+        if len(wrong_raw) in (4, 8, 16):
+            assert decode_bytes(liar) == decode_bytes(wrong_raw)
+        else:
+            with pytest.raises(ValueError):
+                decode_bytes(liar)
+        for decoder in (fn, decode_bytes):
+            for data in (list(raw), tuple(raw), "x" * size,
+                         memoryview(raw).cast("B", shape=[2, size // 2])):
+                with pytest.raises(ValueError):
+                    decoder(data)
+    for length in (0, 3, 5, 12, 17):
         with pytest.raises(ValueError):
-            fn(b"\x00" * (size + 1))
+            decode_bytes(bytes(length))
     # Malformed from_string inputs and out-of-range encode Components are the
     # generated reject_vectors domain (test_reject_vectors), not a hardcoded list.
 

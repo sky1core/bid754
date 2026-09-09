@@ -234,8 +234,8 @@ function verifyErrorSemantics() {
   // generated reject_vectors domain (verifyRejectVectors), not a hardcoded list.
 }
 
-const expectedRejectTotal = 124;
-const expectedRejectConsumed = 124;
+const expectedRejectTotal = 145;
+const expectedRejectConsumed = 145;
 const expectedRejectSkipped = 0;
 const rejectCapabilities = new Set(["bignum_coefficient", "negative_coefficient", "negative_payload"]);
 const rejectUnsupported = new Set([]);
@@ -302,7 +302,7 @@ function verifyRejectVectors() {
   console.log(`reject_vectors: consumed=${consumed} skipped=${skipped} skipReasons=${JSON.stringify(skipReasons)}`);
 }
 
-const expectedStringTotal = 20;
+const expectedStringTotal = 62;
 
 function verifyStringVectors() {
   // string_vectors: the generated SUCCESS channel for the string surface. Each

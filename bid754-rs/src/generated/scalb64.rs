@@ -143,7 +143,7 @@ pub(crate) fn bid64_ldexp_port(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64
 
 #[inline]
 pub fn bid64_scalbn(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
-    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    if !(0..=4).contains(&rndMode) || !(i32::MIN as i64..=i32::MAX as i64).contains(&n) { return (0x7c00000000000000, 0x01); }
     bid64_scalbn_port(x, n, rndMode)
 }
 
@@ -155,6 +155,6 @@ pub fn bid64_scalbln(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
 
 #[inline]
 pub fn bid64_ldexp(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
-    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    if !(0..=4).contains(&rndMode) || !(i32::MIN as i64..=i32::MAX as i64).contains(&n) { return (0x7c00000000000000, 0x01); }
     bid64_ldexp_port(x, n, rndMode)
 }

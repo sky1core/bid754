@@ -74,8 +74,8 @@ func TestBidCodecToStringRejectVectorsCloseSharedSchema(t *testing.T) {
 	}
 
 	wantCounts := map[string][2]int{
-		"go": {124, 0}, "java": {124, 0}, "python": {124, 0}, "js": {124, 0},
-		"rust": {119, 5}, "rust_full": {119, 5}, "swift": {119, 5},
+		"go": {145, 0}, "java": {145, 0}, "python": {145, 0}, "js": {145, 0},
+		"rust": {140, 5}, "rust_full": {140, 5}, "swift": {140, 5},
 	}
 	for lang, counts := range wantCounts {
 		consumed, skipped := bidCodecRejectExpectedCounts(lang)
@@ -158,8 +158,8 @@ func TestBidCodecGoFullExpectationTablesClosedWorld(t *testing.T) {
 	for _, r := range fromString {
 		classCounts[bidCodecGoFullFromStringClasses[*r.Input]]++
 	}
-	if classCounts["rejected"] != 50 || classCounts["rounded"] != 9 || classCounts["exact"] != 0 {
-		t.Fatalf("go_full from_string class partition = %v, want rejected=50 rounded=9 exact=0", classCounts)
+	if classCounts["rejected"] != 65 || classCounts["rounded"] != 15 || classCounts["exact"] != 0 {
+		t.Fatalf("go_full from_string class partition = %v, want rejected=65 rounded=15 exact=0", classCounts)
 	}
 
 	// The Rust public-parse consumer renders the same table. Rendering, not
@@ -196,8 +196,8 @@ func TestBidCodecGoFullExpectationTablesClosedWorld(t *testing.T) {
 			stringClassCounts[class]++
 		}
 	}
-	if stringClassCounts["exact"] != 22 || stringClassCounts["rounded"] != 30 || stringClassCounts["rejected"] != 8 {
-		t.Fatalf("go_full string_vectors per-width class partition = %v, want exact=22 rounded=30 rejected=8", stringClassCounts)
+	if stringClassCounts["exact"] != 112 || stringClassCounts["rounded"] != 54 || stringClassCounts["rejected"] != 20 {
+		t.Fatalf("go_full string_vectors per-width class partition = %v, want exact=112 rounded=54 rejected=20", stringClassCounts)
 	}
 
 	consumed, skipped := bidCodecGoFullRejectCounts()

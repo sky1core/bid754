@@ -82,6 +82,6 @@ pub(crate) fn bid32_scalbn_port(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u
 
 #[inline]
 pub fn bid32_scalbn(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
-    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    if !(0..=4).contains(&rnd_mode) || !(i32::MIN as i64..=i32::MAX as i64).contains(&n) { return (0x7c000000, 0x01); }
     bid32_scalbn_port(x, n, rnd_mode)
 }

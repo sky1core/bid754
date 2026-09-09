@@ -266,7 +266,7 @@ pub(crate) fn __get_dec_digits64(mut X: BID_UINT128) -> i64 {
     return digits_x;
 }
 
-pub(crate) fn bid_normalize_port(mut sign_z: u64, mut exponent_z: i64, mut coefficient_z: u64, mut round_dir: u64, mut round_flag: i64, mut rounding_mode: i64, fpsc: &mut u32) -> u64 {
+pub(crate) fn bid_normalize(mut sign_z: u64, mut exponent_z: i64, mut coefficient_z: u64, mut round_dir: u64, mut round_flag: i64, mut rounding_mode: i64, fpsc: &mut u32) -> u64 {
     let mut D: i64 = 0;
     let mut digits_z: i64 = 0;
     let mut bin_expon: i64 = 0;
@@ -334,10 +334,4 @@ pub(crate) fn add_zero64(mut exponent_y: i64, mut sign_z: u64, mut exponent_z: i
     }
     coefficient_z = coefficient_z.wrapping_mul(bid_power10_table_128[scale_k as usize].lo);
     return get_bid64_with_flags(sign_z, (exponent_z.wrapping_sub(scale_k)), coefficient_z, (*prounding_mode), fpsc);
-}
-
-#[inline]
-pub fn bid_normalize(mut sign_z: u64, mut exponent_z: i64, mut coefficient_z: u64, mut round_dir: u64, mut round_flag: i64, mut rounding_mode: i64, fpsc: &mut u32) -> u64 {
-    if !(0..=4).contains(&rounding_mode) { *fpsc |= 0x01; return 0x7c00000000000000; }
-    bid_normalize_port(sign_z, exponent_z, coefficient_z, round_dir, round_flag, rounding_mode, fpsc)
 }

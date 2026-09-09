@@ -28,11 +28,9 @@ import (
 //                 outside the width's range).
 //
 // The classes are generator-owned pinned data with the same standing as the
-// string_vectors `expected` literals: they were cross-measured against the
-// public API (all 79 rows x 3 widths x 3 families, 2026-07 probe; the extreme
-// rows are additionally bit+flag pinned by the hand-written
-// bid754-go/parse_literal_boundary_public_test.go), and the generated runner
-// re-executes them on every `make test-bidcodec` run. Both maps are
+// string_vectors `expected` literals. The generated runner checks every row
+// across all three widths and parse families on each `make test-bidcodec` run.
+// Both maps are
 // closed-world in both directions against the generated record lists: a new
 // record without an expectation, a stale expectation without a record, or an
 // unknown class name fails generation. Like every generation-path file, this
@@ -53,77 +51,96 @@ var bidCodecGoFullClasses = map[string]bool{
 // "rejected" in all three families, while inputs whose only defect is a value
 // outside every width's range are "rounded" (Direct errors, WithFlags reports
 // overflow/underflow+inexact). Classes are width-independent on this channel.
-var bidCodecGoFullFromStringClasses = map[string]string{
-	// Public-grammar rejects (malformed syntax, non-ASCII, whitespace, signs).
-	"":        "rejected",
-	"NaNabc":  "rejected",
-	"SNaN-1":  "rejected",
-	"1.2.3":   "rejected",
-	"1E":      "rejected",
-	"1Eabc":   "rejected",
-	"NaN+5":   "rejected",
-	"1E１":     "rejected",
-	"1E1_0":   "rejected",
-	"１２３":     "rejected",
-	"NaN١٢":   "rejected",
-	"1E 5":    "rejected",
-	"\u00a01": "rejected", // non-breaking space leading the token
-	"½":       "rejected",
-	"++1":     "rejected",
-	"--1":     "rejected",
-	"+-1":     "rejected",
-	"1E++5":   "rejected",
-	"1..2":    "rejected",
-	".":       "rejected",
-	// Value-exact written cohorts no width can encode (the port parses these
-	// with exact status, so the public silent-cohort trap rejects them).
-	"10000000000000000000000000000000000": "rejected", // 10^34, 35 written digits
-	"1" + strings.Repeat("0", 39):         "rejected", // 10^39, 40 written digits
-	// NaN payloads above every width's payload range (invalid operation).
-	"NaN1000000000000000000000000000000000": "rejected", // payload 10^33
-	"NaN1" + strings.Repeat("0", 39):        "rejected", // payload 10^39
-	// Values outside every width's range or precision: the flag channel
-	// reports overflow/underflow/inexact, the exact-only channel errors.
-	"1E2147483648":                        "rounded", // overflow+inexact
-	"99999999999999999999999999999999999": "rounded", // 35 nines, inexact
-	"1.0E-2147483648":                     "rounded", // underflow+inexact
-	"0.1E-2147483648":                     "rounded", // underflow+inexact
-	"1.0E+2147483649":                     "rounded", // overflow+inexact
-	"1E9007199254740992":                  "rounded", // overflow+inexact
-	"1E-9007199254740992":                 "rounded", // underflow+inexact
-	"1.0E-9223372036854775808":            "rounded", // underflow+inexact
-	"1E" + strings.Repeat("9", 25):        "rounded", // overflow+inexact
-	// Multi-byte UTF-8 carrying a valid ASCII prefix. The public grammar is
-	// ASCII, so every family rejects; what these rows add over the other
-	// grammar rejects is that the parser walks INTO the multi-byte character
-	// before rejecting, which is where a &str cut in the generated Rust
-	// panics instead of returning the error.
-	"1é":         "rejected",
-	"12é":        "rejected",
-	"123é":       "rejected",
-	"1234é":      "rejected",
-	"12345678é":  "rejected",
-	"1.2345678é": "rejected",
-	"-123é":      "rejected",
-	"+123é":      "rejected",
-	"1.23é":      "rejected",
-	"1中":         "rejected",
-	"123中":       "rejected",
-	"1234中":      "rejected",
-	"😀":          "rejected",
-	"1😀":         "rejected",
-	"12😀":        "rejected",
-	"123😀":       "rejected",
-	"1234😀":      "rejected",
-	"snané":      "rejected",
-	"snaé":       "rejected",
-	"é":          "rejected",
-	"中文字":        "rejected",
-	"aé":         "rejected",
-	"aaé":        "rejected",
-	"aaaé":       "rejected",
-	"nané":       "rejected",
-	"İnf":        "rejected", // Unicode lowers U+0130 to ASCII 'i'; the ASCII fold must not
+var bidCodecGoFullFromStringClasses = buildBidCodecGoFullFromStringClasses()
+
+func buildBidCodecGoFullFromStringClasses() map[string]string {
+	out := map[string]string{
+		// Public-grammar rejects (malformed syntax, non-ASCII, whitespace, signs).
+		"":        "rejected",
+		"NaNabc":  "rejected",
+		"SNaN-1":  "rejected",
+		"1.2.3":   "rejected",
+		"1E":      "rejected",
+		"1Eabc":   "rejected",
+		"NaN+5":   "rejected",
+		"1E１":     "rejected",
+		"1E1_0":   "rejected",
+		"１２３":     "rejected",
+		"NaN١٢":   "rejected",
+		"1E 5":    "rejected",
+		"\u00a01": "rejected", // non-breaking space leading the token
+		"½":       "rejected",
+		"++1":     "rejected",
+		"--1":     "rejected",
+		"+-1":     "rejected",
+		"1E++5":   "rejected",
+		"1..2":    "rejected",
+		".":       "rejected",
+		// Value-exact written cohorts no width can encode (the port parses these
+		// with exact status, so the public silent-cohort trap rejects them).
+		"10000000000000000000000000000000000": "rejected", // 10^34, 35 written digits
+		"1" + strings.Repeat("0", 39):         "rejected", // 10^39, 40 written digits
+		// NaN payloads above every width's payload range (invalid operation).
+		"NaN1000000000000000000000000000000000": "rejected", // payload 10^33
+		"NaN1" + strings.Repeat("0", 39):        "rejected", // payload 10^39
+		// Values outside every width's range or precision: the flag channel
+		// reports overflow/underflow/inexact, the exact-only channel errors.
+		"1E2147483648":                        "rounded", // overflow+inexact
+		"99999999999999999999999999999999999": "rounded", // 35 nines, inexact
+		"1.0E-2147483648":                     "rounded", // underflow+inexact
+		"0.1E-2147483648":                     "rounded", // underflow+inexact
+		"1.0E+2147483649":                     "rounded", // overflow+inexact
+		"1E9007199254740992":                  "rounded", // overflow+inexact
+		"1E-9007199254740992":                 "rounded", // underflow+inexact
+		"1.0E-9223372036854775808":            "rounded", // underflow+inexact
+		"1E" + strings.Repeat("9", 25):        "rounded", // overflow+inexact
+		// Multi-byte UTF-8 carrying a valid ASCII prefix. The public grammar is
+		// ASCII, so every family rejects; what these rows add over the other
+		// grammar rejects is that the parser walks INTO the multi-byte character
+		// before rejecting, which is where a &str cut in the generated Rust
+		// panics instead of returning the error.
+		"1é":         "rejected",
+		"12é":        "rejected",
+		"123é":       "rejected",
+		"1234é":      "rejected",
+		"12345678é":  "rejected",
+		"1.2345678é": "rejected",
+		"-123é":      "rejected",
+		"+123é":      "rejected",
+		"1.23é":      "rejected",
+		"1中":         "rejected",
+		"123中":       "rejected",
+		"1234中":      "rejected",
+		"😀":          "rejected",
+		"1😀":         "rejected",
+		"12😀":        "rejected",
+		"123😀":       "rejected",
+		"1234😀":      "rejected",
+		"snané":      "rejected",
+		"snaé":       "rejected",
+		"é":          "rejected",
+		"中文字":        "rejected",
+		"aé":         "rejected",
+		"aaé":        "rejected",
+		"aaaé":       "rejected",
+		"nané":       "rejected",
+		"İnf":        "rejected", // Unicode lowers U+0130 to ASCII 'i'; the ASCII fold must not
+	}
+	classes := map[string]string{
+		"coefficient_exceeds_schema_max": "rejected",
+		"nan_payload_exceeds_schema_max": "rejected",
+		"exponent_out_of_int32":          "rounded",
+		"malformed_exponent":             "rejected",
+		"malformed_nan_payload":          "rejected",
+	}
+	for _, row := range bidCodecLeadingZeroRejectVectors() {
+		class, ok := classes[row.Reason]
+		if !ok {
+			panic("unclassified leading-zero reject: " + row.Reason)
+		}
+		out[*row.Input] = class
+	}
+	return out
 }
 
 // bidCodecGoFullStringVectorClasses maps every string_vectors input to its
@@ -138,27 +155,53 @@ var bidCodecGoFullFromStringClasses = map[string]string{
 // "0e91"/"0e-398" boundary rows), and the representable rows are "exact" with
 // the public render/parse closure asserted. NaN payload 10^33-1 fits only
 // Decimal128, so that row is width-dependent.
-var bidCodecGoFullStringVectorClasses = map[string][3]string{
-	"12E+2147483647": {"rounded", "rounded", "rounded"},
-	"9999999999999999999999999999999999E+2147483647": {"rounded", "rounded", "rounded"},
-	"1.5E2147483647":                       {"rounded", "rounded", "rounded"},
-	"999E+2147483645":                      {"rounded", "rounded", "rounded"},
-	"1E-2147483648":                        {"rounded", "rounded", "rounded"},
-	"0.1E-2147483647":                      {"rounded", "rounded", "rounded"},
-	"0E+2147483647":                        {"rejected", "rejected", "rejected"},
-	"0E-2147483648":                        {"rounded", "rounded", "rounded"},
-	"10E2147483647":                        {"rounded", "rounded", "rounded"},
-	"1.0E2147483648":                       {"rounded", "rounded", "rounded"},
-	"0.001E2147483649":                     {"rounded", "rounded", "rounded"},
-	"0.00":                                 {"exact", "exact", "exact"},
-	"000":                                  {"exact", "exact", "exact"},
-	".5":                                   {"exact", "exact", "exact"},
-	"5.":                                   {"exact", "exact", "exact"},
-	"001.100":                              {"exact", "exact", "exact"},
-	"NaN000123":                            {"exact", "exact", "exact"},
-	"-InFiNiTy":                            {"exact", "exact", "exact"},
-	"NaN999999999999999999999999999999999": {"rejected", "rejected", "exact"},
-	"\t1\r":                                {"rejected", "rejected", "rejected"},
+var bidCodecGoFullStringVectorClasses = buildBidCodecGoFullStringVectorClasses()
+
+func buildBidCodecGoFullStringVectorClasses() map[string][3]string {
+	out := map[string][3]string{
+		"12E+2147483647": {"rounded", "rounded", "rounded"},
+		"9999999999999999999999999999999999E+2147483647": {"rounded", "rounded", "rounded"},
+		"1.5E2147483647":                       {"rounded", "rounded", "rounded"},
+		"999E+2147483645":                      {"rounded", "rounded", "rounded"},
+		"1E-2147483648":                        {"rounded", "rounded", "rounded"},
+		"0.1E-2147483647":                      {"rounded", "rounded", "rounded"},
+		"0E+2147483647":                        {"rejected", "rejected", "rejected"},
+		"0E-2147483648":                        {"rounded", "rounded", "rounded"},
+		"10E2147483647":                        {"rounded", "rounded", "rounded"},
+		"1.0E2147483648":                       {"rounded", "rounded", "rounded"},
+		"0.001E2147483649":                     {"rounded", "rounded", "rounded"},
+		"0.00":                                 {"exact", "exact", "exact"},
+		"000":                                  {"exact", "exact", "exact"},
+		".5":                                   {"exact", "exact", "exact"},
+		"5.":                                   {"exact", "exact", "exact"},
+		"001.100":                              {"exact", "exact", "exact"},
+		"NaN000123":                            {"exact", "exact", "exact"},
+		"-InFiNiTy":                            {"exact", "exact", "exact"},
+		"NaN999999999999999999999999999999999": {"rejected", "rejected", "exact"},
+		"\t1\r":                                {"rejected", "rejected", "rejected"},
+	}
+	classes := map[string][3]string{
+		"+0":                                     {"exact", "exact", "exact"},
+		"+1E+0":                                  {"exact", "exact", "exact"},
+		"+1E+1":                                  {"exact", "exact", "exact"},
+		"+1E-1":                                  {"exact", "exact", "exact"},
+		"+1E+2147483647":                         {"rounded", "rounded", "rounded"},
+		"+1E-2147483648":                         {"rounded", "rounded", "rounded"},
+		"+9." + strings.Repeat("9", 33) + "E+33": {"rounded", "rounded", "exact"},
+	}
+	for _, kind := range []string{"NaN", "SNaN"} {
+		classes["+"+kind] = [3]string{"exact", "exact", "exact"}
+		classes["+"+kind+"1"] = [3]string{"exact", "exact", "exact"}
+		classes["+"+kind+strings.Repeat("9", 33)] = [3]string{"rejected", "rejected", "exact"}
+	}
+	for _, row := range bidCodecLeadingZeroStringVectors() {
+		class, ok := classes[row.Expected]
+		if !ok {
+			panic("unclassified leading-zero string: " + row.Expected)
+		}
+		out[row.Input] = class
+	}
+	return out
 }
 
 // bidCodecGoFullFromStringRecords returns the from_string reject records in

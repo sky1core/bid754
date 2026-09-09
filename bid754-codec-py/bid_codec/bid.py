@@ -466,21 +466,41 @@ def _from_decimal(d: Decimal) -> Components:
 # ---------------------------------------------------------------------------
 
 
+def _as_byte_buffer(operation: str, data: object) -> bytes:
+    try:
+        view = memoryview(data)
+    except TypeError:
+        raise ValueError(
+            f"{operation}: expected a bytes-like buffer, got {type(data).__name__}"
+        ) from None
+    with view:
+        if view.ndim != 1 or view.itemsize != 1:
+            raise ValueError(
+                f"{operation}: expected a one-dimensional single-byte buffer"
+            )
+        if view.nbytes not in (4, 8, 16):
+            raise ValueError(
+                f"{operation}: unsupported byte length {view.nbytes}: expected 4, 8, or 16"
+            )
+        return view.tobytes()
+
+
 def decode_bytes(data: bytes) -> Components:
     """Decode BID-encoded bytes (little-endian) into Components.
 
     Supported sizes: 4 bytes (BID32), 8 bytes (BID64), 16 bytes (BID128).
     """
-    n = len(data)
+    buf = data if type(data) is bytes else _as_byte_buffer("bid decode", data)
+    n = len(buf)
     if n == 4:
-        v = int.from_bytes(data, byteorder="little", signed=False)
+        v = int.from_bytes(buf, byteorder="little", signed=False)
         return decode32(v)
     elif n == 8:
-        v = int.from_bytes(data, byteorder="little", signed=False)
+        v = int.from_bytes(buf, byteorder="little", signed=False)
         return decode64(v)
     elif n == 16:
-        lo = int.from_bytes(data[:8], byteorder="little", signed=False)
-        hi = int.from_bytes(data[8:], byteorder="little", signed=False)
+        lo = int.from_bytes(buf[:8], byteorder="little", signed=False)
+        hi = int.from_bytes(buf[8:], byteorder="little", signed=False)
         return decode128(lo, hi)
     else:
         raise ValueError(f"unsupported byte length {n}: expected 4, 8, or 16")
@@ -511,26 +531,29 @@ def encode_bytes(c: Components, size: int) -> bytes:
 
 def decode_bytes32(data: bytes) -> Components:
     """Decode 4 BID32 bytes (little-endian) into Components."""
-    if len(data) != 4:
-        raise ValueError(f"expected 4 bytes, got {len(data)}")
-    v = int.from_bytes(data, byteorder="little", signed=False)
+    buf = data if type(data) is bytes else _as_byte_buffer("bid32 decode", data)
+    if len(buf) != 4:
+        raise ValueError(f"expected 4 bytes, got {len(buf)}")
+    v = int.from_bytes(buf, byteorder="little", signed=False)
     return decode32(v)
 
 
 def decode_bytes64(data: bytes) -> Components:
     """Decode 8 BID64 bytes (little-endian) into Components."""
-    if len(data) != 8:
-        raise ValueError(f"expected 8 bytes, got {len(data)}")
-    v = int.from_bytes(data, byteorder="little", signed=False)
+    buf = data if type(data) is bytes else _as_byte_buffer("bid64 decode", data)
+    if len(buf) != 8:
+        raise ValueError(f"expected 8 bytes, got {len(buf)}")
+    v = int.from_bytes(buf, byteorder="little", signed=False)
     return decode64(v)
 
 
 def decode_bytes128(data: bytes) -> Components:
     """Decode 16 BID128 bytes (little-endian) into Components."""
-    if len(data) != 16:
-        raise ValueError(f"expected 16 bytes, got {len(data)}")
-    lo = int.from_bytes(data[:8], byteorder="little", signed=False)
-    hi = int.from_bytes(data[8:], byteorder="little", signed=False)
+    buf = data if type(data) is bytes else _as_byte_buffer("bid128 decode", data)
+    if len(buf) != 16:
+        raise ValueError(f"expected 16 bytes, got {len(buf)}")
+    lo = int.from_bytes(buf[:8], byteorder="little", signed=False)
+    hi = int.from_bytes(buf[8:], byteorder="little", signed=False)
     return decode128(lo, hi)
 
 
@@ -685,6 +708,9 @@ def from_string(s: str) -> Components:
     )
 
 
+_PAYLOAD_MAX_DIGITS = len(str(_TEN33 - 1))
+
+
 def _parse_payload(s: str) -> int:
     """Parse an unsigned NaN payload: empty -> 0, otherwise ASCII digits only whose
     value is below the schema-wide NaN payload limit 10^33.
@@ -698,12 +724,12 @@ def _parse_payload(s: str) -> int:
         return 0
     if not all("0" <= ch <= "9" for ch in s):
         raise ValueError(f"from_string: invalid NaN payload {s!r}")
-    payload = int(s)
-    if payload >= _TEN33:
+    significant = s.lstrip("0")
+    if len(significant) > _PAYLOAD_MAX_DIGITS:
         raise ValueError(
-            f"from_string: NaN payload {s!r} is at or above the schema max 10^33"
+            "from_string: NaN payload is at or above the schema max 10^33"
         )
-    return payload
+    return int(significant) if significant else 0
 
 
 # The shared exact-integer exponent-literal bound 2^53: the widest bound every
@@ -715,27 +741,33 @@ def _parse_payload(s: str) -> int:
 # counter can force a rejection only in regions (over ~2^63 fraction digits)
 # where that rule itself rejects.
 _SHARED_EXPONENT_LITERAL_BOUND = 1 << 53
+_EXPONENT_LITERAL_MAX_DIGITS = len(str(_SHARED_EXPONENT_LITERAL_BOUND))
 
 
 def _parse_exponent_literal(s: str) -> int:
     """Parse a signed exponent literal: optional single leading sign, then ASCII
     digits only, with magnitude below the shared exact-integer bound 2^53.
 
-    The literal bound is checked here, at the literal step, in every language
-    (Python's unbounded int parses any digit count, so the explicit bound is
-    what keeps this parser's accepted-input set identical to the fixed-width
-    consumers'). The caller checks only the fraction-adjusted FINAL exponent
+    The literal bound is checked here, at the literal step, in every language.
+    The caller checks only the fraction-adjusted FINAL exponent
     against the signed 32-bit range, so every to_string rendering
     (adjusted-exponent literal at most int32 max + 33, far below 2^53)
     reparses successfully (round-trip closure). The caller's fold is exact by
     Python's unbounded integer arithmetic.
     """
+    negative = s[:1] == "-"
     body = s[1:] if s[:1] in ("+", "-") else s
     if body == "" or not all("0" <= ch <= "9" for ch in body):
         raise ValueError(f"from_string: invalid exponent {s!r}")
-    value = int(s)  # s carries the sign; body is validated as ASCII digits only
+    significant = body.lstrip("0")
+    if len(significant) > _EXPONENT_LITERAL_MAX_DIGITS:
+        raise ValueError(
+            "from_string: exponent literal at or above the shared exact-integer bound 2^53"
+        )
+    magnitude = int(significant) if significant else 0
+    value = -magnitude if negative else magnitude
     if value >= _SHARED_EXPONENT_LITERAL_BOUND or value <= -_SHARED_EXPONENT_LITERAL_BOUND:
         raise ValueError(
-            f"from_string: exponent literal {s!r} at or above the shared exact-integer bound 2^53"
+            "from_string: exponent literal at or above the shared exact-integer bound 2^53"
         )
     return value

@@ -225,7 +225,7 @@ pub(crate) fn bid64_fma_port(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i6
                 digits_z = digits_z.wrapping_add(1);
             }
             if ((((final_exponent.wrapping_add(16)) < 0)) || (((exponent_z.wrapping_add(digits_z)) > ((33 as i64).wrapping_add(final_exponent))))) {
-                res = bid_normalize_port(sign_z, exponent_z, coefficient_z, (sign_x ^ sign_y), 1, rndMode, (&mut pfpsf));
+                res = bid_normalize(sign_z, exponent_z, coefficient_z, (sign_x ^ sign_y), 1, rndMode, (&mut pfpsf));
                 return (res, pfpsf);
             }
             ez = ((exponent_z.wrapping_add(digits_z)).wrapping_sub(16));

@@ -15,7 +15,7 @@ var rustRoundingParam = regexp.MustCompile(`\b(?:rndMode|rnd_mode|rounding_mode)
 
 type roundingBoundary struct {
 	name, params, result, flags string
-	modes, args                 []string
+	modes, args, i32Args        []string
 	maxMode                     int
 }
 
@@ -84,6 +84,13 @@ func (c roundingContract) boundary(name, params, result string) (roundingBoundar
 		}
 		modeAt[i] = true
 	}
+	i32At := make(map[int]bool, len(c.i32Params))
+	for _, i := range c.i32Params {
+		if i < 0 || i >= len(c.params) || c.params[i] != "i64" || modeAt[i] || i32At[i] {
+			return b, fmt.Errorf("rounding boundary: %s invalid i32 parameter index %d", name, i)
+		}
+		i32At[i] = true
+	}
 	for i, field := range fields {
 		parts := strings.SplitN(strings.TrimPrefix(field, "mut "), ": ", 2)
 		if len(parts) != 2 {
@@ -93,6 +100,9 @@ func (c roundingContract) boundary(name, params, result string) (roundingBoundar
 			return b, fmt.Errorf("rounding boundary: %s parameter %d is %q, contract pins %q", name, i, parts[1], c.params[i])
 		}
 		b.args = append(b.args, parts[0])
+		if i32At[i] {
+			b.i32Args = append(b.i32Args, parts[0])
+		}
 		if modeAt[i] {
 			if parts[1] != "i64" && parts[1] != "u32" {
 				return b, fmt.Errorf("rounding boundary: unsupported mode type in %s: %s", name, field)
@@ -155,6 +165,9 @@ func (b roundingBoundary) wrapper() (string, error) {
 		}
 		failure = "*" + b.flags + " |= 0x01; return " + value + ";"
 	} else {
+		if len(b.i32Args) != 0 {
+			return "", fmt.Errorf("rounding boundary: %s i32 input requires an IEEE flags failure channel", b.name)
+		}
 		result = "Result<" + result + ", &'static str>"
 		failure = `return Err("unsupported rounding mode");`
 		call = "Ok(" + call + ")"
@@ -162,6 +175,9 @@ func (b roundingBoundary) wrapper() (string, error) {
 	var checks []string
 	for _, mode := range b.modes {
 		checks = append(checks, fmt.Sprintf("!(0..=%d).contains(&%s)", b.maxMode, mode))
+	}
+	for _, arg := range b.i32Args {
+		checks = append(checks, fmt.Sprintf("!(i32::MIN as i64..=i32::MAX as i64).contains(&%s)", arg))
 	}
 	return fmt.Sprintf("\n#[inline]\npub fn %s(%s) -> %s {\n    if %s { %s }\n    %s\n}\n", b.name, b.params, result, strings.Join(checks, " || "), failure, call), nil
 }

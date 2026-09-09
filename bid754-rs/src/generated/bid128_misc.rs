@@ -292,7 +292,7 @@ pub(crate) fn bid128_fdim_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_m
 
 #[inline]
 pub fn bid128_scalbn(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
-    if !(0..=4).contains(&rnd_mode) { *pfpsf |= 0x01; return BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }; }
+    if !(0..=4).contains(&rnd_mode) || !(i32::MIN as i64..=i32::MAX as i64).contains(&n) { *pfpsf |= 0x01; return BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }; }
     bid128_scalbn_port(x, n, rnd_mode, pfpsf)
 }
 

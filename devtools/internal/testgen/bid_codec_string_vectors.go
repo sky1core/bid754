@@ -1,5 +1,7 @@
 package testgen
 
+import "strings"
+
 // This file is the single source of the BID codec `string_vectors` domain: the
 // deterministic SUCCESS-channel string records written into
 // bid754-codec-vectors/vectors.json. Each record pins the string surface on
@@ -98,5 +100,37 @@ var bidCodecStringVectorRows = []bidCodecStringVector{
 
 // bidCodecStringVectors returns the string_vectors records in emission order.
 func bidCodecStringVectors() []bidCodecStringVector {
-	return bidCodecStringVectorRows
+	out := append([]bidCodecStringVector(nil), bidCodecStringVectorRows...)
+	return append(out, bidCodecLeadingZeroStringVectors()...)
 }
+
+func bidCodecLeadingZeroStringVectors() []bidCodecStringVector {
+	var out []bidCodecStringVector
+	for _, count := range bidCodecLeadingZeroCounts {
+		zeros := strings.Repeat("0", count)
+		for _, row := range []struct{ prefix, digits, expected string }{
+			{"", "0", "+0"},
+			{"", "1", "+1E+0"},
+			{"", strings.Repeat("9", 34), "+9." + strings.Repeat("9", 33) + "E+33"},
+			{"1E", "0", "+1E+0"},
+			{"1E+", "1", "+1E+1"},
+			{"1E-", "1", "+1E-1"},
+			{"1E+", "2147483647", "+1E+2147483647"},
+			{"1E-", "2147483648", "+1E-2147483648"},
+		} {
+			out = append(out, bidCodecStringVector{row.prefix + zeros + row.digits, row.expected})
+		}
+		for _, kind := range []string{"NaN", "SNaN"} {
+			for _, digits := range []string{"0", "1", strings.Repeat("9", 33)} {
+				expected := "+" + kind
+				if digits != "0" {
+					expected += digits
+				}
+				out = append(out, bidCodecStringVector{kind + zeros + digits, expected})
+			}
+		}
+	}
+	return out
+}
+
+var bidCodecLeadingZeroCounts = []int{640, 4300, 5000}

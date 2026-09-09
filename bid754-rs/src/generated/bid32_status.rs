@@ -105,7 +105,7 @@ pub fn bid32_div_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u
 
 #[inline]
 pub fn bid32_scalbn_with_flags(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
-    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    if !(0..=4).contains(&rndMode) || !(i32::MIN as i64..=i32::MAX as i64).contains(&n) { return (0x7c000000, 0x01); }
     bid32_scalbn_with_flags_port(x, n, rndMode)
 }
 
@@ -117,6 +117,6 @@ pub fn bid32_scalbln_with_flags(mut x: u32, mut n: i64, mut rndMode: i64) -> (u3
 
 #[inline]
 pub fn bid32_ldexp_with_flags(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
-    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    if !(0..=4).contains(&rndMode) || !(i32::MIN as i64..=i32::MAX as i64).contains(&n) { return (0x7c000000, 0x01); }
     bid32_ldexp_with_flags_port(x, n, rndMode)
 }

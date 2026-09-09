@@ -73,10 +73,10 @@ struct VectorFile {
 }
 
 const EXPECTED_FORMAT_VERSION: u32 = 5;
-const EXPECTED_REJECT_TOTAL: usize = 124;
-const EXPECTED_REJECT_CONSUMED: usize = 119;
+const EXPECTED_REJECT_TOTAL: usize = 145;
+const EXPECTED_REJECT_CONSUMED: usize = 140;
 const EXPECTED_REJECT_SKIPPED: usize = 5;
-const EXPECTED_STRING_TOTAL: usize = 20;
+const EXPECTED_STRING_TOTAL: usize = 62;
 const EXPECTED_TOTAL: usize = 23545;
 const EXPECTED_BID32: usize = 5019;
 const EXPECTED_BID64: usize = 5804;

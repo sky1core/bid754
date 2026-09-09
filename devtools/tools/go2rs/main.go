@@ -443,125 +443,125 @@ pub const bid_round_const_table_128: [[BID_UINT128; 36]; 6] = [
 	sb.WriteString("pub use num_traits::{One, Zero};\n\n")
 	sb.WriteString(`pub type Int = ();
 
-pub fn go_string_from_bytes<B: AsRef<[u8]>>(bytes: B) -> String {
+pub(crate) fn go_string_from_bytes<B: AsRef<[u8]>>(bytes: B) -> String {
     String::from_utf8_lossy(bytes.as_ref()).into_owned()
 }
 
-pub fn go_copy_str(dst: &mut [u8], src: &str) -> usize {
+pub(crate) fn go_copy_str(dst: &mut [u8], src: &str) -> usize {
     let src = src.as_bytes();
     let n = dst.len().min(src.len());
     dst[..n].copy_from_slice(&src[..n]);
     n
 }
 
-pub fn go_append<T>(mut v: Vec<T>, item: T) -> Vec<T> {
+pub(crate) fn go_append<T>(mut v: Vec<T>, item: T) -> Vec<T> {
     v.push(item);
     v
 }
 
-pub fn go_atoi(s: &str) -> (i64, Option<&'static str>) {
+pub(crate) fn go_atoi(s: &str) -> (i64, Option<&'static str>) {
     match s.parse::<i64>() {
         Ok(v) => (v, None),
         Err(_) => (0, Some("atoi")),
     }
 }
 
-pub fn go_add64(x: u64, y: u64, carry: u64) -> (u64, u64) {
+pub(crate) fn go_add64(x: u64, y: u64, carry: u64) -> (u64, u64) {
     let (s1, c1) = x.overflowing_add(y);
     let (s2, c2) = s1.overflowing_add(carry);
     let carry_out = if c1 || c2 { 1 } else { 0 };
     (s2, carry_out)
 }
 
-pub fn go_mul64(x: u64, y: u64) -> (u64, u64) {
+pub(crate) fn go_mul64(x: u64, y: u64) -> (u64, u64) {
     let p = (x as u128) * (y as u128);
     ((p >> 64) as u64, p as u64)
 }
 
-pub fn go_shift_count_u64(s: u64) -> Option<u32> {
+pub(crate) fn go_shift_count_u64(s: u64) -> Option<u32> {
     if s <= u32::MAX as u64 { Some(s as u32) } else { None }
 }
 
-pub fn go_shift_count_i64(s: i64) -> Option<u32> {
+pub(crate) fn go_shift_count_i64(s: i64) -> Option<u32> {
     if s < 0 {
         panic!("negative shift count")
     }
     go_shift_count_u64(s as u64)
 }
 
-pub fn go_checked_shl_u8(x: u8, s: Option<u32>) -> u8 {
+pub(crate) fn go_checked_shl_u8(x: u8, s: Option<u32>) -> u8 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_u8(x: u8, s: Option<u32>) -> u8 {
+pub(crate) fn go_checked_shr_u8(x: u8, s: Option<u32>) -> u8 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shl_u16(x: u16, s: Option<u32>) -> u16 {
+pub(crate) fn go_checked_shl_u16(x: u16, s: Option<u32>) -> u16 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_u16(x: u16, s: Option<u32>) -> u16 {
+pub(crate) fn go_checked_shr_u16(x: u16, s: Option<u32>) -> u16 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shl_u32(x: u32, s: Option<u32>) -> u32 {
+pub(crate) fn go_checked_shl_u32(x: u32, s: Option<u32>) -> u32 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_u32(x: u32, s: Option<u32>) -> u32 {
+pub(crate) fn go_checked_shr_u32(x: u32, s: Option<u32>) -> u32 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shl_u64(x: u64, s: Option<u32>) -> u64 {
+pub(crate) fn go_checked_shl_u64(x: u64, s: Option<u32>) -> u64 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_u64(x: u64, s: Option<u32>) -> u64 {
+pub(crate) fn go_checked_shr_u64(x: u64, s: Option<u32>) -> u64 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shl_usize(x: usize, s: Option<u32>) -> usize {
+pub(crate) fn go_checked_shl_usize(x: usize, s: Option<u32>) -> usize {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_usize(x: usize, s: Option<u32>) -> usize {
+pub(crate) fn go_checked_shr_usize(x: usize, s: Option<u32>) -> usize {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shl_i8(x: i8, s: Option<u32>) -> i8 {
+pub(crate) fn go_checked_shl_i8(x: i8, s: Option<u32>) -> i8 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_i8(x: i8, s: Option<u32>) -> i8 {
+pub(crate) fn go_checked_shr_i8(x: i8, s: Option<u32>) -> i8 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(if x < 0 { -1 } else { 0 })
 }
 
-pub fn go_checked_shl_i16(x: i16, s: Option<u32>) -> i16 {
+pub(crate) fn go_checked_shl_i16(x: i16, s: Option<u32>) -> i16 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_i16(x: i16, s: Option<u32>) -> i16 {
+pub(crate) fn go_checked_shr_i16(x: i16, s: Option<u32>) -> i16 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(if x < 0 { -1 } else { 0 })
 }
 
-pub fn go_checked_shl_i32(x: i32, s: Option<u32>) -> i32 {
+pub(crate) fn go_checked_shl_i32(x: i32, s: Option<u32>) -> i32 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_i32(x: i32, s: Option<u32>) -> i32 {
+pub(crate) fn go_checked_shr_i32(x: i32, s: Option<u32>) -> i32 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(if x < 0 { -1 } else { 0 })
 }
 
-pub fn go_checked_shl_i64(x: i64, s: Option<u32>) -> i64 {
+pub(crate) fn go_checked_shl_i64(x: i64, s: Option<u32>) -> i64 {
     s.and_then(|n| x.checked_shl(n)).unwrap_or(0)
 }
 
-pub fn go_checked_shr_i64(x: i64, s: Option<u32>) -> i64 {
+pub(crate) fn go_checked_shr_i64(x: i64, s: Option<u32>) -> i64 {
     s.and_then(|n| x.checked_shr(n)).unwrap_or(if x < 0 { -1 } else { 0 })
 }
 
-pub fn go_big_bit_len(x: &BigUint) -> i64 {
+pub(crate) fn go_big_bit_len(x: &BigUint) -> i64 {
     let digits = x.to_u64_digits();
     if digits.is_empty() {
         return 0;
@@ -570,7 +570,7 @@ pub fn go_big_bit_len(x: &BigUint) -> i64 {
     (((digits.len() - 1) * 64) + (64usize - (hi.leading_zeros() as usize))) as i64
 }
 
-pub fn go_big_to_u64(x: &BigUint) -> u64 {
+pub(crate) fn go_big_to_u64(x: &BigUint) -> u64 {
     let digits = x.to_u64_digits();
     if digits.is_empty() {
         return 0;
@@ -578,11 +578,11 @@ pub fn go_big_to_u64(x: &BigUint) -> u64 {
     digits[0]
 }
 
-pub fn go_big_sign(x: &BigUint) -> i64 {
+pub(crate) fn go_big_sign(x: &BigUint) -> i64 {
     if x.is_zero() { 0 } else { 1 }
 }
 
-pub fn go_big_cmp(x: &BigUint, y: &BigUint) -> i64 {
+pub(crate) fn go_big_cmp(x: &BigUint, y: &BigUint) -> i64 {
     if x < y {
         -1
     } else if x > y {
@@ -592,7 +592,7 @@ pub fn go_big_cmp(x: &BigUint, y: &BigUint) -> i64 {
     }
 }
 
-pub fn go_big_bit(x: &BigUint, i: u64) -> u64 {
+pub(crate) fn go_big_bit(x: &BigUint, i: u64) -> u64 {
     let bit = (x >> (i as usize)) & BigUint::one();
     if bit.is_zero() { 0 } else { 1 }
 }
@@ -1390,7 +1390,7 @@ func convertFuncDecl(fset *token.FileSet, d *ast.FuncDecl, filePath string) (str
 	name := d.Name.Name
 	rsName := rustIdent(goFuncNameToRust(name))
 	visibility := "pub "
-	if !ast.IsExported(name) {
+	if !ast.IsExported(name) || name == "BID_normalize" {
 		visibility = "pub(crate) "
 	}
 

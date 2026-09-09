@@ -319,6 +319,28 @@ func bidCodecFromStringRejectVectors() []bidCodecRejectVector {
 			Channel: "from_string", Input: &input, Reason: c.Reason,
 		})
 	}
+	return append(out, bidCodecLeadingZeroRejectVectors()...)
+}
+
+func bidCodecLeadingZeroRejectVectors() []bidCodecRejectVector {
+	var out []bidCodecRejectVector
+	for _, count := range bidCodecLeadingZeroCounts {
+		zeros := strings.Repeat("0", count)
+		for _, row := range []struct{ prefix, digits, reason string }{
+			{"", "1" + strings.Repeat("0", 34), "coefficient_exceeds_schema_max"},
+			{"NaN", "1" + strings.Repeat("0", 33), "nan_payload_exceeds_schema_max"},
+			{"SNaN", "1" + strings.Repeat("0", 33), "nan_payload_exceeds_schema_max"},
+			{"1E+", "9007199254740992", "exponent_out_of_int32"},
+			{"1E-", "9007199254740992", "exponent_out_of_int32"},
+			{"1E", "1_0", "malformed_exponent"},
+			{"NaN", "1_0", "malformed_nan_payload"},
+		} {
+			input := row.prefix + zeros + row.digits
+			out = append(out, bidCodecRejectVector{
+				Channel: "from_string", Input: &input, Reason: row.reason,
+			})
+		}
+	}
 	return out
 }
 

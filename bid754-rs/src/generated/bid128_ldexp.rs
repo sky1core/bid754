@@ -92,6 +92,6 @@ pub(crate) fn bid128_ldexp_port(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i6
 
 #[inline]
 pub fn bid128_ldexp(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
-    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    if !(0..=4).contains(&rnd_mode) || !(i32::MIN as i64..=i32::MAX as i64).contains(&n) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
     bid128_ldexp_port(x, n, rnd_mode)
 }

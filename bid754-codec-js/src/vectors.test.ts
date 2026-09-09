@@ -280,8 +280,8 @@ describe("vectors: error semantics", () => {
   // generated reject_vectors domain (below), not a hardcoded list.
 });
 
-const expectedRejectTotal = 124;
-const expectedRejectConsumed = 124;
+const expectedRejectTotal = 145;
+const expectedRejectConsumed = 145;
 const expectedRejectSkipped = 0;
 const rejectCapabilities = new Set<string>(["bignum_coefficient", "negative_coefficient", "negative_payload"]);
 const rejectUnsupported = new Set<string>([]);
@@ -348,7 +348,7 @@ describe("vectors: reject domain", () => {
   );
 });
 
-const expectedStringTotal = 20;
+const expectedStringTotal = 62;
 const stringVectors: StringVector[] = vectorFile.string_vectors;
 
 describe("vectors: string success channel", () => {

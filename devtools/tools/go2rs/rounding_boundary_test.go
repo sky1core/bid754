@@ -209,7 +209,7 @@ func TestRoundingBoundaryExternalCrate(t *testing.T) {
 			if !ok || !ast.IsExported(fn.Name.Name) || fn.Type.Params == nil {
 				continue
 			}
-			if fn.Name.Name == "BidGetDecimalRoundingDirection" || fn.Name.Name == "BidSetDecimalRoundingDirection" {
+			if fn.Name.Name == "BID_normalize" || fn.Name.Name == "BidGetDecimalRoundingDirection" || fn.Name.Name == "BidSetDecimalRoundingDirection" {
 				continue
 			}
 			rustName := goFuncNameToRust(fn.Name.Name)
@@ -324,7 +324,8 @@ func TestRoundingBoundaryExternalCrate(t *testing.T) {
 	if boundaries != len(roundingContracts) || boundaries == 0 {
 		t.Fatalf("generated %d boundaries, contract pins %d", boundaries, len(roundingContracts))
 	}
-	probe.WriteString("}\n" + validRoundingProbe)
+	probe.WriteString("}\n" + validRoundingProbe + rawScaleBoundaryProbe(t))
+	checkPublicCInt32Inventory(t, repo, paths)
 	testDir := filepath.Join(root, "bid754-rs/tests")
 	if err := os.MkdirAll(testDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -366,6 +367,7 @@ func TestRoundingBoundaryExternalCrate(t *testing.T) {
 	} else {
 		t.Fatal(err)
 	}
+	checkInternalHelperPrivacy(t, root, probePath, run)
 	privateProbe := "use bid754::gen_types::BID_UINT128;\nfn main() {\n" + strings.Join(privateCalls, "\n") + "\n}\n"
 	if err := os.WriteFile(probePath, []byte(privateProbe), 0o644); err != nil {
 		t.Fatal(err)
@@ -420,6 +422,9 @@ func TestRoundingBoundaryRenameCannotDropGuard(t *testing.T) {
 	repo := filepath.Dir(findProjectRoot())
 	root, run := newRoundingProbeCrateAt(t, repo)
 	renameParamInFunc(t, filepath.Join(root, "bid754-go/internal/bidgo/lrint64.go"), "Bid64Llrint", "rndMode", "mode")
+	for _, entry := range rawScaleFunctions {
+		renameParamInFunc(t, filepath.Join(root, "bid754-go/internal/bidgo", entry.file+".go"), entry.goName, "n", "scale_delta")
+	}
 	main()
 
 	generated, err := os.ReadFile(filepath.Join(root, "bid754-rs/src/generated/lrint64.rs"))
@@ -466,7 +471,7 @@ fn renamed_mode_still_guards_bid64_llrint() {
     }
 }
 `
-	if err := os.WriteFile(probePath, []byte(probe), 0o644); err != nil {
+	if err := os.WriteFile(probePath, []byte(probe+rawScaleBoundaryProbe(t)), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if output, err := run("test", "--test", "rounding_rename"); err != nil {

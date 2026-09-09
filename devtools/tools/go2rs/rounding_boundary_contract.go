@@ -1,9 +1,10 @@
 package main
 
 type roundingContract struct {
-	params  []string
-	modes   []int
-	maxMode int
+	params    []string
+	modes     []int
+	maxMode   int
+	i32Params []int
 }
 
 var roundingContracts = map[string]roundingContract{
@@ -12,7 +13,7 @@ var roundingContracts = map[string]roundingContract{
 	"bid128_fdim":                 {params: []string{"BID_UINT128", "BID_UINT128", "i64", "&mut u32"}, modes: []int{2}, maxMode: 4},
 	"bid128_fma":                  {params: []string{"BID_UINT128", "BID_UINT128", "BID_UINT128", "i64"}, modes: []int{3}, maxMode: 4},
 	"bid128_from_string":          {params: []string{"impl AsRef<str>", "i64"}, modes: []int{1}, maxMode: 5},
-	"bid128_ldexp":                {params: []string{"BID_UINT128", "i64", "i64"}, modes: []int{2}, maxMode: 4},
+	"bid128_ldexp":                {params: []string{"BID_UINT128", "i64", "i64"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
 	"bid128_llrint":               {params: []string{"BID_UINT128", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid128_lrint":                {params: []string{"BID_UINT128", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid128_mul":                  {params: []string{"BID_UINT128", "BID_UINT128", "i64"}, modes: []int{2}, maxMode: 4},
@@ -20,7 +21,7 @@ var roundingContracts = map[string]roundingContract{
 	"bid128_quantize":             {params: []string{"BID_UINT128", "BID_UINT128", "i64"}, modes: []int{2}, maxMode: 4},
 	"bid128_round_integral_exact": {params: []string{"BID_UINT128", "i64", "&mut u32"}, modes: []int{1}, maxMode: 4},
 	"bid128_scalbln":              {params: []string{"BID_UINT128", "i64", "i64", "&mut u32"}, modes: []int{2}, maxMode: 4},
-	"bid128_scalbn":               {params: []string{"BID_UINT128", "i64", "i64", "&mut u32"}, modes: []int{2}, maxMode: 4},
+	"bid128_scalbn":               {params: []string{"BID_UINT128", "i64", "i64", "&mut u32"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
 	"bid128_sqrt":                 {params: []string{"BID_UINT128", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid128_sub":                  {params: []string{"BID_UINT128", "BID_UINT128", "i64", "&mut u32"}, modes: []int{2}, maxMode: 4},
 	"bid128_to_bid32":             {params: []string{"BID_UINT128", "i64"}, modes: []int{1}, maxMode: 4},
@@ -59,8 +60,8 @@ var roundingContracts = map[string]roundingContract{
 	"bid32_from_string_raw":       {params: []string{"impl AsRef<str>", "i64"}, modes: []int{1}, maxMode: 5},
 	"bid32_from_uint32":           {params: []string{"u32", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid32_from_uint64":           {params: []string{"u64", "i64"}, modes: []int{1}, maxMode: 4},
-	"bid32_ldexp":                 {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4},
-	"bid32_ldexp_with_flags":      {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4},
+	"bid32_ldexp":                 {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
+	"bid32_ldexp_with_flags":      {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
 	"bid32_llrint":                {params: []string{"u32", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid32_lrint":                 {params: []string{"u32", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid32_mul":                   {params: []string{"u32", "u32", "i64"}, modes: []int{2}, maxMode: 4},
@@ -70,8 +71,8 @@ var roundingContracts = map[string]roundingContract{
 	"bid32_round_integral_exact":  {params: []string{"u32", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid32_scalbln":               {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4},
 	"bid32_scalbln_with_flags":    {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4},
-	"bid32_scalbn":                {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4},
-	"bid32_scalbn_with_flags":     {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4},
+	"bid32_scalbn":                {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
+	"bid32_scalbn_with_flags":     {params: []string{"u32", "i64", "i64"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
 	"bid32_sqrt":                  {params: []string{"u32", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid32_sub":                   {params: []string{"u32", "u32", "i64"}, modes: []int{2}, maxMode: 4},
 	"bid32_sub_with_flags":        {params: []string{"u32", "u32", "i64"}, modes: []int{2}, maxMode: 4},
@@ -87,7 +88,7 @@ var roundingContracts = map[string]roundingContract{
 	"bid64_from_int64":            {params: []string{"i64", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid64_from_string":           {params: []string{"impl AsRef<str>", "i64"}, modes: []int{1}, maxMode: 5},
 	"bid64_from_uint64":           {params: []string{"u64", "i64"}, modes: []int{1}, maxMode: 4},
-	"bid64_ldexp":                 {params: []string{"u64", "i64", "i64"}, modes: []int{2}, maxMode: 4},
+	"bid64_ldexp":                 {params: []string{"u64", "i64", "i64"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
 	"bid64_llrint":                {params: []string{"u64", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid64_lrint":                 {params: []string{"u64", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid64_mul":                   {params: []string{"u64", "u64", "i64"}, modes: []int{2}, maxMode: 4},
@@ -96,7 +97,7 @@ var roundingContracts = map[string]roundingContract{
 	"bid64_quantize":              {params: []string{"u64", "u64", "i64"}, modes: []int{2}, maxMode: 4},
 	"bid64_round_integral_exact":  {params: []string{"u64", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid64_scalbln":               {params: []string{"u64", "i64", "i64"}, modes: []int{2}, maxMode: 4},
-	"bid64_scalbn":                {params: []string{"u64", "i64", "i64"}, modes: []int{2}, maxMode: 4},
+	"bid64_scalbn":                {params: []string{"u64", "i64", "i64"}, modes: []int{2}, maxMode: 4, i32Params: []int{1}},
 	"bid64_sqrt":                  {params: []string{"u64", "i64"}, modes: []int{1}, maxMode: 4},
 	"bid64_sub":                   {params: []string{"u64", "u64", "i64"}, modes: []int{2}, maxMode: 4},
 	"bid64_sub_with_flags":        {params: []string{"u64", "u64", "i64"}, modes: []int{2}, maxMode: 4},
@@ -124,5 +125,4 @@ var roundingContracts = map[string]roundingContract{
 	"bid64qq_sub":                 {params: []string{"BID_UINT128", "BID_UINT128", "i64"}, modes: []int{2}, maxMode: 4},
 	"bid64qqd_fma":                {params: []string{"BID_UINT128", "BID_UINT128", "u64", "i64"}, modes: []int{3}, maxMode: 4},
 	"bid64qqq_fma":                {params: []string{"BID_UINT128", "BID_UINT128", "BID_UINT128", "i64"}, modes: []int{3}, maxMode: 4},
-	"bid_normalize":               {params: []string{"u64", "i64", "u64", "u64", "i64", "i64", "&mut u32"}, modes: []int{5}, maxMode: 4},
 }

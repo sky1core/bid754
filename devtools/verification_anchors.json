@@ -228,9 +228,9 @@
     "bid64": 4583,
     "bid128": 6047
   },
-  "bid_codec_reject_vectors_total": 124,
+  "bid_codec_reject_vectors_total": 145,
   "bid_codec_reject_vectors_channels": {
-    "from_string": 59,
+    "from_string": 80,
     "encode": 48,
     "to_string": 17
   },
@@ -240,28 +240,28 @@
     "negative_payload": 2
   },
   "bid_codec_reject_vectors_consumed_by_language": {
-    "go": 124,
-    "rust": 119,
-    "rust_full": 119,
-    "java": 124,
-    "python": 124,
-    "js": 124,
-    "swift": 119
+    "go": 145,
+    "rust": 140,
+    "rust_full": 140,
+    "java": 145,
+    "python": 145,
+    "js": 145,
+    "swift": 140
   },
-  "bid_codec_reject_vectors_go_full_consumed": 59,
+  "bid_codec_reject_vectors_go_full_consumed": 80,
   "bid_codec_reject_vectors_go_full_channel_skipped": 65,
-  "bid_codec_reject_vectors_rust_full_parse_consumed": 59,
+  "bid_codec_reject_vectors_rust_full_parse_consumed": 80,
   "bid_codec_reject_vectors_rust_full_parse_channel_skipped": 65,
-  "bid_codec_string_vectors_go_full_consumed": 20,
-  "bid_codec_string_vectors_total": 20,
+  "bid_codec_string_vectors_go_full_consumed": 62,
+  "bid_codec_string_vectors_total": 62,
   "bid_codec_string_vectors_consumed_by_language": {
-    "go": 20,
-    "rust": 20,
-    "rust_full": 20,
-    "java": 20,
-    "python": 20,
-    "js": 20,
-    "swift": 20
+    "go": 62,
+    "rust": 62,
+    "rust_full": 62,
+    "java": 62,
+    "python": 62,
+    "js": 62,
+    "swift": 62
   },
   "bid_codec_decimal32_exhaustive_raw_patterns": 4294967296,
   "bid_codec_decimal32_exhaustive_raw_classes": {
@@ -526,8 +526,8 @@
   "d32_exhaustive_unary_consumers": 2,
   "verification_artifact_sha256": {
     "testspec_tree": "463ffdb565b8c95dbf728bb31bd33e6d92f4811d39079e41d03c564f507dc752",
-    "bidcodec_vectors": "ba8f77bbf4816346d6d11f2b00320eaf5d197397268e5e36f8e5b784b40374a7",
-    "bidcodec_harnesses": "0bfcf6e5b4246e3a1c2127667e53446549b0574244702ef16ab8afc8bd0b65f0",
+    "bidcodec_vectors": "4ae46c32a7ae279d135e32c6a7a0e7cdf7f128723564d461731829e8b26c93ee",
+    "bidcodec_harnesses": "875182f2b0c342e9fc6c3da36aa21e82e7f84b5e333913058bb2d9e69203c199",
     "goport_verification_runners": "2fa595115fbb4c0e1458a47c3b83e88b7e747e4d85518f0059a5293d95b5cc12",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
     "d32_exhaustive_runners": "c7cd9761c7b152027adfcf8fd68adf48d8db86dec1e0c765f4a696a6bbce8093",

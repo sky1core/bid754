@@ -45,10 +45,10 @@ private struct VectorFile: Decodable {
 }
 
 private let expectedFormatVersion = 5
-private let expectedRejectTotal = 124
-private let expectedRejectConsumed = 119
+private let expectedRejectTotal = 145
+private let expectedRejectConsumed = 140
 private let expectedRejectSkipped = 5
-private let expectedStringTotal = 20
+private let expectedStringTotal = 62
 private let expectedTotal = 23545
 private let expectedBid32 = 5019
 private let expectedBid64 = 5804
