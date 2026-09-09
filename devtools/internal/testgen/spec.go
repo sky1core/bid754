@@ -263,6 +263,16 @@ type GeneratedDectestFileInventory struct {
 	UnsupportedBySuite                map[string][]string          `json:"unsupported_by_suite,omitempty"`
 	UnsupportedReasonsBySuite         map[string]map[string]string `json:"unsupported_reasons_by_suite,omitempty"`
 	UnsupportedClassificationsBySuite map[string]map[string]string `json:"unsupported_classifications_by_suite,omitempty"`
+	// FileExclusionReason/FileExclusionClassification carry the whole-file
+	// exclusion for a row that no suite selected AND that produced no
+	// unsupported-operation entry. The per-suite/per-operation fields above
+	// cannot describe such a row: it has either no operation at all (an IBM
+	// decTest include-driver file) or only manifest-ignored operations, and
+	// unsupportedDectestOperations skips ignored operations. Without these
+	// fields such a row carries no accounting at all, so
+	// buildDectestFileInventories fails generation rather than emit one.
+	FileExclusionReason         string `json:"file_exclusion_reason,omitempty"`
+	FileExclusionClassification string `json:"file_exclusion_classification,omitempty"`
 }
 
 type GeneratedDectestRuntimeSkipInventory struct {

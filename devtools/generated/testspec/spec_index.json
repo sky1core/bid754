@@ -274,7 +274,9 @@
       "file": "tests/clamp.decTest",
       "operations": [
         "apply"
-      ]
+      ],
+      "file_exclusion_reason": "every case uses a manifest-ignored decTest operation (apply), so the file contributes no selectable case to any matching suite",
+      "file_exclusion_classification": "out_of_scope_not_required"
     },
     {
       "file": "tests/class.decTest",
@@ -639,7 +641,9 @@
       "file": "tests/ddEncode.decTest",
       "operations": [
         "apply"
-      ]
+      ],
+      "file_exclusion_reason": "every case uses a manifest-ignored decTest operation (apply), so the file contributes no selectable case to any matching suite",
+      "file_exclusion_classification": "out_of_scope_not_required"
     },
     {
       "file": "tests/ddFMA.decTest",
@@ -941,15 +945,21 @@
     },
     {
       "file": "tests/decDouble.decTest",
-      "operations": []
+      "operations": [],
+      "file_exclusion_reason": "IBM decTest include-driver file: it carries only dectest: include directives and no test case of its own, and every file it names is inventoried separately",
+      "file_exclusion_classification": "no_cases_include_driver"
     },
     {
       "file": "tests/decQuad.decTest",
-      "operations": []
+      "operations": [],
+      "file_exclusion_reason": "IBM decTest include-driver file: it carries only dectest: include directives and no test case of its own, and every file it names is inventoried separately",
+      "file_exclusion_classification": "no_cases_include_driver"
     },
     {
       "file": "tests/decSingle.decTest",
-      "operations": []
+      "operations": [],
+      "file_exclusion_reason": "IBM decTest include-driver file: it carries only dectest: include directives and no test case of its own, and every file it names is inventoried separately",
+      "file_exclusion_classification": "no_cases_include_driver"
     },
     {
       "file": "tests/divide.decTest",
@@ -1498,7 +1508,9 @@
       "file": "tests/dsEncode.decTest",
       "operations": [
         "apply"
-      ]
+      ],
+      "file_exclusion_reason": "every case uses a manifest-ignored decTest operation (apply), so the file contributes no selectable case to any matching suite",
+      "file_exclusion_classification": "out_of_scope_not_required"
     },
     {
       "file": "tests/exp.decTest",
@@ -2223,7 +2235,9 @@
     },
     {
       "file": "tests/testall.decTest",
-      "operations": []
+      "operations": [],
+      "file_exclusion_reason": "IBM decTest include-driver file: it carries only dectest: include directives and no test case of its own, and every file it names is inventoried separately",
+      "file_exclusion_classification": "no_cases_include_driver"
     },
     {
       "file": "tests/tointegral.decTest",

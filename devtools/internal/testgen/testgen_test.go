@@ -418,17 +418,51 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	inventoriedFiles := map[string]struct{}{}
 	unsupportedDectestInventoryFiles := 0
 	zeroOperationInventoryFiles := 0
+	fileExcludedDectestInventoryFiles := 0
+	multiBucketDectestInventoryFiles := 0
+	fileExclusionClassifications := map[string]int{}
 	unsupportedDectestClassifications := map[string]int{}
 	for _, inventory := range spec.DectestFileInventories {
 		inventoriedFiles[inventory.File] = struct{}{}
 		if len(inventory.Operations) == 0 {
 			zeroOperationInventoryFiles++
 		}
+		buckets := 0
 		if len(inventory.SelectedSuites) > 0 {
 			selectedDectestInventoryFiles++
+			buckets++
 		}
 		if len(inventory.UnsupportedBySuite) > 0 {
 			unsupportedDectestInventoryFiles++
+			buckets++
+		}
+		if inventory.FileExclusionClassification != "" {
+			fileExcludedDectestInventoryFiles++
+			buckets++
+			fileExclusionClassifications[inventory.FileExclusionClassification]++
+			switch inventory.FileExclusionClassification {
+			case "no_cases_include_driver", "out_of_scope_not_required", "optional_not_required", "optional_scope_gap":
+			default:
+				t.Fatalf("generated dectest inventory %q file exclusion classification = %q", inventory.File, inventory.FileExclusionClassification)
+			}
+			if inventory.FileExclusionReason == "" {
+				t.Fatalf("generated dectest inventory %q file exclusion classification %q is missing a reason", inventory.File, inventory.FileExclusionClassification)
+			}
+		} else if inventory.FileExclusionReason != "" {
+			t.Fatalf("generated dectest inventory %q carries a file exclusion reason without a classification", inventory.File)
+		}
+		// Closed-world accounting: the three buckets must partition the file
+		// set. Before the file-exclusion bucket existed, this test pinned the
+		// bucket sizes as independent tallies that were never compared against
+		// the total, so seven files that fell out of the per-operation
+		// accounting (include-driver files with no case, and files whose only
+		// operation is the manifest-ignored `apply`) sat in the inventory with
+		// no accounting field at all and nothing failed.
+		if buckets == 0 {
+			t.Fatalf("generated dectest inventory %q is in no accounting bucket: not selected, no unsupported operation, no file exclusion", inventory.File)
+		}
+		if buckets > 1 {
+			multiBucketDectestInventoryFiles++
 		}
 		for suite, unsupported := range inventory.UnsupportedBySuite {
 			reasons := inventory.UnsupportedReasonsBySuite[suite]
@@ -458,9 +492,31 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	if unsupportedDectestInventoryFiles != 61 {
 		t.Fatalf("generated dectest unsupported inventory file count = %d, want current unsupported count 61", unsupportedDectestInventoryFiles)
 	}
-	if zeroOperationInventoryFiles != 4 {
-		t.Fatalf("generated dectest zero-operation inventory file count = %d, want current metadata-file count 4", zeroOperationInventoryFiles)
+	if fileExcludedDectestInventoryFiles != 7 {
+		t.Fatalf("generated dectest file-excluded inventory file count = %d, want current whole-file exclusion count 7", fileExcludedDectestInventoryFiles)
 	}
+	if multiBucketDectestInventoryFiles != 0 {
+		t.Fatalf("generated dectest inventory files in more than one accounting bucket = %d, want 0", multiBucketDectestInventoryFiles)
+	}
+	if bucketed := selectedDectestInventoryFiles + unsupportedDectestInventoryFiles + fileExcludedDectestInventoryFiles; bucketed != len(spec.DectestFileInventories) {
+		t.Fatalf("generated dectest accounting buckets cover %d files, want every inventoried file %d", bucketed, len(spec.DectestFileInventories))
+	}
+	if zeroOperationInventoryFiles != fileExclusionClassifications["no_cases_include_driver"] {
+		t.Fatalf("generated dectest zero-operation inventory file count = %d, want the include-driver exclusion count %d", zeroOperationInventoryFiles, fileExclusionClassifications["no_cases_include_driver"])
+	}
+	assertCountMap(t, "generated dectest file exclusion classifications", fileExclusionClassifications, map[string]int{
+		"no_cases_include_driver":   4,
+		"out_of_scope_not_required": 3,
+	})
+	const includeDriverReason = "IBM decTest include-driver file: it carries only dectest: include directives and no test case of its own, and every file it names is inventoried separately"
+	assertDectestFileExclusion(t, spec.DectestFileInventories, "tests/testall.decTest", includeDriverReason, "no_cases_include_driver")
+	assertDectestFileExclusion(t, spec.DectestFileInventories, "tests/decSingle.decTest", includeDriverReason, "no_cases_include_driver")
+	assertDectestFileExclusion(t, spec.DectestFileInventories, "tests/decDouble.decTest", includeDriverReason, "no_cases_include_driver")
+	assertDectestFileExclusion(t, spec.DectestFileInventories, "tests/decQuad.decTest", includeDriverReason, "no_cases_include_driver")
+	const ignoredApplyOnlyReason = "every case uses a manifest-ignored decTest operation (apply), so the file contributes no selectable case to any matching suite"
+	assertDectestFileExclusion(t, spec.DectestFileInventories, "tests/dsEncode.decTest", ignoredApplyOnlyReason, "out_of_scope_not_required")
+	assertDectestFileExclusion(t, spec.DectestFileInventories, "tests/ddEncode.decTest", ignoredApplyOnlyReason, "out_of_scope_not_required")
+	assertDectestFileExclusion(t, spec.DectestFileInventories, "tests/clamp.decTest", ignoredApplyOnlyReason, "out_of_scope_not_required")
 	assertCountMap(t, "generated dectest unsupported classifications", unsupportedDectestClassifications, map[string]int{
 		"out_of_scope_not_required": 58,
 		"optional_not_required":     9,
@@ -1293,6 +1349,29 @@ func assertDectestUnsupportedOperation(
 		}
 		if got := inventory.UnsupportedClassificationsBySuite[suite][operation]; got != wantClassification {
 			t.Fatalf("generated dectest inventory %q suite %q operation %q classification = %q, want %q", file, suite, operation, got, wantClassification)
+		}
+		return
+	}
+
+	t.Fatalf("generated dectest inventory %q not found", file)
+}
+
+func assertDectestFileExclusion(
+	t *testing.T,
+	inventories []GeneratedDectestFileInventory,
+	file, wantReason, wantClassification string,
+) {
+	t.Helper()
+
+	for _, inventory := range inventories {
+		if inventory.File != file {
+			continue
+		}
+		if inventory.FileExclusionReason != wantReason {
+			t.Fatalf("generated dectest inventory %q file exclusion reason = %q, want %q", file, inventory.FileExclusionReason, wantReason)
+		}
+		if inventory.FileExclusionClassification != wantClassification {
+			t.Fatalf("generated dectest inventory %q file exclusion classification = %q, want %q", file, inventory.FileExclusionClassification, wantClassification)
 		}
 		return
 	}

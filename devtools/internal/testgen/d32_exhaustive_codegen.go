@@ -39,6 +39,23 @@ package testgen
 // C-library extension per docs/IEEE754_SPEC.md, which classifies quantum as
 // an optional/recommended Clause 5 `should` example rather than a `shall`).
 //
+// Binary and ternary Decimal32 operations are excluded as a category, not
+// per operation: every two-operand entry point (bid32_add/sub/mul/div,
+// bid32_rem, bid32_fmod, bid32_quantize, bid32_scalbn/scalbln,
+// bid32_nexttoward, the bid32 compare predicates, and the
+// bid32_minnum/maxnum family) has an input space of at least 2^64, and
+// bid32_fma has 2^96, so none of them is enumerable at all. Unlike the
+// exclusions above, no lane-runtime budget, result-contract adoption, or
+// IEEE classification argument is involved: excluding them is a structural
+// property of an exhaustive-sweep gate. This gate is unary-only by
+// construction — the per-lane case count is fixed at 2^32 and the runners'
+// lane dispatch takes a single operand — so a multi-operand candidate is
+// not a lane row that was weighed and rejected, it is outside the gate's
+// shape. Their exact per-case Intel C differential coverage stays with the
+// sampling domains that do carry multi-operand rows: the Tier 1 arithmetic
+// and compare/conversion long gates, the Intel readtest domain, and the C
+// FFI exact bit-compare domain.
+//
 // The BID-to-binary conversions (bid32_to_binary32/64/128) are excluded for
 // lane-runtime budget. The evidence is deliberately cross-lane inside a
 // single run rather than absolute, because every measurement available here

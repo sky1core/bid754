@@ -206,10 +206,11 @@ func buildDectestFileInventories(repoRoot string, suiteSpecs []DectestSuiteSpec,
 
 	inventories := make([]GeneratedDectestFileInventory, 0, len(files))
 	for _, file := range files {
-		ops, err := scanDecTestOperations(filepath.Join(repoRoot, file))
+		cases, err := parseDecTestFile(filepath.Join(repoRoot, file))
 		if err != nil {
 			return nil, err
 		}
+		ops := decTestOperationSet(cases)
 		operations := sortedOperationKeys(ops)
 		selectedSuites := append([]string(nil), selectedByFile[file]...)
 		sort.Strings(selectedSuites)
@@ -218,10 +219,12 @@ func buildDectestFileInventories(repoRoot string, suiteSpecs []DectestSuiteSpec,
 		unsupportedReasonsBySuite := map[string]map[string]string{}
 		unsupportedClassificationsBySuite := map[string]map[string]string{}
 		name := filepath.Base(file)
+		var matchedSuites []DectestSuiteSpec
 		for _, suite := range suiteSpecs {
 			if !matchesDectestSuitePattern(name, suite) {
 				continue
 			}
+			matchedSuites = append(matchedSuites, suite)
 			unsupported := unsupportedDectestOperations(ops, suite)
 			if len(unsupported) > 0 {
 				unsupportedBySuite[suite.Name] = unsupported
@@ -235,6 +238,14 @@ func buildDectestFileInventories(repoRoot string, suiteSpecs []DectestSuiteSpec,
 			unsupportedClassificationsBySuite = nil
 		}
 
+		var fileExclusionReason, fileExclusionClassification string
+		if len(selectedSuites) == 0 && len(unsupportedBySuite) == 0 {
+			fileExclusionReason, fileExclusionClassification, err = dectestFileExclusion(repoRoot, file, operations, cases, matchedSuites)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		inventories = append(inventories, GeneratedDectestFileInventory{
 			File:                              file,
 			Operations:                        operations,
@@ -242,9 +253,116 @@ func buildDectestFileInventories(repoRoot string, suiteSpecs []DectestSuiteSpec,
 			UnsupportedBySuite:                unsupportedBySuite,
 			UnsupportedReasonsBySuite:         unsupportedReasonsBySuite,
 			UnsupportedClassificationsBySuite: unsupportedClassificationsBySuite,
+			FileExclusionReason:               fileExclusionReason,
+			FileExclusionClassification:       fileExclusionClassification,
 		})
 	}
 	return inventories, nil
+}
+
+// dectestFileExclusion classifies a decTest file that no suite selected and
+// that produced no unsupported-operation entry.
+//
+// Such a file is invisible to the per-operation accounting: unsupported
+// operations are computed per operation, so a file with no operation at all,
+// or with only manifest-ignored operations, yields an empty unsupported set
+// while shouldSelectDecTestFile also rejects it (nothing counts as supported).
+// Every shape handled here must therefore be recognized explicitly; an
+// unhandled shape is a generation error, never a silently bare inventory row.
+//
+// Recognized shapes, both derived from file content rather than file name:
+//   - no case plus at least one `dectest:` include directive: an IBM decTest
+//     driver file that only names other files, each inventoried on its own;
+//   - every operation manifest-ignored by every matching suite: the file
+//     contributes no selectable case to any suite.
+//
+// The second shape is not split by file content. `#` DPD tagged literals are
+// the obvious characterization of ddEncode/dsEncode, but they are not the
+// exclusion cause and do not separate these files: clamp carries 21 tagged
+// rows of 132 and dsEncode carries 266 of 268, while all three are excluded
+// for the same reason — their only operation is manifest-ignored.
+func dectestFileExclusion(repoRoot, file string, operations []string, cases []parsedCase, matchedSuites []DectestSuiteSpec) (string, string, error) {
+	if len(matchedSuites) == 0 {
+		return "", "", fmt.Errorf("dectest file %q matches no suite pattern, so it has no inventory accounting", file)
+	}
+
+	if len(cases) == 0 {
+		includes, err := scanDecTestIncludeDirectives(filepath.Join(repoRoot, file))
+		if err != nil {
+			return "", "", err
+		}
+		if includes == 0 {
+			return "", "", fmt.Errorf("dectest file %q carries no case and no dectest: include directive, so it has no inventory accounting", file)
+		}
+		return "IBM decTest include-driver file: it carries only dectest: include directives and no test case of its own, and every file it names is inventoried separately",
+			"no_cases_include_driver", nil
+	}
+
+	if allDectestOperationsIgnored(operations, matchedSuites) {
+		return fmt.Sprintf(
+			"every case uses a manifest-ignored decTest operation (%s), so the file contributes no selectable case to any matching suite",
+			strings.Join(operations, ", "),
+		), "out_of_scope_not_required", nil
+	}
+
+	return "", "", fmt.Errorf("dectest file %q is neither selected nor unsupported-classified and matches no declared file-exclusion shape (operations %v)", file, operations)
+}
+
+// allDectestOperationsIgnored reports whether every operation of a non-empty
+// operation set is in the ignored set of every matching suite.
+func allDectestOperationsIgnored(operations []string, matchedSuites []DectestSuiteSpec) bool {
+	if len(operations) == 0 {
+		return false
+	}
+	for _, suite := range matchedSuites {
+		ignored := normalizeOperationSet(suite.IgnoredOperations)
+		for _, op := range operations {
+			if _, ok := ignored[op]; !ok {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// scanDecTestIncludeDirectives counts the `dectest:` include directives of a
+// decTest file. parseDecTestFile validates the same lines but keeps only
+// cases, so the directive count is read separately here.
+func scanDecTestIncludeDirectives(path string) (int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, fmt.Errorf("open dectest %q: %w", path, err)
+	}
+	defer file.Close()
+
+	includes := 0
+	scanner := bufio.NewScanner(file)
+	lineNumber := 0
+	for scanner.Scan() {
+		lineNumber++
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "--") {
+			continue
+		}
+		contentEnd, arrow, directiveColon, err := scanDecTestLine(line)
+		if err != nil {
+			return 0, fmt.Errorf("parse dectest %q line %d: %w", path, lineNumber, err)
+		}
+		if arrow >= 0 || directiveColon < 0 {
+			continue
+		}
+		content := strings.TrimSpace(line[:contentEnd])
+		if content == "" {
+			continue
+		}
+		if strings.ToLower(strings.TrimSpace(content[:directiveColon])) == "dectest" {
+			includes++
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return 0, fmt.Errorf("scan dectest %q: %w", path, err)
+	}
+	return includes, nil
 }
 
 func buildDectestRuntimeSkipInventory(repoRoot string, suites []GeneratedDectestSuite) ([]GeneratedDectestRuntimeSkipInventory, error) {
@@ -499,11 +617,15 @@ func scanDecTestOperations(path string) (map[string]struct{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	return decTestOperationSet(cases), nil
+}
+
+func decTestOperationSet(cases []parsedCase) map[string]struct{} {
 	ops := make(map[string]struct{}, len(cases))
 	for _, tc := range cases {
 		ops[normalizeDecTestOperation(tc.Operation)] = struct{}{}
 	}
-	return ops, nil
+	return ops
 }
 
 func shouldSelectDecTestFile(ops, supported, ignored map[string]struct{}) bool {

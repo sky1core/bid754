@@ -118,6 +118,13 @@ type GeneratedDectestFileInventory struct {
 	UnsupportedBySuite                map[string][]string          `json:"unsupported_by_suite,omitempty"`
 	UnsupportedReasonsBySuite         map[string]map[string]string `json:"unsupported_reasons_by_suite,omitempty"`
 	UnsupportedClassificationsBySuite map[string]map[string]string `json:"unsupported_classifications_by_suite,omitempty"`
+	// FileExclusionReason/FileExclusionClassification carry the whole-file
+	// exclusion for a row that no suite selected AND that produced no
+	// unsupported-operation entry (an include-driver file with no case, or a
+	// file whose every operation is manifest-ignored). Generation fails
+	// rather than emit such a row without them.
+	FileExclusionReason         string `json:"file_exclusion_reason,omitempty"`
+	FileExclusionClassification string `json:"file_exclusion_classification,omitempty"`
 }
 
 type GeneratedDectestRuntimeSkipInventory struct {
