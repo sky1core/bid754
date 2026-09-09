@@ -164,7 +164,9 @@ func FromString(s string) (Components, error) {
 	}
 
 	// Number: ASCII digits, at most one '.', at least one digit.
-	var digits []byte
+	var digits [34]byte
+	significantDigits := 0
+	foundDigit := false
 	expAdjust := 0
 	foundDot := false
 	i := 0
@@ -176,7 +178,13 @@ func FromString(s string) (Components, error) {
 			}
 			foundDot = true
 		case s[i] >= '0' && s[i] <= '9':
-			digits = append(digits, s[i])
+			foundDigit = true
+			if s[i] != '0' || significantDigits > 0 {
+				if significantDigits < len(digits) {
+					digits[significantDigits] = s[i]
+				}
+				significantDigits++
+			}
 			if foundDot {
 				expAdjust--
 			}
@@ -186,7 +194,7 @@ func FromString(s string) (Components, error) {
 		i++
 	}
 
-	if len(digits) == 0 {
+	if !foundDigit {
 		return Components{}, fmt.Errorf("no digits")
 	}
 
@@ -201,25 +209,15 @@ func FromString(s string) (Components, error) {
 		expPart = n
 	}
 
-	// Remove leading zeros (keep at least one digit).
-	start := 0
-	for start < len(digits)-1 && digits[start] == '0' {
-		start++
-	}
-	digits = digits[start:]
-
-	coeff, ok := new(big.Int).SetString(string(digits), 10)
-	if !ok {
-		return Components{}, fmt.Errorf("invalid coefficient: %s", string(digits))
+	if significantDigits > len(digits) {
+		return Components{}, fmt.Errorf("coefficient exceeds schema max %s", bid128MaxCoeffDecimal)
 	}
 
-	// Schema-wide coefficient cap: the parsed value (not the digit count) must
-	// not exceed 10^34-1, the largest coefficient any supported BID width can
-	// hold. This is a shared schema constant, identical in all six language
-	// packages, so big-integer and fixed-width-integer languages fail the same
-	// inputs the same way. Per-width range validation stays in Encode*.
-	if coeff.Cmp(ten34()) >= 0 {
-		return Components{}, fmt.Errorf("coefficient %s exceeds schema max %s", coeff.String(), bid128MaxCoeffDecimal)
+	coeff := new(big.Int)
+	if significantDigits > 0 {
+		if _, ok := coeff.SetString(string(digits[:significantDigits]), 10); !ok {
+			return Components{}, fmt.Errorf("invalid coefficient")
+		}
 	}
 
 	// Check the fold against int64 wrap before adding. Proof of exactness:
@@ -301,14 +299,18 @@ func parseNaNPayload(s string) (*big.Int, error) {
 		return big.NewInt(0), nil
 	}
 	if !isASCIIDigits(s) {
-		return nil, fmt.Errorf("invalid NaN payload %q: must be unsigned ASCII digits", s)
+		return nil, fmt.Errorf("invalid NaN payload: must be unsigned ASCII digits")
+	}
+	s = strings.TrimLeft(s, "0")
+	if len(s) > 33 {
+		return nil, fmt.Errorf("NaN payload exceeds schema limit of 33 digits")
+	}
+	if s == "" {
+		return big.NewInt(0), nil
 	}
 	v, ok := new(big.Int).SetString(s, 10)
 	if !ok {
-		return nil, fmt.Errorf("invalid NaN payload %q", s)
-	}
-	if v.Cmp(ten33()) >= 0 {
-		return nil, fmt.Errorf("NaN payload %s exceeds schema max %s", v.String(), bid128PayMax().String())
+		return nil, fmt.Errorf("invalid NaN payload")
 	}
 	return v, nil
 }

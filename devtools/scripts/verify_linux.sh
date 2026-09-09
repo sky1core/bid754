@@ -67,7 +67,7 @@ run_leg() {
             # BID C sources (cgen/csymbols sync tests inside the -short run)
             # and the IBM decTest originals that the native decTest gate
             # parses next to the IBM decNumber oracle.
-            gate_cmd='bash devtools/scripts/setup_generation_inputs.sh && bash devtools/scripts/install_ibm_decnumber.sh && bash devtools/scripts/setup_c_libs.sh && make doctor && make test-native-smoke && make test-native-ffi && make _test-native-tier1-arithmetic-long-full && make _test-native-tier1-compare-conversion-long-full && make _test-rust-native-tier1-arithmetic-long-full && make _test-rust-native-tier1-compare-conversion-long-full && make test-native-readtest && make test-native-dectest && make test-rust-native'
+            gate_cmd='bash devtools/scripts/setup_generation_inputs.sh && bash devtools/scripts/install_ibm_decnumber.sh && bash devtools/scripts/setup_c_libs.sh && make doctor && make test-native-smoke && make test-native-ffi && make _test-native-tier1-arithmetic-long-full && make _test-native-tier1-compare-conversion-long-full && make _test-native-decnumber-differential-full && make _test-rust-native-tier1-arithmetic-long-full && make _test-rust-native-tier1-compare-conversion-long-full && make test-native-readtest && make test-native-dectest && make test-rust-native && make test-rust-native-fuzz'
             ;;
         digest-s390x)
             platform=linux/s390x; arch=s390x
@@ -116,12 +116,12 @@ run_leg() {
     # file/directory type changes without staging the untracked-but-not-ignored
     # work that the tar stream also carries.
     git ls-files --stage -z > "$tracked_index"
+    local file_list="$repo_root/.build/verify-linux-files-${leg_name}"
+    python3 -B devtools/scripts/lib/worktree_files.py > "$file_list"
+    printf '%s\0' "$tracked_index_rel" >> "$file_list"
     # COPYFILE_DISABLE stops macOS bsdtar from adding AppleDouble (._*)
     # metadata entries, which would land as stale files in the container tree.
-    # The .git exclusion also prevents an untracked nested repository emitted
-    # as a directory by git ls-files from contributing repository metadata.
-    { git ls-files -coz --exclude-standard; printf '%s\0' "$tracked_index_rel"; } | \
-        COPYFILE_DISABLE=1 tar --exclude='.git' --null -T - -cf - | \
+    COPYFILE_DISABLE=1 tar --no-recursion --exclude='.git' --null -T "$file_list" -cf - | \
         docker run --rm -i --platform "$platform" \
             -e BID754_TRACKED_INDEX_REL="$tracked_index_rel" \
             -v "$repo_root/devtools/third_party/intel_dfp:/host-cache/devtools/third_party/intel_dfp:ro" \
