@@ -8,7 +8,7 @@ import "unsafe"
 // If a change alters any of these sizes, the declarations below stop
 // compiling, so every build verifies the constraint.
 var (
-	_ = [1]struct{}{}[unsafe.Sizeof(Decimal32BID(0))-4]
-	_ = [1]struct{}{}[unsafe.Sizeof(Decimal64BID(0))-8]
+	_ = [1]struct{}{}[unsafe.Sizeof(Decimal32BID{})-4]
+	_ = [1]struct{}{}[unsafe.Sizeof(Decimal64BID{})-8]
 	_ = [1]struct{}{}[unsafe.Sizeof(Decimal128BID{})-16]
 )

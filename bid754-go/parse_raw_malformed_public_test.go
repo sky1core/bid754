@@ -44,10 +44,10 @@ func TestParseDecimalBIDRawKeepsValidFlagSemantics(t *testing.T) {
 		t.Fatalf("Decimal128 rounded finite parse = (%x, %v), want finite and Inexact", got.ToBytes(), flags)
 	}
 
-	if got, flags := ParseDecimal32BIDRaw("NaN123"); got != Decimal32BID(0x7c00007b) || flags != 0 {
+	if got, flags := ParseDecimal32BIDRaw("NaN123"); got != Decimal32BIDFromBits(0x7c00007b) || flags != 0 {
 		t.Fatalf("Decimal32 NaN payload parse = (%08x, %v), want payload 123 and no flags", got.ToUint32(), flags)
 	}
-	if got, flags := ParseDecimal64BIDRaw("NaN123"); got != Decimal64BID(0x7c0000000000007b) || flags != 0 {
+	if got, flags := ParseDecimal64BIDRaw("NaN123"); got != Decimal64BIDFromBits(0x7c0000000000007b) || flags != 0 {
 		t.Fatalf("Decimal64 NaN payload parse = (%016x, %v), want payload 123 and no flags", got.ToUint64(), flags)
 	}
 	if got, flags := ParseDecimal128BIDRaw("NaN123"); got.String() != "+NaN123" || flags != 0 {

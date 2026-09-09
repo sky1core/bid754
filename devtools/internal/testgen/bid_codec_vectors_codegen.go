@@ -152,6 +152,10 @@ func applyBidCodecConsumerTemplateReplacements(src string) string {
 }
 
 func GenerateBidCodecVectorTestOutputs() (map[string][]byte, error) {
+	oracleRows, err := bidCodecParseOracleRows()
+	if err != nil {
+		return nil, err
+	}
 	files := map[string][]byte{
 		bidCodecVectorsGoExhaustive32TestPath: bidCodecConsumerTemplate(
 			"go_exhaustive32_long_test.go",
@@ -1513,9 +1517,8 @@ fn test_bid_codec_vectors_encode_decode() {
 //               same bits; WithMode(RoundNearestEven) matches WithFlags; and
 //               the public render/parse closure holds (Direct(v.String())==v).
 //   - rounded:  Direct errors with a zero value (exact-only contract);
-//               WithFlags succeeds with nonzero flags (the IEEE flag channel
-//               reports the range/precision excursion instead of silence);
-//               WithMode matches WithFlags.
+//               WithFlags and all five WithMode modes match independent
+//               Intel C result bits and exact flags.
 //   - rejected: every family errors with a zero value and zero flags (public
 //               grammar violation, silent-cohort trap, or a NaN payload
 //               outside the width's range).
@@ -1526,6 +1529,7 @@ package bid754_test
 
 import (
 	"encoding/json"
+ "encoding/binary"
 	"os"
 	"testing"
 
@@ -1588,37 +1592,34 @@ func goFullAssertClass32(t *testing.T, label, input, class string) {
 	m, mf, merr := bid754.NewDecimal32WithMode(input, bid754.RoundNearestEven)
 	if m != w || mf != wf || (merr == nil) != (werr == nil) {
 		t.Errorf("%s %q d32: WithMode(NearestEven) = (%#08x, %v, err=%v) diverges from WithFlags (%#08x, %v, err=%v)",
-			label, input, uint32(m), mf, merr, uint32(w), wf, werr)
+			label, input, m.ToUint32(), mf, merr, w.ToUint32(), wf, werr)
 		return
 	}
 	switch class {
 	case "exact":
 		if derr != nil || werr != nil || wf != 0 || w != d {
 			t.Errorf("%s %q d32: want exact accept, got Direct(err=%v) WithFlags(%#08x, %v, err=%v) Direct value %#08x",
-				label, input, derr, uint32(w), wf, werr, uint32(d))
+				label, input, derr, w.ToUint32(), wf, werr, d.ToUint32())
 			return
 		}
 		rendered := d.String()
 		rt, rterr := bid754.NewDecimal32(rendered)
 		if rterr != nil || rt != d {
 			t.Errorf("%s %q d32: render/parse closure broken: String()=%q reparsed=(%#08x, err=%v), want %#08x",
-				label, input, rendered, uint32(rt), rterr, uint32(d))
+				label, input, rendered, rt.ToUint32(), rterr, d.ToUint32())
 		}
 	case "rounded":
-		if derr == nil || d != 0 {
-			t.Errorf("%s %q d32: want exact-channel reject, got Direct (%#08x, err=%v)", label, input, uint32(d), derr)
+		if derr == nil || d.ToUint32() != 0 {
+			t.Errorf("%s %q d32: want exact-channel reject, got Direct (%#08x, err=%v)", label, input, d.ToUint32(), derr)
 		}
-		if werr != nil || wf == 0 {
-			t.Errorf("%s %q d32: want flag-channel accept with nonzero flags, got WithFlags (%#08x, %v, err=%v)",
-				label, input, uint32(w), wf, werr)
-		}
+		goFullAssertRounded(t, input, 32)
 	case "rejected":
-		if derr == nil || d != 0 {
-			t.Errorf("%s %q d32: want Direct reject, got (%#08x, err=%v)", label, input, uint32(d), derr)
+		if derr == nil || d.ToUint32() != 0 {
+			t.Errorf("%s %q d32: want Direct reject, got (%#08x, err=%v)", label, input, d.ToUint32(), derr)
 		}
-		if werr == nil || w != 0 || wf != 0 {
+		if werr == nil || w.ToUint32() != 0 || wf != 0 {
 			t.Errorf("%s %q d32: want WithFlags reject with zero value and flags, got (%#08x, %v, err=%v)",
-				label, input, uint32(w), wf, werr)
+				label, input, w.ToUint32(), wf, werr)
 		}
 	default:
 		t.Fatalf("%s %q d32: unknown go_full class %q", label, input, class)
@@ -1632,37 +1633,34 @@ func goFullAssertClass64(t *testing.T, label, input, class string) {
 	m, mf, merr := bid754.NewDecimal64WithMode(input, bid754.RoundNearestEven)
 	if m != w || mf != wf || (merr == nil) != (werr == nil) {
 		t.Errorf("%s %q d64: WithMode(NearestEven) = (%#016x, %v, err=%v) diverges from WithFlags (%#016x, %v, err=%v)",
-			label, input, uint64(m), mf, merr, uint64(w), wf, werr)
+			label, input, m.ToUint64(), mf, merr, w.ToUint64(), wf, werr)
 		return
 	}
 	switch class {
 	case "exact":
 		if derr != nil || werr != nil || wf != 0 || w != d {
 			t.Errorf("%s %q d64: want exact accept, got Direct(err=%v) WithFlags(%#016x, %v, err=%v) Direct value %#016x",
-				label, input, derr, uint64(w), wf, werr, uint64(d))
+				label, input, derr, w.ToUint64(), wf, werr, d.ToUint64())
 			return
 		}
 		rendered := d.String()
 		rt, rterr := bid754.NewDecimal64(rendered)
 		if rterr != nil || rt != d {
 			t.Errorf("%s %q d64: render/parse closure broken: String()=%q reparsed=(%#016x, err=%v), want %#016x",
-				label, input, rendered, uint64(rt), rterr, uint64(d))
+				label, input, rendered, rt.ToUint64(), rterr, d.ToUint64())
 		}
 	case "rounded":
-		if derr == nil || d != 0 {
-			t.Errorf("%s %q d64: want exact-channel reject, got Direct (%#016x, err=%v)", label, input, uint64(d), derr)
+		if derr == nil || d.ToUint64() != 0 {
+			t.Errorf("%s %q d64: want exact-channel reject, got Direct (%#016x, err=%v)", label, input, d.ToUint64(), derr)
 		}
-		if werr != nil || wf == 0 {
-			t.Errorf("%s %q d64: want flag-channel accept with nonzero flags, got WithFlags (%#016x, %v, err=%v)",
-				label, input, uint64(w), wf, werr)
-		}
+		goFullAssertRounded(t, input, 64)
 	case "rejected":
-		if derr == nil || d != 0 {
-			t.Errorf("%s %q d64: want Direct reject, got (%#016x, err=%v)", label, input, uint64(d), derr)
+		if derr == nil || d.ToUint64() != 0 {
+			t.Errorf("%s %q d64: want Direct reject, got (%#016x, err=%v)", label, input, d.ToUint64(), derr)
 		}
-		if werr == nil || w != 0 || wf != 0 {
+		if werr == nil || w.ToUint64() != 0 || wf != 0 {
 			t.Errorf("%s %q d64: want WithFlags reject with zero value and flags, got (%#016x, %v, err=%v)",
-				label, input, uint64(w), wf, werr)
+				label, input, w.ToUint64(), wf, werr)
 		}
 	default:
 		t.Fatalf("%s %q d64: unknown go_full class %q", label, input, class)
@@ -1697,10 +1695,7 @@ func goFullAssertClass128(t *testing.T, label, input, class string) {
 		if derr == nil || d != zero {
 			t.Errorf("%s %q d128: want exact-channel reject, got Direct (%x, err=%v)", label, input, d.ToBytes(), derr)
 		}
-		if werr != nil || wf == 0 {
-			t.Errorf("%s %q d128: want flag-channel accept with nonzero flags, got WithFlags (%x, %v, err=%v)",
-				label, input, w.ToBytes(), wf, werr)
-		}
+		goFullAssertRounded(t, input, 128)
 	case "rejected":
 		if derr == nil || d != zero {
 			t.Errorf("%s %q d128: want Direct reject, got (%x, err=%v)", label, input, d.ToBytes(), derr)
@@ -1803,11 +1798,6 @@ func TestGoFullBidCodecStringVectors(t *testing.T) {
 //! Expectation classes are shared with the Go consumer (one generator table),
 //! so a class that differs between the two public surfaces fails here.
 //!
-//! Only the crate's public API is imported. That is a convention here, not a
-//! structural guarantee: bid_codec is exported as #[doc(hidden)] pub, so a
-//! future edit could reach it (the rust_full runner next door does exactly
-//! that, deliberately). Keep the import list above limited to the public
-//! Decimal surface, or this runner stops describing that surface.
 
 use std::panic::catch_unwind;
 
@@ -1940,15 +1930,7 @@ macro_rules! assert_class {
                             "{label} {input:?} {width}: want parse reject on the exact-only contract, got success"
                         ));
                     }
-                    match &with_flags {
-                        Ok((_, f)) if f.bits() != 0 => {}
-                        Ok((_, f)) => failures.push(format!(
-                            "{label} {input:?} {width}: want parse_with_flags to report the excursion, got flags {:?}", f.bits()
-                        )),
-                        Err(e) => failures.push(format!(
-                            "{label} {input:?} {width}: want parse_with_flags success with flags, got error {e:?}"
-                        )),
-                    }
+                    assert_rounded(failures,input,core::mem::size_of::<$ty>()*8);
                 }
                 "rejected" => {
                     if direct.is_ok() {
@@ -2022,6 +2004,22 @@ fn test_rust_full_parse_reject_vectors() {
     eprintln!("rust_full_parse reject_vectors: consumed={consumed} channel_skipped={skipped}");
 }
 `)),
+	}
+	for _, target := range []struct {
+		path, template string
+		rust           bool
+	}{
+		{bidCodecVectorsGoFullTestPath, "go_public_parse_oracle.go.tmpl", false},
+		{bidCodecVectorsRustFullParseTestPath, "rust_public_parse_oracle.rs", true},
+	} {
+		body, err := bidCodecConsumerTemplates.ReadFile("bidcodec_templates/" + target.template)
+		if err != nil {
+			return nil, err
+		}
+		inputs, expectations := bidCodecParseExpectationLiterals(oracleRows, target.rust)
+		rendered := strings.ReplaceAll(string(body), "{{BID_CODEC_PARSE_EXPECTATIONS}}", expectations)
+		rendered = strings.ReplaceAll(rendered, "{{BID_CODEC_PARSE_INPUTS}}", inputs)
+		files[target.path] = append(files[target.path], []byte("\n"+rendered)...)
 	}
 	files[bidCodecVectorsGoExternalTestPath] = bidCodecGoExternalVectorTestOutput(files[bidCodecVectorsGoTestPath])
 	return formatGeneratedGoOutputs(files)

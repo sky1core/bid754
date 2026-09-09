@@ -10,7 +10,7 @@ func Add64DQBIDWithMode(left Decimal64BID, right Decimal128BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64dqAdd(left.ToUint64(), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Add64QDBIDWithMode returns the Decimal64 result of left + right, where left
@@ -21,7 +21,7 @@ func Add64QDBIDWithMode(left Decimal128BID, right Decimal64BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qdAdd(decimal128BIDAsBidgo(left), right.ToUint64(), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Add64QQBIDWithMode returns the Decimal64 result of two Decimal128 operands,
@@ -32,7 +32,7 @@ func Add64QQBIDWithMode(left, right Decimal128BID, mode RoundingMode) (Decimal64
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qqAdd(decimal128BIDAsBidgo(left), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Sub64DQBIDWithMode returns the Decimal64 result of left - right, where left
@@ -43,7 +43,7 @@ func Sub64DQBIDWithMode(left Decimal64BID, right Decimal128BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64dqSub(left.ToUint64(), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Sub64QDBIDWithMode returns the Decimal64 result of left - right, where left
@@ -54,7 +54,7 @@ func Sub64QDBIDWithMode(left Decimal128BID, right Decimal64BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qdSub(decimal128BIDAsBidgo(left), right.ToUint64(), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Sub64QQBIDWithMode returns the Decimal64 result of two Decimal128 operands,
@@ -65,7 +65,7 @@ func Sub64QQBIDWithMode(left, right Decimal128BID, mode RoundingMode) (Decimal64
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qqSub(decimal128BIDAsBidgo(left), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Mul64DQBIDWithMode returns the Decimal64 result of left * right, where left
@@ -76,7 +76,7 @@ func Mul64DQBIDWithMode(left Decimal64BID, right Decimal128BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64dqMul(left.ToUint64(), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Mul64QDBIDWithMode returns the Decimal64 result of left * right, where left
@@ -87,7 +87,7 @@ func Mul64QDBIDWithMode(left Decimal128BID, right Decimal64BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qdMul(decimal128BIDAsBidgo(left), right.ToUint64(), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Mul64QQBIDWithMode returns the Decimal64 result of two Decimal128 operands,
@@ -98,7 +98,7 @@ func Mul64QQBIDWithMode(left, right Decimal128BID, mode RoundingMode) (Decimal64
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qqMul(decimal128BIDAsBidgo(left), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Div64DQBIDWithMode returns the Decimal64 result of left / right, where left
@@ -109,7 +109,7 @@ func Div64DQBIDWithMode(left Decimal64BID, right Decimal128BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64dqDiv(left.ToUint64(), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Div64QDBIDWithMode returns the Decimal64 result of left / right, where left
@@ -120,7 +120,7 @@ func Div64QDBIDWithMode(left Decimal128BID, right Decimal64BID, mode RoundingMod
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qdDiv(decimal128BIDAsBidgo(left), right.ToUint64(), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Div64QQBIDWithMode returns the Decimal64 result of two Decimal128 operands,
@@ -131,7 +131,7 @@ func Div64QQBIDWithMode(left, right Decimal128BID, mode RoundingMode) (Decimal64
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qqDiv(decimal128BIDAsBidgo(left), decimal128BIDAsBidgo(right), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Add128DDBIDWithMode returns the Decimal128 result of two Decimal64 operands,

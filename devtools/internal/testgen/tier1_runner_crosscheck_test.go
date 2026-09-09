@@ -193,18 +193,22 @@ type tier1CrosscheckQuietRow struct {
 	invalid  bool
 }
 
-// Go rows: {name: "...", x: <lit>, y: <lit>, relation: N[, flags: FlagInvalidOperation]}
-// with 128-bit operands spelled value(lo, hi).
+// Go rows use raw constructors for 32/64-bit operands and value(lo, hi) for 128 bits.
 var tier1CrosscheckGoQuietRow = regexp.MustCompile(
-	`\{name: "[^"]*", x: (value\([^)]*\)|[0-9a-fx]+), y: (value\([^)]*\)|[0-9a-fx]+), relation: (-?\d+)(, flags: FlagInvalidOperation)?\}`)
+	`\{name: "[^"]*", x: (value\([^)]*\)|Decimal(?:32|64)BIDFromBits\([^)]*\)), y: (value\([^)]*\)|Decimal(?:32|64)BIDFromBits\([^)]*\)), relation: (-?\d+)(, flags: FlagInvalidOperation)?\}`)
 var tier1CrosscheckGoValueCall = regexp.MustCompile(`value\(\s*([^,\s]+),\s*([^)\s]+)\s*\)`)
+var tier1CrosscheckGoRawCall = regexp.MustCompile(`^Decimal(?:32|64)BIDFromBits\(([^)]+)\)$`)
 
 func tier1CrosscheckGoQuietOperand(t *testing.T, token string) (uint64, uint64) {
 	t.Helper()
 	if match := tier1CrosscheckGoValueCall.FindStringSubmatch(token); match != nil {
 		return tier1CrosscheckParseUint(t, match[1]), tier1CrosscheckParseUint(t, match[2])
 	}
-	return tier1CrosscheckParseUint(t, token), 0
+	if match := tier1CrosscheckGoRawCall.FindStringSubmatch(token); match != nil {
+		return tier1CrosscheckParseUint(t, match[1]), 0
+	}
+	t.Fatalf("unrecognized Go quiet operand %q", token)
+	return 0, 0
 }
 
 // Rust rows: (<operand>, <operand>, N, invalid|ExceptionFlags::empty()) where

@@ -52,8 +52,6 @@ func gitFixtureRepo(t *testing.T) string {
 		}
 	}
 	mustGit("init", "-q")
-	mustGit("config", "user.email", "mutgate-test@example.invalid")
-	mustGit("config", "user.name", "mutgate test")
 	if err := os.MkdirAll(filepath.Join(repo, "bid754-go", "internal", "bidgo"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -66,8 +64,8 @@ func gitFixtureRepo(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(repo, "devtools", "tests", ".keep"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	mustGit("add", "-A")
-	mustGit("commit", "-q", "-m", "fixture")
+	mustGit("add", "--", "bid754-go/internal/bidgo/dummy.go", "devtools/tests/.keep")
+	mustGit("commit", "-qm", "fixture")
 	return repo
 }
 

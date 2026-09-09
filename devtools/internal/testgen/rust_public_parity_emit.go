@@ -79,7 +79,7 @@ var decimal32ParityWidth = parityWidth{
 // decimal128ParityWidth is the Decimal128 width record. bidgoFromString names
 // Bid128FromString directly (not a special-cased raw wrapper): unlike width
 // 64 (bid754-rs/src/generated/bid64_from_string.rs is pub(crate), so the
-// parity leg's from-string rows route through the doc(hidden)
+// parity leg's from-string rows route through the verification-feature
 // bid754::bid64_from_string_raw compat function instead -- see
 // resolveFromStringRawPort's doc comment), width 128's
 // generated::bid128_string::bid128_from_string is fully pub (verified
@@ -2739,7 +2739,7 @@ func emitDisplay(b *strings.Builder, row rustParityInventoryRow, corpus publicPa
 // fromStringBidgoFn identifies which port the caller wants.
 //
 // Decimal64's generated::bid64_from_string::bid64_from_string is pub(crate),
-// so this external integration test uses the existing #[doc(hidden)] public
+// so this external integration test uses the verification-feature public
 // bid64_from_string_raw entrypoint. The generated Decimal32 and Decimal128 raw
 // functions are public and are called directly. This branch follows those
 // declared visibility boundaries explicitly.

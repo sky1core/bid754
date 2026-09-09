@@ -3866,10 +3866,10 @@ func decnumberDiffRunDn(opCode, widthBits, intelRounding int, s1, s2, s3 string,
 }
 
 func decnumberDiffD128(op decnumberDiffOperand) Decimal128BID {
-	var value Decimal128BID
-	binary.LittleEndian.PutUint64(value[0:8], op.lo)
-	binary.LittleEndian.PutUint64(value[8:16], op.hi)
-	return value
+	var raw [16]byte
+	binary.LittleEndian.PutUint64(raw[0:8], op.lo)
+	binary.LittleEndian.PutUint64(raw[8:16], op.hi)
+	return Decimal128BIDFromBytes(raw)
 }
 
 // decnumberDiffLegs evaluates one case on all three legs. The returned

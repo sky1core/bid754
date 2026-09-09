@@ -940,34 +940,34 @@ func TestFromIntPublicRouting(t *testing.T) {
 
 			got32i32, got32i32Flags := NewDecimal32FromInt32(123456789, mode)
 			want32i32, want32i32Flags := bidgo.Bid32FromInt32(123456789, bidMode)
-			assertDecimal32Bits(t, "NewDecimal32FromInt32", got32i32, got32i32Flags, Decimal32BID(want32i32), bidgoExceptionFlags(want32i32Flags))
+			assertDecimal32Bits(t, "NewDecimal32FromInt32", got32i32, got32i32Flags, Decimal32BIDFromBits(want32i32), bidgoExceptionFlags(want32i32Flags))
 
 			got32u32, got32u32Flags := NewDecimal32FromUint32(4000000000, mode)
 			want32u32, want32u32Flags := bidgo.Bid32FromUint32(4000000000, bidMode)
-			assertDecimal32Bits(t, "NewDecimal32FromUint32", got32u32, got32u32Flags, Decimal32BID(want32u32), bidgoExceptionFlags(want32u32Flags))
+			assertDecimal32Bits(t, "NewDecimal32FromUint32", got32u32, got32u32Flags, Decimal32BIDFromBits(want32u32), bidgoExceptionFlags(want32u32Flags))
 
 			got32i64, got32i64Flags := NewDecimal32FromInt64(9223372036854775807, mode)
 			want32i64, want32i64Flags := bidgo.Bid32FromInt64(9223372036854775807, bidMode)
-			assertDecimal32Bits(t, "NewDecimal32FromInt64", got32i64, got32i64Flags, Decimal32BID(want32i64), bidgoExceptionFlags(want32i64Flags))
+			assertDecimal32Bits(t, "NewDecimal32FromInt64", got32i64, got32i64Flags, Decimal32BIDFromBits(want32i64), bidgoExceptionFlags(want32i64Flags))
 
 			got32u64, got32u64Flags := NewDecimal32FromUint64(^uint64(0), mode)
 			want32u64, want32u64Flags := bidgo.Bid32FromUint64(^uint64(0), bidMode)
-			assertDecimal32Bits(t, "NewDecimal32FromUint64", got32u64, got32u64Flags, Decimal32BID(want32u64), bidgoExceptionFlags(want32u64Flags))
+			assertDecimal32Bits(t, "NewDecimal32FromUint64", got32u64, got32u64Flags, Decimal32BIDFromBits(want32u64), bidgoExceptionFlags(want32u64Flags))
 
 			got64i64, got64i64Flags := NewDecimal64FromInt64(9223372036854775807, mode)
 			want64i64, want64i64Flags := bidgo.Bid64FromInt64(9223372036854775807, bidMode)
-			assertDecimal64Bits(t, "NewDecimal64FromInt64", got64i64, got64i64Flags, Decimal64BID(want64i64), bidgoExceptionFlags(want64i64Flags))
+			assertDecimal64Bits(t, "NewDecimal64FromInt64", got64i64, got64i64Flags, Decimal64BIDFromBits(want64i64), bidgoExceptionFlags(want64i64Flags))
 
 			got64u64, got64u64Flags := NewDecimal64FromUint64(^uint64(0), mode)
 			want64u64, want64u64Flags := bidgo.Bid64FromUint64(^uint64(0), bidMode)
-			assertDecimal64Bits(t, "NewDecimal64FromUint64", got64u64, got64u64Flags, Decimal64BID(want64u64), bidgoExceptionFlags(want64u64Flags))
+			assertDecimal64Bits(t, "NewDecimal64FromUint64", got64u64, got64u64Flags, Decimal64BIDFromBits(want64u64), bidgoExceptionFlags(want64u64Flags))
 		})
 	}
 
-	if got, want := NewDecimal64FromInt32(-123456789), Decimal64BID(bidgo.Bid64FromInt32(-123456789)); got != want {
+	if got, want := NewDecimal64FromInt32(-123456789), Decimal64BIDFromBits(bidgo.Bid64FromInt32(-123456789)); got != want {
 		t.Fatalf("NewDecimal64FromInt32 bits = %016x, want %016x", got.ToUint64(), want.ToUint64())
 	}
-	if got, want := NewDecimal64FromUint32(4000000000), Decimal64BID(bidgo.Bid64FromUint32(4000000000)); got != want {
+	if got, want := NewDecimal64FromUint32(4000000000), Decimal64BIDFromBits(bidgo.Bid64FromUint32(4000000000)); got != want {
 		t.Fatalf("NewDecimal64FromUint32 bits = %016x, want %016x", got.ToUint64(), want.ToUint64())
 	}
 	if got, want := NewDecimal128FromInt32(-123456789), decimal128BIDFromBidgo(bidgo.Bid128FromInt32(-123456789)); got != want {

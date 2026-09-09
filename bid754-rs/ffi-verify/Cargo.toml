@@ -23,7 +23,7 @@ tier1-long = []
 d32-exhaustive-long = []
 
 [dev-dependencies]
-bid754 = { path = ".." }
+bid754 = { path = "..", features = ["verification"] }
 libbid-sys = { path = "../libbid-sys" }
 rand = "=0.8.6"
 serde = { version = "=1.0.228", features = ["derive"] }

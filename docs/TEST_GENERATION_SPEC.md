@@ -20,7 +20,8 @@ The following ownership split is mandatory:
 | selected inputs, functions, profiles, seeds, and generation parameters | `devtools/testgen_manifest.json` and generator code |
 | exact case counts, class partitions, tuple hashes, and artifact hashes | `devtools/verification_anchors.json` |
 | current selected/excluded inventory and skip accounting | generated inventories under `devtools/generated/testspec/` |
-| execution graph and local commands | `Makefile`, `devtools/scripts/`, and `BUILD.md` |
+| required execution profiles and evidence | `devtools/verification_plan.json` and `devtools/cmd/verifyplan` |
+| individual gates, environment preparation, and local commands | `Makefile`, `devtools/scripts/`, and `BUILD.md` |
 | human-readable current implementation map | `VERIFICATION_REFERENCE.md` |
 
 Derived counts, complete function lists, and current skip inventories must not
@@ -100,7 +101,7 @@ A regular domain is closed only when:
 | Intel `readtest` | pinned Intel BID `readtest.h` and `readtest.in` |
 | IBM `decTest` | pinned official `*.decTest` files |
 | C FFI exact bit-compare | pinned Intel BID signatures plus deterministic generated inputs |
-| BID codec vectors | independent BID layout reference code plus the generation manifest |
+| BID codec vectors | independent BID layout reference code plus the generation manifest; pinned Intel BID C for rounded public parsing, subject to registered IEEE deviations |
 
 Pinned inputs may be absent from a portable consumer checkout. In that case an
 input-dependent sync test may skip the whole input-dependent leg. A present but
@@ -589,6 +590,28 @@ Skip and exemption records carry both a stable reason identifier and a
 classification. Unsupported operation names alone are not sufficient evidence.
 
 ## Reporting and Pass Criteria
+
+CI and local wrappers select a common execution profile after preparing its
+environment. Required gate lists are not copied into those wrappers. A profile
+passes only when every required gate supplies its declared execution evidence,
+comparison strength, and anchored counts; exit status zero alone is insufficient.
+Results bind the source snapshot, execution plan, anchors, invocation, platform,
+tool versions, and individual logs. Missing results or results from another run
+cannot be combined into a pass. A portable, smoke, or sharded profile retains its
+own scope; independent exhaustive gates are not implicitly part of every profile.
+
+Source identity and Linux transport derive from the same captured snapshot,
+including paths, file kinds, modes, symlink targets, and Git index state. The
+receiver verifies the transferred bytes and rejects later source changes.
+Symlink permissions have no portable representation and are normalized; file
+and directory permissions remain part of the snapshot contract.
+
+Structure contracts inspect actual default build graphs and external-consumer
+compilation. Harness strength checks require a passing baseline and detection of
+the intended fault through the real comparator, dispatcher, or adjudicator;
+unrelated build or environment failures do not count as fault detection. Parser
+resource checks cover bounded numeric conversion and error size, valid leading
+zeros, and allocation budgets separately from timing measurements.
 
 A full regular-verification report states:
 

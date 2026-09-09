@@ -1018,7 +1018,7 @@ func decimal32BIDFromInt32Port(x int32, mode RoundingMode) (Decimal32BID, Except
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid32FromInt32(x, rnd)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDFromUint32Port(x uint32, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
@@ -1027,7 +1027,7 @@ func decimal32BIDFromUint32Port(x uint32, mode RoundingMode) (Decimal32BID, Exce
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid32FromUint32(x, rnd)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDFromInt64Port(x int64, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
@@ -1036,7 +1036,7 @@ func decimal32BIDFromInt64Port(x int64, mode RoundingMode) (Decimal32BID, Except
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid32FromInt64(x, rnd)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDFromUint64Port(x uint64, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
@@ -1045,15 +1045,15 @@ func decimal32BIDFromUint64Port(x uint64, mode RoundingMode) (Decimal32BID, Exce
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid32FromUint64(x, rnd)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDFromInt32Port(x int32) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64FromInt32(x))
+	return Decimal64BIDFromBits(bidgo.Bid64FromInt32(x))
 }
 
 func decimal64BIDFromUint32Port(x uint32) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64FromUint32(x))
+	return Decimal64BIDFromBits(bidgo.Bid64FromUint32(x))
 }
 
 func decimal64BIDFromInt64Port(x int64, mode RoundingMode) (Decimal64BID, ExceptionFlags) {
@@ -1062,7 +1062,7 @@ func decimal64BIDFromInt64Port(x int64, mode RoundingMode) (Decimal64BID, Except
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64FromInt64(x, rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDFromUint64Port(x uint64, mode RoundingMode) (Decimal64BID, ExceptionFlags) {
@@ -1071,7 +1071,7 @@ func decimal64BIDFromUint64Port(x uint64, mode RoundingMode) (Decimal64BID, Exce
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64FromUint64(x, rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal128BIDFromInt32Port(x int32) Decimal128BID {

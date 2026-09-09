@@ -43,7 +43,7 @@ func compareInputs32(t *testing.T) []compareCase32 {
 		{name: "inf", value: mustDecimal32BID(t, "Infinity")},
 		{name: "qnan", value: mustDecimal32BID(t, "NaN")},
 		{name: "snan", value: mustDecimal32BID(t, "sNaN")},
-		{name: "noncanonical", value: Decimal32BID(0x7c100000)},
+		{name: "noncanonical", value: Decimal32BIDFromBits(0x7c100000)},
 	}
 }
 
@@ -57,7 +57,7 @@ func compareInputs64(t *testing.T) []compareCase64 {
 		{name: "inf", value: mustDecimal64BID(t, "Infinity")},
 		{name: "qnan", value: mustDecimal64BID(t, "NaN")},
 		{name: "snan", value: mustDecimal64BID(t, "sNaN")},
-		{name: "noncanonical", value: Decimal64BID(0x7c04000000000000)},
+		{name: "noncanonical", value: Decimal64BIDFromBits(0x7c04000000000000)},
 	}
 }
 

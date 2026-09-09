@@ -390,8 +390,8 @@ func publicParity_Add128DDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Add128DDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128ddAdd(leftBits, rightBits, mode.port)
@@ -414,8 +414,8 @@ func publicParity_Add128DDBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0xad80000000000001},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Add128DDBIDWithMode(left, right, mode.pub)
@@ -440,8 +440,8 @@ func publicParity_Add128DDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Add128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Add128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -461,8 +461,8 @@ func publicParity_Add128DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Add128DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128dqAdd(leftBits, publicParityToBidgo128(rightBits), mode.port)
@@ -485,8 +485,8 @@ func publicParity_Add128DQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Add128DQBIDWithMode(left, right, mode.pub)
@@ -511,8 +511,8 @@ func publicParity_Add128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Add128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Add128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -532,8 +532,8 @@ func publicParity_Add128QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Add128QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128qdAdd(publicParityToBidgo128(leftBits), rightBits, mode.port)
@@ -556,8 +556,8 @@ func publicParity_Add128QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0xad80000000000001},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Add128QDBIDWithMode(left, right, mode.pub)
@@ -582,8 +582,8 @@ func publicParity_Add128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Add128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Add128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -603,13 +603,13 @@ func publicParity_Add64DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Add64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqAdd(leftBits, publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Add64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Add64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Add64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -627,19 +627,19 @@ func publicParity_Add64DQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Add64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqAdd(pair.left, publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -653,15 +653,15 @@ func publicParity_Add64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Add64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Add64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Add64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Add64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -674,13 +674,13 @@ func publicParity_Add64QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Add64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdAdd(publicParityToBidgo128(leftBits), rightBits, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Add64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Add64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Add64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -698,19 +698,19 @@ func publicParity_Add64QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0xafc0000000000001},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Add64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdAdd(publicParityToBidgo128(pair.left), pair.right, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -724,15 +724,15 @@ func publicParity_Add64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Add64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Add64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Add64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Add64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -745,13 +745,13 @@ func publicParity_Add64QQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Add64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqAdd(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Add64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Add64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Add64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -769,19 +769,19 @@ func publicParity_Add64QQBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Add64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqAdd(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -795,15 +795,15 @@ func publicParity_Add64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Add64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Add64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Add64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Add64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Add64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Add64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Add64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -812,7 +812,7 @@ func publicParity_Add64QQBIDWithMode(t *testing.T) int {
 func publicParity_Decimal128BID_Abs(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.Abs()
 		pr := bidgo.Bid128Abs(publicParityToBidgo128(elem))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -828,8 +828,8 @@ func publicParity_Decimal128BID_Add(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.Add(b)
 		var prf uint32
 		pr := bidgo.Bid128Add(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0, &prf)
@@ -846,8 +846,8 @@ func publicParity_Decimal128BID_AddWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.AddWithFlags(b)
 		var prf uint32
 		pr := bidgo.Bid128Add(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0, &prf)
@@ -867,8 +867,8 @@ func publicParity_Decimal128BID_AddWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.AddWithMode(b, mode.pub)
 			var prf uint32
@@ -889,8 +889,8 @@ func publicParity_Decimal128BID_AddWithMode(t *testing.T) int {
 		{{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf}},
 	}
 	for _, dp := range discPairs {
-		a := Decimal128BID(dp[0])
-		b := Decimal128BID(dp[1])
+		a := Decimal128BIDFromBytes(dp[0])
+		b := Decimal128BIDFromBytes(dp[1])
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.AddWithMode(b, mode.pub)
@@ -916,8 +916,8 @@ func publicParity_Decimal128BID_AddWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.AddWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := invalidLeft.AddWithMode(invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -933,7 +933,7 @@ func publicParity_Decimal128BID_AddWithMode(t *testing.T) int {
 func publicParity_Decimal128BID_Class(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.Class()
 		pr := bidgo.Bid128Class(publicParityToBidgo128(elem))
 		if string(pv) != publicParityClassName(pr) {
@@ -949,8 +949,8 @@ func publicParity_Decimal128BID_CompareTotal(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.CompareTotal(b)
 		fwd := bidgo.Bid128TotalOrder(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		rev := bidgo.Bid128TotalOrder(publicParityToBidgo128(bv), publicParityToBidgo128(av))
@@ -976,8 +976,8 @@ func publicParity_Decimal128BID_CompareTotalMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.CompareTotalMag(b)
 		fwd := bidgo.Bid128TotalOrderMag(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		rev := bidgo.Bid128TotalOrderMag(publicParityToBidgo128(bv), publicParityToBidgo128(av))
@@ -1001,7 +1001,7 @@ func publicParity_Decimal128BID_CompareTotalMag(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt16(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt16(mode.pub)
 			var pr int16
@@ -1027,7 +1027,7 @@ func publicParity_Decimal128BID_ConvertToInt16(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt16(publicParityModes[0].pub)
 	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1043,7 +1043,7 @@ func publicParity_Decimal128BID_ConvertToInt16(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt16Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt16Exact(mode.pub)
 			var pr int16
@@ -1069,7 +1069,7 @@ func publicParity_Decimal128BID_ConvertToInt16Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt16Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1085,7 +1085,7 @@ func publicParity_Decimal128BID_ConvertToInt16Exact(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt32(mode.pub)
 			var pr int32
@@ -1111,7 +1111,7 @@ func publicParity_Decimal128BID_ConvertToInt32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt32(publicParityModes[0].pub)
 	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1127,7 +1127,7 @@ func publicParity_Decimal128BID_ConvertToInt32(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt32Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt32Exact(mode.pub)
 			var pr int32
@@ -1153,7 +1153,7 @@ func publicParity_Decimal128BID_ConvertToInt32Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt32Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1169,7 +1169,7 @@ func publicParity_Decimal128BID_ConvertToInt32Exact(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt64(mode.pub)
 			var pr int64
@@ -1195,7 +1195,7 @@ func publicParity_Decimal128BID_ConvertToInt64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt64(publicParityModes[0].pub)
 	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1211,7 +1211,7 @@ func publicParity_Decimal128BID_ConvertToInt64(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt64Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt64Exact(mode.pub)
 			var pr int64
@@ -1237,7 +1237,7 @@ func publicParity_Decimal128BID_ConvertToInt64Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt64Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1253,7 +1253,7 @@ func publicParity_Decimal128BID_ConvertToInt64Exact(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt8(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt8(mode.pub)
 			var pr int8
@@ -1279,7 +1279,7 @@ func publicParity_Decimal128BID_ConvertToInt8(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt8(publicParityModes[0].pub)
 	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1295,7 +1295,7 @@ func publicParity_Decimal128BID_ConvertToInt8(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToInt8Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt8Exact(mode.pub)
 			var pr int8
@@ -1321,7 +1321,7 @@ func publicParity_Decimal128BID_ConvertToInt8Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt8Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToInt8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -1337,7 +1337,7 @@ func publicParity_Decimal128BID_ConvertToInt8Exact(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint16(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint16(mode.pub)
 			var pr uint16
@@ -1363,7 +1363,7 @@ func publicParity_Decimal128BID_ConvertToUint16(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint16(publicParityModes[0].pub)
 	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1379,7 +1379,7 @@ func publicParity_Decimal128BID_ConvertToUint16(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint16Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint16Exact(mode.pub)
 			var pr uint16
@@ -1405,7 +1405,7 @@ func publicParity_Decimal128BID_ConvertToUint16Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint16Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1421,7 +1421,7 @@ func publicParity_Decimal128BID_ConvertToUint16Exact(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint32(mode.pub)
 			var pr uint32
@@ -1447,7 +1447,7 @@ func publicParity_Decimal128BID_ConvertToUint32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint32(publicParityModes[0].pub)
 	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1463,7 +1463,7 @@ func publicParity_Decimal128BID_ConvertToUint32(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint32Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint32Exact(mode.pub)
 			var pr uint32
@@ -1489,7 +1489,7 @@ func publicParity_Decimal128BID_ConvertToUint32Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint32Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1505,7 +1505,7 @@ func publicParity_Decimal128BID_ConvertToUint32Exact(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint64(mode.pub)
 			var pr uint64
@@ -1531,7 +1531,7 @@ func publicParity_Decimal128BID_ConvertToUint64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint64(publicParityModes[0].pub)
 	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1547,7 +1547,7 @@ func publicParity_Decimal128BID_ConvertToUint64(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint64Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint64Exact(mode.pub)
 			var pr uint64
@@ -1573,7 +1573,7 @@ func publicParity_Decimal128BID_ConvertToUint64Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint64Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1589,7 +1589,7 @@ func publicParity_Decimal128BID_ConvertToUint64Exact(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint8(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint8(mode.pub)
 			var pr uint8
@@ -1615,7 +1615,7 @@ func publicParity_Decimal128BID_ConvertToUint8(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint8(publicParityModes[0].pub)
 	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1631,7 +1631,7 @@ func publicParity_Decimal128BID_ConvertToUint8(t *testing.T) int {
 func publicParity_Decimal128BID_ConvertToUint8Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint8Exact(mode.pub)
 			var pr uint8
@@ -1657,7 +1657,7 @@ func publicParity_Decimal128BID_ConvertToUint8Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint8Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ConvertToUint8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -1673,7 +1673,7 @@ func publicParity_Decimal128BID_ConvertToUint8Exact(t *testing.T) int {
 func publicParity_Decimal128BID_Copy(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.Copy()
 		pr := bidgo.Bid128Copy(publicParityToBidgo128(elem))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -1689,8 +1689,8 @@ func publicParity_Decimal128BID_CopySign(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.CopySign(b)
 		pr := bidgo.Bid128CopySign(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -1706,8 +1706,8 @@ func publicParity_Decimal128BID_Div(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.Div(b)
 		pr, _ := bidgo.Bid128Div(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -1723,8 +1723,8 @@ func publicParity_Decimal128BID_DivWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.DivWithFlags(b)
 		pr, prf := bidgo.Bid128Div(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -1743,8 +1743,8 @@ func publicParity_Decimal128BID_DivWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.DivWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid128Div(publicParityToBidgo128(av), publicParityToBidgo128(bv), mode.port)
@@ -1764,8 +1764,8 @@ func publicParity_Decimal128BID_DivWithMode(t *testing.T) int {
 		{{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, {0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, dp := range discPairs {
-		a := Decimal128BID(dp[0])
-		b := Decimal128BID(dp[1])
+		a := Decimal128BIDFromBytes(dp[0])
+		b := Decimal128BIDFromBytes(dp[1])
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.DivWithMode(b, mode.pub)
@@ -1790,8 +1790,8 @@ func publicParity_Decimal128BID_DivWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.DivWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := invalidLeft.DivWithMode(invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -1810,9 +1810,9 @@ func publicParity_Decimal128BID_FMA(t *testing.T) int {
 		av := publicParityCorpus128[tri[0]]
 		bv := publicParityCorpus128[tri[1]]
 		cv := publicParityCorpus128[tri[2]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
-		c := Decimal128BID(cv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
+		c := Decimal128BIDFromBytes(cv)
 		pv, pf := a.FMA(b, c)
 		pr, prf := bidgo.Bid128Fma(publicParityToBidgo128(av), publicParityToBidgo128(bv), publicParityToBidgo128(cv), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -1832,9 +1832,9 @@ func publicParity_Decimal128BID_FMAWithMode(t *testing.T) int {
 		av := publicParityCorpus128[tri[0]]
 		bv := publicParityCorpus128[tri[1]]
 		cv := publicParityCorpus128[tri[2]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
-		c := Decimal128BID(cv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
+		c := Decimal128BIDFromBytes(cv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.FMAWithMode(b, c, mode.pub)
 			pr, prf := bidgo.Bid128Fma(publicParityToBidgo128(av), publicParityToBidgo128(bv), publicParityToBidgo128(cv), mode.port)
@@ -1854,9 +1854,9 @@ func publicParity_Decimal128BID_FMAWithMode(t *testing.T) int {
 		{{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf}},
 	}
 	for _, dt := range discTriples {
-		a := Decimal128BID(dt[0])
-		b := Decimal128BID(dt[1])
-		c := Decimal128BID(dt[2])
+		a := Decimal128BIDFromBytes(dt[0])
+		b := Decimal128BIDFromBytes(dt[1])
+		c := Decimal128BIDFromBytes(dt[2])
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.FMAWithMode(b, c, mode.pub)
@@ -1881,9 +1881,9 @@ func publicParity_Decimal128BID_FMAWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.FMAWithMode: discriminant operands %#x,%#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dt[0], dt[1], dt[2])
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := invalidA.FMAWithMode(invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -1901,8 +1901,8 @@ func publicParity_Decimal128BID_Fmod(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.Fmod(b)
 		pr, prf := bidgo.Bid128Fmod(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -1919,7 +1919,7 @@ func publicParity_Decimal128BID_Fmod(t *testing.T) int {
 func publicParity_Decimal128BID_ILogB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.ILogB()
 		var prf uint32
 		pr := bidgo.Bid128Ilogb(publicParityToBidgo128(elem), &prf)
@@ -1937,7 +1937,7 @@ func publicParity_Decimal128BID_ILogB(t *testing.T) int {
 func publicParity_Decimal128BID_IsCanonical(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsCanonical()
 		pr := bidgo.Bid128IsCanonical(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -1951,7 +1951,7 @@ func publicParity_Decimal128BID_IsCanonical(t *testing.T) int {
 func publicParity_Decimal128BID_IsFinite(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsFinite()
 		pr := bidgo.Bid128IsFinite(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -1965,7 +1965,7 @@ func publicParity_Decimal128BID_IsFinite(t *testing.T) int {
 func publicParity_Decimal128BID_IsInf(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsInf()
 		pr := bidgo.Bid128IsInf(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -1979,7 +1979,7 @@ func publicParity_Decimal128BID_IsInf(t *testing.T) int {
 func publicParity_Decimal128BID_IsNaN(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsNaN()
 		pr := bidgo.Bid128IsNaN(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -1993,7 +1993,7 @@ func publicParity_Decimal128BID_IsNaN(t *testing.T) int {
 func publicParity_Decimal128BID_IsNormal(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsNormal()
 		pr := bidgo.Bid128IsNormal(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -2007,7 +2007,7 @@ func publicParity_Decimal128BID_IsNormal(t *testing.T) int {
 func publicParity_Decimal128BID_IsSignMinus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsSignMinus()
 		pr := bidgo.Bid128IsSigned(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -2021,7 +2021,7 @@ func publicParity_Decimal128BID_IsSignMinus(t *testing.T) int {
 func publicParity_Decimal128BID_IsSignaling(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsSignaling()
 		pr := bidgo.Bid128IsSignaling(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -2035,7 +2035,7 @@ func publicParity_Decimal128BID_IsSignaling(t *testing.T) int {
 func publicParity_Decimal128BID_IsSubnormal(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsSubnormal()
 		pr := bidgo.Bid128IsSubnormal(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -2049,7 +2049,7 @@ func publicParity_Decimal128BID_IsSubnormal(t *testing.T) int {
 func publicParity_Decimal128BID_IsZero(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.IsZero()
 		pr := bidgo.Bid128IsZero(publicParityToBidgo128(elem))
 		if pv != (pr != 0) {
@@ -2063,7 +2063,7 @@ func publicParity_Decimal128BID_IsZero(t *testing.T) int {
 func publicParity_Decimal128BID_LogB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.LogB()
 		var prf uint32
 		pr := bidgo.Bid128Logb(publicParityToBidgo128(elem), &prf)
@@ -2083,8 +2083,8 @@ func publicParity_Decimal128BID_MaxNum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.MaxNum(b)
 		var prf uint32
 		pr := bidgo.Bid128Maxnum(publicParityToBidgo128(av), publicParityToBidgo128(bv), &prf)
@@ -2104,8 +2104,8 @@ func publicParity_Decimal128BID_MaxNumMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.MaxNumMag(b)
 		var prf uint32
 		pr := bidgo.Bid128MaxnumMag(publicParityToBidgo128(av), publicParityToBidgo128(bv), &prf)
@@ -2125,8 +2125,8 @@ func publicParity_Decimal128BID_MinNum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.MinNum(b)
 		var prf uint32
 		pr := bidgo.Bid128Minnum(publicParityToBidgo128(av), publicParityToBidgo128(bv), &prf)
@@ -2146,8 +2146,8 @@ func publicParity_Decimal128BID_MinNumMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.MinNumMag(b)
 		var prf uint32
 		pr := bidgo.Bid128MinnumMag(publicParityToBidgo128(av), publicParityToBidgo128(bv), &prf)
@@ -2167,8 +2167,8 @@ func publicParity_Decimal128BID_Mul(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.Mul(b)
 		pr, _ := bidgo.Bid128Mul(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2184,8 +2184,8 @@ func publicParity_Decimal128BID_MulWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.MulWithFlags(b)
 		pr, prf := bidgo.Bid128Mul(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2204,8 +2204,8 @@ func publicParity_Decimal128BID_MulWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.MulWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid128Mul(publicParityToBidgo128(av), publicParityToBidgo128(bv), mode.port)
@@ -2225,8 +2225,8 @@ func publicParity_Decimal128BID_MulWithMode(t *testing.T) int {
 		{{0x15, 0x81, 0xe9, 0x7d, 0xf4, 0x10, 0x22, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, {0xb1, 0x0c, 0xb7, 0xe3, 0xb8, 0x87, 0x10, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, dp := range discPairs {
-		a := Decimal128BID(dp[0])
-		b := Decimal128BID(dp[1])
+		a := Decimal128BIDFromBytes(dp[0])
+		b := Decimal128BIDFromBytes(dp[1])
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.MulWithMode(b, mode.pub)
@@ -2251,8 +2251,8 @@ func publicParity_Decimal128BID_MulWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.MulWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := invalidLeft.MulWithMode(invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -2268,7 +2268,7 @@ func publicParity_Decimal128BID_MulWithMode(t *testing.T) int {
 func publicParity_Decimal128BID_Negate(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.Negate()
 		pr := bidgo.Bid128Negate(publicParityToBidgo128(elem))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2282,7 +2282,7 @@ func publicParity_Decimal128BID_Negate(t *testing.T) int {
 func publicParity_Decimal128BID_NextMinus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.NextMinus()
 		pr, prf := bidgo.Bid128NextDown(publicParityToBidgo128(elem))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2299,7 +2299,7 @@ func publicParity_Decimal128BID_NextMinus(t *testing.T) int {
 func publicParity_Decimal128BID_NextPlus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.NextPlus()
 		pr, prf := bidgo.Bid128NextUp(publicParityToBidgo128(elem))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2318,8 +2318,8 @@ func publicParity_Decimal128BID_NextToward(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.NextToward(b)
 		pr, prf := bidgo.Bid128NextToward(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2338,8 +2338,8 @@ func publicParity_Decimal128BID_Quantize(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.Quantize(b)
 		pr, _ := bidgo.Bid128Quantize(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2355,8 +2355,8 @@ func publicParity_Decimal128BID_QuantizeWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuantizeWithFlags(b)
 		pr, prf := bidgo.Bid128Quantize(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2375,8 +2375,8 @@ func publicParity_Decimal128BID_QuantizeWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.QuantizeWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid128Quantize(publicParityToBidgo128(av), publicParityToBidgo128(bv), mode.port)
@@ -2396,8 +2396,8 @@ func publicParity_Decimal128BID_QuantizeWithMode(t *testing.T) int {
 		{{0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0x30}, {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, dp := range discPairs {
-		a := Decimal128BID(dp[0])
-		b := Decimal128BID(dp[1])
+		a := Decimal128BIDFromBytes(dp[0])
+		b := Decimal128BIDFromBytes(dp[1])
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.QuantizeWithMode(b, mode.pub)
@@ -2422,8 +2422,8 @@ func publicParity_Decimal128BID_QuantizeWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.QuantizeWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := invalidLeft.QuantizeWithMode(invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -2441,8 +2441,8 @@ func publicParity_Decimal128BID_QuietEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietEqual(b)
 		pr, prf := bidgo.Bid128QuietEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2461,8 +2461,8 @@ func publicParity_Decimal128BID_QuietGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietGreater(b)
 		pr, prf := bidgo.Bid128QuietGreater(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2481,8 +2481,8 @@ func publicParity_Decimal128BID_QuietGreaterEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietGreaterEqual(b)
 		pr, prf := bidgo.Bid128QuietGreaterEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2501,8 +2501,8 @@ func publicParity_Decimal128BID_QuietGreaterUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietGreaterUnordered(b)
 		pr, prf := bidgo.Bid128QuietGreaterUnordered(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2521,8 +2521,8 @@ func publicParity_Decimal128BID_QuietLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietLess(b)
 		pr, prf := bidgo.Bid128QuietLess(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2541,8 +2541,8 @@ func publicParity_Decimal128BID_QuietLessEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietLessEqual(b)
 		pr, prf := bidgo.Bid128QuietLessEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2561,8 +2561,8 @@ func publicParity_Decimal128BID_QuietLessUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietLessUnordered(b)
 		pr, prf := bidgo.Bid128QuietLessUnordered(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2581,8 +2581,8 @@ func publicParity_Decimal128BID_QuietNotEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietNotEqual(b)
 		pr, prf := bidgo.Bid128QuietNotEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2601,8 +2601,8 @@ func publicParity_Decimal128BID_QuietNotGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietNotGreater(b)
 		pr, prf := bidgo.Bid128QuietNotGreater(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2621,8 +2621,8 @@ func publicParity_Decimal128BID_QuietNotLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietNotLess(b)
 		pr, prf := bidgo.Bid128QuietNotLess(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2641,8 +2641,8 @@ func publicParity_Decimal128BID_QuietOrdered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietOrdered(b)
 		pr, prf := bidgo.Bid128QuietOrdered(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2661,8 +2661,8 @@ func publicParity_Decimal128BID_QuietUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.QuietUnordered(b)
 		pr, prf := bidgo.Bid128QuietUnordered(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2693,8 +2693,8 @@ func publicParity_Decimal128BID_Remainder(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.Remainder(b)
 		pr, prf := bidgo.Bid128Rem(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -2711,7 +2711,7 @@ func publicParity_Decimal128BID_Remainder(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralExact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.RoundIntegralExact()
 		var prf uint32
 		pr := bidgo.Bid128RoundIntegralExact(publicParityToBidgo128(elem), 0, &prf)
@@ -2726,7 +2726,7 @@ func publicParity_Decimal128BID_RoundIntegralExact(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralExactWithFlags(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.RoundIntegralExactWithFlags()
 		var prf uint32
 		pr := bidgo.Bid128RoundIntegralExact(publicParityToBidgo128(elem), 0, &prf)
@@ -2744,7 +2744,7 @@ func publicParity_Decimal128BID_RoundIntegralExactWithFlags(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralExactWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
 			var prf uint32
@@ -2765,7 +2765,7 @@ func publicParity_Decimal128BID_RoundIntegralExactWithMode(t *testing.T) int {
 		{0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xb0},
 	}
 	for _, dv := range discVals {
-		a := Decimal128BID(dv)
+		a := Decimal128BIDFromBytes(dv)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
@@ -2791,7 +2791,7 @@ func publicParity_Decimal128BID_RoundIntegralExactWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.RoundIntegralExactWithMode(publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -2807,7 +2807,7 @@ func publicParity_Decimal128BID_RoundIntegralExactWithMode(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralNearestAway(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.RoundIntegralNearestAway()
 		var prf uint32
 		pr := bidgo.Bid128RoundIntegralNearestAway(publicParityToBidgo128(elem), &prf)
@@ -2825,7 +2825,7 @@ func publicParity_Decimal128BID_RoundIntegralNearestAway(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralNearestEven(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.RoundIntegralNearestEven()
 		var prf uint32
 		pr := bidgo.Bid128RoundIntegralNearestEven(publicParityToBidgo128(elem), &prf)
@@ -2843,7 +2843,7 @@ func publicParity_Decimal128BID_RoundIntegralNearestEven(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralNegative(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.RoundIntegralNegative()
 		var prf uint32
 		pr := bidgo.Bid128RoundIntegralNegative(publicParityToBidgo128(elem), &prf)
@@ -2861,7 +2861,7 @@ func publicParity_Decimal128BID_RoundIntegralNegative(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralPositive(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.RoundIntegralPositive()
 		var prf uint32
 		pr := bidgo.Bid128RoundIntegralPositive(publicParityToBidgo128(elem), &prf)
@@ -2879,7 +2879,7 @@ func publicParity_Decimal128BID_RoundIntegralPositive(t *testing.T) int {
 func publicParity_Decimal128BID_RoundIntegralZero(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.RoundIntegralZero()
 		var prf uint32
 		pr := bidgo.Bid128RoundIntegralZero(publicParityToBidgo128(elem), &prf)
@@ -2899,8 +2899,8 @@ func publicParity_Decimal128BID_SameQuantum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.SameQuantum(b)
 		pr := bidgo.Bid128SameQuantum(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -2914,7 +2914,7 @@ func publicParity_Decimal128BID_SameQuantum(t *testing.T) int {
 func publicParity_Decimal128BID_ScaleB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, exp := range publicParityScaleBExps {
 			pv, pf := a.ScaleB(exp)
 			var prf uint32
@@ -2934,7 +2934,7 @@ func publicParity_Decimal128BID_ScaleB(t *testing.T) int {
 func publicParity_Decimal128BID_ScaleBWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, exp := range publicParityScaleBExps {
 			for _, mode := range publicParityModes {
 				pv, pf := a.ScaleBWithMode(exp, mode.pub)
@@ -2960,7 +2960,7 @@ func publicParity_Decimal128BID_ScaleBWithMode(t *testing.T) int {
 		{[16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0x30}, -6176},
 	}
 	for _, dc := range discCases {
-		a := Decimal128BID(dc.v)
+		a := Decimal128BIDFromBytes(dc.v)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.ScaleBWithMode(dc.exp, mode.pub)
@@ -2986,7 +2986,7 @@ func publicParity_Decimal128BID_ScaleBWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.ScaleBWithMode: discriminant operand %#x exp %d: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dc.v, dc.exp)
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -3002,7 +3002,7 @@ func publicParity_Decimal128BID_ScaleBWithMode(t *testing.T) int {
 func publicParity_Decimal128BID_Sign(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.Sign()
 		var want int
 		switch {
@@ -3026,8 +3026,8 @@ func publicParity_Decimal128BID_SignalingEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingEqual(b)
 		ge, geF := bidgo.Bid128SignalingGreaterEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		le, leF := bidgo.Bid128SignalingLessEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
@@ -3049,8 +3049,8 @@ func publicParity_Decimal128BID_SignalingGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingGreater(b)
 		pr, prf := bidgo.Bid128SignalingGreater(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3069,8 +3069,8 @@ func publicParity_Decimal128BID_SignalingGreaterEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingGreaterEqual(b)
 		pr, prf := bidgo.Bid128SignalingGreaterEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3089,8 +3089,8 @@ func publicParity_Decimal128BID_SignalingGreaterUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingGreaterUnordered(b)
 		pr, prf := bidgo.Bid128SignalingGreaterUnordered(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3109,8 +3109,8 @@ func publicParity_Decimal128BID_SignalingLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingLess(b)
 		pr, prf := bidgo.Bid128SignalingLess(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3129,8 +3129,8 @@ func publicParity_Decimal128BID_SignalingLessEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingLessEqual(b)
 		pr, prf := bidgo.Bid128SignalingLessEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3149,8 +3149,8 @@ func publicParity_Decimal128BID_SignalingLessUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingLessUnordered(b)
 		pr, prf := bidgo.Bid128SignalingLessUnordered(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3169,8 +3169,8 @@ func publicParity_Decimal128BID_SignalingNotEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingNotEqual(b)
 		ge, geF := bidgo.Bid128SignalingGreaterEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		le, leF := bidgo.Bid128SignalingLessEqual(publicParityToBidgo128(av), publicParityToBidgo128(bv))
@@ -3192,8 +3192,8 @@ func publicParity_Decimal128BID_SignalingNotGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingNotGreater(b)
 		pr, prf := bidgo.Bid128SignalingNotGreater(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3212,8 +3212,8 @@ func publicParity_Decimal128BID_SignalingNotLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SignalingNotLess(b)
 		pr, prf := bidgo.Bid128SignalingNotLess(publicParityToBidgo128(av), publicParityToBidgo128(bv))
 		if pv != (pr != 0) {
@@ -3230,7 +3230,7 @@ func publicParity_Decimal128BID_SignalingNotLess(t *testing.T) int {
 func publicParity_Decimal128BID_Sqrt(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv, pf := a.Sqrt()
 		pr, prf := bidgo.Bid128Sqrt(publicParityToBidgo128(elem), 0)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -3247,7 +3247,7 @@ func publicParity_Decimal128BID_Sqrt(t *testing.T) int {
 func publicParity_Decimal128BID_SqrtWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.SqrtWithMode(mode.pub)
 			pr, prf := bidgo.Bid128Sqrt(publicParityToBidgo128(elem), mode.port)
@@ -3267,7 +3267,7 @@ func publicParity_Decimal128BID_SqrtWithMode(t *testing.T) int {
 		{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30},
 	}
 	for _, dv := range discVals {
-		a := Decimal128BID(dv)
+		a := Decimal128BIDFromBytes(dv)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.SqrtWithMode(mode.pub)
@@ -3292,7 +3292,7 @@ func publicParity_Decimal128BID_SqrtWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.SqrtWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.SqrtWithMode(publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -3311,7 +3311,7 @@ func publicParity_Decimal128BID_String(t *testing.T) int {
 		if bidgo.Bid128IsNaN(publicParityToBidgo128(elem)) != 0 {
 			continue
 		}
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		pv := a.String()
 		pr := bidgo.Bid128ToString(publicParityToBidgo128(elem))
 		if pv != pr {
@@ -3327,8 +3327,8 @@ func publicParity_Decimal128BID_Sub(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv := a.Sub(b)
 		var prf uint32
 		pr := bidgo.Bid128Sub(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0, &prf)
@@ -3345,8 +3345,8 @@ func publicParity_Decimal128BID_SubWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		pv, pf := a.SubWithFlags(b)
 		var prf uint32
 		pr := bidgo.Bid128Sub(publicParityToBidgo128(av), publicParityToBidgo128(bv), 0, &prf)
@@ -3366,8 +3366,8 @@ func publicParity_Decimal128BID_SubWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs128 {
 		av := publicParityCorpus128[pair[0]]
 		bv := publicParityCorpus128[pair[1]]
-		a := Decimal128BID(av)
-		b := Decimal128BID(bv)
+		a := Decimal128BIDFromBytes(av)
+		b := Decimal128BIDFromBytes(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.SubWithMode(b, mode.pub)
 			var prf uint32
@@ -3388,8 +3388,8 @@ func publicParity_Decimal128BID_SubWithMode(t *testing.T) int {
 		{{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f}},
 	}
 	for _, dp := range discPairs {
-		a := Decimal128BID(dp[0])
-		b := Decimal128BID(dp[1])
+		a := Decimal128BIDFromBytes(dp[0])
+		b := Decimal128BIDFromBytes(dp[1])
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := a.SubWithMode(b, mode.pub)
@@ -3415,8 +3415,8 @@ func publicParity_Decimal128BID_SubWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal128BID.SubWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := invalidLeft.SubWithMode(invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -3432,7 +3432,7 @@ func publicParity_Decimal128BID_SubWithMode(t *testing.T) int {
 func publicParity_Decimal128BID_ToBinary128(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary128(mode.pub)
 			pr, prf := bidgo.Bid128ToBinary128(publicParityToBidgo128(elem), mode.port)
@@ -3445,7 +3445,7 @@ func publicParity_Decimal128BID_ToBinary128(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary128(publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ToBinary128: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -3461,7 +3461,7 @@ func publicParity_Decimal128BID_ToBinary128(t *testing.T) int {
 func publicParity_Decimal128BID_ToBinary32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary32(mode.pub)
 			var prf uint32
@@ -3475,7 +3475,7 @@ func publicParity_Decimal128BID_ToBinary32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary32(publicParityModes[0].pub)
 	if math.Float32bits(controlValue) == 0x7fc00000 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ToBinary32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float32bits(controlValue), controlFlags)
@@ -3491,7 +3491,7 @@ func publicParity_Decimal128BID_ToBinary32(t *testing.T) int {
 func publicParity_Decimal128BID_ToBinary64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary64(mode.pub)
 			var prf uint32
@@ -3505,7 +3505,7 @@ func publicParity_Decimal128BID_ToBinary64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary64(publicParityModes[0].pub)
 	if math.Float64bits(controlValue) == 0x7ff8000000000000 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal128BID.ToBinary64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float64bits(controlValue), controlFlags)
@@ -3521,12 +3521,12 @@ func publicParity_Decimal128BID_ToBinary64(t *testing.T) int {
 func publicParity_Decimal128BID_ToDecimal32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToDecimal32(mode.pub)
 			pr, prf := bidgo.Bid128ToBid32(publicParityToBidgo128(elem), mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal128BID.ToDecimal32: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal128BID.ToDecimal32: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal128BID.ToDecimal32: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -3534,14 +3534,14 @@ func publicParity_Decimal128BID_ToDecimal32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ToDecimal32(publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal128BID.ToDecimal32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.ToDecimal32(RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal128BID.ToDecimal32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -3550,12 +3550,12 @@ func publicParity_Decimal128BID_ToDecimal32(t *testing.T) int {
 func publicParity_Decimal128BID_ToDecimal64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		a := Decimal128BID(elem)
+		a := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToDecimal64(mode.pub)
 			pr, prf := bidgo.Bid128ToBid64(publicParityToBidgo128(elem), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal128BID.ToDecimal64: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal128BID.ToDecimal64: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal128BID.ToDecimal64: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -3563,14 +3563,14 @@ func publicParity_Decimal128BID_ToDecimal64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := invalidOperand.ToDecimal64(publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal128BID.ToDecimal64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.ToDecimal64(RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal128BID.ToDecimal64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal128BID.ToDecimal64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -3579,11 +3579,11 @@ func publicParity_Decimal128BID_ToDecimal64(t *testing.T) int {
 func publicParity_Decimal32BID_Abs(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.Abs()
 		pr := bidgo.Bid32Abs(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Abs: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Abs: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -3595,12 +3595,12 @@ func publicParity_Decimal32BID_Add(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.Add(b)
 		pr := bidgo.Bid32Add(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Add: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Add: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -3612,12 +3612,12 @@ func publicParity_Decimal32BID_AddWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.AddWithFlags(b)
 		pr, prf := bidgo.Bid32AddWithFlags(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.AddWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.AddWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.AddWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -3632,13 +3632,13 @@ func publicParity_Decimal32BID_AddWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.AddWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32AddWithFlags(av, bv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.AddWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.AddWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.AddWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -3653,19 +3653,19 @@ func publicParity_Decimal32BID_AddWithMode(t *testing.T) int {
 		{0xb2800001, 0xaf000001},
 	}
 	for _, dp := range discPairs {
-		a := Decimal32BID(dp[0])
-		b := Decimal32BID(dp[1])
+		a := Decimal32BIDFromBits(dp[0])
+		b := Decimal32BIDFromBits(dp[1])
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.AddWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32AddWithFlags(dp[0], dp[1], mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.AddWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.AddWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.AddWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -3679,15 +3679,15 @@ func publicParity_Decimal32BID_AddWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.AddWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
-	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	invalidLeft := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
 	controlValue, controlFlags := invalidLeft.AddWithMode(invalidRight, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.AddWithMode(invalidRight, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.AddWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.AddWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -3696,7 +3696,7 @@ func publicParity_Decimal32BID_AddWithMode(t *testing.T) int {
 func publicParity_Decimal32BID_Class(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.Class()
 		pr := bidgo.Bid32Class(elem)
 		if string(pv) != publicParityClassName(pr) {
@@ -3712,8 +3712,8 @@ func publicParity_Decimal32BID_CompareTotal(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.CompareTotal(b)
 		fwd := bidgo.Bid32TotalOrder(av, bv)
 		rev := bidgo.Bid32TotalOrder(bv, av)
@@ -3739,8 +3739,8 @@ func publicParity_Decimal32BID_CompareTotalMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.CompareTotalMag(b)
 		fwd := bidgo.Bid32TotalOrderMag(av, bv)
 		rev := bidgo.Bid32TotalOrderMag(bv, av)
@@ -3764,7 +3764,7 @@ func publicParity_Decimal32BID_CompareTotalMag(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt16(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt16(mode.pub)
 			var pr int16
@@ -3790,7 +3790,7 @@ func publicParity_Decimal32BID_ConvertToInt16(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt16(publicParityModes[0].pub)
 	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -3806,7 +3806,7 @@ func publicParity_Decimal32BID_ConvertToInt16(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt16Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt16Exact(mode.pub)
 			var pr int16
@@ -3832,7 +3832,7 @@ func publicParity_Decimal32BID_ConvertToInt16Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt16Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -3848,7 +3848,7 @@ func publicParity_Decimal32BID_ConvertToInt16Exact(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt32(mode.pub)
 			var pr int32
@@ -3874,7 +3874,7 @@ func publicParity_Decimal32BID_ConvertToInt32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt32(publicParityModes[0].pub)
 	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -3890,7 +3890,7 @@ func publicParity_Decimal32BID_ConvertToInt32(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt32Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt32Exact(mode.pub)
 			var pr int32
@@ -3916,7 +3916,7 @@ func publicParity_Decimal32BID_ConvertToInt32Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt32Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -3932,7 +3932,7 @@ func publicParity_Decimal32BID_ConvertToInt32Exact(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt64(mode.pub)
 			var pr int64
@@ -3958,7 +3958,7 @@ func publicParity_Decimal32BID_ConvertToInt64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt64(publicParityModes[0].pub)
 	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -3974,7 +3974,7 @@ func publicParity_Decimal32BID_ConvertToInt64(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt64Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt64Exact(mode.pub)
 			var pr int64
@@ -4000,7 +4000,7 @@ func publicParity_Decimal32BID_ConvertToInt64Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt64Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -4016,7 +4016,7 @@ func publicParity_Decimal32BID_ConvertToInt64Exact(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt8(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt8(mode.pub)
 			var pr int8
@@ -4042,7 +4042,7 @@ func publicParity_Decimal32BID_ConvertToInt8(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt8(publicParityModes[0].pub)
 	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -4058,7 +4058,7 @@ func publicParity_Decimal32BID_ConvertToInt8(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToInt8Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt8Exact(mode.pub)
 			var pr int8
@@ -4084,7 +4084,7 @@ func publicParity_Decimal32BID_ConvertToInt8Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt8Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToInt8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -4100,7 +4100,7 @@ func publicParity_Decimal32BID_ConvertToInt8Exact(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint16(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint16(mode.pub)
 			var pr uint16
@@ -4126,7 +4126,7 @@ func publicParity_Decimal32BID_ConvertToUint16(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint16(publicParityModes[0].pub)
 	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4142,7 +4142,7 @@ func publicParity_Decimal32BID_ConvertToUint16(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint16Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint16Exact(mode.pub)
 			var pr uint16
@@ -4168,7 +4168,7 @@ func publicParity_Decimal32BID_ConvertToUint16Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint16Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4184,7 +4184,7 @@ func publicParity_Decimal32BID_ConvertToUint16Exact(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint32(mode.pub)
 			var pr uint32
@@ -4210,7 +4210,7 @@ func publicParity_Decimal32BID_ConvertToUint32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint32(publicParityModes[0].pub)
 	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4226,7 +4226,7 @@ func publicParity_Decimal32BID_ConvertToUint32(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint32Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint32Exact(mode.pub)
 			var pr uint32
@@ -4252,7 +4252,7 @@ func publicParity_Decimal32BID_ConvertToUint32Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint32Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4268,7 +4268,7 @@ func publicParity_Decimal32BID_ConvertToUint32Exact(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint64(mode.pub)
 			var pr uint64
@@ -4294,7 +4294,7 @@ func publicParity_Decimal32BID_ConvertToUint64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint64(publicParityModes[0].pub)
 	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4310,7 +4310,7 @@ func publicParity_Decimal32BID_ConvertToUint64(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint64Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint64Exact(mode.pub)
 			var pr uint64
@@ -4336,7 +4336,7 @@ func publicParity_Decimal32BID_ConvertToUint64Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint64Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4352,7 +4352,7 @@ func publicParity_Decimal32BID_ConvertToUint64Exact(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint8(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint8(mode.pub)
 			var pr uint8
@@ -4378,7 +4378,7 @@ func publicParity_Decimal32BID_ConvertToUint8(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint8(publicParityModes[0].pub)
 	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4394,7 +4394,7 @@ func publicParity_Decimal32BID_ConvertToUint8(t *testing.T) int {
 func publicParity_Decimal32BID_ConvertToUint8Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint8Exact(mode.pub)
 			var pr uint8
@@ -4420,7 +4420,7 @@ func publicParity_Decimal32BID_ConvertToUint8Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint8Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ConvertToUint8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -4436,11 +4436,11 @@ func publicParity_Decimal32BID_ConvertToUint8Exact(t *testing.T) int {
 func publicParity_Decimal32BID_Copy(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.Copy()
 		pr := bidgo.Bid32Copy(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Copy: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Copy: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -4452,12 +4452,12 @@ func publicParity_Decimal32BID_CopySign(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.CopySign(b)
 		pr := bidgo.Bid32CopySign(av, bv)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.CopySign: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.CopySign: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -4469,12 +4469,12 @@ func publicParity_Decimal32BID_Div(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.Div(b)
 		pr := bidgo.Bid32Div(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Div: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Div: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -4486,12 +4486,12 @@ func publicParity_Decimal32BID_DivWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.DivWithFlags(b)
 		pr, prf := bidgo.Bid32DivWithFlags(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.DivWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.DivWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.DivWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -4506,13 +4506,13 @@ func publicParity_Decimal32BID_DivWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.DivWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32DivWithFlags(av, bv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.DivWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.DivWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.DivWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -4527,19 +4527,19 @@ func publicParity_Decimal32BID_DivWithMode(t *testing.T) int {
 		{0x32800005, 0x32800007},
 	}
 	for _, dp := range discPairs {
-		a := Decimal32BID(dp[0])
-		b := Decimal32BID(dp[1])
+		a := Decimal32BIDFromBits(dp[0])
+		b := Decimal32BIDFromBits(dp[1])
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.DivWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32DivWithFlags(dp[0], dp[1], mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.DivWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.DivWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.DivWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -4553,15 +4553,15 @@ func publicParity_Decimal32BID_DivWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.DivWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
-	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	invalidLeft := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
 	controlValue, controlFlags := invalidLeft.DivWithMode(invalidRight, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.DivWithMode(invalidRight, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.DivWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.DivWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -4573,13 +4573,13 @@ func publicParity_Decimal32BID_FMA(t *testing.T) int {
 		av := publicParityCorpus32[tri[0]]
 		bv := publicParityCorpus32[tri[1]]
 		cv := publicParityCorpus32[tri[2]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
-		c := Decimal32BID(cv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
+		c := Decimal32BIDFromBits(cv)
 		pv, pf := a.FMA(b, c)
 		pr, prf := bidgo.Bid32Fma(av, bv, cv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.FMA: operands %#x,%#x,%#x: result mismatch public=%v port=%v", av, bv, cv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.FMA: operands %#x,%#x,%#x: result mismatch public=%v port=%v", av, bv, cv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.FMA: operands %#x,%#x,%#x: flag mismatch public=%v port=%v", av, bv, cv, pf, mapPortFlagsForParity(prf))
@@ -4595,14 +4595,14 @@ func publicParity_Decimal32BID_FMAWithMode(t *testing.T) int {
 		av := publicParityCorpus32[tri[0]]
 		bv := publicParityCorpus32[tri[1]]
 		cv := publicParityCorpus32[tri[2]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
-		c := Decimal32BID(cv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
+		c := Decimal32BIDFromBits(cv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.FMAWithMode(b, c, mode.pub)
 			pr, prf := bidgo.Bid32Fma(av, bv, cv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.FMAWithMode: operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, cv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.FMAWithMode: operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, cv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.FMAWithMode: operands %#x,%#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, cv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -4617,20 +4617,20 @@ func publicParity_Decimal32BID_FMAWithMode(t *testing.T) int {
 		{0xb2800001, 0x32800001, 0xaf000001},
 	}
 	for _, dt := range discTriples {
-		a := Decimal32BID(dt[0])
-		b := Decimal32BID(dt[1])
-		c := Decimal32BID(dt[2])
+		a := Decimal32BIDFromBits(dt[0])
+		b := Decimal32BIDFromBits(dt[1])
+		c := Decimal32BIDFromBits(dt[2])
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.FMAWithMode(b, c, mode.pub)
 			pr, prf := bidgo.Bid32Fma(dt[0], dt[1], dt[2], mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.FMAWithMode: discriminant operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", dt[0], dt[1], dt[2], mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.FMAWithMode: discriminant operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", dt[0], dt[1], dt[2], mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.FMAWithMode: discriminant operands %#x,%#x,%#x mode %v: flag mismatch public=%v port=%v", dt[0], dt[1], dt[2], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -4644,16 +4644,16 @@ func publicParity_Decimal32BID_FMAWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.FMAWithMode: discriminant operands %#x,%#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dt[0], dt[1], dt[2])
 		}
 	}
-	invalidA := Decimal32BID(publicParityCorpus32[publicParityTernaryTriples32[0][0]])
-	invalidB := Decimal32BID(publicParityCorpus32[publicParityTernaryTriples32[0][1]])
-	invalidC := Decimal32BID(publicParityCorpus32[publicParityTernaryTriples32[0][2]])
+	invalidA := Decimal32BIDFromBits(publicParityCorpus32[publicParityTernaryTriples32[0][0]])
+	invalidB := Decimal32BIDFromBits(publicParityCorpus32[publicParityTernaryTriples32[0][1]])
+	invalidC := Decimal32BIDFromBits(publicParityCorpus32[publicParityTernaryTriples32[0][2]])
 	controlValue, controlFlags := invalidA.FMAWithMode(invalidB, invalidC, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidA.FMAWithMode(invalidB, invalidC, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.FMAWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.FMAWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -4664,12 +4664,12 @@ func publicParity_Decimal32BID_Fmod(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.Fmod(b)
 		pr, prf := bidgo.Bid32Fmod(av, bv)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Fmod: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Fmod: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.Fmod: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -4682,7 +4682,7 @@ func publicParity_Decimal32BID_Fmod(t *testing.T) int {
 func publicParity_Decimal32BID_ILogB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.ILogB()
 		pr, prf := bidgo.Bid32ILogb(elem)
 		if pv != pr {
@@ -4699,7 +4699,7 @@ func publicParity_Decimal32BID_ILogB(t *testing.T) int {
 func publicParity_Decimal32BID_IsCanonical(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsCanonical()
 		pr := bidgo.Bid32IsCanonical(elem)
 		if pv != (pr != 0) {
@@ -4713,7 +4713,7 @@ func publicParity_Decimal32BID_IsCanonical(t *testing.T) int {
 func publicParity_Decimal32BID_IsFinite(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsFinite()
 		pr := bidgo.Bid32IsFinite(elem)
 		if pv != (pr != 0) {
@@ -4727,7 +4727,7 @@ func publicParity_Decimal32BID_IsFinite(t *testing.T) int {
 func publicParity_Decimal32BID_IsInf(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsInf()
 		pr := bidgo.Bid32IsInf(elem)
 		if pv != pr {
@@ -4741,7 +4741,7 @@ func publicParity_Decimal32BID_IsInf(t *testing.T) int {
 func publicParity_Decimal32BID_IsNaN(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsNaN()
 		pr := bidgo.Bid32IsNaN(elem)
 		if pv != pr {
@@ -4755,7 +4755,7 @@ func publicParity_Decimal32BID_IsNaN(t *testing.T) int {
 func publicParity_Decimal32BID_IsNormal(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsNormal()
 		pr := bidgo.Bid32IsNormal(elem)
 		if pv != (pr != 0) {
@@ -4769,7 +4769,7 @@ func publicParity_Decimal32BID_IsNormal(t *testing.T) int {
 func publicParity_Decimal32BID_IsSignMinus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsSignMinus()
 		pr := bidgo.Bid32IsSigned(elem)
 		if pv != (pr != 0) {
@@ -4783,7 +4783,7 @@ func publicParity_Decimal32BID_IsSignMinus(t *testing.T) int {
 func publicParity_Decimal32BID_IsSignaling(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsSignaling()
 		pr := bidgo.Bid32IsSignaling(elem)
 		if pv != (pr != 0) {
@@ -4797,7 +4797,7 @@ func publicParity_Decimal32BID_IsSignaling(t *testing.T) int {
 func publicParity_Decimal32BID_IsSubnormal(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsSubnormal()
 		pr := bidgo.Bid32IsSubnormal(elem)
 		if pv != (pr != 0) {
@@ -4811,7 +4811,7 @@ func publicParity_Decimal32BID_IsSubnormal(t *testing.T) int {
 func publicParity_Decimal32BID_IsZero(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.IsZero()
 		pr := bidgo.Bid32IsZero(elem)
 		if pv != pr {
@@ -4825,11 +4825,11 @@ func publicParity_Decimal32BID_IsZero(t *testing.T) int {
 func publicParity_Decimal32BID_LogB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.LogB()
 		pr, prf := bidgo.Bid32Logb(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.LogB: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.LogB: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.LogB: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -4844,12 +4844,12 @@ func publicParity_Decimal32BID_MaxNum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.MaxNum(b)
 		pr, prf := bidgo.Bid32MaxNumWithFlags(av, bv)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.MaxNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.MaxNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.MaxNum: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -4864,12 +4864,12 @@ func publicParity_Decimal32BID_MaxNumMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.MaxNumMag(b)
 		pr, prf := bidgo.Bid32MaxNumMagWithFlags(av, bv)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.MaxNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.MaxNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.MaxNumMag: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -4884,12 +4884,12 @@ func publicParity_Decimal32BID_MinNum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.MinNum(b)
 		pr, prf := bidgo.Bid32MinNumWithFlags(av, bv)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.MinNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.MinNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.MinNum: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -4904,12 +4904,12 @@ func publicParity_Decimal32BID_MinNumMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.MinNumMag(b)
 		pr, prf := bidgo.Bid32MinNumMagWithFlags(av, bv)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.MinNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.MinNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.MinNumMag: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -4924,12 +4924,12 @@ func publicParity_Decimal32BID_Mul(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.Mul(b)
 		pr := bidgo.Bid32Mul(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Mul: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Mul: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -4941,12 +4941,12 @@ func publicParity_Decimal32BID_MulWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.MulWithFlags(b)
 		pr, prf := bidgo.Bid32MulWithFlags(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.MulWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.MulWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.MulWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -4961,13 +4961,13 @@ func publicParity_Decimal32BID_MulWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.MulWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32MulWithFlags(av, bv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.MulWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.MulWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.MulWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -4982,19 +4982,19 @@ func publicParity_Decimal32BID_MulWithMode(t *testing.T) int {
 		{0x32b2dcd5, 0x32800007},
 	}
 	for _, dp := range discPairs {
-		a := Decimal32BID(dp[0])
-		b := Decimal32BID(dp[1])
+		a := Decimal32BIDFromBits(dp[0])
+		b := Decimal32BIDFromBits(dp[1])
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.MulWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32MulWithFlags(dp[0], dp[1], mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.MulWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.MulWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.MulWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -5008,15 +5008,15 @@ func publicParity_Decimal32BID_MulWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.MulWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
-	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	invalidLeft := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
 	controlValue, controlFlags := invalidLeft.MulWithMode(invalidRight, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.MulWithMode(invalidRight, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.MulWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.MulWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -5025,11 +5025,11 @@ func publicParity_Decimal32BID_MulWithMode(t *testing.T) int {
 func publicParity_Decimal32BID_Negate(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.Negate()
 		pr := bidgo.Bid32Negate(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Negate: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Negate: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -5039,11 +5039,11 @@ func publicParity_Decimal32BID_Negate(t *testing.T) int {
 func publicParity_Decimal32BID_NextMinus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.NextMinus()
 		pr, prf := bidgo.Bid32NextDown(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.NextMinus: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.NextMinus: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.NextMinus: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5056,11 +5056,11 @@ func publicParity_Decimal32BID_NextMinus(t *testing.T) int {
 func publicParity_Decimal32BID_NextPlus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.NextPlus()
 		pr, prf := bidgo.Bid32NextUp(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.NextPlus: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.NextPlus: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.NextPlus: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5073,13 +5073,13 @@ func publicParity_Decimal32BID_NextPlus(t *testing.T) int {
 func publicParity_Decimal32BID_NextToward(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, tb := range publicParityCorpus128[:5] {
-			target := Decimal128BID(tb)
+			target := Decimal128BIDFromBytes(tb)
 			pv, pf := a.NextToward(target)
 			pr, prf := bidgo.Bid32NextToward(elem, publicParityToBidgo128(tb))
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.NextToward: operand %#x target %x: result mismatch public=%v port=%v", elem, tb, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.NextToward: operand %#x target %x: result mismatch public=%v port=%v", elem, tb, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.NextToward: operand %#x target %x: flag mismatch public=%v port=%v", elem, tb, pf, mapPortFlagsForParity(prf))
@@ -5095,12 +5095,12 @@ func publicParity_Decimal32BID_Quantize(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.Quantize(b)
 		pr, _ := bidgo.Bid32Quantize(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Quantize: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Quantize: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -5112,12 +5112,12 @@ func publicParity_Decimal32BID_QuantizeWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuantizeWithFlags(b)
 		pr, prf := bidgo.Bid32Quantize(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.QuantizeWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.QuantizeWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.QuantizeWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -5132,13 +5132,13 @@ func publicParity_Decimal32BID_QuantizeWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.QuantizeWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32Quantize(av, bv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.QuantizeWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.QuantizeWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.QuantizeWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -5153,19 +5153,19 @@ func publicParity_Decimal32BID_QuantizeWithMode(t *testing.T) int {
 		{0x3200000f, 0x32800001},
 	}
 	for _, dp := range discPairs {
-		a := Decimal32BID(dp[0])
-		b := Decimal32BID(dp[1])
+		a := Decimal32BIDFromBits(dp[0])
+		b := Decimal32BIDFromBits(dp[1])
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.QuantizeWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32Quantize(dp[0], dp[1], mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.QuantizeWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.QuantizeWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.QuantizeWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -5179,15 +5179,15 @@ func publicParity_Decimal32BID_QuantizeWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.QuantizeWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
-	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	invalidLeft := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
 	controlValue, controlFlags := invalidLeft.QuantizeWithMode(invalidRight, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.QuantizeWithMode(invalidRight, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.QuantizeWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.QuantizeWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -5198,8 +5198,8 @@ func publicParity_Decimal32BID_QuietEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietEqual(b)
 		pr, prf := bidgo.Bid32QuietEqual(av, bv)
 		if pv != (pr != 0) {
@@ -5218,8 +5218,8 @@ func publicParity_Decimal32BID_QuietGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietGreater(b)
 		pr, prf := bidgo.Bid32QuietGreater(av, bv)
 		if pv != (pr != 0) {
@@ -5238,8 +5238,8 @@ func publicParity_Decimal32BID_QuietGreaterEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietGreaterEqual(b)
 		pr, prf := bidgo.Bid32QuietGreaterEqual(av, bv)
 		if pv != (pr != 0) {
@@ -5258,8 +5258,8 @@ func publicParity_Decimal32BID_QuietGreaterUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietGreaterUnordered(b)
 		pr, prf := bidgo.Bid32QuietGreaterUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -5278,8 +5278,8 @@ func publicParity_Decimal32BID_QuietLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietLess(b)
 		pr, prf := bidgo.Bid32QuietLess(av, bv)
 		if pv != (pr != 0) {
@@ -5298,8 +5298,8 @@ func publicParity_Decimal32BID_QuietLessEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietLessEqual(b)
 		pr, prf := bidgo.Bid32QuietLessEqual(av, bv)
 		if pv != (pr != 0) {
@@ -5318,8 +5318,8 @@ func publicParity_Decimal32BID_QuietLessUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietLessUnordered(b)
 		pr, prf := bidgo.Bid32QuietLessUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -5338,8 +5338,8 @@ func publicParity_Decimal32BID_QuietNotEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietNotEqual(b)
 		pr, prf := bidgo.Bid32QuietNotEqual(av, bv)
 		if pv != (pr != 0) {
@@ -5358,8 +5358,8 @@ func publicParity_Decimal32BID_QuietNotGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietNotGreater(b)
 		pr, prf := bidgo.Bid32QuietNotGreater(av, bv)
 		if pv != (pr != 0) {
@@ -5378,8 +5378,8 @@ func publicParity_Decimal32BID_QuietNotLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietNotLess(b)
 		pr, prf := bidgo.Bid32QuietNotLess(av, bv)
 		if pv != (pr != 0) {
@@ -5398,8 +5398,8 @@ func publicParity_Decimal32BID_QuietOrdered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietOrdered(b)
 		pr, prf := bidgo.Bid32QuietOrdered(av, bv)
 		if pv != (pr != 0) {
@@ -5418,8 +5418,8 @@ func publicParity_Decimal32BID_QuietUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.QuietUnordered(b)
 		pr, prf := bidgo.Bid32QuietUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -5435,7 +5435,7 @@ func publicParity_Decimal32BID_QuietUnordered(t *testing.T) int {
 
 func publicParity_Decimal32BID_Radix(t *testing.T) int {
 	count := 0
-	a := Decimal32BID(0)
+	a := Decimal32BID{}
 	pv := a.Radix()
 	pr := bidgo.Bid32Radix()
 	if pv != pr {
@@ -5450,12 +5450,12 @@ func publicParity_Decimal32BID_Remainder(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.Remainder(b)
 		pr, prf := bidgo.Bid32Rem(av, bv)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Remainder: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Remainder: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.Remainder: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -5468,11 +5468,11 @@ func publicParity_Decimal32BID_Remainder(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralExact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.RoundIntegralExact()
 		pr, _ := bidgo.Bid32RoundIntegralExact(elem, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.RoundIntegralExact: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.RoundIntegralExact: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -5482,11 +5482,11 @@ func publicParity_Decimal32BID_RoundIntegralExact(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralExactWithFlags(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.RoundIntegralExactWithFlags()
 		pr, prf := bidgo.Bid32RoundIntegralExact(elem, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.RoundIntegralExactWithFlags: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.RoundIntegralExactWithFlags: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.RoundIntegralExactWithFlags: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5499,12 +5499,12 @@ func publicParity_Decimal32BID_RoundIntegralExactWithFlags(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralExactWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
 			pr, prf := bidgo.Bid32RoundIntegralExact(elem, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -5519,18 +5519,18 @@ func publicParity_Decimal32BID_RoundIntegralExactWithMode(t *testing.T) int {
 		0xb2000023,
 	}
 	for _, dv := range discVals {
-		a := Decimal32BID(dv)
+		a := Decimal32BIDFromBits(dv)
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
 			pr, prf := bidgo.Bid32RoundIntegralExact(dv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -5544,14 +5544,14 @@ func publicParity_Decimal32BID_RoundIntegralExactWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.RoundIntegralExactWithMode(publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.RoundIntegralExactWithMode(RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.RoundIntegralExactWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -5560,11 +5560,11 @@ func publicParity_Decimal32BID_RoundIntegralExactWithMode(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralNearestAway(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.RoundIntegralNearestAway()
 		pr, prf := bidgo.Bid32RoundIntegralNearestAway(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.RoundIntegralNearestAway: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.RoundIntegralNearestAway: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.RoundIntegralNearestAway: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5577,11 +5577,11 @@ func publicParity_Decimal32BID_RoundIntegralNearestAway(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralNearestEven(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.RoundIntegralNearestEven()
 		pr, prf := bidgo.Bid32RoundIntegralNearestEven(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.RoundIntegralNearestEven: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.RoundIntegralNearestEven: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.RoundIntegralNearestEven: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5594,11 +5594,11 @@ func publicParity_Decimal32BID_RoundIntegralNearestEven(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralNegative(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.RoundIntegralNegative()
 		pr, prf := bidgo.Bid32RoundIntegralNegative(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.RoundIntegralNegative: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.RoundIntegralNegative: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.RoundIntegralNegative: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5611,11 +5611,11 @@ func publicParity_Decimal32BID_RoundIntegralNegative(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralPositive(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.RoundIntegralPositive()
 		pr, prf := bidgo.Bid32RoundIntegralPositive(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.RoundIntegralPositive: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.RoundIntegralPositive: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.RoundIntegralPositive: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5628,11 +5628,11 @@ func publicParity_Decimal32BID_RoundIntegralPositive(t *testing.T) int {
 func publicParity_Decimal32BID_RoundIntegralZero(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.RoundIntegralZero()
 		pr, prf := bidgo.Bid32RoundIntegralZero(elem)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.RoundIntegralZero: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.RoundIntegralZero: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.RoundIntegralZero: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5647,8 +5647,8 @@ func publicParity_Decimal32BID_SameQuantum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.SameQuantum(b)
 		pr := bidgo.Bid32SameQuantum(av, bv)
 		if pv != pr {
@@ -5662,12 +5662,12 @@ func publicParity_Decimal32BID_SameQuantum(t *testing.T) int {
 func publicParity_Decimal32BID_ScaleB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, exp := range publicParityScaleBExps {
 			pv, pf := a.ScaleB(exp)
 			pr, prf := bidgo.Bid32ScalblnWithFlags(elem, int64(exp), 0)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.ScaleB: operand %#x exp %d: result mismatch public=%v port=%v", elem, exp, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.ScaleB: operand %#x exp %d: result mismatch public=%v port=%v", elem, exp, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.ScaleB: operand %#x exp %d: flag mismatch public=%v port=%v", elem, exp, pf, mapPortFlagsForParity(prf))
@@ -5681,13 +5681,13 @@ func publicParity_Decimal32BID_ScaleB(t *testing.T) int {
 func publicParity_Decimal32BID_ScaleBWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, exp := range publicParityScaleBExps {
 			for _, mode := range publicParityModes {
 				pv, pf := a.ScaleBWithMode(exp, mode.pub)
 				pr, prf := bidgo.Bid32ScalblnWithFlags(elem, int64(exp), mode.port)
-				if uint32(pv) != pr {
-					t.Errorf("public parity Decimal32BID.ScaleBWithMode: operand %#x exp %d mode %v: result mismatch public=%v port=%v", elem, exp, mode.pub, uint32(pv), pr)
+				if (pv).ToUint32() != pr {
+					t.Errorf("public parity Decimal32BID.ScaleBWithMode: operand %#x exp %d mode %v: result mismatch public=%v port=%v", elem, exp, mode.pub, (pv).ToUint32(), pr)
 				}
 				if pf != mapPortFlagsForParity(prf) {
 					t.Errorf("public parity Decimal32BID.ScaleBWithMode: operand %#x exp %d mode %v: flag mismatch public=%v port=%v", elem, exp, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -5706,18 +5706,18 @@ func publicParity_Decimal32BID_ScaleBWithMode(t *testing.T) int {
 		{0x32000005, -101},
 	}
 	for _, dc := range discCases {
-		a := Decimal32BID(dc.v)
+		a := Decimal32BIDFromBits(dc.v)
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.ScaleBWithMode(dc.exp, mode.pub)
 			pr, prf := bidgo.Bid32ScalblnWithFlags(dc.v, int64(dc.exp), mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.ScaleBWithMode: discriminant operand %#x exp %d mode %v: result mismatch public=%v port=%v", dc.v, dc.exp, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.ScaleBWithMode: discriminant operand %#x exp %d mode %v: result mismatch public=%v port=%v", dc.v, dc.exp, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.ScaleBWithMode: discriminant operand %#x exp %d mode %v: flag mismatch public=%v port=%v", dc.v, dc.exp, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -5731,14 +5731,14 @@ func publicParity_Decimal32BID_ScaleBWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.ScaleBWithMode: discriminant operand %#x exp %d: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dc.v, dc.exp)
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.ScaleBWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.ScaleBWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -5747,7 +5747,7 @@ func publicParity_Decimal32BID_ScaleBWithMode(t *testing.T) int {
 func publicParity_Decimal32BID_Sign(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.Sign()
 		var want int
 		switch {
@@ -5771,8 +5771,8 @@ func publicParity_Decimal32BID_SignalingEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingEqual(b)
 		ge, geF := bidgo.Bid32SignalingGreaterEqual(av, bv)
 		le, leF := bidgo.Bid32SignalingLessEqual(av, bv)
@@ -5794,8 +5794,8 @@ func publicParity_Decimal32BID_SignalingGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingGreater(b)
 		pr, prf := bidgo.Bid32SignalingGreater(av, bv)
 		if pv != (pr != 0) {
@@ -5814,8 +5814,8 @@ func publicParity_Decimal32BID_SignalingGreaterEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingGreaterEqual(b)
 		pr, prf := bidgo.Bid32SignalingGreaterEqual(av, bv)
 		if pv != (pr != 0) {
@@ -5834,8 +5834,8 @@ func publicParity_Decimal32BID_SignalingGreaterUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingGreaterUnordered(b)
 		pr, prf := bidgo.Bid32SignalingGreaterUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -5854,8 +5854,8 @@ func publicParity_Decimal32BID_SignalingLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingLess(b)
 		pr, prf := bidgo.Bid32SignalingLess(av, bv)
 		if pv != (pr != 0) {
@@ -5874,8 +5874,8 @@ func publicParity_Decimal32BID_SignalingLessEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingLessEqual(b)
 		pr, prf := bidgo.Bid32SignalingLessEqual(av, bv)
 		if pv != (pr != 0) {
@@ -5894,8 +5894,8 @@ func publicParity_Decimal32BID_SignalingLessUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingLessUnordered(b)
 		pr, prf := bidgo.Bid32SignalingLessUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -5914,8 +5914,8 @@ func publicParity_Decimal32BID_SignalingNotEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingNotEqual(b)
 		ge, geF := bidgo.Bid32SignalingGreaterEqual(av, bv)
 		le, leF := bidgo.Bid32SignalingLessEqual(av, bv)
@@ -5937,8 +5937,8 @@ func publicParity_Decimal32BID_SignalingNotGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingNotGreater(b)
 		pr, prf := bidgo.Bid32SignalingNotGreater(av, bv)
 		if pv != (pr != 0) {
@@ -5957,8 +5957,8 @@ func publicParity_Decimal32BID_SignalingNotLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SignalingNotLess(b)
 		pr, prf := bidgo.Bid32SignalingNotLess(av, bv)
 		if pv != (pr != 0) {
@@ -5975,11 +5975,11 @@ func publicParity_Decimal32BID_SignalingNotLess(t *testing.T) int {
 func publicParity_Decimal32BID_Sqrt(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.Sqrt()
 		pr, prf := bidgo.Bid32Sqrt(elem, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Sqrt: operand %#x: result mismatch public=%v port=%v", elem, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Sqrt: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.Sqrt: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -5992,12 +5992,12 @@ func publicParity_Decimal32BID_Sqrt(t *testing.T) int {
 func publicParity_Decimal32BID_SqrtWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.SqrtWithMode(mode.pub)
 			pr, prf := bidgo.Bid32Sqrt(elem, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.SqrtWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.SqrtWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.SqrtWithMode: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -6012,18 +6012,18 @@ func publicParity_Decimal32BID_SqrtWithMode(t *testing.T) int {
 		0x32800007,
 	}
 	for _, dv := range discVals {
-		a := Decimal32BID(dv)
+		a := Decimal32BIDFromBits(dv)
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.SqrtWithMode(mode.pub)
 			pr, prf := bidgo.Bid32Sqrt(dv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.SqrtWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.SqrtWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.SqrtWithMode: discriminant operand %#x mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -6037,14 +6037,14 @@ func publicParity_Decimal32BID_SqrtWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.SqrtWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.SqrtWithMode(publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.SqrtWithMode(RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.SqrtWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SqrtWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -6056,7 +6056,7 @@ func publicParity_Decimal32BID_String(t *testing.T) int {
 		if bidgo.Bid32IsNaN(elem) {
 			continue
 		}
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv := a.String()
 		pr := bidgo.Bid32ToString(elem)
 		if pv != pr {
@@ -6072,12 +6072,12 @@ func publicParity_Decimal32BID_Sub(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv := a.Sub(b)
 		pr := bidgo.Bid32Sub(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.Sub: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.Sub: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		count++
 	}
@@ -6089,12 +6089,12 @@ func publicParity_Decimal32BID_SubWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		pv, pf := a.SubWithFlags(b)
 		pr, prf := bidgo.Bid32SubWithFlags(av, bv, 0)
-		if uint32(pv) != pr {
-			t.Errorf("public parity Decimal32BID.SubWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint32(pv), pr)
+		if (pv).ToUint32() != pr {
+			t.Errorf("public parity Decimal32BID.SubWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint32(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.SubWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -6109,13 +6109,13 @@ func publicParity_Decimal32BID_SubWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs32 {
 		av := publicParityCorpus32[pair[0]]
 		bv := publicParityCorpus32[pair[1]]
-		a := Decimal32BID(av)
-		b := Decimal32BID(bv)
+		a := Decimal32BIDFromBits(av)
+		b := Decimal32BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.SubWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32SubWithFlags(av, bv, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.SubWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.SubWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.SubWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -6130,19 +6130,19 @@ func publicParity_Decimal32BID_SubWithMode(t *testing.T) int {
 		{0xb2800001, 0x2e800001},
 	}
 	for _, dp := range discPairs {
-		a := Decimal32BID(dp[0])
-		b := Decimal32BID(dp[1])
+		a := Decimal32BIDFromBits(dp[0])
+		b := Decimal32BIDFromBits(dp[1])
 		var modeSeen [5]uint32
 		for mi, mode := range publicParityModes {
 			pv, pf := a.SubWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid32SubWithFlags(dp[0], dp[1], mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal32BID.SubWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal32BID.SubWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal32BID.SubWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -6156,15 +6156,15 @@ func publicParity_Decimal32BID_SubWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal32BID.SubWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
-	invalidRight := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
+	invalidLeft := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidRight := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][1]])
 	controlValue, controlFlags := invalidLeft.SubWithMode(invalidRight, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.SubWithMode(invalidRight, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal32BID.SubWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal32BID.SubWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -6173,7 +6173,7 @@ func publicParity_Decimal32BID_SubWithMode(t *testing.T) int {
 func publicParity_Decimal32BID_ToBinary128(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary128(mode.pub)
 			pr, prf := bidgo.Bid32ToBinary128(elem, mode.port)
@@ -6186,7 +6186,7 @@ func publicParity_Decimal32BID_ToBinary128(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary128(publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ToBinary128: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -6202,7 +6202,7 @@ func publicParity_Decimal32BID_ToBinary128(t *testing.T) int {
 func publicParity_Decimal32BID_ToBinary32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary32(mode.pub)
 			pr, prf := bidgo.Bid32ToBinary32(elem, mode.port)
@@ -6215,7 +6215,7 @@ func publicParity_Decimal32BID_ToBinary32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary32(publicParityModes[0].pub)
 	if math.Float32bits(controlValue) == 0x7fc00000 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ToBinary32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float32bits(controlValue), controlFlags)
@@ -6231,7 +6231,7 @@ func publicParity_Decimal32BID_ToBinary32(t *testing.T) int {
 func publicParity_Decimal32BID_ToBinary64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary64(mode.pub)
 			pr, prf := bidgo.Bid32ToBinary64(elem, mode.port)
@@ -6244,7 +6244,7 @@ func publicParity_Decimal32BID_ToBinary64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal32BID(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
+	invalidOperand := Decimal32BIDFromBits(publicParityCorpus32[publicParityBinaryPairs32[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary64(publicParityModes[0].pub)
 	if math.Float64bits(controlValue) == 0x7ff8000000000000 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal32BID.ToBinary64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float64bits(controlValue), controlFlags)
@@ -6260,7 +6260,7 @@ func publicParity_Decimal32BID_ToBinary64(t *testing.T) int {
 func publicParity_Decimal32BID_ToDecimal128(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.ToDecimal128()
 		pr, prf := bidgo.Bid32ToBid128(elem)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -6277,11 +6277,11 @@ func publicParity_Decimal32BID_ToDecimal128(t *testing.T) int {
 func publicParity_Decimal32BID_ToDecimal64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus32 {
-		a := Decimal32BID(elem)
+		a := Decimal32BIDFromBits(elem)
 		pv, pf := a.ToDecimal64()
 		pr, prf := bidgo.Bid32ToBid64(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal32BID.ToDecimal64: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal32BID.ToDecimal64: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal32BID.ToDecimal64: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -6294,11 +6294,11 @@ func publicParity_Decimal32BID_ToDecimal64(t *testing.T) int {
 func publicParity_Decimal64BID_Abs(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.Abs()
 		pr := bidgo.Bid64Abs(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Abs: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Abs: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -6310,12 +6310,12 @@ func publicParity_Decimal64BID_Add(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.Add(b)
 		pr := bidgo.Bid64Add(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Add: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Add: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -6327,12 +6327,12 @@ func publicParity_Decimal64BID_AddWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.AddWithFlags(b)
 		pr, prf := bidgo.Bid64AddWithFlags(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.AddWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.AddWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.AddWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -6347,13 +6347,13 @@ func publicParity_Decimal64BID_AddWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.AddWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64AddWithFlags(av, bv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.AddWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.AddWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.AddWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -6368,19 +6368,19 @@ func publicParity_Decimal64BID_AddWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0xafc0000000000001},
 	}
 	for _, dp := range discPairs {
-		a := Decimal64BID(dp[0])
-		b := Decimal64BID(dp[1])
+		a := Decimal64BIDFromBits(dp[0])
+		b := Decimal64BIDFromBits(dp[1])
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.AddWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64AddWithFlags(dp[0], dp[1], mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.AddWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.AddWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.AddWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -6394,15 +6394,15 @@ func publicParity_Decimal64BID_AddWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.AddWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := invalidLeft.AddWithMode(invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.AddWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.AddWithMode(invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.AddWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.AddWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -6411,7 +6411,7 @@ func publicParity_Decimal64BID_AddWithMode(t *testing.T) int {
 func publicParity_Decimal64BID_Class(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.Class()
 		pr := bidgo.Bid64Class(elem)
 		if string(pv) != publicParityClassName(pr) {
@@ -6427,8 +6427,8 @@ func publicParity_Decimal64BID_CompareTotal(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.CompareTotal(b)
 		fwd := bidgo.Bid64TotalOrder(av, bv)
 		rev := bidgo.Bid64TotalOrder(bv, av)
@@ -6454,8 +6454,8 @@ func publicParity_Decimal64BID_CompareTotalMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.CompareTotalMag(b)
 		fwd := bidgo.Bid64TotalOrderMag(av, bv)
 		rev := bidgo.Bid64TotalOrderMag(bv, av)
@@ -6479,7 +6479,7 @@ func publicParity_Decimal64BID_CompareTotalMag(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt16(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt16(mode.pub)
 			var pr int16
@@ -6505,7 +6505,7 @@ func publicParity_Decimal64BID_ConvertToInt16(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt16(publicParityModes[0].pub)
 	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6521,7 +6521,7 @@ func publicParity_Decimal64BID_ConvertToInt16(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt16Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt16Exact(mode.pub)
 			var pr int16
@@ -6547,7 +6547,7 @@ func publicParity_Decimal64BID_ConvertToInt16Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt16Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6563,7 +6563,7 @@ func publicParity_Decimal64BID_ConvertToInt16Exact(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt32(mode.pub)
 			var pr int32
@@ -6589,7 +6589,7 @@ func publicParity_Decimal64BID_ConvertToInt32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt32(publicParityModes[0].pub)
 	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6605,7 +6605,7 @@ func publicParity_Decimal64BID_ConvertToInt32(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt32Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt32Exact(mode.pub)
 			var pr int32
@@ -6631,7 +6631,7 @@ func publicParity_Decimal64BID_ConvertToInt32Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt32Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6647,7 +6647,7 @@ func publicParity_Decimal64BID_ConvertToInt32Exact(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt64(mode.pub)
 			var pr int64
@@ -6673,7 +6673,7 @@ func publicParity_Decimal64BID_ConvertToInt64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt64(publicParityModes[0].pub)
 	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6689,7 +6689,7 @@ func publicParity_Decimal64BID_ConvertToInt64(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt64Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt64Exact(mode.pub)
 			var pr int64
@@ -6715,7 +6715,7 @@ func publicParity_Decimal64BID_ConvertToInt64Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt64Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6731,7 +6731,7 @@ func publicParity_Decimal64BID_ConvertToInt64Exact(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt8(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt8(mode.pub)
 			var pr int8
@@ -6757,7 +6757,7 @@ func publicParity_Decimal64BID_ConvertToInt8(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt8(publicParityModes[0].pub)
 	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6773,7 +6773,7 @@ func publicParity_Decimal64BID_ConvertToInt8(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToInt8Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToInt8Exact(mode.pub)
 			var pr int8
@@ -6799,7 +6799,7 @@ func publicParity_Decimal64BID_ConvertToInt8Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToInt8Exact(publicParityModes[0].pub)
 	if int64(controlValue) == -128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToInt8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", int64(controlValue), controlFlags)
@@ -6815,7 +6815,7 @@ func publicParity_Decimal64BID_ConvertToInt8Exact(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint16(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint16(mode.pub)
 			var pr uint16
@@ -6841,7 +6841,7 @@ func publicParity_Decimal64BID_ConvertToUint16(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint16(publicParityModes[0].pub)
 	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint16: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -6857,7 +6857,7 @@ func publicParity_Decimal64BID_ConvertToUint16(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint16Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint16Exact(mode.pub)
 			var pr uint16
@@ -6883,7 +6883,7 @@ func publicParity_Decimal64BID_ConvertToUint16Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint16Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 32768 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint16Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -6899,7 +6899,7 @@ func publicParity_Decimal64BID_ConvertToUint16Exact(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint32(mode.pub)
 			var pr uint32
@@ -6925,7 +6925,7 @@ func publicParity_Decimal64BID_ConvertToUint32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint32(publicParityModes[0].pub)
 	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -6941,7 +6941,7 @@ func publicParity_Decimal64BID_ConvertToUint32(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint32Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint32Exact(mode.pub)
 			var pr uint32
@@ -6967,7 +6967,7 @@ func publicParity_Decimal64BID_ConvertToUint32Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint32Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 2147483648 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint32Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -6983,7 +6983,7 @@ func publicParity_Decimal64BID_ConvertToUint32Exact(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint64(mode.pub)
 			var pr uint64
@@ -7009,7 +7009,7 @@ func publicParity_Decimal64BID_ConvertToUint64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint64(publicParityModes[0].pub)
 	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -7025,7 +7025,7 @@ func publicParity_Decimal64BID_ConvertToUint64(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint64Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint64Exact(mode.pub)
 			var pr uint64
@@ -7051,7 +7051,7 @@ func publicParity_Decimal64BID_ConvertToUint64Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint64Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 9223372036854775808 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint64Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -7067,7 +7067,7 @@ func publicParity_Decimal64BID_ConvertToUint64Exact(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint8(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint8(mode.pub)
 			var pr uint8
@@ -7093,7 +7093,7 @@ func publicParity_Decimal64BID_ConvertToUint8(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint8(publicParityModes[0].pub)
 	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint8: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -7109,7 +7109,7 @@ func publicParity_Decimal64BID_ConvertToUint8(t *testing.T) int {
 func publicParity_Decimal64BID_ConvertToUint8Exact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ConvertToUint8Exact(mode.pub)
 			var pr uint8
@@ -7135,7 +7135,7 @@ func publicParity_Decimal64BID_ConvertToUint8Exact(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ConvertToUint8Exact(publicParityModes[0].pub)
 	if uint64(controlValue) == 128 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ConvertToUint8Exact: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
@@ -7151,11 +7151,11 @@ func publicParity_Decimal64BID_ConvertToUint8Exact(t *testing.T) int {
 func publicParity_Decimal64BID_Copy(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.Copy()
 		pr := bidgo.Bid64Copy(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Copy: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Copy: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -7167,12 +7167,12 @@ func publicParity_Decimal64BID_CopySign(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.CopySign(b)
 		pr := bidgo.Bid64CopySign(av, bv)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.CopySign: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.CopySign: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -7184,12 +7184,12 @@ func publicParity_Decimal64BID_Div(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.Div(b)
 		pr := bidgo.Bid64Div(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Div: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Div: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -7201,12 +7201,12 @@ func publicParity_Decimal64BID_DivWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.DivWithFlags(b)
 		pr, prf := bidgo.Bid64DivWithFlags(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.DivWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.DivWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.DivWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7221,13 +7221,13 @@ func publicParity_Decimal64BID_DivWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.DivWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64DivWithFlags(av, bv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.DivWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.DivWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.DivWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -7242,19 +7242,19 @@ func publicParity_Decimal64BID_DivWithMode(t *testing.T) int {
 		{0x31c0000000000005, 0x31c0000000000007},
 	}
 	for _, dp := range discPairs {
-		a := Decimal64BID(dp[0])
-		b := Decimal64BID(dp[1])
+		a := Decimal64BIDFromBits(dp[0])
+		b := Decimal64BIDFromBits(dp[1])
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.DivWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64DivWithFlags(dp[0], dp[1], mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.DivWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.DivWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.DivWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -7268,15 +7268,15 @@ func publicParity_Decimal64BID_DivWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.DivWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := invalidLeft.DivWithMode(invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.DivWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.DivWithMode(invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.DivWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.DivWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -7288,13 +7288,13 @@ func publicParity_Decimal64BID_FMA(t *testing.T) int {
 		av := publicParityCorpus64[tri[0]]
 		bv := publicParityCorpus64[tri[1]]
 		cv := publicParityCorpus64[tri[2]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
-		c := Decimal64BID(cv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
+		c := Decimal64BIDFromBits(cv)
 		pv, pf := a.FMA(b, c)
 		pr, prf := bidgo.Bid64Fma(av, bv, cv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.FMA: operands %#x,%#x,%#x: result mismatch public=%v port=%v", av, bv, cv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.FMA: operands %#x,%#x,%#x: result mismatch public=%v port=%v", av, bv, cv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.FMA: operands %#x,%#x,%#x: flag mismatch public=%v port=%v", av, bv, cv, pf, mapPortFlagsForParity(prf))
@@ -7310,14 +7310,14 @@ func publicParity_Decimal64BID_FMAWithMode(t *testing.T) int {
 		av := publicParityCorpus64[tri[0]]
 		bv := publicParityCorpus64[tri[1]]
 		cv := publicParityCorpus64[tri[2]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
-		c := Decimal64BID(cv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
+		c := Decimal64BIDFromBits(cv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.FMAWithMode(b, c, mode.pub)
 			pr, prf := bidgo.Bid64Fma(av, bv, cv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.FMAWithMode: operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, cv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.FMAWithMode: operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, cv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.FMAWithMode: operands %#x,%#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, cv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -7332,20 +7332,20 @@ func publicParity_Decimal64BID_FMAWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0x31c0000000000001, 0xafc0000000000001},
 	}
 	for _, dt := range discTriples {
-		a := Decimal64BID(dt[0])
-		b := Decimal64BID(dt[1])
-		c := Decimal64BID(dt[2])
+		a := Decimal64BIDFromBits(dt[0])
+		b := Decimal64BIDFromBits(dt[1])
+		c := Decimal64BIDFromBits(dt[2])
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.FMAWithMode(b, c, mode.pub)
 			pr, prf := bidgo.Bid64Fma(dt[0], dt[1], dt[2], mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.FMAWithMode: discriminant operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", dt[0], dt[1], dt[2], mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.FMAWithMode: discriminant operands %#x,%#x,%#x mode %v: result mismatch public=%v port=%v", dt[0], dt[1], dt[2], mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.FMAWithMode: discriminant operands %#x,%#x,%#x mode %v: flag mismatch public=%v port=%v", dt[0], dt[1], dt[2], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -7359,16 +7359,16 @@ func publicParity_Decimal64BID_FMAWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.FMAWithMode: discriminant operands %#x,%#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dt[0], dt[1], dt[2])
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := invalidA.FMAWithMode(invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.FMAWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidA.FMAWithMode(invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.FMAWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.FMAWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -7379,12 +7379,12 @@ func publicParity_Decimal64BID_Fmod(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.Fmod(b)
 		pr, prf := bidgo.Bid64Fmod(av, bv)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Fmod: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Fmod: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.Fmod: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7397,7 +7397,7 @@ func publicParity_Decimal64BID_Fmod(t *testing.T) int {
 func publicParity_Decimal64BID_ILogB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.ILogB()
 		pr, prf := bidgo.Bid64ILogb(elem)
 		if pv != pr {
@@ -7414,7 +7414,7 @@ func publicParity_Decimal64BID_ILogB(t *testing.T) int {
 func publicParity_Decimal64BID_IsCanonical(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsCanonical()
 		pr := bidgo.Bid64IsCanonical(elem)
 		if pv != (pr != 0) {
@@ -7428,7 +7428,7 @@ func publicParity_Decimal64BID_IsCanonical(t *testing.T) int {
 func publicParity_Decimal64BID_IsFinite(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsFinite()
 		pr := bidgo.Bid64IsFinite(elem)
 		if pv != (pr != 0) {
@@ -7442,7 +7442,7 @@ func publicParity_Decimal64BID_IsFinite(t *testing.T) int {
 func publicParity_Decimal64BID_IsInf(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsInf()
 		pr := bidgo.Bid64IsInf(elem)
 		if pv != (pr != 0) {
@@ -7456,7 +7456,7 @@ func publicParity_Decimal64BID_IsInf(t *testing.T) int {
 func publicParity_Decimal64BID_IsNaN(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsNaN()
 		pr := bidgo.Bid64IsNaN(elem)
 		if pv != (pr != 0) {
@@ -7470,7 +7470,7 @@ func publicParity_Decimal64BID_IsNaN(t *testing.T) int {
 func publicParity_Decimal64BID_IsNormal(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsNormal()
 		pr := bidgo.Bid64IsNormal(elem)
 		if pv != (pr != 0) {
@@ -7484,7 +7484,7 @@ func publicParity_Decimal64BID_IsNormal(t *testing.T) int {
 func publicParity_Decimal64BID_IsSignMinus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsSignMinus()
 		pr := bidgo.Bid64IsSigned(elem)
 		if pv != (pr != 0) {
@@ -7498,7 +7498,7 @@ func publicParity_Decimal64BID_IsSignMinus(t *testing.T) int {
 func publicParity_Decimal64BID_IsSignaling(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsSignaling()
 		pr := bidgo.Bid64IsSignaling(elem)
 		if pv != (pr != 0) {
@@ -7512,7 +7512,7 @@ func publicParity_Decimal64BID_IsSignaling(t *testing.T) int {
 func publicParity_Decimal64BID_IsSubnormal(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsSubnormal()
 		pr := bidgo.Bid64IsSubnormal(elem)
 		if pv != (pr != 0) {
@@ -7526,7 +7526,7 @@ func publicParity_Decimal64BID_IsSubnormal(t *testing.T) int {
 func publicParity_Decimal64BID_IsZero(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.IsZero()
 		pr := bidgo.Bid64IsZero(elem)
 		if pv != (pr != 0) {
@@ -7540,11 +7540,11 @@ func publicParity_Decimal64BID_IsZero(t *testing.T) int {
 func publicParity_Decimal64BID_LogB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.LogB()
 		pr, prf := bidgo.Bid64Logb(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.LogB: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.LogB: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.LogB: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -7559,12 +7559,12 @@ func publicParity_Decimal64BID_MaxNum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.MaxNum(b)
 		pr, prf := bidgo.Bid64MaxNum(av, bv)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.MaxNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.MaxNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.MaxNum: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7579,12 +7579,12 @@ func publicParity_Decimal64BID_MaxNumMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.MaxNumMag(b)
 		pr, prf := bidgo.Bid64MaxNumMag(av, bv)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.MaxNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.MaxNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.MaxNumMag: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7599,12 +7599,12 @@ func publicParity_Decimal64BID_MinNum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.MinNum(b)
 		pr, prf := bidgo.Bid64MinNum(av, bv)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.MinNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.MinNum: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.MinNum: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7619,12 +7619,12 @@ func publicParity_Decimal64BID_MinNumMag(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.MinNumMag(b)
 		pr, prf := bidgo.Bid64MinNumMag(av, bv)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.MinNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.MinNumMag: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.MinNumMag: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7639,12 +7639,12 @@ func publicParity_Decimal64BID_Mul(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.Mul(b)
 		pr := bidgo.Bid64Mul(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Mul: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Mul: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -7656,12 +7656,12 @@ func publicParity_Decimal64BID_MulWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.MulWithFlags(b)
 		pr, prf := bidgo.Bid64MulWithFlags(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.MulWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.MulWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.MulWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7676,13 +7676,13 @@ func publicParity_Decimal64BID_MulWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.MulWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64MulWithFlags(av, bv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.MulWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.MulWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.MulWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -7697,19 +7697,19 @@ func publicParity_Decimal64BID_MulWithMode(t *testing.T) int {
 		{0x31c3f28cb71571c7, 0x31c000000000004d},
 	}
 	for _, dp := range discPairs {
-		a := Decimal64BID(dp[0])
-		b := Decimal64BID(dp[1])
+		a := Decimal64BIDFromBits(dp[0])
+		b := Decimal64BIDFromBits(dp[1])
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.MulWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64MulWithFlags(dp[0], dp[1], mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.MulWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.MulWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.MulWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -7723,15 +7723,15 @@ func publicParity_Decimal64BID_MulWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.MulWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := invalidLeft.MulWithMode(invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.MulWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.MulWithMode(invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.MulWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.MulWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -7740,11 +7740,11 @@ func publicParity_Decimal64BID_MulWithMode(t *testing.T) int {
 func publicParity_Decimal64BID_Negate(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.Negate()
 		pr := bidgo.Bid64Negate(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Negate: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Negate: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -7754,11 +7754,11 @@ func publicParity_Decimal64BID_Negate(t *testing.T) int {
 func publicParity_Decimal64BID_NextMinus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.NextMinus()
 		pr, prf := bidgo.Bid64NextDown(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.NextMinus: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.NextMinus: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.NextMinus: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -7771,11 +7771,11 @@ func publicParity_Decimal64BID_NextMinus(t *testing.T) int {
 func publicParity_Decimal64BID_NextPlus(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.NextPlus()
 		pr, prf := bidgo.Bid64NextUp(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.NextPlus: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.NextPlus: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.NextPlus: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -7788,13 +7788,13 @@ func publicParity_Decimal64BID_NextPlus(t *testing.T) int {
 func publicParity_Decimal64BID_NextToward(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, tb := range publicParityCorpus128[:5] {
-			target := Decimal128BID(tb)
+			target := Decimal128BIDFromBytes(tb)
 			pv, pf := a.NextToward(target)
 			pr, prf := bidgo.Bid64NextToward(elem, publicParityToBidgo128(tb))
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.NextToward: operand %#x target %x: result mismatch public=%v port=%v", elem, tb, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.NextToward: operand %#x target %x: result mismatch public=%v port=%v", elem, tb, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.NextToward: operand %#x target %x: flag mismatch public=%v port=%v", elem, tb, pf, mapPortFlagsForParity(prf))
@@ -7810,12 +7810,12 @@ func publicParity_Decimal64BID_Quantize(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.Quantize(b)
 		pr, _ := bidgo.Bid64Quantize(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Quantize: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Quantize: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -7827,12 +7827,12 @@ func publicParity_Decimal64BID_QuantizeWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuantizeWithFlags(b)
 		pr, prf := bidgo.Bid64Quantize(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.QuantizeWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.QuantizeWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.QuantizeWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -7847,13 +7847,13 @@ func publicParity_Decimal64BID_QuantizeWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.QuantizeWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64Quantize(av, bv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.QuantizeWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.QuantizeWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.QuantizeWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -7868,19 +7868,19 @@ func publicParity_Decimal64BID_QuantizeWithMode(t *testing.T) int {
 		{0x31a000000000000f, 0x31c0000000000001},
 	}
 	for _, dp := range discPairs {
-		a := Decimal64BID(dp[0])
-		b := Decimal64BID(dp[1])
+		a := Decimal64BIDFromBits(dp[0])
+		b := Decimal64BIDFromBits(dp[1])
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.QuantizeWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64Quantize(dp[0], dp[1], mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.QuantizeWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.QuantizeWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.QuantizeWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -7894,15 +7894,15 @@ func publicParity_Decimal64BID_QuantizeWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.QuantizeWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := invalidLeft.QuantizeWithMode(invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.QuantizeWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.QuantizeWithMode(invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.QuantizeWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.QuantizeWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -7913,8 +7913,8 @@ func publicParity_Decimal64BID_QuietEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietEqual(b)
 		pr, prf := bidgo.Bid64QuietEqual(av, bv)
 		if pv != (pr != 0) {
@@ -7933,8 +7933,8 @@ func publicParity_Decimal64BID_QuietGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietGreater(b)
 		pr, prf := bidgo.Bid64QuietGreater(av, bv)
 		if pv != (pr != 0) {
@@ -7953,8 +7953,8 @@ func publicParity_Decimal64BID_QuietGreaterEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietGreaterEqual(b)
 		pr, prf := bidgo.Bid64QuietGreaterEqual(av, bv)
 		if pv != (pr != 0) {
@@ -7973,8 +7973,8 @@ func publicParity_Decimal64BID_QuietGreaterUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietGreaterUnordered(b)
 		pr, prf := bidgo.Bid64QuietGreaterUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -7993,8 +7993,8 @@ func publicParity_Decimal64BID_QuietLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietLess(b)
 		pr, prf := bidgo.Bid64QuietLess(av, bv)
 		if pv != (pr != 0) {
@@ -8013,8 +8013,8 @@ func publicParity_Decimal64BID_QuietLessEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietLessEqual(b)
 		pr, prf := bidgo.Bid64QuietLessEqual(av, bv)
 		if pv != (pr != 0) {
@@ -8033,8 +8033,8 @@ func publicParity_Decimal64BID_QuietLessUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietLessUnordered(b)
 		pr, prf := bidgo.Bid64QuietLessUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -8053,8 +8053,8 @@ func publicParity_Decimal64BID_QuietNotEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietNotEqual(b)
 		pr, prf := bidgo.Bid64QuietNotEqual(av, bv)
 		if pv != (pr != 0) {
@@ -8073,8 +8073,8 @@ func publicParity_Decimal64BID_QuietNotGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietNotGreater(b)
 		pr, prf := bidgo.Bid64QuietNotGreater(av, bv)
 		if pv != (pr != 0) {
@@ -8093,8 +8093,8 @@ func publicParity_Decimal64BID_QuietNotLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietNotLess(b)
 		pr, prf := bidgo.Bid64QuietNotLess(av, bv)
 		if pv != (pr != 0) {
@@ -8113,8 +8113,8 @@ func publicParity_Decimal64BID_QuietOrdered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietOrdered(b)
 		pr, prf := bidgo.Bid64QuietOrdered(av, bv)
 		if pv != (pr != 0) {
@@ -8133,8 +8133,8 @@ func publicParity_Decimal64BID_QuietUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.QuietUnordered(b)
 		pr, prf := bidgo.Bid64QuietUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -8150,7 +8150,7 @@ func publicParity_Decimal64BID_QuietUnordered(t *testing.T) int {
 
 func publicParity_Decimal64BID_Radix(t *testing.T) int {
 	count := 0
-	a := Decimal64BID(0)
+	a := Decimal64BID{}
 	pv := a.Radix()
 	pr := bidgo.Bid64Radix()
 	if pv != pr {
@@ -8165,12 +8165,12 @@ func publicParity_Decimal64BID_Remainder(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.Remainder(b)
 		pr, prf := bidgo.Bid64Rem(av, bv)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Remainder: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Remainder: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.Remainder: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -8183,11 +8183,11 @@ func publicParity_Decimal64BID_Remainder(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralExact(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.RoundIntegralExact()
 		pr, _ := bidgo.Bid64RoundIntegralExact(elem, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.RoundIntegralExact: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.RoundIntegralExact: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -8197,11 +8197,11 @@ func publicParity_Decimal64BID_RoundIntegralExact(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralExactWithFlags(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.RoundIntegralExactWithFlags()
 		pr, prf := bidgo.Bid64RoundIntegralExact(elem, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.RoundIntegralExactWithFlags: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.RoundIntegralExactWithFlags: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.RoundIntegralExactWithFlags: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -8214,12 +8214,12 @@ func publicParity_Decimal64BID_RoundIntegralExactWithFlags(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralExactWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
 			pr, prf := bidgo.Bid64RoundIntegralExact(elem, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -8234,18 +8234,18 @@ func publicParity_Decimal64BID_RoundIntegralExactWithMode(t *testing.T) int {
 		0xb1a0000000000023,
 	}
 	for _, dv := range discVals {
-		a := Decimal64BID(dv)
+		a := Decimal64BIDFromBits(dv)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.RoundIntegralExactWithMode(mode.pub)
 			pr, prf := bidgo.Bid64RoundIntegralExact(dv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -8259,14 +8259,14 @@ func publicParity_Decimal64BID_RoundIntegralExactWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.RoundIntegralExactWithMode(publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.RoundIntegralExactWithMode(RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.RoundIntegralExactWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -8275,11 +8275,11 @@ func publicParity_Decimal64BID_RoundIntegralExactWithMode(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralNearestAway(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.RoundIntegralNearestAway()
 		pr, prf := bidgo.Bid64RoundIntegralNearestAway(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.RoundIntegralNearestAway: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.RoundIntegralNearestAway: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.RoundIntegralNearestAway: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -8292,11 +8292,11 @@ func publicParity_Decimal64BID_RoundIntegralNearestAway(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralNearestEven(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.RoundIntegralNearestEven()
 		pr, prf := bidgo.Bid64RoundIntegralNearestEven(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.RoundIntegralNearestEven: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.RoundIntegralNearestEven: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.RoundIntegralNearestEven: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -8309,11 +8309,11 @@ func publicParity_Decimal64BID_RoundIntegralNearestEven(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralNegative(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.RoundIntegralNegative()
 		pr, prf := bidgo.Bid64RoundIntegralNegative(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.RoundIntegralNegative: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.RoundIntegralNegative: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.RoundIntegralNegative: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -8326,11 +8326,11 @@ func publicParity_Decimal64BID_RoundIntegralNegative(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralPositive(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.RoundIntegralPositive()
 		pr, prf := bidgo.Bid64RoundIntegralPositive(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.RoundIntegralPositive: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.RoundIntegralPositive: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.RoundIntegralPositive: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -8343,11 +8343,11 @@ func publicParity_Decimal64BID_RoundIntegralPositive(t *testing.T) int {
 func publicParity_Decimal64BID_RoundIntegralZero(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.RoundIntegralZero()
 		pr, prf := bidgo.Bid64RoundIntegralZero(elem)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.RoundIntegralZero: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.RoundIntegralZero: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.RoundIntegralZero: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -8362,8 +8362,8 @@ func publicParity_Decimal64BID_SameQuantum(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.SameQuantum(b)
 		pr := bidgo.Bid64SameQuantum(av, bv)
 		if pv != (pr != 0) {
@@ -8377,12 +8377,12 @@ func publicParity_Decimal64BID_SameQuantum(t *testing.T) int {
 func publicParity_Decimal64BID_ScaleB(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, exp := range publicParityScaleBExps {
 			pv, pf := a.ScaleB(exp)
 			pr, prf := bidgo.Bid64Scalbln(elem, int64(exp), 0)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.ScaleB: operand %#x exp %d: result mismatch public=%v port=%v", elem, exp, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.ScaleB: operand %#x exp %d: result mismatch public=%v port=%v", elem, exp, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.ScaleB: operand %#x exp %d: flag mismatch public=%v port=%v", elem, exp, pf, mapPortFlagsForParity(prf))
@@ -8396,13 +8396,13 @@ func publicParity_Decimal64BID_ScaleB(t *testing.T) int {
 func publicParity_Decimal64BID_ScaleBWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, exp := range publicParityScaleBExps {
 			for _, mode := range publicParityModes {
 				pv, pf := a.ScaleBWithMode(exp, mode.pub)
 				pr, prf := bidgo.Bid64Scalbln(elem, int64(exp), mode.port)
-				if uint64(pv) != pr {
-					t.Errorf("public parity Decimal64BID.ScaleBWithMode: operand %#x exp %d mode %v: result mismatch public=%v port=%v", elem, exp, mode.pub, uint64(pv), pr)
+				if (pv).ToUint64() != pr {
+					t.Errorf("public parity Decimal64BID.ScaleBWithMode: operand %#x exp %d mode %v: result mismatch public=%v port=%v", elem, exp, mode.pub, (pv).ToUint64(), pr)
 				}
 				if pf != mapPortFlagsForParity(prf) {
 					t.Errorf("public parity Decimal64BID.ScaleBWithMode: operand %#x exp %d mode %v: flag mismatch public=%v port=%v", elem, exp, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -8421,18 +8421,18 @@ func publicParity_Decimal64BID_ScaleBWithMode(t *testing.T) int {
 		{0x31a0000000000005, -398},
 	}
 	for _, dc := range discCases {
-		a := Decimal64BID(dc.v)
+		a := Decimal64BIDFromBits(dc.v)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.ScaleBWithMode(dc.exp, mode.pub)
 			pr, prf := bidgo.Bid64Scalbln(dc.v, int64(dc.exp), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.ScaleBWithMode: discriminant operand %#x exp %d mode %v: result mismatch public=%v port=%v", dc.v, dc.exp, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.ScaleBWithMode: discriminant operand %#x exp %d mode %v: result mismatch public=%v port=%v", dc.v, dc.exp, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.ScaleBWithMode: discriminant operand %#x exp %d mode %v: flag mismatch public=%v port=%v", dc.v, dc.exp, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -8446,14 +8446,14 @@ func publicParity_Decimal64BID_ScaleBWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.ScaleBWithMode: discriminant operand %#x exp %d: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dc.v, dc.exp)
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ScaleBWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.ScaleBWithMode(publicParityScaleBExps[0], RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.ScaleBWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ScaleBWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -8462,7 +8462,7 @@ func publicParity_Decimal64BID_ScaleBWithMode(t *testing.T) int {
 func publicParity_Decimal64BID_Sign(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.Sign()
 		var want int
 		switch {
@@ -8486,8 +8486,8 @@ func publicParity_Decimal64BID_SignalingEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingEqual(b)
 		ge, geF := bidgo.Bid64SignalingGreaterEqual(av, bv)
 		le, leF := bidgo.Bid64SignalingLessEqual(av, bv)
@@ -8509,8 +8509,8 @@ func publicParity_Decimal64BID_SignalingGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingGreater(b)
 		pr, prf := bidgo.Bid64SignalingGreater(av, bv)
 		if pv != (pr != 0) {
@@ -8529,8 +8529,8 @@ func publicParity_Decimal64BID_SignalingGreaterEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingGreaterEqual(b)
 		pr, prf := bidgo.Bid64SignalingGreaterEqual(av, bv)
 		if pv != (pr != 0) {
@@ -8549,8 +8549,8 @@ func publicParity_Decimal64BID_SignalingGreaterUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingGreaterUnordered(b)
 		pr, prf := bidgo.Bid64SignalingGreaterUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -8569,8 +8569,8 @@ func publicParity_Decimal64BID_SignalingLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingLess(b)
 		pr, prf := bidgo.Bid64SignalingLess(av, bv)
 		if pv != (pr != 0) {
@@ -8589,8 +8589,8 @@ func publicParity_Decimal64BID_SignalingLessEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingLessEqual(b)
 		pr, prf := bidgo.Bid64SignalingLessEqual(av, bv)
 		if pv != (pr != 0) {
@@ -8609,8 +8609,8 @@ func publicParity_Decimal64BID_SignalingLessUnordered(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingLessUnordered(b)
 		pr, prf := bidgo.Bid64SignalingLessUnordered(av, bv)
 		if pv != (pr != 0) {
@@ -8629,8 +8629,8 @@ func publicParity_Decimal64BID_SignalingNotEqual(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingNotEqual(b)
 		ge, geF := bidgo.Bid64SignalingGreaterEqual(av, bv)
 		le, leF := bidgo.Bid64SignalingLessEqual(av, bv)
@@ -8652,8 +8652,8 @@ func publicParity_Decimal64BID_SignalingNotGreater(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingNotGreater(b)
 		pr, prf := bidgo.Bid64SignalingNotGreater(av, bv)
 		if pv != (pr != 0) {
@@ -8672,8 +8672,8 @@ func publicParity_Decimal64BID_SignalingNotLess(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SignalingNotLess(b)
 		pr, prf := bidgo.Bid64SignalingNotLess(av, bv)
 		if pv != (pr != 0) {
@@ -8690,11 +8690,11 @@ func publicParity_Decimal64BID_SignalingNotLess(t *testing.T) int {
 func publicParity_Decimal64BID_Sqrt(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.Sqrt()
 		pr, prf := bidgo.Bid64Sqrt(elem, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Sqrt: operand %#x: result mismatch public=%v port=%v", elem, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Sqrt: operand %#x: result mismatch public=%v port=%v", elem, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.Sqrt: operand %#x: flag mismatch public=%v port=%v", elem, pf, mapPortFlagsForParity(prf))
@@ -8707,12 +8707,12 @@ func publicParity_Decimal64BID_Sqrt(t *testing.T) int {
 func publicParity_Decimal64BID_SqrtWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.SqrtWithMode(mode.pub)
 			pr, prf := bidgo.Bid64Sqrt(elem, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.SqrtWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.SqrtWithMode: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.SqrtWithMode: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -8727,18 +8727,18 @@ func publicParity_Decimal64BID_SqrtWithMode(t *testing.T) int {
 		0x31c0000000000007,
 	}
 	for _, dv := range discVals {
-		a := Decimal64BID(dv)
+		a := Decimal64BIDFromBits(dv)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.SqrtWithMode(mode.pub)
 			pr, prf := bidgo.Bid64Sqrt(dv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.SqrtWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.SqrtWithMode: discriminant operand %#x mode %v: result mismatch public=%v port=%v", dv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.SqrtWithMode: discriminant operand %#x mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -8752,14 +8752,14 @@ func publicParity_Decimal64BID_SqrtWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.SqrtWithMode: discriminant operand %#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.SqrtWithMode(publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SqrtWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.SqrtWithMode(RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.SqrtWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SqrtWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -8771,7 +8771,7 @@ func publicParity_Decimal64BID_String(t *testing.T) int {
 		if bidgo.Bid64IsNaN(elem) != 0 {
 			continue
 		}
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv := a.String()
 		pr := bidgo.Bid64ToString(elem)
 		if pv != pr {
@@ -8787,12 +8787,12 @@ func publicParity_Decimal64BID_Sub(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv := a.Sub(b)
 		pr := bidgo.Bid64Sub(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.Sub: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.Sub: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -8804,12 +8804,12 @@ func publicParity_Decimal64BID_SubWithFlags(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		pv, pf := a.SubWithFlags(b)
 		pr, prf := bidgo.Bid64SubWithFlags(av, bv, 0)
-		if uint64(pv) != pr {
-			t.Errorf("public parity Decimal64BID.SubWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity Decimal64BID.SubWithFlags: operands %#x,%#x: result mismatch public=%v port=%v", av, bv, (pv).ToUint64(), pr)
 		}
 		if pf != mapPortFlagsForParity(prf) {
 			t.Errorf("public parity Decimal64BID.SubWithFlags: operands %#x,%#x: flag mismatch public=%v port=%v", av, bv, pf, mapPortFlagsForParity(prf))
@@ -8824,13 +8824,13 @@ func publicParity_Decimal64BID_SubWithMode(t *testing.T) int {
 	for _, pair := range publicParityBinaryPairs64 {
 		av := publicParityCorpus64[pair[0]]
 		bv := publicParityCorpus64[pair[1]]
-		a := Decimal64BID(av)
-		b := Decimal64BID(bv)
+		a := Decimal64BIDFromBits(av)
+		b := Decimal64BIDFromBits(bv)
 		for _, mode := range publicParityModes {
 			pv, pf := a.SubWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64SubWithFlags(av, bv, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.SubWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.SubWithMode: operands %#x,%#x mode %v: result mismatch public=%v port=%v", av, bv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.SubWithMode: operands %#x,%#x mode %v: flag mismatch public=%v port=%v", av, bv, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -8845,19 +8845,19 @@ func publicParity_Decimal64BID_SubWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0x2fa0000000000001},
 	}
 	for _, dp := range discPairs {
-		a := Decimal64BID(dp[0])
-		b := Decimal64BID(dp[1])
+		a := Decimal64BIDFromBits(dp[0])
+		b := Decimal64BIDFromBits(dp[1])
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := a.SubWithMode(b, mode.pub)
 			pr, prf := bidgo.Bid64SubWithFlags(dp[0], dp[1], mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Decimal64BID.SubWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Decimal64BID.SubWithMode: discriminant operands %#x,%#x mode %v: result mismatch public=%v port=%v", dp[0], dp[1], mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.SubWithMode: discriminant operands %#x,%#x mode %v: flag mismatch public=%v port=%v", dp[0], dp[1], mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -8871,15 +8871,15 @@ func publicParity_Decimal64BID_SubWithMode(t *testing.T) int {
 			t.Errorf("public parity Decimal64BID.SubWithMode: discriminant operands %#x,%#x: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dp[0], dp[1])
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := invalidLeft.SubWithMode(invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SubWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidLeft.SubWithMode(invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.SubWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.SubWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -8888,7 +8888,7 @@ func publicParity_Decimal64BID_SubWithMode(t *testing.T) int {
 func publicParity_Decimal64BID_ToBinary128(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary128(mode.pub)
 			pr, prf := bidgo.Bid64ToBinary128(elem, mode.port)
@@ -8901,7 +8901,7 @@ func publicParity_Decimal64BID_ToBinary128(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary128(publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{13: 0x80, 14: 0xff, 15: 0x7f}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ToBinary128: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -8917,7 +8917,7 @@ func publicParity_Decimal64BID_ToBinary128(t *testing.T) int {
 func publicParity_Decimal64BID_ToBinary32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary32(mode.pub)
 			pr, prf := bidgo.Bid64ToBinary32(elem, mode.port)
@@ -8930,7 +8930,7 @@ func publicParity_Decimal64BID_ToBinary32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary32(publicParityModes[0].pub)
 	if math.Float32bits(controlValue) == 0x7fc00000 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ToBinary32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float32bits(controlValue), controlFlags)
@@ -8946,7 +8946,7 @@ func publicParity_Decimal64BID_ToBinary32(t *testing.T) int {
 func publicParity_Decimal64BID_ToBinary64(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToBinary64(mode.pub)
 			pr, prf := bidgo.Bid64ToBinary64(elem, mode.port)
@@ -8959,7 +8959,7 @@ func publicParity_Decimal64BID_ToBinary64(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ToBinary64(publicParityModes[0].pub)
 	if math.Float64bits(controlValue) == 0x7ff8000000000000 && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Decimal64BID.ToBinary64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", math.Float64bits(controlValue), controlFlags)
@@ -8975,7 +8975,7 @@ func publicParity_Decimal64BID_ToBinary64(t *testing.T) int {
 func publicParity_Decimal64BID_ToDecimal128(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		pv, pf := a.ToDecimal128()
 		pr, prf := bidgo.Bid64ToBid128(elem)
 		if pv.ToBytes() != publicParityFromBidgo128(pr) {
@@ -8992,12 +8992,12 @@ func publicParity_Decimal64BID_ToDecimal128(t *testing.T) int {
 func publicParity_Decimal64BID_ToDecimal32(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		a := Decimal64BID(elem)
+		a := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := a.ToDecimal32(mode.pub)
 			pr, prf := bidgo.Bid64ToBid32(elem, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity Decimal64BID.ToDecimal32: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity Decimal64BID.ToDecimal32: operand %#x mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Decimal64BID.ToDecimal32: operand %#x mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -9005,14 +9005,14 @@ func publicParity_Decimal64BID_ToDecimal32(t *testing.T) int {
 			count++
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := invalidOperand.ToDecimal32(publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.ToDecimal32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToDecimal32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := invalidOperand.ToDecimal32(RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Decimal64BID.ToDecimal32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Decimal64BID.ToDecimal32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -9025,8 +9025,8 @@ func publicParity_Div128DDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Div128DDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128ddDiv(leftBits, rightBits, mode.port)
@@ -9049,8 +9049,8 @@ func publicParity_Div128DDBIDWithMode(t *testing.T) int {
 		{0x31c0000000000005, 0x31c0000000000007},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Div128DDBIDWithMode(left, right, mode.pub)
@@ -9075,8 +9075,8 @@ func publicParity_Div128DDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Div128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Div128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9096,8 +9096,8 @@ func publicParity_Div128DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Div128DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128dqDiv(leftBits, publicParityToBidgo128(rightBits), mode.port)
@@ -9120,8 +9120,8 @@ func publicParity_Div128DQBIDWithMode(t *testing.T) int {
 		{0x31c0000000000005, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Div128DQBIDWithMode(left, right, mode.pub)
@@ -9146,8 +9146,8 @@ func publicParity_Div128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Div128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Div128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9167,8 +9167,8 @@ func publicParity_Div128QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Div128QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128qdDiv(publicParityToBidgo128(leftBits), rightBits, mode.port)
@@ -9191,8 +9191,8 @@ func publicParity_Div128QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000007},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Div128QDBIDWithMode(left, right, mode.pub)
@@ -9217,8 +9217,8 @@ func publicParity_Div128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Div128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Div128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9238,13 +9238,13 @@ func publicParity_Div64DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Div64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqDiv(leftBits, publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Div64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Div64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Div64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -9262,19 +9262,19 @@ func publicParity_Div64DQBIDWithMode(t *testing.T) int {
 		{0x31c0000000000005, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Div64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqDiv(pair.left, publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -9288,15 +9288,15 @@ func publicParity_Div64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Div64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Div64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Div64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Div64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -9309,13 +9309,13 @@ func publicParity_Div64QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Div64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdDiv(publicParityToBidgo128(leftBits), rightBits, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Div64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Div64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Div64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -9333,19 +9333,19 @@ func publicParity_Div64QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c0000000000007},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Div64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdDiv(publicParityToBidgo128(pair.left), pair.right, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -9359,15 +9359,15 @@ func publicParity_Div64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Div64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Div64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Div64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Div64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -9380,13 +9380,13 @@ func publicParity_Div64QQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Div64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqDiv(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Div64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Div64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Div64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -9404,19 +9404,19 @@ func publicParity_Div64QQBIDWithMode(t *testing.T) int {
 		{[16]byte{0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Div64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqDiv(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -9430,15 +9430,15 @@ func publicParity_Div64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Div64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Div64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Div64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Div64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Div64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Div64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Div64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -9453,9 +9453,9 @@ func publicParity_FMA128DDDBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus64[aTriple[0]]
 		bBits := publicParityCorpus64[bTriple[1]]
 		cBits := publicParityCorpus64[cTriple[2]]
-		a := Decimal64BID(aBits)
-		bv := Decimal64BID(bBits)
-		c := Decimal64BID(cBits)
+		a := Decimal64BIDFromBits(aBits)
+		bv := Decimal64BIDFromBits(bBits)
+		c := Decimal64BIDFromBits(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA128DDDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid128dddFma(aBits, bBits, cBits, mode.port)
@@ -9479,9 +9479,9 @@ func publicParity_FMA128DDDBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0x31c0000000000001, 0xad80000000000001},
 	}
 	for _, triple := range discTriples {
-		a := Decimal64BID(triple.a)
-		bv := Decimal64BID(triple.b)
-		c := Decimal64BID(triple.c)
+		a := Decimal64BIDFromBits(triple.a)
+		bv := Decimal64BIDFromBits(triple.b)
+		c := Decimal64BIDFromBits(triple.c)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA128DDDBIDWithMode(a, bv, c, mode.pub)
@@ -9506,9 +9506,9 @@ func publicParity_FMA128DDDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DDDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := FMA128DDDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity FMA128DDDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9530,9 +9530,9 @@ func publicParity_FMA128DDQBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus64[aTriple[0]]
 		bBits := publicParityCorpus64[bTriple[1]]
 		cBits := publicParityCorpus128[cTriple[2]]
-		a := Decimal64BID(aBits)
-		bv := Decimal64BID(bBits)
-		c := Decimal128BID(cBits)
+		a := Decimal64BIDFromBits(aBits)
+		bv := Decimal64BIDFromBits(bBits)
+		c := Decimal128BIDFromBytes(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA128DDQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid128ddqFma(aBits, bBits, publicParityToBidgo128(cBits), mode.port)
@@ -9556,9 +9556,9 @@ func publicParity_FMA128DDQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf}},
 	}
 	for _, triple := range discTriples {
-		a := Decimal64BID(triple.a)
-		bv := Decimal64BID(triple.b)
-		c := Decimal128BID(triple.c)
+		a := Decimal64BIDFromBits(triple.a)
+		bv := Decimal64BIDFromBits(triple.b)
+		c := Decimal128BIDFromBytes(triple.c)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA128DDQBIDWithMode(a, bv, c, mode.pub)
@@ -9583,9 +9583,9 @@ func publicParity_FMA128DDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := FMA128DDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity FMA128DDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9607,9 +9607,9 @@ func publicParity_FMA128DQDBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus64[aTriple[0]]
 		bBits := publicParityCorpus128[bTriple[1]]
 		cBits := publicParityCorpus64[cTriple[2]]
-		a := Decimal64BID(aBits)
-		bv := Decimal128BID(bBits)
-		c := Decimal64BID(cBits)
+		a := Decimal64BIDFromBits(aBits)
+		bv := Decimal128BIDFromBytes(bBits)
+		c := Decimal64BIDFromBits(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA128DQDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid128dqdFma(aBits, publicParityToBidgo128(bBits), cBits, mode.port)
@@ -9633,9 +9633,9 @@ func publicParity_FMA128DQDBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0xad80000000000001},
 	}
 	for _, triple := range discTriples {
-		a := Decimal64BID(triple.a)
-		bv := Decimal128BID(triple.b)
-		c := Decimal64BID(triple.c)
+		a := Decimal64BIDFromBits(triple.a)
+		bv := Decimal128BIDFromBytes(triple.b)
+		c := Decimal64BIDFromBits(triple.c)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA128DQDBIDWithMode(a, bv, c, mode.pub)
@@ -9660,9 +9660,9 @@ func publicParity_FMA128DQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := FMA128DQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity FMA128DQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9684,9 +9684,9 @@ func publicParity_FMA128DQQBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus64[aTriple[0]]
 		bBits := publicParityCorpus128[bTriple[1]]
 		cBits := publicParityCorpus128[cTriple[2]]
-		a := Decimal64BID(aBits)
-		bv := Decimal128BID(bBits)
-		c := Decimal128BID(cBits)
+		a := Decimal64BIDFromBits(aBits)
+		bv := Decimal128BIDFromBytes(bBits)
+		c := Decimal128BIDFromBytes(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA128DQQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid128dqqFma(aBits, publicParityToBidgo128(bBits), publicParityToBidgo128(cBits), mode.port)
@@ -9710,9 +9710,9 @@ func publicParity_FMA128DQQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf}},
 	}
 	for _, triple := range discTriples {
-		a := Decimal64BID(triple.a)
-		bv := Decimal128BID(triple.b)
-		c := Decimal128BID(triple.c)
+		a := Decimal64BIDFromBits(triple.a)
+		bv := Decimal128BIDFromBytes(triple.b)
+		c := Decimal128BIDFromBytes(triple.c)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA128DQQBIDWithMode(a, bv, c, mode.pub)
@@ -9737,9 +9737,9 @@ func publicParity_FMA128DQQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128DQQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := FMA128DQQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity FMA128DQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9761,9 +9761,9 @@ func publicParity_FMA128QDDBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus128[aTriple[0]]
 		bBits := publicParityCorpus64[bTriple[1]]
 		cBits := publicParityCorpus64[cTriple[2]]
-		a := Decimal128BID(aBits)
-		bv := Decimal64BID(bBits)
-		c := Decimal64BID(cBits)
+		a := Decimal128BIDFromBytes(aBits)
+		bv := Decimal64BIDFromBits(bBits)
+		c := Decimal64BIDFromBits(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA128QDDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid128qddFma(publicParityToBidgo128(aBits), bBits, cBits, mode.port)
@@ -9787,9 +9787,9 @@ func publicParity_FMA128QDDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x31c0000000000001, 0xad80000000000001},
 	}
 	for _, triple := range discTriples {
-		a := Decimal128BID(triple.a)
-		bv := Decimal64BID(triple.b)
-		c := Decimal64BID(triple.c)
+		a := Decimal128BIDFromBytes(triple.a)
+		bv := Decimal64BIDFromBits(triple.b)
+		c := Decimal64BIDFromBits(triple.c)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA128QDDBIDWithMode(a, bv, c, mode.pub)
@@ -9814,9 +9814,9 @@ func publicParity_FMA128QDDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128QDDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := FMA128QDDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity FMA128QDDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9838,9 +9838,9 @@ func publicParity_FMA128QDQBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus128[aTriple[0]]
 		bBits := publicParityCorpus64[bTriple[1]]
 		cBits := publicParityCorpus128[cTriple[2]]
-		a := Decimal128BID(aBits)
-		bv := Decimal64BID(bBits)
-		c := Decimal128BID(cBits)
+		a := Decimal128BIDFromBytes(aBits)
+		bv := Decimal64BIDFromBits(bBits)
+		c := Decimal128BIDFromBytes(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA128QDQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid128qdqFma(publicParityToBidgo128(aBits), bBits, publicParityToBidgo128(cBits), mode.port)
@@ -9864,9 +9864,9 @@ func publicParity_FMA128QDQBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0xaf}},
 	}
 	for _, triple := range discTriples {
-		a := Decimal128BID(triple.a)
-		bv := Decimal64BID(triple.b)
-		c := Decimal128BID(triple.c)
+		a := Decimal128BIDFromBytes(triple.a)
+		bv := Decimal64BIDFromBits(triple.b)
+		c := Decimal128BIDFromBytes(triple.c)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA128QDQBIDWithMode(a, bv, c, mode.pub)
@@ -9891,9 +9891,9 @@ func publicParity_FMA128QDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128QDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := FMA128QDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity FMA128QDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9915,9 +9915,9 @@ func publicParity_FMA128QQDBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus128[aTriple[0]]
 		bBits := publicParityCorpus128[bTriple[1]]
 		cBits := publicParityCorpus64[cTriple[2]]
-		a := Decimal128BID(aBits)
-		bv := Decimal128BID(bBits)
-		c := Decimal64BID(cBits)
+		a := Decimal128BIDFromBytes(aBits)
+		bv := Decimal128BIDFromBytes(bBits)
+		c := Decimal64BIDFromBits(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA128QQDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid128qqdFma(publicParityToBidgo128(aBits), publicParityToBidgo128(bBits), cBits, mode.port)
@@ -9941,9 +9941,9 @@ func publicParity_FMA128QQDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0xad80000000000001},
 	}
 	for _, triple := range discTriples {
-		a := Decimal128BID(triple.a)
-		bv := Decimal128BID(triple.b)
-		c := Decimal64BID(triple.c)
+		a := Decimal128BIDFromBytes(triple.a)
+		bv := Decimal128BIDFromBytes(triple.b)
+		c := Decimal64BIDFromBits(triple.c)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA128QQDBIDWithMode(a, bv, c, mode.pub)
@@ -9968,9 +9968,9 @@ func publicParity_FMA128QQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA128QQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := FMA128QQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity FMA128QQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -9992,14 +9992,14 @@ func publicParity_FMA64DDQBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus64[aTriple[0]]
 		bBits := publicParityCorpus64[bTriple[1]]
 		cBits := publicParityCorpus128[cTriple[2]]
-		a := Decimal64BID(aBits)
-		bv := Decimal64BID(bBits)
-		c := Decimal128BID(cBits)
+		a := Decimal64BIDFromBits(aBits)
+		bv := Decimal64BIDFromBits(bBits)
+		c := Decimal128BIDFromBytes(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA64DDQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64ddqFma(aBits, bBits, publicParityToBidgo128(cBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64DDQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64DDQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64DDQBIDWithMode: operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10018,20 +10018,20 @@ func publicParity_FMA64DDQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
 	}
 	for _, triple := range discTriples {
-		a := Decimal64BID(triple.a)
-		bv := Decimal64BID(triple.b)
-		c := Decimal128BID(triple.c)
+		a := Decimal64BIDFromBits(triple.a)
+		bv := Decimal64BIDFromBits(triple.b)
+		c := Decimal128BIDFromBytes(triple.c)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA64DDQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64ddqFma(triple.a, triple.b, publicParityToBidgo128(triple.c), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64DDQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64DDQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64DDQBIDWithMode: discriminant operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10045,16 +10045,16 @@ func publicParity_FMA64DDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64DDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := FMA64DDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity FMA64DDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64DDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := FMA64DDQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity FMA64DDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity FMA64DDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10069,14 +10069,14 @@ func publicParity_FMA64DQDBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus64[aTriple[0]]
 		bBits := publicParityCorpus128[bTriple[1]]
 		cBits := publicParityCorpus64[cTriple[2]]
-		a := Decimal64BID(aBits)
-		bv := Decimal128BID(bBits)
-		c := Decimal64BID(cBits)
+		a := Decimal64BIDFromBits(aBits)
+		bv := Decimal128BIDFromBytes(bBits)
+		c := Decimal64BIDFromBits(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA64DQDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64dqdFma(aBits, publicParityToBidgo128(bBits), cBits, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64DQDBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64DQDBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64DQDBIDWithMode: operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10095,20 +10095,20 @@ func publicParity_FMA64DQDBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0xafc0000000000001},
 	}
 	for _, triple := range discTriples {
-		a := Decimal64BID(triple.a)
-		bv := Decimal128BID(triple.b)
-		c := Decimal64BID(triple.c)
+		a := Decimal64BIDFromBits(triple.a)
+		bv := Decimal128BIDFromBytes(triple.b)
+		c := Decimal64BIDFromBits(triple.c)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA64DQDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64dqdFma(triple.a, publicParityToBidgo128(triple.b), triple.c, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64DQDBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64DQDBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64DQDBIDWithMode: discriminant operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10122,16 +10122,16 @@ func publicParity_FMA64DQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64DQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := FMA64DQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity FMA64DQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64DQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := FMA64DQDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity FMA64DQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity FMA64DQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10146,14 +10146,14 @@ func publicParity_FMA64DQQBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus64[aTriple[0]]
 		bBits := publicParityCorpus128[bTriple[1]]
 		cBits := publicParityCorpus128[cTriple[2]]
-		a := Decimal64BID(aBits)
-		bv := Decimal128BID(bBits)
-		c := Decimal128BID(cBits)
+		a := Decimal64BIDFromBits(aBits)
+		bv := Decimal128BIDFromBytes(bBits)
+		c := Decimal128BIDFromBytes(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA64DQQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64dqqFma(aBits, publicParityToBidgo128(bBits), publicParityToBidgo128(cBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64DQQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64DQQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64DQQBIDWithMode: operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10172,20 +10172,20 @@ func publicParity_FMA64DQQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
 	}
 	for _, triple := range discTriples {
-		a := Decimal64BID(triple.a)
-		bv := Decimal128BID(triple.b)
-		c := Decimal128BID(triple.c)
+		a := Decimal64BIDFromBits(triple.a)
+		bv := Decimal128BIDFromBytes(triple.b)
+		c := Decimal128BIDFromBytes(triple.c)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA64DQQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64dqqFma(triple.a, publicParityToBidgo128(triple.b), publicParityToBidgo128(triple.c), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64DQQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64DQQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64DQQBIDWithMode: discriminant operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10199,16 +10199,16 @@ func publicParity_FMA64DQQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64DQQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := FMA64DQQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity FMA64DQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64DQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := FMA64DQQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity FMA64DQQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity FMA64DQQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10223,14 +10223,14 @@ func publicParity_FMA64QDDBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus128[aTriple[0]]
 		bBits := publicParityCorpus64[bTriple[1]]
 		cBits := publicParityCorpus64[cTriple[2]]
-		a := Decimal128BID(aBits)
-		bv := Decimal64BID(bBits)
-		c := Decimal64BID(cBits)
+		a := Decimal128BIDFromBytes(aBits)
+		bv := Decimal64BIDFromBits(bBits)
+		c := Decimal64BIDFromBits(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA64QDDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qddFma(publicParityToBidgo128(aBits), bBits, cBits, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QDDBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QDDBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QDDBIDWithMode: operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10249,20 +10249,20 @@ func publicParity_FMA64QDDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x31c0000000000001, 0xafc0000000000001},
 	}
 	for _, triple := range discTriples {
-		a := Decimal128BID(triple.a)
-		bv := Decimal64BID(triple.b)
-		c := Decimal64BID(triple.c)
+		a := Decimal128BIDFromBytes(triple.a)
+		bv := Decimal64BIDFromBits(triple.b)
+		c := Decimal64BIDFromBits(triple.c)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA64QDDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qddFma(publicParityToBidgo128(triple.a), triple.b, triple.c, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QDDBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QDDBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QDDBIDWithMode: discriminant operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10276,16 +10276,16 @@ func publicParity_FMA64QDDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QDDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := FMA64QDDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity FMA64QDDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QDDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := FMA64QDDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity FMA64QDDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity FMA64QDDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10300,14 +10300,14 @@ func publicParity_FMA64QDQBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus128[aTriple[0]]
 		bBits := publicParityCorpus64[bTriple[1]]
 		cBits := publicParityCorpus128[cTriple[2]]
-		a := Decimal128BID(aBits)
-		bv := Decimal64BID(bBits)
-		c := Decimal128BID(cBits)
+		a := Decimal128BIDFromBytes(aBits)
+		bv := Decimal64BIDFromBits(bBits)
+		c := Decimal128BIDFromBytes(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA64QDQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qdqFma(publicParityToBidgo128(aBits), bBits, publicParityToBidgo128(cBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QDQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QDQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QDQBIDWithMode: operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10326,20 +10326,20 @@ func publicParity_FMA64QDQBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x31c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
 	}
 	for _, triple := range discTriples {
-		a := Decimal128BID(triple.a)
-		bv := Decimal64BID(triple.b)
-		c := Decimal128BID(triple.c)
+		a := Decimal128BIDFromBytes(triple.a)
+		bv := Decimal64BIDFromBits(triple.b)
+		c := Decimal128BIDFromBytes(triple.c)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA64QDQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qdqFma(publicParityToBidgo128(triple.a), triple.b, publicParityToBidgo128(triple.c), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QDQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QDQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QDQBIDWithMode: discriminant operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10353,16 +10353,16 @@ func publicParity_FMA64QDQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QDQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := FMA64QDQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity FMA64QDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QDQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := FMA64QDQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity FMA64QDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity FMA64QDQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10377,14 +10377,14 @@ func publicParity_FMA64QQDBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus128[aTriple[0]]
 		bBits := publicParityCorpus128[bTriple[1]]
 		cBits := publicParityCorpus64[cTriple[2]]
-		a := Decimal128BID(aBits)
-		bv := Decimal128BID(bBits)
-		c := Decimal64BID(cBits)
+		a := Decimal128BIDFromBytes(aBits)
+		bv := Decimal128BIDFromBytes(bBits)
+		c := Decimal64BIDFromBits(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA64QQDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qqdFma(publicParityToBidgo128(aBits), publicParityToBidgo128(bBits), cBits, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QQDBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QQDBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QQDBIDWithMode: operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10403,20 +10403,20 @@ func publicParity_FMA64QQDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0xafc0000000000001},
 	}
 	for _, triple := range discTriples {
-		a := Decimal128BID(triple.a)
-		bv := Decimal128BID(triple.b)
-		c := Decimal64BID(triple.c)
+		a := Decimal128BIDFromBytes(triple.a)
+		bv := Decimal128BIDFromBytes(triple.b)
+		c := Decimal64BIDFromBits(triple.c)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA64QQDBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qqdFma(publicParityToBidgo128(triple.a), publicParityToBidgo128(triple.b), triple.c, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QQDBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QQDBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QQDBIDWithMode: discriminant operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10430,16 +10430,16 @@ func publicParity_FMA64QQDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QQDBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal64BID(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal64BIDFromBits(publicParityCorpus64[publicParityTernaryTriples64[0][2]])
 	controlValue, controlFlags := FMA64QQDBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity FMA64QQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QQDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := FMA64QQDBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity FMA64QQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity FMA64QQDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10454,14 +10454,14 @@ func publicParity_FMA64QQQBIDWithMode(t *testing.T) int {
 		aBits := publicParityCorpus128[aTriple[0]]
 		bBits := publicParityCorpus128[bTriple[1]]
 		cBits := publicParityCorpus128[cTriple[2]]
-		a := Decimal128BID(aBits)
-		bv := Decimal128BID(bBits)
-		c := Decimal128BID(cBits)
+		a := Decimal128BIDFromBytes(aBits)
+		bv := Decimal128BIDFromBytes(bBits)
+		c := Decimal128BIDFromBytes(cBits)
 		for _, mode := range publicParityModes {
 			pv, pf := FMA64QQQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qqqFma(publicParityToBidgo128(aBits), publicParityToBidgo128(bBits), publicParityToBidgo128(cBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QQQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QQQBIDWithMode: operands %v,%v,%v mode %v: result mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QQQBIDWithMode: operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", aBits, bBits, cBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10480,20 +10480,20 @@ func publicParity_FMA64QQQBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0xb0}},
 	}
 	for _, triple := range discTriples {
-		a := Decimal128BID(triple.a)
-		bv := Decimal128BID(triple.b)
-		c := Decimal128BID(triple.c)
+		a := Decimal128BIDFromBytes(triple.a)
+		bv := Decimal128BIDFromBytes(triple.b)
+		c := Decimal128BIDFromBytes(triple.c)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := FMA64QQQBIDWithMode(a, bv, c, mode.pub)
 			pr, prf := bidgo.Bid64qqqFma(publicParityToBidgo128(triple.a), publicParityToBidgo128(triple.b), publicParityToBidgo128(triple.c), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity FMA64QQQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity FMA64QQQBIDWithMode: discriminant operands %v,%v,%v mode %v: result mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity FMA64QQQBIDWithMode: discriminant operands %v,%v,%v mode %v: flag mismatch public=%v port=%v", triple.a, triple.b, triple.c, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10507,16 +10507,16 @@ func publicParity_FMA64QQQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity FMA64QQQBIDWithMode: discriminant operands %v,%v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", triple.a, triple.b, triple.c)
 		}
 	}
-	invalidA := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
-	invalidB := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
-	invalidC := Decimal128BID(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
+	invalidA := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][0]])
+	invalidB := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][1]])
+	invalidC := Decimal128BIDFromBytes(publicParityCorpus128[publicParityTernaryTriples128[0][2]])
 	controlValue, controlFlags := FMA64QQQBIDWithMode(invalidA, invalidB, invalidC, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity FMA64QQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity FMA64QQQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := FMA64QQQBIDWithMode(invalidA, invalidB, invalidC, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity FMA64QQQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity FMA64QQQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10529,8 +10529,8 @@ func publicParity_Mul128DDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Mul128DDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128ddMul(leftBits, rightBits, mode.port)
@@ -10543,8 +10543,8 @@ func publicParity_Mul128DDBIDWithMode(t *testing.T) int {
 			count++
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Mul128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Mul128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -10564,8 +10564,8 @@ func publicParity_Mul128DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Mul128DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128dqMul(leftBits, publicParityToBidgo128(rightBits), mode.port)
@@ -10588,8 +10588,8 @@ func publicParity_Mul128DQBIDWithMode(t *testing.T) int {
 		{0x31c462d53c8abac1, [16]byte{0xb1, 0x0c, 0xb7, 0xe3, 0xb8, 0x87, 0x10, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Mul128DQBIDWithMode(left, right, mode.pub)
@@ -10614,8 +10614,8 @@ func publicParity_Mul128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Mul128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Mul128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -10635,8 +10635,8 @@ func publicParity_Mul128QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Mul128QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128qdMul(publicParityToBidgo128(leftBits), rightBits, mode.port)
@@ -10659,8 +10659,8 @@ func publicParity_Mul128QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0xb1, 0x0c, 0xb7, 0xe3, 0xb8, 0x87, 0x10, 0x89, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c462d53c8abac1},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Mul128QDBIDWithMode(left, right, mode.pub)
@@ -10685,8 +10685,8 @@ func publicParity_Mul128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Mul128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Mul128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -10706,13 +10706,13 @@ func publicParity_Mul64DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Mul64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqMul(leftBits, publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Mul64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Mul64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Mul64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10730,19 +10730,19 @@ func publicParity_Mul64DQBIDWithMode(t *testing.T) int {
 		{0x31c3f28cb71571c7, [16]byte{0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Mul64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqMul(pair.left, publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10756,15 +10756,15 @@ func publicParity_Mul64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Mul64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Mul64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Mul64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Mul64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10777,13 +10777,13 @@ func publicParity_Mul64QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Mul64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdMul(publicParityToBidgo128(leftBits), rightBits, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Mul64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Mul64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Mul64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10801,19 +10801,19 @@ func publicParity_Mul64QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0xc7, 0x71, 0x15, 0xb7, 0x8c, 0xf2, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, 0x31c000000000004d},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Mul64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdMul(publicParityToBidgo128(pair.left), pair.right, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10827,15 +10827,15 @@ func publicParity_Mul64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Mul64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Mul64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Mul64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Mul64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -10848,13 +10848,13 @@ func publicParity_Mul64QQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Mul64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqMul(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Mul64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Mul64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Mul64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -10872,19 +10872,19 @@ func publicParity_Mul64QQBIDWithMode(t *testing.T) int {
 		{[16]byte{0xc7, 0x71, 0x15, 0xb7, 0x8c, 0xf2, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}, [16]byte{0x4d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Mul64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqMul(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -10898,15 +10898,15 @@ func publicParity_Mul64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Mul64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Mul64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Mul64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Mul64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Mul64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Mul64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Mul64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -11307,26 +11307,26 @@ func publicParity_NewDecimal32(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal32: input %q: rejected input kind %s must error", sc.input, sc.kind)
 			}
-			if pv != 0 {
-				t.Errorf("public parity NewDecimal32: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+			if pv != (Decimal32BID{}) {
+				t.Errorf("public parity NewDecimal32: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 			}
 		case "nan_literal":
 			if sc.nanMinWidth == 0 || sc.nanMinWidth > 32 {
 				if err == nil {
 					t.Errorf("public parity NewDecimal32: input %q: unrepresentable NaN payload must error", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal32: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+				if pv != (Decimal32BID{}) {
+					t.Errorf("public parity NewDecimal32: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 				}
 			} else {
 				if err != nil {
 					t.Errorf("public parity NewDecimal32: input %q: unexpected error %v", sc.input, err)
 				} else {
-					if !(bidgo.Bid32IsNaN(uint32(pv))) {
+					if !(bidgo.Bid32IsNaN((pv).ToUint32())) {
 						t.Errorf("public parity NewDecimal32: input %q: expected a NaN result from the NaN literal branch", sc.input)
 					}
-					if (bidgo.Bid32IsSignaling(uint32(pv)) != 0) != sc.signaling {
-						t.Errorf("public parity NewDecimal32: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling(uint32(pv)) != 0, sc.signaling)
+					if (bidgo.Bid32IsSignaling((pv).ToUint32()) != 0) != sc.signaling {
+						t.Errorf("public parity NewDecimal32: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling((pv).ToUint32()) != 0, sc.signaling)
 					}
 				}
 			}
@@ -11341,14 +11341,14 @@ func publicParity_NewDecimal32(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal32: input %q: expected an error for a NaN or unrepresentable port result", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal32: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+				if pv != (Decimal32BID{}) {
+					t.Errorf("public parity NewDecimal32: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 				}
 			case err != nil:
 				t.Errorf("public parity NewDecimal32: input %q: unexpected error %v", sc.input, err)
 			default:
-				if uint32(pv) != pr {
-					t.Errorf("public parity NewDecimal32: input %q: result mismatch public=%v port=%v", sc.input, uint32(pv), pr)
+				if (pv).ToUint32() != pr {
+					t.Errorf("public parity NewDecimal32: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint32(), pr)
 				}
 			}
 		}
@@ -11366,26 +11366,26 @@ func publicParity_NewDecimal32BIDDirect(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal32BIDDirect: input %q: rejected input kind %s must error", sc.input, sc.kind)
 			}
-			if pv != 0 {
-				t.Errorf("public parity NewDecimal32BIDDirect: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+			if pv != (Decimal32BID{}) {
+				t.Errorf("public parity NewDecimal32BIDDirect: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 			}
 		case "nan_literal":
 			if sc.nanMinWidth == 0 || sc.nanMinWidth > 32 {
 				if err == nil {
 					t.Errorf("public parity NewDecimal32BIDDirect: input %q: unrepresentable NaN payload must error", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal32BIDDirect: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+				if pv != (Decimal32BID{}) {
+					t.Errorf("public parity NewDecimal32BIDDirect: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 				}
 			} else {
 				if err != nil {
 					t.Errorf("public parity NewDecimal32BIDDirect: input %q: unexpected error %v", sc.input, err)
 				} else {
-					if !(bidgo.Bid32IsNaN(uint32(pv))) {
+					if !(bidgo.Bid32IsNaN((pv).ToUint32())) {
 						t.Errorf("public parity NewDecimal32BIDDirect: input %q: expected a NaN result from the NaN literal branch", sc.input)
 					}
-					if (bidgo.Bid32IsSignaling(uint32(pv)) != 0) != sc.signaling {
-						t.Errorf("public parity NewDecimal32BIDDirect: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling(uint32(pv)) != 0, sc.signaling)
+					if (bidgo.Bid32IsSignaling((pv).ToUint32()) != 0) != sc.signaling {
+						t.Errorf("public parity NewDecimal32BIDDirect: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling((pv).ToUint32()) != 0, sc.signaling)
 					}
 				}
 			}
@@ -11400,14 +11400,14 @@ func publicParity_NewDecimal32BIDDirect(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal32BIDDirect: input %q: expected an error for a NaN or unrepresentable port result", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal32BIDDirect: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+				if pv != (Decimal32BID{}) {
+					t.Errorf("public parity NewDecimal32BIDDirect: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 				}
 			case err != nil:
 				t.Errorf("public parity NewDecimal32BIDDirect: input %q: unexpected error %v", sc.input, err)
 			default:
-				if uint32(pv) != pr {
-					t.Errorf("public parity NewDecimal32BIDDirect: input %q: result mismatch public=%v port=%v", sc.input, uint32(pv), pr)
+				if (pv).ToUint32() != pr {
+					t.Errorf("public parity NewDecimal32BIDDirect: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint32(), pr)
 				}
 			}
 		}
@@ -11426,15 +11426,15 @@ func publicParity_NewDecimal32FromInt(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal32FromInt: operand %v: expected exact-representation error, got %v", x, pv)
 			}
-			if bits := uint32(pv); bits != 0x7c000000 {
+			if bits := pv.ToUint32(); bits != 0x7c000000 {
 				t.Errorf("public parity NewDecimal32FromInt: operand %v: error result bits = %#x, want canonical qNaN 0x7c000000", x, bits)
 			}
 		} else {
 			if err != nil {
 				t.Errorf("public parity NewDecimal32FromInt: operand %v: unexpected error %v", x, err)
 			}
-			if uint32(pv) != pr {
-				t.Errorf("public parity NewDecimal32FromInt: operand %v: result mismatch public=%v port=%v", x, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity NewDecimal32FromInt: operand %v: result mismatch public=%v port=%v", x, (pv).ToUint32(), pr)
 			}
 		}
 		count++
@@ -11448,8 +11448,8 @@ func publicParity_NewDecimal32FromInt32(t *testing.T) int {
 		for _, mode := range publicParityModes {
 			pv, pf := NewDecimal32FromInt32(x, mode.pub)
 			pr, prf := bidgo.Bid32FromInt32(x, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity NewDecimal32FromInt32: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity NewDecimal32FromInt32: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal32FromInt32: operand %v mode %v: flag mismatch public=%v port=%v", x, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -11459,12 +11459,12 @@ func publicParity_NewDecimal32FromInt32(t *testing.T) int {
 	}
 	invalidOperand := publicParityIntCorpus32[1]
 	controlValue, controlFlags := NewDecimal32FromInt32(invalidOperand, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := NewDecimal32FromInt32(invalidOperand, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromInt32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -11476,8 +11476,8 @@ func publicParity_NewDecimal32FromInt64(t *testing.T) int {
 		for _, mode := range publicParityModes {
 			pv, pf := NewDecimal32FromInt64(x, mode.pub)
 			pr, prf := bidgo.Bid32FromInt64(x, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity NewDecimal32FromInt64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity NewDecimal32FromInt64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal32FromInt64: operand %v mode %v: flag mismatch public=%v port=%v", x, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -11487,12 +11487,12 @@ func publicParity_NewDecimal32FromInt64(t *testing.T) int {
 	}
 	invalidOperand := publicParityIntCorpus64[1]
 	controlValue, controlFlags := NewDecimal32FromInt64(invalidOperand, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := NewDecimal32FromInt64(invalidOperand, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromInt64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromInt64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -11504,8 +11504,8 @@ func publicParity_NewDecimal32FromUint32(t *testing.T) int {
 		for _, mode := range publicParityModes {
 			pv, pf := NewDecimal32FromUint32(x, mode.pub)
 			pr, prf := bidgo.Bid32FromUint32(x, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity NewDecimal32FromUint32: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity NewDecimal32FromUint32: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal32FromUint32: operand %v mode %v: flag mismatch public=%v port=%v", x, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -11515,12 +11515,12 @@ func publicParity_NewDecimal32FromUint32(t *testing.T) int {
 	}
 	invalidOperand := publicParityUintCorpus32[1]
 	controlValue, controlFlags := NewDecimal32FromUint32(invalidOperand, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint32: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := NewDecimal32FromUint32(invalidOperand, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromUint32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint32: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -11532,8 +11532,8 @@ func publicParity_NewDecimal32FromUint64(t *testing.T) int {
 		for _, mode := range publicParityModes {
 			pv, pf := NewDecimal32FromUint64(x, mode.pub)
 			pr, prf := bidgo.Bid32FromUint64(x, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity NewDecimal32FromUint64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity NewDecimal32FromUint64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal32FromUint64: operand %v mode %v: flag mismatch public=%v port=%v", x, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -11543,12 +11543,12 @@ func publicParity_NewDecimal32FromUint64(t *testing.T) int {
 	}
 	invalidOperand := publicParityUintCorpus64[1]
 	controlValue, controlFlags := NewDecimal32FromUint64(invalidOperand, publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags := NewDecimal32FromUint64(invalidOperand, RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal32FromUint64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint32(invalidValue), invalidFlags)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal32FromUint64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint32(), invalidFlags)
 	}
 	count++
 	return count
@@ -11563,8 +11563,8 @@ func publicParity_NewDecimal32WithFlags(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal32WithFlags: input %q: rejected input kind %s must error", sc.input, sc.kind)
 			}
-			if pv != 0 {
-				t.Errorf("public parity NewDecimal32WithFlags: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+			if pv != (Decimal32BID{}) {
+				t.Errorf("public parity NewDecimal32WithFlags: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 			}
 			if pf != 0 {
 				t.Errorf("public parity NewDecimal32WithFlags: input %q: error flags = %v, want zero", sc.input, pf)
@@ -11574,8 +11574,8 @@ func publicParity_NewDecimal32WithFlags(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal32WithFlags: input %q: unrepresentable NaN payload must error", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal32WithFlags: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+				if pv != (Decimal32BID{}) {
+					t.Errorf("public parity NewDecimal32WithFlags: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 				}
 				if pf != 0 {
 					t.Errorf("public parity NewDecimal32WithFlags: input %q: error flags = %v, want zero", sc.input, pf)
@@ -11584,11 +11584,11 @@ func publicParity_NewDecimal32WithFlags(t *testing.T) int {
 				if err != nil {
 					t.Errorf("public parity NewDecimal32WithFlags: input %q: unexpected error %v", sc.input, err)
 				} else {
-					if !(bidgo.Bid32IsNaN(uint32(pv))) {
+					if !(bidgo.Bid32IsNaN((pv).ToUint32())) {
 						t.Errorf("public parity NewDecimal32WithFlags: input %q: expected a NaN result from the NaN literal branch", sc.input)
 					}
-					if (bidgo.Bid32IsSignaling(uint32(pv)) != 0) != sc.signaling {
-						t.Errorf("public parity NewDecimal32WithFlags: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling(uint32(pv)) != 0, sc.signaling)
+					if (bidgo.Bid32IsSignaling((pv).ToUint32()) != 0) != sc.signaling {
+						t.Errorf("public parity NewDecimal32WithFlags: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling((pv).ToUint32()) != 0, sc.signaling)
 					}
 					if pf != 0 {
 						t.Errorf("public parity NewDecimal32WithFlags: input %q: representable NaN literal must raise no flags, got %v", sc.input, pf)
@@ -11605,8 +11605,8 @@ func publicParity_NewDecimal32WithFlags(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal32WithFlags: input %q: expected an error for a NaN or unrepresentable port result", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal32WithFlags: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+				if pv != (Decimal32BID{}) {
+					t.Errorf("public parity NewDecimal32WithFlags: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 				}
 				if pf != 0 {
 					t.Errorf("public parity NewDecimal32WithFlags: input %q: error flags = %v, want zero", sc.input, pf)
@@ -11614,8 +11614,8 @@ func publicParity_NewDecimal32WithFlags(t *testing.T) int {
 			case err != nil:
 				t.Errorf("public parity NewDecimal32WithFlags: input %q: unexpected error %v", sc.input, err)
 			default:
-				if uint32(pv) != pr {
-					t.Errorf("public parity NewDecimal32WithFlags: input %q: result mismatch public=%v port=%v", sc.input, uint32(pv), pr)
+				if (pv).ToUint32() != pr {
+					t.Errorf("public parity NewDecimal32WithFlags: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint32(), pr)
 				}
 				if pf != portFlags {
 					t.Errorf("public parity NewDecimal32WithFlags: input %q: flag mismatch public=%v port=%v", sc.input, pf, portFlags)
@@ -11637,8 +11637,8 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: rejected input kind %s must error", sc.input, mode.pub, sc.kind)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal32WithMode: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+				if pv != (Decimal32BID{}) {
+					t.Errorf("public parity NewDecimal32WithMode: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 				}
 				if pf != 0 {
 					t.Errorf("public parity NewDecimal32WithMode: input %q: error flags = %v, want zero", sc.input, pf)
@@ -11648,8 +11648,8 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 					if err == nil {
 						t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: unrepresentable NaN payload must error", sc.input, mode.pub)
 					}
-					if pv != 0 {
-						t.Errorf("public parity NewDecimal32WithMode: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+					if pv != (Decimal32BID{}) {
+						t.Errorf("public parity NewDecimal32WithMode: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 					}
 					if pf != 0 {
 						t.Errorf("public parity NewDecimal32WithMode: input %q: error flags = %v, want zero", sc.input, pf)
@@ -11658,11 +11658,11 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 					if err != nil {
 						t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: unexpected error %v", sc.input, mode.pub, err)
 					} else {
-						if !(bidgo.Bid32IsNaN(uint32(pv))) {
+						if !(bidgo.Bid32IsNaN((pv).ToUint32())) {
 							t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: expected a NaN result from the NaN literal branch", sc.input, mode.pub)
 						}
-						if (bidgo.Bid32IsSignaling(uint32(pv)) != 0) != sc.signaling {
-							t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: signaling bit mismatch public=%v literal=%v", sc.input, mode.pub, bidgo.Bid32IsSignaling(uint32(pv)) != 0, sc.signaling)
+						if (bidgo.Bid32IsSignaling((pv).ToUint32()) != 0) != sc.signaling {
+							t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: signaling bit mismatch public=%v literal=%v", sc.input, mode.pub, bidgo.Bid32IsSignaling((pv).ToUint32()) != 0, sc.signaling)
 						}
 						if pf != 0 {
 							t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: representable NaN literal must raise no flags, got %v", sc.input, mode.pub, pf)
@@ -11677,8 +11677,8 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 					if err == nil {
 						t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: rejected NaN or unrepresentable cohort result must error", sc.input, mode.pub)
 					}
-					if pv != 0 {
-						t.Errorf("public parity NewDecimal32WithMode: input %q: error result bits = %#x, want zero", sc.input, uint32(pv))
+					if pv != (Decimal32BID{}) {
+						t.Errorf("public parity NewDecimal32WithMode: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint32())
 					}
 					if pf != 0 {
 						t.Errorf("public parity NewDecimal32WithMode: input %q: error flags = %v, want zero", sc.input, pf)
@@ -11686,8 +11686,8 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 				case err != nil:
 					t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: unexpected error %v", sc.input, mode.pub, err)
 				default:
-					if uint32(pv) != pr {
-						t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: result mismatch public=%v port=%v", sc.input, mode.pub, uint32(pv), pr)
+					if (pv).ToUint32() != pr {
+						t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: result mismatch public=%v port=%v", sc.input, mode.pub, (pv).ToUint32(), pr)
 					}
 					if pf != mapPortFlagsForParity(prf) {
 						t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: flag mismatch public=%v port=%v", sc.input, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -11712,13 +11712,13 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 				continue
 			}
 			pr, prf := bidgo.Bid32FromStringRaw(ds, mode.port)
-			if uint32(pv) != pr {
-				t.Errorf("public parity NewDecimal32WithMode: discriminant input %q mode %v: result mismatch public=%v port=%v", ds, mode.pub, uint32(pv), pr)
+			if (pv).ToUint32() != pr {
+				t.Errorf("public parity NewDecimal32WithMode: discriminant input %q mode %v: result mismatch public=%v port=%v", ds, mode.pub, (pv).ToUint32(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal32WithMode: discriminant input %q mode %v: flag mismatch public=%v port=%v", ds, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint32(pv)
+			modeSeen[mi] = (pv).ToUint32()
 			count++
 		}
 		modeInsensitive := true
@@ -11733,12 +11733,12 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 		}
 	}
 	controlValue, controlFlags, controlErr := NewDecimal32WithMode(discInputs[0], publicParityModes[0].pub)
-	if uint32(controlValue) == 0x7c000000 && controlFlags == FlagInvalidOperation && controlErr == nil {
-		t.Errorf("public parity NewDecimal32WithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v with a nil error already equals the rejection outcome, so a dropped rejection would pass", uint32(controlValue), controlFlags)
+	if (controlValue).ToUint32() == 0x7c000000 && controlFlags == FlagInvalidOperation && controlErr == nil {
+		t.Errorf("public parity NewDecimal32WithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v with a nil error already equals the rejection outcome, so a dropped rejection would pass", (controlValue).ToUint32(), controlFlags)
 	}
 	invalidValue, invalidFlags, invalidErr := NewDecimal32WithMode(discInputs[0], RoundingMode(99))
-	if uint32(invalidValue) != 0x7c000000 || invalidFlags != FlagInvalidOperation || invalidErr != nil {
-		t.Errorf("public parity NewDecimal32WithMode: invalid rounding mode result=%v flags=%v err=%v, want canonical qNaN, FlagInvalidOperation and a nil error", uint32(invalidValue), invalidFlags, invalidErr)
+	if (invalidValue).ToUint32() != 0x7c000000 || invalidFlags != FlagInvalidOperation || invalidErr != nil {
+		t.Errorf("public parity NewDecimal32WithMode: invalid rounding mode result=%v flags=%v err=%v, want canonical qNaN, FlagInvalidOperation and a nil error", (invalidValue).ToUint32(), invalidFlags, invalidErr)
 	}
 	count++
 	return count
@@ -11753,26 +11753,26 @@ func publicParity_NewDecimal64(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal64: input %q: rejected input kind %s must error", sc.input, sc.kind)
 			}
-			if pv != 0 {
-				t.Errorf("public parity NewDecimal64: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+			if pv != (Decimal64BID{}) {
+				t.Errorf("public parity NewDecimal64: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 			}
 		case "nan_literal":
 			if sc.nanMinWidth == 0 || sc.nanMinWidth > 64 {
 				if err == nil {
 					t.Errorf("public parity NewDecimal64: input %q: unrepresentable NaN payload must error", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal64: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+				if pv != (Decimal64BID{}) {
+					t.Errorf("public parity NewDecimal64: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 				}
 			} else {
 				if err != nil {
 					t.Errorf("public parity NewDecimal64: input %q: unexpected error %v", sc.input, err)
 				} else {
-					if !(bidgo.Bid64IsNaN(uint64(pv)) != 0) {
+					if !(bidgo.Bid64IsNaN((pv).ToUint64()) != 0) {
 						t.Errorf("public parity NewDecimal64: input %q: expected a NaN result from the NaN literal branch", sc.input)
 					}
-					if (bidgo.Bid64IsSignaling(uint64(pv)) != 0) != sc.signaling {
-						t.Errorf("public parity NewDecimal64: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling(uint64(pv)) != 0, sc.signaling)
+					if (bidgo.Bid64IsSignaling((pv).ToUint64()) != 0) != sc.signaling {
+						t.Errorf("public parity NewDecimal64: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling((pv).ToUint64()) != 0, sc.signaling)
 					}
 				}
 			}
@@ -11787,14 +11787,14 @@ func publicParity_NewDecimal64(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal64: input %q: expected an error for a NaN or unrepresentable port result", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal64: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+				if pv != (Decimal64BID{}) {
+					t.Errorf("public parity NewDecimal64: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 				}
 			case err != nil:
 				t.Errorf("public parity NewDecimal64: input %q: unexpected error %v", sc.input, err)
 			default:
-				if uint64(pv) != pr {
-					t.Errorf("public parity NewDecimal64: input %q: result mismatch public=%v port=%v", sc.input, uint64(pv), pr)
+				if (pv).ToUint64() != pr {
+					t.Errorf("public parity NewDecimal64: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint64(), pr)
 				}
 			}
 		}
@@ -11812,26 +11812,26 @@ func publicParity_NewDecimal64BIDDirect(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal64BIDDirect: input %q: rejected input kind %s must error", sc.input, sc.kind)
 			}
-			if pv != 0 {
-				t.Errorf("public parity NewDecimal64BIDDirect: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+			if pv != (Decimal64BID{}) {
+				t.Errorf("public parity NewDecimal64BIDDirect: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 			}
 		case "nan_literal":
 			if sc.nanMinWidth == 0 || sc.nanMinWidth > 64 {
 				if err == nil {
 					t.Errorf("public parity NewDecimal64BIDDirect: input %q: unrepresentable NaN payload must error", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal64BIDDirect: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+				if pv != (Decimal64BID{}) {
+					t.Errorf("public parity NewDecimal64BIDDirect: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 				}
 			} else {
 				if err != nil {
 					t.Errorf("public parity NewDecimal64BIDDirect: input %q: unexpected error %v", sc.input, err)
 				} else {
-					if !(bidgo.Bid64IsNaN(uint64(pv)) != 0) {
+					if !(bidgo.Bid64IsNaN((pv).ToUint64()) != 0) {
 						t.Errorf("public parity NewDecimal64BIDDirect: input %q: expected a NaN result from the NaN literal branch", sc.input)
 					}
-					if (bidgo.Bid64IsSignaling(uint64(pv)) != 0) != sc.signaling {
-						t.Errorf("public parity NewDecimal64BIDDirect: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling(uint64(pv)) != 0, sc.signaling)
+					if (bidgo.Bid64IsSignaling((pv).ToUint64()) != 0) != sc.signaling {
+						t.Errorf("public parity NewDecimal64BIDDirect: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling((pv).ToUint64()) != 0, sc.signaling)
 					}
 				}
 			}
@@ -11846,14 +11846,14 @@ func publicParity_NewDecimal64BIDDirect(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal64BIDDirect: input %q: expected an error for a NaN or unrepresentable port result", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal64BIDDirect: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+				if pv != (Decimal64BID{}) {
+					t.Errorf("public parity NewDecimal64BIDDirect: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 				}
 			case err != nil:
 				t.Errorf("public parity NewDecimal64BIDDirect: input %q: unexpected error %v", sc.input, err)
 			default:
-				if uint64(pv) != pr {
-					t.Errorf("public parity NewDecimal64BIDDirect: input %q: result mismatch public=%v port=%v", sc.input, uint64(pv), pr)
+				if (pv).ToUint64() != pr {
+					t.Errorf("public parity NewDecimal64BIDDirect: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint64(), pr)
 				}
 			}
 		}
@@ -11872,15 +11872,15 @@ func publicParity_NewDecimal64FromInt(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal64FromInt: operand %v: expected exact-representation error, got %v", x, pv)
 			}
-			if bits := uint64(pv); bits != 0x7c00000000000000 {
+			if bits := pv.ToUint64(); bits != 0x7c00000000000000 {
 				t.Errorf("public parity NewDecimal64FromInt: operand %v: error result bits = %#x, want canonical qNaN 0x7c00000000000000", x, bits)
 			}
 		} else {
 			if err != nil {
 				t.Errorf("public parity NewDecimal64FromInt: operand %v: unexpected error %v", x, err)
 			}
-			if uint64(pv) != pr {
-				t.Errorf("public parity NewDecimal64FromInt: operand %v: result mismatch public=%v port=%v", x, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity NewDecimal64FromInt: operand %v: result mismatch public=%v port=%v", x, (pv).ToUint64(), pr)
 			}
 		}
 		count++
@@ -11893,8 +11893,8 @@ func publicParity_NewDecimal64FromInt32(t *testing.T) int {
 	for _, x := range publicParityIntCorpus32 {
 		pv := NewDecimal64FromInt32(x)
 		pr := bidgo.Bid64FromInt32(x)
-		if uint64(pv) != pr {
-			t.Errorf("public parity NewDecimal64FromInt32: operand %v: result mismatch public=%v port=%v", x, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity NewDecimal64FromInt32: operand %v: result mismatch public=%v port=%v", x, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -11907,8 +11907,8 @@ func publicParity_NewDecimal64FromInt64(t *testing.T) int {
 		for _, mode := range publicParityModes {
 			pv, pf := NewDecimal64FromInt64(x, mode.pub)
 			pr, prf := bidgo.Bid64FromInt64(x, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity NewDecimal64FromInt64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity NewDecimal64FromInt64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal64FromInt64: operand %v mode %v: flag mismatch public=%v port=%v", x, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -11918,12 +11918,12 @@ func publicParity_NewDecimal64FromInt64(t *testing.T) int {
 	}
 	invalidOperand := publicParityIntCorpus64[1]
 	controlValue, controlFlags := NewDecimal64FromInt64(invalidOperand, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal64FromInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromInt64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := NewDecimal64FromInt64(invalidOperand, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal64FromInt64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromInt64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -11934,8 +11934,8 @@ func publicParity_NewDecimal64FromUint32(t *testing.T) int {
 	for _, x := range publicParityUintCorpus32 {
 		pv := NewDecimal64FromUint32(x)
 		pr := bidgo.Bid64FromUint32(x)
-		if uint64(pv) != pr {
-			t.Errorf("public parity NewDecimal64FromUint32: operand %v: result mismatch public=%v port=%v", x, uint64(pv), pr)
+		if (pv).ToUint64() != pr {
+			t.Errorf("public parity NewDecimal64FromUint32: operand %v: result mismatch public=%v port=%v", x, (pv).ToUint64(), pr)
 		}
 		count++
 	}
@@ -11948,8 +11948,8 @@ func publicParity_NewDecimal64FromUint64(t *testing.T) int {
 		for _, mode := range publicParityModes {
 			pv, pf := NewDecimal64FromUint64(x, mode.pub)
 			pr, prf := bidgo.Bid64FromUint64(x, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity NewDecimal64FromUint64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity NewDecimal64FromUint64: operand %v mode %v: result mismatch public=%v port=%v", x, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal64FromUint64: operand %v mode %v: flag mismatch public=%v port=%v", x, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -11959,12 +11959,12 @@ func publicParity_NewDecimal64FromUint64(t *testing.T) int {
 	}
 	invalidOperand := publicParityUintCorpus64[1]
 	controlValue, controlFlags := NewDecimal64FromUint64(invalidOperand, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal64FromUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromUint64: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := NewDecimal64FromUint64(invalidOperand, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity NewDecimal64FromUint64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity NewDecimal64FromUint64: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -11979,8 +11979,8 @@ func publicParity_NewDecimal64WithFlags(t *testing.T) int {
 			if err == nil {
 				t.Errorf("public parity NewDecimal64WithFlags: input %q: rejected input kind %s must error", sc.input, sc.kind)
 			}
-			if pv != 0 {
-				t.Errorf("public parity NewDecimal64WithFlags: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+			if pv != (Decimal64BID{}) {
+				t.Errorf("public parity NewDecimal64WithFlags: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 			}
 			if pf != 0 {
 				t.Errorf("public parity NewDecimal64WithFlags: input %q: error flags = %v, want zero", sc.input, pf)
@@ -11990,8 +11990,8 @@ func publicParity_NewDecimal64WithFlags(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal64WithFlags: input %q: unrepresentable NaN payload must error", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal64WithFlags: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+				if pv != (Decimal64BID{}) {
+					t.Errorf("public parity NewDecimal64WithFlags: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 				}
 				if pf != 0 {
 					t.Errorf("public parity NewDecimal64WithFlags: input %q: error flags = %v, want zero", sc.input, pf)
@@ -12000,11 +12000,11 @@ func publicParity_NewDecimal64WithFlags(t *testing.T) int {
 				if err != nil {
 					t.Errorf("public parity NewDecimal64WithFlags: input %q: unexpected error %v", sc.input, err)
 				} else {
-					if !(bidgo.Bid64IsNaN(uint64(pv)) != 0) {
+					if !(bidgo.Bid64IsNaN((pv).ToUint64()) != 0) {
 						t.Errorf("public parity NewDecimal64WithFlags: input %q: expected a NaN result from the NaN literal branch", sc.input)
 					}
-					if (bidgo.Bid64IsSignaling(uint64(pv)) != 0) != sc.signaling {
-						t.Errorf("public parity NewDecimal64WithFlags: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling(uint64(pv)) != 0, sc.signaling)
+					if (bidgo.Bid64IsSignaling((pv).ToUint64()) != 0) != sc.signaling {
+						t.Errorf("public parity NewDecimal64WithFlags: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling((pv).ToUint64()) != 0, sc.signaling)
 					}
 					if pf != 0 {
 						t.Errorf("public parity NewDecimal64WithFlags: input %q: representable NaN literal must raise no flags, got %v", sc.input, pf)
@@ -12021,8 +12021,8 @@ func publicParity_NewDecimal64WithFlags(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal64WithFlags: input %q: expected an error for a NaN or unrepresentable port result", sc.input)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal64WithFlags: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+				if pv != (Decimal64BID{}) {
+					t.Errorf("public parity NewDecimal64WithFlags: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 				}
 				if pf != 0 {
 					t.Errorf("public parity NewDecimal64WithFlags: input %q: error flags = %v, want zero", sc.input, pf)
@@ -12030,8 +12030,8 @@ func publicParity_NewDecimal64WithFlags(t *testing.T) int {
 			case err != nil:
 				t.Errorf("public parity NewDecimal64WithFlags: input %q: unexpected error %v", sc.input, err)
 			default:
-				if uint64(pv) != pr {
-					t.Errorf("public parity NewDecimal64WithFlags: input %q: result mismatch public=%v port=%v", sc.input, uint64(pv), pr)
+				if (pv).ToUint64() != pr {
+					t.Errorf("public parity NewDecimal64WithFlags: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint64(), pr)
 				}
 				if pf != portFlags {
 					t.Errorf("public parity NewDecimal64WithFlags: input %q: flag mismatch public=%v port=%v", sc.input, pf, portFlags)
@@ -12053,8 +12053,8 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 				if err == nil {
 					t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: rejected input kind %s must error", sc.input, mode.pub, sc.kind)
 				}
-				if pv != 0 {
-					t.Errorf("public parity NewDecimal64WithMode: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+				if pv != (Decimal64BID{}) {
+					t.Errorf("public parity NewDecimal64WithMode: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 				}
 				if pf != 0 {
 					t.Errorf("public parity NewDecimal64WithMode: input %q: error flags = %v, want zero", sc.input, pf)
@@ -12064,8 +12064,8 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 					if err == nil {
 						t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: unrepresentable NaN payload must error", sc.input, mode.pub)
 					}
-					if pv != 0 {
-						t.Errorf("public parity NewDecimal64WithMode: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+					if pv != (Decimal64BID{}) {
+						t.Errorf("public parity NewDecimal64WithMode: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 					}
 					if pf != 0 {
 						t.Errorf("public parity NewDecimal64WithMode: input %q: error flags = %v, want zero", sc.input, pf)
@@ -12074,11 +12074,11 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 					if err != nil {
 						t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: unexpected error %v", sc.input, mode.pub, err)
 					} else {
-						if !(bidgo.Bid64IsNaN(uint64(pv)) != 0) {
+						if !(bidgo.Bid64IsNaN((pv).ToUint64()) != 0) {
 							t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: expected a NaN result from the NaN literal branch", sc.input, mode.pub)
 						}
-						if (bidgo.Bid64IsSignaling(uint64(pv)) != 0) != sc.signaling {
-							t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: signaling bit mismatch public=%v literal=%v", sc.input, mode.pub, bidgo.Bid64IsSignaling(uint64(pv)) != 0, sc.signaling)
+						if (bidgo.Bid64IsSignaling((pv).ToUint64()) != 0) != sc.signaling {
+							t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: signaling bit mismatch public=%v literal=%v", sc.input, mode.pub, bidgo.Bid64IsSignaling((pv).ToUint64()) != 0, sc.signaling)
 						}
 						if pf != 0 {
 							t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: representable NaN literal must raise no flags, got %v", sc.input, mode.pub, pf)
@@ -12093,8 +12093,8 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 					if err == nil {
 						t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: rejected NaN or unrepresentable cohort result must error", sc.input, mode.pub)
 					}
-					if pv != 0 {
-						t.Errorf("public parity NewDecimal64WithMode: input %q: error result bits = %#x, want zero", sc.input, uint64(pv))
+					if pv != (Decimal64BID{}) {
+						t.Errorf("public parity NewDecimal64WithMode: input %q: error result bits = %#x, want zero", sc.input, pv.ToUint64())
 					}
 					if pf != 0 {
 						t.Errorf("public parity NewDecimal64WithMode: input %q: error flags = %v, want zero", sc.input, pf)
@@ -12102,8 +12102,8 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 				case err != nil:
 					t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: unexpected error %v", sc.input, mode.pub, err)
 				default:
-					if uint64(pv) != pr {
-						t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: result mismatch public=%v port=%v", sc.input, mode.pub, uint64(pv), pr)
+					if (pv).ToUint64() != pr {
+						t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: result mismatch public=%v port=%v", sc.input, mode.pub, (pv).ToUint64(), pr)
 					}
 					if pf != mapPortFlagsForParity(prf) {
 						t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: flag mismatch public=%v port=%v", sc.input, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -12128,13 +12128,13 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 				continue
 			}
 			pr, prf := bidgo.Bid64FromString(ds, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity NewDecimal64WithMode: discriminant input %q mode %v: result mismatch public=%v port=%v", ds, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity NewDecimal64WithMode: discriminant input %q mode %v: result mismatch public=%v port=%v", ds, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity NewDecimal64WithMode: discriminant input %q mode %v: flag mismatch public=%v port=%v", ds, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -12149,12 +12149,12 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 		}
 	}
 	controlValue, controlFlags, controlErr := NewDecimal64WithMode(discInputs[0], publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation && controlErr == nil {
-		t.Errorf("public parity NewDecimal64WithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v with a nil error already equals the rejection outcome, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation && controlErr == nil {
+		t.Errorf("public parity NewDecimal64WithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v with a nil error already equals the rejection outcome, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags, invalidErr := NewDecimal64WithMode(discInputs[0], RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation || invalidErr != nil {
-		t.Errorf("public parity NewDecimal64WithMode: invalid rounding mode result=%v flags=%v err=%v, want canonical qNaN, FlagInvalidOperation and a nil error", uint64(invalidValue), invalidFlags, invalidErr)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation || invalidErr != nil {
+		t.Errorf("public parity NewDecimal64WithMode: invalid rounding mode result=%v flags=%v err=%v, want canonical qNaN, FlagInvalidOperation and a nil error", (invalidValue).ToUint64(), invalidFlags, invalidErr)
 	}
 	count++
 	return count
@@ -12214,17 +12214,17 @@ func publicParity_ParseDecimal32BIDRaw(t *testing.T) int {
 		pv, pf := ParseDecimal32BIDRaw(sc.input)
 		if sc.kind == "nan_literal" {
 			if sc.nanMinWidth != 0 && sc.nanMinWidth <= 32 {
-				if !(bidgo.Bid32IsNaN(uint32(pv))) {
+				if !(bidgo.Bid32IsNaN((pv).ToUint32())) {
 					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: expected a NaN result from the NaN literal branch", sc.input)
 				}
-				if (bidgo.Bid32IsSignaling(uint32(pv)) != 0) != sc.signaling {
-					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling(uint32(pv)) != 0, sc.signaling)
+				if (bidgo.Bid32IsSignaling((pv).ToUint32()) != 0) != sc.signaling {
+					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid32IsSignaling((pv).ToUint32()) != 0, sc.signaling)
 				}
 				if pf != 0 {
 					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: representable NaN literal must raise no flags, got %v", sc.input, pf)
 				}
 			} else {
-				if bits := uint32(pv); bits != 0x7c000000 {
+				if bits := pv.ToUint32(); bits != 0x7c000000 {
 					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: rejected-input result bits = %#x, want canonical qNaN 0x7c000000", sc.input, bits)
 				}
 				if pf != FlagInvalidOperation {
@@ -12236,15 +12236,15 @@ func publicParity_ParseDecimal32BIDRaw(t *testing.T) int {
 			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && prf == 0
 			malformedInput := sc.kind == "blank" || sc.kind == "invalid_syntax"
 			if malformedInput || silentCohortCoercion {
-				if bits := uint32(pv); bits != 0x7c000000 {
+				if bits := pv.ToUint32(); bits != 0x7c000000 {
 					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: rejected-input result bits = %#x, want canonical qNaN 0x7c000000", sc.input, bits)
 				}
 				if pf != FlagInvalidOperation {
 					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: rejected-input flags = %v, want FlagInvalidOperation", sc.input, pf)
 				}
 			} else {
-				if uint32(pv) != pr {
-					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: result mismatch public=%v port=%v", sc.input, uint32(pv), pr)
+				if (pv).ToUint32() != pr {
+					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint32(), pr)
 				}
 				if pf != mapPortFlagsForParity(prf) {
 					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: flag mismatch public=%v port=%v", sc.input, pf, mapPortFlagsForParity(prf))
@@ -12262,17 +12262,17 @@ func publicParity_ParseDecimal64BIDRaw(t *testing.T) int {
 		pv, pf := ParseDecimal64BIDRaw(sc.input)
 		if sc.kind == "nan_literal" {
 			if sc.nanMinWidth != 0 && sc.nanMinWidth <= 64 {
-				if !(bidgo.Bid64IsNaN(uint64(pv)) != 0) {
+				if !(bidgo.Bid64IsNaN((pv).ToUint64()) != 0) {
 					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: expected a NaN result from the NaN literal branch", sc.input)
 				}
-				if (bidgo.Bid64IsSignaling(uint64(pv)) != 0) != sc.signaling {
-					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling(uint64(pv)) != 0, sc.signaling)
+				if (bidgo.Bid64IsSignaling((pv).ToUint64()) != 0) != sc.signaling {
+					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: signaling bit mismatch public=%v literal=%v", sc.input, bidgo.Bid64IsSignaling((pv).ToUint64()) != 0, sc.signaling)
 				}
 				if pf != 0 {
 					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: representable NaN literal must raise no flags, got %v", sc.input, pf)
 				}
 			} else {
-				if bits := uint64(pv); bits != 0x7c00000000000000 {
+				if bits := pv.ToUint64(); bits != 0x7c00000000000000 {
 					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: rejected-input result bits = %#x, want canonical qNaN 0x7c00000000000000", sc.input, bits)
 				}
 				if pf != FlagInvalidOperation {
@@ -12284,15 +12284,15 @@ func publicParity_ParseDecimal64BIDRaw(t *testing.T) int {
 			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && prf == 0
 			malformedInput := sc.kind == "blank" || sc.kind == "invalid_syntax"
 			if malformedInput || silentCohortCoercion {
-				if bits := uint64(pv); bits != 0x7c00000000000000 {
+				if bits := pv.ToUint64(); bits != 0x7c00000000000000 {
 					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: rejected-input result bits = %#x, want canonical qNaN 0x7c00000000000000", sc.input, bits)
 				}
 				if pf != FlagInvalidOperation {
 					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: rejected-input flags = %v, want FlagInvalidOperation", sc.input, pf)
 				}
 			} else {
-				if uint64(pv) != pr {
-					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: result mismatch public=%v port=%v", sc.input, uint64(pv), pr)
+				if (pv).ToUint64() != pr {
+					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: result mismatch public=%v port=%v", sc.input, (pv).ToUint64(), pr)
 				}
 				if pf != mapPortFlagsForParity(prf) {
 					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: flag mismatch public=%v port=%v", sc.input, pf, mapPortFlagsForParity(prf))
@@ -12307,7 +12307,7 @@ func publicParity_ParseDecimal64BIDRaw(t *testing.T) int {
 func publicParity_Sqrt128DBIDWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus64 {
-		operand := Decimal64BID(elem)
+		operand := Decimal64BIDFromBits(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := Sqrt128DBIDWithMode(operand, mode.pub)
 			pr, prf := bidgo.Bid128dSqrt(elem, mode.port)
@@ -12327,7 +12327,7 @@ func publicParity_Sqrt128DBIDWithMode(t *testing.T) int {
 		0x31c0000000000007,
 	}
 	for _, dv := range discVals {
-		operand := Decimal64BID(dv)
+		operand := Decimal64BIDFromBits(dv)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Sqrt128DBIDWithMode(operand, mode.pub)
@@ -12352,7 +12352,7 @@ func publicParity_Sqrt128DBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sqrt128DBIDWithMode: discriminant operand %v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidOperand := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
 	controlValue, controlFlags := Sqrt128DBIDWithMode(invalidOperand, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Sqrt128DBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -12368,12 +12368,12 @@ func publicParity_Sqrt128DBIDWithMode(t *testing.T) int {
 func publicParity_Sqrt64QBIDWithMode(t *testing.T) int {
 	count := 0
 	for _, elem := range publicParityCorpus128 {
-		operand := Decimal128BID(elem)
+		operand := Decimal128BIDFromBytes(elem)
 		for _, mode := range publicParityModes {
 			pv, pf := Sqrt64QBIDWithMode(operand, mode.pub)
 			pr, prf := bidgo.Bid64qSqrt(publicParityToBidgo128(elem), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sqrt64QBIDWithMode: operand %v mode %v: result mismatch public=%v port=%v", elem, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sqrt64QBIDWithMode: operand %v mode %v: result mismatch public=%v port=%v", elem, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sqrt64QBIDWithMode: operand %v mode %v: flag mismatch public=%v port=%v", elem, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -12388,18 +12388,18 @@ func publicParity_Sqrt64QBIDWithMode(t *testing.T) int {
 		{0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x30},
 	}
 	for _, dv := range discVals {
-		operand := Decimal128BID(dv)
+		operand := Decimal128BIDFromBytes(dv)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Sqrt64QBIDWithMode(operand, mode.pub)
 			pr, prf := bidgo.Bid64qSqrt(publicParityToBidgo128(dv), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sqrt64QBIDWithMode: discriminant operand %v mode %v: result mismatch public=%v port=%v", dv, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sqrt64QBIDWithMode: discriminant operand %v mode %v: result mismatch public=%v port=%v", dv, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sqrt64QBIDWithMode: discriminant operand %v mode %v: flag mismatch public=%v port=%v", dv, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -12413,14 +12413,14 @@ func publicParity_Sqrt64QBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sqrt64QBIDWithMode: discriminant operand %v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", dv)
 		}
 	}
-	invalidOperand := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidOperand := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
 	controlValue, controlFlags := Sqrt64QBIDWithMode(invalidOperand, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Sqrt64QBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sqrt64QBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Sqrt64QBIDWithMode(invalidOperand, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Sqrt64QBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sqrt64QBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -12433,8 +12433,8 @@ func publicParity_Sub128DDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Sub128DDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128ddSub(leftBits, rightBits, mode.port)
@@ -12457,8 +12457,8 @@ func publicParity_Sub128DDBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, 0x2d60000000000001},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Sub128DDBIDWithMode(left, right, mode.pub)
@@ -12483,8 +12483,8 @@ func publicParity_Sub128DDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub128DDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Sub128DDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Sub128DDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -12504,8 +12504,8 @@ func publicParity_Sub128DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Sub128DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128dqSub(leftBits, publicParityToBidgo128(rightBits), mode.port)
@@ -12528,8 +12528,8 @@ func publicParity_Sub128DQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0x2f}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Sub128DQBIDWithMode(left, right, mode.pub)
@@ -12554,8 +12554,8 @@ func publicParity_Sub128DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub128DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Sub128DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Sub128DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -12575,8 +12575,8 @@ func publicParity_Sub128QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Sub128QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid128qdSub(publicParityToBidgo128(leftBits), rightBits, mode.port)
@@ -12599,8 +12599,8 @@ func publicParity_Sub128QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x2d60000000000001},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5][16]byte
 		for mi, mode := range publicParityModes {
 			pv, pf := Sub128QDBIDWithMode(left, right, mode.pub)
@@ -12625,8 +12625,8 @@ func publicParity_Sub128QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub128QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Sub128QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
 	if controlValue.ToBytes() == ([16]byte{15: 0x7c}) && controlFlags == FlagInvalidOperation {
 		t.Errorf("public parity Sub128QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", controlValue.ToBytes(), controlFlags)
@@ -12646,13 +12646,13 @@ func publicParity_Sub64DQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus64[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal64BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal64BIDFromBits(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Sub64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqSub(leftBits, publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sub64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sub64DQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sub64DQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -12670,19 +12670,19 @@ func publicParity_Sub64DQBIDWithMode(t *testing.T) int {
 		{0xb1c0000000000001, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal64BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal64BIDFromBits(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Sub64DQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64dqSub(pair.left, publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -12696,15 +12696,15 @@ func publicParity_Sub64DQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub64DQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Sub64DQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Sub64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub64DQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Sub64DQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Sub64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub64DQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -12717,13 +12717,13 @@ func publicParity_Sub64QDBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs64[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus64[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal64BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal64BIDFromBits(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Sub64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdSub(publicParityToBidgo128(leftBits), rightBits, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sub64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sub64QDBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sub64QDBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -12741,19 +12741,19 @@ func publicParity_Sub64QDBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, 0x2fa0000000000001},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal64BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal64BIDFromBits(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Sub64QDBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qdSub(publicParityToBidgo128(pair.left), pair.right, mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -12767,15 +12767,15 @@ func publicParity_Sub64QDBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub64QDBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal64BID(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal64BIDFromBits(publicParityCorpus64[publicParityBinaryPairs64[0][1]])
 	controlValue, controlFlags := Sub64QDBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Sub64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub64QDBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Sub64QDBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Sub64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub64QDBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count
@@ -12788,13 +12788,13 @@ func publicParity_Sub64QQBIDWithMode(t *testing.T) int {
 		rightPair := publicParityBinaryPairs128[pairIndex]
 		leftBits := publicParityCorpus128[leftPair[0]]
 		rightBits := publicParityCorpus128[rightPair[1]]
-		left := Decimal128BID(leftBits)
-		right := Decimal128BID(rightBits)
+		left := Decimal128BIDFromBytes(leftBits)
+		right := Decimal128BIDFromBytes(rightBits)
 		for _, mode := range publicParityModes {
 			pv, pf := Sub64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqSub(publicParityToBidgo128(leftBits), publicParityToBidgo128(rightBits), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sub64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sub64QQBIDWithMode: operands %v,%v mode %v: result mismatch public=%v port=%v", leftBits, rightBits, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sub64QQBIDWithMode: operands %v,%v mode %v: flag mismatch public=%v port=%v", leftBits, rightBits, mode.pub, pf, mapPortFlagsForParity(prf))
@@ -12812,19 +12812,19 @@ func publicParity_Sub64QQBIDWithMode(t *testing.T) int {
 		{[16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0xb0}, [16]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x30}},
 	}
 	for _, pair := range discPairs {
-		left := Decimal128BID(pair.left)
-		right := Decimal128BID(pair.right)
+		left := Decimal128BIDFromBytes(pair.left)
+		right := Decimal128BIDFromBytes(pair.right)
 		var modeSeen [5]uint64
 		for mi, mode := range publicParityModes {
 			pv, pf := Sub64QQBIDWithMode(left, right, mode.pub)
 			pr, prf := bidgo.Bid64qqSub(publicParityToBidgo128(pair.left), publicParityToBidgo128(pair.right), mode.port)
-			if uint64(pv) != pr {
-				t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, uint64(pv), pr)
+			if (pv).ToUint64() != pr {
+				t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v mode %v: result mismatch public=%v port=%v", pair.left, pair.right, mode.pub, (pv).ToUint64(), pr)
 			}
 			if pf != mapPortFlagsForParity(prf) {
 				t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v mode %v: flag mismatch public=%v port=%v", pair.left, pair.right, mode.pub, pf, mapPortFlagsForParity(prf))
 			}
-			modeSeen[mi] = uint64(pv)
+			modeSeen[mi] = (pv).ToUint64()
 			count++
 		}
 		modeInsensitive := true
@@ -12838,15 +12838,15 @@ func publicParity_Sub64QQBIDWithMode(t *testing.T) int {
 			t.Errorf("public parity Sub64QQBIDWithMode: discriminant operands %v,%v: every rounding mode produced the same result; the mode-discriminant corpus entry no longer discriminates", pair.left, pair.right)
 		}
 	}
-	invalidLeft := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
-	invalidRight := Decimal128BID(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
+	invalidLeft := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][0]])
+	invalidRight := Decimal128BIDFromBytes(publicParityCorpus128[publicParityBinaryPairs128[0][1]])
 	controlValue, controlFlags := Sub64QQBIDWithMode(invalidLeft, invalidRight, publicParityModes[0].pub)
-	if uint64(controlValue) == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
-		t.Errorf("public parity Sub64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", uint64(controlValue), controlFlags)
+	if (controlValue).ToUint64() == 0x7c00000000000000 && controlFlags == FlagInvalidOperation {
+		t.Errorf("public parity Sub64QQBIDWithMode: invalid-mode leg is vacuous: valid-mode result=%v flags=%v already equals the rejection value, so a dropped rejection would pass", (controlValue).ToUint64(), controlFlags)
 	}
 	invalidValue, invalidFlags := Sub64QQBIDWithMode(invalidLeft, invalidRight, RoundingMode(99))
-	if uint64(invalidValue) != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
-		t.Errorf("public parity Sub64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", uint64(invalidValue), invalidFlags)
+	if (invalidValue).ToUint64() != 0x7c00000000000000 || invalidFlags != FlagInvalidOperation {
+		t.Errorf("public parity Sub64QQBIDWithMode: invalid rounding mode result=%v flags=%v, want canonical qNaN and FlagInvalidOperation", (invalidValue).ToUint64(), invalidFlags)
 	}
 	count++
 	return count

@@ -257,7 +257,7 @@ func decimal128BIDFromBits(lo, hi uint64) Decimal128BID {
 	var raw [16]byte
 	binary.LittleEndian.PutUint64(raw[0:8], lo)
 	binary.LittleEndian.PutUint64(raw[8:16], hi)
-	return Decimal128BID(raw)
+	return Decimal128BIDFromBytes(raw)
 }
 
 func decimal128BIDBits(d Decimal128BID) (lo, hi uint64) {
@@ -386,9 +386,9 @@ func primePublicBenchmarkSinks(t *testing.T, spec benchrows.DescriptorRow, ancho
 	t.Helper()
 	switch spec.Result {
 	case benchrows.ResultD32:
-		alignedSink32 = Decimal32BID(^anchor.Bits32)
+		alignedSink32 = Decimal32BIDFromBits(^anchor.Bits32)
 	case benchrows.ResultD64:
-		alignedSink64 = Decimal64BID(^anchor.Bits64)
+		alignedSink64 = Decimal64BIDFromBits(^anchor.Bits64)
 	case benchrows.ResultD128:
 		alignedSink128 = decimal128BIDFromBits(^anchor.Bits128Lo, ^anchor.Bits128Hi)
 	case benchrows.ResultI64:

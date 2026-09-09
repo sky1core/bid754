@@ -10,7 +10,7 @@ func FMA64DDQBIDWithMode(x, y Decimal64BID, z Decimal128BID, mode RoundingMode) 
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64ddqFma(x.ToUint64(), y.ToUint64(), decimal128BIDAsBidgo(z), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // FMA64DQDBIDWithMode returns x*y+z fused once to Decimal64, with D/Q/D
@@ -21,7 +21,7 @@ func FMA64DQDBIDWithMode(x Decimal64BID, y Decimal128BID, z Decimal64BID, mode R
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64dqdFma(x.ToUint64(), decimal128BIDAsBidgo(y), z.ToUint64(), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // FMA64DQQBIDWithMode returns x*y+z fused once to Decimal64, with D/Q/Q
@@ -32,7 +32,7 @@ func FMA64DQQBIDWithMode(x Decimal64BID, y, z Decimal128BID, mode RoundingMode) 
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64dqqFma(x.ToUint64(), decimal128BIDAsBidgo(y), decimal128BIDAsBidgo(z), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // FMA64QDDBIDWithMode returns x*y+z fused once to Decimal64, with Q/D/D
@@ -43,7 +43,7 @@ func FMA64QDDBIDWithMode(x Decimal128BID, y, z Decimal64BID, mode RoundingMode) 
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qddFma(decimal128BIDAsBidgo(x), y.ToUint64(), z.ToUint64(), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // FMA64QDQBIDWithMode returns x*y+z fused once to Decimal64, with Q/D/Q
@@ -54,7 +54,7 @@ func FMA64QDQBIDWithMode(x Decimal128BID, y Decimal64BID, z Decimal128BID, mode 
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qdqFma(decimal128BIDAsBidgo(x), y.ToUint64(), decimal128BIDAsBidgo(z), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // FMA64QQDBIDWithMode returns x*y+z fused once to Decimal64, with Q/Q/D
@@ -65,7 +65,7 @@ func FMA64QQDBIDWithMode(x, y Decimal128BID, z Decimal64BID, mode RoundingMode) 
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qqdFma(decimal128BIDAsBidgo(x), decimal128BIDAsBidgo(y), z.ToUint64(), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // FMA64QQQBIDWithMode returns x*y+z fused once to Decimal64 from three
@@ -76,7 +76,7 @@ func FMA64QQQBIDWithMode(x, y, z Decimal128BID, mode RoundingMode) (Decimal64BID
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qqqFma(decimal128BIDAsBidgo(x), decimal128BIDAsBidgo(y), decimal128BIDAsBidgo(z), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // FMA128DDDBIDWithMode returns x*y+z fused to Decimal128 from three
@@ -164,7 +164,7 @@ func Sqrt64QBIDWithMode(x Decimal128BID, mode RoundingMode) (Decimal64BID, Excep
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64qSqrt(decimal128BIDAsBidgo(x), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 // Sqrt128DBIDWithMode returns the Decimal128 square root of a Decimal64

@@ -8,6 +8,13 @@ on:
     branches: ["**"]
   pull_request:
 
+env:
+  VERIFY_INVOCATION: ${{ github.run_id }}:${{ github.run_attempt }}
+  GIT_AUTHOR_NAME: bid754-verification
+  GIT_AUTHOR_EMAIL: bid754-verification@example.invalid
+  GIT_COMMITTER_NAME: bid754-verification
+  GIT_COMMITTER_EMAIL: bid754-verification@example.invalid
+
 jobs:
   portable-test:
     name: Portable Test (${{ matrix.os }})
@@ -92,52 +99,18 @@ jobs:
             devtools/tests/dectest.zip
           key: pinned-gen-inputs-${{ hashFiles('devtools/scripts/setup_generation_inputs.sh') }}
 
-      - name: Verify generated artifacts
-        run: make verify-generated
+      - name: Prepare pinned generation inputs
+        run: bash ./devtools/scripts/setup_generation_inputs.sh all
 
-      - name: Verify the tree is clean after regeneration
-        run: git status --porcelain && git diff --exit-code && test -z "$(git status --porcelain)"
+      - name: Run required portable verification profile
+        run: make verify-profile VERIFY_PROFILE=ci-portable
 
-      - name: Run structural verification
-        run: |
-          make verify-zero-deps
-          make verify-portable-purity
-          make vet-go-modules
-          make verify-go-modules
-          make verify-cexport-disabled
-          make verify-package-versions
-
-      - name: Run Go and Rust tests
-        run: make test-all
-
-      - name: Verify standalone packages
-        run: |
-          make verify-bidcodec-packages
-          make verify-rust-package
-
-      - name: Run Decimal64 and Decimal128 codec long verification
-        run: make _test-bidcodec-long64-128-full
-
-      - name: Verify Rust overflow policy
-        run: make verify-rust-overflow
-
-      # BID string generated verification. Runs make verify-generated first
-      # (already done above; regeneration is deterministic so the tree stays
-      # clean), then cross-checks the generated BID string vectors across the
-      # Go and Rust consumers. Needs ripgrep, installed on this job above.
-      - name: Run BID string generated verification (runs make verify-generated first)
-        run: make test-bid-string
-
-      # Go race detector gate for the concurrent-use contract of the public
-      # runtime modules. Portable (Go-only, no native/Intel prerequisite), so
-      # it belongs on this job where the Go toolchain is already set up; the
-      # ubuntu/macos matrix additionally covers the amd64 and arm64 runtimes.
-      # Cost is ~30s and it runs in parallel with the other jobs.
-      - name: Run Go race detector (bid754-go + bid754-codec-go concurrency gate)
-        run: make test-race
-
-      - name: Produce platform digest
-        run: make digest
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: verification-portable-${{ matrix.os }}
+          path: test_results/verification/
+          if-no-files-found: error
 
       - name: Upload platform digest
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -196,14 +169,15 @@ jobs:
       - name: Prepare pinned generation inputs (internal/cgen and internal/csymbols read the extracted Intel BID C sources; the Go-port decTest gate reads the pinned IBM decTest files at run time)
         run: bash ./devtools/scripts/setup_generation_inputs.sh all
 
-      - name: Run Go module tests (includes fixed string vectors and the Go-port gates TestGeneratedReadCasesGoPort and TestGeneratedDectestSuitesGoPort)
-        run: make test-go-modules
+      - name: Run required portable verification profile
+        run: make verify-profile VERIFY_PROFILE=portable
 
-      - name: Run Rust portable tests (fixed string/codec vectors; the Rust readtest oracle gate runs in the native job via the ffi-verify crate)
-        run: make test-rust
-
-      - name: Produce platform digest
-        run: make digest
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: verification-portable-linux-arm64
+          path: test_results/verification/
+          if-no-files-found: error
 
       - name: Upload platform digest
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -231,7 +205,7 @@ jobs:
         run: >-
           bash devtools/scripts/verify_digest.sh
           --results-dir test_results/ci-digests
-          --expected-tree "$(git rev-parse HEAD)"
+          --expected-tree "$(bash devtools/scripts/print_tree_id.sh)"
           --require-platform darwin/arm64
           --require-platform linux/amd64
           --require-platform linux/arm64
@@ -257,6 +231,11 @@ jobs:
         with:
           go-version-file: bid754-go/go.mod
           cache-dependency-path: "**/go.sum"
+
+      - name: Set up Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
 
       # Pinned-archive caches (see the portable-test job for the full
       # rationale): keyed on each provisioning script's hash, OS-agnostic,
@@ -288,50 +267,39 @@ jobs:
       - name: Run doctor
         run: make doctor
 
-      - name: Run native smoke tests
-        run: make test-native-smoke
+      - name: Run required native verification profile
+        run: make verify-profile VERIFY_PROFILE=native
 
-      - name: Run generated FFI bit-compare
-        run: make test-native-ffi
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: verification-native-${{ matrix.os }}
+          path: test_results/verification/
+          if-no-files-found: error
 
-      - name: Run Tier 1 arithmetic long exact differential
-        run: make _test-native-tier1-arithmetic-long-full
-
-      - name: Run Tier 1 compare and conversion long exact differential
-        run: make _test-native-tier1-compare-conversion-long-full
-
-      - name: Run decNumber third-oracle differential gate
-        run: make _test-native-decnumber-differential-full
-
-      - name: Run Rust Tier 1 arithmetic long exact differential
-        run: make _test-rust-native-tier1-arithmetic-long-full
-
-      - name: Run Rust Tier 1 compare and conversion long exact differential
-        run: make _test-rust-native-tier1-compare-conversion-long-full
-
-      - name: Run generated readtest suites
-        run: make test-native-readtest
-
-      - name: Run generated decTest suites
-        run: make test-native-dectest
-
-      - name: Run Rust native tests (readtest vs Intel BID oracle)
-        run: make test-rust-native
-
-      # Randomized Rust-vs-C differential fuzz (ffi-verify's ffi-fuzz feature).
-      # Auxiliary, not a regular verification domain (see TEST_GENERATION_SPEC
-      # "ffi-fuzz"); it needs the same Intel BID C oracle as the step above, so
-      # it belongs on this native job. Cost is ~2s on top of the readtest build.
-      - name: Run Rust ffi-fuzz auxiliary (Rust generated vs Intel BID oracle)
-        run: make test-rust-native-fuzz
-
-  script-check:
-    name: Shell Script Check
+  verification-summary:
+    name: Required verification evidence
+    needs: [portable-test, portable-arm64-linux, native, platform-digest]
     runs-on: ubuntu-24.04
-
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
-      - name: Validate shell scripts
-        run: make check-scripts
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        with:
+          go-version-file: bid754-go/go.mod
+
+      - name: Download verification evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: verification-*
+          path: test_results/ci-verification
+          merge-multiple: true
+
+      - name: Adjudicate required profiles and platforms
+        working-directory: devtools
+        run: >-
+          go run ./cmd/verifyplan matrix --root ..
+          --results ../test_results/ci-verification
+          --invocation "$VERIFY_INVOCATION"

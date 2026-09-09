@@ -42,13 +42,14 @@ func Generate(manifest Manifest) ([]byte, error) {
 		if spec.Comment != "" {
 			b.WriteString("// " + spec.Comment + "\n")
 		}
-		b.WriteString(fmt.Sprintf("type %s %s\n\n", spec.Name, spec.Underlying))
+		b.WriteString(fmt.Sprintf("type %s struct { %s %s }\n\n", spec.Name, spec.FieldName, spec.Underlying))
+		b.WriteString(fmt.Sprintf("func %s(raw %s) %s { return %s{%s: raw} }\n\n", spec.ConstructorName, spec.Underlying, spec.Name, spec.Name, spec.FieldName))
 		if spec.AccessorName != "" {
 			if spec.AccessorComment != "" {
 				b.WriteString("// " + spec.AccessorComment + "\n")
 			}
 			b.WriteString(fmt.Sprintf("func (d %s) %s() %s {\n", spec.Name, spec.AccessorName, spec.AccessorType))
-			b.WriteString(fmt.Sprintf("\treturn %s(d)\n", spec.AccessorType))
+			b.WriteString(fmt.Sprintf("\treturn d.%s\n", spec.FieldName))
 			b.WriteString("}\n\n")
 		}
 	}

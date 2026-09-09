@@ -32,10 +32,10 @@ const (
 
 // canonicalQNaN32BID returns the canonical Decimal32 quiet NaN used as the
 // rejection result of a Decimal32-producing surface handed an invalid mode.
-func canonicalQNaN32BID() Decimal32BID { return Decimal32BID(bidNaNBits32) }
+func canonicalQNaN32BID() Decimal32BID { return Decimal32BIDFromBits(bidNaNBits32) }
 
 // canonicalQNaN64BID returns the canonical Decimal64 quiet NaN.
-func canonicalQNaN64BID() Decimal64BID { return Decimal64BID(bidNaNBits64) }
+func canonicalQNaN64BID() Decimal64BID { return Decimal64BIDFromBits(bidNaNBits64) }
 
 // canonicalQNaN128BID returns the canonical Decimal128 quiet NaN. The high word
 // carries the 0x7c… combination field; the payload words are zero.

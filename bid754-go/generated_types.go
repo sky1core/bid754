@@ -39,25 +39,31 @@ const (
 )
 
 // Decimal32BID is a 32-bit BID decimal routed through the Go mechanical port path.
-type Decimal32BID uint32
+type Decimal32BID struct{ raw uint32 }
+
+func Decimal32BIDFromBits(raw uint32) Decimal32BID { return Decimal32BID{raw: raw} }
 
 // ToUint32 returns the raw 32-bit BID bit pattern.
 func (d Decimal32BID) ToUint32() uint32 {
-	return uint32(d)
+	return d.raw
 }
 
 // Decimal64BID is a 64-bit BID decimal routed through the Go mechanical port path.
-type Decimal64BID uint64
+type Decimal64BID struct{ raw uint64 }
+
+func Decimal64BIDFromBits(raw uint64) Decimal64BID { return Decimal64BID{raw: raw} }
 
 // ToUint64 returns the raw 64-bit BID bit pattern.
 func (d Decimal64BID) ToUint64() uint64 {
-	return uint64(d)
+	return d.raw
 }
 
 // Decimal128BID is a 128-bit BID decimal with 1:1 byte correspondence.
-type Decimal128BID [16]byte
+type Decimal128BID struct{ raw [16]byte }
+
+func Decimal128BIDFromBytes(raw [16]byte) Decimal128BID { return Decimal128BID{raw: raw} }
 
 // ToBytes returns the raw 128-bit BID bit pattern as 16 bytes.
 func (d Decimal128BID) ToBytes() [16]byte {
-	return [16]byte(d)
+	return d.raw
 }

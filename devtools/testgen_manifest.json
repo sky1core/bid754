@@ -653,10 +653,16 @@
       { "method": "ConvertToUint64Exact", "bidgo_op": "ToUint64", "mode_dispatch": true, "reason": "exact variant selects one of the Intel inexact-signaling bid<w>_to_uint64_x* converters by rounding mode" }
     ],
     "value_method_exclusions": [
+      { "method": "MarshalText", "class": "raw_text_plumbing", "reason": "preserves legacy raw integer map keys and XML text/attributes, or lossless fixed-width byte text; not decimal arithmetic" },
+      { "method": "UnmarshalText", "class": "raw_text_plumbing", "reason": "validates and restores raw text/map keys without truncation or partial receiver updates; not decimal arithmetic" },
+      { "method": "MarshalJSON", "class": "raw_json_plumbing", "reason": "serializes the exact stored uint32, uint64, or 16-byte array using the legacy raw JSON shape; external-consumer raw-bit tests cover representation preservation; no arithmetic or mechanical-port operation" },
+      { "method": "UnmarshalJSON", "class": "raw_json_plumbing", "reason": "validates the legacy raw JSON shape before committing stored bits; null preserves the receiver, invalid inputs return errors, and d128 requires exactly 16 integer bytes; external-consumer rejection tests cover this non-arithmetic plumbing" },
+      { "method": "MarshalXML", "class": "raw_xml_plumbing", "reason": "preserves legacy unsigned-integer XML text or losslessly representable 16-byte XML text; rejects invalid UTF-8 and XML characters instead of replacement; external-consumer tests cover this non-arithmetic plumbing" },
+      { "method": "UnmarshalXML", "class": "raw_xml_plumbing", "reason": "validates unsigned-integer XML text or exactly 16 decoded text bytes before committing stored bits; rejects unsupported values and child elements through errors; external-consumer tests cover this non-arithmetic plumbing" },
       { "method": "PrettyString", "class": "display_plumbing", "reason": "display-oriented reformatting of the port to_string output (trim/format helpers); no IEEE port operation of its own" },
-      { "method": "ToUint32", "class": "layout_plumbing", "reason": "generated fixed-width bit-pattern accessor (uint32(d)); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation" },
-      { "method": "ToUint64", "class": "layout_plumbing", "reason": "generated fixed-width bit-pattern accessor (uint64(d)); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation" },
-      { "method": "ToBytes", "class": "layout_plumbing", "reason": "generated fixed-width byte-layout accessor ([16]byte(d)); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation" }
+      { "method": "ToUint32", "class": "layout_plumbing", "reason": "generated fixed-width bit-pattern accessor (d.ToUint32()); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation" },
+      { "method": "ToUint64", "class": "layout_plumbing", "reason": "generated fixed-width bit-pattern accessor (d.ToUint64()); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation" },
+      { "method": "ToBytes", "class": "layout_plumbing", "reason": "generated fixed-width byte-layout accessor (d.ToBytes()); covered by types_layout_check and the BID codec vectors domain, not an arithmetic port operation" }
     ],
     "symbol_overrides": [
       { "symbol": "NewDecimal32", "bidgo_function": "Bid32FromStringRaw", "reason": "string constructor parses through the Go mechanical port bid32_from_string raw entrypoint" },
@@ -731,6 +737,9 @@
       { "symbol": "Sqrt128DBIDWithMode", "bidgo_function": "Bid128dSqrt", "reason": "Intel mixed-width bid128d_sqrt: Decimal64 operand producing a Decimal128 square root" }
     ],
     "symbol_exclusions": [
+      { "symbol": "Decimal32BIDFromBits", "class": "layout_plumbing", "reason": "explicit raw representation constructor; external consumer and value layout contracts verify every stored bit" },
+      { "symbol": "Decimal64BIDFromBits", "class": "layout_plumbing", "reason": "explicit raw representation constructor; external consumer and value layout contracts verify every stored bit" },
+      { "symbol": "Decimal128BIDFromBytes", "class": "layout_plumbing", "reason": "explicit raw representation constructor; external consumer and value layout contracts verify every stored bit" },
       { "symbol": "Is754Version1985", "class": "version_const", "reason": "IEEE 754 version predicate mirroring pinned Intel bid_is754; no arithmetic port operation" },
       { "symbol": "Is754Version2008", "class": "version_const", "reason": "IEEE 754 version predicate mirroring pinned Intel bid_is754R; no arithmetic port operation" },
       { "symbol": "Is754Version2019", "class": "version_const", "reason": "IEEE 754 version predicate for the supported decimal surface; no arithmetic port operation" },

@@ -44,33 +44,24 @@ To run the current project-level verification boundary:
 make verify-all
 ```
 
-`make verify-all` is the top-level reproducible verification target. It runs the
-shell script syntax gate, the active portable Go module tests, vet checks,
-Go module tidy/verify hygiene, the
-bid754-go/bid754-codec-go/devtools zero-dependency contract,
-the portable cgo-purity contract, generated Rust tests, generated-artifact
-reproducibility,
-verification that the inactive `bid754-go/internal/bidgo/cexport` module remains outside normal link inputs, the
-package manifest version agreement verification, the six-language standalone BID
-codec package verification and vector consumers, the Decimal64/128 BID codec
-long differential verification, the `bid754-rs` publish-package
-shape verification, BID string vector verification, the
-generated Rust overflow policy verification, and the native gates: native
-smoke, generated FFI bit-compare, the Go and Rust Tier 1 arithmetic and
-compare/conversion long differentials, generated readtest, generated decTest,
-Rust native readtest, and the Rust ffi-fuzz auxiliary. Gate logs are
-additionally re-checked by `devtools/cmd/verifylog`: the canonical-full Tier 1
-targets must carry the anchored executed/total comparison counts, the
-routing-sentinel full-count lines (row counts pinned in
-`devtools/verification_sentinels.json`), and top-level PASS evidence
-(including the Rust runners' exact passed-test counts). The native FFI and
-readtest targets must additionally carry one exact compact summary whose
-run/pass/skip totals match `devtools/verification_anchors.json`; decTest must
-carry top-level PASS evidence. A zero-test or reduced-corpus run cannot report
-green. The native gates
-are required by default: when `.env.sh`, Intel BID `libbid.a`, or IBM
-decNumber are missing, the target fails; set
-`VERIFY_ALL_ALLOW_MISSING_NATIVE=1` to skip the native gates explicitly.
+`make verify-all` prepares pinned generation inputs and executes the `full`
+profile in `devtools/verification_plan.json`. This plan owns the required
+portable/native gates and their execution evidence; `Makefile` owns individual
+gate commands. CI and Docker select profiles from the same plan. To inspect a
+profile, run `cd devtools && go run ./cmd/verifyplan list --profile full`.
+
+Each invocation writes a fresh `test_results/verification/<profile>-<run>/`
+directory containing `result.json` and a log per gate. The final adjudicator
+requires every selected gate, anchored corpus counts, required consumers and
+comparison strength, matching source/plan/anchor identities, and logs from that
+invocation. `GOFLAGS` must be empty; each gate declares its own test selection
+and native tags. Tool versions and relevant build configuration are recorded.
+Local Git author/committer identity must be configured for temporary release
+fixtures; CI and Docker supply an explicit verification identity.
+
+Native prerequisites are required by default. `VERIFY_ALL_ALLOW_MISSING_NATIVE=1`
+selects `full-portable`, explicitly reported as partial. It cannot produce a
+`full` pass. Independent exhaustive gates remain separate profiles of work.
 Compatibility entrypoints `devtools/run_tests.sh`, `devtools/run_tests_and_benchmarks.sh`, and
 `devtools/scripts/build_all.sh` are thin wrappers around this target for test
 verification.

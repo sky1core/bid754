@@ -166,16 +166,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 `RoundingMode::NearestDown` and `BID_ROUNDING_NEAREST_DOWN` are non-IEEE
-decTest compatibility values. They exist only in the `#[doc(hidden)]`
-internal compatibility modules below (`gen_constants`) for generated/internal
+decTest compatibility values. They exist only in the internal compatibility
+modules below (`gen_constants`), exposed by the `verification` feature for
 verification plumbing; the public `RoundingMode` enum never includes them, so
 the type itself defines the boundary without a separate adapter.
 
 ## Non-Stable Internal Modules
 
-Beyond the public API surface above, this crate also exposes a handful of
-`#[doc(hidden)]` modules for repository integration tests, benchmarks, and
-generated verification harnesses:
+The non-default `verification` feature exposes these modules for repository
+integration tests, benchmarks, and generated verification harnesses. They are
+private in the default build:
 
 - `generated`: Go-to-Rust generated BID implementation functions (what the
   public API wrappers call into)
@@ -210,7 +210,7 @@ make test-bidcodec
 make verify-rust-package
 ```
 
-`make test-rust` (`cargo test --locked` in this crate) runs the fixed-vector
+`make test-rust` (`cargo test --locked --features verification` in this crate) runs the fixed-vector
 codec/string tests, the **public API parity gate**
 (`tests/public_parity_generated.rs`: every one of the 379 wrapper symbols,
 bit-compared against an independent direct call into the same

@@ -2712,7 +2712,7 @@ func parseFFIReadtestUint128UnaryOperand(tc generatedFFICase) (Decimal128BID, er
 	if err != nil {
 		return Decimal128BID{}, err
 	}
-	return Decimal128BID(raw), nil
+	return Decimal128BIDFromBytes(raw), nil
 }
 
 func parseFFIUint128BinaryOperands(tc generatedFFICase) (Decimal128BID, Decimal128BID, error) {
@@ -2772,9 +2772,9 @@ func parseFFIUint128Bits(input string) (Decimal128BID, error) {
 	if len(raw) != 16 {
 		return Decimal128BID{}, fmt.Errorf("decoded %d bytes, want 16", len(raw))
 	}
-	var out Decimal128BID
+	var out [16]byte
 	copy(out[:], raw)
-	return out, nil
+	return Decimal128BIDFromBytes(out), nil
 }
 
 func formatFFIUint128Bits(value Decimal128BID) string {

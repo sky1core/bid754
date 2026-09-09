@@ -21,8 +21,8 @@ import (
 //                 same bits; WithMode(NearestEven) matches WithFlags; and the
 //                 public render/parse closure holds (Direct(v.String()) == v).
 //   - "rounded":  Direct errors (exact-only contract); WithFlags succeeds with
-//                 nonzero flags (the IEEE flag channel reports the rounding /
-//                 range excursion instead of silence); WithMode matches.
+//                 independent Intel C result bits and exact flags; all five
+//                 WithMode rounding modes match their independent expectations.
 //   - "rejected": every family errors with a zero value and zero flags (public
 //                 grammar violation, silent-cohort trap, or a NaN payload
 //                 outside the width's range).

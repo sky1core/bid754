@@ -13,7 +13,7 @@ import (
 const (
 	dectestGeneratedNativeTestPath = "../bid754-go/generated_dectest_cases_native_test.go"
 	dectestGeneratedStubTestPath   = "../bid754-go/generated_dectest_cases_stub_test.go"
-	dectestGeneratedDispatchPath   = "../bid754-go/generated_dectest_dispatch.go"
+	dectestGeneratedDispatchPath   = "../bid754-go/generated_dectest_dispatch_test.go"
 )
 
 type dectestExecutorTemplate struct {
@@ -22,26 +22,27 @@ type dectestExecutorTemplate struct {
 }
 
 var dectestExecutorTemplates = []dectestExecutorTemplate{
-	{OutputPath: "../bid754-go/dectest_class.go", TemplatePath: "internal/testgen/dectest_templates/dectest_class.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_compare.go", TemplatePath: "internal/testgen/dectest_templates/dectest_compare.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_comparetotal.go", TemplatePath: "internal/testgen/dectest_templates/dectest_comparetotal.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_copy.go", TemplatePath: "internal/testgen/dectest_templates/dectest_copy.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_driver.go", TemplatePath: "internal/testgen/dectest_templates/dectest_driver.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_native_adapter_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native_adapter_test.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_class_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_class.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_compare_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_compare.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_comparetotal_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_comparetotal.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_copy_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_copy.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_driver_support_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_driver.go.tmpl"},
 	{OutputPath: "../bid754-go/dectest_spec_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_spec_test.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_fma.go", TemplatePath: "internal/testgen/dectest_templates/dectest_fma.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_helpers.go", TemplatePath: "internal/testgen/dectest_templates/dectest_helpers.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_logb.go", TemplatePath: "internal/testgen/dectest_templates/dectest_logb.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_minmax.go", TemplatePath: "internal/testgen/dectest_templates/dectest_minmax.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_fma_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_fma.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_helpers_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_helpers.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_logb_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_logb.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_minmax_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_minmax.go.tmpl"},
 	{OutputPath: "../bid754-go/dectest_native.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_native_stub.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native_stub.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_next.go", TemplatePath: "internal/testgen/dectest_templates/dectest_next.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_nexttoward.go", TemplatePath: "internal/testgen/dectest_templates/dectest_nexttoward.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_remainder.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remainder.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_remaindernear.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remaindernear.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_samequantum.go", TemplatePath: "internal/testgen/dectest_templates/dectest_samequantum.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_scaleb.go", TemplatePath: "internal/testgen/dectest_templates/dectest_scaleb.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_tointegral.go", TemplatePath: "internal/testgen/dectest_templates/dectest_tointegral.go.tmpl"},
-	{OutputPath: "../bid754-go/dectest_unary.go", TemplatePath: "internal/testgen/dectest_templates/dectest_unary.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_native_stub_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_native_stub.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_next_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_next.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_nexttoward_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_nexttoward.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_remainder_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remainder.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_remaindernear_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_remaindernear.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_samequantum_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_samequantum.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_scaleb_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_scaleb.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_tointegral_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_tointegral.go.tmpl"},
+	{OutputPath: "../bid754-go/dectest_unary_test.go", TemplatePath: "internal/testgen/dectest_templates/dectest_unary.go.tmpl"},
 }
 
 type dectestGeneratedSuiteCoverage struct {

@@ -290,10 +290,10 @@ type tier1ArithmeticTriple128 struct {
 }
 
 func tier1ArithmeticDecimal128(words tier1Arithmetic128Words) Decimal128BID {
-	var value Decimal128BID
-	binary.LittleEndian.PutUint64(value[0:8], words.lo)
-	binary.LittleEndian.PutUint64(value[8:16], words.hi)
-	return value
+	var raw [16]byte
+	binary.LittleEndian.PutUint64(raw[0:8], words.lo)
+	binary.LittleEndian.PutUint64(raw[8:16], words.hi)
+	return Decimal128BIDFromBytes(raw)
 }
 
 func tier1ArithmeticPublicRawFlags(flags ExceptionFlags) (uint32, ExceptionFlags) {
@@ -327,7 +327,7 @@ func tier1ArithmeticPublicRawFlags(flags ExceptionFlags) (uint32, ExceptionFlags
 func tier1ArithmeticLegsRounded32(t *testing.T, operation string, x, y uint32, mode tier1ArithmeticMode) (native, port, public string, pure uint32, pureChecked bool, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase32Binary("bid32_"+operation, x, y, mode.native)
-	left, right := Decimal32BID(x), Decimal32BID(y)
+	left, right := Decimal32BIDFromBits(x), Decimal32BIDFromBits(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
 	pureChecked = true
@@ -369,7 +369,7 @@ func tier1ArithmeticCheckRounded32(t *testing.T, operation string, x, y uint32, 
 func tier1ArithmeticLegsFma32(t *testing.T, x, y, z uint32, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase32Ternary("bid32_fma", x, y, z, mode.native)
-	got, gotFlags := Decimal32BID(x).FMAWithMode(Decimal32BID(y), Decimal32BID(z), mode.public)
+	got, gotFlags := Decimal32BIDFromBits(x).FMAWithMode(Decimal32BIDFromBits(y), Decimal32BIDFromBits(z), mode.public)
 	var publicRawFlags uint32
 	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
@@ -386,7 +386,7 @@ func tier1ArithmeticCheckFma32(t *testing.T, x, y, z uint32, mode tier1Arithmeti
 func tier1ArithmeticLegsSqrt32(t *testing.T, x uint32, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase32Unary("bid32_sqrt", x, mode.native)
-	got, gotFlags := Decimal32BID(x).SqrtWithMode(mode.public)
+	got, gotFlags := Decimal32BIDFromBits(x).SqrtWithMode(mode.public)
 	var publicRawFlags uint32
 	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	public = fmt.Sprintf("%08x/%08x", got.ToUint32(), publicRawFlags)
@@ -409,7 +409,7 @@ func tier1ArithmeticLegsUnrounded32(t *testing.T, operation string, x, y uint32)
 		t.Fatalf("decimal32 unknown unrounded Tier 1 operation %q", operation)
 	}
 	native, port = runGeneratedFFICase32Binary(function, x, y, 0)
-	left, right := Decimal32BID(x), Decimal32BID(y)
+	left, right := Decimal32BIDFromBits(x), Decimal32BIDFromBits(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
 	if operation == "remainder" {
@@ -433,7 +433,7 @@ func tier1ArithmeticCheckUnrounded32(t *testing.T, operation string, x, y uint32
 func tier1ArithmeticLegsScale32(t *testing.T, x uint32, exponent int64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	nativeBits, nativeFlags, portBits, portFlags := runGeneratedFFICase32DecimalFlagInt("scalbln", x, int(exponent), mode.native)
-	got, gotFlags := Decimal32BID(x).ScaleBWithMode(int(exponent), mode.public)
+	got, gotFlags := Decimal32BIDFromBits(x).ScaleBWithMode(int(exponent), mode.public)
 	var publicRawFlags uint32
 	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	native = fmt.Sprintf("%08x/%08x", nativeBits, nativeFlags)
@@ -452,7 +452,7 @@ func tier1ArithmeticCheckScale32(t *testing.T, x uint32, exponent int64, mode ti
 func tier1ArithmeticLegsRounded64(t *testing.T, operation string, x, y uint64, mode tier1ArithmeticMode) (native, port, public string, pure uint64, pureChecked bool, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase64Binary("bid64_"+operation, x, y, mode.native)
-	left, right := Decimal64BID(x), Decimal64BID(y)
+	left, right := Decimal64BIDFromBits(x), Decimal64BIDFromBits(y)
 	var got Decimal64BID
 	var gotFlags ExceptionFlags
 	pureChecked = true
@@ -494,7 +494,7 @@ func tier1ArithmeticCheckRounded64(t *testing.T, operation string, x, y uint64, 
 func tier1ArithmeticLegsFma64(t *testing.T, x, y, z uint64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase64Ternary("bid64_fma", x, y, z, mode.native)
-	got, gotFlags := Decimal64BID(x).FMAWithMode(Decimal64BID(y), Decimal64BID(z), mode.public)
+	got, gotFlags := Decimal64BIDFromBits(x).FMAWithMode(Decimal64BIDFromBits(y), Decimal64BIDFromBits(z), mode.public)
 	var publicRawFlags uint32
 	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
@@ -511,7 +511,7 @@ func tier1ArithmeticCheckFma64(t *testing.T, x, y, z uint64, mode tier1Arithmeti
 func tier1ArithmeticLegsSqrt64(t *testing.T, x uint64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase64Unary("bid64_sqrt", x, mode.native)
-	got, gotFlags := Decimal64BID(x).SqrtWithMode(mode.public)
+	got, gotFlags := Decimal64BIDFromBits(x).SqrtWithMode(mode.public)
 	var publicRawFlags uint32
 	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	public = fmt.Sprintf("%016x/%08x", got.ToUint64(), publicRawFlags)
@@ -534,7 +534,7 @@ func tier1ArithmeticLegsUnrounded64(t *testing.T, operation string, x, y uint64)
 		t.Fatalf("decimal64 unknown unrounded Tier 1 operation %q", operation)
 	}
 	native, port = runGeneratedFFICase64Binary(function, x, y, 0)
-	left, right := Decimal64BID(x), Decimal64BID(y)
+	left, right := Decimal64BIDFromBits(x), Decimal64BIDFromBits(y)
 	var got Decimal64BID
 	var gotFlags ExceptionFlags
 	if operation == "remainder" {
@@ -558,7 +558,7 @@ func tier1ArithmeticCheckUnrounded64(t *testing.T, operation string, x, y uint64
 func tier1ArithmeticLegsScale64(t *testing.T, x uint64, exponent int64, mode tier1ArithmeticMode) (native, port, public string, unknownPublicFlags ExceptionFlags) {
 	t.Helper()
 	nativeBits, nativeFlags, portBits, portFlags := runGeneratedFFICase64DecimalFlagInt("scalbln", x, int(exponent), mode.native)
-	got, gotFlags := Decimal64BID(x).ScaleBWithMode(int(exponent), mode.public)
+	got, gotFlags := Decimal64BIDFromBits(x).ScaleBWithMode(int(exponent), mode.public)
 	var publicRawFlags uint32
 	publicRawFlags, unknownPublicFlags = tier1ArithmeticPublicRawFlags(gotFlags)
 	native = fmt.Sprintf("%016x/%08x", nativeBits, nativeFlags)
@@ -871,8 +871,8 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				caseIndex++
 			}
 			if shard.count == 1 {
-				remainder, _ := Decimal32BID(tc.x).Remainder(Decimal32BID(tc.y))
-				fmod, _ := Decimal32BID(tc.x).Fmod(Decimal32BID(tc.y))
+				remainder, _ := Decimal32BIDFromBits(tc.x).Remainder(Decimal32BIDFromBits(tc.y))
+				fmod, _ := Decimal32BIDFromBits(tc.x).Fmod(Decimal32BIDFromBits(tc.y))
 				if remainder == fmod {
 					t.Fatalf("decimal32 remainder/fmod semantic discriminator collapsed: x=%08x y=%08x result=%08x", tc.x, tc.y, remainder.ToUint32())
 				}
@@ -970,8 +970,8 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				caseIndex++
 			}
 			if shard.count == 1 {
-				remainder, _ := Decimal64BID(tc.x).Remainder(Decimal64BID(tc.y))
-				fmod, _ := Decimal64BID(tc.x).Fmod(Decimal64BID(tc.y))
+				remainder, _ := Decimal64BIDFromBits(tc.x).Remainder(Decimal64BIDFromBits(tc.y))
+				fmod, _ := Decimal64BIDFromBits(tc.x).Fmod(Decimal64BIDFromBits(tc.y))
 				if remainder == fmod {
 					t.Fatalf("decimal64 remainder/fmod semantic discriminator collapsed: x=%016x y=%016x result=%016x", tc.x, tc.y, remainder.ToUint64())
 				}

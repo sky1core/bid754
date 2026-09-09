@@ -74,16 +74,16 @@ func decimal32BIDAddPortFlags(d, other Decimal32BID) (Decimal32BID, ExceptionFla
 }
 
 func decimal32BIDAddPortMode(d, other Decimal32BID, rndMode int) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32Add(d.ToUint32(), other.ToUint32(), rndMode))
+	return Decimal32BIDFromBits(bidgo.Bid32Add(d.ToUint32(), other.ToUint32(), rndMode))
 }
 
 func decimal32BIDAddPortModeFlags(d, other Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32AddWithFlags(d.ToUint32(), other.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDSubPort(d, other Decimal32BID) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32Sub(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode))
+	return Decimal32BIDFromBits(bidgo.Bid32Sub(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode))
 }
 
 func decimal32BIDSubPortFlags(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
@@ -92,21 +92,21 @@ func decimal32BIDSubPortFlags(d, other Decimal32BID) (Decimal32BID, ExceptionFla
 
 func decimal32BIDSubPortModeFlags(d, other Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32SubWithFlags(d.ToUint32(), other.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDMulPort(d, other Decimal32BID) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32Mul(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode))
+	return Decimal32BIDFromBits(bidgo.Bid32Mul(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode))
 }
 
 func decimal32BIDMulPortFlags(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32MulWithFlags(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDMulPortModeFlags(d, other Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32MulWithFlags(d.ToUint32(), other.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDFMAPort(d, mul, add Decimal32BID) (Decimal32BID, ExceptionFlags) {
@@ -115,56 +115,56 @@ func decimal32BIDFMAPort(d, mul, add Decimal32BID) (Decimal32BID, ExceptionFlags
 
 func decimal32BIDFMAPortMode(d, mul, add Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Fma(d.ToUint32(), mul.ToUint32(), add.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDSqrtPort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Sqrt(d.ToUint32(), defaultBIDRoundingMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDSqrtPortModeFlags(d Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Sqrt(d.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDDivPort(d, other Decimal32BID) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32Div(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode))
+	return Decimal32BIDFromBits(bidgo.Bid32Div(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode))
 }
 
 func decimal32BIDDivPortFlags(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32DivWithFlags(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDDivPortModeFlags(d, other Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32DivWithFlags(d.ToUint32(), other.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDRemainderPort(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Rem(d.ToUint32(), other.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDFmodPort(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Fmod(d.ToUint32(), other.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDQuantizePort(d, other Decimal32BID) Decimal32BID {
 	result, _ := bidgo.Bid32Quantize(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode)
-	return Decimal32BID(result)
+	return Decimal32BIDFromBits(result)
 }
 
 func decimal32BIDQuantizePortFlags(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Quantize(d.ToUint32(), other.ToUint32(), defaultBIDRoundingMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDQuantizePortModeFlags(d, other Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Quantize(d.ToUint32(), other.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDSameQuantumPort(d, other Decimal32BID) bool {
@@ -173,22 +173,22 @@ func decimal32BIDSameQuantumPort(d, other Decimal32BID) bool {
 
 func decimal32BIDMinNumPort(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32MinNumWithFlags(d.ToUint32(), other.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDMaxNumPort(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32MaxNumWithFlags(d.ToUint32(), other.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDMinNumMagPort(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32MinNumMagWithFlags(d.ToUint32(), other.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDMaxNumMagPort(d, other Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32MaxNumMagWithFlags(d.ToUint32(), other.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDCompareTotalPort(d, other Decimal32BID) int {
@@ -201,47 +201,47 @@ func decimal32BIDCompareTotalMagPort(d, other Decimal32BID) int {
 
 func decimal32BIDRoundIntegralExactPort(d Decimal32BID) Decimal32BID {
 	result, _ := bidgo.Bid32RoundIntegralExact(d.ToUint32(), defaultBIDRoundingMode)
-	return Decimal32BID(result)
+	return Decimal32BIDFromBits(result)
 }
 
 func decimal32BIDRoundIntegralExactPortFlags(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32RoundIntegralExact(d.ToUint32(), defaultBIDRoundingMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDRoundIntegralExactPortModeFlags(d Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32RoundIntegralExact(d.ToUint32(), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDRoundIntegralNearestEvenPort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32RoundIntegralNearestEven(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDRoundIntegralNearestAwayPort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32RoundIntegralNearestAway(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDRoundIntegralZeroPort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32RoundIntegralZero(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDRoundIntegralPositivePort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32RoundIntegralPositive(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDRoundIntegralNegativePort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32RoundIntegralNegative(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDLogBPort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32Logb(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDILogBPort(d Decimal32BID) (int, ExceptionFlags) {
@@ -256,28 +256,28 @@ func decimal32BIDQuantexpPort(d Decimal32BID) (int32, ExceptionFlags) {
 
 func decimal32BIDScaleBPort(d Decimal32BID, exponent int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32ScalblnWithFlags(d.ToUint32(), int64(exponent), defaultBIDRoundingMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDScaleBPortModeFlags(d Decimal32BID, exponent int, rndMode int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32ScalblnWithFlags(d.ToUint32(), int64(exponent), rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDCopyPort(d Decimal32BID) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32Copy(d.ToUint32()))
+	return Decimal32BIDFromBits(bidgo.Bid32Copy(d.ToUint32()))
 }
 
 func decimal32BIDAbsPort(d Decimal32BID) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32Abs(d.ToUint32()))
+	return Decimal32BIDFromBits(bidgo.Bid32Abs(d.ToUint32()))
 }
 
 func decimal32BIDNegatePort(d Decimal32BID) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32Negate(d.ToUint32()))
+	return Decimal32BIDFromBits(bidgo.Bid32Negate(d.ToUint32()))
 }
 
 func decimal32BIDCopySignPort(d, signSource Decimal32BID) Decimal32BID {
-	return Decimal32BID(bidgo.Bid32CopySign(d.ToUint32(), signSource.ToUint32()))
+	return Decimal32BIDFromBits(bidgo.Bid32CopySign(d.ToUint32(), signSource.ToUint32()))
 }
 
 func decimal32BIDStringPort(d Decimal32BID) string {
@@ -336,22 +336,22 @@ func decimal32BIDToDecimal128Port(d Decimal32BID) (out Decimal128BID, flags Exce
 
 func decimal32BIDToDecimal64Port(d Decimal32BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32ToBid64(d.ToUint32())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDNextTowardPort(d Decimal32BID, target Decimal128BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32NextToward(d.ToUint32(), decimal128BIDAsBidgo(target))
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDNextPlusPort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32NextUp(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDNextMinusPort(d Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32NextDown(d.ToUint32())
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal32BIDPrettyStringPort(d Decimal32BID) string {
@@ -415,7 +415,7 @@ func decimal32BIDSignPort(d Decimal32BID) int {
 func newDecimal32BIDDirectPort(s string) (Decimal32BID, error) {
 	result, flags := parseDecimal32BIDPort(s)
 	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
-		return 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal32BID{}, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, nil
 }
@@ -423,7 +423,7 @@ func newDecimal32BIDDirectPort(s string) (Decimal32BID, error) {
 func newDecimal32BIDWithFlagsPort(s string) (Decimal32BID, ExceptionFlags, error) {
 	result, flags := parseDecimal32BIDPort(s)
 	if rejectedBIDStringInput(flags) {
-		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal32BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
 }
@@ -439,13 +439,13 @@ func newDecimal32BIDWithModePort(s string, mode RoundingMode) (Decimal32BID, Exc
 	rnd, ok := bidgoRoundingMode(mode)
 	if !ok {
 		if _, _, err := newDecimal32BIDWithFlagsPort(s); err != nil {
-			return 0, 0, err
+			return Decimal32BID{}, 0, err
 		}
 		return canonicalQNaN32BID(), FlagInvalidOperation, nil
 	}
 	result, flags := parseDecimal32BIDPublicMode(s, rnd)
 	if rejectedBIDStringInput(flags) {
-		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal32BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
 }
@@ -496,7 +496,7 @@ func parseDecimal32BIDPortModeWithRawStatus(s string, rndMode int) (Decimal32BID
 		return canonicalQNaN32BID(), FlagInvalidOperation, bidgo.BID_INVALID_EXCEPTION
 	}
 	result, rawFlags := bidgo.Bid32FromStringRaw(s, rndMode)
-	return Decimal32BID(result), bidgoExceptionFlags(rawFlags), rawFlags
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(rawFlags), rawFlags
 }
 
 func decimal64BIDAddPort(d, other Decimal64BID) Decimal64BID {
@@ -508,16 +508,16 @@ func decimal64BIDAddPortFlags(d, other Decimal64BID) (Decimal64BID, ExceptionFla
 }
 
 func decimal64BIDAddPortMode(d, other Decimal64BID, rndMode int) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64Add(d.ToUint64(), other.ToUint64(), rndMode))
+	return Decimal64BIDFromBits(bidgo.Bid64Add(d.ToUint64(), other.ToUint64(), rndMode))
 }
 
 func decimal64BIDAddPortModeFlags(d, other Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64AddWithFlags(d.ToUint64(), other.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDSubPort(d, other Decimal64BID) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64Sub(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode))
+	return Decimal64BIDFromBits(bidgo.Bid64Sub(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode))
 }
 
 func decimal64BIDSubPortFlags(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
@@ -526,21 +526,21 @@ func decimal64BIDSubPortFlags(d, other Decimal64BID) (Decimal64BID, ExceptionFla
 
 func decimal64BIDSubPortModeFlags(d, other Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64SubWithFlags(d.ToUint64(), other.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDMulPort(d, other Decimal64BID) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64Mul(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode))
+	return Decimal64BIDFromBits(bidgo.Bid64Mul(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode))
 }
 
 func decimal64BIDMulPortFlags(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64MulWithFlags(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDMulPortModeFlags(d, other Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64MulWithFlags(d.ToUint64(), other.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDFMAPort(d, mul, add Decimal64BID) (Decimal64BID, ExceptionFlags) {
@@ -549,56 +549,56 @@ func decimal64BIDFMAPort(d, mul, add Decimal64BID) (Decimal64BID, ExceptionFlags
 
 func decimal64BIDFMAPortMode(d, mul, add Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Fma(d.ToUint64(), mul.ToUint64(), add.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDSqrtPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Sqrt(d.ToUint64(), defaultBIDRoundingMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDSqrtPortModeFlags(d Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Sqrt(d.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDDivPort(d, other Decimal64BID) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64Div(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode))
+	return Decimal64BIDFromBits(bidgo.Bid64Div(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode))
 }
 
 func decimal64BIDDivPortFlags(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64DivWithFlags(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDDivPortModeFlags(d, other Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64DivWithFlags(d.ToUint64(), other.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDRemainderPort(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Rem(d.ToUint64(), other.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDFmodPort(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Fmod(d.ToUint64(), other.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDQuantizePort(d, other Decimal64BID) Decimal64BID {
 	result, _ := bidgo.Bid64Quantize(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode)
-	return Decimal64BID(result)
+	return Decimal64BIDFromBits(result)
 }
 
 func decimal64BIDQuantizePortFlags(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Quantize(d.ToUint64(), other.ToUint64(), defaultBIDRoundingMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDQuantizePortModeFlags(d, other Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Quantize(d.ToUint64(), other.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDSameQuantumPort(d, other Decimal64BID) bool {
@@ -607,22 +607,22 @@ func decimal64BIDSameQuantumPort(d, other Decimal64BID) bool {
 
 func decimal64BIDMinNumPort(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64MinNum(d.ToUint64(), other.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDMaxNumPort(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64MaxNum(d.ToUint64(), other.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDMinNumMagPort(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64MinNumMag(d.ToUint64(), other.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDMaxNumMagPort(d, other Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64MaxNumMag(d.ToUint64(), other.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDCompareTotalPort(d, other Decimal64BID) int {
@@ -635,47 +635,47 @@ func decimal64BIDCompareTotalMagPort(d, other Decimal64BID) int {
 
 func decimal64BIDRoundIntegralExactPort(d Decimal64BID) Decimal64BID {
 	result, _ := bidgo.Bid64RoundIntegralExact(d.ToUint64(), defaultBIDRoundingMode)
-	return Decimal64BID(result)
+	return Decimal64BIDFromBits(result)
 }
 
 func decimal64BIDRoundIntegralExactPortFlags(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64RoundIntegralExact(d.ToUint64(), defaultBIDRoundingMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDRoundIntegralExactPortModeFlags(d Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64RoundIntegralExact(d.ToUint64(), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDRoundIntegralNearestEvenPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64RoundIntegralNearestEven(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDRoundIntegralNearestAwayPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64RoundIntegralNearestAway(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDRoundIntegralZeroPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64RoundIntegralZero(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDRoundIntegralPositivePort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64RoundIntegralPositive(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDRoundIntegralNegativePort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64RoundIntegralNegative(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDLogBPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Logb(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDILogBPort(d Decimal64BID) (int, ExceptionFlags) {
@@ -690,28 +690,28 @@ func decimal64BIDQuantexpPort(d Decimal64BID) (int32, ExceptionFlags) {
 
 func decimal64BIDScaleBPort(d Decimal64BID, exponent int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Scalbln(d.ToUint64(), int64(exponent), defaultBIDRoundingMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDScaleBPortModeFlags(d Decimal64BID, exponent int, rndMode int) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64Scalbln(d.ToUint64(), int64(exponent), rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDCopyPort(d Decimal64BID) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64Copy(d.ToUint64()))
+	return Decimal64BIDFromBits(bidgo.Bid64Copy(d.ToUint64()))
 }
 
 func decimal64BIDAbsPort(d Decimal64BID) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64Abs(d.ToUint64()))
+	return Decimal64BIDFromBits(bidgo.Bid64Abs(d.ToUint64()))
 }
 
 func decimal64BIDNegatePort(d Decimal64BID) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64Negate(d.ToUint64()))
+	return Decimal64BIDFromBits(bidgo.Bid64Negate(d.ToUint64()))
 }
 
 func decimal64BIDCopySignPort(d, signSource Decimal64BID) Decimal64BID {
-	return Decimal64BID(bidgo.Bid64CopySign(d.ToUint64(), signSource.ToUint64()))
+	return Decimal64BIDFromBits(bidgo.Bid64CopySign(d.ToUint64(), signSource.ToUint64()))
 }
 
 func decimal64BIDStringPort(d Decimal64BID) string {
@@ -765,22 +765,22 @@ func decimal64BIDToDecimal32Port(d Decimal64BID, mode RoundingMode) (Decimal32BI
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid64ToBid32(d.ToUint64(), rnd)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDNextTowardPort(d Decimal64BID, target Decimal128BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64NextToward(d.ToUint64(), decimal128BIDAsBidgo(target))
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDNextPlusPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64NextUp(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDNextMinusPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	result, flags := bidgo.Bid64NextDown(d.ToUint64())
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal64BIDPrettyStringPort(d Decimal64BID) string {
@@ -844,7 +844,7 @@ func decimal64BIDSignPort(d Decimal64BID) int {
 func newDecimal64BIDDirectPort(s string) (Decimal64BID, error) {
 	result, flags := parseDecimal64BIDPort(s)
 	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
-		return 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal64BID{}, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, nil
 }
@@ -852,7 +852,7 @@ func newDecimal64BIDDirectPort(s string) (Decimal64BID, error) {
 func newDecimal64BIDWithFlagsPort(s string) (Decimal64BID, ExceptionFlags, error) {
 	result, flags := parseDecimal64BIDPort(s)
 	if rejectedBIDStringInput(flags) {
-		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal64BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
 }
@@ -865,13 +865,13 @@ func newDecimal64BIDWithModePort(s string, mode RoundingMode) (Decimal64BID, Exc
 	rnd, ok := bidgoRoundingMode(mode)
 	if !ok {
 		if _, _, err := newDecimal64BIDWithFlagsPort(s); err != nil {
-			return 0, 0, err
+			return Decimal64BID{}, 0, err
 		}
 		return canonicalQNaN64BID(), FlagInvalidOperation, nil
 	}
 	result, flags := parseDecimal64BIDPublicMode(s, rnd)
 	if rejectedBIDStringInput(flags) {
-		return 0, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal64BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
 	}
 	return result, flags, nil
 }
@@ -914,7 +914,7 @@ func parseDecimal64BIDPortModeWithRawStatus(s string, rndMode int) (Decimal64BID
 		return canonicalQNaN64BID(), FlagInvalidOperation, bidgo.BID_INVALID_EXCEPTION
 	}
 	result, rawFlags := bidgo.Bid64FromString(s, rndMode)
-	return Decimal64BID(result), bidgoExceptionFlags(rawFlags), rawFlags
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(rawFlags), rawFlags
 }
 
 const (
@@ -1557,7 +1557,7 @@ func decimal128BIDToDecimal64Port(d Decimal128BID, mode RoundingMode) (Decimal64
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid128ToBid64(decimal128BIDAsBidgo(d), rnd)
-	return Decimal64BID(result), bidgoExceptionFlags(flags)
+	return Decimal64BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal128BIDToDecimal32Port(d Decimal128BID, mode RoundingMode) (Decimal32BID, ExceptionFlags) {
@@ -1566,7 +1566,7 @@ func decimal128BIDToDecimal32Port(d Decimal128BID, mode RoundingMode) (Decimal32
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	result, flags := bidgo.Bid128ToBid32(decimal128BIDAsBidgo(d), rnd)
-	return Decimal32BID(result), bidgoExceptionFlags(flags)
+	return Decimal32BIDFromBits(result), bidgoExceptionFlags(flags)
 }
 
 func decimal128BIDIsSignMinusPort(d Decimal128BID) bool {
@@ -1671,7 +1671,7 @@ func parseDecimal128BIDPortModeWithRawStatus(s string, rndMode int) (Decimal128B
 // FFI bit-compare runner call it, so a byte-order change here moves results in
 // both.
 func decimal128BIDAsBidgo(d Decimal128BID) bidgo.BID_UINT128 {
-	return bidgo.Bid128FromWords(binary.LittleEndian.Uint64(d[8:16]), binary.LittleEndian.Uint64(d[0:8]))
+	return bidgo.Bid128FromWords(binary.LittleEndian.Uint64(d.raw[8:16]), binary.LittleEndian.Uint64(d.raw[0:8]))
 }
 
 // decimal128BIDFromBidgo encodes x's (hi, lo) words as the little-endian
@@ -1687,8 +1687,8 @@ func decimal128BIDAsBidgo(d Decimal128BID) bidgo.BID_UINT128 {
 // runs that runner, so a divergence between the three fails there.
 func decimal128BIDFromBidgo(x bidgo.BID_UINT128) (d Decimal128BID) {
 	hi, lo := bidgo.Bid128Words(x)
-	binary.LittleEndian.PutUint64(d[0:8], lo)
-	binary.LittleEndian.PutUint64(d[8:16], hi)
+	binary.LittleEndian.PutUint64(d.raw[0:8], lo)
+	binary.LittleEndian.PutUint64(d.raw[8:16], hi)
 	return
 }
 
@@ -1700,8 +1700,8 @@ func decimal128BIDFromBidgo(x bidgo.BID_UINT128) (d Decimal128BID) {
 // array address-taken, so SSA cannot forward the intermediate away.
 func decimal128BIDSetBidgo(d *Decimal128BID, x bidgo.BID_UINT128) {
 	hi, lo := bidgo.Bid128Words(x)
-	binary.LittleEndian.PutUint64(d[0:8], lo)
-	binary.LittleEndian.PutUint64(d[8:16], hi)
+	binary.LittleEndian.PutUint64(d.raw[0:8], lo)
+	binary.LittleEndian.PutUint64(d.raw[8:16], hi)
 }
 
 // decimal128BIDWords returns the (hi, lo) 64-bit words stored in d's

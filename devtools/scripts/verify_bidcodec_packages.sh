@@ -15,6 +15,9 @@ cleanup_bidcodec_python_artifacts() {
 
 cleanup() {
   cleanup_bidcodec_python_artifacts
+  if [ -d "$verify_tmp/go-modcache" ]; then
+    GOTOOLCHAIN=local GOMODCACHE="$verify_tmp/go-modcache" go clean -modcache
+  fi
   rm -rf "$wheel_dir"
   rm -rf "$verify_tmp"
 }
@@ -62,7 +65,7 @@ mkdir -p "$go_release/bid754-codec-go"
 cp bid754-codec-go/LICENSE bid754-codec-go/README.md bid754-codec-go/go.mod bid754-codec-go/*.go "$go_release/bid754-codec-go/"
 git -C "$go_release" init -q
 git -C "$go_release" add .
-git -C "$go_release" -c user.name=bid754-verification -c user.email=bid754-verification@example.invalid commit -qm "verification go bidcodec release"
+git -C "$go_release" commit -qm "verification go bidcodec release"
 git -C "$go_release" tag "bid754-codec-go/$go_module_version"
 go_gitconfig="$verify_tmp/go-gitconfig"
 cat >"$go_gitconfig" <<EOF

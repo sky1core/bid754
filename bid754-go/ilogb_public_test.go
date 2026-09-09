@@ -69,13 +69,13 @@ func TestDecimal32ILogB(t *testing.T) {
 	for _, tc := range cases {
 		got, flags := mustDecimal32BID(t, tc.input).ILogB()
 		if got != tc.want || flags != 0 {
-			t.Errorf("Decimal32BID(%s).ILogB() = %d/%s, want %d/None", tc.input, got, flags, tc.want)
+			t.Errorf("Decimal32BIDFromBits(%s).ILogB() = %d/%s, want %d/None", tc.input, got, flags, tc.want)
 		}
 	}
 	for _, tc := range ilogbSharedSpecialCases {
 		got, flags := mustDecimal32BID(t, tc.input).ILogB()
 		if got != tc.want || flags != FlagInvalidOperation {
-			t.Errorf("Decimal32BID(%s).ILogB() = %d/%s, want %d/%s", tc.input, got, flags, tc.want, FlagInvalidOperation)
+			t.Errorf("Decimal32BIDFromBits(%s).ILogB() = %d/%s, want %d/%s", tc.input, got, flags, tc.want, FlagInvalidOperation)
 		}
 	}
 }
@@ -91,13 +91,13 @@ func TestDecimal64ILogB(t *testing.T) {
 	for _, tc := range cases {
 		got, flags := mustDecimal64BID(t, tc.input).ILogB()
 		if got != tc.want || flags != 0 {
-			t.Errorf("Decimal64BID(%s).ILogB() = %d/%s, want %d/None", tc.input, got, flags, tc.want)
+			t.Errorf("Decimal64BIDFromBits(%s).ILogB() = %d/%s, want %d/None", tc.input, got, flags, tc.want)
 		}
 	}
 	for _, tc := range ilogbSharedSpecialCases {
 		got, flags := mustDecimal64BID(t, tc.input).ILogB()
 		if got != tc.want || flags != FlagInvalidOperation {
-			t.Errorf("Decimal64BID(%s).ILogB() = %d/%s, want %d/%s", tc.input, got, flags, tc.want, FlagInvalidOperation)
+			t.Errorf("Decimal64BIDFromBits(%s).ILogB() = %d/%s, want %d/%s", tc.input, got, flags, tc.want, FlagInvalidOperation)
 		}
 	}
 }
@@ -114,13 +114,13 @@ func TestDecimal128ILogB(t *testing.T) {
 	for _, tc := range cases {
 		got, flags := mustDecimal128BID(t, tc.input).ILogB()
 		if got != tc.want || flags != 0 {
-			t.Errorf("Decimal128BID(%s).ILogB() = %d/%s, want %d/None", tc.input, got, flags, tc.want)
+			t.Errorf("Decimal128BIDFromBytes(%s).ILogB() = %d/%s, want %d/None", tc.input, got, flags, tc.want)
 		}
 	}
 	for _, tc := range ilogbSharedSpecialCases {
 		got, flags := mustDecimal128BID(t, tc.input).ILogB()
 		if got != tc.want || flags != FlagInvalidOperation {
-			t.Errorf("Decimal128BID(%s).ILogB() = %d/%s, want %d/%s", tc.input, got, flags, tc.want, FlagInvalidOperation)
+			t.Errorf("Decimal128BIDFromBytes(%s).ILogB() = %d/%s, want %d/%s", tc.input, got, flags, tc.want, FlagInvalidOperation)
 		}
 	}
 }

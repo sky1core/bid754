@@ -33,9 +33,9 @@ func TestNaNPayloadStringSuppressesNoncanonical32(t *testing.T) {
 		{"zero payload qNaN", 0x7c000000, "+NaN"},
 	}
 	for _, tc := range cases {
-		d := Decimal32BID(tc.bits)
+		d := Decimal32BIDFromBits(tc.bits)
 		if got := d.String(); got != tc.want {
-			t.Errorf("%s: Decimal32BID(%#x).String() = %q, want %q", tc.name, tc.bits, got, tc.want)
+			t.Errorf("%s: Decimal32BIDFromBits(%#x).String() = %q, want %q", tc.name, tc.bits, got, tc.want)
 		}
 	}
 }
@@ -54,9 +54,9 @@ func TestNaNPayloadStringSuppressesNoncanonical64(t *testing.T) {
 		{"zero payload qNaN", 0x7c00000000000000, "+NaN"},
 	}
 	for _, tc := range cases {
-		d := Decimal64BID(tc.bits)
+		d := Decimal64BIDFromBits(tc.bits)
 		if got := d.String(); got != tc.want {
-			t.Errorf("%s: Decimal64BID(%#x).String() = %q, want %q", tc.name, tc.bits, got, tc.want)
+			t.Errorf("%s: Decimal64BIDFromBits(%#x).String() = %q, want %q", tc.name, tc.bits, got, tc.want)
 		}
 	}
 }
@@ -75,10 +75,10 @@ func build128NaN(payload *big.Int, signaling, negative bool) Decimal128BID {
 	if negative {
 		hi |= 0x8000000000000000
 	}
-	var d Decimal128BID
+	var d [16]byte
 	binary.LittleEndian.PutUint64(d[0:8], lo)
 	binary.LittleEndian.PutUint64(d[8:16], hi)
-	return d
+	return Decimal128BIDFromBytes(d)
 }
 
 func TestNaNPayloadStringSuppressesNoncanonical128(t *testing.T) {
@@ -100,7 +100,7 @@ func TestNaNPayloadStringSuppressesNoncanonical128(t *testing.T) {
 // canonical (zero-payload) NaN of the same sign and signaling kind.
 func TestNaNPayloadStringRoundTripDropsNoncanonical(t *testing.T) {
 	t.Run("Decimal32", func(t *testing.T) {
-		orig := Decimal32BID(0x7c000000 | 1000000)
+		orig := Decimal32BIDFromBits(0x7c000000 | 1000000)
 		s := orig.String()
 		if s != "+NaN" {
 			t.Fatalf("noncanonical String() = %q, want +NaN", s)
@@ -115,13 +115,13 @@ func TestNaNPayloadStringRoundTripDropsNoncanonical(t *testing.T) {
 		if got := reparsed.String(); got != "+NaN" {
 			t.Fatalf("reparsed String() = %q, want +NaN", got)
 		}
-		if uint32(reparsed)&0x000fffff != 0 {
-			t.Fatalf("reparsed payload = %#x, want canonical zero payload", uint32(reparsed)&0x000fffff)
+		if reparsed.ToUint32()&0x000fffff != 0 {
+			t.Fatalf("reparsed payload = %#x, want canonical zero payload", reparsed.ToUint32()&0x000fffff)
 		}
 	})
 
 	t.Run("Decimal64", func(t *testing.T) {
-		orig := Decimal64BID(0x7e00000000000000 | 1000000000000000)
+		orig := Decimal64BIDFromBits(0x7e00000000000000 | 1000000000000000)
 		s := orig.String()
 		if s != "+SNaN" {
 			t.Fatalf("noncanonical String() = %q, want +SNaN", s)
@@ -136,8 +136,8 @@ func TestNaNPayloadStringRoundTripDropsNoncanonical(t *testing.T) {
 		if got := reparsed.String(); got != "+SNaN" {
 			t.Fatalf("reparsed String() = %q, want +SNaN", got)
 		}
-		if uint64(reparsed)&0x0003ffffffffffff != 0 {
-			t.Fatalf("reparsed payload = %#x, want canonical zero payload", uint64(reparsed)&0x0003ffffffffffff)
+		if reparsed.ToUint64()&0x0003ffffffffffff != 0 {
+			t.Fatalf("reparsed payload = %#x, want canonical zero payload", reparsed.ToUint64()&0x0003ffffffffffff)
 		}
 	})
 }

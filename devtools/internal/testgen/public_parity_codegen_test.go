@@ -480,9 +480,9 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 				}},
 			},
 			wantComparisons: []string{
-				"uint64(controlValue) == 0x7c00000000000000",
+				"(controlValue).ToUint64() == 0x7c00000000000000",
 				"controlFlags == FlagInvalidOperation",
-				"uint64(invalidValue) != 0x7c00000000000000",
+				"(invalidValue).ToUint64() != 0x7c00000000000000",
 				"invalidFlags != FlagInvalidOperation",
 			},
 			forbiddenCalls: []string{"canonicalQNaN64BID"},
@@ -537,9 +537,9 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 				}},
 			},
 			wantComparisons: []string{
-				"uint32(controlValue) == 0x7c000000",
+				"(controlValue).ToUint32() == 0x7c000000",
 				"controlFlags == FlagInvalidOperation",
-				"uint32(invalidValue) != 0x7c000000",
+				"(invalidValue).ToUint32() != 0x7c000000",
 				"invalidFlags != FlagInvalidOperation",
 			},
 			forbiddenCalls: []string{"canonicalQNaN32BID"},
@@ -561,9 +561,9 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 				}},
 			},
 			wantComparisons: []string{
-				"uint64(controlValue) == 0x7c00000000000000",
+				"(controlValue).ToUint64() == 0x7c00000000000000",
 				"controlFlags == FlagInvalidOperation",
-				"uint64(invalidValue) != 0x7c00000000000000",
+				"(invalidValue).ToUint64() != 0x7c00000000000000",
 				"invalidFlags != FlagInvalidOperation",
 			},
 			forbiddenCalls: []string{"canonicalQNaN64BID"},
@@ -609,9 +609,9 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 				}},
 			},
 			wantComparisons: []string{
-				"uint32(controlValue) == 0x7c000000",
+				"(controlValue).ToUint32() == 0x7c000000",
 				"controlFlags == FlagInvalidOperation",
-				"uint32(invalidValue) != 0x7c000000",
+				"(invalidValue).ToUint32() != 0x7c000000",
 				"invalidFlags != FlagInvalidOperation",
 			},
 			forbiddenCalls: []string{"canonicalQNaN32BID"},
@@ -628,7 +628,7 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 				Port: parityPortPlan{GoName: "Bid32ToInt8Rnint", ValueParams: []string{"uint32"}, FlagsKind: "result", PrimaryResult: "int8"},
 			},
 			expectedBoundCalls: []generatedGoBoundCallExpectation{
-				{binding: "invalidOperand", callee: "Decimal32BID", args: [][]string{
+				{binding: "invalidOperand", callee: "Decimal32BIDFromBits", args: [][]string{
 					{"publicParityCorpus32[publicParityBinaryPairs32[0][0]]"},
 				}},
 				{binding: "controlValue, controlFlags", callee: "invalidOperand.ConvertToInt8", args: [][]string{
@@ -658,7 +658,7 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 				Port: parityPortPlan{GoName: "Bid64ToBinary128", ValueParams: []string{"uint64"}, HasRounding: true, FlagsKind: "result", PrimaryResult: "BID_UINT128"},
 			},
 			expectedBoundCalls: []generatedGoBoundCallExpectation{
-				{binding: "invalidOperand", callee: "Decimal64BID", args: [][]string{
+				{binding: "invalidOperand", callee: "Decimal64BIDFromBits", args: [][]string{
 					{"publicParityCorpus64[publicParityBinaryPairs64[0][0]]"},
 				}},
 				{binding: "controlValue, controlFlags", callee: "invalidOperand.ToBinary128", args: [][]string{
@@ -697,9 +697,9 @@ func TestEmitModeParityPinsDiscriminantsAndInvalidModeRejection(t *testing.T) {
 			},
 			wantAssignments: []string{"invalidOperand = publicParityIntCorpus32[1]"},
 			wantComparisons: []string{
-				"uint32(controlValue) == 0x7c000000",
+				"(controlValue).ToUint32() == 0x7c000000",
 				"controlFlags == FlagInvalidOperation",
-				"uint32(invalidValue) != 0x7c000000",
+				"(invalidValue).ToUint32() != 0x7c000000",
 				"invalidFlags != FlagInvalidOperation",
 			},
 			forbiddenCalls: []string{"canonicalQNaN32BID"},

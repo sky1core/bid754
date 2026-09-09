@@ -45,7 +45,7 @@ func TestFromIntConvenienceConstructorsRejectInexactValues(t *testing.T) {
 		if err == nil {
 			t.Errorf("NewDecimal32FromInt(%d) = %s, nil; want an error", input, got.String())
 		}
-		if bits := uint32(got); bits != 0x7c000000 {
+		if bits := got.ToUint32(); bits != 0x7c000000 {
 			t.Errorf("NewDecimal32FromInt(%d) error result bits = %#x, want canonical qNaN 0x7c000000", input, bits)
 		}
 	}
@@ -55,7 +55,7 @@ func TestFromIntConvenienceConstructorsRejectInexactValues(t *testing.T) {
 		if err == nil {
 			t.Errorf("NewDecimal64FromInt(%d) = %s, nil; want an error", input, got.String())
 		}
-		if bits := uint64(got); bits != 0x7c00000000000000 {
+		if bits := got.ToUint64(); bits != 0x7c00000000000000 {
 			t.Errorf("NewDecimal64FromInt(%d) error result bits = %#x, want canonical qNaN 0x7c00000000000000", input, bits)
 		}
 	}
@@ -159,11 +159,11 @@ func TestErrorOnlyStringConstructorsRejectLossyFiniteInputs(t *testing.T) {
 
 func assertLossyDecimal32String(t *testing.T, input string, wantFlags ExceptionFlags) {
 	t.Helper()
-	if got, err := NewDecimal32(input); err == nil || got != 0 {
-		t.Errorf("NewDecimal32(%q) = (%#x, %v), want zero and error", input, uint32(got), err)
+	if got, err := NewDecimal32(input); err == nil || got != (Decimal32BID{}) {
+		t.Errorf("NewDecimal32(%q) = (%#x, %v), want zero and error", input, got.ToUint32(), err)
 	}
-	if got, err := NewDecimal32BIDDirect(input); err == nil || got != 0 {
-		t.Errorf("NewDecimal32BIDDirect(%q) = (%#x, %v), want zero and error", input, uint32(got), err)
+	if got, err := NewDecimal32BIDDirect(input); err == nil || got != (Decimal32BID{}) {
+		t.Errorf("NewDecimal32BIDDirect(%q) = (%#x, %v), want zero and error", input, got.ToUint32(), err)
 	}
 	raw, rawFlags := ParseDecimal32BIDRaw(input)
 	if rawFlags&wantFlags != wantFlags {
@@ -181,11 +181,11 @@ func assertLossyDecimal32String(t *testing.T, input string, wantFlags ExceptionF
 
 func assertLossyDecimal64String(t *testing.T, input string, wantFlags ExceptionFlags) {
 	t.Helper()
-	if got, err := NewDecimal64(input); err == nil || got != 0 {
-		t.Errorf("NewDecimal64(%q) = (%#x, %v), want zero and error", input, uint64(got), err)
+	if got, err := NewDecimal64(input); err == nil || got != (Decimal64BID{}) {
+		t.Errorf("NewDecimal64(%q) = (%#x, %v), want zero and error", input, got.ToUint64(), err)
 	}
-	if got, err := NewDecimal64BIDDirect(input); err == nil || got != 0 {
-		t.Errorf("NewDecimal64BIDDirect(%q) = (%#x, %v), want zero and error", input, uint64(got), err)
+	if got, err := NewDecimal64BIDDirect(input); err == nil || got != (Decimal64BID{}) {
+		t.Errorf("NewDecimal64BIDDirect(%q) = (%#x, %v), want zero and error", input, got.ToUint64(), err)
 	}
 	raw, rawFlags := ParseDecimal64BIDRaw(input)
 	if rawFlags&wantFlags != wantFlags {
@@ -250,35 +250,35 @@ func TestNaNPayloadRangeNeverDropsPayloadSilently(t *testing.T) {
 
 func assertRejectedNaNPayload32(t *testing.T, input string) {
 	t.Helper()
-	if got, err := NewDecimal32(input); err == nil || got != 0 {
-		t.Errorf("NewDecimal32(%q) = (%#x, %v), want zero and error", input, uint32(got), err)
+	if got, err := NewDecimal32(input); err == nil || got != (Decimal32BID{}) {
+		t.Errorf("NewDecimal32(%q) = (%#x, %v), want zero and error", input, got.ToUint32(), err)
 	}
-	if got, flags, err := NewDecimal32WithFlags(input); err == nil || got != 0 || flags != 0 {
-		t.Errorf("NewDecimal32WithFlags(%q) = (%#x, %v, %v), want zero, zero flags, error", input, uint32(got), flags, err)
+	if got, flags, err := NewDecimal32WithFlags(input); err == nil || got != (Decimal32BID{}) || flags != 0 {
+		t.Errorf("NewDecimal32WithFlags(%q) = (%#x, %v, %v), want zero, zero flags, error", input, got.ToUint32(), flags, err)
 	}
-	if got, flags, err := NewDecimal32WithMode(input, RoundNearestEven); err == nil || got != 0 || flags != 0 {
-		t.Errorf("NewDecimal32WithMode(%q) = (%#x, %v, %v), want zero, zero flags, error", input, uint32(got), flags, err)
+	if got, flags, err := NewDecimal32WithMode(input, RoundNearestEven); err == nil || got != (Decimal32BID{}) || flags != 0 {
+		t.Errorf("NewDecimal32WithMode(%q) = (%#x, %v, %v), want zero, zero flags, error", input, got.ToUint32(), flags, err)
 	}
 	got, flags := ParseDecimal32BIDRaw(input)
-	if uint32(got) != 0x7c000000 || flags != FlagInvalidOperation {
-		t.Errorf("ParseDecimal32BIDRaw(%q) = (%#x, %v), want canonical qNaN and FlagInvalidOperation", input, uint32(got), flags)
+	if got.ToUint32() != 0x7c000000 || flags != FlagInvalidOperation {
+		t.Errorf("ParseDecimal32BIDRaw(%q) = (%#x, %v), want canonical qNaN and FlagInvalidOperation", input, got.ToUint32(), flags)
 	}
 }
 
 func assertRejectedNaNPayload64(t *testing.T, input string) {
 	t.Helper()
-	if got, err := NewDecimal64(input); err == nil || got != 0 {
-		t.Errorf("NewDecimal64(%q) = (%#x, %v), want zero and error", input, uint64(got), err)
+	if got, err := NewDecimal64(input); err == nil || got != (Decimal64BID{}) {
+		t.Errorf("NewDecimal64(%q) = (%#x, %v), want zero and error", input, got.ToUint64(), err)
 	}
-	if got, flags, err := NewDecimal64WithFlags(input); err == nil || got != 0 || flags != 0 {
-		t.Errorf("NewDecimal64WithFlags(%q) = (%#x, %v, %v), want zero, zero flags, error", input, uint64(got), flags, err)
+	if got, flags, err := NewDecimal64WithFlags(input); err == nil || got != (Decimal64BID{}) || flags != 0 {
+		t.Errorf("NewDecimal64WithFlags(%q) = (%#x, %v, %v), want zero, zero flags, error", input, got.ToUint64(), flags, err)
 	}
-	if got, flags, err := NewDecimal64WithMode(input, RoundNearestEven); err == nil || got != 0 || flags != 0 {
-		t.Errorf("NewDecimal64WithMode(%q) = (%#x, %v, %v), want zero, zero flags, error", input, uint64(got), flags, err)
+	if got, flags, err := NewDecimal64WithMode(input, RoundNearestEven); err == nil || got != (Decimal64BID{}) || flags != 0 {
+		t.Errorf("NewDecimal64WithMode(%q) = (%#x, %v, %v), want zero, zero flags, error", input, got.ToUint64(), flags, err)
 	}
 	got, flags := ParseDecimal64BIDRaw(input)
-	if uint64(got) != 0x7c00000000000000 || flags != FlagInvalidOperation {
-		t.Errorf("ParseDecimal64BIDRaw(%q) = (%#x, %v), want canonical qNaN and FlagInvalidOperation", input, uint64(got), flags)
+	if got.ToUint64() != 0x7c00000000000000 || flags != FlagInvalidOperation {
+		t.Errorf("ParseDecimal64BIDRaw(%q) = (%#x, %v), want canonical qNaN and FlagInvalidOperation", input, got.ToUint64(), flags)
 	}
 }
 

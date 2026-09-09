@@ -33,6 +33,8 @@ type ConstSpec struct {
 }
 
 type ValueTypeSpec struct {
+	FieldName       string `json:"field_name"`
+	ConstructorName string `json:"constructor_name"`
 	Name            string `json:"name"`
 	Underlying      string `json:"underlying"`
 	Comment         string `json:"comment,omitempty"`
@@ -78,6 +80,9 @@ func LoadManifest(path string) (Manifest, error) {
 	for i, spec := range manifest.ValueTypes {
 		if spec.Name == "" || spec.Underlying == "" {
 			return manifest, fmt.Errorf("manifest %q: value_types[%d] is incomplete", path, i)
+		}
+		if spec.FieldName != "raw" || spec.ConstructorName == "" || spec.AccessorType != spec.Underlying {
+			return manifest, fmt.Errorf("manifest %q: value_types[%d] requires private raw storage and matching constructor/accessor", path, i)
 		}
 		if (spec.AccessorName == "") != (spec.AccessorType == "") {
 			return manifest, fmt.Errorf("manifest %q: value_types[%d] accessor_name/accessor_type must be set together", path, i)

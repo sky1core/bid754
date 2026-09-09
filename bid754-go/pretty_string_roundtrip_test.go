@@ -8,24 +8,24 @@ import (
 
 func TestPrettyStringReparsesExpandedIntegerRegressions(t *testing.T) {
 	t.Run("decimal32", func(t *testing.T) {
-		d := Decimal32BID(0x399de940)
+		d := Decimal32BIDFromBits(0x399de940)
 		if got, want := d.PrettyString(), "1960256E+14"; got != want {
 			t.Fatalf("PrettyString() = %q, want %q", got, want)
 		}
 		assertPrettyStringRoundTrips32(t, d)
 	})
 	t.Run("decimal64", func(t *testing.T) {
-		d := Decimal64BID(0x6ca28d5e8c49fba1)
+		d := Decimal64BIDFromBits(0x6ca28d5e8c49fba1)
 		if got, want := d.PrettyString(), "9725586428263329E+6"; got != want {
 			t.Fatalf("PrettyString() = %q, want %q", got, want)
 		}
 		assertPrettyStringRoundTrips64(t, d)
 	})
 	t.Run("decimal128", func(t *testing.T) {
-		d := Decimal128BID{
+		d := Decimal128BIDFromBytes([16]byte{
 			0x66, 0x37, 0x20, 0x1e, 0x0d, 0xb7, 0x8c, 0xa2,
 			0xf9, 0x65, 0xcf, 0x37, 0xda, 0xb9, 0x5b, 0xb0,
-		}
+		})
 		if got, want := d.PrettyString(), "-8961831647043245083745335122081638E+13"; got != want {
 			t.Fatalf("PrettyString() = %q, want %q", got, want)
 		}
@@ -49,13 +49,13 @@ func TestPrettyStringReparsesDeterministicFiniteBitSamples(t *testing.T) {
 	// regressions above pin all three failures that originally exposed the bug.
 	rng := rand.New(rand.NewSource(754))
 	for i := 0; i < 50_000; i++ {
-		assertPrettyStringRoundTrips32(t, Decimal32BID(rng.Uint32()))
-		assertPrettyStringRoundTrips64(t, Decimal64BID(rng.Uint64()))
+		assertPrettyStringRoundTrips32(t, Decimal32BIDFromBits(rng.Uint32()))
+		assertPrettyStringRoundTrips64(t, Decimal64BIDFromBits(rng.Uint64()))
 
 		var raw [16]byte
 		binary.LittleEndian.PutUint64(raw[:8], rng.Uint64())
 		binary.LittleEndian.PutUint64(raw[8:], rng.Uint64())
-		assertPrettyStringRoundTrips128(t, Decimal128BID(raw))
+		assertPrettyStringRoundTrips128(t, Decimal128BIDFromBytes(raw))
 	}
 }
 

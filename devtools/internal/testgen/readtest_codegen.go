@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	readtestGeneratedNativePath = "../bid754-go/generated_readtest_dispatch_native.go"
-	readtestGeneratedStubPath   = "../bid754-go/generated_readtest_dispatch_stub.go"
-	readtestGeneratedSharedPath = "../bid754-go/generated_readtest_shared.go"
-	readtestSymbolSourcePath    = "generated/json/intel_dfp_symbols.json"
+	readtestGeneratedNativePath     = "../bid754-go/generated_readtest_dispatch_native.go"
+	readtestGeneratedStubPath       = "../bid754-go/generated_readtest_dispatch_stub_test.go"
+	readtestGeneratedSharedPath     = "../bid754-go/generated_readtest_shared.go"
+	readtestGeneratedSharedTestPath = "../bid754-go/generated_readtest_shared_test.go"
+	readtestSymbolSourcePath        = "generated/json/intel_dfp_symbols.json"
 )
 
 type readtestParamKind string
@@ -88,9 +89,10 @@ func GenerateReadtestDispatchOutputs(repoRoot string, manifest Manifest) (map[st
 	}
 	stub := generateReadtestStubDispatch()
 	return formatGeneratedGoOutputs(map[string][]byte{
-		readtestGeneratedNativePath: native,
-		readtestGeneratedStubPath:   stub,
-		readtestGeneratedSharedPath: []byte(readtestGeneratedSharedHelpers),
+		readtestGeneratedNativePath:     native,
+		readtestGeneratedStubPath:       stub,
+		readtestGeneratedSharedPath:     []byte(strings.Replace(readtestGeneratedSharedHelpers, "package bid754", "//go:build cgo && bid754_native\n\npackage bid754", 1)),
+		readtestGeneratedSharedTestPath: []byte(strings.Replace(readtestGeneratedSharedHelpers, "package bid754", "//go:build !cgo || !bid754_native\n\npackage bid754", 1)),
 	})
 }
 

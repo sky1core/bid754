@@ -144,18 +144,17 @@ func FromString(s string) (Components, error) {
 		return Components{}, fmt.Errorf("no digits")
 	}
 
-	upper := strings.ToUpper(s)
-	if upper == "INF" || upper == "INFINITY" {
+	if strings.EqualFold(s, "INF") || strings.EqualFold(s, "INFINITY") {
 		return Components{Sign: sign, Kind: Infinity}, nil
 	}
-	if strings.HasPrefix(upper, "SNAN") {
+	if len(s) >= 4 && strings.EqualFold(s[:4], "SNAN") {
 		payload, err := parseNaNPayload(s[4:])
 		if err != nil {
 			return Components{}, err
 		}
 		return Components{Sign: sign, Kind: SNaN, Payload: payload}, nil
 	}
-	if strings.HasPrefix(upper, "NAN") {
+	if len(s) >= 3 && strings.EqualFold(s[:3], "NAN") {
 		payload, err := parseNaNPayload(s[3:])
 		if err != nil {
 			return Components{}, err
@@ -344,9 +343,19 @@ func parseExponentLiteral(s string) (int64, error) {
 	if !isASCIIDigits(body) {
 		return 0, fmt.Errorf("invalid exponent: expected optional sign and ASCII digits")
 	}
-	n, err := strconv.ParseInt(s, 10, 64)
-	if err != nil || n >= sharedExponentLiteralBound || n <= -sharedExponentLiteralBound {
+	body = strings.TrimLeft(body, "0")
+	if len(body) > 16 {
 		return 0, fmt.Errorf("exponent literal magnitude must be below 2^53")
+	}
+	if body == "" {
+		return 0, nil
+	}
+	n, err := strconv.ParseInt(body, 10, 64)
+	if err != nil || n >= sharedExponentLiteralBound {
+		return 0, fmt.Errorf("exponent literal magnitude must be below 2^53")
+	}
+	if s[0] == '-' {
+		n = -n
 	}
 	return n, nil
 }

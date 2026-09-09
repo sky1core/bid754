@@ -660,7 +660,7 @@ func applyDectestGoportUnary32(op string, a Decimal32BID, rndMode int) (Decimal3
 	case "plus", "minus":
 		zero, err := dectestGoportZeroAddend32(a, rndMode)
 		if err != nil {
-			return 0, 0, err
+			return Decimal32BID{}, 0, err
 		}
 		if op == "plus" {
 			result, flags := decimal32BIDAddPortModeFlags(zero, a, rndMode)
@@ -678,7 +678,7 @@ func applyDectestGoportUnary32(op string, a Decimal32BID, rndMode int) (Decimal3
 		result, flags := decimal32BIDLogBPort(a)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal32BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -693,7 +693,7 @@ func applyDectestGoportUnary64(op string, a Decimal64BID, rndMode int) (Decimal6
 	case "plus", "minus":
 		zero, err := dectestGoportZeroAddend64(a, rndMode)
 		if err != nil {
-			return 0, 0, err
+			return Decimal64BID{}, 0, err
 		}
 		if op == "plus" {
 			result, flags := decimal64BIDAddPortModeFlags(zero, a, rndMode)
@@ -711,7 +711,7 @@ func applyDectestGoportUnary64(op string, a Decimal64BID, rndMode int) (Decimal6
 		result, flags := decimal64BIDLogBPort(a)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal64BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -782,7 +782,7 @@ func dectestGoportZeroAddend32(a Decimal32BID, rndMode int) (Decimal32BID, error
 	if finite {
 		quantum, quantexpFlags := decimal32BIDQuantexpPort(a)
 		if quantexpFlags != 0 {
-			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+			return Decimal32BID{}, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
 		}
 		literal = dectestGoportZeroAddendLiteral(quantum)
 	}
@@ -790,7 +790,7 @@ func dectestGoportZeroAddend32(a Decimal32BID, rndMode int) (Decimal32BID, error
 	if err := dectestGoportZeroAddendCheck(literal, parseFlags,
 		decimal32BIDIsZeroPort(zero) && !decimal32BIDIsSignMinusPort(zero),
 		!finite || decimal32BIDSameQuantumPort(zero, a)); err != nil {
-		return 0, err
+		return Decimal32BID{}, err
 	}
 	return zero, nil
 }
@@ -801,7 +801,7 @@ func dectestGoportZeroAddend64(a Decimal64BID, rndMode int) (Decimal64BID, error
 	if finite {
 		quantum, quantexpFlags := decimal64BIDQuantexpPort(a)
 		if quantexpFlags != 0 {
-			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+			return Decimal64BID{}, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
 		}
 		literal = dectestGoportZeroAddendLiteral(quantum)
 	}
@@ -809,7 +809,7 @@ func dectestGoportZeroAddend64(a Decimal64BID, rndMode int) (Decimal64BID, error
 	if err := dectestGoportZeroAddendCheck(literal, parseFlags,
 		decimal64BIDIsZeroPort(zero) && !decimal64BIDIsSignMinusPort(zero),
 		!finite || decimal64BIDSameQuantumPort(zero, a)); err != nil {
-		return 0, err
+		return Decimal64BID{}, err
 	}
 	return zero, nil
 }
@@ -1015,7 +1015,7 @@ func applyDectestGoportMinMax32(op string, a, b Decimal32BID) (Decimal32BID, Exc
 		result, flags := decimal32BIDMaxNumMagPort(a, b)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal32BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -1034,7 +1034,7 @@ func applyDectestGoportMinMax64(op string, a, b Decimal64BID) (Decimal64BID, Exc
 		result, flags := decimal64BIDMaxNumMagPort(a, b)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal64BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -1259,7 +1259,7 @@ func applyDectestGoportArithmetic32(op string, a, b Decimal32BID, rndMode int) (
 		result, flags := decimal32BIDQuantizePortModeFlags(a, b, rndMode)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal32BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -1281,7 +1281,7 @@ func applyDectestGoportArithmetic64(op string, a, b Decimal64BID, rndMode int) (
 		result, flags := decimal64BIDQuantizePortModeFlags(a, b, rndMode)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal64BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -1469,7 +1469,7 @@ func roundIntegralDectestGoport32(d Decimal32BID, rndMode int) (Decimal32BID, Ex
 		result, flags := decimal32BIDRoundIntegralNegativePort(d)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("unsupported tointegral rounding mode %d", rndMode)
+		return Decimal32BID{}, 0, fmt.Errorf("unsupported tointegral rounding mode %d", rndMode)
 	}
 }
 
@@ -1491,7 +1491,7 @@ func roundIntegralDectestGoport64(d Decimal64BID, rndMode int) (Decimal64BID, Ex
 		result, flags := decimal64BIDRoundIntegralNegativePort(d)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("unsupported tointegral rounding mode %d", rndMode)
+		return Decimal64BID{}, 0, fmt.Errorf("unsupported tointegral rounding mode %d", rndMode)
 	}
 }
 

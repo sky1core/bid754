@@ -27,6 +27,9 @@ import (
 // passes silently; this test compares the checked-in generated artifacts
 // against the external anchors instead.
 type verificationAnchors struct {
+	BidCodecParseOracleSHA256                    string                       `json:"bid_codec_parse_oracle_sha256"`
+	BidCodecParseOracleTuples                    int                          `json:"bid_codec_parse_oracle_tuples"`
+	BidCodecParseOracleByWidth                   map[string]int               `json:"bid_codec_parse_oracle_by_width"`
 	Comment                                      []string                     `json:"comment"`
 	ReadtestCasesTotal                           int                          `json:"readtest_cases_total"`
 	ReadtestStatusControlCases                   int                          `json:"readtest_status_control_cases"`
@@ -2567,7 +2570,7 @@ var implementationExclusionRules = []struct {
 	{"bid754-rs/src/intel_dfp_tables.rs", func(r string) bool { return r == "bid754-rs/src/intel_dfp_tables.rs" }},
 	{"bid754-rs/src/generated/", func(r string) bool { return strings.HasPrefix(r, "bid754-rs/src/generated/") }},
 	// The crate root is now a go2rs apiemit output (it re-exports the generated
-	// public API and keeps the internal modules as doc(hidden) compat surface).
+	// public API and exposes internal modules only through the verification feature).
 	// Like the generated implementation tree it is routing/plumbing over the
 	// generated port, not a verification runner: its reproducibility is covered
 	// by verify-generated and its behavior by the cargo test domains, so it is

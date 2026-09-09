@@ -35,6 +35,10 @@ include = ["src/**", "LICENSE", "NOTICE", "README.md", "Cargo.toml"]
 # support (no Windows/x86/big-endian target added here).
 targets = ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu", "aarch64-apple-darwin"]
 
+[features]
+default = []
+verification = []
+
 [dependencies]
 num-bigint = "=0.4.6"
 num-traits = "=0.2.19"
@@ -48,3 +52,36 @@ serde_json = "=1.0.149"
 [[bench]]
 name = "core"
 harness = false
+required-features = ["verification"]
+
+[[test]]
+name = "bid128_fma_overflow"
+required-features = ["verification"]
+
+[[test]]
+name = "bid_codec_vectors"
+required-features = ["verification"]
+
+[[test]]
+name = "bid_string_vectors"
+required-features = ["verification"]
+
+[[test]]
+name = "dectest_generated"
+required-features = ["verification"]
+
+[[test]]
+name = "int_exponent_parity"
+required-features = ["verification"]
+
+[[test]]
+name = "public_api_smoke"
+required-features = ["verification"]
+
+[[test]]
+name = "public_parity_generated"
+required-features = ["verification"]
+
+[[test]]
+name = "smoke"
+required-features = ["verification"]

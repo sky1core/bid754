@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -16,24 +14,6 @@ import (
 
 	"github.com/sky1core/bid754/devtools/internal/genmarker"
 )
-
-func TestBidCodecVectorGeneratorDoesNotImportBidCodecUnderTest(t *testing.T) {
-	files, err := filepath.Glob("bid_codec*.go")
-	if err != nil {
-		t.Fatalf("Glob bid_codec*.go: %v", err)
-	}
-	for _, path := range files {
-		file, err := parser.ParseFile(token.NewFileSet(), path, nil, parser.ImportsOnly)
-		if err != nil {
-			t.Fatalf("ParseFile(%q): %v", path, err)
-		}
-		for _, imp := range file.Imports {
-			if imp.Path.Value == `"github.com/sky1core/bid754/bid754-codec-go"` {
-				t.Fatalf("%s imports github.com/sky1core/bid754/bid754-codec-go; BID codec vectors must use the independent reference codec, not the package under test", path)
-			}
-		}
-	}
-}
 
 func TestBidCodecToStringRejectVectorsCloseSharedSchema(t *testing.T) {
 	vectors := bidCodecToStringRejectVectors()

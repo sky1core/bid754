@@ -386,8 +386,8 @@ static int bid754_decimal64_read(
 import "C"
 
 import (
+	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"unsafe"
 )
@@ -402,8 +402,8 @@ var nativeStatusFlagBits = struct {
 	Clamped:          uint32(C.DEC_Clamped),
 }
 
-func executeDecTestOperation(tc decTestCase, testType string) (decTestExecResult, error) {
-	op := C.CString(normalizeDecTestOperation(tc.Operation))
+func executeNativeDecTestOperation(tc nativeDecTestRequest, testType string) (nativeDecTestResult, error) {
+	op := C.CString(tc.NormalizedOperation)
 	operand1 := C.CString(strings.Trim(tc.Operands[0], "'\""))
 	operand2 := C.CString(strings.Trim(tc.Operands[1], "'\""))
 	rounding := C.CString(strings.ToLower(tc.RoundingMode))
@@ -441,22 +441,21 @@ func executeDecTestOperation(tc decTestCase, testType string) (decTestExecResult
 	switch rc {
 	case 0:
 		flags := statusToExceptionFlags(uint32(status))
-		flags = applyDecTestFlagHeuristics(tc, C.GoString(out), flags)
-		return decTestExecResult{
+		return nativeDecTestResult{
 			Result: C.GoString(out),
 			Flags:  flags,
 		}, nil
 	case 1:
-		return decTestExecResult{}, fmt.Errorf("invalid decimal input")
+		return nativeDecTestResult{}, fmt.Errorf("invalid decimal input")
 	case 2:
-		return decTestExecResult{}, fmt.Errorf("unsupported operation: %s", tc.Operation)
+		return nativeDecTestResult{}, fmt.Errorf("unsupported operation: %s", tc.Operation)
 	default:
-		return decTestExecResult{}, fmt.Errorf("native decTest operation failed")
+		return nativeDecTestResult{}, fmt.Errorf("native decTest operation failed")
 	}
 }
 
-func executeDecTestReadOperation(tc decTestCase, testType string) (decTestExecResult, error) {
-	op := C.CString(normalizeDecTestOperation(tc.Operation))
+func executeNativeDecTestReadOperation(tc nativeDecTestRequest, testType string) (nativeDecTestResult, error) {
+	op := C.CString(tc.NormalizedOperation)
 	operand := C.CString(strings.Trim(tc.Operands[0], "'\""))
 	rounding := C.CString(strings.ToLower(tc.RoundingMode))
 	defer C.free(unsafe.Pointer(op))
@@ -491,15 +490,14 @@ func executeDecTestReadOperation(tc decTestCase, testType string) (decTestExecRe
 	switch rc {
 	case 0:
 		flags := statusToExceptionFlags(uint32(status))
-		flags = applyDecTestFlagHeuristics(tc, C.GoString(out), flags)
-		return decTestExecResult{
+		return nativeDecTestResult{
 			Result: C.GoString(out),
 			Flags:  flags,
 		}, nil
 	case 2:
-		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+		return nativeDecTestResult{}, fmt.Errorf("%w: %s", errNativeUnsupportedDecTestOperation, tc.Operation)
 	default:
-		return decTestExecResult{}, fmt.Errorf("native decTest read operation failed")
+		return nativeDecTestResult{}, fmt.Errorf("native decTest read operation failed")
 	}
 }
 
@@ -539,115 +537,19 @@ func statusToExceptionFlags(status uint32) ExceptionFlags {
 	return flags
 }
 
-func applyDecTestFlagHeuristics(tc decTestCase, result string, flags ExceptionFlags) ExceptionFlags {
-	if shouldSuppressSubnormalFlag(tc) {
-		flags &^= FlagSubnormal
-	}
-	if tc.Clamp == 1 && flags&FlagClamped == 0 && shouldAddClampedFlag(tc, result, flags) {
-		flags |= FlagClamped
-	}
-	if flags&FlagInvalidOperation == 0 && shouldAddInvalidOperationFlag(tc) {
-		flags |= FlagInvalidOperation
-	}
-	return flags
+type nativeDecTestRequest struct {
+	Operation           string
+	NormalizedOperation string
+	Operands            []string
+	RoundingMode        string
+	Precision           int
+	MaxExponent         int
+	MinExponent         int
+	Clamp               int
+}
+type nativeDecTestResult struct {
+	Result string
+	Flags  ExceptionFlags
 }
 
-func shouldSuppressSubnormalFlag(tc decTestCase) bool {
-	op := normalizeDecTestOperation(tc.Operation)
-	return op == "tointegral" || op == "tointegralx"
-}
-
-func shouldAddClampedFlag(tc decTestCase, result string, flags ExceptionFlags) bool {
-	op := normalizeDecTestOperation(tc.Operation)
-	switch op {
-	case "add", "subtract", "sub", "multiply", "mul", "divide", "div":
-	default:
-		return false
-	}
-
-	parsed, ok := parseFiniteDecimal(result)
-	if !ok {
-		return false
-	}
-	if parsed.isZero {
-		return parsed.exponent == tc.MinExponent-(tc.Precision-1)
-	}
-	if flags&(FlagInexact|FlagRounded|FlagOverflow) != 0 {
-		return false
-	}
-	return parsed.exponent >= tc.MaxExponent-(tc.Precision-1) && parsed.hasTrailingFractionZeros
-}
-
-func shouldAddInvalidOperationFlag(tc decTestCase) bool {
-	op := normalizeDecTestOperation(tc.Operation)
-	if op != "divide" && op != "div" {
-		return false
-	}
-	if len(tc.Operands) != 2 {
-		return false
-	}
-	left, okLeft := parseFiniteDecimal(tc.Operands[0])
-	right, okRight := parseFiniteDecimal(tc.Operands[1])
-	return okLeft && okRight && left.isZero && right.isZero
-}
-
-type parsedFiniteDecimal struct {
-	exponent                 int
-	hasTrailingFractionZeros bool
-	isZero                   bool
-}
-
-func parseFiniteDecimal(input string) (parsedFiniteDecimal, bool) {
-	if _, ok := normalizeSpecialDecimalResult(input); ok {
-		return parsedFiniteDecimal{}, false
-	}
-
-	trimmed := strings.TrimSpace(strings.Trim(input, "'\""))
-	trimmed = strings.TrimPrefix(trimmed, "+")
-	trimmed = strings.TrimPrefix(trimmed, "-")
-	if trimmed == "" {
-		return parsedFiniteDecimal{}, false
-	}
-
-	mantissa := trimmed
-	exponent := 0
-	if idx := strings.IndexAny(trimmed, "Ee"); idx >= 0 {
-		mantissa = trimmed[:idx]
-		parsed, err := strconv.Atoi(trimmed[idx+1:])
-		if err != nil {
-			return parsedFiniteDecimal{}, false
-		}
-		exponent = parsed
-	}
-
-	digitsOnly := strings.ReplaceAll(mantissa, ".", "")
-	if digitsOnly == "" {
-		return parsedFiniteDecimal{}, false
-	}
-
-	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
-		exponent -= len(mantissa) - dot - 1
-	}
-
-	isZero := true
-	for _, r := range digitsOnly {
-		if r != '0' {
-			isZero = false
-			break
-		}
-	}
-	if isZero {
-		return parsedFiniteDecimal{exponent: exponent, isZero: true}, true
-	}
-
-	hasTrailingFractionZeros := false
-	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
-		fraction := mantissa[dot+1:]
-		hasTrailingFractionZeros = strings.TrimRight(fraction, "0") != fraction
-	}
-
-	return parsedFiniteDecimal{
-		exponent:                 exponent,
-		hasTrailingFractionZeros: hasTrailingFractionZeros,
-	}, true
-}
+var errNativeUnsupportedDecTestOperation = errors.New("unsupported decTest operation")

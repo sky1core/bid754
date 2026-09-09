@@ -1,0 +1,105 @@
+type goFullParseExpectation struct {
+ input string
+ width, mode int
+ lo, hi uint64
+ flags uint32
+}
+
+var goFullParseInputs = [...]string{ {{BID_CODEC_PARSE_INPUTS}} }
+
+var goFullParseExpectations = []goFullParseExpectation{ {{BID_CODEC_PARSE_EXPECTATIONS}} }
+
+var goFullParseModes = [...]bid754.RoundingMode{
+ bid754.RoundNearestEven, bid754.RoundTowardNegative, bid754.RoundTowardPositive,
+ bid754.RoundTowardZero, bid754.RoundNearestAway,
+}
+
+func goFullExpectedParseFlags(raw uint32) bid754.ExceptionFlags {
+ var flags bid754.ExceptionFlags
+ if raw&0x20 != 0 { flags |= bid754.FlagInexact }
+ if raw&0x10 != 0 { flags |= bid754.FlagUnderflow }
+ if raw&0x08 != 0 { flags |= bid754.FlagOverflow }
+ return flags
+}
+
+func goFullCompareParse(want goFullParseExpectation, lo, hi uint64, flags bid754.ExceptionFlags, err error) string {
+ if err != nil { return "error" }
+ if lo != want.lo || hi != want.hi { return "bits" }
+ if flags != goFullExpectedParseFlags(want.flags) { return "flags" }
+ return ""
+}
+
+func goFullParseWithMode(row goFullParseExpectation, mode bid754.RoundingMode, defaultFlags bool) (uint64,uint64,bid754.ExceptionFlags,error) {
+ switch row.width {
+ case 32:
+  var v bid754.Decimal32BID
+  var f bid754.ExceptionFlags
+  var err error
+  if defaultFlags { v,f,err = bid754.NewDecimal32WithFlags(row.input) } else { v,f,err = bid754.NewDecimal32WithMode(row.input,mode) }
+  return uint64(v.ToUint32()),0,f,err
+ case 64:
+  var v bid754.Decimal64BID
+  var f bid754.ExceptionFlags
+  var err error
+  if defaultFlags { v,f,err = bid754.NewDecimal64WithFlags(row.input) } else { v,f,err = bid754.NewDecimal64WithMode(row.input,mode) }
+  return v.ToUint64(),0,f,err
+ case 128:
+  var v bid754.Decimal128BID
+  var f bid754.ExceptionFlags
+  var err error
+  if defaultFlags { v,f,err = bid754.NewDecimal128WithFlags(row.input) } else { v,f,err = bid754.NewDecimal128WithMode(row.input,mode) }
+  b := v.ToBytes()
+  return binary.LittleEndian.Uint64(b[:8]),binary.LittleEndian.Uint64(b[8:]),f,err
+ default: panic("unknown generated parse width")
+ }
+}
+
+func goFullAssertRounded(t *testing.T, input string, width int) {
+ t.Helper()
+ count := 0
+ for _,row := range goFullParseExpectations {
+  if row.input != input || row.width != width { continue }
+  count++
+  lo,hi,flags,err := goFullParseWithMode(row,goFullParseModes[row.mode],false)
+  if reason := goFullCompareParse(row,lo,hi,flags,err); reason != "" {
+   t.Errorf("rounded d%d input=%q mode=%d mismatch=%s: bits=%x:%x flags=%v err=%v want=%x:%x raw_flags=%x",width,input,row.mode,reason,hi,lo,flags,err,row.hi,row.lo,row.flags)
+  }
+  if row.mode == 0 {
+   lo,hi,flags,err = goFullParseWithMode(row,goFullParseModes[0],true)
+   if reason := goFullCompareParse(row,lo,hi,flags,err); reason != "" { t.Errorf("WithFlags d%d input=%q mismatch=%s",width,input,reason) }
+  }
+ }
+ if count != 5 { t.Fatalf("rounded d%d input=%q expectations=%d want=5",width,input,count) }
+}
+
+func TestGoFullBidCodecParseComparatorStrength(t *testing.T) {
+ separated := map[[3]int]int{}
+ for _,row := range goFullParseExpectations {
+  lo,hi,f,err := goFullParseWithMode(row,goFullParseModes[row.mode],false)
+  if got := goFullCompareParse(row,lo,hi,f,err); got != "" { t.Fatalf("baseline d%d mode=%d: %s",row.width,row.mode,got) }
+  if got := goFullCompareParse(row,lo^1,hi,f,nil); got != "bits" { t.Fatalf("wrong low bits: %q",got) }
+  if got := goFullCompareParse(row,lo,hi^1,f,nil); got != "bits" { t.Fatalf("wrong high bits: %q",got) }
+  if got := goFullCompareParse(row,lo,hi,f^bid754.FlagInexact,nil); got != "flags" { t.Fatalf("wrong flags: %q",got) }
+  if got := goFullCompareParse(row,lo,hi,f|bid754.FlagInvalidOperation,nil); got != "flags" { t.Fatalf("extra flags: %q",got) }
+  for _,other := range goFullParseExpectations {
+   if other.input != row.input || other.width != row.width || other.mode == row.mode { continue }
+   ol,oh,of,oe := goFullParseWithMode(row,goFullParseModes[other.mode],false)
+   if got := goFullCompareParse(other,ol,oh,of,oe); got != "" { t.Fatalf("alternate-mode baseline d%d input=%q mode=%d: %s",row.width,row.input,other.mode,got) }
+   wantMismatch := ""
+   if other.lo != row.lo || other.hi != row.hi { wantMismatch = "bits" } else if other.flags != row.flags { wantMismatch = "flags" }
+   if got := goFullCompareParse(row,ol,oh,of,oe); got != wantMismatch { t.Fatalf("wrong rounding d%d input=%q mode=%d alternate=%d: got=%q want=%q",row.width,row.input,row.mode,other.mode,got,wantMismatch) }
+   if wantMismatch != "" { separated[[3]int{row.width,row.mode,other.mode}]++ }
+  }
+ }
+ for _,width := range []int{32,64,128} {
+  pairs := 0
+  for a:=0;a<5;a++ { for b:=a+1;b<5;b++ {
+   forward,reverse := separated[[3]int{width,a,b}],separated[[3]int{width,b,a}]
+   if forward==0 || reverse==0 { t.Errorf("d%d modes %d/%d not separated in both directions: %d/%d",width,a,b,forward,reverse) } else { pairs++ }
+   t.Logf("d%d mode_pair=%d/%d production_fault_witnesses=%d/%d",width,a,b,forward,reverse)
+  } }
+  t.Logf("d%d mode_pairs=%d/10 directed_substitutions=%d/20",width,pairs,2*pairs)
+ }
+
+ t.Logf("parse oracle tuples=%d comparator baseline/bits/flags and all-mode-pair checks executed",len(goFullParseExpectations))
+}

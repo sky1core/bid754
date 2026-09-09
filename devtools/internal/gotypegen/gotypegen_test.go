@@ -44,8 +44,8 @@ func TestGeneratedTypesIncludeKnownDefinitions(t *testing.T) {
 		[]byte("EncodingBID EncodingFormat = iota"),
 		[]byte("FlagInexact"),
 		[]byte("ExceptionFlags = 1 << iota"),
-		[]byte("type Decimal64BID uint64"),
-		[]byte("type Decimal128BID [16]byte"),
+		[]byte("type Decimal64BID struct{ raw uint64 }"),
+		[]byte("type Decimal128BID struct{ raw [16]byte }"),
 		[]byte("func (d Decimal128BID) ToBytes() [16]byte"),
 	} {
 		if !bytes.Contains(generated, snippet) {

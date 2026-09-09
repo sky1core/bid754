@@ -197,7 +197,7 @@ var tier1MinMaxOperations = [...]string{"minnum", "maxnum", "minnum_mag", "maxnu
 func tier1LegsQuiet32(t *testing.T, operation string, x, y uint32) (native int, nativeFlags uint32, port int, portFlags uint32, public int, publicFlags uint32, unknownFlags ExceptionFlags) {
 	t.Helper()
 	native, nativeFlags, port, portFlags = runGeneratedFFICase32IntBinary(operation, x, y)
-	left, right := Decimal32BID(x), Decimal32BID(y)
+	left, right := Decimal32BIDFromBits(x), Decimal32BIDFromBits(y)
 	var got bool
 	var gotFlags ExceptionFlags
 	switch operation {
@@ -234,7 +234,7 @@ func tier1CheckQuiet32(t *testing.T, operation string, x, y uint32) {
 func tier1LegsQuiet64(t *testing.T, operation string, x, y uint64) (native int, nativeFlags uint32, port int, portFlags uint32, public int, publicFlags uint32, unknownFlags ExceptionFlags) {
 	t.Helper()
 	native, nativeFlags, port, portFlags = runGeneratedFFICase64IntBinary(operation, x, y)
-	left, right := Decimal64BID(x), Decimal64BID(y)
+	left, right := Decimal64BIDFromBits(x), Decimal64BIDFromBits(y)
 	var got bool
 	var gotFlags ExceptionFlags
 	switch operation {
@@ -307,7 +307,7 @@ func tier1CheckQuiet128(t *testing.T, operation string, x, y Decimal128BID) {
 func tier1LegsMinMax32(t *testing.T, operation string, x, y uint32) (native, port, public, pure string, unknownFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase32Binary("bid32_"+operation, x, y, 0)
-	left, right := Decimal32BID(x), Decimal32BID(y)
+	left, right := Decimal32BIDFromBits(x), Decimal32BIDFromBits(y)
 	var got Decimal32BID
 	var gotFlags ExceptionFlags
 	var pureBits uint32
@@ -348,7 +348,7 @@ func tier1CheckMinMax32(t *testing.T, operation string, x, y uint32) {
 func tier1LegsMinMax64(t *testing.T, operation string, x, y uint64) (native, port, public string, unknownFlags ExceptionFlags) {
 	t.Helper()
 	native, port = runGeneratedFFICase64Binary("bid64_"+operation, x, y, 0)
-	left, right := Decimal64BID(x), Decimal64BID(y)
+	left, right := Decimal64BIDFromBits(x), Decimal64BIDFromBits(y)
 	var got Decimal64BID
 	var gotFlags ExceptionFlags
 	if operation == "minnum" {
@@ -445,22 +445,22 @@ func TestTier1QuietComparisonSemanticMatrix(t *testing.T) {
 			relation int // -1 less, 0 equal, +1 greater, 2 unordered.
 			flags    ExceptionFlags
 		}{
-			{name: "equal finite", x: 0x32800001, y: 0x32800001, relation: 0},
-			{name: "less finite", x: 0xb2800001, y: 0x32800001, relation: -1},
-			{name: "greater finite", x: 0x32800001, y: 0xb2800001, relation: 1},
-			{name: "signed zero", x: 0x00000000, y: 0x80000000, relation: 0},
-			{name: "positive infinity", x: 0x78000000, y: 0x32800001, relation: 1},
-			{name: "finite below infinity", x: 0x32800001, y: 0x78000000, relation: -1},
-			{name: "quiet NaN left", x: 0x7c000001, y: 0x32800001, relation: 2},
-			{name: "quiet NaN right", x: 0x32800001, y: 0x7c000001, relation: 2},
-			{name: "signaling NaN left", x: 0x7e000001, y: 0x32800001, relation: 2, flags: FlagInvalidOperation},
-			{name: "signaling NaN right", x: 0x32800001, y: 0x7e000001, relation: 2, flags: FlagInvalidOperation},
-			{name: "negative infinity below finite", x: 0xf8000000, y: 0x32800001, relation: -1},
-			{name: "finite above negative infinity", x: 0x32800001, y: 0xf8000000, relation: 1},
-			{name: "negative infinity below positive infinity", x: 0xf8000000, y: 0x78000000, relation: -1},
-			{name: "positive infinity above negative infinity", x: 0x78000000, y: 0xf8000000, relation: 1},
-			{name: "positive infinity equal", x: 0x78000000, y: 0x78000000, relation: 0},
-			{name: "negative infinity equal", x: 0xf8000000, y: 0xf8000000, relation: 0},
+			{name: "equal finite", x: Decimal32BIDFromBits(0x32800001), y: Decimal32BIDFromBits(0x32800001), relation: 0},
+			{name: "less finite", x: Decimal32BIDFromBits(0xb2800001), y: Decimal32BIDFromBits(0x32800001), relation: -1},
+			{name: "greater finite", x: Decimal32BIDFromBits(0x32800001), y: Decimal32BIDFromBits(0xb2800001), relation: 1},
+			{name: "signed zero", x: Decimal32BIDFromBits(0x00000000), y: Decimal32BIDFromBits(0x80000000), relation: 0},
+			{name: "positive infinity", x: Decimal32BIDFromBits(0x78000000), y: Decimal32BIDFromBits(0x32800001), relation: 1},
+			{name: "finite below infinity", x: Decimal32BIDFromBits(0x32800001), y: Decimal32BIDFromBits(0x78000000), relation: -1},
+			{name: "quiet NaN left", x: Decimal32BIDFromBits(0x7c000001), y: Decimal32BIDFromBits(0x32800001), relation: 2},
+			{name: "quiet NaN right", x: Decimal32BIDFromBits(0x32800001), y: Decimal32BIDFromBits(0x7c000001), relation: 2},
+			{name: "signaling NaN left", x: Decimal32BIDFromBits(0x7e000001), y: Decimal32BIDFromBits(0x32800001), relation: 2, flags: FlagInvalidOperation},
+			{name: "signaling NaN right", x: Decimal32BIDFromBits(0x32800001), y: Decimal32BIDFromBits(0x7e000001), relation: 2, flags: FlagInvalidOperation},
+			{name: "negative infinity below finite", x: Decimal32BIDFromBits(0xf8000000), y: Decimal32BIDFromBits(0x32800001), relation: -1},
+			{name: "finite above negative infinity", x: Decimal32BIDFromBits(0x32800001), y: Decimal32BIDFromBits(0xf8000000), relation: 1},
+			{name: "negative infinity below positive infinity", x: Decimal32BIDFromBits(0xf8000000), y: Decimal32BIDFromBits(0x78000000), relation: -1},
+			{name: "positive infinity above negative infinity", x: Decimal32BIDFromBits(0x78000000), y: Decimal32BIDFromBits(0xf8000000), relation: 1},
+			{name: "positive infinity equal", x: Decimal32BIDFromBits(0x78000000), y: Decimal32BIDFromBits(0x78000000), relation: 0},
+			{name: "negative infinity equal", x: Decimal32BIDFromBits(0xf8000000), y: Decimal32BIDFromBits(0xf8000000), relation: 0},
 		}
 		if len(cases) != int(tier1QuietSemanticRelationCount) {
 			t.Fatalf("decimal32 semantic relation count=%d want=%d", len(cases), tier1QuietSemanticRelationCount)
@@ -495,22 +495,22 @@ func TestTier1QuietComparisonSemanticMatrix(t *testing.T) {
 			relation int
 			flags    ExceptionFlags
 		}{
-			{name: "equal finite", x: 0x31c0000000000001, y: 0x31c0000000000001, relation: 0},
-			{name: "less finite", x: 0xb1c0000000000001, y: 0x31c0000000000001, relation: -1},
-			{name: "greater finite", x: 0x31c0000000000001, y: 0xb1c0000000000001, relation: 1},
-			{name: "signed zero", x: 0x0000000000000000, y: 0x8000000000000000, relation: 0},
-			{name: "positive infinity", x: 0x7800000000000000, y: 0x31c0000000000001, relation: 1},
-			{name: "finite below infinity", x: 0x31c0000000000001, y: 0x7800000000000000, relation: -1},
-			{name: "quiet NaN left", x: 0x7c00000000000001, y: 0x31c0000000000001, relation: 2},
-			{name: "quiet NaN right", x: 0x31c0000000000001, y: 0x7c00000000000001, relation: 2},
-			{name: "signaling NaN left", x: 0x7e00000000000001, y: 0x31c0000000000001, relation: 2, flags: FlagInvalidOperation},
-			{name: "signaling NaN right", x: 0x31c0000000000001, y: 0x7e00000000000001, relation: 2, flags: FlagInvalidOperation},
-			{name: "negative infinity below finite", x: 0xf800000000000000, y: 0x31c0000000000001, relation: -1},
-			{name: "finite above negative infinity", x: 0x31c0000000000001, y: 0xf800000000000000, relation: 1},
-			{name: "negative infinity below positive infinity", x: 0xf800000000000000, y: 0x7800000000000000, relation: -1},
-			{name: "positive infinity above negative infinity", x: 0x7800000000000000, y: 0xf800000000000000, relation: 1},
-			{name: "positive infinity equal", x: 0x7800000000000000, y: 0x7800000000000000, relation: 0},
-			{name: "negative infinity equal", x: 0xf800000000000000, y: 0xf800000000000000, relation: 0},
+			{name: "equal finite", x: Decimal64BIDFromBits(0x31c0000000000001), y: Decimal64BIDFromBits(0x31c0000000000001), relation: 0},
+			{name: "less finite", x: Decimal64BIDFromBits(0xb1c0000000000001), y: Decimal64BIDFromBits(0x31c0000000000001), relation: -1},
+			{name: "greater finite", x: Decimal64BIDFromBits(0x31c0000000000001), y: Decimal64BIDFromBits(0xb1c0000000000001), relation: 1},
+			{name: "signed zero", x: Decimal64BIDFromBits(0x0000000000000000), y: Decimal64BIDFromBits(0x8000000000000000), relation: 0},
+			{name: "positive infinity", x: Decimal64BIDFromBits(0x7800000000000000), y: Decimal64BIDFromBits(0x31c0000000000001), relation: 1},
+			{name: "finite below infinity", x: Decimal64BIDFromBits(0x31c0000000000001), y: Decimal64BIDFromBits(0x7800000000000000), relation: -1},
+			{name: "quiet NaN left", x: Decimal64BIDFromBits(0x7c00000000000001), y: Decimal64BIDFromBits(0x31c0000000000001), relation: 2},
+			{name: "quiet NaN right", x: Decimal64BIDFromBits(0x31c0000000000001), y: Decimal64BIDFromBits(0x7c00000000000001), relation: 2},
+			{name: "signaling NaN left", x: Decimal64BIDFromBits(0x7e00000000000001), y: Decimal64BIDFromBits(0x31c0000000000001), relation: 2, flags: FlagInvalidOperation},
+			{name: "signaling NaN right", x: Decimal64BIDFromBits(0x31c0000000000001), y: Decimal64BIDFromBits(0x7e00000000000001), relation: 2, flags: FlagInvalidOperation},
+			{name: "negative infinity below finite", x: Decimal64BIDFromBits(0xf800000000000000), y: Decimal64BIDFromBits(0x31c0000000000001), relation: -1},
+			{name: "finite above negative infinity", x: Decimal64BIDFromBits(0x31c0000000000001), y: Decimal64BIDFromBits(0xf800000000000000), relation: 1},
+			{name: "negative infinity below positive infinity", x: Decimal64BIDFromBits(0xf800000000000000), y: Decimal64BIDFromBits(0x7800000000000000), relation: -1},
+			{name: "positive infinity above negative infinity", x: Decimal64BIDFromBits(0x7800000000000000), y: Decimal64BIDFromBits(0xf800000000000000), relation: 1},
+			{name: "positive infinity equal", x: Decimal64BIDFromBits(0x7800000000000000), y: Decimal64BIDFromBits(0x7800000000000000), relation: 0},
+			{name: "negative infinity equal", x: Decimal64BIDFromBits(0xf800000000000000), y: Decimal64BIDFromBits(0xf800000000000000), relation: 0},
 		}
 		if len(cases) != int(tier1QuietSemanticRelationCount) {
 			t.Fatalf("decimal64 semantic relation count=%d want=%d", len(cases), tier1QuietSemanticRelationCount)
@@ -1026,14 +1026,14 @@ func tier1CheckToInteger(t *testing.T, width int, operand string, operation tier
 
 func tier1LegsToInteger32(t *testing.T, value uint32, operation tier1ToIntegerOperation) (native, port, public string, unknownFlags ExceptionFlags) {
 	t.Helper()
-	public, unknownFlags = tier1PublicToInteger32(Decimal32BID(value), operation)
+	public, unknownFlags = tier1PublicToInteger32(Decimal32BIDFromBits(value), operation)
 	_, native, port = tier1LegsToInteger(t, 32, fmt.Sprintf("%08x", value), operation)
 	return
 }
 
 func tier1LegsToInteger64(t *testing.T, value uint64, operation tier1ToIntegerOperation) (native, port, public string, unknownFlags ExceptionFlags) {
 	t.Helper()
-	public, unknownFlags = tier1PublicToInteger64(Decimal64BID(value), operation)
+	public, unknownFlags = tier1PublicToInteger64(Decimal64BIDFromBits(value), operation)
 	_, native, port = tier1LegsToInteger(t, 64, fmt.Sprintf("%016x", value), operation)
 	return
 }
@@ -1048,12 +1048,12 @@ func tier1LegsToInteger128(t *testing.T, value Decimal128BID, operation tier1ToI
 }
 
 func tier1CheckToInteger32(t *testing.T, value uint32, operation tier1ToIntegerOperation) {
-	public, unknownFlags := tier1PublicToInteger32(Decimal32BID(value), operation)
+	public, unknownFlags := tier1PublicToInteger32(Decimal32BIDFromBits(value), operation)
 	tier1CheckToInteger(t, 32, fmt.Sprintf("%08x", value), operation, public, unknownFlags)
 }
 
 func tier1CheckToInteger64(t *testing.T, value uint64, operation tier1ToIntegerOperation) {
-	public, unknownFlags := tier1PublicToInteger64(Decimal64BID(value), operation)
+	public, unknownFlags := tier1PublicToInteger64(Decimal64BIDFromBits(value), operation)
 	tier1CheckToInteger(t, 64, fmt.Sprintf("%016x", value), operation, public, unknownFlags)
 }
 
@@ -1123,7 +1123,7 @@ func tier1PublicBinary32(source Decimal32BID, operation tier1BinaryOperation) (s
 	case 128:
 		result, flags := source.ToBinary128(operation.mode.public)
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BID(result.ToBytes())), rawFlags), unknown
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BIDFromBytes(result.ToBytes())), rawFlags), unknown
 	}
 	panic(fmt.Sprintf("unknown Decimal32 binary-conversion destination %d", operation.dest))
 }
@@ -1141,7 +1141,7 @@ func tier1PublicBinary64(source Decimal64BID, operation tier1BinaryOperation) (s
 	case 128:
 		result, flags := source.ToBinary128(operation.mode.public)
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BID(result.ToBytes())), rawFlags), unknown
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BIDFromBytes(result.ToBytes())), rawFlags), unknown
 	}
 	panic(fmt.Sprintf("unknown Decimal64 binary-conversion destination %d", operation.dest))
 }
@@ -1159,18 +1159,18 @@ func tier1PublicBinary128(source Decimal128BID, operation tier1BinaryOperation) 
 	case 128:
 		result, flags := source.ToBinary128(operation.mode.public)
 		rawFlags, unknown := tier1ArithmeticPublicRawFlags(flags)
-		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BID(result.ToBytes())), rawFlags), unknown
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(Decimal128BIDFromBytes(result.ToBytes())), rawFlags), unknown
 	}
 	panic(fmt.Sprintf("unknown Decimal128 binary-conversion destination %d", operation.dest))
 }
 
 func tier1CheckBinary32(t *testing.T, value uint32, operation tier1BinaryOperation) {
-	public, unknownFlags := tier1PublicBinary32(Decimal32BID(value), operation)
+	public, unknownFlags := tier1PublicBinary32(Decimal32BIDFromBits(value), operation)
 	tier1CheckBinaryConversion(t, operation, fmt.Sprintf("%08x", value), public, unknownFlags)
 }
 
 func tier1CheckBinary64(t *testing.T, value uint64, operation tier1BinaryOperation) {
-	public, unknownFlags := tier1PublicBinary64(Decimal64BID(value), operation)
+	public, unknownFlags := tier1PublicBinary64(Decimal64BIDFromBits(value), operation)
 	tier1CheckBinaryConversion(t, operation, fmt.Sprintf("%016x", value), public, unknownFlags)
 }
 
@@ -1246,7 +1246,7 @@ func tier1CheckWidthConversion(t *testing.T, operation tier1WidthOperation, oper
 
 func tier1PublicWidth32(t *testing.T, value uint32, operation tier1WidthOperation) (string, ExceptionFlags) {
 	t.Helper()
-	source := Decimal32BID(value)
+	source := Decimal32BIDFromBits(value)
 	switch operation.dest {
 	case 64:
 		result, flags := source.ToDecimal64()
@@ -1264,7 +1264,7 @@ func tier1PublicWidth32(t *testing.T, value uint32, operation tier1WidthOperatio
 
 func tier1PublicWidth64(t *testing.T, value uint64, operation tier1WidthOperation) (string, ExceptionFlags) {
 	t.Helper()
-	source := Decimal64BID(value)
+	source := Decimal64BIDFromBits(value)
 	switch operation.dest {
 	case 32:
 		result, flags := source.ToDecimal32(operation.mode.public)
@@ -2280,12 +2280,12 @@ func tier1CCSentinelBinary(t *testing.T, row, widthLabel, operation, xText strin
 		value := tier1ArithmeticSentinelHex32(t, row, xText)
 		op = tier1CCSentinelBinaryOperation(t, row, 32, operation, mode)
 		operand = fmt.Sprintf("%08x", value)
-		public, unknownFlags = tier1PublicBinary32(Decimal32BID(value), op)
+		public, unknownFlags = tier1PublicBinary32(Decimal32BIDFromBits(value), op)
 	case "d64":
 		value := tier1ArithmeticSentinelHex64(t, row, xText)
 		op = tier1CCSentinelBinaryOperation(t, row, 64, operation, mode)
 		operand = fmt.Sprintf("%016x", value)
-		public, unknownFlags = tier1PublicBinary64(Decimal64BID(value), op)
+		public, unknownFlags = tier1PublicBinary64(Decimal64BIDFromBits(value), op)
 	case "d128":
 		value := tier1ArithmeticDecimal128(tier1ArithmeticSentinelWords128(t, row, xText))
 		op = tier1CCSentinelBinaryOperation(t, row, 128, operation, mode)

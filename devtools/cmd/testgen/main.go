@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	publicParseOnly := flag.Bool("bid-codec-public-parse-only", false, "regenerate only the Go and Rust public BID codec parse harnesses")
 	manifestPath := flag.String("manifest", "testgen_manifest.json", "path to the shared test generation manifest")
 	printSentinelAnchors := flag.Bool("print-sentinel-anchors", false,
 		"print the proposed verification_sentinels.json routing-sentinel rows to stdout and exit; writes no file and reads no anchor")
@@ -20,6 +21,12 @@ func main() {
 	printMixedFFISentinelAnchors := flag.Bool("print-mixed-ffi-sentinel-anchors", false,
 		"print the proposed verification_sentinels.json mixed-format FFI routing sentinel rows to stdout and exit; writes no file and reads no anchor")
 	flag.Parse()
+	if *publicParseOnly {
+		if err := testgen.WriteBidCodecPublicParseOracleOutputs("."); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	if *printSentinelAnchors {
 		proposal, err := testgen.Tier1SentinelAnchorProposal()

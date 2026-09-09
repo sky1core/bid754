@@ -412,16 +412,19 @@ func pwDecType(w int) string { return fmt.Sprintf("Decimal%dBID", w) }
 func pubToPortArg(w int, expr string) string {
 	switch w {
 	case 32:
-		return "uint32(" + expr + ")"
+		return "(" + expr + ").ToUint32()"
 	case 64:
-		return "uint64(" + expr + ")"
+		return "(" + expr + ").ToUint64()"
 	default:
 		return "publicParityToBidgo128(" + expr + ".ToBytes())"
 	}
 }
 
 func pwPublicVal(w int, elem string) string {
-	return fmt.Sprintf("%s(%s)", pwDecType(w), elem)
+	if w == 128 {
+		return fmt.Sprintf("Decimal128BIDFromBytes(%s)", elem)
+	}
+	return fmt.Sprintf("%sFromBits(%s)", pwDecType(w), elem)
 }
 
 func pwPortArg(w int, elem string) string {
@@ -435,9 +438,9 @@ func pwPortArg(w int, elem string) string {
 func pubBitsExpr(class, pv string) string {
 	switch class {
 	case "dec32":
-		return "uint32(" + pv + ")"
+		return "(" + pv + ").ToUint32()"
 	case "dec64":
-		return "uint64(" + pv + ")"
+		return "(" + pv + ").ToUint64()"
 	case "dec128", "bin128":
 		return pv + ".ToBytes()"
 	case "bool", "int":
@@ -1026,7 +1029,7 @@ func emitVMNextToward(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\tfor _, elem := range %s {\n", pwCorpus(w))
 	fmt.Fprintf(b, "\t\ta := %s\n", pwPublicVal(w, "elem"))
 	fmt.Fprintf(b, "\t\tfor _, tb := range publicParityCorpus128[:%d] {\n", publicParityNextTowardTargets)
-	fmt.Fprintf(b, "\t\t\ttarget := Decimal128BID(tb)\n")
+	fmt.Fprintf(b, "\t\t\ttarget := Decimal128BIDFromBytes(tb)\n")
 	fmt.Fprintf(b, "\t\t\tpv, pf := a.NextToward(target)\n")
 	pfPort := emitGenericPort(b, "\t\t\t", u.Port, []string{pwPortArg(w, "elem"), "publicParityToBidgo128(tb)"}, "0", true)
 	emitResultCheck(b, "\t\t\t", u.Symbol, u.ResultClass, "pv", "pr", u.Port.PrimaryResult, "operand %#x target %x", "elem, tb")
@@ -1448,7 +1451,7 @@ func emitVMNullary(b *strings.Builder, u parityUnit) error {
 	if w == 128 {
 		zero = "Decimal128BID{}"
 	} else {
-		zero = fmt.Sprintf("%s(0)", pwDecType(w))
+		zero = fmt.Sprintf("%s{}", pwDecType(w))
 	}
 	fmt.Fprintf(b, "\ta := %s\n", zero)
 	fmt.Fprintf(b, "\tpv := a.%s()\n", u.Method)
@@ -1609,9 +1612,9 @@ func emitFuncFromInt(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\t\t\tif err == nil {\n\t\t\t\tt.Errorf(\"public parity %s: operand %%v: expected exact-representation error, got %%v\", x, pv)\n\t\t\t}\n", u.Symbol)
 	switch u.ResultClass {
 	case "dec32":
-		fmt.Fprintf(b, "\t\t\tif bits := uint32(pv); bits != 0x7c000000 {\n\t\t\t\tt.Errorf(\"public parity %s: operand %%v: error result bits = %%#x, want canonical qNaN 0x7c000000\", x, bits)\n\t\t\t}\n", u.Symbol)
+		fmt.Fprintf(b, "\t\t\tif bits := pv.ToUint32(); bits != 0x7c000000 {\n\t\t\t\tt.Errorf(\"public parity %s: operand %%v: error result bits = %%#x, want canonical qNaN 0x7c000000\", x, bits)\n\t\t\t}\n", u.Symbol)
 	case "dec64":
-		fmt.Fprintf(b, "\t\t\tif bits := uint64(pv); bits != 0x7c00000000000000 {\n\t\t\t\tt.Errorf(\"public parity %s: operand %%v: error result bits = %%#x, want canonical qNaN 0x7c00000000000000\", x, bits)\n\t\t\t}\n", u.Symbol)
+		fmt.Fprintf(b, "\t\t\tif bits := pv.ToUint64(); bits != 0x7c00000000000000 {\n\t\t\t\tt.Errorf(\"public parity %s: operand %%v: error result bits = %%#x, want canonical qNaN 0x7c00000000000000\", x, bits)\n\t\t\t}\n", u.Symbol)
 	case "dec128":
 		// Every int64 is exactly representable as Decimal128, so this branch is
 		// unreachable for the current manifest. Keep the generic invalid-result
@@ -1631,9 +1634,9 @@ func emitFuncFromInt(b *strings.Builder, u parityUnit) error {
 func emitStringZeroResultCheck(b *strings.Builder, indent string, u parityUnit, checkFlags bool) error {
 	switch u.ResultClass {
 	case "dec32":
-		fmt.Fprintf(b, "%sif pv != 0 {\n%s\tt.Errorf(\"public parity %s: input %%q: error result bits = %%#x, want zero\", sc.input, uint32(pv))\n%s}\n", indent, indent, u.Symbol, indent)
+		fmt.Fprintf(b, "%sif pv != (Decimal32BID{}) {\n%s\tt.Errorf(\"public parity %s: input %%q: error result bits = %%#x, want zero\", sc.input, pv.ToUint32())\n%s}\n", indent, indent, u.Symbol, indent)
 	case "dec64":
-		fmt.Fprintf(b, "%sif pv != 0 {\n%s\tt.Errorf(\"public parity %s: input %%q: error result bits = %%#x, want zero\", sc.input, uint64(pv))\n%s}\n", indent, indent, u.Symbol, indent)
+		fmt.Fprintf(b, "%sif pv != (Decimal64BID{}) {\n%s\tt.Errorf(\"public parity %s: input %%q: error result bits = %%#x, want zero\", sc.input, pv.ToUint64())\n%s}\n", indent, indent, u.Symbol, indent)
 	case "dec128":
 		fmt.Fprintf(b, "%sif pv != (Decimal128BID{}) {\n%s\tt.Errorf(\"public parity %s: input %%q: error result bits = %%x, want zero\", sc.input, pv.ToBytes())\n%s}\n", indent, indent, u.Symbol, indent)
 	default:
@@ -1648,9 +1651,9 @@ func emitStringZeroResultCheck(b *strings.Builder, indent string, u parityUnit, 
 func emitRawRejectedStringCheck(b *strings.Builder, indent string, u parityUnit) error {
 	switch u.ResultClass {
 	case "dec32":
-		fmt.Fprintf(b, "%sif bits := uint32(pv); bits != 0x7c000000 {\n%s\tt.Errorf(\"public parity %s: input %%q: rejected-input result bits = %%#x, want canonical qNaN 0x7c000000\", sc.input, bits)\n%s}\n", indent, indent, u.Symbol, indent)
+		fmt.Fprintf(b, "%sif bits := pv.ToUint32(); bits != 0x7c000000 {\n%s\tt.Errorf(\"public parity %s: input %%q: rejected-input result bits = %%#x, want canonical qNaN 0x7c000000\", sc.input, bits)\n%s}\n", indent, indent, u.Symbol, indent)
 	case "dec64":
-		fmt.Fprintf(b, "%sif bits := uint64(pv); bits != 0x7c00000000000000 {\n%s\tt.Errorf(\"public parity %s: input %%q: rejected-input result bits = %%#x, want canonical qNaN 0x7c00000000000000\", sc.input, bits)\n%s}\n", indent, indent, u.Symbol, indent)
+		fmt.Fprintf(b, "%sif bits := pv.ToUint64(); bits != 0x7c00000000000000 {\n%s\tt.Errorf(\"public parity %s: input %%q: rejected-input result bits = %%#x, want canonical qNaN 0x7c00000000000000\", sc.input, bits)\n%s}\n", indent, indent, u.Symbol, indent)
 	case "dec128":
 		fmt.Fprintf(b, "%sif bits := pv.ToBytes(); bits != ([16]byte{15: 0x7c}) {\n%s\tt.Errorf(\"public parity %s: input %%q: rejected-input result bits = %%x, want canonical qNaN\", sc.input, bits)\n%s}\n", indent, indent, u.Symbol, indent)
 	default:

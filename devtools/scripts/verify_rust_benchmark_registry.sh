@@ -11,7 +11,7 @@ cd "$repo_root/bid754-rs"
 echo "==> Rust Criterion benchmark registry exact-set verification"
 
 if ! registry_output=$(
-  CARGO_TERM_COLOR=never cargo bench --locked --bench core -- \
+  CARGO_TERM_COLOR=never cargo bench --locked --features verification --bench core -- \
     --list --format terse --color never 2>&1
 ); then
   echo "ERROR: cargo bench failed while listing the Rust Criterion benchmark registry" >&2

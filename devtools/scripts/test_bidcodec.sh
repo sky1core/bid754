@@ -104,16 +104,16 @@ require_file "bid754-go/generated_bid_codec_vectors_test.go"
 require_go_full_reference "bid754-go/generated_bid_codec_vectors_test.go"
 
 echo "==> Go BID codec vector tests: bid754-codec-go"
-(cd bid754-codec-go && GOCACHE="$go_cache" go test -count=1 -tags bid754_bidcodec_vectors ./...)
+(cd bid754-codec-go && GOCACHE="$go_cache" go test -count=1 -v -tags bid754_bidcodec_vectors ./...)
 
 echo "==> Rust BID codec vector tests: bid754-codec-rs"
-(cd bid754-codec-rs && cargo test --locked)
+(cd bid754-codec-rs && cargo test --locked -- --show-output --test-threads=1)
 
 echo "==> Rust bid754 BID codec vector tests: bid754-rs"
-(cd bid754-rs && cargo test --locked --test bid_codec_vectors)
+(cd bid754-rs && cargo test --locked --features verification --test bid_codec_vectors -- --show-output --test-threads=1)
 
 echo "==> Go bid754 public parse BID codec vector tests: bid754-go"
-# A -run expression that matches zero tests (or silently drops one of the two
+# A -run expression that matches zero tests (or silently drops one of the
 # generated tests) still exits 0, so this leg must fail on the "test not
 # executed" failure mode itself instead of trusting the name filter: require
 # an explicit PASS line for each generated go_full test in the verbose output.
@@ -123,7 +123,7 @@ go_full_out=$(cd bid754-go && GOCACHE="$go_cache" go test -count=1 -v -tags bid7
   exit 1
 }
 printf '%s\n' "$go_full_out"
-for go_full_test in TestGoFullBidCodecRejectVectors TestGoFullBidCodecStringVectors; do
+for go_full_test in TestGoFullBidCodecRejectVectors TestGoFullBidCodecStringVectors TestGoFullBidCodecParseComparatorStrength; do
   if ! grep -qF -- "--- PASS: $go_full_test" <<<"$go_full_out"; then
     echo "go_full BID codec consumer did not execute $go_full_test" >&2
     exit 1
@@ -136,7 +136,7 @@ echo "==> Rust bid754 public parse BID codec vector tests: bid754-rs"
 # only one that reaches the generated Rust public parse path -- rust_full next
 # door exercises the embedded Components codec -- so a silently skipped run
 # would leave that surface unverified while the gate reported success.
-rust_parse_out=$(cd bid754-rs && cargo test --locked --test bid_codec_parse_vectors 2>&1) || {
+rust_parse_out=$(cd bid754-rs && cargo test --locked --test bid_codec_parse_vectors -- --show-output --test-threads=1 2>&1) || {
   printf '%s\n' "$rust_parse_out"
   exit 1
 }
@@ -157,10 +157,10 @@ echo "==> Python BID codec vector tests: bid754-codec-py"
 py_venv=$(mktemp -d)
 python3 -m venv "$py_venv"
 "$py_venv/bin/python" -m pip install "pytest==9.0.2"
-(cd bid754-codec-py && PYTHONNOUSERSITE=1 "$py_venv/bin/python" -m pytest)
+(cd bid754-codec-py && PYTHONNOUSERSITE=1 "$py_venv/bin/python" -m pytest -v -s)
 
 echo "==> JavaScript/TypeScript BID codec vector tests: bid754-codec-js"
-(cd bid754-codec-js && npm ci && npm run build && npm test)
+(cd bid754-codec-js && npm ci && npm run build && npm test && node vector_runner.mjs ../bid754-codec-vectors/vectors.json)
 
 echo "==> Swift BID codec vector tests: bid754-codec-swift"
 swift run BidCodecVectorRunner bid754-codec-vectors/vectors.json

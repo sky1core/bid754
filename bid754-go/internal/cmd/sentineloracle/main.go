@@ -192,10 +192,10 @@ func rawFlags(flags bid754.ExceptionFlags) (uint32, error) {
 }
 
 func decimal128(v oracleValue) bid754.Decimal128BID {
-	var out bid754.Decimal128BID
+	var out [16]byte
 	binary.LittleEndian.PutUint64(out[0:8], v.lo)
 	binary.LittleEndian.PutUint64(out[8:16], v.hi)
-	return out
+	return bid754.Decimal128BIDFromBytes(out)
 }
 
 func result32(value bid754.Decimal32BID, flags bid754.ExceptionFlags) (string, error) {
@@ -260,9 +260,9 @@ func evalRequest(line string) (string, error) {
 		}
 		switch width {
 		case 32:
-			return bid754.Decimal32BID(uint32(v.lo)).String(), nil
+			return bid754.Decimal32BIDFromBits(uint32(v.lo)).String(), nil
 		case 64:
-			return bid754.Decimal64BID(v.lo).String(), nil
+			return bid754.Decimal64BIDFromBits(v.lo).String(), nil
 		default:
 			return decimal128(v).String(), nil
 		}
@@ -565,7 +565,7 @@ func parseExact(text string) (bool, error) {
 func evalRounded(width int, op string, x, y oracleValue, mode bid754.RoundingMode) (string, error) {
 	switch width {
 	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
+		left, right := bid754.Decimal32BIDFromBits(uint32(x.lo)), bid754.Decimal32BIDFromBits(uint32(y.lo))
 		var value bid754.Decimal32BID
 		var flags bid754.ExceptionFlags
 		switch op {
@@ -584,7 +584,7 @@ func evalRounded(width int, op string, x, y oracleValue, mode bid754.RoundingMod
 		}
 		return result32(value, flags)
 	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
+		left, right := bid754.Decimal64BIDFromBits(x.lo), bid754.Decimal64BIDFromBits(y.lo)
 		var value bid754.Decimal64BID
 		var flags bid754.ExceptionFlags
 		switch op {
@@ -668,10 +668,10 @@ func evalMixed(function, xText, yText string, mode bid754.RoundingMode) (string,
 		value, flags := bid754.Div64QQBIDWithMode(decimal128(x), decimal128(y), mode)
 		return result64(value, flags)
 	case "bid128dd_sub":
-		value, flags := bid754.Sub128DDBIDWithMode(bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo), mode)
+		value, flags := bid754.Sub128DDBIDWithMode(bid754.Decimal64BIDFromBits(x.lo), bid754.Decimal64BIDFromBits(y.lo), mode)
 		return result128(value, flags)
 	case "bid128dd_div":
-		value, flags := bid754.Div128DDBIDWithMode(bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo), mode)
+		value, flags := bid754.Div128DDBIDWithMode(bid754.Decimal64BIDFromBits(x.lo), bid754.Decimal64BIDFromBits(y.lo), mode)
 		return result128(value, flags)
 	default:
 		return "", fmt.Errorf("unsupported mixed routing-sentinel function %q", function)
@@ -681,7 +681,7 @@ func evalMixed(function, xText, yText string, mode bid754.RoundingMode) (string,
 func evalUnrounded(width int, op string, x, y oracleValue) (string, error) {
 	switch width {
 	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
+		left, right := bid754.Decimal32BIDFromBits(uint32(x.lo)), bid754.Decimal32BIDFromBits(uint32(y.lo))
 		var value bid754.Decimal32BID
 		var flags bid754.ExceptionFlags
 		switch op {
@@ -694,7 +694,7 @@ func evalUnrounded(width int, op string, x, y oracleValue) (string, error) {
 		}
 		return result32(value, flags)
 	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
+		left, right := bid754.Decimal64BIDFromBits(x.lo), bid754.Decimal64BIDFromBits(y.lo)
 		var value bid754.Decimal64BID
 		var flags bid754.ExceptionFlags
 		switch op {
@@ -727,10 +727,10 @@ func evalUnrounded(width int, op string, x, y oracleValue) (string, error) {
 func evalFma(width int, x, y, z oracleValue, mode bid754.RoundingMode) (string, error) {
 	switch width {
 	case 32:
-		value, flags := bid754.Decimal32BID(uint32(x.lo)).FMAWithMode(bid754.Decimal32BID(uint32(y.lo)), bid754.Decimal32BID(uint32(z.lo)), mode)
+		value, flags := bid754.Decimal32BIDFromBits(uint32(x.lo)).FMAWithMode(bid754.Decimal32BIDFromBits(uint32(y.lo)), bid754.Decimal32BIDFromBits(uint32(z.lo)), mode)
 		return result32(value, flags)
 	case 64:
-		value, flags := bid754.Decimal64BID(x.lo).FMAWithMode(bid754.Decimal64BID(y.lo), bid754.Decimal64BID(z.lo), mode)
+		value, flags := bid754.Decimal64BIDFromBits(x.lo).FMAWithMode(bid754.Decimal64BIDFromBits(y.lo), bid754.Decimal64BIDFromBits(z.lo), mode)
 		return result64(value, flags)
 	case 128:
 		value, flags := decimal128(x).FMAWithMode(decimal128(y), decimal128(z), mode)
@@ -743,10 +743,10 @@ func evalFma(width int, x, y, z oracleValue, mode bid754.RoundingMode) (string, 
 func evalSqrt(width int, x oracleValue, mode bid754.RoundingMode) (string, error) {
 	switch width {
 	case 32:
-		value, flags := bid754.Decimal32BID(uint32(x.lo)).SqrtWithMode(mode)
+		value, flags := bid754.Decimal32BIDFromBits(uint32(x.lo)).SqrtWithMode(mode)
 		return result32(value, flags)
 	case 64:
-		value, flags := bid754.Decimal64BID(x.lo).SqrtWithMode(mode)
+		value, flags := bid754.Decimal64BIDFromBits(x.lo).SqrtWithMode(mode)
 		return result64(value, flags)
 	case 128:
 		value, flags := decimal128(x).SqrtWithMode(mode)
@@ -763,7 +763,7 @@ func evalSqrt(width int, x oracleValue, mode bid754.RoundingMode) (string, error
 func evalRoundIntegralExact(width int, x oracleValue, mode bid754.RoundingMode) (string, error) {
 	switch width {
 	case 32:
-		value, flags := bid754.Decimal32BID(uint32(x.lo)).RoundIntegralExactWithMode(mode)
+		value, flags := bid754.Decimal32BIDFromBits(uint32(x.lo)).RoundIntegralExactWithMode(mode)
 		return result32(value, flags)
 	default:
 		return "", fmt.Errorf("roundintexact oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
@@ -778,7 +778,7 @@ func evalRoundIntegralFixed(width int, variant string, x oracleValue) (string, e
 	if width != 32 {
 		return "", fmt.Errorf("roundint oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
 	}
-	value := bid754.Decimal32BID(uint32(x.lo))
+	value := bid754.Decimal32BIDFromBits(uint32(x.lo))
 	switch variant {
 	case "nearest_even":
 		result, flags := value.RoundIntegralNearestEven()
@@ -809,7 +809,7 @@ func evalNext(width int, direction string, x oracleValue) (string, error) {
 	if width != 32 {
 		return "", fmt.Errorf("next oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
 	}
-	value := bid754.Decimal32BID(uint32(x.lo))
+	value := bid754.Decimal32BIDFromBits(uint32(x.lo))
 	switch direction {
 	case "up":
 		result, flags := value.NextPlus()
@@ -828,17 +828,17 @@ func evalLogB(width int, x oracleValue) (string, error) {
 	if width != 32 {
 		return "", fmt.Errorf("logb oracle supports width 32 only (d32 exhaustive sentinel scope), got %d", width)
 	}
-	value, flags := bid754.Decimal32BID(uint32(x.lo)).LogB()
+	value, flags := bid754.Decimal32BIDFromBits(uint32(x.lo)).LogB()
 	return result32(value, flags)
 }
 
 func evalScale(width int, x oracleValue, n int64, mode bid754.RoundingMode) (string, error) {
 	switch width {
 	case 32:
-		value, flags := bid754.Decimal32BID(uint32(x.lo)).ScaleBWithMode(int(n), mode)
+		value, flags := bid754.Decimal32BIDFromBits(uint32(x.lo)).ScaleBWithMode(int(n), mode)
 		return result32(value, flags)
 	case 64:
-		value, flags := bid754.Decimal64BID(x.lo).ScaleBWithMode(int(n), mode)
+		value, flags := bid754.Decimal64BIDFromBits(x.lo).ScaleBWithMode(int(n), mode)
 		return result64(value, flags)
 	case 128:
 		value, flags := decimal128(x).ScaleBWithMode(int(n), mode)
@@ -853,7 +853,7 @@ func evalQuiet(width int, op string, x, y oracleValue) (string, error) {
 	var flags bid754.ExceptionFlags
 	switch width {
 	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
+		left, right := bid754.Decimal32BIDFromBits(uint32(x.lo)), bid754.Decimal32BIDFromBits(uint32(y.lo))
 		switch op {
 		case "quiet_equal":
 			got, flags = left.QuietEqual(right)
@@ -871,7 +871,7 @@ func evalQuiet(width int, op string, x, y oracleValue) (string, error) {
 			return "", fmt.Errorf("unknown tier1 sentinel quiet predicate %q", op)
 		}
 	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
+		left, right := bid754.Decimal64BIDFromBits(x.lo), bid754.Decimal64BIDFromBits(y.lo)
 		switch op {
 		case "quiet_equal":
 			got, flags = left.QuietEqual(right)
@@ -919,7 +919,7 @@ func evalQuiet(width int, op string, x, y oracleValue) (string, error) {
 func evalMinMax(width int, op string, x, y oracleValue) (string, error) {
 	switch width {
 	case 32:
-		left, right := bid754.Decimal32BID(uint32(x.lo)), bid754.Decimal32BID(uint32(y.lo))
+		left, right := bid754.Decimal32BIDFromBits(uint32(x.lo)), bid754.Decimal32BIDFromBits(uint32(y.lo))
 		var value bid754.Decimal32BID
 		var flags bid754.ExceptionFlags
 		switch op {
@@ -936,7 +936,7 @@ func evalMinMax(width int, op string, x, y oracleValue) (string, error) {
 		}
 		return result32(value, flags)
 	case 64:
-		left, right := bid754.Decimal64BID(x.lo), bid754.Decimal64BID(y.lo)
+		left, right := bid754.Decimal64BIDFromBits(x.lo), bid754.Decimal64BIDFromBits(y.lo)
 		var value bid754.Decimal64BID
 		var flags bid754.ExceptionFlags
 		switch op {
@@ -1148,9 +1148,9 @@ func evalToInt(width int, kind string, exact bool, mode bid754.RoundingMode, x o
 	var err error
 	switch width {
 	case 32:
-		err = eval32(bid754.Decimal32BID(uint32(x.lo)))
+		err = eval32(bid754.Decimal32BIDFromBits(uint32(x.lo)))
 	case 64:
-		err = eval64(bid754.Decimal64BID(x.lo))
+		err = eval64(bid754.Decimal64BIDFromBits(x.lo))
 	case 128:
 		err = eval128(decimal128(x))
 	default:
@@ -1169,7 +1169,7 @@ func evalToInt(width int, kind string, exact bool, mode bid754.RoundingMode, x o
 func evalWidthConversion(source, dest int, x oracleValue, mode bid754.RoundingMode) (string, error) {
 	switch source {
 	case 32:
-		value := bid754.Decimal32BID(uint32(x.lo))
+		value := bid754.Decimal32BIDFromBits(uint32(x.lo))
 		switch dest {
 		case 64:
 			result, flags := value.ToDecimal64()
@@ -1179,7 +1179,7 @@ func evalWidthConversion(source, dest int, x oracleValue, mode bid754.RoundingMo
 			return result128(result, flags)
 		}
 	case 64:
-		value := bid754.Decimal64BID(x.lo)
+		value := bid754.Decimal64BIDFromBits(x.lo)
 		switch dest {
 		case 32:
 			result, flags := value.ToDecimal32(mode)
@@ -1227,7 +1227,7 @@ func evalBinaryConversion(source, dest int, x oracleValue, mode bid754.RoundingM
 	}
 	switch source {
 	case 32:
-		value := bid754.Decimal32BID(uint32(x.lo))
+		value := bid754.Decimal32BIDFromBits(uint32(x.lo))
 		switch dest {
 		case 32:
 			result, flags := value.ToBinary32(mode)
@@ -1240,7 +1240,7 @@ func evalBinaryConversion(source, dest int, x oracleValue, mode bid754.RoundingM
 			return format(128, 0, 0, result, flags)
 		}
 	case 64:
-		value := bid754.Decimal64BID(x.lo)
+		value := bid754.Decimal64BIDFromBits(x.lo)
 		switch dest {
 		case 32:
 			result, flags := value.ToBinary32(mode)

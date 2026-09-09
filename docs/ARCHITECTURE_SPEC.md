@@ -9,6 +9,7 @@ This document defines the project's target architecture. It is not a document cl
 - Intel BID C is the canonical source
 - BID is the encoding standard
 - value types must be fixed-width (`types_layout_check.go` pins the 4/8/16-byte layouts at compile time)
+- public Go decimal types have private representation fields; integer arithmetic, ordering, bitwise operators, and implicit raw casts must not compile. Explicit raw constructors/accessors preserve every bit. `==`, `!=`, and map keys compare representations; numeric equality uses `QuietEqual`, including its NaN and signed-zero rules
 - definitions, tables, and regular verification test specs must be extracted/generated from C or the corresponding official input sources
 - table generation extracts/generates directly from Intel BID C to both Go and Rust
 - the Go implementation path is a path that directly mechanically ports the Intel BID C implementation
@@ -133,7 +134,7 @@ Key layout:
 - `devtools/generated/go/`, `devtools/generated/json/`, `devtools/generated/testspec/`: table/symbol/test-spec artifacts generated from C or official inputs
 - `bid754-rs/src/intel_dfp_tables.rs`: Rust table artifact generated from Intel BID C with c-tablegen. It is generated inside the crate so that the published crate is self-contained
 - `bid754-rs/src/generated/`: Rust implementation artifacts generated from the Go mechanical port path, including the `api/` subtree (the public value-type API surface) emitted by the `devtools/tools/go2rs` apiemit subpass
-- `bid754-rs/src/lib.rs`: generated crate root (apiemit subpass) that re-exports the generated `api/` surface as the public API and gates the internal modules behind `#[doc(hidden)]`
+- `bid754-rs/src/lib.rs`: generated crate root (apiemit subpass) that re-exports the generated `api/` surface as the public API and keeps `gen_types`, `gen_constants`, `tables`, `generated`, and `bid_codec` private by default; only the explicit, non-default `verification` feature exposes internal modules and raw adapters for verification, outside the product API contract
 - `bid754-rs/src/tables.rs`: compatibility layer connecting the Rust table artifact generated from Intel BID C to the Rust implementation path
 - `bid754-codec-go/`: public standalone Go BID codec module (`github.com/sky1core/bid754/bid754-codec-go`, package `bidcodec`)
 - `bid754-codec-rs/`: standalone Rust BID codec helper package
@@ -172,7 +173,7 @@ is the repo-level generated vector consumer verification, and
 way to the build/package/install/import boundaries of the six standalone
 packages.
 
-Generated files may exist in the `bid754-go` module root package. Public declarations or test runners belonging to package `bid754` may have to live in the module root due to Go package constraints; in that case, generated status is judged by file headers and generator/manifest reproducibility. The generated verification plumbing in the module root (e.g. `dectest_spec_test.go`, `generated_*` dispatch/runners) and the `bid754-go/internal/testspec/` loader plumbing are part of the generated verification path, and are kept as symbols/packages that are not exposed outside the module, rather than as exported API.
+Generated files may exist in the `bid754-go` module root package. Public declarations or test runners belonging to package `bid754` may have to live in the module root due to Go package constraints; in that case, generated status is judged by file headers and generator/manifest reproducibility. Pure Go verification support belongs in `_test.go` files or verification packages absent from the default product dependency graph. CGo verification support uses explicit non-default build tags, since Go does not support importing C in `_test.go` files. Internal visibility alone does not satisfy this compilation boundary.
 
 Unsupported structures:
 

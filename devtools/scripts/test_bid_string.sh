@@ -99,5 +99,9 @@ sort -u "$rust_tests_file" | while IFS= read -r key; do
   crate_dir=${key%:*}
   test_name=${key#*:}
   echo "==> rust BID string vector test: $crate_dir --test $test_name"
-  (cd "$crate_dir" && cargo test --locked --test "$test_name")
+  if [ "${crate_dir#./}" = "bid754-rs" ]; then
+    (cd "$crate_dir" && cargo test --locked --features verification --test "$test_name")
+  else
+    (cd "$crate_dir" && cargo test --locked --test "$test_name")
+  fi
 done

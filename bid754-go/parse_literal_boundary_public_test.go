@@ -206,19 +206,19 @@ func TestPublicParseBoundaryDecisionsPinned(t *testing.T) {
 func assertParseBoundary32(t *testing.T, input string, pin parseBoundaryPin) {
 	t.Helper()
 	raw, rawFlags := ParseDecimal32BIDRaw(input)
-	if uint32(raw) != pin.raw32 || rawFlags != pin.rawFlags32 {
+	if raw.ToUint32() != pin.raw32 || rawFlags != pin.rawFlags32 {
 		t.Errorf("ParseDecimal32BIDRaw(%q) = (%#08x, %v), pinned (%#08x, %v)",
-			input, uint32(raw), rawFlags, pin.raw32, pin.rawFlags32)
+			input, raw.ToUint32(), rawFlags, pin.raw32, pin.rawFlags32)
 	}
 	v, err := NewDecimal32BIDDirect(input)
 	if (err == nil) != pin.direct32 {
 		t.Errorf("NewDecimal32BIDDirect(%q) accept = %v, pinned %v (err=%v)", input, err == nil, pin.direct32, err)
 	}
 	if err == nil && v != raw {
-		t.Errorf("NewDecimal32BIDDirect(%q) = %#08x, want raw parse result %#08x", input, uint32(v), uint32(raw))
+		t.Errorf("NewDecimal32BIDDirect(%q) = %#08x, want raw parse result %#08x", input, v.ToUint32(), raw.ToUint32())
 	}
-	if err != nil && v != 0 {
-		t.Errorf("NewDecimal32BIDDirect(%q) rejected with nonzero value %#08x", input, uint32(v))
+	if err != nil && v != (Decimal32BID{}) {
+		t.Errorf("NewDecimal32BIDDirect(%q) rejected with nonzero value %#08x", input, v.ToUint32())
 	}
 	w, wf, werr := NewDecimal32WithFlags(input)
 	if (werr == nil) != pin.withFlags32 {
@@ -226,15 +226,15 @@ func assertParseBoundary32(t *testing.T, input string, pin parseBoundaryPin) {
 	}
 	if werr == nil && (w != raw || wf != rawFlags) {
 		t.Errorf("NewDecimal32WithFlags(%q) = (%#08x, %v), want raw parse result (%#08x, %v)",
-			input, uint32(w), wf, uint32(raw), rawFlags)
+			input, w.ToUint32(), wf, raw.ToUint32(), rawFlags)
 	}
-	if werr != nil && (w != 0 || wf != 0) {
-		t.Errorf("NewDecimal32WithFlags(%q) rejected with nonzero (%#08x, %v)", input, uint32(w), wf)
+	if werr != nil && (w != (Decimal32BID{}) || wf != 0) {
+		t.Errorf("NewDecimal32WithFlags(%q) rejected with nonzero (%#08x, %v)", input, w.ToUint32(), wf)
 	}
 	m, mf, merr := NewDecimal32WithMode(input, RoundNearestEven)
 	if m != w || mf != wf || (merr == nil) != (werr == nil) {
 		t.Errorf("NewDecimal32WithMode(%q, RoundNearestEven) = (%#08x, %v, %v), want WithFlags result (%#08x, %v, %v)",
-			input, uint32(m), mf, merr, uint32(w), wf, werr)
+			input, m.ToUint32(), mf, merr, w.ToUint32(), wf, werr)
 	}
 	if pin.direct32 && !pin.withFlags32 {
 		t.Errorf("pin inconsistency for %q: direct accepts but WithFlags rejects", input)
@@ -244,19 +244,19 @@ func assertParseBoundary32(t *testing.T, input string, pin parseBoundaryPin) {
 func assertParseBoundary64(t *testing.T, input string, pin parseBoundaryPin) {
 	t.Helper()
 	raw, rawFlags := ParseDecimal64BIDRaw(input)
-	if uint64(raw) != pin.raw64 || rawFlags != pin.rawFlags64 {
+	if raw.ToUint64() != pin.raw64 || rawFlags != pin.rawFlags64 {
 		t.Errorf("ParseDecimal64BIDRaw(%q) = (%#016x, %v), pinned (%#016x, %v)",
-			input, uint64(raw), rawFlags, pin.raw64, pin.rawFlags64)
+			input, raw.ToUint64(), rawFlags, pin.raw64, pin.rawFlags64)
 	}
 	v, err := NewDecimal64BIDDirect(input)
 	if (err == nil) != pin.direct64 {
 		t.Errorf("NewDecimal64BIDDirect(%q) accept = %v, pinned %v (err=%v)", input, err == nil, pin.direct64, err)
 	}
 	if err == nil && v != raw {
-		t.Errorf("NewDecimal64BIDDirect(%q) = %#016x, want raw parse result %#016x", input, uint64(v), uint64(raw))
+		t.Errorf("NewDecimal64BIDDirect(%q) = %#016x, want raw parse result %#016x", input, v.ToUint64(), raw.ToUint64())
 	}
-	if err != nil && v != 0 {
-		t.Errorf("NewDecimal64BIDDirect(%q) rejected with nonzero value %#016x", input, uint64(v))
+	if err != nil && v != (Decimal64BID{}) {
+		t.Errorf("NewDecimal64BIDDirect(%q) rejected with nonzero value %#016x", input, v.ToUint64())
 	}
 	w, wf, werr := NewDecimal64WithFlags(input)
 	if (werr == nil) != pin.withFlags64 {
@@ -264,15 +264,15 @@ func assertParseBoundary64(t *testing.T, input string, pin parseBoundaryPin) {
 	}
 	if werr == nil && (w != raw || wf != rawFlags) {
 		t.Errorf("NewDecimal64WithFlags(%q) = (%#016x, %v), want raw parse result (%#016x, %v)",
-			input, uint64(w), wf, uint64(raw), rawFlags)
+			input, w.ToUint64(), wf, raw.ToUint64(), rawFlags)
 	}
-	if werr != nil && (w != 0 || wf != 0) {
-		t.Errorf("NewDecimal64WithFlags(%q) rejected with nonzero (%#016x, %v)", input, uint64(w), wf)
+	if werr != nil && (w != (Decimal64BID{}) || wf != 0) {
+		t.Errorf("NewDecimal64WithFlags(%q) rejected with nonzero (%#016x, %v)", input, w.ToUint64(), wf)
 	}
 	m, mf, merr := NewDecimal64WithMode(input, RoundNearestEven)
 	if m != w || mf != wf || (merr == nil) != (werr == nil) {
 		t.Errorf("NewDecimal64WithMode(%q, RoundNearestEven) = (%#016x, %v, %v), want WithFlags result (%#016x, %v, %v)",
-			input, uint64(m), mf, merr, uint64(w), wf, werr)
+			input, m.ToUint64(), mf, merr, w.ToUint64(), wf, werr)
 	}
 	if pin.direct64 && !pin.withFlags64 {
 		t.Errorf("pin inconsistency for %q: direct accepts but WithFlags rejects", input)
@@ -380,14 +380,14 @@ func TestPublicParseBoundaryModeDecisionsPinned(t *testing.T) {
 		}
 		t.Run(row.name+"/"+row.mode.String(), func(t *testing.T) {
 			v32, f32, e32 := NewDecimal32WithMode(row.input, row.mode)
-			if uint32(v32) != pin.v32 || f32 != pin.f32 || (e32 == nil) != pin.ok32 {
+			if v32.ToUint32() != pin.v32 || f32 != pin.f32 || (e32 == nil) != pin.ok32 {
 				t.Errorf("NewDecimal32WithMode(%q, %v) = (%#08x, %v, %v), pinned (%#08x, %v, ok=%v)",
-					row.input, row.mode, uint32(v32), f32, e32, pin.v32, pin.f32, pin.ok32)
+					row.input, row.mode, v32.ToUint32(), f32, e32, pin.v32, pin.f32, pin.ok32)
 			}
 			v64, f64, e64 := NewDecimal64WithMode(row.input, row.mode)
-			if uint64(v64) != pin.v64 || f64 != pin.f64 || (e64 == nil) != pin.ok64 {
+			if v64.ToUint64() != pin.v64 || f64 != pin.f64 || (e64 == nil) != pin.ok64 {
 				t.Errorf("NewDecimal64WithMode(%q, %v) = (%#016x, %v, %v), pinned (%#016x, %v, ok=%v)",
-					row.input, row.mode, uint64(v64), f64, e64, pin.v64, pin.f64, pin.ok64)
+					row.input, row.mode, v64.ToUint64(), f64, e64, pin.v64, pin.f64, pin.ok64)
 			}
 			v128, f128, e128 := NewDecimal128WithMode(row.input, row.mode)
 			hi, lo := decimal128BIDWords(v128)
@@ -405,16 +405,16 @@ func TestPublicParseBoundaryModeDecisionsPinned(t *testing.T) {
 func TestPublicParseBoundaryInvalidRoundingMode(t *testing.T) {
 	const badMode = RoundingMode(99)
 	if v, f, err := NewDecimal32WithMode("1.5", badMode); v != canonicalQNaN32BID() || f != FlagInvalidOperation || err != nil {
-		t.Errorf("NewDecimal32WithMode(1.5, invalid) = (%#08x, %v, %v), want canonical qNaN + FlagInvalidOperation + nil", uint32(v), f, err)
+		t.Errorf("NewDecimal32WithMode(1.5, invalid) = (%#08x, %v, %v), want canonical qNaN + FlagInvalidOperation + nil", v.ToUint32(), f, err)
 	}
-	if v, f, err := NewDecimal32WithMode("junk", badMode); v != 0 || f != 0 || err == nil {
-		t.Errorf("NewDecimal32WithMode(junk, invalid) = (%#08x, %v, %v), want zero + zero flags + error", uint32(v), f, err)
+	if v, f, err := NewDecimal32WithMode("junk", badMode); v != (Decimal32BID{}) || f != 0 || err == nil {
+		t.Errorf("NewDecimal32WithMode(junk, invalid) = (%#08x, %v, %v), want zero + zero flags + error", v.ToUint32(), f, err)
 	}
 	if v, f, err := NewDecimal64WithMode("1.5", badMode); v != canonicalQNaN64BID() || f != FlagInvalidOperation || err != nil {
-		t.Errorf("NewDecimal64WithMode(1.5, invalid) = (%#016x, %v, %v), want canonical qNaN + FlagInvalidOperation + nil", uint64(v), f, err)
+		t.Errorf("NewDecimal64WithMode(1.5, invalid) = (%#016x, %v, %v), want canonical qNaN + FlagInvalidOperation + nil", v.ToUint64(), f, err)
 	}
-	if v, f, err := NewDecimal64WithMode("junk", badMode); v != 0 || f != 0 || err == nil {
-		t.Errorf("NewDecimal64WithMode(junk, invalid) = (%#016x, %v, %v), want zero + zero flags + error", uint64(v), f, err)
+	if v, f, err := NewDecimal64WithMode("junk", badMode); v != (Decimal64BID{}) || f != 0 || err == nil {
+		t.Errorf("NewDecimal64WithMode(junk, invalid) = (%#016x, %v, %v), want zero + zero flags + error", v.ToUint64(), f, err)
 	}
 	if v, f, err := NewDecimal128WithMode("1.5", badMode); v != canonicalQNaN128BID() || f != FlagInvalidOperation || err != nil {
 		t.Errorf("NewDecimal128WithMode(1.5, invalid) = (%x, %v, %v), want canonical qNaN + FlagInvalidOperation + nil", v.ToBytes(), f, err)

@@ -8,7 +8,7 @@ publish = false
 # crate. The comparison library rust_decimal is pinned only here and never
 # enters the product crate's dependency set.
 [dependencies]
-bid754 = { path = "../bid754-rs" }
+bid754 = { path = "../bid754-rs", features = ["verification"] }
 rust_decimal = "=1.42.1"
 
 [dev-dependencies]

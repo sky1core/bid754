@@ -24,13 +24,15 @@ func worktreeCommand(t *testing.T, dir string, name string, args ...string) []by
 
 func worktreeFixture(t *testing.T) string {
 	t.Helper()
+	t.Setenv("BID754_SNAPSHOT_ARCHIVE", "")
+	t.Setenv("BID754_SNAPSHOT_ID", "")
 	root, err := filepath.Abs("../../..")
 	if err != nil {
 		t.Fatal(err)
 	}
 	dir := filepath.Join(t.TempDir(), "repo")
 	worktreeCommand(t, root, "git", "init", "--quiet", dir)
-	for _, rel := range []string{"devtools/scripts/print_tree_id.sh", "devtools/scripts/lib/worktree_files.py"} {
+	for _, rel := range []string{"devtools/scripts/print_tree_id.sh", "devtools/scripts/lib/worktree_files.py", "devtools/scripts/lib/source_snapshot.py"} {
 		data, err := os.ReadFile(filepath.Join(root, rel))
 		if err != nil {
 			t.Fatal(err)

@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full test-rust-native-d32-exhaustive _test-rust-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-aggregate bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check bench-codec bench-codec-go bench-codec-rs bench-codec-rs-baseline bench-codec-js bench-codec-py bench-compare-go bench-compare-rs bench-compare-rs-baseline test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
+.PHONY: all test verify-profile test-harness test-codec-go test-portable-public-api-parity verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full test-rust-native-d32-exhaustive _test-rust-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-aggregate bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check bench-codec bench-codec-go bench-codec-rs bench-codec-rs-baseline bench-codec-js bench-codec-py bench-compare-go bench-compare-rs bench-compare-rs-baseline test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -24,26 +24,27 @@ GO_MODULES = bid754-go bid754-codec-go devtools
 # buys no safety signal at a large cost.
 RACE_MODULES = bid754-go bid754-codec-go
 DECTEST_EXECUTOR_OUTPUTS = \
-	dectest_class.go \
-	dectest_compare.go \
-	dectest_comparetotal.go \
-	dectest_copy.go \
-	dectest_driver.go \
+	dectest_native_adapter_test.go \
+	dectest_class_test.go \
+	dectest_compare_test.go \
+	dectest_comparetotal_test.go \
+	dectest_copy_test.go \
+	dectest_driver_support_test.go \
 	dectest_spec_test.go \
-	dectest_fma.go \
-	dectest_helpers.go \
-	dectest_logb.go \
-	dectest_minmax.go \
+	dectest_fma_test.go \
+	dectest_helpers_test.go \
+	dectest_logb_test.go \
+	dectest_minmax_test.go \
 	dectest_native.go \
-	dectest_native_stub.go \
-	dectest_next.go \
-	dectest_nexttoward.go \
-	dectest_remainder.go \
-	dectest_remaindernear.go \
-	dectest_samequantum.go \
-	dectest_scaleb.go \
-	dectest_tointegral.go \
-	dectest_unary.go
+	dectest_native_stub_test.go \
+	dectest_next_test.go \
+	dectest_nexttoward_test.go \
+	dectest_remainder_test.go \
+	dectest_remaindernear_test.go \
+	dectest_samequantum_test.go \
+	dectest_scaleb_test.go \
+	dectest_tointegral_test.go \
+	dectest_unary_test.go
 
 # 기본 타겟
 all: test
@@ -130,7 +131,7 @@ test-rust:
 	@# lint 이름이 개명/삭제되면 `-A warnings`가 그 경고까지 삼켜 게이트가 조용히
 	@# 무력화되므로, unknown_lints/renamed_and_removed_lints만 deny로 되살린다.
 	@(cd bid754-rs && cargo clippy --locked --lib -- -A warnings -D unknown_lints -D renamed_and_removed_lints)
-	@bash -o pipefail -c '(cd bid754-rs && cargo test --locked) | tee test_results/latest_rust_test_results.txt'
+	@bash -o pipefail -c '(cd bid754-rs && cargo test --locked --features verification) | tee test_results/latest_rust_test_results.txt'
 	@$(MAKE) verify-rust-benchmark-registry
 
 verify-rust-benchmark-registry:
@@ -182,64 +183,31 @@ test-all:
 	@$(MAKE) test-rust
 	@$(MAKE) test-bidcodec
 
+VERIFY_PROFILE ?= portable
+VERIFY_INVOCATION ?=
+VERIFY_RESULTS_BASE ?=
+
+verify-profile:
+	@cd devtools && $(GOENV) go run ./cmd/verifyplan run --root .. --profile "$(VERIFY_PROFILE)" --invocation "$(VERIFY_INVOCATION)" --results-base "$(VERIFY_RESULTS_BASE)"
+
 verify-all:
-	@flags_word="$${MAKEFLAGS%% *}"; \
-	dry_run=0; \
-	case "$$MAKEFLAGS" in *--just-print*|*--dry-run*|*--recon*) dry_run=1 ;; esac; \
-	if [ "$$dry_run" -eq 0 ]; then \
-		case "$$flags_word" in --*) ;; *n*) dry_run=1 ;; esac; \
-	fi; \
-	if [ "$$dry_run" -eq 1 ]; then \
-		printf "%s\n" "$(MAKE) _verify-all"; \
-	else \
-		mkdir -p test_results; \
-		bash -o pipefail -c '$(MAKE) _verify-all 2>&1 | tee test_results/latest_full_verify_results.txt' && \
-		printf "Full verification completed: %s\n" "$$(date)" | tee -a test_results/latest_full_verify_results.txt && \
-		cp test_results/latest_full_verify_results.txt test_results/latest_test_results.txt; \
-	fi
+	@$(MAKE) _verify-all
 
 _verify-all:
-	@echo "Full verification: shell script syntax, generated artifacts (inputs first, so no later gate silently skips on missing pinned inputs), portable modules, Go dependency hygiene, zero-dependency and portable cgo-purity contracts, package manifest versions, BID codec packages, vector consumers and Decimal64/128 long verification, Go and Rust benchmark registries, Rust package publish-readiness verification, BID string vectors, Rust policy, and available native gates"
-	@$(MAKE) check-scripts
-	@$(MAKE) verify-generated
-	@$(MAKE) test-go-modules
-	@$(MAKE) test-portable-readtest
-	@$(MAKE) vet-go-modules
-	@$(MAKE) verify-go-modules
-	@$(MAKE) verify-zero-deps
-	@$(MAKE) verify-portable-purity
-	@$(MAKE) test-rust
-	@$(MAKE) verify-cexport-disabled
-	@$(MAKE) verify-package-versions
-	@$(MAKE) verify-bidcodec-packages
-	@$(MAKE) verify-rust-package
-	@$(MAKE) test-bidcodec
-	@$(MAKE) _test-bidcodec-long64-128-full
-	@$(MAKE) test-bid-string
-	@$(MAKE) verify-rust-overflow
-	@$(MAKE) verify-all-native-gates
+	@bash ./devtools/scripts/setup_generation_inputs.sh all
+	@$(MAKE) verify-profile VERIFY_PROFILE=$(if $(filter 1,$(VERIFY_ALL_ALLOW_MISSING_NATIVE)),full-portable,full)
 
 verify-all-native-gates:
-	@if [ -f .env.sh ] && [ -f devtools/third_party/intel_dfp/lib/libbid.a ] && { { [ -f "$$HOME/local/lib/libdecnumber.a" ] && [ -f "$$HOME/local/include/libdecnumber/decNumber.h" ] && [ -f "$$HOME/local/include/libdecnumber/dpd/decimal32.h" ]; } || { [ -f /usr/local/lib/libdecnumber.a ] && [ -f /usr/local/include/libdecnumber/decNumber.h ] && [ -f /usr/local/include/libdecnumber/dpd/decimal32.h ]; }; }; then \
-		echo "Native prerequisites found; running native smoke, generated FFI, Tier 1 long differentials, decNumber third-oracle differential, generated readtest, generated decTest, and Rust native gates"; \
-		$(MAKE) test-native-smoke && \
-		$(MAKE) test-native-ffi && \
-		$(MAKE) _test-native-tier1-arithmetic-long-full && \
-		$(MAKE) _test-native-tier1-compare-conversion-long-full && \
-		$(MAKE) _test-native-decnumber-differential-full && \
-		$(MAKE) _test-rust-native-tier1-arithmetic-long-full && \
-		$(MAKE) _test-rust-native-tier1-compare-conversion-long-full && \
-		$(MAKE) test-native-readtest && \
-		$(MAKE) test-native-dectest && \
-		$(MAKE) test-rust-native && \
-		$(MAKE) test-rust-native-fuzz; \
-	elif [ "$(VERIFY_ALL_ALLOW_MISSING_NATIVE)" = "1" ]; then \
-		echo "Native gates skipped (VERIFY_ALL_ALLOW_MISSING_NATIVE=1): .env.sh, Intel BID libbid.a, or IBM decNumber prerequisites are incomplete"; \
-	else \
-		echo "ERROR: verify-all requires the native gates but .env.sh, Intel BID libbid.a, or IBM decNumber prerequisites are incomplete."; \
-		echo "       Run 'make setup-native' first, or set VERIFY_ALL_ALLOW_MISSING_NATIVE=1 to skip the native gates explicitly."; \
-		exit 1; \
-	fi
+	@$(MAKE) verify-profile VERIFY_PROFILE=native
+
+test-harness:
+	@cd devtools && $(GOENV) go test -count=1 -v ./internal/verification ./internal/scriptcheck ./internal/platformdigest ./internal/goboundary ./internal/rustboundary ./cmd/verifylog
+
+test-codec-go:
+	@cd bid754-codec-go && $(GOENV) go test -count=1 ./...
+
+test-portable-public-api-parity:
+	@cd bid754-go && $(GOENV) go test -count=1 -v -run '^TestGeneratedPublicAPIParity$$' .
 
 test-bidcodec:
 	@echo "🧬 BID codec generated verification 실행..."
@@ -363,36 +331,7 @@ verify-linux-digest-s390x:
 	@bash ./devtools/scripts/verify_linux.sh digest-s390x
 
 check-scripts:
-	@echo "📜 셸 스크립트 구문 검사..."
-	@bash -n \
-		devtools/run_tests.sh \
-		devtools/run_tests_and_benchmarks.sh \
-		devtools/scripts/verify_linux.sh \
-		devtools/scripts/verify_digest.sh \
-		devtools/scripts/bench_go.sh \
-		devtools/scripts/print_tree_id.sh \
-		devtools/scripts/setup_c_libs.sh \
-		devtools/scripts/setup_dependencies.sh \
-		devtools/scripts/setup_generation_inputs.sh \
-		devtools/scripts/install_ibm_decnumber.sh \
-		devtools/scripts/install_intel_dfp.sh \
-		devtools/scripts/build_all.sh \
-		devtools/scripts/verify_intel_bid_v20u4_diff.sh \
-		devtools/scripts/verify_bidcodec_packages.sh \
-		devtools/scripts/verify_rust_package.sh \
-		devtools/scripts/verify_go_benchmark_registry.sh \
-		devtools/scripts/verify_rust_benchmark_registry.sh \
-		devtools/scripts/verify_package_versions.sh \
-		devtools/scripts/verify_rust_overflow_policy.sh \
-		devtools/scripts/test_bidcodec.sh \
-		devtools/scripts/test_bid_string.sh \
-		devtools/scripts/run_pinned_gradle.sh \
-		devtools/scripts/lib/project_version.sh \
-		devtools/scripts/lib/npm_audit_gate_selftest.sh \
-		devtools/scripts/check_generated_marker_coverage.sh \
-		devtools/scripts/compute_verification_artifact_hashes.sh
-	@sh -n devtools/third_party/intel_dfp/download.sh
-	@echo "✅ 셸 스크립트 구문 검사 통과"
+	@python3 -B ./devtools/scripts/check_scripts.py
 
 test-bid-string:
 	@echo "🔤 BID string generated verification 실행..."
@@ -596,14 +535,14 @@ bench-bidgo:
 bench-rust:
 	@echo "📊 generated Rust Criterion 벤치마크 실행 (기준점: pinned)..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --bench core -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --bench core -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_rust_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && if [ -n "$$(find target/criterion -maxdepth 3 -type d -name pinned 2>/dev/null | head -1)" ]; then cargo bench --locked --features verification --bench core -- --baseline pinned; else echo "criterion pinned 기준점 없음 — 이번 실행을 기준점으로 저장 (change% 미표시)"; cargo bench --locked --features verification --bench core -- --save-baseline pinned; fi ) | tee test_results/latest_benchmark_rust_results.txt'
 	@$(MAKE) bench-aggregate
 
 # Criterion 'pinned' 기준점 갱신 (개선을 확정 반영할 때만 명시적으로 실행)
 bench-rust-baseline:
 	@echo "📌 generated Rust Criterion pinned 기준점 저장/갱신..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust-baseline save-baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && cargo bench --locked --bench core -- --save-baseline pinned ) | tee test_results/latest_benchmark_rust_baseline_results.txt'
+	@bash -o pipefail -c '( echo "BENCH-META target=bench-rust-baseline save-baseline=pinned rustc=$$(rustc --version | awk "{print \$$2}") tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-rs && cargo bench --locked --features verification --bench core -- --save-baseline pinned ) | tee test_results/latest_benchmark_rust_baseline_results.txt'
 
 # Go 벤치 기준점 저장: 직전 make bench-native / make bench-bidgo 결과를 기준점
 # 파일로 복사한다 (Criterion 'pinned' 기준점과 동일 철학 — 기준점은 이
@@ -783,8 +722,9 @@ verify-generated:
 		bid754-go/generated_readtest_cases_native_test.go \
 		bid754-go/generated_readtest_cases_stub_test.go \
 		bid754-go/generated_readtest_dispatch_native.go \
-		bid754-go/generated_readtest_dispatch_stub.go \
+		bid754-go/generated_readtest_dispatch_stub_test.go \
 		bid754-go/generated_readtest_shared.go \
+		bid754-go/generated_readtest_shared_test.go \
 		bid754-go/generated_readtest_goport_dispatch_test.go \
 		bid754-go/generated_readtest_goport_cases_test.go \
 		bid754-go/generated_dectest_goport_dispatch_test.go \
@@ -794,7 +734,7 @@ verify-generated:
 		bid754-go/generated_public_parity_cases_test.go \
 		bid754-go/generated_dectest_cases_native_test.go \
 		bid754-go/generated_dectest_cases_stub_test.go \
-		bid754-go/generated_dectest_dispatch.go \
+		bid754-go/generated_dectest_dispatch_test.go \
 		bid754-go/generated_ffi_bitcompare_native.go \
 		bid754-go/generated_ffi_bitcompare_native_test.go \
 		bid754-go/generated_ffi_bitcompare_stub_test.go \
@@ -877,8 +817,9 @@ verify-generated:
 	cmp -s bid754-go/generated_readtest_cases_native_test.go $$tmpdir/backup/bid754-go/generated_readtest_cases_native_test.go || failed="$$failed bid754-go/generated_readtest_cases_native_test.go"; \
 	cmp -s bid754-go/generated_readtest_cases_stub_test.go $$tmpdir/backup/bid754-go/generated_readtest_cases_stub_test.go || failed="$$failed bid754-go/generated_readtest_cases_stub_test.go"; \
 	cmp -s bid754-go/generated_readtest_dispatch_native.go $$tmpdir/backup/bid754-go/generated_readtest_dispatch_native.go || failed="$$failed bid754-go/generated_readtest_dispatch_native.go"; \
-	cmp -s bid754-go/generated_readtest_dispatch_stub.go $$tmpdir/backup/bid754-go/generated_readtest_dispatch_stub.go || failed="$$failed bid754-go/generated_readtest_dispatch_stub.go"; \
+	cmp -s bid754-go/generated_readtest_dispatch_stub_test.go $$tmpdir/backup/bid754-go/generated_readtest_dispatch_stub_test.go || failed="$$failed bid754-go/generated_readtest_dispatch_stub_test.go"; \
 	cmp -s bid754-go/generated_readtest_shared.go $$tmpdir/backup/bid754-go/generated_readtest_shared.go || failed="$$failed bid754-go/generated_readtest_shared.go"; \
+	cmp -s bid754-go/generated_readtest_shared_test.go $$tmpdir/backup/bid754-go/generated_readtest_shared_test.go || failed="$$failed bid754-go/generated_readtest_shared_test.go"; \
 	cmp -s bid754-go/generated_readtest_goport_dispatch_test.go $$tmpdir/backup/bid754-go/generated_readtest_goport_dispatch_test.go || failed="$$failed bid754-go/generated_readtest_goport_dispatch_test.go"; \
 	cmp -s bid754-go/generated_readtest_goport_cases_test.go $$tmpdir/backup/bid754-go/generated_readtest_goport_cases_test.go || failed="$$failed bid754-go/generated_readtest_goport_cases_test.go"; \
 	cmp -s bid754-go/generated_dectest_goport_dispatch_test.go $$tmpdir/backup/bid754-go/generated_dectest_goport_dispatch_test.go || failed="$$failed bid754-go/generated_dectest_goport_dispatch_test.go"; \
@@ -888,7 +829,7 @@ verify-generated:
 	cmp -s bid754-go/generated_public_parity_cases_test.go $$tmpdir/backup/bid754-go/generated_public_parity_cases_test.go || failed="$$failed bid754-go/generated_public_parity_cases_test.go"; \
 	cmp -s bid754-go/generated_dectest_cases_native_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_native_test.go || failed="$$failed bid754-go/generated_dectest_cases_native_test.go"; \
 	cmp -s bid754-go/generated_dectest_cases_stub_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_stub_test.go || failed="$$failed bid754-go/generated_dectest_cases_stub_test.go"; \
-	cmp -s bid754-go/generated_dectest_dispatch.go $$tmpdir/backup/bid754-go/generated_dectest_dispatch.go || failed="$$failed bid754-go/generated_dectest_dispatch.go"; \
+	cmp -s bid754-go/generated_dectest_dispatch_test.go $$tmpdir/backup/bid754-go/generated_dectest_dispatch_test.go || failed="$$failed bid754-go/generated_dectest_dispatch_test.go"; \
 	cmp -s bid754-go/generated_ffi_bitcompare_native.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_native.go || failed="$$failed bid754-go/generated_ffi_bitcompare_native.go"; \
 	cmp -s bid754-go/generated_ffi_bitcompare_native_test.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_native_test.go || failed="$$failed bid754-go/generated_ffi_bitcompare_native_test.go"; \
 	cmp -s bid754-go/generated_ffi_bitcompare_stub_test.go $$tmpdir/backup/bid754-go/generated_ffi_bitcompare_stub_test.go || failed="$$failed bid754-go/generated_ffi_bitcompare_stub_test.go"; \
@@ -983,33 +924,8 @@ clean:
 
 # 결과 확인
 show-results:
-	@echo "📋 최신 테스트 결과:"
-	@latest=""; \
-	if [ -f test_results/latest_full_verify_results.txt ] && [ -f test_results/latest_test_results.txt ]; then \
-		if [ test_results/latest_test_results.txt -nt test_results/latest_full_verify_results.txt ]; then \
-			latest=test_results/latest_test_results.txt; \
-		else \
-			latest=test_results/latest_full_verify_results.txt; \
-		fi; \
-	elif [ -f test_results/latest_full_verify_results.txt ]; then \
-		latest=test_results/latest_full_verify_results.txt; \
-	elif [ -f test_results/latest_test_results.txt ]; then \
-		latest=test_results/latest_test_results.txt; \
-	fi; \
-	if [ -n "$$latest" ]; then \
-		if [ "$$latest" = test_results/latest_full_verify_results.txt ]; then \
-			if grep -q "^Full verification completed:" "$$latest"; then \
-				echo "✅ verify-all 완료 marker 존재"; \
-			else \
-				echo "⚠️  verify-all 결과 파일은 있지만 완료 marker 없음"; \
-			fi; \
-		else \
-			echo "✅ 테스트 결과 파일 존재"; \
-		fi; \
-		tail -10 "$$latest"; \
-	else \
-		echo "❌ 테스트 결과 파일 없음"; \
-	fi
+	@echo "검증 판정과 개별 로그: test_results/verification/<profile>-<run>/"
+	@if [ -d test_results/verification ]; then rg --files --hidden --no-ignore test_results/verification -g result.json; fi
 	@echo
 	@echo "📊 최신 벤치마크 결과:"
 	@if [ -f test_results/latest_benchmark_results.txt ]; then \
@@ -1143,7 +1059,7 @@ help:
 	@echo "  make help           이 도움말"
 	@echo
 	@echo "📁 생성되는 파일들 (test_results/ 디렉토리):"
-	@echo "  latest_full_verify_results.txt - 최신 verify-all 결과"
+	@echo "  verification/<profile>-<run>/result.json - 실행 범위·소스·판정 및 로그"
 	@echo "  latest_test_results.txt       - 최신 테스트 결과"
 	@echo "  latest_go_modules_test_results.txt - active Go 모듈 test 결과"
 	@echo "  latest_go_vet_results.txt     - active Go 모듈 vet 결과"

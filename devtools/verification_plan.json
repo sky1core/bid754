@@ -1,0 +1,809 @@
+{
+  "version": 1,
+  "profiles": {
+    "scripts": {
+      "groups": [
+        "scripts"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "harness": {
+      "groups": [
+        "scripts",
+        "harness"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "portable": {
+      "groups": [
+        "portable"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "ci-portable": {
+      "groups": [
+        "scripts",
+        "harness",
+        "quality",
+        "portable"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64"
+      ]
+    },
+    "native": {
+      "groups": [
+        "native"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64"
+      ]
+    },
+    "full": {
+      "groups": [
+        "scripts",
+        "harness",
+        "quality",
+        "portable",
+        "native"
+      ],
+      "scope": "full",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64"
+      ]
+    },
+    "full-portable": {
+      "groups": [
+        "scripts",
+        "harness",
+        "quality",
+        "portable"
+      ],
+      "scope": "partial",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64",
+        "linux/arm64"
+      ]
+    },
+    "big-endian": {
+      "groups": [
+        "big-endian"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "linux/s390x"
+      ]
+    }
+  },
+  "gates": [
+    {
+      "id": "shell-syntax",
+      "target": "check-scripts",
+      "group": "scripts",
+      "tools": [
+        "python3",
+        "bash",
+        "git"
+      ],
+      "prerequisites": [],
+      "comparison": "syntax",
+      "evidence": {
+        "patterns": [
+          "(?m)^SCRIPT-SYNTAX-CHECK checked=[1-9][0-9]*$"
+        ]
+      }
+    },
+    {
+      "id": "harness-contracts",
+      "target": "test-harness",
+      "group": "harness",
+      "tools": [
+        "go",
+        "cargo",
+        "rustc",
+        "python3",
+        "bash",
+        "git",
+        "cc"
+      ],
+      "prerequisites": [
+        "generation-inputs"
+      ],
+      "comparison": "fault-detection",
+      "evidence": {
+        "patterns": [
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/verification\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/scriptcheck\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/platformdigest\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/goboundary\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/rustboundary\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/verifylog\\s"
+        ],
+        "passes": [
+          "TestExternalConsumer",
+          "TestDefaultBuildExcludesGeneratedVerification",
+          "TestExternalConsumerBoundary",
+          "TestShellSyntaxChecksEverySelectedScript",
+          "TestRunnerRejectsNoOpAndDetectsTheIntendedSyntaxDefect",
+          "TestAdjudicatorRejectsMissingMixedStaleAndWeakenedEvidence",
+          "TestCodecAdjudicationRequiresEachLanguageAndItsAnchoredCounts",
+          "TestMatrixRejectsMissingRequiredPlatform",
+          "TestSourceSnapshotRoundTrip",
+          "TestSourceSnapshotRestoredCorruptions",
+          "TestSourceSnapshotArchiveCorruptions",
+          "TestSourceSnapshotFrozenReceiver",
+          "TestSourceSnapshotShellWrapperIdentity",
+          "TestSourceSnapshotUnsafeManifest",
+          "TestSourceSnapshotIndexStagesAndReplacements",
+          "TestSourceSnapshotUnsafeIndex",
+          "TestSourceSnapshotDestinationSafety",
+          "TestSourceSnapshotSHA256Index",
+          "TestSourceSnapshotVerifySourceAfterBuild",
+          "TestSourceSnapshotContainerTreeID",
+          "TestRunnerRejectsInheritedTestSelection",
+          "TestSourceSnapshotPortableSymlinkMode",
+          "TestDefaultProductSourceOwnershipRejectsRenamedGeneratedSupport"
+        ]
+      }
+    },
+    {
+      "id": "generated-artifacts",
+      "target": "verify-generated",
+      "group": "quality",
+      "tools": [
+        "go",
+        "cc"
+      ],
+      "prerequisites": [
+        "generation-inputs"
+      ],
+      "comparison": "anchors-and-reproducibility",
+      "evidence": {
+        "patterns": [
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/testgen\\s"
+        ]
+      }
+    },
+    {
+      "id": "go-vet",
+      "target": "vet-go-modules",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "static-analysis",
+      "evidence": {
+        "patterns": [
+          "==> go vet bid754-go",
+          "==> go vet bid754-codec-go",
+          "==> go vet devtools"
+        ]
+      }
+    },
+    {
+      "id": "go-modules",
+      "target": "verify-go-modules",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "dependency-integrity",
+      "evidence": {
+        "patterns": [
+          "==> go mod verify bid754-go",
+          "==> go mod verify bid754-codec-go",
+          "==> go mod verify devtools",
+          "all modules verified"
+        ]
+      }
+    },
+    {
+      "id": "zero-dependencies",
+      "target": "verify-zero-deps",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "dependency-graph",
+      "evidence": {
+        "patterns": [
+          "bid754-go: stdlib-only",
+          "bid754-codec-go: stdlib-only",
+          "devtools: stdlib-only"
+        ]
+      }
+    },
+    {
+      "id": "portable-purity",
+      "target": "verify-portable-purity",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "compilation-graph",
+      "evidence": {
+        "patterns": [
+          "bid754-go: default build is cgo-free",
+          "bid754-codec-go: default build is cgo-free",
+          "devtools: default build is cgo-free"
+        ]
+      }
+    },
+    {
+      "id": "cexport-disabled",
+      "target": "verify-cexport-disabled",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "expected-compile-failure",
+      "evidence": {
+        "patterns": [
+          "(?m)^cexport disabled check passed$"
+        ]
+      }
+    },
+    {
+      "id": "package-versions",
+      "target": "verify-package-versions",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "manifest-consistency",
+      "evidence": {
+        "patterns": [
+          "all package manifests carry version"
+        ]
+      }
+    },
+    {
+      "id": "codec-packages",
+      "target": "verify-bidcodec-packages",
+      "group": "quality",
+      "tools": [
+        "go",
+        "cargo",
+        "rustc",
+        "python3",
+        "javac",
+        "java",
+        "npm",
+        "node",
+        "swift"
+      ],
+      "prerequisites": [],
+      "comparison": "external-consumer",
+      "evidence": {
+        "patterns": [
+          "(?m)^==> Package verification complete"
+        ]
+      }
+    },
+    {
+      "id": "rust-package",
+      "target": "verify-rust-package",
+      "group": "quality",
+      "tools": [
+        "cargo",
+        "rustc",
+        "python3"
+      ],
+      "prerequisites": [],
+      "comparison": "external-consumer",
+      "evidence": {
+        "patterns": [
+          "verify-rust-package passed"
+        ]
+      }
+    },
+    {
+      "id": "codec-vectors",
+      "target": "test-bidcodec",
+      "group": "quality",
+      "tools": [
+        "go",
+        "cargo",
+        "rustc",
+        "javac",
+        "java",
+        "python3",
+        "npm",
+        "node",
+        "swift",
+        "rg"
+      ],
+      "prerequisites": [],
+      "comparison": "bits-components-reject-closure",
+      "evidence": {
+        "codec": true
+      }
+    },
+    {
+      "id": "codec-long",
+      "target": "_test-bidcodec-long64-128-full",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "layout-reference-exact",
+      "evidence": {
+        "passes": [
+          "TestDecimal64And128CodecDeterministicRawDifferential",
+          "TestDecimal64And128CodecBoundaryRawPublicAPI",
+          "TestDecimal64And128CodecStructuredComponents"
+        ]
+      }
+    },
+    {
+      "id": "string-vectors",
+      "target": "test-bid-string",
+      "group": "quality",
+      "tools": [
+        "go",
+        "cargo",
+        "rustc",
+        "rg"
+      ],
+      "prerequisites": [],
+      "comparison": "bits-and-string",
+      "evidence": {
+        "patterns": [
+          "(?m)^test test_generated_bid_string_vectors \\.\\.\\. ok$"
+        ]
+      }
+    },
+    {
+      "id": "rust-overflow",
+      "target": "verify-rust-overflow",
+      "group": "quality",
+      "tools": [
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [],
+      "comparison": "checked-overflow-parity",
+      "evidence": {
+        "patterns": [
+          "(?m)^Rust overflow policy verification passed:"
+        ]
+      }
+    },
+    {
+      "id": "go-race",
+      "target": "test-race",
+      "group": "quality",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "race-detector",
+      "evidence": {
+        "patterns": [
+          "(?m)^ok\\s+github.com/sky1core/bid754/bid754-go\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/bid754-codec-go\\s"
+        ]
+      }
+    },
+    {
+      "id": "go-tests",
+      "target": "test-go-modules",
+      "group": "portable",
+      "tools": [
+        "go",
+        "cargo",
+        "rustc",
+        "cc",
+        "python3",
+        "git",
+        "bash"
+      ],
+      "prerequisites": [
+        "generation-inputs"
+      ],
+      "comparison": "package-tests",
+      "evidence": {
+        "patterns": [
+          "(?m)^ok\\s+github.com/sky1core/bid754/bid754-go\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/bid754-codec-go\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/testgen\\s"
+        ]
+      }
+    },
+    {
+      "id": "go-readtest",
+      "target": "test-portable-readtest",
+      "group": "portable",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "readtest-value-status",
+      "evidence": {
+        "domain": "goport-readtest"
+      }
+    },
+    {
+      "id": "go-dectest",
+      "target": "test-portable-dectest",
+      "group": "portable",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [
+        "generation-inputs"
+      ],
+      "comparison": "decimal-value-five-flags",
+      "evidence": {
+        "passes": [
+          "TestGeneratedDectestSuitesGoPort",
+          "TestGeneratedDectestPlusMinusQuantumStrengthGoPort",
+          "TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter"
+        ]
+      }
+    },
+    {
+      "id": "rust-tests",
+      "target": "test-rust",
+      "group": "portable",
+      "tools": [
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [],
+      "comparison": "public-api-codec-dectest",
+      "evidence": {
+        "patterns": [
+          "(?m)^test generated_dectest_suites_go_port \\.\\.\\. ok$",
+          "(?m)^test test_generated_bid_string_vectors \\.\\.\\. ok$",
+          "(?m)^test test_bid_codec_vectors_encode_decode \\.\\.\\. ok$"
+        ]
+      }
+    },
+    {
+      "id": "platform-digest",
+      "target": "digest",
+      "group": "portable",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "cross-platform-bits",
+      "evidence": {
+        "patterns": [
+          "(?m)^PLATFORM-DIGEST goos=[a-z0-9]+ goarch=[a-z0-9]+ cases=[1-9][0-9]* sha256=[0-9a-f]{64}$"
+        ]
+      }
+    },
+    {
+      "id": "native-smoke",
+      "target": "test-native-smoke",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "smoke-only",
+      "evidence": {
+        "patterns": [
+          "(?m)^ok\\s+github.com/sky1core/bid754/bid754-go\\s"
+        ]
+      }
+    },
+    {
+      "id": "native-ffi",
+      "target": "test-native-ffi",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc",
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "c-oracle-bits-flags",
+      "evidence": {
+        "domain": "native-ffi"
+      }
+    },
+    {
+      "id": "native-arithmetic-long",
+      "target": "_test-native-tier1-arithmetic-long-full",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc",
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "c-oracle-bits-flags",
+      "evidence": {
+        "domain": "tier1-arithmetic-go"
+      }
+    },
+    {
+      "id": "native-compare-conversion-long",
+      "target": "_test-native-tier1-compare-conversion-long-full",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc",
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "c-oracle-bits-flags",
+      "evidence": {
+        "domain": "tier1-compare-conversion-go"
+      }
+    },
+    {
+      "id": "native-decnumber",
+      "target": "_test-native-decnumber-differential-full",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc",
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "decnumber-cohort-five-flags",
+      "evidence": {
+        "domain": "decnumber-differential"
+      }
+    },
+    {
+      "id": "rust-arithmetic-long",
+      "target": "_test-rust-native-tier1-arithmetic-long-full",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc",
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "c-oracle-bits-flags",
+      "evidence": {
+        "domain": "tier1-arithmetic-rust"
+      }
+    },
+    {
+      "id": "rust-compare-conversion-long",
+      "target": "_test-rust-native-tier1-compare-conversion-long-full",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc",
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "c-oracle-bits-flags",
+      "evidence": {
+        "domain": "tier1-compare-conversion-rust"
+      }
+    },
+    {
+      "id": "native-readtest",
+      "target": "test-native-readtest",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc",
+        "cargo",
+        "rustc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "c-oracle-readtest-status",
+      "evidence": {
+        "domain": "native-readtest"
+      }
+    },
+    {
+      "id": "native-dectest",
+      "target": "test-native-dectest",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "decnumber-value-flags",
+      "evidence": {
+        "passes": [
+          "TestGeneratedDectestSuites",
+          "TestGeneratedDectestPlusMinusQuantumStrengthGoPort",
+          "TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter"
+        ]
+      }
+    },
+    {
+      "id": "rust-native-readtest",
+      "target": "test-rust-native",
+      "group": "native",
+      "tools": [
+        "cargo",
+        "rustc",
+        "cc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "c-oracle-readtest",
+      "evidence": {
+        "patterns": [
+          "(?m)^test test_readtest_generated_decimal32 \\.\\.\\. ok$",
+          "(?m)^test test_readtest_generated_decimal64 \\.\\.\\. ok$",
+          "(?m)^test test_readtest_generated_decimal128 \\.\\.\\. ok$",
+          "(?m)^test test_readtest_generated_status_control \\.\\.\\. ok$"
+        ]
+      }
+    },
+    {
+      "id": "rust-native-fuzz",
+      "target": "test-rust-native-fuzz",
+      "group": "native",
+      "tools": [
+        "cargo",
+        "rustc",
+        "cc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "auxiliary-random-differential",
+      "evidence": {
+        "patterns": [
+          "(?m)^test fuzz_bid32_add_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid32_sub_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid32_mul_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid32_div_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid32_fma_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid32_sqrt_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid64_add_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid64_sub_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid64_mul_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid64_div_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid64_fma_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid64_sqrt_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid128_add_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid128_sub_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid128_mul_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid128_div_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid128_fma_vs_c \\.\\.\\. ok$",
+          "(?m)^test fuzz_bid128_sqrt_vs_c \\.\\.\\. ok$"
+        ]
+      }
+    },
+    {
+      "id": "big-endian-digest",
+      "target": "digest",
+      "group": "big-endian",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "cross-platform-bits",
+      "evidence": {
+        "patterns": [
+          "(?m)^PLATFORM-DIGEST goos=[a-z0-9]+ goarch=[a-z0-9]+ cases=[1-9][0-9]* sha256=[0-9a-f]{64}$"
+        ]
+      }
+    },
+    {
+      "id": "big-endian-readtest",
+      "target": "test-portable-readtest",
+      "group": "big-endian",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "readtest-value-status",
+      "evidence": {
+        "domain": "goport-readtest"
+      }
+    },
+    {
+      "id": "big-endian-codec",
+      "target": "test-codec-go",
+      "group": "big-endian",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "codec-contract",
+      "evidence": {
+        "patterns": [
+          "(?m)^ok\\s+github.com/sky1core/bid754/bid754-codec-go\\s"
+        ]
+      }
+    },
+    {
+      "id": "big-endian-public-routing",
+      "target": "test-portable-public-api-parity",
+      "group": "big-endian",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "public-port-bits-flags",
+      "evidence": {
+        "passes": [
+          "TestGeneratedPublicAPIParity"
+        ]
+      }
+    }
+  ],
+  "matrix": [
+    {
+      "profile": "ci-portable",
+      "platform": "darwin/arm64"
+    },
+    {
+      "profile": "ci-portable",
+      "platform": "linux/amd64"
+    },
+    {
+      "profile": "portable",
+      "platform": "linux/arm64"
+    },
+    {
+      "profile": "native",
+      "platform": "darwin/arm64"
+    },
+    {
+      "profile": "native",
+      "platform": "linux/amd64"
+    }
+  ]
+}

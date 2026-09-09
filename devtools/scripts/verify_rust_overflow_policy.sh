@@ -45,9 +45,9 @@ if grep -Fq "if ((x - b'A') <= (b'Z' - b'A'))" src/generated/bid64_from_string.r
 fi
 
 echo "==> Rust generated implementation tests with default overflow policy"
-cargo test --locked --quiet
+cargo test --locked --features verification --quiet
 
 echo "==> Rust generated implementation tests with overflow-checks=yes"
-RUSTFLAGS='-C overflow-checks=yes' cargo test --locked --quiet
+RUSTFLAGS='-C overflow-checks=yes' cargo test --locked --features verification --quiet
 
 echo "Rust overflow policy verification passed: generated Rust no longer requires Cargo-level overflow-checks=false."

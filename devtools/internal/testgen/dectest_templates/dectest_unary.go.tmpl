@@ -98,7 +98,7 @@ func decTestUnaryZeroAddend32(a Decimal32BID, rndMode int) (Decimal32BID, error)
 	if finite {
 		quantum, quantexpFlags := decimal32BIDQuantexpPort(a)
 		if quantexpFlags != 0 {
-			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+			return Decimal32BID{}, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
 		}
 		literal = decTestUnaryZeroAddendLiteral(quantum)
 	}
@@ -106,7 +106,7 @@ func decTestUnaryZeroAddend32(a Decimal32BID, rndMode int) (Decimal32BID, error)
 	if err := decTestUnaryZeroAddendCheck(literal, parseFlags,
 		decimal32BIDIsZeroPort(zero) && !decimal32BIDIsSignMinusPort(zero),
 		!finite || decimal32BIDSameQuantumPort(zero, a)); err != nil {
-		return 0, err
+		return Decimal32BID{}, err
 	}
 	return zero, nil
 }
@@ -117,7 +117,7 @@ func decTestUnaryZeroAddend64(a Decimal64BID, rndMode int) (Decimal64BID, error)
 	if finite {
 		quantum, quantexpFlags := decimal64BIDQuantexpPort(a)
 		if quantexpFlags != 0 {
-			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+			return Decimal64BID{}, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
 		}
 		literal = decTestUnaryZeroAddendLiteral(quantum)
 	}
@@ -125,7 +125,7 @@ func decTestUnaryZeroAddend64(a Decimal64BID, rndMode int) (Decimal64BID, error)
 	if err := decTestUnaryZeroAddendCheck(literal, parseFlags,
 		decimal64BIDIsZeroPort(zero) && !decimal64BIDIsSignMinusPort(zero),
 		!finite || decimal64BIDSameQuantumPort(zero, a)); err != nil {
-		return 0, err
+		return Decimal64BID{}, err
 	}
 	return zero, nil
 }
@@ -157,7 +157,7 @@ func executeDecimal32UnaryOperation(op string, a Decimal32BID, rndMode int) (Dec
 	case "plus", "minus":
 		zero, err := decTestUnaryZeroAddend32(a, rndMode)
 		if err != nil {
-			return 0, 0, err
+			return Decimal32BID{}, 0, err
 		}
 		if op == "plus" {
 			result, flags := decimal32BIDAddPortModeFlags(zero, a, rndMode)
@@ -166,7 +166,7 @@ func executeDecimal32UnaryOperation(op string, a Decimal32BID, rndMode int) (Dec
 		result, flags := decimal32BIDSubPortModeFlags(zero, a, rndMode)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal32BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -178,7 +178,7 @@ func executeDecimal64UnaryOperation(op string, a Decimal64BID, rndMode int) (Dec
 	case "plus", "minus":
 		zero, err := decTestUnaryZeroAddend64(a, rndMode)
 		if err != nil {
-			return 0, 0, err
+			return Decimal64BID{}, 0, err
 		}
 		if op == "plus" {
 			result, flags := decimal64BIDAddPortModeFlags(zero, a, rndMode)
@@ -187,7 +187,7 @@ func executeDecimal64UnaryOperation(op string, a Decimal64BID, rndMode int) (Dec
 		result, flags := decimal64BIDSubPortModeFlags(zero, a, rndMode)
 		return result, flags, nil
 	default:
-		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return Decimal64BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
@@ -216,7 +216,7 @@ func decTestDecimal32Abs(a Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	bits := a.ToUint32()
 	if bits&bid32NaNMask == bid32NaNMask {
 		if bits&bid32SignalingMask == bid32SignalingMask {
-			return Decimal32BID(bits &^ bid32SignalingBit), FlagInvalidOperation
+			return Decimal32BIDFromBits(bits &^ bid32SignalingBit), FlagInvalidOperation
 		}
 		return a, 0
 	}
@@ -227,7 +227,7 @@ func decTestDecimal64Abs(a Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	bits := a.ToUint64()
 	if bits&bid64NaNMask == bid64NaNMask {
 		if bits&bid64SignalingMask == bid64SignalingMask {
-			return Decimal64BID(bits &^ bid64SignalingBit), FlagInvalidOperation
+			return Decimal64BIDFromBits(bits &^ bid64SignalingBit), FlagInvalidOperation
 		}
 		return a, 0
 	}

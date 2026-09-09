@@ -258,7 +258,7 @@ func d32ExhaustiveLegs(op d32ExhaustiveOp, nativeMode int, x uint32) (nLo, nHi u
 	case d32ExhaustiveOpToBid128:
 		nLo, nHi, nf := d32ExhaustiveNativeToBid128(x)
 		p128, pf := bidgo.Bid32ToBid128(x)
-		image := decimal128BIDFromBidgo(p128)
+		image := decimal128BIDFromBidgo(p128).ToBytes()
 		return nLo, nHi, nf, binary.LittleEndian.Uint64(image[0:8]), binary.LittleEndian.Uint64(image[8:16]), pf
 	case d32ExhaustiveOpNextUp:
 		nb, nf := d32ExhaustiveNativeNextUp(x)

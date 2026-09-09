@@ -85,6 +85,22 @@ named import:
 import bid754 "github.com/sky1core/bid754/bid754-go"
 ```
 
+The Go decimal types contain private representation fields and remain 4/8/16-byte
+values. Use arithmetic/comparison methods; raw integer casts and arithmetic
+operators are rejected. Use `Decimal32BIDFromBits`, `Decimal64BIDFromBits`,
+`Decimal128BIDFromBytes` and their raw accessors for encoded values. `==`, `!=`,
+and map keys compare representations; `QuietEqual` compares numeric values.
+
+Raw JSON output remains a number for Decimal32/64 and a 16-byte numeric array
+for Decimal128. JSON input also accepts validated raw text, used by map keys;
+it does not interpret that text as a decimal arithmetic value. Struct migration
+changes Go's field-tag behavior: `,string`
+does not quote these custom marshalers, and `omitempty` does not omit a struct
+value. Wire schemas requiring those legacy integer-field rules should expose
+explicit raw integer fields and convert through the raw accessors/constructors.
+XML `omitempty` has the same struct limitation; JSON `omitzero` follows the
+numeric `IsZero` method, including signed zeros and different zero cohorts.
+
 Release tags follow the Go multi-module convention: `bid754-go/v0.2.0` and
 `bid754-codec-go/v0.2.0` version the Go modules, while root `v0.2.0`-style
 tags version the repository snapshot for Swift Package Manager. No release tag
@@ -194,8 +210,9 @@ make verify-all
 ```
 
 `make verify-all` is the top-level reproducible verification gate; the authoritative
-step list is the `_verify-all` target in the Makefile, documented in
-`docs/BUILD.md`. The native gates are required by default — if `.env.sh`, Intel BID
+profile and evidence plan is `devtools/verification_plan.json`, documented in
+`docs/BUILD.md`. Results and per-gate logs are recorded under
+`test_results/verification/<profile>-<run>/`. The native gates are required by default — if `.env.sh`, Intel BID
 `libbid.a`, or IBM decNumber are missing, `make verify-all` fails instead of
 silently passing a reduced gate (`VERIFY_ALL_ALLOW_MISSING_NATIVE=1` skips
 them explicitly). Compatibility entrypoints `devtools/run_tests.sh`,

@@ -30,7 +30,7 @@ func predicateInputs32(t *testing.T) []predicateCase32 {
 		{name: "qnan", value: mustDecimal32BID(t, "NaN")},
 		{name: "snan", value: mustDecimal32BID(t, "sNaN")},
 		{name: "subnormal", value: mustDecimal32BID(t, "1E-101")},
-		{name: "noncanonical", value: Decimal32BID(0x7c100000)},
+		{name: "noncanonical", value: Decimal32BIDFromBits(0x7c100000)},
 	}
 }
 
@@ -43,7 +43,7 @@ func predicateInputs64(t *testing.T) []predicateCase64 {
 		{name: "qnan", value: mustDecimal64BID(t, "NaN")},
 		{name: "snan", value: mustDecimal64BID(t, "sNaN")},
 		{name: "subnormal", value: mustDecimal64BID(t, "1E-398")},
-		{name: "noncanonical", value: Decimal64BID(0x7c04000000000000)},
+		{name: "noncanonical", value: Decimal64BIDFromBits(0x7c04000000000000)},
 	}
 }
 
@@ -183,7 +183,7 @@ func TestRoundIntegralDirectedRoutingDecimal32(t *testing.T) {
 			for _, input := range inputs {
 				got, gotFlags := tt.public(input.value)
 				want, wantFlags := tt.direct(input.value.ToUint32())
-				if got != Decimal32BID(want) || gotFlags != bidgoExceptionFlags(wantFlags) {
+				if got != Decimal32BIDFromBits(want) || gotFlags != bidgoExceptionFlags(wantFlags) {
 					t.Fatalf("%s(%s) = %08x/%s, want %08x/%s", tt.name, input.name, got.ToUint32(), gotFlags, want, bidgoExceptionFlags(wantFlags))
 				}
 			}
@@ -218,7 +218,7 @@ func TestRoundIntegralDirectedRoutingDecimal64(t *testing.T) {
 			for _, input := range inputs {
 				got, gotFlags := tt.public(input.value)
 				want, wantFlags := tt.direct(input.value.ToUint64())
-				if got != Decimal64BID(want) || gotFlags != bidgoExceptionFlags(wantFlags) {
+				if got != Decimal64BIDFromBits(want) || gotFlags != bidgoExceptionFlags(wantFlags) {
 					t.Fatalf("%s(%s) = %016x/%s, want %016x/%s", tt.name, input.name, got.ToUint64(), gotFlags, want, bidgoExceptionFlags(wantFlags))
 				}
 			}

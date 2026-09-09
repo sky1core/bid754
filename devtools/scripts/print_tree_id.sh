@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
-# Print a tree identifier that binds PLATFORM-DIGEST results to the exact
-# source state they were produced from: the HEAD commit id, with a content
-# digest and "-dirty" suffix when the working tree differs from HEAD, or "unknown" when no git
-# history is available (e.g. the synthetic no-commit index inside the
-# verify-linux container; the host side stamps the real id there).
-# verify_digest.sh refuses to compare digest files whose tree ids disagree or
-# are dirty/unknown, so digests produced from different code states can never
-# be reported as cross-platform agreement.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
-if ! commit=$(git rev-parse HEAD 2>/dev/null); then
-    echo "unknown"
-    exit 0
-fi
-if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    fingerprint=$(python3 -B devtools/scripts/lib/worktree_files.py --fingerprint)
-    echo "${commit}-${fingerprint}-dirty"
+if [ "$#" -eq 0 ]; then
+    if [ -n "${BID754_SNAPSHOT_ARCHIVE:-}" ] || [ -n "${BID754_SNAPSHOT_ID:-}" ]; then
+        : "${BID754_SNAPSHOT_ARCHIVE:?snapshot archive and ID must both be set}"
+        : "${BID754_SNAPSHOT_ID:?snapshot archive and ID must both be set}"
+        python3 -B devtools/scripts/lib/source_snapshot.py verify-source "$BID754_SNAPSHOT_ARCHIVE" \
+            --expected-id "$BID754_SNAPSHOT_ID" --root . > /dev/null
+        exec python3 -B devtools/scripts/lib/source_snapshot.py tree-id "$BID754_SNAPSHOT_ARCHIVE" \
+            --expected-id "$BID754_SNAPSHOT_ID"
+    fi
+    exec python3 -B devtools/scripts/lib/source_snapshot.py current-tree-id
+elif [ "$#" -eq 2 ] && [ "$1" = --snapshot ]; then
+    exec python3 -B devtools/scripts/lib/source_snapshot.py tree-id "$2"
 else
-    echo "$commit"
+    echo "usage: $0 [--snapshot ARCHIVE]" >&2
+    exit 2
 fi

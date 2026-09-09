@@ -81,7 +81,7 @@ func d32ExhaustiveNativeToBid64(x uint32) (uint64, uint32) {
 func d32ExhaustiveNativeToBid128(x uint32) (lo, hi uint64, flags uint32) {
 	var cFlags C._IDEC_flags
 	value := C.bid32_to_bid128(C.BID_UINT32(x), &cFlags)
-	image := *(*Decimal128BID)(unsafe.Pointer(&value))
+	image := *(*[16]byte)(unsafe.Pointer(&value))
 	return binary.LittleEndian.Uint64(image[0:8]), binary.LittleEndian.Uint64(image[8:16]), uint32(cFlags)
 }
 

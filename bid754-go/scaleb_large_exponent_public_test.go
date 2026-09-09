@@ -40,7 +40,7 @@ func TestScaleBLargeExponentDomain(t *testing.T) {
 
 	mk32 := func(lit string, neg bool) probe {
 		v := mustDecimal32BID(t, lit)
-		return probe{name: "Decimal32BID(" + lit + ")", neg: neg,
+		return probe{name: "Decimal32BIDFromBits(" + lit + ")", neg: neg,
 			scaleB: func(n int) (bool, bool, bool, ExceptionFlags) {
 				r, f := v.ScaleB(n)
 				return r.IsInf(), r.IsZero(), r.IsSignMinus(), f
@@ -52,7 +52,7 @@ func TestScaleBLargeExponentDomain(t *testing.T) {
 	}
 	mk64 := func(lit string, neg bool) probe {
 		v := mustDecimal64BID(t, lit)
-		return probe{name: "Decimal64BID(" + lit + ")", neg: neg,
+		return probe{name: "Decimal64BIDFromBits(" + lit + ")", neg: neg,
 			scaleB: func(n int) (bool, bool, bool, ExceptionFlags) {
 				r, f := v.ScaleB(n)
 				return r.IsInf(), r.IsZero(), r.IsSignMinus(), f
@@ -64,7 +64,7 @@ func TestScaleBLargeExponentDomain(t *testing.T) {
 	}
 	mk128 := func(lit string, neg bool) probe {
 		v := mustDecimal128BID(t, lit)
-		return probe{name: "Decimal128BID(" + lit + ")", neg: neg,
+		return probe{name: "Decimal128BIDFromBytes(" + lit + ")", neg: neg,
 			scaleB: func(n int) (bool, bool, bool, ExceptionFlags) {
 				r, f := v.ScaleB(n)
 				return r.IsInf(), r.IsZero(), r.IsSignMinus(), f
