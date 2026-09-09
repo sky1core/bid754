@@ -2365,13 +2365,19 @@
       "suite": "Decimal64",
       "cases": 11940,
       "skip_reasons": {
-        "adapter_operation_out_of_leg": 6152,
-        "binary_op_nan_payload_precedence": 16,
+        "abs_nan_operand_gda_propagation": 4,
+        "binary_op_nan_payload_precedence": 28,
         "compare_nan_operand": 118,
         "conversion_syntax_divergence": 99,
+        "fma_nan_payload_precedence": 13,
         "ignored_operation_apply": 4,
-        "tagged_literal": 16,
-        "unsupported_rounding": 238
+        "minmax_equal_operand_cohort_unspecified": 216,
+        "remainder_gda_division_impossible_context_semantics": 7,
+        "remaindernear_gda_division_impossible_context_semantics": 7,
+        "scaleb_exponent_out_of_gda_range": 4,
+        "scaleb_non_integer_exponent_operand": 38,
+        "tagged_literal": 42,
+        "unsupported_rounding": 294
       },
       "flag_exemptions": {
         "from_string_zero_low_clamp_divergence": 2
@@ -2381,13 +2387,19 @@
       "suite": "Decimal128",
       "cases": 12313,
       "skip_reasons": {
-        "adapter_operation_out_of_leg": 6240,
-        "binary_op_nan_payload_precedence": 16,
+        "abs_nan_operand_gda_propagation": 4,
+        "binary_op_nan_payload_precedence": 28,
         "compare_nan_operand": 118,
         "conversion_syntax_divergence": 99,
+        "fma_nan_payload_precedence": 13,
         "ignored_operation_apply": 371,
-        "tagged_literal": 17,
-        "unsupported_rounding": 144
+        "minmax_equal_operand_cohort_unspecified": 216,
+        "remainder_gda_division_impossible_context_semantics": 7,
+        "remaindernear_gda_division_impossible_context_semantics": 7,
+        "scaleb_exponent_out_of_gda_range": 4,
+        "scaleb_non_integer_exponent_operand": 38,
+        "tagged_literal": 43,
+        "unsupported_rounding": 218
       },
       "flag_exemptions": {
         "from_string_zero_low_clamp_divergence": 2

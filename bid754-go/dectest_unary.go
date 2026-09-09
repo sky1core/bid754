@@ -38,17 +38,26 @@ func executeDecTestUnaryOperation(tc decTestCase, testType string) (decTestExecR
 	switch testType {
 	case "decimal32":
 		a, parseFlags := parseDecTestDecimal32Operand(tc.Operands[0], rndMode)
-		result, flags := executeDecimal32UnaryOperation(op, a, rndMode)
+		result, flags, err := executeDecimal32UnaryOperation(op, a, rndMode)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
 		flags |= parseFlags
 		return decTestExecResult{Result: result.String(), Flags: decTestFlagsWithSubnormalClass(flags, result.Class())}, nil
 	case "decimal64":
 		a, parseFlags := parseDecTestDecimal64Operand(tc.Operands[0], rndMode)
-		result, flags := executeDecimal64UnaryOperation(op, a, rndMode)
+		result, flags, err := executeDecimal64UnaryOperation(op, a, rndMode)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
 		flags |= parseFlags
 		return decTestExecResult{Result: result.String(), Flags: decTestFlagsWithSubnormalClass(flags, result.Class())}, nil
 	case "decimal128":
 		a, parseFlags := parseDecTestDecimal128Operand(tc.Operands[0], rndMode)
-		result, flags := executeDecimal128UnaryOperation(op, a, rndMode)
+		result, flags, err := executeDecimal128UnaryOperation(op, a, rndMode)
+		if err != nil {
+			return decTestExecResult{}, err
+		}
 		flags |= parseFlags
 		return decTestExecResult{Result: result.String(), Flags: decTestFlagsWithSubnormalClass(flags, result.Class())}, nil
 	default:
@@ -56,37 +65,151 @@ func executeDecTestUnaryOperation(tc decTestCase, testType string) (decTestExecR
 	}
 }
 
-func executeDecimal32UnaryOperation(op string, a Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags) {
+// GDA's plus/minus add or subtract a zero carrying the PARSED operand's own
+// exponent (decNumberPlus/decNumberMinus set dzero.exponent = rhs->exponent),
+// and IEEE's preferred exponent for an exact sum is min(Q(x), Q(y)), so the
+// addend's quantum must come from bid*_quantexp of the fixed-width operand the
+// port parsed -- not the case's source exponent, raw zero bits, or a fixed "0".
+const decTestUnaryNonFiniteZeroLiteral = "0"
+
+func decTestUnaryZeroAddendLiteral(quantum int32) string {
+	return fmt.Sprintf("0E%+d", quantum)
+}
+
+// decTestUnaryZeroAddendCheck fails the case closed when the synthesized addend
+// is not the exact cohort member plus/minus is defined over. Its own parse
+// status never joins the case status: the case accumulates the original
+// operand-parse flags and the add/subtract flags only.
+func decTestUnaryZeroAddendCheck(literal string, parseFlags ExceptionFlags, positiveZero, quantumMatches bool) error {
+	if parseFlags != 0 {
+		return fmt.Errorf("plus/minus zero addend %q raised parse flags %s", literal, parseFlags.String())
+	}
+	if !positiveZero {
+		return fmt.Errorf("plus/minus zero addend %q did not parse to a positive zero", literal)
+	}
+	if !quantumMatches {
+		return fmt.Errorf("plus/minus zero addend %q does not share the operand quantum", literal)
+	}
+	return nil
+}
+
+func decTestUnaryZeroAddend32(a Decimal32BID, rndMode int) (Decimal32BID, error) {
+	finite := decimal32BIDIsFinitePort(a)
+	literal := decTestUnaryNonFiniteZeroLiteral
+	if finite {
+		quantum, quantexpFlags := decimal32BIDQuantexpPort(a)
+		if quantexpFlags != 0 {
+			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+		}
+		literal = decTestUnaryZeroAddendLiteral(quantum)
+	}
+	zero, parseFlags := parseDecTestDecimal32Operand(literal, rndMode)
+	if err := decTestUnaryZeroAddendCheck(literal, parseFlags,
+		decimal32BIDIsZeroPort(zero) && !decimal32BIDIsSignMinusPort(zero),
+		!finite || decimal32BIDSameQuantumPort(zero, a)); err != nil {
+		return 0, err
+	}
+	return zero, nil
+}
+
+func decTestUnaryZeroAddend64(a Decimal64BID, rndMode int) (Decimal64BID, error) {
+	finite := decimal64BIDIsFinitePort(a)
+	literal := decTestUnaryNonFiniteZeroLiteral
+	if finite {
+		quantum, quantexpFlags := decimal64BIDQuantexpPort(a)
+		if quantexpFlags != 0 {
+			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+		}
+		literal = decTestUnaryZeroAddendLiteral(quantum)
+	}
+	zero, parseFlags := parseDecTestDecimal64Operand(literal, rndMode)
+	if err := decTestUnaryZeroAddendCheck(literal, parseFlags,
+		decimal64BIDIsZeroPort(zero) && !decimal64BIDIsSignMinusPort(zero),
+		!finite || decimal64BIDSameQuantumPort(zero, a)); err != nil {
+		return 0, err
+	}
+	return zero, nil
+}
+
+func decTestUnaryZeroAddend128(a Decimal128BID, rndMode int) (Decimal128BID, error) {
+	finite := decimal128BIDIsFinitePort(a)
+	literal := decTestUnaryNonFiniteZeroLiteral
+	if finite {
+		quantum, quantexpFlags := decimal128BIDQuantexpPort(a)
+		if quantexpFlags != 0 {
+			return Decimal128BID{}, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+		}
+		literal = decTestUnaryZeroAddendLiteral(quantum)
+	}
+	zero, parseFlags := parseDecTestDecimal128Operand(literal, rndMode)
+	if err := decTestUnaryZeroAddendCheck(literal, parseFlags,
+		decimal128BIDIsZeroPort(zero) && !decimal128BIDIsSignMinusPort(zero),
+		!finite || decimal128BIDSameQuantumPort(zero, a)); err != nil {
+		return Decimal128BID{}, err
+	}
+	return zero, nil
+}
+
+func executeDecimal32UnaryOperation(op string, a Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags, error) {
 	switch op {
 	case "abs":
-		return decTestDecimal32Abs(a)
-	case "plus":
-		return decimal32BIDAddPortModeFlags(0, a, rndMode)
+		result, flags := decTestDecimal32Abs(a)
+		return result, flags, nil
+	case "plus", "minus":
+		zero, err := decTestUnaryZeroAddend32(a, rndMode)
+		if err != nil {
+			return 0, 0, err
+		}
+		if op == "plus" {
+			result, flags := decimal32BIDAddPortModeFlags(zero, a, rndMode)
+			return result, flags, nil
+		}
+		result, flags := decimal32BIDSubPortModeFlags(zero, a, rndMode)
+		return result, flags, nil
 	default:
-		return decimal32BIDSubPortModeFlags(0, a, rndMode)
+		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
-func executeDecimal64UnaryOperation(op string, a Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags) {
+func executeDecimal64UnaryOperation(op string, a Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags, error) {
 	switch op {
 	case "abs":
-		return decTestDecimal64Abs(a)
-	case "plus":
-		return decimal64BIDAddPortModeFlags(0, a, rndMode)
+		result, flags := decTestDecimal64Abs(a)
+		return result, flags, nil
+	case "plus", "minus":
+		zero, err := decTestUnaryZeroAddend64(a, rndMode)
+		if err != nil {
+			return 0, 0, err
+		}
+		if op == "plus" {
+			result, flags := decimal64BIDAddPortModeFlags(zero, a, rndMode)
+			return result, flags, nil
+		}
+		result, flags := decimal64BIDSubPortModeFlags(zero, a, rndMode)
+		return result, flags, nil
 	default:
-		return decimal64BIDSubPortModeFlags(0, a, rndMode)
+		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
-func executeDecimal128UnaryOperation(op string, a Decimal128BID, rndMode int) (Decimal128BID, ExceptionFlags) {
-	zero := Decimal128BID{}
+func executeDecimal128UnaryOperation(op string, a Decimal128BID, rndMode int) (Decimal128BID, ExceptionFlags, error) {
 	switch op {
 	case "abs":
-		return decTestDecimal128Abs(a)
-	case "plus":
-		return decimal128BIDAddPortModeFlags(zero, a, rndMode)
+		result, flags := decTestDecimal128Abs(a)
+		return result, flags, nil
+	case "plus", "minus":
+		zero, err := decTestUnaryZeroAddend128(a, rndMode)
+		if err != nil {
+			return Decimal128BID{}, 0, err
+		}
+		if op == "plus" {
+			result, flags := decimal128BIDAddPortModeFlags(zero, a, rndMode)
+			return result, flags, nil
+		}
+		result, flags := decimal128BIDSubPortModeFlags(zero, a, rndMode)
+		return result, flags, nil
 	default:
-		return decimal128BIDSubPortModeFlags(zero, a, rndMode)
+		return Decimal128BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 

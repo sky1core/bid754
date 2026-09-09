@@ -168,6 +168,11 @@ func FuzzArithmeticPortVsNativeResultOnlyNative(f *testing.F) {
 		//   drift apart. Without this gate the native bridge's leniency (it
 		//   parses malformed operands to NaN and returns success) floods the
 		//   run with noise instead of divergences.
+		// - fuzzDecTestNativeBridgeOperation narrows that to the ops the
+		//   decNumber native bridge itself implements. The goport leg's oracle
+		//   set is the wider one, so without this the fuzzer would feed the
+		//   bridge an op it answers with "unsupported operation" and report the
+		//   one-sided acceptance as a divergence.
 		if !isGoportDectestRunnerSuite(testType) {
 			t.Skipf("test type %q outside the shared port/native fixed-width surface", testType)
 		}
@@ -175,6 +180,9 @@ func FuzzArithmeticPortVsNativeResultOnlyNative(f *testing.F) {
 			t.Skipf("non-canonical %s context (precision=%d emax=%d emin=%d clamp=%d)", testType, precision, maxExponent, minExponent, clamp)
 		}
 		normalizedOp := normalizeDecTestOperation(op)
+		if !fuzzDecTestNativeBridgeOperation(normalizedOp) {
+			t.Skipf("operation %q outside the decNumber native bridge's op set", normalizedOp)
+		}
 		operands := []string{operand1, operand2}
 		if fuzzDecTestUnaryOperation(normalizedOp) {
 			// Unary read-path ops consume one operand; the second tuple slot
@@ -191,7 +199,7 @@ func FuzzArithmeticPortVsNativeResultOnlyNative(f *testing.F) {
 			MinExponent:  minExponent,
 			Clamp:        clamp,
 		}
-		if reason, ok := dectestGoportSkipReason(nil, tc); ok {
+		if reason, ok := dectestGoportSkipReason(nil, tc, testType); ok {
 			t.Skipf("outside the shared goport oracle surface: %s", reason)
 		}
 		for _, operand := range operands {
@@ -318,6 +326,20 @@ func fuzzDecTestUnaryOperation(normalizedOp string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// fuzzDecTestNativeBridgeOperation is the decNumber native bridge's own op set:
+// the binary ops bid754_decimal{32,64}_op / bid754_general_op answer plus the
+// unary read ops bid754_*_read answers (dectest_native.go). Every other op the
+// bridge rejects with rc=2 "unsupported operation", so this fuzzer's shared
+// surface is this set intersected with the goport leg's wider oracle set.
+func fuzzDecTestNativeBridgeOperation(normalizedOp string) bool {
+	switch normalizedOp {
+	case "add", "subtract", "multiply", "divide", "quantize", "compare", "comparesig":
+		return true
+	default:
+		return fuzzDecTestUnaryOperation(normalizedOp)
 	}
 }
 

@@ -20,7 +20,7 @@ import (
 // instead of silently drifting.
 //
 // Unlike readtest's broad generated function surface, decTest's oracle-dispatch set is a
-// small, fixed 11-operation family with no per-function resolution ambiguity
+// small, fixed operation family with no per-function resolution ambiguity
 // to score -- both legs' dispatch is a hand-authored static table/template, not
 // a generic signature-matching resolver. The two things that CAN drift between
 // two independently hand-authored dispatch tables are (1) a Rust function name

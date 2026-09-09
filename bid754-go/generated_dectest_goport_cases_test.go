@@ -3,6 +3,7 @@
 package bid754
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -42,15 +43,21 @@ var expectedGoportDectestSuiteCoverage = []goportDectestSuiteCoverage{
 	{
 		Name:     "Decimal64",
 		Cases:    11940,
-		Executed: 5297,
+		Executed: 11066,
 		SkipReasons: map[string]int{
-			"adapter_operation_out_of_leg":     6152,
-			"binary_op_nan_payload_precedence": 16,
-			"compare_nan_operand":              118,
-			"conversion_syntax_divergence":     99,
-			"ignored_operation_apply":          4,
-			"tagged_literal":                   16,
-			"unsupported_rounding":             238,
+			"abs_nan_operand_gda_propagation":                         4,
+			"binary_op_nan_payload_precedence":                        28,
+			"compare_nan_operand":                                     118,
+			"conversion_syntax_divergence":                            99,
+			"fma_nan_payload_precedence":                              13,
+			"ignored_operation_apply":                                 4,
+			"minmax_equal_operand_cohort_unspecified":                 216,
+			"remainder_gda_division_impossible_context_semantics":     7,
+			"remaindernear_gda_division_impossible_context_semantics": 7,
+			"scaleb_exponent_out_of_gda_range":                        4,
+			"scaleb_non_integer_exponent_operand":                     38,
+			"tagged_literal":                                          42,
+			"unsupported_rounding":                                    294,
 		},
 		FlagExempt: map[string]int{
 			"from_string_zero_low_clamp_divergence": 2,
@@ -59,15 +66,21 @@ var expectedGoportDectestSuiteCoverage = []goportDectestSuiteCoverage{
 	{
 		Name:     "Decimal128",
 		Cases:    12313,
-		Executed: 5308,
+		Executed: 11147,
 		SkipReasons: map[string]int{
-			"adapter_operation_out_of_leg":     6240,
-			"binary_op_nan_payload_precedence": 16,
-			"compare_nan_operand":              118,
-			"conversion_syntax_divergence":     99,
-			"ignored_operation_apply":          371,
-			"tagged_literal":                   17,
-			"unsupported_rounding":             144,
+			"abs_nan_operand_gda_propagation":                         4,
+			"binary_op_nan_payload_precedence":                        28,
+			"compare_nan_operand":                                     118,
+			"conversion_syntax_divergence":                            99,
+			"fma_nan_payload_precedence":                              13,
+			"ignored_operation_apply":                                 371,
+			"minmax_equal_operand_cohort_unspecified":                 216,
+			"remainder_gda_division_impossible_context_semantics":     7,
+			"remaindernear_gda_division_impossible_context_semantics": 7,
+			"scaleb_exponent_out_of_gda_range":                        4,
+			"scaleb_non_integer_exponent_operand":                     38,
+			"tagged_literal":                                          43,
+			"unsupported_rounding":                                    218,
 		},
 		FlagExempt: map[string]int{
 			"from_string_zero_low_clamp_divergence": 2,
@@ -77,8 +90,8 @@ var expectedGoportDectestSuiteCoverage = []goportDectestSuiteCoverage{
 
 // TestGeneratedDectestSuitesGoPort cross-checks the Go BID mechanical port against the
 // IBM decTest expected values for the fixed-width Decimal32/64/128 oracle-dispatch
-// operation set (add/subtract/multiply/divide/quantize/compare/comparesig/tosci/toeng/
-// tointegral/tointegralx). It is portable (no cgo, no build tags), so it runs in every
+// operation set -- every decTest operation with a Go mechanical-port routing target
+// (dectestGoportOracleOperation). It is portable (no cgo, no build tags), so it runs in every
 // non-short "go test ./..." of bid754-go and under make test-portable-dectest. This is
 // an independent second-source cross-validation of operations already anchored by the
 // Intel readtest and C FFI bit-compare domains; it does not replace them. Phase 2
@@ -167,7 +180,7 @@ func runGoportDectestSuite(t *testing.T, suite testspec.GeneratedDectestSuite) i
 			t.Fatalf("parseDecTestFile(%q): %v", testFile, err)
 		}
 		for _, tc := range cases {
-			if reason, ok := dectestGoportSkipReason(suite.IgnoredOperations, tc); ok {
+			if reason, ok := dectestGoportSkipReason(suite.IgnoredOperations, tc, suite.TestType); ok {
 				skipReasons[reason]++
 				continue
 			}
@@ -284,4 +297,346 @@ func goportLoadGeneratedDectestSpec(t *testing.T) testspec.SharedSpec {
 		t.Fatalf("load shared spec: %v", err)
 	}
 	return spec
+}
+
+// plus/minus quantum strength anchor: hand-pinned known answers derived
+// independently from IBM decNumber 3.68, never computed from this port. They
+// close what the consumed suites leave open -- the Decimal32 suite carries no
+// q>0 zero plus/minus witness, and the regular decTest runner compares
+// executeDecTestUnaryOperation on value and the BID five-flag surface but never
+// on quantum. Every row runs through both production adapter paths
+// (runDectestGoportCase and executeDecTestUnaryOperation) with no skip or
+// flag-exemption classifier in between, and
+// devtools/verification_sentinels.json pins the identical canonical rows outside
+// every generation path.
+
+const (
+	dectestPlusMinusStrengthRowCount        = uint64(96)
+	dectestPlusMinusStrengthBID5Mask uint32 = 0x3d
+)
+
+var dectestPlusMinusStrengthRows = []string{
+	"decimal32 plus mode=half_even in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal32 plus mode=floor in=-0E+3 out=-0E+3 bid5=00000000",
+	"decimal32 plus mode=ceiling in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal32 plus mode=down in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal32 plus mode=half_up in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal32 plus mode=half_even in=56267E+1 out=5.6267E+5 bid5=00000000",
+	"decimal32 plus mode=half_even in=56267 out=56267 bid5=00000000",
+	"decimal32 plus mode=half_even in=56267E-2 out=562.67 bid5=00000000",
+	"decimal32 plus mode=half_even in=12345675E+3 out=1.234568E+10 bid5=00000020",
+	"decimal32 plus mode=half_even in=0E+96 out=0E+90 bid5=00000000",
+	"decimal32 plus mode=half_even in=1E+96 out=1.000000E+96 bid5=00000000",
+	"decimal32 plus mode=half_even in=1E-101 out=1E-101 bid5=00000000",
+	"decimal32 plus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+	"decimal32 plus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+	"decimal32 plus mode=half_even in=Infinity out=Infinity bid5=00000000",
+	"decimal32 plus mode=half_even in=-Infinity out=-Infinity bid5=00000000",
+	"decimal32 minus mode=half_even in=0E+3 out=0E+3 bid5=00000000",
+	"decimal32 minus mode=floor in=0E+3 out=-0E+3 bid5=00000000",
+	"decimal32 minus mode=ceiling in=0E+3 out=0E+3 bid5=00000000",
+	"decimal32 minus mode=down in=0E+3 out=0E+3 bid5=00000000",
+	"decimal32 minus mode=half_up in=0E+3 out=0E+3 bid5=00000000",
+	"decimal32 minus mode=half_even in=56267E+1 out=-5.6267E+5 bid5=00000000",
+	"decimal32 minus mode=half_even in=56267 out=-56267 bid5=00000000",
+	"decimal32 minus mode=half_even in=56267E-2 out=-562.67 bid5=00000000",
+	"decimal32 minus mode=half_even in=12345675E+3 out=-1.234568E+10 bid5=00000020",
+	"decimal32 minus mode=half_even in=0E+96 out=0E+90 bid5=00000000",
+	"decimal32 minus mode=half_even in=1E+96 out=-1.000000E+96 bid5=00000000",
+	"decimal32 minus mode=half_even in=1E-101 out=-1E-101 bid5=00000000",
+	"decimal32 minus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+	"decimal32 minus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+	"decimal32 minus mode=half_even in=Infinity out=-Infinity bid5=00000000",
+	"decimal32 minus mode=half_even in=-Infinity out=Infinity bid5=00000000",
+	"decimal64 plus mode=half_even in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal64 plus mode=floor in=-0E+3 out=-0E+3 bid5=00000000",
+	"decimal64 plus mode=ceiling in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal64 plus mode=down in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal64 plus mode=half_up in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal64 plus mode=half_even in=56267E+1 out=5.6267E+5 bid5=00000000",
+	"decimal64 plus mode=half_even in=56267 out=56267 bid5=00000000",
+	"decimal64 plus mode=half_even in=56267E-2 out=562.67 bid5=00000000",
+	"decimal64 plus mode=half_even in=12345678901234565E+3 out=1.234567890123456E+19 bid5=00000020",
+	"decimal64 plus mode=half_even in=0E+384 out=0E+369 bid5=00000000",
+	"decimal64 plus mode=half_even in=1E+384 out=1.000000000000000E+384 bid5=00000000",
+	"decimal64 plus mode=half_even in=1E-398 out=1E-398 bid5=00000000",
+	"decimal64 plus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+	"decimal64 plus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+	"decimal64 plus mode=half_even in=Infinity out=Infinity bid5=00000000",
+	"decimal64 plus mode=half_even in=-Infinity out=-Infinity bid5=00000000",
+	"decimal64 minus mode=half_even in=0E+3 out=0E+3 bid5=00000000",
+	"decimal64 minus mode=floor in=0E+3 out=-0E+3 bid5=00000000",
+	"decimal64 minus mode=ceiling in=0E+3 out=0E+3 bid5=00000000",
+	"decimal64 minus mode=down in=0E+3 out=0E+3 bid5=00000000",
+	"decimal64 minus mode=half_up in=0E+3 out=0E+3 bid5=00000000",
+	"decimal64 minus mode=half_even in=56267E+1 out=-5.6267E+5 bid5=00000000",
+	"decimal64 minus mode=half_even in=56267 out=-56267 bid5=00000000",
+	"decimal64 minus mode=half_even in=56267E-2 out=-562.67 bid5=00000000",
+	"decimal64 minus mode=half_even in=12345678901234565E+3 out=-1.234567890123456E+19 bid5=00000020",
+	"decimal64 minus mode=half_even in=0E+384 out=0E+369 bid5=00000000",
+	"decimal64 minus mode=half_even in=1E+384 out=-1.000000000000000E+384 bid5=00000000",
+	"decimal64 minus mode=half_even in=1E-398 out=-1E-398 bid5=00000000",
+	"decimal64 minus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+	"decimal64 minus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+	"decimal64 minus mode=half_even in=Infinity out=-Infinity bid5=00000000",
+	"decimal64 minus mode=half_even in=-Infinity out=Infinity bid5=00000000",
+	"decimal128 plus mode=half_even in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal128 plus mode=floor in=-0E+3 out=-0E+3 bid5=00000000",
+	"decimal128 plus mode=ceiling in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal128 plus mode=down in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal128 plus mode=half_up in=-0E+3 out=0E+3 bid5=00000000",
+	"decimal128 plus mode=half_even in=56267E+1 out=5.6267E+5 bid5=00000000",
+	"decimal128 plus mode=half_even in=56267 out=56267 bid5=00000000",
+	"decimal128 plus mode=half_even in=56267E-2 out=562.67 bid5=00000000",
+	"decimal128 plus mode=half_even in=12345678901234567890123456789012345E+3 out=1.234567890123456789012345678901234E+37 bid5=00000020",
+	"decimal128 plus mode=half_even in=0E+6144 out=0E+6111 bid5=00000000",
+	"decimal128 plus mode=half_even in=1E+6144 out=1.000000000000000000000000000000000E+6144 bid5=00000000",
+	"decimal128 plus mode=half_even in=1E-6176 out=1E-6176 bid5=00000000",
+	"decimal128 plus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+	"decimal128 plus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+	"decimal128 plus mode=half_even in=Infinity out=Infinity bid5=00000000",
+	"decimal128 plus mode=half_even in=-Infinity out=-Infinity bid5=00000000",
+	"decimal128 minus mode=half_even in=0E+3 out=0E+3 bid5=00000000",
+	"decimal128 minus mode=floor in=0E+3 out=-0E+3 bid5=00000000",
+	"decimal128 minus mode=ceiling in=0E+3 out=0E+3 bid5=00000000",
+	"decimal128 minus mode=down in=0E+3 out=0E+3 bid5=00000000",
+	"decimal128 minus mode=half_up in=0E+3 out=0E+3 bid5=00000000",
+	"decimal128 minus mode=half_even in=56267E+1 out=-5.6267E+5 bid5=00000000",
+	"decimal128 minus mode=half_even in=56267 out=-56267 bid5=00000000",
+	"decimal128 minus mode=half_even in=56267E-2 out=-562.67 bid5=00000000",
+	"decimal128 minus mode=half_even in=12345678901234567890123456789012345E+3 out=-1.234567890123456789012345678901234E+37 bid5=00000020",
+	"decimal128 minus mode=half_even in=0E+6144 out=0E+6111 bid5=00000000",
+	"decimal128 minus mode=half_even in=1E+6144 out=-1.000000000000000000000000000000000E+6144 bid5=00000000",
+	"decimal128 minus mode=half_even in=1E-6176 out=-1E-6176 bid5=00000000",
+	"decimal128 minus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+	"decimal128 minus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+	"decimal128 minus mode=half_even in=Infinity out=-Infinity bid5=00000000",
+	"decimal128 minus mode=half_even in=-Infinity out=Infinity bid5=00000000",
+}
+
+type dectestPlusMinusStrengthCase struct {
+	id       string
+	width    string
+	op       string
+	mode     string
+	modeNum  int
+	input    string
+	expected string
+	bid5     uint32
+}
+
+var dectestPlusMinusStrengthCases = []dectestPlusMinusStrengthCase{
+	{id: "d32_plus_signed_zero_half_even", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_plus_signed_zero_floor", width: "decimal32", op: "plus", mode: "floor", modeNum: 1, input: "-0E+3", expected: "-0E+3", bid5: 0x00},
+	{id: "d32_plus_signed_zero_ceiling", width: "decimal32", op: "plus", mode: "ceiling", modeNum: 2, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_plus_signed_zero_down", width: "decimal32", op: "plus", mode: "down", modeNum: 3, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_plus_signed_zero_half_up", width: "decimal32", op: "plus", mode: "half_up", modeNum: 4, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_plus_quantum_positive", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "56267E+1", expected: "5.6267E+5", bid5: 0x00},
+	{id: "d32_plus_quantum_zero", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "56267", expected: "56267", bid5: 0x00},
+	{id: "d32_plus_quantum_negative", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "56267E-2", expected: "562.67", bid5: 0x00},
+	{id: "d32_plus_overprecision", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "12345675E+3", expected: "1.234568E+10", bid5: 0x20},
+	{id: "d32_plus_high_clamp_zero", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "0E+96", expected: "0E+90", bid5: 0x00},
+	{id: "d32_plus_high_clamp_nonzero", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "1E+96", expected: "1.000000E+96", bid5: 0x00},
+	{id: "d32_plus_etiny", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "1E-101", expected: "1E-101", bid5: 0x00},
+	{id: "d32_plus_quiet_nan", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "NaN13", expected: "NaN13", bid5: 0x00},
+	{id: "d32_plus_signaling_nan", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01},
+	{id: "d32_plus_positive_infinity", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "Infinity", expected: "Infinity", bid5: 0x00},
+	{id: "d32_plus_negative_infinity", width: "decimal32", op: "plus", mode: "half_even", modeNum: 0, input: "-Infinity", expected: "-Infinity", bid5: 0x00},
+	{id: "d32_minus_signed_zero_half_even", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_minus_signed_zero_floor", width: "decimal32", op: "minus", mode: "floor", modeNum: 1, input: "0E+3", expected: "-0E+3", bid5: 0x00},
+	{id: "d32_minus_signed_zero_ceiling", width: "decimal32", op: "minus", mode: "ceiling", modeNum: 2, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_minus_signed_zero_down", width: "decimal32", op: "minus", mode: "down", modeNum: 3, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_minus_signed_zero_half_up", width: "decimal32", op: "minus", mode: "half_up", modeNum: 4, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d32_minus_quantum_positive", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "56267E+1", expected: "-5.6267E+5", bid5: 0x00},
+	{id: "d32_minus_quantum_zero", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "56267", expected: "-56267", bid5: 0x00},
+	{id: "d32_minus_quantum_negative", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "56267E-2", expected: "-562.67", bid5: 0x00},
+	{id: "d32_minus_overprecision", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "12345675E+3", expected: "-1.234568E+10", bid5: 0x20},
+	{id: "d32_minus_high_clamp_zero", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "0E+96", expected: "0E+90", bid5: 0x00},
+	{id: "d32_minus_high_clamp_nonzero", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "1E+96", expected: "-1.000000E+96", bid5: 0x00},
+	{id: "d32_minus_etiny", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "1E-101", expected: "-1E-101", bid5: 0x00},
+	{id: "d32_minus_quiet_nan", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "NaN13", expected: "NaN13", bid5: 0x00},
+	{id: "d32_minus_signaling_nan", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01},
+	{id: "d32_minus_positive_infinity", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "Infinity", expected: "-Infinity", bid5: 0x00},
+	{id: "d32_minus_negative_infinity", width: "decimal32", op: "minus", mode: "half_even", modeNum: 0, input: "-Infinity", expected: "Infinity", bid5: 0x00},
+	{id: "d64_plus_signed_zero_half_even", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_plus_signed_zero_floor", width: "decimal64", op: "plus", mode: "floor", modeNum: 1, input: "-0E+3", expected: "-0E+3", bid5: 0x00},
+	{id: "d64_plus_signed_zero_ceiling", width: "decimal64", op: "plus", mode: "ceiling", modeNum: 2, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_plus_signed_zero_down", width: "decimal64", op: "plus", mode: "down", modeNum: 3, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_plus_signed_zero_half_up", width: "decimal64", op: "plus", mode: "half_up", modeNum: 4, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_plus_quantum_positive", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "56267E+1", expected: "5.6267E+5", bid5: 0x00},
+	{id: "d64_plus_quantum_zero", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "56267", expected: "56267", bid5: 0x00},
+	{id: "d64_plus_quantum_negative", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "56267E-2", expected: "562.67", bid5: 0x00},
+	{id: "d64_plus_overprecision", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "12345678901234565E+3", expected: "1.234567890123456E+19", bid5: 0x20},
+	{id: "d64_plus_high_clamp_zero", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "0E+384", expected: "0E+369", bid5: 0x00},
+	{id: "d64_plus_high_clamp_nonzero", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "1E+384", expected: "1.000000000000000E+384", bid5: 0x00},
+	{id: "d64_plus_etiny", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "1E-398", expected: "1E-398", bid5: 0x00},
+	{id: "d64_plus_quiet_nan", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "NaN13", expected: "NaN13", bid5: 0x00},
+	{id: "d64_plus_signaling_nan", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01},
+	{id: "d64_plus_positive_infinity", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "Infinity", expected: "Infinity", bid5: 0x00},
+	{id: "d64_plus_negative_infinity", width: "decimal64", op: "plus", mode: "half_even", modeNum: 0, input: "-Infinity", expected: "-Infinity", bid5: 0x00},
+	{id: "d64_minus_signed_zero_half_even", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_minus_signed_zero_floor", width: "decimal64", op: "minus", mode: "floor", modeNum: 1, input: "0E+3", expected: "-0E+3", bid5: 0x00},
+	{id: "d64_minus_signed_zero_ceiling", width: "decimal64", op: "minus", mode: "ceiling", modeNum: 2, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_minus_signed_zero_down", width: "decimal64", op: "minus", mode: "down", modeNum: 3, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_minus_signed_zero_half_up", width: "decimal64", op: "minus", mode: "half_up", modeNum: 4, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d64_minus_quantum_positive", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "56267E+1", expected: "-5.6267E+5", bid5: 0x00},
+	{id: "d64_minus_quantum_zero", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "56267", expected: "-56267", bid5: 0x00},
+	{id: "d64_minus_quantum_negative", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "56267E-2", expected: "-562.67", bid5: 0x00},
+	{id: "d64_minus_overprecision", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "12345678901234565E+3", expected: "-1.234567890123456E+19", bid5: 0x20},
+	{id: "d64_minus_high_clamp_zero", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "0E+384", expected: "0E+369", bid5: 0x00},
+	{id: "d64_minus_high_clamp_nonzero", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "1E+384", expected: "-1.000000000000000E+384", bid5: 0x00},
+	{id: "d64_minus_etiny", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "1E-398", expected: "-1E-398", bid5: 0x00},
+	{id: "d64_minus_quiet_nan", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "NaN13", expected: "NaN13", bid5: 0x00},
+	{id: "d64_minus_signaling_nan", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01},
+	{id: "d64_minus_positive_infinity", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "Infinity", expected: "-Infinity", bid5: 0x00},
+	{id: "d64_minus_negative_infinity", width: "decimal64", op: "minus", mode: "half_even", modeNum: 0, input: "-Infinity", expected: "Infinity", bid5: 0x00},
+	{id: "d128_plus_signed_zero_half_even", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_plus_signed_zero_floor", width: "decimal128", op: "plus", mode: "floor", modeNum: 1, input: "-0E+3", expected: "-0E+3", bid5: 0x00},
+	{id: "d128_plus_signed_zero_ceiling", width: "decimal128", op: "plus", mode: "ceiling", modeNum: 2, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_plus_signed_zero_down", width: "decimal128", op: "plus", mode: "down", modeNum: 3, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_plus_signed_zero_half_up", width: "decimal128", op: "plus", mode: "half_up", modeNum: 4, input: "-0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_plus_quantum_positive", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "56267E+1", expected: "5.6267E+5", bid5: 0x00},
+	{id: "d128_plus_quantum_zero", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "56267", expected: "56267", bid5: 0x00},
+	{id: "d128_plus_quantum_negative", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "56267E-2", expected: "562.67", bid5: 0x00},
+	{id: "d128_plus_overprecision", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "12345678901234567890123456789012345E+3", expected: "1.234567890123456789012345678901234E+37", bid5: 0x20},
+	{id: "d128_plus_high_clamp_zero", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "0E+6144", expected: "0E+6111", bid5: 0x00},
+	{id: "d128_plus_high_clamp_nonzero", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "1E+6144", expected: "1.000000000000000000000000000000000E+6144", bid5: 0x00},
+	{id: "d128_plus_etiny", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "1E-6176", expected: "1E-6176", bid5: 0x00},
+	{id: "d128_plus_quiet_nan", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "NaN13", expected: "NaN13", bid5: 0x00},
+	{id: "d128_plus_signaling_nan", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01},
+	{id: "d128_plus_positive_infinity", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "Infinity", expected: "Infinity", bid5: 0x00},
+	{id: "d128_plus_negative_infinity", width: "decimal128", op: "plus", mode: "half_even", modeNum: 0, input: "-Infinity", expected: "-Infinity", bid5: 0x00},
+	{id: "d128_minus_signed_zero_half_even", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_minus_signed_zero_floor", width: "decimal128", op: "minus", mode: "floor", modeNum: 1, input: "0E+3", expected: "-0E+3", bid5: 0x00},
+	{id: "d128_minus_signed_zero_ceiling", width: "decimal128", op: "minus", mode: "ceiling", modeNum: 2, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_minus_signed_zero_down", width: "decimal128", op: "minus", mode: "down", modeNum: 3, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_minus_signed_zero_half_up", width: "decimal128", op: "minus", mode: "half_up", modeNum: 4, input: "0E+3", expected: "0E+3", bid5: 0x00},
+	{id: "d128_minus_quantum_positive", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "56267E+1", expected: "-5.6267E+5", bid5: 0x00},
+	{id: "d128_minus_quantum_zero", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "56267", expected: "-56267", bid5: 0x00},
+	{id: "d128_minus_quantum_negative", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "56267E-2", expected: "-562.67", bid5: 0x00},
+	{id: "d128_minus_overprecision", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "12345678901234567890123456789012345E+3", expected: "-1.234567890123456789012345678901234E+37", bid5: 0x20},
+	{id: "d128_minus_high_clamp_zero", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "0E+6144", expected: "0E+6111", bid5: 0x00},
+	{id: "d128_minus_high_clamp_nonzero", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "1E+6144", expected: "-1.000000000000000000000000000000000E+6144", bid5: 0x00},
+	{id: "d128_minus_etiny", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "1E-6176", expected: "-1E-6176", bid5: 0x00},
+	{id: "d128_minus_quiet_nan", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "NaN13", expected: "NaN13", bid5: 0x00},
+	{id: "d128_minus_signaling_nan", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01},
+	{id: "d128_minus_positive_infinity", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "Infinity", expected: "-Infinity", bid5: 0x00},
+	{id: "d128_minus_negative_infinity", width: "decimal128", op: "minus", mode: "half_even", modeNum: 0, input: "-Infinity", expected: "Infinity", bid5: 0x00},
+}
+
+func dectestPlusMinusStrengthCanonicalRow(c dectestPlusMinusStrengthCase) string {
+	return fmt.Sprintf("%s %s mode=%s in=%s out=%s bid5=%08x", c.width, c.op, c.mode, c.input, c.expected, c.bid5)
+}
+
+// dectestPlusMinusStrengthExpectedFlags translates the pinned raw Intel BID
+// five-flag value into this leg's ExceptionFlags encoding, which numbers the
+// same five bits differently.
+func dectestPlusMinusStrengthExpectedFlags(t *testing.T, bid5 uint32) ExceptionFlags {
+	t.Helper()
+	if bid5&^dectestPlusMinusStrengthBID5Mask != 0 {
+		t.Fatalf("pinned flag value %#08x carries a bit outside the BID five-flag surface", bid5)
+	}
+	var flags ExceptionFlags
+	if bid5&0x01 != 0 {
+		flags |= FlagInvalidOperation
+	}
+	if bid5&0x04 != 0 {
+		flags |= FlagDivisionByZero
+	}
+	if bid5&0x08 != 0 {
+		flags |= FlagOverflow
+	}
+	if bid5&0x10 != 0 {
+		flags |= FlagUnderflow
+	}
+	if bid5&0x20 != 0 {
+		flags |= FlagInexact
+	}
+	return flags
+}
+
+func dectestPlusMinusStrengthCheckTableShape(t *testing.T) {
+	t.Helper()
+	if uint64(len(dectestPlusMinusStrengthRows)) != dectestPlusMinusStrengthRowCount {
+		t.Fatalf("pinned row literal count %d diverges from the generated constant %d", len(dectestPlusMinusStrengthRows), dectestPlusMinusStrengthRowCount)
+	}
+	if uint64(len(dectestPlusMinusStrengthCases)) != dectestPlusMinusStrengthRowCount {
+		t.Fatalf("executable case count %d diverges from the generated constant %d", len(dectestPlusMinusStrengthCases), dectestPlusMinusStrengthRowCount)
+	}
+}
+
+// dectestPlusMinusStrengthCheckPin validates one row's own pins before it is
+// executed: its canonical rendering against the pinned literal, and the BID
+// rounding mode the runners resolve from its token at run time.
+func dectestPlusMinusStrengthCheckPin(t *testing.T, index int, c dectestPlusMinusStrengthCase) {
+	t.Helper()
+	if got := dectestPlusMinusStrengthCanonicalRow(c); got != dectestPlusMinusStrengthRows[index] {
+		t.Fatalf("case renders %q, pinned row %q", got, dectestPlusMinusStrengthRows[index])
+	}
+	mode, ok := decTestBIDRoundingMode(c.mode)
+	if !ok {
+		t.Fatalf("decTestBIDRoundingMode(%q) rejected the pinned rounding token", c.mode)
+	}
+	if mode != c.modeNum {
+		t.Fatalf("decTestBIDRoundingMode(%q) = %d, pinned %d", c.mode, mode, c.modeNum)
+	}
+}
+
+func dectestPlusMinusStrengthDecTestCase(c dectestPlusMinusStrengthCase) decTestCase {
+	return decTestCase{
+		ID:           c.id,
+		Operation:    c.op,
+		Operands:     []string{c.input},
+		RoundingMode: c.mode,
+	}
+}
+
+// dectestPlusMinusStrengthCheckOutcome is the single assertion semantics both
+// adapter legs use: value, exact quantum, and the BID five-flag surface.
+func dectestPlusMinusStrengthCheckOutcome(t *testing.T, c dectestPlusMinusStrengthCase, got string, gotFlags ExceptionFlags) {
+	t.Helper()
+	want := dectestPlusMinusStrengthExpectedFlags(t, c.bid5)
+	if !compareDecimalResults(c.expected, got) {
+		t.Fatalf("value mismatch: expected %q, adapter produced %q", c.expected, got)
+	}
+	if !dectestGoportQuantumEqual(c.expected, got) {
+		t.Fatalf("quantum mismatch: expected %q, adapter produced %q (same value, different cohort member)", c.expected, got)
+	}
+	if gotFlags&dectestGoportBIDFlagMask != want {
+		t.Fatalf("flag mismatch: expected %s, adapter raised %s", want.String(), (gotFlags & dectestGoportBIDFlagMask).String())
+	}
+}
+
+func TestGeneratedDectestPlusMinusQuantumStrengthGoPort(t *testing.T) {
+	dectestPlusMinusStrengthCheckTableShape(t)
+	for i, c := range dectestPlusMinusStrengthCases {
+		t.Run(c.id, func(t *testing.T) {
+			dectestPlusMinusStrengthCheckPin(t, i, c)
+			got, gotFlags, err := runDectestGoportCase(dectestPlusMinusStrengthDecTestCase(c), c.width)
+			if err != nil {
+				t.Fatalf("runDectestGoportCase(%s %s %s): %v", c.width, c.op, c.input, err)
+			}
+			dectestPlusMinusStrengthCheckOutcome(t, c, got, gotFlags)
+		})
+	}
+}
+
+// TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter re-executes the same
+// rows through executeDecTestUnaryOperation, the second adapter the decTest
+// domain dispatches plus/minus to. Its regular runner (runDecTestCaseV2) is
+// contracted to compare value and the BID five-flag surface only, so a
+// quantum regression confined to this adapter is invisible there and is caught
+// only here.
+func TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter(t *testing.T) {
+	dectestPlusMinusStrengthCheckTableShape(t)
+	for i, c := range dectestPlusMinusStrengthCases {
+		t.Run(c.id, func(t *testing.T) {
+			dectestPlusMinusStrengthCheckPin(t, i, c)
+			exec, err := executeDecTestUnaryOperation(dectestPlusMinusStrengthDecTestCase(c), c.width)
+			if err != nil {
+				t.Fatalf("executeDecTestUnaryOperation(%s %s %s): %v", c.width, c.op, c.input, err)
+			}
+			dectestPlusMinusStrengthCheckOutcome(t, c, exec.Result, exec.Flags)
+		})
+	}
 }

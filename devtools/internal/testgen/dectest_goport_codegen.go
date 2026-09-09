@@ -10,7 +10,8 @@ import (
 )
 
 // The goport decTest outputs run the fixed-width Decimal32/64/128 oracle-dispatch
-// operation set directly against the Go BID mechanical port (no cgo), so the
+// operation set -- every decTest operation with a Go mechanical-port routing
+// target -- directly against the Go BID mechanical port (no cgo), so the
 // portable CI legs cross-check the product port against the IBM decTest expected
 // values as an independent second data source. Phase 2 asserts, per executed
 // case, the exact value, the exact quantum (cohort member), and IEEE
@@ -61,9 +62,13 @@ func GenerateDectestGoportOutputs(repoRoot string, spec SharedSpec) (map[string]
 	if err != nil {
 		return nil, fmt.Errorf("read generated dectest goport dispatch template %q: %w", dectestGoportDispatchTemplatePath, err)
 	}
+	casesSource, err := dectestGoportCasesSource(coverage)
+	if err != nil {
+		return nil, err
+	}
 	files := map[string][]byte{
 		dectestGoportDispatchPath: []byte(dectestGeneratedSourceFromTemplate(dispatchData)),
-		dectestGoportCasesPath:    []byte(dectestGoportCasesSource(coverage)),
+		dectestGoportCasesPath:    []byte(casesSource),
 	}
 	return formatGeneratedGoOutputs(files)
 }
@@ -141,10 +146,14 @@ func dectestGoportSuiteCoverageLiteral(coverage []dectestGoportSuiteCoverage) st
 	return b.String()
 }
 
-func dectestGoportCasesSource(coverage []dectestGoportSuiteCoverage) string {
+func dectestGoportCasesSource(coverage []dectestGoportSuiteCoverage) (string, error) {
+	strength, err := dectestPlusMinusStrengthGoSource()
+	if err != nil {
+		return "", err
+	}
 	return strings.NewReplacer(
 		"@@GOPORT_DECTEST_SUITE_COVERAGE@@", dectestGoportSuiteCoverageLiteral(coverage),
-	).Replace(dectestGoportCasesTemplate)
+	).Replace(dectestGoportCasesTemplate) + strength, nil
 }
 
 var dectestGoportCasesTemplate = genmarker.Line("testgen") + `
@@ -152,6 +161,7 @@ var dectestGoportCasesTemplate = genmarker.Line("testgen") + `
 package bid754
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -181,8 +191,8 @@ var expectedGoportDectestSuiteCoverage = []goportDectestSuiteCoverage{
 
 // TestGeneratedDectestSuitesGoPort cross-checks the Go BID mechanical port against the
 // IBM decTest expected values for the fixed-width Decimal32/64/128 oracle-dispatch
-// operation set (add/subtract/multiply/divide/quantize/compare/comparesig/tosci/toeng/
-// tointegral/tointegralx). It is portable (no cgo, no build tags), so it runs in every
+// operation set -- every decTest operation with a Go mechanical-port routing target
+// (dectestGoportOracleOperation). It is portable (no cgo, no build tags), so it runs in every
 // non-short "go test ./..." of bid754-go and under make test-portable-dectest. This is
 // an independent second-source cross-validation of operations already anchored by the
 // Intel readtest and C FFI bit-compare domains; it does not replace them. Phase 2
@@ -271,7 +281,7 @@ func runGoportDectestSuite(t *testing.T, suite testspec.GeneratedDectestSuite) i
 			t.Fatalf("parseDecTestFile(%q): %v", testFile, err)
 		}
 		for _, tc := range cases {
-			if reason, ok := dectestGoportSkipReason(suite.IgnoredOperations, tc); ok {
+			if reason, ok := dectestGoportSkipReason(suite.IgnoredOperations, tc, suite.TestType); ok {
 				skipReasons[reason]++
 				continue
 			}

@@ -26,6 +26,12 @@ import (
 // the operand-parse flags and the operation flags, matching decNumber's
 // decTest semantics where Conditions cover the whole case.
 //
+// The oracle-dispatch set is dectestGoportOracleOperation: every decTest
+// operation the Go mechanical port has a routing target for. Operations with no
+// port counterpart stay counted as adapter_operation_out_of_leg, and the case
+// classes where the GDA operation and its pinned Intel BID port route genuinely
+// diverge are counted into named skip buckets by dectestGoportSkipReason.
+//
 // Operands are parsed through the port from_string at the case rounding mode
 // (parseDecimal{32,64,128}BIDPortMode), matching decNumber's decimal*FromString,
 // which rounds the operand to the format precision at the context rounding and maps
@@ -50,7 +56,7 @@ func isGoportDectestRunnerSuite(testType string) bool {
 // either an executed oracle-op case or one mechanical skip bucket, so the leg stays a
 // closed accounting (executed = cases - sum(skip_reasons)). It must stay in lockstep
 // with the generator function so the live recount matches the pinned verification.
-func dectestGoportSkipReason(ignoredOperations []string, tc decTestCase) (string, bool) {
+func dectestGoportSkipReason(ignoredOperations []string, tc decTestCase, testType string) (string, bool) {
 	op := normalizeDecTestOperation(tc.Operation)
 	if shouldSkipDectestIgnoredOperation(ignoredOperations, tc.Operation) {
 		return "ignored_operation_" + op, true
@@ -70,29 +76,288 @@ func dectestGoportSkipReason(ignoredOperations []string, tc decTestCase) (string
 	if dectestGoportNaNPrecedenceOp(op) && dectestGoportNaNPayloadPrecedence(tc) {
 		return "binary_op_nan_payload_precedence", true
 	}
+	if op == "fma" && dectestGoportFMANaNPayloadPrecedenceCase(tc, testType) {
+		return "fma_nan_payload_precedence", true
+	}
 	if (op == "compare" || op == "comparesig") && dectestGoportCompareHasNaNOperand(tc) {
 		return "compare_nan_operand", true
+	}
+	if reason, ok := dectestGoportRemainderFamilyReason(tc, op); ok {
+		return reason, true
+	}
+	if dectestGoportMinMaxEqualOperandCohortCase(tc) {
+		return "minmax_equal_operand_cohort_unspecified", true
+	}
+	if dectestGoportAbsNaNOperandCase(tc) {
+		return "abs_nan_operand_gda_propagation", true
+	}
+	if reason, ok := dectestGoportScaleBReason(tc); ok {
+		return reason, true
 	}
 	return "", false
 }
 
+// dectestGoportOracleOperation is this leg's oracle-dispatch set: every decTest
+// operation the Go mechanical port has a routing target for. Anything outside it
+// is counted as adapter_operation_out_of_leg.
 func dectestGoportOracleOperation(op string) bool {
 	switch op {
 	case "add", "subtract", "multiply", "divide", "quantize",
-		"compare", "comparesig", "tosci", "toeng", "tointegral", "tointegralx":
+		"compare", "comparesig", "tosci", "toeng", "tointegral", "tointegralx",
+		"abs", "plus", "minus", "copy", "copyabs", "copynegate", "copysign",
+		"class", "samequantum", "comparetotal", "comparetotmag",
+		"min", "max", "minmag", "maxmag", "logb", "scaleb",
+		"nextplus", "nextminus", "nexttoward", "fma", "remainder", "remaindernear":
 		return true
 	default:
 		return false
 	}
 }
 
+// dectestGoportNaNPrecedenceOp lists the binary oracle ops whose NaN identity
+// selection can diverge between GDA and the pinned Intel BID port. scaleb is
+// excluded: its second operand is not a decimal operand on the port route, so
+// its NaN shapes are classified by dectestGoportScaleBReason.
 func dectestGoportNaNPrecedenceOp(op string) bool {
 	switch op {
-	case "add", "subtract", "multiply", "divide", "quantize":
+	case "add", "subtract", "multiply", "divide", "quantize",
+		"min", "max", "minmag", "maxmag",
+		"remainder", "remaindernear", "nexttoward":
 		return true
 	default:
 		return false
 	}
+}
+
+// dectestGoportRemainderFamilyReason reuses the native leg's
+// division-impossible classification for this leg's remainder/remainderNear
+// routes: GDA raises Division_impossible and returns NaN when the integer
+// quotient would exceed the context precision, a context rule Intel BID's
+// fmod/rem do not implement. The native leg's sibling NaN-identity bucket is not
+// consulted here -- both ops are in dectestGoportNaNPrecedenceOp, so such a case
+// is already counted into binary_op_nan_payload_precedence above.
+//
+// Boundary note -- this is the ONE goport skip classifier that keys on the
+// case's expected Conditions and expected result rather than on operand shapes
+// alone, and that is deliberate. Division_impossible is not an observation of
+// what the port produced; it is the GDA oracle declaring WHICH RESULT CHANNEL
+// the case exercises. Intel BID's fmod/rem have no such channel, so a case on
+// it cannot be a port failure this skip could swallow. Deriving the same region
+// from operands alone would mean reimplementing the GDA integer-quotient
+// digit-count rule in all three mirrors -- three drifting copies of real
+// arithmetic replacing a one-line read of the oracle's own channel marker.
+// Every OTHER goport skip classifier is operand-shape-only on purpose; do not
+// use this one as precedent.
+func dectestGoportRemainderFamilyReason(tc decTestCase, op string) (string, bool) {
+	if op != "remainder" && op != "remaindernear" {
+		return "", false
+	}
+	if !hasOnlyFiniteDecTestOperands(tc, 2) {
+		return "", false
+	}
+	if hasOnlyDecTestCondition(tc.Flags, "divisionimpossible") && isDefaultQuietDecTestNaN(tc.Result) {
+		return op + "_gda_division_impossible_context_semantics", true
+	}
+	return "", false
+}
+
+// dectestGoportMinMaxEqualOperandCohortCase reports a min/max/minmag/maxmag case
+// whose two finite operands are NUMERICALLY EQUAL (zeros of either sign equal)
+// yet are different cohort members. IEEE 754-2019 5.3.1 leaves the returned
+// operand unspecified there ("otherwise it is either x or y"), so the pinned
+// Intel BID selection and the GDA rule decTest pins are both conforming and may
+// disagree. Keyed only on operand shape, never on which operand either library
+// returns.
+//
+// The *mag forms use the SAME numeric-equality tie test, not magnitude
+// equality: minNumMag/maxNumMag fall through to minNum/maxNum on the SIGNED
+// operands when the magnitudes tie, and that fallthrough is fully determined
+// whenever the signed operands differ (minmag(-1, 1) = minNum(-1, 1) = -1,
+// a comparable case in the official minmag/maxmag decTest files). Only equal
+// signed operands land in minNum/maxNum's own unspecified tie region.
+func dectestGoportMinMaxEqualOperandCohortCase(tc decTestCase) bool {
+	op := normalizeDecTestOperation(tc.Operation)
+	if !isMinMaxDecTestOperation(op) || len(tc.Operands) != 2 {
+		return false
+	}
+	left, leftOK := dectestGoportQuantumParse(decTestOperandString(tc.Operands[0]))
+	right, rightOK := dectestGoportQuantumParse(decTestOperandString(tc.Operands[1]))
+	if !leftOK || !rightOK {
+		return false
+	}
+	if !dectestGoportQuantumValueEqual(left, right) {
+		return false
+	}
+	return left != right
+}
+
+// dectestGoportNormalizedQuantum strips the trailing zeros of a cohort member so
+// two members of the same cohort compare equal by value.
+func dectestGoportNormalizedQuantum(q dectestGoportQuantum) dectestGoportQuantum {
+	if q.coeff == "0" {
+		return dectestGoportQuantum{sign: q.sign, coeff: "0"}
+	}
+	for len(q.coeff) > 1 && q.coeff[len(q.coeff)-1] == '0' {
+		q.coeff = q.coeff[:len(q.coeff)-1]
+		q.exponent++
+	}
+	return q
+}
+
+func dectestGoportQuantumValueEqual(left, right dectestGoportQuantum) bool {
+	if left.coeff == "0" || right.coeff == "0" {
+		return left.coeff == "0" && right.coeff == "0"
+	}
+	return dectestGoportNormalizedQuantum(left) == dectestGoportNormalizedQuantum(right)
+}
+
+// dectestGoportFMANaNPayloadPrecedenceCase is this leg's OPERAND-ONLY fma
+// NaN-identity divergence test. GDA fma propagation selects the first signaling
+// NaN in operand order x, y, z and otherwise the first quiet NaN; the pinned
+// Intel BID port propagates the first NaN it unpacks in y, z, x order. Both
+// quietize the selected NaN, so the results differ exactly when the two selected
+// operands carry different quietized identities (sign plus payload) -- decidable
+// from the operands alone.
+//
+// It deliberately does NOT consult tc.Result or tc.Flags. The native leg's
+// isUnsupportedFMANaNPayloadPrecedenceCase does and stays untouched: this leg's
+// rule is that a skip class must be decidable from the case INPUT so it can
+// never absorb a wrong port answer. testType is consulted only for the operand
+// payload width.
+func dectestGoportFMANaNPayloadPrecedenceCase(tc decTestCase, testType string) bool {
+	if len(tc.Operands) != 3 {
+		return false
+	}
+	var infos [3]decTestNaNOperand
+	for i := range tc.Operands {
+		infos[i] = parseDecTestNaNOperand(tc.Operands[i])
+		if infos[i].isNaN {
+			if !decTestNaNPayloadFitsType(infos[i], testType) {
+				return false
+			}
+			continue
+		}
+		if !isFiniteDecTestValue(tc.Operands[i]) && !isDectestGoportInfinity(tc.Operands[i]) {
+			return false
+		}
+	}
+	gda := -1
+	for i := range infos {
+		if infos[i].isNaN && infos[i].signaling {
+			gda = i
+			break
+		}
+	}
+	if gda < 0 {
+		for i := range infos {
+			if infos[i].isNaN {
+				gda = i
+				break
+			}
+		}
+	}
+	if gda < 0 {
+		return false
+	}
+	intel := -1
+	for _, i := range [3]int{1, 2, 0} {
+		if infos[i].isNaN {
+			intel = i
+			break
+		}
+	}
+	if intel < 0 {
+		return false
+	}
+	return infos[gda].sign != infos[intel].sign || infos[gda].payload != infos[intel].payload
+}
+
+func isDectestGoportInfinity(input string) bool {
+	trimmed := strings.TrimSpace(decTestOperandString(input))
+	if trimmed == "" {
+		return false
+	}
+	switch trimmed[0] {
+	case '+', '-':
+		trimmed = trimmed[1:]
+	}
+	lower := strings.ToLower(trimmed)
+	return lower == "inf" || lower == "infinity"
+}
+
+// dectestGoportAbsNaNOperandCase reports an abs case whose operand is a negative
+// or signaling NaN. decTest's abs is the GDA arithmetic abs: it propagates the
+// operand NaN under the general rules, keeping the NaN's own sign, and quietizes
+// a signaling NaN while signaling Invalid_operation. The port routes abs through
+// Intel bid*_abs, the IEEE 754-2019 5.5.1 quiet sign operation, which clears the
+// sign bit of every operand including NaNs and leaves a signaling NaN signaling
+// without raising a flag. Positive quiet NaN operands agree and stay executed.
+func dectestGoportAbsNaNOperandCase(tc decTestCase) bool {
+	if normalizeDecTestOperation(tc.Operation) != "abs" || len(tc.Operands) != 1 {
+		return false
+	}
+	info := parseDecTestNaNOperand(tc.Operands[0])
+	if !info.isNaN {
+		return false
+	}
+	return info.signaling || info.sign == "-"
+}
+
+// dectestGoportScaleBReason classifies the two GDA-only surfaces of scaleb,
+// whose port route is Intel bid*_scalbln with a machine-integer exponent
+// parameter:
+//   - scaleb_non_integer_exponent_operand: the decTest second operand is not a
+//     zero-exponent integer literal (a fractional value, an exponent-notation
+//     literal, an infinity, or a NaN). GDA answers these from its own operand
+//     grammar while the port parameter cannot carry that operand at all, so the
+//     channel is outside the port operation rather than a value it gets wrong.
+//   - scaleb_exponent_out_of_gda_range: |n| exceeds the GDA context limit
+//     2 * (maxExponent + precision), where GDA returns NaN Invalid_operation
+//     while Intel bid*_scalbln applies no context range rule. A NaN first
+//     operand short-circuits in both libraries and stays executed.
+func dectestGoportScaleBReason(tc decTestCase) (string, bool) {
+	if normalizeDecTestOperation(tc.Operation) != "scaleb" || len(tc.Operands) != 2 {
+		return "", false
+	}
+	exponent, ok := dectestGoportScaleBExponentLiteral(tc.Operands[1])
+	if !ok {
+		return "scaleb_non_integer_exponent_operand", true
+	}
+	if parseDecTestNaNOperand(tc.Operands[0]).isNaN {
+		return "", false
+	}
+	limit := 2 * (tc.MaxExponent + tc.Precision)
+	if exponent > limit || exponent < -limit {
+		return "scaleb_exponent_out_of_gda_range", true
+	}
+	return "", false
+}
+
+// dectestGoportScaleBExponentLiteral accepts exactly the operand shape the port's
+// integer exponent parameter can carry: an optionally signed run of decimal
+// digits with no fraction part and no exponent part, fitting an int.
+func dectestGoportScaleBExponentLiteral(input string) (int, bool) {
+	trimmed := strings.TrimSpace(decTestOperandString(input))
+	if trimmed == "" {
+		return 0, false
+	}
+	digits := trimmed
+	if digits[0] == '+' || digits[0] == '-' {
+		digits = digits[1:]
+	}
+	if digits == "" {
+		return 0, false
+	}
+	for _, r := range digits {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	value, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
 }
 
 // dectestGoportNaNPayloadPrecedence reports binary-op cases where a quiet-NaN left
@@ -307,7 +572,7 @@ func runDectestGoportCase(tc decTestCase, testType string) (string, ExceptionFla
 	if !ok {
 		return "", 0, fmt.Errorf("%w: %s rounding %q", errUnsupportedDecTestOperation, tc.Operation, tc.RoundingMode)
 	}
-	switch normalizeDecTestOperation(tc.Operation) {
+	switch op := normalizeDecTestOperation(tc.Operation); op {
 	case "add", "subtract", "multiply", "divide", "quantize":
 		return executeDectestGoportArithmetic(tc, testType, rndMode)
 	case "compare", "comparesig":
@@ -316,6 +581,626 @@ func runDectestGoportCase(tc decTestCase, testType string) (string, ExceptionFla
 		return executeDectestGoportToIntegral(tc, testType, rndMode)
 	case "tosci", "toeng":
 		return executeDectestGoportString(tc, testType, rndMode)
+	case "abs", "copy", "copyabs", "copynegate", "plus", "minus",
+		"nextplus", "nextminus", "logb":
+		return executeDectestGoportUnary(op, tc, testType, rndMode)
+	case "class":
+		return executeDectestGoportClass(tc, testType, rndMode)
+	case "samequantum":
+		return executeDectestGoportSameQuantum(tc, testType, rndMode)
+	case "comparetotal", "comparetotmag":
+		return executeDectestGoportCompareTotal(op, tc, testType, rndMode)
+	case "copysign":
+		return executeDectestGoportCopySign(tc, testType, rndMode)
+	case "min", "max", "minmag", "maxmag":
+		return executeDectestGoportMinMax(op, tc, testType, rndMode)
+	case "remainder", "remaindernear":
+		return executeDectestGoportRemainderFamily(op, tc, testType, rndMode)
+	case "scaleb":
+		return executeDectestGoportScaleB(tc, testType, rndMode)
+	case "nexttoward":
+		return executeDectestGoportNextToward(tc, testType, rndMode)
+	case "fma":
+		return executeDectestGoportFMA(tc, testType, rndMode)
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+// executeDectestGoportUnary routes the single-operand value ops through the port.
+//
+//   - abs / copyabs route to the port bid*_abs sign-clear, copy to bid*_copy, and
+//     copynegate to bid*_negate: the quiet IEEE 754-2019 5.5.1 sign operations,
+//     which raise no flag, so the case flags are exactly the operand-parse flags.
+//   - plus / minus follow the GDA definition and route through the port's
+//     add / subtract against a port-parsed zero carrying the operand's own
+//     quantum (dectestGoportZeroAddendLiteral) at the case rounding mode.
+//   - nextplus / nextminus route to the port bid*_nextup / bid*_nextdown.
+//   - logb routes to the port bid*_logb.
+func executeDectestGoportUnary(op string, tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 1 {
+		return "", 0, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+	}
+	operand := decTestOperandString(tc.Operands[0])
+	switch testType {
+	case "decimal32":
+		a, parseFlags := parseDecimal32BIDPortMode(operand, rndMode)
+		result, opFlags, err := applyDectestGoportUnary32(op, a, rndMode)
+		if err != nil {
+			return "", 0, err
+		}
+		return result.String(), parseFlags | opFlags, nil
+	case "decimal64":
+		a, parseFlags := parseDecimal64BIDPortMode(operand, rndMode)
+		result, opFlags, err := applyDectestGoportUnary64(op, a, rndMode)
+		if err != nil {
+			return "", 0, err
+		}
+		return result.String(), parseFlags | opFlags, nil
+	case "decimal128":
+		a, parseFlags := parseDecimal128BIDPortMode(operand, rndMode)
+		result, opFlags, err := applyDectestGoportUnary128(op, a, rndMode)
+		if err != nil {
+			return "", 0, err
+		}
+		return result.String(), parseFlags | opFlags, nil
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func applyDectestGoportUnary32(op string, a Decimal32BID, rndMode int) (Decimal32BID, ExceptionFlags, error) {
+	switch op {
+	case "abs", "copyabs":
+		return decimal32BIDAbsPort(a), 0, nil
+	case "copy":
+		return decimal32BIDCopyPort(a), 0, nil
+	case "copynegate":
+		return decimal32BIDNegatePort(a), 0, nil
+	case "plus", "minus":
+		zero, err := dectestGoportZeroAddend32(a, rndMode)
+		if err != nil {
+			return 0, 0, err
+		}
+		if op == "plus" {
+			result, flags := decimal32BIDAddPortModeFlags(zero, a, rndMode)
+			return result, flags, nil
+		}
+		result, flags := decimal32BIDSubPortModeFlags(zero, a, rndMode)
+		return result, flags, nil
+	case "nextplus":
+		result, flags := decimal32BIDNextPlusPort(a)
+		return result, flags, nil
+	case "nextminus":
+		result, flags := decimal32BIDNextMinusPort(a)
+		return result, flags, nil
+	case "logb":
+		result, flags := decimal32BIDLogBPort(a)
+		return result, flags, nil
+	default:
+		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+func applyDectestGoportUnary64(op string, a Decimal64BID, rndMode int) (Decimal64BID, ExceptionFlags, error) {
+	switch op {
+	case "abs", "copyabs":
+		return decimal64BIDAbsPort(a), 0, nil
+	case "copy":
+		return decimal64BIDCopyPort(a), 0, nil
+	case "copynegate":
+		return decimal64BIDNegatePort(a), 0, nil
+	case "plus", "minus":
+		zero, err := dectestGoportZeroAddend64(a, rndMode)
+		if err != nil {
+			return 0, 0, err
+		}
+		if op == "plus" {
+			result, flags := decimal64BIDAddPortModeFlags(zero, a, rndMode)
+			return result, flags, nil
+		}
+		result, flags := decimal64BIDSubPortModeFlags(zero, a, rndMode)
+		return result, flags, nil
+	case "nextplus":
+		result, flags := decimal64BIDNextPlusPort(a)
+		return result, flags, nil
+	case "nextminus":
+		result, flags := decimal64BIDNextMinusPort(a)
+		return result, flags, nil
+	case "logb":
+		result, flags := decimal64BIDLogBPort(a)
+		return result, flags, nil
+	default:
+		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+func applyDectestGoportUnary128(op string, a Decimal128BID, rndMode int) (Decimal128BID, ExceptionFlags, error) {
+	switch op {
+	case "abs", "copyabs":
+		return decimal128BIDAbsPort(a), 0, nil
+	case "copy":
+		return decimal128BIDCopyPort(a), 0, nil
+	case "copynegate":
+		return decimal128BIDNegatePort(a), 0, nil
+	case "plus", "minus":
+		zero, err := dectestGoportZeroAddend128(a, rndMode)
+		if err != nil {
+			return Decimal128BID{}, 0, err
+		}
+		if op == "plus" {
+			result, flags := decimal128BIDAddPortModeFlags(zero, a, rndMode)
+			return result, flags, nil
+		}
+		result, flags := decimal128BIDSubPortModeFlags(zero, a, rndMode)
+		return result, flags, nil
+	case "nextplus":
+		result, flags := decimal128BIDNextPlusPort(a)
+		return result, flags, nil
+	case "nextminus":
+		result, flags := decimal128BIDNextMinusPort(a)
+		return result, flags, nil
+	case "logb":
+		result, flags := decimal128BIDLogBPort(a)
+		return result, flags, nil
+	default:
+		return Decimal128BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+// GDA's plus/minus add or subtract a zero carrying the PARSED operand's own
+// exponent (decNumberPlus/decNumberMinus set dzero.exponent = rhs->exponent),
+// and IEEE's preferred exponent for an exact sum is min(Q(x), Q(y)), so the
+// addend's quantum must come from bid*_quantexp of the fixed-width operand the
+// port parsed -- not the case's source exponent, raw zero bits, or a fixed "0".
+const dectestGoportNonFiniteZeroLiteral = "0"
+
+func dectestGoportZeroAddendLiteral(quantum int32) string {
+	return fmt.Sprintf("0E%+d", quantum)
+}
+
+// dectestGoportZeroAddendCheck fails the case closed when the synthesized addend
+// is not the exact cohort member plus/minus is defined over. Its own parse
+// status never joins the case status: the case accumulates the original
+// operand-parse flags and the add/subtract flags only.
+func dectestGoportZeroAddendCheck(literal string, parseFlags ExceptionFlags, positiveZero, quantumMatches bool) error {
+	if parseFlags != 0 {
+		return fmt.Errorf("plus/minus zero addend %q raised parse flags %s", literal, parseFlags.String())
+	}
+	if !positiveZero {
+		return fmt.Errorf("plus/minus zero addend %q did not parse to a positive zero", literal)
+	}
+	if !quantumMatches {
+		return fmt.Errorf("plus/minus zero addend %q does not share the operand quantum", literal)
+	}
+	return nil
+}
+
+func dectestGoportZeroAddend32(a Decimal32BID, rndMode int) (Decimal32BID, error) {
+	finite := decimal32BIDIsFinitePort(a)
+	literal := dectestGoportNonFiniteZeroLiteral
+	if finite {
+		quantum, quantexpFlags := decimal32BIDQuantexpPort(a)
+		if quantexpFlags != 0 {
+			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+		}
+		literal = dectestGoportZeroAddendLiteral(quantum)
+	}
+	zero, parseFlags := parseDecimal32BIDPortMode(literal, rndMode)
+	if err := dectestGoportZeroAddendCheck(literal, parseFlags,
+		decimal32BIDIsZeroPort(zero) && !decimal32BIDIsSignMinusPort(zero),
+		!finite || decimal32BIDSameQuantumPort(zero, a)); err != nil {
+		return 0, err
+	}
+	return zero, nil
+}
+
+func dectestGoportZeroAddend64(a Decimal64BID, rndMode int) (Decimal64BID, error) {
+	finite := decimal64BIDIsFinitePort(a)
+	literal := dectestGoportNonFiniteZeroLiteral
+	if finite {
+		quantum, quantexpFlags := decimal64BIDQuantexpPort(a)
+		if quantexpFlags != 0 {
+			return 0, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+		}
+		literal = dectestGoportZeroAddendLiteral(quantum)
+	}
+	zero, parseFlags := parseDecimal64BIDPortMode(literal, rndMode)
+	if err := dectestGoportZeroAddendCheck(literal, parseFlags,
+		decimal64BIDIsZeroPort(zero) && !decimal64BIDIsSignMinusPort(zero),
+		!finite || decimal64BIDSameQuantumPort(zero, a)); err != nil {
+		return 0, err
+	}
+	return zero, nil
+}
+
+func dectestGoportZeroAddend128(a Decimal128BID, rndMode int) (Decimal128BID, error) {
+	finite := decimal128BIDIsFinitePort(a)
+	literal := dectestGoportNonFiniteZeroLiteral
+	if finite {
+		quantum, quantexpFlags := decimal128BIDQuantexpPort(a)
+		if quantexpFlags != 0 {
+			return Decimal128BID{}, fmt.Errorf("plus/minus quantexp raised %s on a finite operand", quantexpFlags.String())
+		}
+		literal = dectestGoportZeroAddendLiteral(quantum)
+	}
+	zero, parseFlags := parseDecimal128BIDPortMode(literal, rndMode)
+	if err := dectestGoportZeroAddendCheck(literal, parseFlags,
+		decimal128BIDIsZeroPort(zero) && !decimal128BIDIsSignMinusPort(zero),
+		!finite || decimal128BIDSameQuantumPort(zero, a)); err != nil {
+		return Decimal128BID{}, err
+	}
+	return zero, nil
+}
+
+// executeDectestGoportClass routes class through the port bid*_class. The class
+// token is compared as a token, so no quantum applies; the case flags are the
+// operand-parse flags (bid*_class itself raises none).
+func executeDectestGoportClass(tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 1 {
+		return "", 0, fmt.Errorf("%s requires 1 operand, got %d", tc.Operation, len(tc.Operands))
+	}
+	operand := decTestOperandString(tc.Operands[0])
+	switch testType {
+	case "decimal32":
+		d, parseFlags := parseDecimal32BIDPortMode(operand, rndMode)
+		return string(decimal32BIDClassPort(d)), parseFlags, nil
+	case "decimal64":
+		d, parseFlags := parseDecimal64BIDPortMode(operand, rndMode)
+		return string(decimal64BIDClassPort(d)), parseFlags, nil
+	case "decimal128":
+		d, parseFlags := parseDecimal128BIDPortMode(operand, rndMode)
+		return string(decimal128BIDClassPort(d)), parseFlags, nil
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+// executeDectestGoportSameQuantum routes samequantum through the port
+// bid*_same_quantum and renders the decTest 1/0 token.
+func executeDectestGoportSameQuantum(tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 2 {
+		return "", 0, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	first := decTestOperandString(tc.Operands[0])
+	second := decTestOperandString(tc.Operands[1])
+	var same bool
+	var parseFlags ExceptionFlags
+	switch testType {
+	case "decimal32":
+		a, aFlags := parseDecimal32BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal32BIDPortMode(second, rndMode)
+		same, parseFlags = decimal32BIDSameQuantumPort(a, b), aFlags|bFlags
+	case "decimal64":
+		a, aFlags := parseDecimal64BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal64BIDPortMode(second, rndMode)
+		same, parseFlags = decimal64BIDSameQuantumPort(a, b), aFlags|bFlags
+	case "decimal128":
+		a, aFlags := parseDecimal128BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal128BIDPortMode(second, rndMode)
+		same, parseFlags = decimal128BIDSameQuantumPort(a, b), aFlags|bFlags
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+	if same {
+		return "1", parseFlags, nil
+	}
+	return "0", parseFlags, nil
+}
+
+// executeDectestGoportCompareTotal routes comparetotal/comparetotmag through the
+// port total-order predicates and renders the decTest -1/0/1 token.
+func executeDectestGoportCompareTotal(op string, tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 2 {
+		return "", 0, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	magnitude := op == "comparetotmag"
+	first := decTestOperandString(tc.Operands[0])
+	second := decTestOperandString(tc.Operands[1])
+	var ordering int
+	var parseFlags ExceptionFlags
+	switch testType {
+	case "decimal32":
+		a, aFlags := parseDecimal32BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal32BIDPortMode(second, rndMode)
+		parseFlags = aFlags | bFlags
+		if magnitude {
+			ordering = decimal32BIDCompareTotalMagPort(a, b)
+		} else {
+			ordering = decimal32BIDCompareTotalPort(a, b)
+		}
+	case "decimal64":
+		a, aFlags := parseDecimal64BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal64BIDPortMode(second, rndMode)
+		parseFlags = aFlags | bFlags
+		if magnitude {
+			ordering = decimal64BIDCompareTotalMagPort(a, b)
+		} else {
+			ordering = decimal64BIDCompareTotalPort(a, b)
+		}
+	case "decimal128":
+		a, aFlags := parseDecimal128BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal128BIDPortMode(second, rndMode)
+		parseFlags = aFlags | bFlags
+		if magnitude {
+			ordering = decimal128BIDCompareTotalMagPort(a, b)
+		} else {
+			ordering = decimal128BIDCompareTotalPort(a, b)
+		}
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+	return strconv.Itoa(ordering), parseFlags, nil
+}
+
+// executeDectestGoportCopySign routes copysign through the port bid*_copy_sign,
+// a quiet sign operation that raises no flag.
+func executeDectestGoportCopySign(tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 2 {
+		return "", 0, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	first := decTestOperandString(tc.Operands[0])
+	second := decTestOperandString(tc.Operands[1])
+	switch testType {
+	case "decimal32":
+		a, aFlags := parseDecimal32BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal32BIDPortMode(second, rndMode)
+		return decimal32BIDCopySignPort(a, b).String(), aFlags | bFlags, nil
+	case "decimal64":
+		a, aFlags := parseDecimal64BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal64BIDPortMode(second, rndMode)
+		return decimal64BIDCopySignPort(a, b).String(), aFlags | bFlags, nil
+	case "decimal128":
+		a, aFlags := parseDecimal128BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal128BIDPortMode(second, rndMode)
+		return decimal128BIDCopySignPort(a, b).String(), aFlags | bFlags, nil
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+// executeDectestGoportMinMax routes min/max/minmag/maxmag through the port
+// bid*_minnum / bid*_maxnum / bid*_minnum_mag / bid*_maxnum_mag. Cases whose two
+// operands are numerically equal but different cohort members are filtered out
+// upstream by minmax_equal_operand_cohort_unspecified, so what reaches here has a
+// selection IEEE actually specifies.
+func executeDectestGoportMinMax(op string, tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 2 {
+		return "", 0, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	first := decTestOperandString(tc.Operands[0])
+	second := decTestOperandString(tc.Operands[1])
+	switch testType {
+	case "decimal32":
+		a, aFlags := parseDecimal32BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal32BIDPortMode(second, rndMode)
+		result, opFlags, err := applyDectestGoportMinMax32(op, a, b)
+		if err != nil {
+			return "", 0, err
+		}
+		return result.String(), aFlags | bFlags | opFlags, nil
+	case "decimal64":
+		a, aFlags := parseDecimal64BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal64BIDPortMode(second, rndMode)
+		result, opFlags, err := applyDectestGoportMinMax64(op, a, b)
+		if err != nil {
+			return "", 0, err
+		}
+		return result.String(), aFlags | bFlags | opFlags, nil
+	case "decimal128":
+		a, aFlags := parseDecimal128BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal128BIDPortMode(second, rndMode)
+		result, opFlags, err := applyDectestGoportMinMax128(op, a, b)
+		if err != nil {
+			return "", 0, err
+		}
+		return result.String(), aFlags | bFlags | opFlags, nil
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+func applyDectestGoportMinMax32(op string, a, b Decimal32BID) (Decimal32BID, ExceptionFlags, error) {
+	switch op {
+	case "min":
+		result, flags := decimal32BIDMinNumPort(a, b)
+		return result, flags, nil
+	case "max":
+		result, flags := decimal32BIDMaxNumPort(a, b)
+		return result, flags, nil
+	case "minmag":
+		result, flags := decimal32BIDMinNumMagPort(a, b)
+		return result, flags, nil
+	case "maxmag":
+		result, flags := decimal32BIDMaxNumMagPort(a, b)
+		return result, flags, nil
+	default:
+		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+func applyDectestGoportMinMax64(op string, a, b Decimal64BID) (Decimal64BID, ExceptionFlags, error) {
+	switch op {
+	case "min":
+		result, flags := decimal64BIDMinNumPort(a, b)
+		return result, flags, nil
+	case "max":
+		result, flags := decimal64BIDMaxNumPort(a, b)
+		return result, flags, nil
+	case "minmag":
+		result, flags := decimal64BIDMinNumMagPort(a, b)
+		return result, flags, nil
+	case "maxmag":
+		result, flags := decimal64BIDMaxNumMagPort(a, b)
+		return result, flags, nil
+	default:
+		return 0, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+func applyDectestGoportMinMax128(op string, a, b Decimal128BID) (Decimal128BID, ExceptionFlags, error) {
+	switch op {
+	case "min":
+		result, flags := decimal128BIDMinNumPort(a, b)
+		return result, flags, nil
+	case "max":
+		result, flags := decimal128BIDMaxNumPort(a, b)
+		return result, flags, nil
+	case "minmag":
+		result, flags := decimal128BIDMinNumMagPort(a, b)
+		return result, flags, nil
+	case "maxmag":
+		result, flags := decimal128BIDMaxNumMagPort(a, b)
+		return result, flags, nil
+	default:
+		return Decimal128BID{}, 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+	}
+}
+
+// executeDectestGoportRemainderFamily routes the GDA remainder (truncated,
+// C fmod semantics) to the port bid*_fmod and remainderNear (IEEE
+// round-to-nearest remainder) to the port bid*_rem, matching the native leg's
+// operation mapping.
+func executeDectestGoportRemainderFamily(op string, tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 2 {
+		return "", 0, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	near := op == "remaindernear"
+	first := decTestOperandString(tc.Operands[0])
+	second := decTestOperandString(tc.Operands[1])
+	switch testType {
+	case "decimal32":
+		a, aFlags := parseDecimal32BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal32BIDPortMode(second, rndMode)
+		var result Decimal32BID
+		var opFlags ExceptionFlags
+		if near {
+			result, opFlags = decimal32BIDRemainderPort(a, b)
+		} else {
+			result, opFlags = decimal32BIDFmodPort(a, b)
+		}
+		return result.String(), aFlags | bFlags | opFlags, nil
+	case "decimal64":
+		a, aFlags := parseDecimal64BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal64BIDPortMode(second, rndMode)
+		var result Decimal64BID
+		var opFlags ExceptionFlags
+		if near {
+			result, opFlags = decimal64BIDRemainderPort(a, b)
+		} else {
+			result, opFlags = decimal64BIDFmodPort(a, b)
+		}
+		return result.String(), aFlags | bFlags | opFlags, nil
+	case "decimal128":
+		a, aFlags := parseDecimal128BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal128BIDPortMode(second, rndMode)
+		var result Decimal128BID
+		var opFlags ExceptionFlags
+		if near {
+			result, opFlags = decimal128BIDRemainderPort(a, b)
+		} else {
+			result, opFlags = decimal128BIDFmodPort(a, b)
+		}
+		return result.String(), aFlags | bFlags | opFlags, nil
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+// executeDectestGoportScaleB routes scaleb through the port bid*_scalbln at the
+// case rounding mode. The second operand reaches the port as the integer
+// exponent parameter; operand shapes that parameter cannot carry, and exponents
+// outside the GDA context range, are filtered out upstream by
+// dectestGoportScaleBReason, so the literal parses here by construction.
+func executeDectestGoportScaleB(tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 2 {
+		return "", 0, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	exponent, ok := dectestGoportScaleBExponentLiteral(tc.Operands[1])
+	if !ok {
+		return "", 0, fmt.Errorf("scaleb non-integer exponent operand reached goport executor; skip-filter divergence")
+	}
+	operand := decTestOperandString(tc.Operands[0])
+	switch testType {
+	case "decimal32":
+		a, parseFlags := parseDecimal32BIDPortMode(operand, rndMode)
+		result, opFlags := decimal32BIDScaleBPortModeFlags(a, exponent, rndMode)
+		return result.String(), parseFlags | opFlags, nil
+	case "decimal64":
+		a, parseFlags := parseDecimal64BIDPortMode(operand, rndMode)
+		result, opFlags := decimal64BIDScaleBPortModeFlags(a, exponent, rndMode)
+		return result.String(), parseFlags | opFlags, nil
+	case "decimal128":
+		a, parseFlags := parseDecimal128BIDPortMode(operand, rndMode)
+		result, opFlags := decimal128BIDScaleBPortModeFlags(a, exponent, rndMode)
+		return result.String(), parseFlags | opFlags, nil
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+// executeDectestGoportNextToward routes nexttoward through the port
+// bid*_nexttoward. Intel's narrower-width entrypoints take the toward operand in
+// Decimal128, so the Decimal32/Decimal64 legs widen the parsed second operand
+// through the port's own exact bid*_to_bid128 conversion, matching the native
+// leg's routing.
+func executeDectestGoportNextToward(tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 2 {
+		return "", 0, fmt.Errorf("%s requires 2 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	first := decTestOperandString(tc.Operands[0])
+	second := decTestOperandString(tc.Operands[1])
+	switch testType {
+	case "decimal32":
+		a, aFlags := parseDecimal32BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal32BIDPortMode(second, rndMode)
+		target, widenFlags := decimal32BIDToDecimal128Port(b)
+		result, opFlags := decimal32BIDNextTowardPort(a, target)
+		return result.String(), aFlags | bFlags | widenFlags | opFlags, nil
+	case "decimal64":
+		a, aFlags := parseDecimal64BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal64BIDPortMode(second, rndMode)
+		target, widenFlags := decimal64BIDToDecimal128Port(b)
+		result, opFlags := decimal64BIDNextTowardPort(a, target)
+		return result.String(), aFlags | bFlags | widenFlags | opFlags, nil
+	case "decimal128":
+		a, aFlags := parseDecimal128BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal128BIDPortMode(second, rndMode)
+		result, opFlags := decimal128BIDNextTowardPort(a, b)
+		return result.String(), aFlags | bFlags | opFlags, nil
+	default:
+		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
+	}
+}
+
+// executeDectestGoportFMA routes fma through the port bid*_fma at the case
+// rounding mode, accumulating the three operand-parse flag sets.
+func executeDectestGoportFMA(tc decTestCase, testType string, rndMode int) (string, ExceptionFlags, error) {
+	if len(tc.Operands) != 3 {
+		return "", 0, fmt.Errorf("%s requires 3 operands, got %d", tc.Operation, len(tc.Operands))
+	}
+	first := decTestOperandString(tc.Operands[0])
+	second := decTestOperandString(tc.Operands[1])
+	third := decTestOperandString(tc.Operands[2])
+	switch testType {
+	case "decimal32":
+		a, aFlags := parseDecimal32BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal32BIDPortMode(second, rndMode)
+		c, cFlags := parseDecimal32BIDPortMode(third, rndMode)
+		result, opFlags := decimal32BIDFMAPortMode(a, b, c, rndMode)
+		return result.String(), aFlags | bFlags | cFlags | opFlags, nil
+	case "decimal64":
+		a, aFlags := parseDecimal64BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal64BIDPortMode(second, rndMode)
+		c, cFlags := parseDecimal64BIDPortMode(third, rndMode)
+		result, opFlags := decimal64BIDFMAPortMode(a, b, c, rndMode)
+		return result.String(), aFlags | bFlags | cFlags | opFlags, nil
+	case "decimal128":
+		a, aFlags := parseDecimal128BIDPortMode(first, rndMode)
+		b, bFlags := parseDecimal128BIDPortMode(second, rndMode)
+		c, cFlags := parseDecimal128BIDPortMode(third, rndMode)
+		result, opFlags := decimal128BIDFMAPortMode(a, b, c, rndMode)
+		return result.String(), aFlags | bFlags | cFlags | opFlags, nil
 	default:
 		return "", 0, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
 	}

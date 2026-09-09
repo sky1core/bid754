@@ -14,9 +14,8 @@ import (
 
 // The Rust decTest portable leg is the Rust counterpart of the Go portable
 // mechanical-port decTest leg (dectest_goport_codegen.go): it runs the same
-// fixed-width Decimal32/64/128 oracle-dispatch operation set
-// (add/subtract/multiply/divide/quantize/compare/comparesig/tosci/toeng/
-// tointegral/tointegralx) directly against the go2rs-generated Rust engine
+// fixed-width Decimal32/64/128 oracle-dispatch operation set -- every decTest
+// operation with a mechanical-port routing target -- directly against the go2rs-generated Rust engine
 // (bid754-rs/src/generated, reached through generated::prelude) rather than
 // the Go mechanical port, and cross-checks it against the same IBM decTest
 // expected values. It reuses countDectestGoportSuiteCoverage (this package,
@@ -113,6 +112,77 @@ var dectestRustDispatchTable = []dectestRustDispatchRow{
 	{"to_string", "decimal32", "Bid32ToString", "bid32_to_string"},
 	{"to_string", "decimal64", "Bid64ToString", "bid64_to_string"},
 	{"to_string", "decimal128", "Bid128ToString", "bid128_to_string"},
+	// quiet sign operations (abs / copyabs, copy, copynegate, copysign dispatch)
+	{"abs", "decimal32", "Bid32Abs", "bid32_abs"},
+	{"abs", "decimal64", "Bid64Abs", "bid64_abs"},
+	{"abs", "decimal128", "Bid128Abs", "bid128_abs"},
+	{"copy", "decimal32", "Bid32Copy", "bid32_copy"},
+	{"copy", "decimal64", "Bid64Copy", "bid64_copy"},
+	{"copy", "decimal128", "Bid128Copy", "bid128_copy"},
+	{"copynegate", "decimal32", "Bid32Negate", "bid32_negate"},
+	{"copynegate", "decimal64", "Bid64Negate", "bid64_negate"},
+	{"copynegate", "decimal128", "Bid128Negate", "bid128_negate"},
+	{"copysign", "decimal32", "Bid32CopySign", "bid32_copy_sign"},
+	{"copysign", "decimal64", "Bid64CopySign", "bid64_copy_sign"},
+	{"copysign", "decimal128", "Bid128CopySign", "bid128_copy_sign"},
+	// class / samequantum / total-order tokens
+	{"class", "decimal32", "Bid32Class", "bid32_class"},
+	{"class", "decimal64", "Bid64Class", "bid64_class"},
+	{"class", "decimal128", "Bid128Class", "bid128_class"},
+	{"samequantum", "decimal32", "Bid32SameQuantum", "bid32_same_quantum"},
+	{"samequantum", "decimal64", "Bid64SameQuantum", "bid64_same_quantum"},
+	{"samequantum", "decimal128", "Bid128SameQuantum", "bid128_same_quantum"},
+	{"comparetotal", "decimal32", "Bid32TotalOrder", "bid32_total_order"},
+	{"comparetotal", "decimal64", "Bid64TotalOrder", "bid64_total_order"},
+	{"comparetotal", "decimal128", "Bid128TotalOrder", "bid128_total_order"},
+	{"comparetotmag", "decimal32", "Bid32TotalOrderMag", "bid32_total_order_mag"},
+	{"comparetotmag", "decimal64", "Bid64TotalOrderMag", "bid64_total_order_mag"},
+	{"comparetotmag", "decimal128", "Bid128TotalOrderMag", "bid128_total_order_mag"},
+	// min / max family
+	{"min", "decimal32", "Bid32MinNumWithFlags", "bid32_min_num_with_flags"},
+	{"min", "decimal64", "Bid64MinNum", "bid64_min_num"},
+	{"min", "decimal128", "Bid128Minnum", "bid128_minnum"},
+	{"max", "decimal32", "Bid32MaxNumWithFlags", "bid32_max_num_with_flags"},
+	{"max", "decimal64", "Bid64MaxNum", "bid64_max_num"},
+	{"max", "decimal128", "Bid128Maxnum", "bid128_maxnum"},
+	{"minmag", "decimal32", "Bid32MinNumMagWithFlags", "bid32_min_num_mag_with_flags"},
+	{"minmag", "decimal64", "Bid64MinNumMag", "bid64_min_num_mag"},
+	{"minmag", "decimal128", "Bid128MinnumMag", "bid128_minnum_mag"},
+	{"maxmag", "decimal32", "Bid32MaxNumMagWithFlags", "bid32_max_num_mag_with_flags"},
+	{"maxmag", "decimal64", "Bid64MaxNumMag", "bid64_max_num_mag"},
+	{"maxmag", "decimal128", "Bid128MaxnumMag", "bid128_maxnum_mag"},
+	// exponent operations (logb / scaleb dispatch)
+	{"logb", "decimal32", "Bid32Logb", "bid32_logb"},
+	{"logb", "decimal64", "Bid64Logb", "bid64_logb"},
+	{"logb", "decimal128", "Bid128Logb", "bid128_logb"},
+	{"scaleb", "decimal32", "Bid32ScalblnWithFlags", "bid32_scalbln_with_flags"},
+	{"scaleb", "decimal64", "Bid64Scalbln", "bid64_scalbln"},
+	{"scaleb", "decimal128", "Bid128Scalbln", "bid128_scalbln"},
+	// neighbor operations (nextplus / nextminus / nexttoward dispatch)
+	{"nextplus", "decimal32", "Bid32NextUp", "bid32_next_up"},
+	{"nextplus", "decimal64", "Bid64NextUp", "bid64_next_up"},
+	{"nextplus", "decimal128", "Bid128NextUp", "bid128_next_up"},
+	{"nextminus", "decimal32", "Bid32NextDown", "bid32_next_down"},
+	{"nextminus", "decimal64", "Bid64NextDown", "bid64_next_down"},
+	{"nextminus", "decimal128", "Bid128NextDown", "bid128_next_down"},
+	{"nexttoward", "decimal32", "Bid32NextToward", "bid32_next_toward"},
+	{"nexttoward", "decimal64", "Bid64NextToward", "bid64_next_toward"},
+	{"nexttoward", "decimal128", "Bid128NextToward", "bid128_next_toward"},
+	// nexttoward widens its narrower-width toward operand through the port's own
+	// exact conversion before calling the Decimal128-target entrypoint
+	{"nexttoward_widen", "decimal32", "Bid32ToBid128", "bid32_to_bid128"},
+	{"nexttoward_widen", "decimal64", "Bid64ToBid128", "bid64_to_bid128"},
+	// fused multiply-add
+	{"fma", "decimal32", "Bid32Fma", "bid32_fma"},
+	{"fma", "decimal64", "Bid64Fma", "bid64_fma"},
+	{"fma", "decimal128", "Bid128Fma", "bid128_fma"},
+	// remainder family (GDA remainder -> fmod, remainderNear -> rem)
+	{"remainder", "decimal32", "Bid32Fmod", "bid32_fmod"},
+	{"remainder", "decimal64", "Bid64Fmod", "bid64_fmod"},
+	{"remainder", "decimal128", "Bid128Fmod", "bid128_fmod"},
+	{"remaindernear", "decimal32", "Bid32Rem", "bid32_rem"},
+	{"remaindernear", "decimal64", "Bid64Rem", "bid64_rem"},
+	{"remaindernear", "decimal128", "Bid128Rem", "bid128_rem"},
 }
 
 // dectestRustBid64FromStringCrateRootShim documents the one naming exception in
@@ -152,7 +222,11 @@ func GenerateDectestRustOutputs(repoRoot string, spec SharedSpec) (map[string][]
 	if err != nil {
 		return nil, fmt.Errorf("read generated dectest rust support template %q: %w", dectestRustSupportTemplatePath, err)
 	}
-	runnerSource := dectestGeneratedRustSourceFromTemplate(supportData) + dectestRustCasesSource(coverage)
+	casesSource, err := dectestRustCasesSource(coverage)
+	if err != nil {
+		return nil, err
+	}
+	runnerSource := dectestGeneratedRustSourceFromTemplate(supportData) + casesSource
 
 	rustFuncs, err := scanRustGeneratedPublicFunctions(repoRoot)
 	if err != nil {
@@ -377,10 +451,14 @@ func dectestRustDispatchInventoryJSON(anyVisibilityFuncs map[string]bool) ([]byt
 	return append(data, '\n'), nil
 }
 
-func dectestRustCasesSource(coverage []dectestGoportSuiteCoverage) string {
+func dectestRustCasesSource(coverage []dectestGoportSuiteCoverage) (string, error) {
+	strength, err := dectestPlusMinusStrengthRustSource()
+	if err != nil {
+		return "", err
+	}
 	return strings.NewReplacer(
 		"@@RUST_DECTEST_SUITE_COVERAGE@@", dectestRustSuiteCoverageLiteral(coverage),
-	).Replace(dectestRustCasesTemplate)
+	).Replace(dectestRustCasesTemplate) + strength, nil
 }
 
 func dectestRustSuiteCoverageLiteral(coverage []dectestGoportSuiteCoverage) string {
@@ -687,7 +765,7 @@ fn generated_dectest_suites_go_port() {
             let path = repo_root.join("devtools").join(file);
             let cases = parse_dec_test_file(&path);
             for tc in &cases {
-                if let Some(reason) = dectest_goport_skip_reason(&suite.ignored_operations, tc) {
+                if let Some(reason) = dectest_goport_skip_reason(&suite.ignored_operations, tc, &suite.test_type) {
                     *skip_reasons.entry(reason).or_insert(0) += 1;
                     continue;
                 }

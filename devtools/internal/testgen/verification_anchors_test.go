@@ -264,6 +264,7 @@ type verificationSentinels struct {
 	MixedFormatFFIRoutingRows         []string `json:"mixed_format_ffi_routing_sentinel_rows"`
 	DecnumberDifferentialRows         []string `json:"decnumber_differential_sentinel_rows"`
 	D32ExhaustiveRows                 []string `json:"d32_exhaustive_sentinel_rows"`
+	DectestPlusMinusStrengthRows      []string `json:"dectest_plus_minus_strength_rows"`
 }
 
 func loadVerificationSentinels(t *testing.T) verificationSentinels {
@@ -407,6 +408,26 @@ func loadRustStringArrayLiteral(t *testing.T, path, constName string) []string {
 		t.Fatalf("generated %s: %s declares %d rows but carries %d", path, constName, declared, len(rows))
 	}
 	return rows
+}
+
+// loadRustUsizeConstant extracts one `const <name>: usize = <n>;` value from a
+// generated Rust artifact, the Rust counterpart of loadGeneratedGoUintConstant.
+func loadRustUsizeConstant(t *testing.T, path, name string) uint64 {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read generated Rust artifact %s: %v", path, err)
+	}
+	pattern := regexp.MustCompile(`(?m)^const ` + regexp.QuoteMeta(name) + `: usize = (\d+);$`)
+	matches := pattern.FindAllStringSubmatch(string(raw), -1)
+	if len(matches) != 1 {
+		t.Fatalf("generated %s: expected exactly one %s usize constant, found %d", path, name, len(matches))
+	}
+	value, err := strconv.ParseUint(matches[0][1], 10, 64)
+	if err != nil {
+		t.Fatalf("generated %s: constant %s: %v", path, name, err)
+	}
+	return value
 }
 
 // loadRustRoutingSentinelRows extracts the Tier 1 routing rows from their
@@ -1390,6 +1411,50 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		t.Errorf("generated Rust d32 exhaustive lane-name inventory diverges from the Go runner inventory: Rust %d lanes, Go %d lanes%s",
 			len(rustD32ExhaustiveLaneNames), len(d32ExhaustiveLaneNameRows),
 			firstSentinelRowDivergence(rustD32ExhaustiveLaneNames, d32ExhaustiveLaneNameRows))
+	}
+
+	// decTest plus/minus quantum strength rows: the anchor payload is the row set
+	// itself, so the external pin, the generated Go literal, and the generated
+	// Rust literal must be exactly, orderedly, byte-equal. No count for this
+	// anchor lives in verification_anchors.json; the two generated count
+	// constants bind the literals' length instead.
+	if len(sentinels.DectestPlusMinusStrengthRows) != dectestPlusMinusStrengthTotalRows {
+		t.Errorf("verification_sentinels.json pins %d decTest plus/minus strength rows, want %d",
+			len(sentinels.DectestPlusMinusStrengthRows), dectestPlusMinusStrengthTotalRows)
+	}
+	goPlusMinusStrengthRows := loadGeneratedGoStringSliceLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_dectest_goport_cases_test.go"),
+		"dectestPlusMinusStrengthRows")
+	if !reflect.DeepEqual(goPlusMinusStrengthRows, sentinels.DectestPlusMinusStrengthRows) {
+		t.Errorf("generated Go decTest plus/minus strength rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(goPlusMinusStrengthRows), len(sentinels.DectestPlusMinusStrengthRows),
+			firstSentinelRowDivergence(goPlusMinusStrengthRows, sentinels.DectestPlusMinusStrengthRows))
+	}
+	goPlusMinusStrengthCount := loadGeneratedGoUintConstant(t,
+		filepath.Join("..", "..", "..", "bid754-go", "generated_dectest_goport_cases_test.go"),
+		"dectestPlusMinusStrengthRowCount")
+	if goPlusMinusStrengthCount != dectestPlusMinusStrengthTotalRows {
+		t.Errorf("generated Go decTest plus/minus strength row count constant = %d, want %d",
+			goPlusMinusStrengthCount, dectestPlusMinusStrengthTotalRows)
+	}
+	if got := uint64(len(goPlusMinusStrengthRows)); got != goPlusMinusStrengthCount {
+		t.Errorf("generated Go decTest plus/minus strength row literal count %d diverges from the generated constant %d",
+			got, goPlusMinusStrengthCount)
+	}
+	rustPlusMinusStrengthRows := loadRustStringArrayLiteral(t,
+		filepath.Join("..", "..", "..", "bid754-rs", "tests", "dectest_generated.rs"),
+		"DECTEST_PLUS_MINUS_STRENGTH_ROWS")
+	if !reflect.DeepEqual(rustPlusMinusStrengthRows, sentinels.DectestPlusMinusStrengthRows) {
+		t.Errorf("generated Rust decTest plus/minus strength rows diverge from verification_sentinels.json: generated %d rows, pinned %d rows%s",
+			len(rustPlusMinusStrengthRows), len(sentinels.DectestPlusMinusStrengthRows),
+			firstSentinelRowDivergence(rustPlusMinusStrengthRows, sentinels.DectestPlusMinusStrengthRows))
+	}
+	rustPlusMinusStrengthCount := loadRustUsizeConstant(t,
+		filepath.Join("..", "..", "..", "bid754-rs", "tests", "dectest_generated.rs"),
+		"DECTEST_PLUS_MINUS_STRENGTH_ROW_COUNT")
+	if rustPlusMinusStrengthCount != dectestPlusMinusStrengthTotalRows {
+		t.Errorf("generated Rust decTest plus/minus strength row count constant = %d, want %d",
+			rustPlusMinusStrengthCount, dectestPlusMinusStrengthTotalRows)
 	}
 
 	tier1CompareConversionOutputs, err := GenerateTier1CompareConversionLongOutputs()

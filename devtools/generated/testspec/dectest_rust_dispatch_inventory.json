@@ -356,6 +356,440 @@
       "go_function": "Bid128ToString",
       "rust_function": "bid128_to_string",
       "status": "dispatched"
+    },
+    {
+      "operation": "abs",
+      "width": "decimal32",
+      "go_function": "Bid32Abs",
+      "rust_function": "bid32_abs",
+      "status": "dispatched"
+    },
+    {
+      "operation": "abs",
+      "width": "decimal64",
+      "go_function": "Bid64Abs",
+      "rust_function": "bid64_abs",
+      "status": "dispatched"
+    },
+    {
+      "operation": "abs",
+      "width": "decimal128",
+      "go_function": "Bid128Abs",
+      "rust_function": "bid128_abs",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copy",
+      "width": "decimal32",
+      "go_function": "Bid32Copy",
+      "rust_function": "bid32_copy",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copy",
+      "width": "decimal64",
+      "go_function": "Bid64Copy",
+      "rust_function": "bid64_copy",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copy",
+      "width": "decimal128",
+      "go_function": "Bid128Copy",
+      "rust_function": "bid128_copy",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copynegate",
+      "width": "decimal32",
+      "go_function": "Bid32Negate",
+      "rust_function": "bid32_negate",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copynegate",
+      "width": "decimal64",
+      "go_function": "Bid64Negate",
+      "rust_function": "bid64_negate",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copynegate",
+      "width": "decimal128",
+      "go_function": "Bid128Negate",
+      "rust_function": "bid128_negate",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copysign",
+      "width": "decimal32",
+      "go_function": "Bid32CopySign",
+      "rust_function": "bid32_copy_sign",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copysign",
+      "width": "decimal64",
+      "go_function": "Bid64CopySign",
+      "rust_function": "bid64_copy_sign",
+      "status": "dispatched"
+    },
+    {
+      "operation": "copysign",
+      "width": "decimal128",
+      "go_function": "Bid128CopySign",
+      "rust_function": "bid128_copy_sign",
+      "status": "dispatched"
+    },
+    {
+      "operation": "class",
+      "width": "decimal32",
+      "go_function": "Bid32Class",
+      "rust_function": "bid32_class",
+      "status": "dispatched"
+    },
+    {
+      "operation": "class",
+      "width": "decimal64",
+      "go_function": "Bid64Class",
+      "rust_function": "bid64_class",
+      "status": "dispatched"
+    },
+    {
+      "operation": "class",
+      "width": "decimal128",
+      "go_function": "Bid128Class",
+      "rust_function": "bid128_class",
+      "status": "dispatched"
+    },
+    {
+      "operation": "samequantum",
+      "width": "decimal32",
+      "go_function": "Bid32SameQuantum",
+      "rust_function": "bid32_same_quantum",
+      "status": "dispatched"
+    },
+    {
+      "operation": "samequantum",
+      "width": "decimal64",
+      "go_function": "Bid64SameQuantum",
+      "rust_function": "bid64_same_quantum",
+      "status": "dispatched"
+    },
+    {
+      "operation": "samequantum",
+      "width": "decimal128",
+      "go_function": "Bid128SameQuantum",
+      "rust_function": "bid128_same_quantum",
+      "status": "dispatched"
+    },
+    {
+      "operation": "comparetotal",
+      "width": "decimal32",
+      "go_function": "Bid32TotalOrder",
+      "rust_function": "bid32_total_order",
+      "status": "dispatched"
+    },
+    {
+      "operation": "comparetotal",
+      "width": "decimal64",
+      "go_function": "Bid64TotalOrder",
+      "rust_function": "bid64_total_order",
+      "status": "dispatched"
+    },
+    {
+      "operation": "comparetotal",
+      "width": "decimal128",
+      "go_function": "Bid128TotalOrder",
+      "rust_function": "bid128_total_order",
+      "status": "dispatched"
+    },
+    {
+      "operation": "comparetotmag",
+      "width": "decimal32",
+      "go_function": "Bid32TotalOrderMag",
+      "rust_function": "bid32_total_order_mag",
+      "status": "dispatched"
+    },
+    {
+      "operation": "comparetotmag",
+      "width": "decimal64",
+      "go_function": "Bid64TotalOrderMag",
+      "rust_function": "bid64_total_order_mag",
+      "status": "dispatched"
+    },
+    {
+      "operation": "comparetotmag",
+      "width": "decimal128",
+      "go_function": "Bid128TotalOrderMag",
+      "rust_function": "bid128_total_order_mag",
+      "status": "dispatched"
+    },
+    {
+      "operation": "min",
+      "width": "decimal32",
+      "go_function": "Bid32MinNumWithFlags",
+      "rust_function": "bid32_min_num_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "min",
+      "width": "decimal64",
+      "go_function": "Bid64MinNum",
+      "rust_function": "bid64_min_num",
+      "status": "dispatched"
+    },
+    {
+      "operation": "min",
+      "width": "decimal128",
+      "go_function": "Bid128Minnum",
+      "rust_function": "bid128_minnum",
+      "status": "dispatched"
+    },
+    {
+      "operation": "max",
+      "width": "decimal32",
+      "go_function": "Bid32MaxNumWithFlags",
+      "rust_function": "bid32_max_num_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "max",
+      "width": "decimal64",
+      "go_function": "Bid64MaxNum",
+      "rust_function": "bid64_max_num",
+      "status": "dispatched"
+    },
+    {
+      "operation": "max",
+      "width": "decimal128",
+      "go_function": "Bid128Maxnum",
+      "rust_function": "bid128_maxnum",
+      "status": "dispatched"
+    },
+    {
+      "operation": "minmag",
+      "width": "decimal32",
+      "go_function": "Bid32MinNumMagWithFlags",
+      "rust_function": "bid32_min_num_mag_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "minmag",
+      "width": "decimal64",
+      "go_function": "Bid64MinNumMag",
+      "rust_function": "bid64_min_num_mag",
+      "status": "dispatched"
+    },
+    {
+      "operation": "minmag",
+      "width": "decimal128",
+      "go_function": "Bid128MinnumMag",
+      "rust_function": "bid128_minnum_mag",
+      "status": "dispatched"
+    },
+    {
+      "operation": "maxmag",
+      "width": "decimal32",
+      "go_function": "Bid32MaxNumMagWithFlags",
+      "rust_function": "bid32_max_num_mag_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "maxmag",
+      "width": "decimal64",
+      "go_function": "Bid64MaxNumMag",
+      "rust_function": "bid64_max_num_mag",
+      "status": "dispatched"
+    },
+    {
+      "operation": "maxmag",
+      "width": "decimal128",
+      "go_function": "Bid128MaxnumMag",
+      "rust_function": "bid128_maxnum_mag",
+      "status": "dispatched"
+    },
+    {
+      "operation": "logb",
+      "width": "decimal32",
+      "go_function": "Bid32Logb",
+      "rust_function": "bid32_logb",
+      "status": "dispatched"
+    },
+    {
+      "operation": "logb",
+      "width": "decimal64",
+      "go_function": "Bid64Logb",
+      "rust_function": "bid64_logb",
+      "status": "dispatched"
+    },
+    {
+      "operation": "logb",
+      "width": "decimal128",
+      "go_function": "Bid128Logb",
+      "rust_function": "bid128_logb",
+      "status": "dispatched"
+    },
+    {
+      "operation": "scaleb",
+      "width": "decimal32",
+      "go_function": "Bid32ScalblnWithFlags",
+      "rust_function": "bid32_scalbln_with_flags",
+      "status": "dispatched"
+    },
+    {
+      "operation": "scaleb",
+      "width": "decimal64",
+      "go_function": "Bid64Scalbln",
+      "rust_function": "bid64_scalbln",
+      "status": "dispatched"
+    },
+    {
+      "operation": "scaleb",
+      "width": "decimal128",
+      "go_function": "Bid128Scalbln",
+      "rust_function": "bid128_scalbln",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nextplus",
+      "width": "decimal32",
+      "go_function": "Bid32NextUp",
+      "rust_function": "bid32_next_up",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nextplus",
+      "width": "decimal64",
+      "go_function": "Bid64NextUp",
+      "rust_function": "bid64_next_up",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nextplus",
+      "width": "decimal128",
+      "go_function": "Bid128NextUp",
+      "rust_function": "bid128_next_up",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nextminus",
+      "width": "decimal32",
+      "go_function": "Bid32NextDown",
+      "rust_function": "bid32_next_down",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nextminus",
+      "width": "decimal64",
+      "go_function": "Bid64NextDown",
+      "rust_function": "bid64_next_down",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nextminus",
+      "width": "decimal128",
+      "go_function": "Bid128NextDown",
+      "rust_function": "bid128_next_down",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nexttoward",
+      "width": "decimal32",
+      "go_function": "Bid32NextToward",
+      "rust_function": "bid32_next_toward",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nexttoward",
+      "width": "decimal64",
+      "go_function": "Bid64NextToward",
+      "rust_function": "bid64_next_toward",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nexttoward",
+      "width": "decimal128",
+      "go_function": "Bid128NextToward",
+      "rust_function": "bid128_next_toward",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nexttoward_widen",
+      "width": "decimal32",
+      "go_function": "Bid32ToBid128",
+      "rust_function": "bid32_to_bid128",
+      "status": "dispatched"
+    },
+    {
+      "operation": "nexttoward_widen",
+      "width": "decimal64",
+      "go_function": "Bid64ToBid128",
+      "rust_function": "bid64_to_bid128",
+      "status": "dispatched"
+    },
+    {
+      "operation": "fma",
+      "width": "decimal32",
+      "go_function": "Bid32Fma",
+      "rust_function": "bid32_fma",
+      "status": "dispatched"
+    },
+    {
+      "operation": "fma",
+      "width": "decimal64",
+      "go_function": "Bid64Fma",
+      "rust_function": "bid64_fma",
+      "status": "dispatched"
+    },
+    {
+      "operation": "fma",
+      "width": "decimal128",
+      "go_function": "Bid128Fma",
+      "rust_function": "bid128_fma",
+      "status": "dispatched"
+    },
+    {
+      "operation": "remainder",
+      "width": "decimal32",
+      "go_function": "Bid32Fmod",
+      "rust_function": "bid32_fmod",
+      "status": "dispatched"
+    },
+    {
+      "operation": "remainder",
+      "width": "decimal64",
+      "go_function": "Bid64Fmod",
+      "rust_function": "bid64_fmod",
+      "status": "dispatched"
+    },
+    {
+      "operation": "remainder",
+      "width": "decimal128",
+      "go_function": "Bid128Fmod",
+      "rust_function": "bid128_fmod",
+      "status": "dispatched"
+    },
+    {
+      "operation": "remaindernear",
+      "width": "decimal32",
+      "go_function": "Bid32Rem",
+      "rust_function": "bid32_rem",
+      "status": "dispatched"
+    },
+    {
+      "operation": "remaindernear",
+      "width": "decimal64",
+      "go_function": "Bid64Rem",
+      "rust_function": "bid64_rem",
+      "status": "dispatched"
+    },
+    {
+      "operation": "remaindernear",
+      "width": "decimal128",
+      "go_function": "Bid128Rem",
+      "rust_function": "bid128_rem",
+      "status": "dispatched"
     }
   ]
 }

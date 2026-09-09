@@ -64,7 +64,8 @@ test-portable-readtest:
 test-portable-dectest:
 	@echo "🔎 generated decTest goport portable 값 교차검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go test -count=1 -run "^TestGeneratedDectestSuitesGoPort$$" -timeout 600s ./...) | tee test_results/latest_portable_dectest_results.txt'
+	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go test -count=1 -v -run "^(TestGeneratedDectestSuitesGoPort|TestGeneratedDectestPlusMinusQuantumStrengthGoPort|TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter)$$" -timeout 600s ./...) | tee test_results/latest_portable_dectest_results.txt'
+	@cd devtools && $(GOENV) go run ./cmd/verifylog -log ../test_results/latest_portable_dectest_results.txt -passes TestGeneratedDectestSuitesGoPort,TestGeneratedDectestPlusMinusQuantumStrengthGoPort,TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter
 
 test-go-modules:
 	@echo "🧪 active Go 모듈 테스트 실행..."
@@ -522,8 +523,8 @@ test-native-readtest:
 test-native-dectest:
 	@echo "🔍 generated decTest native non-short 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedDectestSuites$$" -timeout 300s ./...) | tee test_results/latest_native_dectest_results.txt'
-	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -log ../test_results/latest_native_dectest_results.txt -passes TestGeneratedDectestSuites
+	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedDectestSuites|TestGeneratedDectestPlusMinusQuantumStrengthGoPort|TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter)$$" -timeout 300s ./...) | tee test_results/latest_native_dectest_results.txt'
+	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -log ../test_results/latest_native_dectest_results.txt -passes TestGeneratedDectestSuites,TestGeneratedDectestPlusMinusQuantumStrengthGoPort,TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter
 
 # 전체 테스트 및 벤치마크 실행 (결과 파일 자동 생성)
 test-and-bench:

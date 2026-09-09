@@ -249,6 +249,11 @@ func decimal32BIDILogBPort(d Decimal32BID) (int, ExceptionFlags) {
 	return result, bidgoExceptionFlags(flags)
 }
 
+func decimal32BIDQuantexpPort(d Decimal32BID) (int32, ExceptionFlags) {
+	result, flags := bidgo.Bid32Quantexp(d.ToUint32())
+	return result, bidgoExceptionFlags(flags)
+}
+
 func decimal32BIDScaleBPort(d Decimal32BID, exponent int) (Decimal32BID, ExceptionFlags) {
 	result, flags := bidgo.Bid32ScalblnWithFlags(d.ToUint32(), int64(exponent), defaultBIDRoundingMode)
 	return Decimal32BID(result), bidgoExceptionFlags(flags)
@@ -675,6 +680,11 @@ func decimal64BIDLogBPort(d Decimal64BID) (Decimal64BID, ExceptionFlags) {
 
 func decimal64BIDILogBPort(d Decimal64BID) (int, ExceptionFlags) {
 	result, flags := bidgo.Bid64ILogb(d.ToUint64())
+	return result, bidgoExceptionFlags(flags)
+}
+
+func decimal64BIDQuantexpPort(d Decimal64BID) (int32, ExceptionFlags) {
+	result, flags := bidgo.Bid64Quantexp(d.ToUint64())
 	return result, bidgoExceptionFlags(flags)
 }
 
@@ -1468,6 +1478,12 @@ func decimal128BIDLogBPort(d Decimal128BID) (Decimal128BID, ExceptionFlags) {
 func decimal128BIDILogBPort(d Decimal128BID) (int, ExceptionFlags) {
 	var flags uint32
 	result := bidgo.Bid128Ilogb(decimal128BIDAsBidgo(d), &flags)
+	return result, bidgoExceptionFlags(flags)
+}
+
+func decimal128BIDQuantexpPort(d Decimal128BID) (int32, ExceptionFlags) {
+	var flags uint32
+	result := bidgo.Bid128Quantexp(decimal128BIDAsBidgo(d), &flags)
 	return result, bidgoExceptionFlags(flags)
 }
 

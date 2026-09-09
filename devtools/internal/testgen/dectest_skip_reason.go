@@ -28,6 +28,17 @@ func generatedDectestSkipReason(suite GeneratedDectestSuite, tc parsedCase) (str
 //     result-rounding oracle op
 //   - compare_nan_operand: compare/comparesig with a NaN operand, whose GDA
 //     NaN-identity result the Intel BID boolean compare predicates cannot produce
+//   - binary_op_nan_payload_precedence / fma_nan_payload_precedence: GDA and the
+//     pinned Intel BID port select different NaN identities
+//   - remainder(near)_gda_division_impossible_context_semantics: GDA's
+//     Division_impossible context rule has no Intel BID counterpart
+//   - minmax_equal_operand_cohort_unspecified: min/max over numerically equal
+//     operands that are different cohort members, where IEEE leaves the returned
+//     member unspecified and GDA pins one
+//   - abs_nan_operand_gda_propagation: GDA abs propagates the NaN operand's sign
+//     and quietizes sNaN; IEEE/Intel abs clears the sign quietly
+//   - scaleb_non_integer_exponent_operand / scaleb_exponent_out_of_gda_range: the
+//     GDA-only second-operand channel and range rule of scaleb
 func generatedDectestGoportSkipReason(suite GeneratedDectestSuite, tc parsedCase) (string, bool) {
 	op := normalizeDecTestOperation(tc.Operation)
 	if generatedDectestIgnoredOperation(suite.IgnoredOperations, tc.Operation) {
@@ -59,10 +70,334 @@ func generatedDectestGoportSkipReason(suite GeneratedDectestSuite, tc parsedCase
 	if generatedDectestGoportNaNPrecedenceOp(op) && generatedDectestGoportNaNPayloadPrecedence(tc) {
 		return "binary_op_nan_payload_precedence", true
 	}
+	if op == "fma" && generatedDectestGoportFMANaNPayloadPrecedenceCase(tc, suite.TestType) {
+		return "fma_nan_payload_precedence", true
+	}
 	if (op == "compare" || op == "comparesig") && generatedDectestGoportCompareHasNaNOperand(tc) {
 		return "compare_nan_operand", true
 	}
+	if reason, ok := generatedDectestGoportRemainderFamilyReason(tc, op); ok {
+		return reason, true
+	}
+	if generatedDectestGoportMinMaxEqualOperandCohortCase(tc) {
+		return "minmax_equal_operand_cohort_unspecified", true
+	}
+	if generatedDectestGoportAbsNaNOperandCase(tc) {
+		return "abs_nan_operand_gda_propagation", true
+	}
+	if reason, ok := generatedDectestGoportScaleBReason(tc); ok {
+		return reason, true
+	}
 	return "", false
+}
+
+// generatedDectestGoportRemainderFamilyReason reuses the native leg's
+// division-impossible classifier for the goport leg's remainder/remainderNear
+// routes. The native leg's sibling NaN-identity bucket is not consulted here:
+// remainder and remainderNear are in this leg's
+// generatedDectestGoportNaNPrecedenceOp set, so a left-quiet/right-signaling
+// NaN case is already counted into binary_op_nan_payload_precedence before this
+// runs, keeping one NaN-precedence bucket name per leg.
+//
+// Boundary note -- this is the ONE goport skip classifier that keys on the
+// case's expected Conditions and expected result rather than on operand shapes
+// alone, and that is deliberate:
+//   - Division_impossible is not an observation of what the port produced. It
+//     is the GDA oracle's declaration of WHICH RESULT CHANNEL the case exercises:
+//     "the integer quotient needed here exceeds the context precision, so GDA
+//     answers on its context-error channel instead of returning a remainder".
+//     Intel BID's fmod/rem have no such channel at all, so a case on it cannot
+//     be a port failure this skip could swallow -- there is no port behavior for
+//     it to be wrong about.
+//   - Deriving the same region from the operands alone means reimplementing the
+//     GDA integer-quotient digit-count rule in all three mirrors (generator, Go
+//     runner, Rust runner). That is a worse trade: three copies of real
+//     arithmetic that can drift from each other, replacing a one-line read of
+//     the oracle's own channel marker.
+//
+// Every OTHER goport skip classifier is operand-shape-only on purpose; do not
+// use this one as precedent for keying a new class on expected results.
+func generatedDectestGoportRemainderFamilyReason(tc parsedCase, op string) (string, bool) {
+	if op != "remainder" && op != "remaindernear" {
+		return "", false
+	}
+	if !generatedDectestHasOnlyFiniteOperands(tc, 2) {
+		return "", false
+	}
+	if generatedDectestHasOnlyCondition(tc.Flags, "divisionimpossible") && generatedDectestDefaultQuietNaN(tc.Result) {
+		return op + "_gda_division_impossible_context_semantics", true
+	}
+	return "", false
+}
+
+// generatedDectestGoportMinMaxEqualOperandCohortCase reports a min/max/minmag/
+// maxmag case whose two finite operands are NUMERICALLY EQUAL (zeros of either
+// sign equal) yet are different cohort members -- they differ in sign of zero,
+// in exponent, or in both. IEEE 754-2019 5.3.1 leaves the returned operand
+// unspecified in exactly that region ("otherwise it is either x or y"), so the
+// pinned Intel BID min/max selection and the GDA rule decTest pins are both
+// conforming and may disagree. The class is keyed only on the operand shapes,
+// never on which operand either library actually returns, so it cannot adapt to
+// an implementation change.
+//
+// The *mag forms use the SAME numeric-equality tie test, not magnitude
+// equality. minNumMag/maxNumMag are specified as: compare |x| against |y|, and
+// on a magnitude tie fall through to minNum/maxNum on the SIGNED operands. That
+// fallthrough is fully determined whenever the signed operands differ -- e.g.
+// minmag(-1, 1) falls through to minNum(-1, 1) = -1, which decTest pins as a
+// comparable case (minmag.decTest / maxmag.decTest). Only when the signed
+// operands are themselves numerically equal does the fallthrough land in
+// minNum/maxNum's own unspecified tie region.
+func generatedDectestGoportMinMaxEqualOperandCohortCase(tc parsedCase) bool {
+	op := normalizeDecTestOperation(tc.Operation)
+	if !generatedDectestMinMaxOperation(op) || len(tc.Operands) != 2 {
+		return false
+	}
+	left, leftOK := generatedDectestNumericLiteral(tc.Operands[0])
+	right, rightOK := generatedDectestNumericLiteral(tc.Operands[1])
+	if !leftOK || !rightOK {
+		return false
+	}
+	if !generatedDectestNumericValueEqual(left, right) {
+		return false
+	}
+	return !generatedDectestSameCohortMember(left, right)
+}
+
+// generatedDectestGoportAbsNaNOperandCase reports an abs case whose operand is a
+// NaN with a negative sign or a signaling NaN. decTest's abs is the GDA
+// arithmetic abs: it propagates the operand NaN under the general rules, keeping
+// the NaN's own sign, and quietizes a signaling NaN while signaling
+// Invalid_operation. The port routes abs through Intel bid*_abs, the IEEE
+// 754-2019 5.5.1 quiet sign operation, which clears the sign bit of every
+// operand including NaNs and leaves a signaling NaN signaling without raising a
+// flag. Positive quiet NaN operands agree and stay executed.
+func generatedDectestGoportAbsNaNOperandCase(tc parsedCase) bool {
+	if normalizeDecTestOperation(tc.Operation) != "abs" || len(tc.Operands) != 1 {
+		return false
+	}
+	info := generatedDectestParseNaNOperand(tc.Operands[0])
+	if !info.isNaN {
+		return false
+	}
+	return info.signaling || info.sign == "-"
+}
+
+// generatedDectestGoportScaleBReason classifies the two GDA-only surfaces of
+// scaleb, whose port route is Intel bid*_scalbln with a machine-integer
+// exponent parameter:
+//   - scaleb_non_integer_exponent_operand: the decTest second operand is not a
+//     zero-exponent integer literal (a fractional value, an exponent-notation
+//     literal, an infinity, or a NaN). GDA answers these from its own operand
+//     grammar -- NaN propagation, or Invalid_operation for a non-integer -- while
+//     the port's parameter cannot carry that operand at all, so the whole channel
+//     is outside the port operation rather than a value the port gets wrong.
+//   - scaleb_exponent_out_of_gda_range: |n| exceeds the GDA context limit
+//     2 * (maxExponent + precision), where GDA returns NaN Invalid_operation.
+//     Intel bid*_scalbln applies no context range rule and scales to infinity or
+//     to zero. A NaN first operand short-circuits in both libraries, so it stays
+//     executed.
+func generatedDectestGoportScaleBReason(tc parsedCase) (string, bool) {
+	if normalizeDecTestOperation(tc.Operation) != "scaleb" || len(tc.Operands) != 2 {
+		return "", false
+	}
+	exponent, ok := generatedDectestScaleBExponentLiteral(tc.Operands[1])
+	if !ok {
+		return "scaleb_non_integer_exponent_operand", true
+	}
+	if generatedDectestParseNaNOperand(tc.Operands[0]).isNaN {
+		return "", false
+	}
+	limit := 2 * (tc.MaxExponent + tc.Precision)
+	if exponent > limit || exponent < -limit {
+		return "scaleb_exponent_out_of_gda_range", true
+	}
+	return "", false
+}
+
+// generatedDectestScaleBExponentLiteral accepts exactly the operand shape the
+// port's integer exponent parameter can carry: an optionally signed run of
+// decimal digits with no fraction part and no exponent part, fitting an int.
+func generatedDectestScaleBExponentLiteral(input string) (int, bool) {
+	trimmed := strings.TrimSpace(generatedDectestOperandString(input))
+	if trimmed == "" {
+		return 0, false
+	}
+	digits := trimmed
+	if digits[0] == '+' || digits[0] == '-' {
+		digits = digits[1:]
+	}
+	if digits == "" {
+		return 0, false
+	}
+	for _, r := range digits {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	value, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return 0, false
+	}
+	return value, true
+}
+
+// generatedDectestNumericValue is a finite decTest literal decomposed into its
+// sign, its coefficient with trailing zeros stripped, and the matching exponent,
+// plus the raw exponent for a zero (whose coefficient carries no information).
+type generatedDectestNumericValue struct {
+	sign     int
+	coeff    string
+	exponent int
+	isZero   bool
+	rawCoeff string
+	rawExp   int
+}
+
+// generatedDectestNumericLiteral decomposes a finite decTest numeric literal.
+// Infinities, NaNs, tagged literals, and malformed tokens return ok=false.
+func generatedDectestNumericLiteral(input string) (generatedDectestNumericValue, bool) {
+	trimmed := strings.TrimSpace(generatedDectestOperandString(input))
+	if trimmed == "" || trimmed == "#" {
+		return generatedDectestNumericValue{}, false
+	}
+	sign := 1
+	switch trimmed[0] {
+	case '+':
+		trimmed = trimmed[1:]
+	case '-':
+		sign = -1
+		trimmed = trimmed[1:]
+	}
+	if trimmed == "" {
+		return generatedDectestNumericValue{}, false
+	}
+	lower := strings.ToLower(trimmed)
+	if lower == "inf" || lower == "infinity" || strings.Contains(lower, "nan") {
+		return generatedDectestNumericValue{}, false
+	}
+	mantissa := trimmed
+	exponent := 0
+	if idx := strings.IndexAny(trimmed, "Ee"); idx >= 0 {
+		mantissa = trimmed[:idx]
+		parsed, err := strconv.Atoi(trimmed[idx+1:])
+		if err != nil {
+			return generatedDectestNumericValue{}, false
+		}
+		exponent = parsed
+	}
+	if strings.Count(mantissa, ".") > 1 {
+		return generatedDectestNumericValue{}, false
+	}
+	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
+		exponent -= len(mantissa) - dot - 1
+		mantissa = mantissa[:dot] + mantissa[dot+1:]
+	}
+	if mantissa == "" {
+		return generatedDectestNumericValue{}, false
+	}
+	for _, r := range mantissa {
+		if r < '0' || r > '9' {
+			return generatedDectestNumericValue{}, false
+		}
+	}
+	rawCoeff := strings.TrimLeft(mantissa, "0")
+	if rawCoeff == "" {
+		rawCoeff = "0"
+	}
+	value := generatedDectestNumericValue{sign: sign, rawCoeff: rawCoeff, rawExp: exponent, exponent: exponent}
+	if rawCoeff == "0" {
+		value.isZero = true
+		value.coeff = "0"
+		return value, true
+	}
+	coeff := rawCoeff
+	for strings.HasSuffix(coeff, "0") {
+		coeff = coeff[:len(coeff)-1]
+		value.exponent++
+	}
+	value.coeff = coeff
+	return value, true
+}
+
+func generatedDectestNumericValueEqual(left, right generatedDectestNumericValue) bool {
+	if left.isZero || right.isZero {
+		return left.isZero && right.isZero
+	}
+	return left.sign == right.sign && left.coeff == right.coeff && left.exponent == right.exponent
+}
+
+// generatedDectestGoportFMANaNPayloadPrecedenceCase is the goport leg's
+// OPERAND-ONLY fma NaN-identity divergence test. GDA fma propagation selects the
+// first signaling NaN in operand order x, y, z and otherwise the first quiet
+// NaN; the pinned Intel BID port propagates the first NaN it unpacks in y, z, x
+// order (bid-go fma64 / bid128_fma unpack order). Both libraries quietize the
+// selected NaN, so the two results differ exactly when the two selected
+// operands carry different quietized identities (sign plus payload) -- decidable
+// from the operands alone.
+//
+// It deliberately does NOT consult tc.Result or tc.Flags. The native leg's
+// generatedDectestFMANaNPayloadPrecedenceCase does (it additionally requires the
+// expected result to equal the GDA selection and the Conditions to match), and
+// that stays untouched here: this leg's rule is that a skip class must be
+// decidable from the case INPUT so it can never absorb a wrong port answer.
+//
+// testType is still consulted, for the operand payload width only: a payload
+// wider than the format's NaN payload field is not a NaN identity either
+// library can carry, so such a case is not classified.
+func generatedDectestGoportFMANaNPayloadPrecedenceCase(tc parsedCase, testType string) bool {
+	if len(tc.Operands) != 3 {
+		return false
+	}
+	var infos [3]generatedDectestNaNOperand
+	for i := range tc.Operands {
+		infos[i] = generatedDectestParseNaNOperand(tc.Operands[i])
+		if infos[i].isNaN {
+			if !generatedDectestNaNPayloadFitsType(infos[i], testType) {
+				return false
+			}
+			continue
+		}
+		if !generatedDectestFiniteValue(tc.Operands[i]) && !generatedDectestInfinity(tc.Operands[i]) {
+			return false
+		}
+	}
+	gda := -1
+	for i := range infos {
+		if infos[i].isNaN && infos[i].signaling {
+			gda = i
+			break
+		}
+	}
+	if gda < 0 {
+		for i := range infos {
+			if infos[i].isNaN {
+				gda = i
+				break
+			}
+		}
+	}
+	if gda < 0 {
+		return false
+	}
+	intel := -1
+	for _, i := range [3]int{1, 2, 0} {
+		if infos[i].isNaN {
+			intel = i
+			break
+		}
+	}
+	if intel < 0 {
+		return false
+	}
+	return infos[gda].sign != infos[intel].sign || infos[gda].payload != infos[intel].payload
+}
+
+// generatedDectestSameCohortMember reports whether two finite literals name the
+// identical cohort member: same sign (a negative zero stays distinct from a
+// positive zero), same integer coefficient, same exponent.
+func generatedDectestSameCohortMember(left, right generatedDectestNumericValue) bool {
+	return left.sign == right.sign && left.rawCoeff == right.rawCoeff && left.rawExp == right.rawExp
 }
 
 // generatedDectestGoportFlagExemptReason is the generator-side mirror of the
@@ -165,19 +500,35 @@ func generatedDectestZeroResultLowExponent(result string) bool {
 	return exponent < 0
 }
 
+// generatedDectestGoportOracleOperation is the goport leg's oracle-dispatch set:
+// every decTest operation the Go mechanical port has a routing target for. An op
+// outside it is counted as adapter_operation_out_of_leg. Keep it in lockstep with
+// the runtime dectestGoportOracleOperation and the Rust
+// dectest_goport_oracle_operation.
 func generatedDectestGoportOracleOperation(op string) bool {
 	switch op {
 	case "add", "subtract", "multiply", "divide", "quantize",
-		"compare", "comparesig", "tosci", "toeng", "tointegral", "tointegralx":
+		"compare", "comparesig", "tosci", "toeng", "tointegral", "tointegralx",
+		"abs", "plus", "minus", "copy", "copyabs", "copynegate", "copysign",
+		"class", "samequantum", "comparetotal", "comparetotmag",
+		"min", "max", "minmag", "maxmag", "logb", "scaleb",
+		"nextplus", "nextminus", "nexttoward", "fma", "remainder", "remaindernear":
 		return true
 	default:
 		return false
 	}
 }
 
+// generatedDectestGoportNaNPrecedenceOp lists the binary oracle ops whose NaN
+// identity selection can diverge between GDA (signaling NaN first) and the
+// positional propagation of the pinned Intel BID port. scaleb is excluded: its
+// second operand is not a decimal operand on the port route at all, so its NaN
+// shapes are classified by generatedDectestGoportScaleBReason instead.
 func generatedDectestGoportNaNPrecedenceOp(op string) bool {
 	switch op {
-	case "add", "subtract", "multiply", "divide", "quantize":
+	case "add", "subtract", "multiply", "divide", "quantize",
+		"min", "max", "minmag", "maxmag",
+		"remainder", "remaindernear", "nexttoward":
 		return true
 	default:
 		return false

@@ -71,6 +71,12 @@ pub(crate) struct DecTestCase {
     pub(crate) result: String,
     pub(crate) flags: Vec<String>,
     pub(crate) rounding_mode: String,
+    // precision and max_exponent carry the context directives in force at the
+    // case, mirroring the Go decTestCase fields of the same name. The scaleb
+    // classifier needs them for the GDA range limit 2 * (maxExponent +
+    // precision); every other field of the Go struct stays unmodeled here.
+    pub(crate) precision: i64,
+    pub(crate) max_exponent: i64,
 }
 
 fn split_dec_test_fields(input: &str) -> Vec<String> {
@@ -169,6 +175,8 @@ fn normalize_dec_test_rounding(value: &str) -> Result<String, String> {
 fn parse_dec_test_content(path: &Path, content: &str) -> Vec<DecTestCase> {
     let mut cases = Vec::new();
     let mut rounding = "half_even".to_string();
+    let mut precision: i64 = 0;
+    let mut max_exponent: i64 = 0;
 
     for (line_index, raw_line) in content.lines().enumerate() {
         let line_number = line_index + 1;
@@ -215,6 +223,8 @@ fn parse_dec_test_content(path: &Path, content: &str) -> Vec<DecTestCase> {
                 result: right_part[0].clone(),
                 flags,
                 rounding_mode: rounding.clone(),
+                precision,
+                max_exponent,
             });
             continue;
         }
@@ -237,14 +247,16 @@ fn parse_dec_test_content(path: &Path, content: &str) -> Vec<DecTestCase> {
             "rounding" => normalize_dec_test_rounding(value).map(|parsed| rounding = parsed),
             "precision" => parse_dec_test_directive_int(&directive, value).and_then(|parsed| {
                 if parsed > 0 {
+                    precision = parsed;
                     Ok(())
                 } else {
                     Err(format!("precision must be positive, got {parsed}"))
                 }
             }),
-            "maxexponent" | "minexponent" => {
-                parse_dec_test_directive_int(&directive, value).map(|_| ())
-            }
+            "maxexponent" => parse_dec_test_directive_int(&directive, value).map(|parsed| {
+                max_exponent = parsed;
+            }),
+            "minexponent" => parse_dec_test_directive_int(&directive, value).map(|_| ()),
             "clamp" | "extended" => {
                 parse_dec_test_directive_int(&directive, value).and_then(|parsed| {
                     if parsed == 0 || parsed == 1 {
@@ -300,13 +312,15 @@ pub(crate) fn parse_dec_test_file(path: &Path) -> Vec<DecTestCase> {
 fn generated_dectest_parser_keeps_colon_comments_and_quoted_comment_markers() {
     let cases = parse_dec_test_content(
         Path::new("inline-comment.decTest"),
-        "precision: 16 -- exact value\nrounding: half_up\ncomment001 add '--1' 0 -> NaN -- note: keep the case; ignore -> here\n",
+        "precision: 16 -- exact value\nmaxExponent: 384\nrounding: half_up\ncomment001 add '--1' 0 -> NaN -- note: keep the case; ignore -> here\n",
     );
     assert_eq!(cases.len(), 1);
     assert_eq!(cases[0].id, "comment001");
     assert_eq!(cases[0].operands, ["'--1'", "0"]);
     assert_eq!(cases[0].result, "NaN");
     assert_eq!(cases[0].rounding_mode, "half_up");
+    assert_eq!(cases[0].precision, 16);
+    assert_eq!(cases[0].max_exponent, 384);
     assert!(cases[0].flags.is_empty());
 }
 
@@ -668,11 +682,24 @@ fn dectest_goport_oracle_operation(op: &str) -> bool {
         op,
         "add" | "subtract" | "multiply" | "divide" | "quantize" | "compare" | "comparesig"
             | "tosci" | "toeng" | "tointegral" | "tointegralx"
+            | "abs" | "plus" | "minus" | "copy" | "copyabs" | "copynegate" | "copysign"
+            | "class" | "samequantum" | "comparetotal" | "comparetotmag"
+            | "min" | "max" | "minmag" | "maxmag" | "logb" | "scaleb"
+            | "nextplus" | "nextminus" | "nexttoward" | "fma" | "remainder" | "remaindernear"
     )
 }
 
 fn dectest_goport_nan_precedence_op(op: &str) -> bool {
-    matches!(op, "add" | "subtract" | "multiply" | "divide" | "quantize")
+    matches!(
+        op,
+        "add" | "subtract" | "multiply" | "divide" | "quantize"
+            | "min" | "max" | "minmag" | "maxmag"
+            | "remainder" | "remaindernear" | "nexttoward"
+    )
+}
+
+fn is_min_max_dec_test_operation(op: &str) -> bool {
+    matches!(op, "min" | "max" | "minmag" | "maxmag")
 }
 
 fn is_quiet_dec_test_nan(input: &str) -> bool {
@@ -692,6 +719,7 @@ fn is_signaling_dec_test_nan(input: &str) -> bool {
 
 struct DecTestNaNOperand {
     is_nan: bool,
+    signaling: bool,
     sign: String,
     payload: String,
 }
@@ -705,23 +733,33 @@ fn parse_dec_test_nan_operand(input: &str) -> DecTestNaNOperand {
     };
     let lower = rest.to_lowercase();
     // snan/qnan share the 4-byte prefix length; only the plain "nan" prefix is
-    // shorter. DecTestNaNOperand does not track signaling/quiet (callers already
-    // classify that separately via is_quiet_dec_test_nan/is_signaling_dec_test_nan
-    // before reaching here), so both prefixes collapse to the same branch.
-    let prefix_len = if lower.starts_with("snan") || lower.starts_with("qnan") {
-        4
+    // shorter.
+    let (prefix_len, signaling) = if lower.starts_with("snan") {
+        (4, true)
+    } else if lower.starts_with("qnan") {
+        (4, false)
     } else if lower.starts_with("nan") {
-        3
+        (3, false)
     } else {
         return DecTestNaNOperand {
             is_nan: false,
+            signaling: false,
             sign: String::new(),
             payload: String::new(),
         };
     };
     let payload_str = &rest[prefix_len..];
+    if !payload_str.chars().all(|c| c.is_ascii_digit()) {
+        return DecTestNaNOperand {
+            is_nan: false,
+            signaling: false,
+            sign: String::new(),
+            payload: String::new(),
+        };
+    }
     DecTestNaNOperand {
         is_nan: true,
+        signaling,
         sign,
         payload: payload_str.trim_start_matches('0').to_string(),
     }
@@ -760,7 +798,11 @@ pub(crate) fn should_skip_dectest_ignored_operation(ignored_operations: &[String
 /// generatedDectestGoportSkipReason. See that function's doc comment
 /// (devtools/internal/testgen/dectest_skip_reason.go) for the full rationale
 /// per bucket; the classification here must stay bit-for-bit identical.
-pub(crate) fn dectest_goport_skip_reason(ignored_operations: &[String], tc: &DecTestCase) -> Option<String> {
+pub(crate) fn dectest_goport_skip_reason(
+    ignored_operations: &[String],
+    tc: &DecTestCase,
+    test_type: &str,
+) -> Option<String> {
     let op = normalize_dec_test_operation(&tc.operation);
     if should_skip_dectest_ignored_operation(ignored_operations, &tc.operation) {
         return Some(format!("ignored_operation_{}", op));
@@ -780,10 +822,271 @@ pub(crate) fn dectest_goport_skip_reason(ignored_operations: &[String], tc: &Dec
     if dectest_goport_nan_precedence_op(&op) && dectest_goport_nan_payload_precedence(tc) {
         return Some("binary_op_nan_payload_precedence".to_string());
     }
+    if op == "fma" && dectest_goport_fma_nan_payload_precedence_case(tc, test_type) {
+        return Some("fma_nan_payload_precedence".to_string());
+    }
     if (op == "compare" || op == "comparesig") && dectest_goport_compare_has_nan_operand(tc) {
         return Some("compare_nan_operand".to_string());
     }
+    if let Some(reason) = dectest_goport_remainder_family_reason(tc, &op) {
+        return Some(reason);
+    }
+    if dectest_goport_minmax_equal_operand_cohort_case(tc) {
+        return Some("minmax_equal_operand_cohort_unspecified".to_string());
+    }
+    if dectest_goport_abs_nan_operand_case(tc) {
+        return Some("abs_nan_operand_gda_propagation".to_string());
+    }
+    if let Some(reason) = dectest_goport_scaleb_reason(tc) {
+        return Some(reason);
+    }
     None
+}
+
+/// dectest_goport_fma_nan_payload_precedence_case is this leg's OPERAND-ONLY fma
+/// NaN-identity divergence test, mirroring the Go
+/// dectestGoportFMANaNPayloadPrecedenceCase. GDA fma propagation selects the
+/// first signaling NaN in operand order x, y, z (otherwise the first quiet NaN),
+/// while the pinned Intel BID port propagates the first NaN it unpacks in
+/// y, z, x order. Both quietize the selected NaN, so the results differ exactly
+/// when the two selected operands carry different quietized identities (sign
+/// plus payload) -- decidable from the operands alone.
+///
+/// It deliberately does NOT consult tc.result or tc.flags: this leg's rule is
+/// that a skip class must be decidable from the case INPUT so it can never
+/// absorb a wrong port answer. test_type is consulted only for the operand
+/// payload width.
+fn dectest_goport_fma_nan_payload_precedence_case(tc: &DecTestCase, test_type: &str) -> bool {
+    if tc.operands.len() != 3 {
+        return false;
+    }
+    let mut infos = Vec::with_capacity(3);
+    for operand in &tc.operands {
+        let info = parse_dec_test_nan_operand(operand);
+        if info.is_nan {
+            if !dec_test_nan_payload_fits_type(&info, test_type) {
+                return false;
+            }
+        } else if !is_finite_dec_test_value(operand) && !is_dec_test_infinity(operand) {
+            return false;
+        }
+        infos.push(info);
+    }
+    let gda = match infos.iter().position(|info| info.is_nan && info.signaling) {
+        Some(index) => index,
+        None => match infos.iter().position(|info| info.is_nan) {
+            Some(index) => index,
+            None => return false,
+        },
+    };
+    let intel = match [1usize, 2, 0].iter().find(|&&i| infos[i].is_nan) {
+        Some(&index) => index,
+        None => return false,
+    };
+    infos[gda].sign != infos[intel].sign || infos[gda].payload != infos[intel].payload
+}
+
+fn dec_test_nan_payload_fits_type(info: &DecTestNaNOperand, test_type: &str) -> bool {
+    let max_digits = match test_type {
+        "decimal32" => 6,
+        "decimal64" => 15,
+        "decimal128" => 33,
+        _ => return false,
+    };
+    info.payload.len() <= max_digits
+}
+
+fn is_dec_test_infinity(input: &str) -> bool {
+    let trimmed = dec_test_operand_string(input).trim();
+    let rest = trimmed
+        .strip_prefix('+')
+        .or_else(|| trimmed.strip_prefix('-'))
+        .unwrap_or(trimmed);
+    let lower = rest.to_lowercase();
+    lower == "inf" || lower == "infinity"
+}
+
+fn is_finite_dec_test_value(input: &str) -> bool {
+    quantum_parse(dec_test_operand_string(input)).is_some()
+}
+
+fn is_default_quiet_dec_test_nan(input: &str) -> bool {
+    let info = parse_dec_test_nan_operand(input);
+    info.is_nan && !info.signaling && info.sign == "+" && info.payload.is_empty()
+}
+
+/// has_only_dec_test_conditions reports whether the case's Conditions are
+/// exactly the requested multiset, treating the empty/None/No_flags aliases as
+/// no condition. Mirrors the Go hasOnlyDecTestConditions.
+fn has_only_dec_test_conditions(flags: &[String], wants: &[&str]) -> bool {
+    let mut present: Vec<String> = Vec::new();
+    for flag in flags {
+        let normalized = normalize_dec_test_flag(flag);
+        match normalized.as_str() {
+            "" | "none" | "noflags" => continue,
+            _ => present.push(normalized),
+        }
+    }
+    if present.len() != wants.len() {
+        return false;
+    }
+    let mut matched = vec![false; wants.len()];
+    for condition in &present {
+        let mut found = false;
+        for (i, want) in wants.iter().enumerate() {
+            if !matched[i] && *condition == normalize_dec_test_flag(want) {
+                matched[i] = true;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            return false;
+        }
+    }
+    true
+}
+
+/// dectest_goport_remainder_family_reason mirrors the Go
+/// dectestGoportRemainderFamilyReason: GDA raises Division_impossible and
+/// returns NaN when the integer quotient would exceed the context precision, a
+/// context rule Intel BID's fmod/rem do not implement. Left-quiet/right-signaling
+/// NaN shapes never reach here -- both ops are in dectest_goport_nan_precedence_op.
+///
+/// Boundary note -- this is the ONE goport skip classifier that keys on the
+/// case's expected Conditions and expected result rather than on operand shapes
+/// alone, and that is deliberate. Division_impossible is not an observation of
+/// what the port produced; it is the GDA oracle declaring WHICH RESULT CHANNEL
+/// the case exercises. Intel BID's fmod/rem have no such channel, so a case on
+/// it cannot be a port failure this skip could swallow. Deriving the same region
+/// from operands alone would mean reimplementing the GDA integer-quotient
+/// digit-count rule in all three mirrors -- three drifting copies of real
+/// arithmetic replacing a one-line read of the oracle's own channel marker.
+/// Every OTHER goport skip classifier is operand-shape-only on purpose; do not
+/// use this one as precedent.
+fn dectest_goport_remainder_family_reason(tc: &DecTestCase, op: &str) -> Option<String> {
+    if op != "remainder" && op != "remaindernear" {
+        return None;
+    }
+    if tc.operands.len() != 2 || !tc.operands.iter().all(|o| is_finite_dec_test_value(o)) {
+        return None;
+    }
+    if has_only_dec_test_conditions(&tc.flags, &["divisionimpossible"])
+        && is_default_quiet_dec_test_nan(&tc.result)
+    {
+        return Some(format!("{}_gda_division_impossible_context_semantics", op));
+    }
+    None
+}
+
+/// dectest_goport_minmax_equal_operand_cohort_case mirrors the Go
+/// dectestGoportMinMaxEqualOperandCohortCase: min/max over NUMERICALLY EQUAL
+/// finite operands that are different cohort members, the region IEEE 754-2019
+/// 5.3.1 leaves unspecified.
+///
+/// The *mag forms use the SAME numeric-equality tie test, not magnitude
+/// equality: minNumMag/maxNumMag fall through to minNum/maxNum on the SIGNED
+/// operands when the magnitudes tie, and that fallthrough is fully determined
+/// whenever the signed operands differ (minmag(-1, 1) = minNum(-1, 1) = -1,
+/// a comparable case in the official minmag/maxmag decTest files).
+fn dectest_goport_minmax_equal_operand_cohort_case(tc: &DecTestCase) -> bool {
+    let op = normalize_dec_test_operation(&tc.operation);
+    if !is_min_max_dec_test_operation(&op) || tc.operands.len() != 2 {
+        return false;
+    }
+    let left = match quantum_parse(dec_test_operand_string(&tc.operands[0])) {
+        Some(q) => q,
+        None => return false,
+    };
+    let right = match quantum_parse(dec_test_operand_string(&tc.operands[1])) {
+        Some(q) => q,
+        None => return false,
+    };
+    if !quantum_value_equal(&left, &right) {
+        return false;
+    }
+    left != right
+}
+
+fn normalized_quantum(q: &Quantum) -> Quantum {
+    if q.coeff == "0" {
+        return Quantum {
+            sign: q.sign,
+            coeff: "0".to_string(),
+            exponent: 0,
+        };
+    }
+    let mut coeff = q.coeff.clone();
+    let mut exponent = q.exponent;
+    while coeff.len() > 1 && coeff.ends_with('0') {
+        coeff.pop();
+        exponent += 1;
+    }
+    Quantum {
+        sign: q.sign,
+        coeff,
+        exponent,
+    }
+}
+
+fn quantum_value_equal(left: &Quantum, right: &Quantum) -> bool {
+    if left.coeff == "0" || right.coeff == "0" {
+        return left.coeff == "0" && right.coeff == "0";
+    }
+    normalized_quantum(left) == normalized_quantum(right)
+}
+
+/// dectest_goport_abs_nan_operand_case mirrors the Go
+/// dectestGoportAbsNaNOperandCase: decTest's abs is the GDA arithmetic abs
+/// (keeps the NaN operand's sign, quietizes sNaN with Invalid_operation) while
+/// the port routes it to Intel bid*_abs, the IEEE 5.5.1 quiet sign-clear.
+fn dectest_goport_abs_nan_operand_case(tc: &DecTestCase) -> bool {
+    if normalize_dec_test_operation(&tc.operation) != "abs" || tc.operands.len() != 1 {
+        return false;
+    }
+    let info = parse_dec_test_nan_operand(&tc.operands[0]);
+    if !info.is_nan {
+        return false;
+    }
+    info.signaling || info.sign == "-"
+}
+
+/// dectest_goport_scaleb_reason mirrors the Go dectestGoportScaleBReason: the
+/// port route is Intel bid*_scalbln with a machine-integer exponent parameter,
+/// so second-operand shapes that parameter cannot carry, and exponents outside
+/// the GDA context range 2 * (maxExponent + precision), are the two GDA-only
+/// surfaces of scaleb.
+fn dectest_goport_scaleb_reason(tc: &DecTestCase) -> Option<String> {
+    if normalize_dec_test_operation(&tc.operation) != "scaleb" || tc.operands.len() != 2 {
+        return None;
+    }
+    let exponent = match dectest_goport_scaleb_exponent_literal(&tc.operands[1]) {
+        Some(value) => value,
+        None => return Some("scaleb_non_integer_exponent_operand".to_string()),
+    };
+    if parse_dec_test_nan_operand(&tc.operands[0]).is_nan {
+        return None;
+    }
+    let limit = 2 * (tc.max_exponent + tc.precision);
+    if exponent > limit || exponent < -limit {
+        return Some("scaleb_exponent_out_of_gda_range".to_string());
+    }
+    None
+}
+
+fn dectest_goport_scaleb_exponent_literal(input: &str) -> Option<i64> {
+    let trimmed = dec_test_operand_string(input).trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let digits = trimmed
+        .strip_prefix('+')
+        .or_else(|| trimmed.strip_prefix('-'))
+        .unwrap_or(trimmed);
+    if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    trimmed.parse::<i64>().ok()
 }
 
 /// dectest_goport_flag_exempt_reason is the runtime mirror of the
@@ -999,6 +1302,18 @@ fn comparable_decimal_results_equal(left: &ComparableDecimal, right: &Comparable
 }
 
 pub(crate) fn compare_decimal_results(expected: &str, actual: &str) -> bool {
+    // Token fast path, mirroring the Go compareDecimalResults'
+    // normalizeDecimalResult pre-check: the class oracle op's result is a GDA
+    // class spelling ("+Normal", "sNaN", ...), not a numeric literal, so the
+    // structural comparator below cannot parse either side. Go's normalizer
+    // leaves such a token unchanged apart from the surrounding quotes, so equal
+    // tokens compare equal and distinct tokens still fall through to the
+    // structural comparator and fail there.
+    if expected.trim_matches(|c| c == '\'' || c == '"')
+        == actual.trim_matches(|c| c == '\'' || c == '"')
+    {
+        return true;
+    }
     match (parse_comparable_decimal(expected), parse_comparable_decimal(actual)) {
         (Some(l), Some(r)) => comparable_decimal_results_equal(&l, &r),
         _ => false,
@@ -1104,7 +1419,542 @@ pub(crate) fn run_dectest_goport_case(tc: &DecTestCase, test_type: &str) -> Resu
         "compare" | "comparesig" => execute_dectest_goport_compare(tc, test_type, rnd_mode),
         "tointegral" | "tointegralx" => execute_dectest_goport_to_integral(tc, test_type, rnd_mode),
         "tosci" | "toeng" => execute_dectest_goport_string(tc, test_type, rnd_mode),
+        op @ ("abs" | "copy" | "copyabs" | "copynegate" | "plus" | "minus" | "nextplus"
+            | "nextminus" | "logb") => execute_dectest_goport_unary(op, tc, test_type, rnd_mode),
+        "class" => execute_dectest_goport_class(tc, test_type, rnd_mode),
+        "samequantum" => execute_dectest_goport_same_quantum(tc, test_type, rnd_mode),
+        op @ ("comparetotal" | "comparetotmag") => {
+            execute_dectest_goport_compare_total(op, tc, test_type, rnd_mode)
+        }
+        "copysign" => execute_dectest_goport_copy_sign(tc, test_type, rnd_mode),
+        op @ ("min" | "max" | "minmag" | "maxmag") => {
+            execute_dectest_goport_min_max(op, tc, test_type, rnd_mode)
+        }
+        op @ ("remainder" | "remaindernear") => {
+            execute_dectest_goport_remainder_family(op, tc, test_type, rnd_mode)
+        }
+        "scaleb" => execute_dectest_goport_scaleb(tc, test_type, rnd_mode),
+        "nexttoward" => execute_dectest_goport_next_toward(tc, test_type, rnd_mode),
+        "fma" => execute_dectest_goport_fma(tc, test_type, rnd_mode),
         _ => Err(format!("unsupported decTest operation: {}", tc.operation)),
+    }
+}
+
+/// GDA's plus/minus add or subtract a zero carrying the PARSED operand's own
+/// exponent (decNumberPlus/decNumberMinus set dzero.exponent = rhs->exponent),
+/// and IEEE's preferred exponent for an exact sum is min(Q(x), Q(y)), so the
+/// addend's quantum must come from bid*_quantexp of the fixed-width operand the
+/// engine parsed -- not the case's source exponent, raw zero bits, or a fixed "0".
+const DECTEST_GOPORT_NON_FINITE_ZERO_LITERAL: &str = "0";
+
+fn dectest_goport_zero_addend_literal(quantum: i32) -> String {
+    format!("0E{:+}", quantum)
+}
+
+/// dectest_goport_zero_addend_check fails the case closed when the synthesized
+/// addend is not the exact cohort member plus/minus is defined over. Its own
+/// parse status never joins the case status: the case accumulates the original
+/// operand-parse flags and the add/subtract flags only.
+fn dectest_goport_zero_addend_check(
+    literal: &str,
+    parse_flags: u32,
+    positive_zero: bool,
+    quantum_matches: bool,
+) -> Result<(), String> {
+    if parse_flags != 0 {
+        return Err(format!(
+            "plus/minus zero addend {:?} raised parse flags {:#010x}",
+            literal, parse_flags
+        ));
+    }
+    if !positive_zero {
+        return Err(format!(
+            "plus/minus zero addend {:?} did not parse to a positive zero",
+            literal
+        ));
+    }
+    if !quantum_matches {
+        return Err(format!(
+            "plus/minus zero addend {:?} does not share the operand quantum",
+            literal
+        ));
+    }
+    Ok(())
+}
+
+fn dectest_goport_zero_addend_32(a: u32, rnd_mode: i64) -> Result<u32, String> {
+    let finite = bid32_is_finite(a) != 0;
+    let literal = if finite {
+        let (quantum, quantexp_flags) = bid32_quantexp(a);
+        if quantexp_flags != 0 {
+            return Err(format!(
+                "plus/minus quantexp raised {:#010x} on a finite operand",
+                quantexp_flags
+            ));
+        }
+        dectest_goport_zero_addend_literal(quantum)
+    } else {
+        DECTEST_GOPORT_NON_FINITE_ZERO_LITERAL.to_string()
+    };
+    let (zero, parse_flags) = parse_decimal32_port_mode(&literal, rnd_mode);
+    dectest_goport_zero_addend_check(
+        &literal,
+        parse_flags,
+        bid32_is_zero(zero) && bid32_is_signed(zero) == 0,
+        !finite || bid32_same_quantum(zero, a),
+    )?;
+    Ok(zero)
+}
+
+fn dectest_goport_zero_addend_64(a: u64, rnd_mode: i64) -> Result<u64, String> {
+    let finite = bid64_is_finite(a) != 0;
+    let literal = if finite {
+        let (quantum, quantexp_flags) = bid64_quantexp(a);
+        if quantexp_flags != 0 {
+            return Err(format!(
+                "plus/minus quantexp raised {:#010x} on a finite operand",
+                quantexp_flags
+            ));
+        }
+        dectest_goport_zero_addend_literal(quantum)
+    } else {
+        DECTEST_GOPORT_NON_FINITE_ZERO_LITERAL.to_string()
+    };
+    let (zero, parse_flags) = parse_decimal64_port_mode(&literal, rnd_mode);
+    dectest_goport_zero_addend_check(
+        &literal,
+        parse_flags,
+        bid64_is_zero(zero) != 0 && bid64_is_signed(zero) == 0,
+        !finite || bid64_same_quantum(zero, a) != 0,
+    )?;
+    Ok(zero)
+}
+
+fn dectest_goport_zero_addend_128(a: BID_UINT128, rnd_mode: i64) -> Result<BID_UINT128, String> {
+    let finite = bid128_is_finite(a) != 0;
+    let literal = if finite {
+        let mut quantexp_flags: u32 = 0;
+        let quantum = bid128_quantexp(a, &mut quantexp_flags);
+        if quantexp_flags != 0 {
+            return Err(format!(
+                "plus/minus quantexp raised {:#010x} on a finite operand",
+                quantexp_flags
+            ));
+        }
+        dectest_goport_zero_addend_literal(quantum)
+    } else {
+        DECTEST_GOPORT_NON_FINITE_ZERO_LITERAL.to_string()
+    };
+    let (zero, parse_flags) = parse_decimal128_port_mode(&literal, rnd_mode);
+    dectest_goport_zero_addend_check(
+        &literal,
+        parse_flags,
+        bid128_is_zero(zero) != 0 && bid128_is_signed(zero) == 0,
+        !finite || bid128_same_quantum(zero, a) != 0,
+    )?;
+    Ok(zero)
+}
+
+/// execute_dectest_goport_unary mirrors the Go leg's executeDectestGoportUnary:
+/// abs/copyabs route to the generated bid*_abs sign-clear, copy to bid*_copy,
+/// copynegate to bid*_negate (all quiet, no flags), plus/minus to the generated
+/// add/subtract against a parsed zero carrying the operand's own quantum
+/// (dectest_goport_zero_addend_literal) at the case rounding mode,
+/// nextplus/nextminus to bid*_next_up / bid*_next_down, and logb to bid*_logb.
+fn execute_dectest_goport_unary(op: &str, tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 1 {
+        return Err(format!("{} requires 1 operand, got {}", tc.operation, tc.operands.len()));
+    }
+    let operand = dec_test_operand_string(&tc.operands[0]);
+    match test_type {
+        "decimal32" => {
+            let (a, parse_flags) = parse_decimal32_port_mode(operand, rnd_mode);
+            let (result, op_flags) = match op {
+                "abs" | "copyabs" => (bid32_abs(a), 0u32),
+                "copy" => (bid32_copy(a), 0u32),
+                "copynegate" => (bid32_negate(a), 0u32),
+                "plus" => bid32_add_with_flags(dectest_goport_zero_addend_32(a, rnd_mode)?, a, rnd_mode),
+                "minus" => bid32_sub_with_flags(dectest_goport_zero_addend_32(a, rnd_mode)?, a, rnd_mode),
+                "nextplus" => bid32_next_up(a),
+                "nextminus" => bid32_next_down(a),
+                "logb" => bid32_logb(a),
+                _ => return Err(format!("unsupported decTest operation: {}", op)),
+            };
+            Ok((decimal32_string_port(result), parse_flags | op_flags))
+        }
+        "decimal64" => {
+            let (a, parse_flags) = parse_decimal64_port_mode(operand, rnd_mode);
+            let (result, op_flags) = match op {
+                "abs" | "copyabs" => (bid64_abs(a), 0u32),
+                "copy" => (bid64_copy(a), 0u32),
+                "copynegate" => (bid64_negate(a), 0u32),
+                "plus" => bid64_add_with_flags(dectest_goport_zero_addend_64(a, rnd_mode)?, a, rnd_mode),
+                "minus" => bid64_sub_with_flags(dectest_goport_zero_addend_64(a, rnd_mode)?, a, rnd_mode),
+                "nextplus" => bid64_next_up(a),
+                "nextminus" => bid64_next_down(a),
+                "logb" => bid64_logb(a),
+                _ => return Err(format!("unsupported decTest operation: {}", op)),
+            };
+            Ok((decimal64_string_port(result), parse_flags | op_flags))
+        }
+        "decimal128" => {
+            let (a, parse_flags) = parse_decimal128_port_mode(operand, rnd_mode);
+            let (result, op_flags) = match op {
+                "abs" | "copyabs" => (bid128_abs(a), 0u32),
+                "copy" => (bid128_copy(a), 0u32),
+                "copynegate" => (bid128_negate(a), 0u32),
+                "plus" => {
+                    let zero = dectest_goport_zero_addend_128(a, rnd_mode)?;
+                    let mut pfpsf: u32 = 0;
+                    let r = bid128_add(zero, a, rnd_mode, &mut pfpsf);
+                    (r, pfpsf)
+                }
+                "minus" => {
+                    let zero = dectest_goport_zero_addend_128(a, rnd_mode)?;
+                    let mut pfpsf: u32 = 0;
+                    let r = bid128_sub(zero, a, rnd_mode, &mut pfpsf);
+                    (r, pfpsf)
+                }
+                "nextplus" => bid128_next_up(a),
+                "nextminus" => bid128_next_down(a),
+                "logb" => {
+                    let mut pfpsf: u32 = 0;
+                    let r = bid128_logb(a, &mut pfpsf);
+                    (r, pfpsf)
+                }
+                _ => return Err(format!("unsupported decTest operation: {}", op)),
+            };
+            Ok((decimal128_string_port(result), parse_flags | op_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+/// dectest_goport_class_token maps the generated bid*_class integer onto the GDA
+/// decTest class spelling, mirroring the Go decimalClassFromBIDClass /
+/// DecimalClass constants the Go leg's class route renders through.
+fn dectest_goport_class_token(class: i64) -> &'static str {
+    match class {
+        0 => "sNaN",
+        2 => "-Infinity",
+        3 => "-Normal",
+        4 => "-Subnormal",
+        5 => "-Zero",
+        6 => "+Zero",
+        7 => "+Subnormal",
+        8 => "+Normal",
+        9 => "+Infinity",
+        _ => "NaN",
+    }
+}
+
+fn execute_dectest_goport_class(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 1 {
+        return Err(format!("{} requires 1 operand, got {}", tc.operation, tc.operands.len()));
+    }
+    let operand = dec_test_operand_string(&tc.operands[0]);
+    match test_type {
+        "decimal32" => {
+            let (d, flags) = parse_decimal32_port_mode(operand, rnd_mode);
+            Ok((dectest_goport_class_token(bid32_class(d)).to_string(), flags))
+        }
+        "decimal64" => {
+            let (d, flags) = parse_decimal64_port_mode(operand, rnd_mode);
+            Ok((dectest_goport_class_token(bid64_class(d)).to_string(), flags))
+        }
+        "decimal128" => {
+            let (d, flags) = parse_decimal128_port_mode(operand, rnd_mode);
+            Ok((dectest_goport_class_token(bid128_class(d)).to_string(), flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+fn execute_dectest_goport_same_quantum(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let first = dec_test_operand_string(&tc.operands[0]);
+    let second = dec_test_operand_string(&tc.operands[1]);
+    let (same, flags) = match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(second, rnd_mode);
+            (bid32_same_quantum(a, b), a_flags | b_flags)
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(second, rnd_mode);
+            (bid64_same_quantum(a, b) != 0, a_flags | b_flags)
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(second, rnd_mode);
+            (bid128_same_quantum(a, b) != 0, a_flags | b_flags)
+        }
+        _ => return Err(format!("unsupported decTest test type: {}", test_type)),
+    };
+    Ok((if same { "1" } else { "0" }.to_string(), flags))
+}
+
+/// total_order_comparison mirrors the Go totalOrderComparison: the generated
+/// engine exposes the IEEE total order as a "less than or equal" predicate, so
+/// the -1/0/1 decTest token is derived from the two directions.
+fn total_order_comparison(left_le: i64, right_le: i64) -> i64 {
+    if left_le != 0 && right_le != 0 {
+        0
+    } else if left_le != 0 {
+        -1
+    } else {
+        1
+    }
+}
+
+fn execute_dectest_goport_compare_total(op: &str, tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let magnitude = op == "comparetotmag";
+    let first = dec_test_operand_string(&tc.operands[0]);
+    let second = dec_test_operand_string(&tc.operands[1]);
+    let (ordering, flags) = match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(second, rnd_mode);
+            let ordering = if magnitude {
+                total_order_comparison(bid32_total_order_mag(a, b), bid32_total_order_mag(b, a))
+            } else {
+                total_order_comparison(bid32_total_order(a, b), bid32_total_order(b, a))
+            };
+            (ordering, a_flags | b_flags)
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(second, rnd_mode);
+            let ordering = if magnitude {
+                total_order_comparison(bid64_total_order_mag(a, b), bid64_total_order_mag(b, a))
+            } else {
+                total_order_comparison(bid64_total_order(a, b), bid64_total_order(b, a))
+            };
+            (ordering, a_flags | b_flags)
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(second, rnd_mode);
+            let ordering = if magnitude {
+                total_order_comparison(bid128_total_order_mag(a, b), bid128_total_order_mag(b, a))
+            } else {
+                total_order_comparison(bid128_total_order(a, b), bid128_total_order(b, a))
+            };
+            (ordering, a_flags | b_flags)
+        }
+        _ => return Err(format!("unsupported decTest test type: {}", test_type)),
+    };
+    Ok((ordering.to_string(), flags))
+}
+
+fn execute_dectest_goport_copy_sign(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let first = dec_test_operand_string(&tc.operands[0]);
+    let second = dec_test_operand_string(&tc.operands[1]);
+    match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(second, rnd_mode);
+            Ok((decimal32_string_port(bid32_copy_sign(a, b)), a_flags | b_flags))
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(second, rnd_mode);
+            Ok((decimal64_string_port(bid64_copy_sign(a, b)), a_flags | b_flags))
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(second, rnd_mode);
+            Ok((decimal128_string_port(bid128_copy_sign(a, b)), a_flags | b_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+fn execute_dectest_goport_min_max(op: &str, tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let first = dec_test_operand_string(&tc.operands[0]);
+    let second = dec_test_operand_string(&tc.operands[1]);
+    match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(second, rnd_mode);
+            let (result, op_flags) = match op {
+                "min" => bid32_min_num_with_flags(a, b),
+                "max" => bid32_max_num_with_flags(a, b),
+                "minmag" => bid32_min_num_mag_with_flags(a, b),
+                "maxmag" => bid32_max_num_mag_with_flags(a, b),
+                _ => return Err(format!("unsupported decTest operation: {}", op)),
+            };
+            Ok((decimal32_string_port(result), a_flags | b_flags | op_flags))
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(second, rnd_mode);
+            let (result, op_flags) = match op {
+                "min" => bid64_min_num(a, b),
+                "max" => bid64_max_num(a, b),
+                "minmag" => bid64_min_num_mag(a, b),
+                "maxmag" => bid64_max_num_mag(a, b),
+                _ => return Err(format!("unsupported decTest operation: {}", op)),
+            };
+            Ok((decimal64_string_port(result), a_flags | b_flags | op_flags))
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(second, rnd_mode);
+            let mut pfpsf: u32 = 0;
+            let result = match op {
+                "min" => bid128_minnum(a, b, &mut pfpsf),
+                "max" => bid128_maxnum(a, b, &mut pfpsf),
+                "minmag" => bid128_minnum_mag(a, b, &mut pfpsf),
+                "maxmag" => bid128_maxnum_mag(a, b, &mut pfpsf),
+                _ => return Err(format!("unsupported decTest operation: {}", op)),
+            };
+            Ok((decimal128_string_port(result), a_flags | b_flags | pfpsf))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+/// execute_dectest_goport_remainder_family routes the GDA remainder (truncated,
+/// C fmod semantics) to the generated bid*_fmod and remainderNear (IEEE
+/// round-to-nearest remainder) to the generated bid*_rem, mirroring the Go leg.
+fn execute_dectest_goport_remainder_family(op: &str, tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let near = op == "remaindernear";
+    let first = dec_test_operand_string(&tc.operands[0]);
+    let second = dec_test_operand_string(&tc.operands[1]);
+    match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(second, rnd_mode);
+            let (result, op_flags) = if near { bid32_rem(a, b) } else { bid32_fmod(a, b) };
+            Ok((decimal32_string_port(result), a_flags | b_flags | op_flags))
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(second, rnd_mode);
+            let (result, op_flags) = if near { bid64_rem(a, b) } else { bid64_fmod(a, b) };
+            Ok((decimal64_string_port(result), a_flags | b_flags | op_flags))
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(second, rnd_mode);
+            let (result, op_flags) = if near { bid128_rem(a, b) } else { bid128_fmod(a, b) };
+            Ok((decimal128_string_port(result), a_flags | b_flags | op_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+fn execute_dectest_goport_scaleb(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let exponent = dectest_goport_scaleb_exponent_literal(&tc.operands[1]).ok_or_else(|| {
+        "scaleb non-integer exponent operand reached goport executor; skip-filter divergence"
+            .to_string()
+    })?;
+    let operand = dec_test_operand_string(&tc.operands[0]);
+    match test_type {
+        "decimal32" => {
+            let (a, parse_flags) = parse_decimal32_port_mode(operand, rnd_mode);
+            let (result, op_flags) = bid32_scalbln_with_flags(a, exponent, rnd_mode);
+            Ok((decimal32_string_port(result), parse_flags | op_flags))
+        }
+        "decimal64" => {
+            let (a, parse_flags) = parse_decimal64_port_mode(operand, rnd_mode);
+            let (result, op_flags) = bid64_scalbln(a, exponent, rnd_mode);
+            Ok((decimal64_string_port(result), parse_flags | op_flags))
+        }
+        "decimal128" => {
+            let (a, parse_flags) = parse_decimal128_port_mode(operand, rnd_mode);
+            let mut pfpsf: u32 = 0;
+            let result = bid128_scalbln(a, exponent, rnd_mode, &mut pfpsf);
+            Ok((decimal128_string_port(result), parse_flags | pfpsf))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+/// execute_dectest_goport_next_toward mirrors the Go leg's routing: Intel's
+/// narrower-width nexttoward entrypoints take the toward operand in Decimal128,
+/// so the Decimal32/Decimal64 legs widen the parsed second operand through the
+/// generated engine's own exact bid*_to_bid128 conversion.
+fn execute_dectest_goport_next_toward(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 2 {
+        return Err(format!("{} requires 2 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let first = dec_test_operand_string(&tc.operands[0]);
+    let second = dec_test_operand_string(&tc.operands[1]);
+    match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(second, rnd_mode);
+            let (target, widen_flags) = bid32_to_bid128(b);
+            let (result, op_flags) = bid32_next_toward(a, target);
+            Ok((decimal32_string_port(result), a_flags | b_flags | widen_flags | op_flags))
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(second, rnd_mode);
+            let (target, widen_flags) = bid64_to_bid128(b);
+            let (result, op_flags) = bid64_next_toward(a, target);
+            Ok((decimal64_string_port(result), a_flags | b_flags | widen_flags | op_flags))
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(second, rnd_mode);
+            let (result, op_flags) = bid128_next_toward(a, b);
+            Ok((decimal128_string_port(result), a_flags | b_flags | op_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
+    }
+}
+
+fn execute_dectest_goport_fma(tc: &DecTestCase, test_type: &str, rnd_mode: i64) -> Result<(String, u32), String> {
+    if tc.operands.len() != 3 {
+        return Err(format!("{} requires 3 operands, got {}", tc.operation, tc.operands.len()));
+    }
+    let first = dec_test_operand_string(&tc.operands[0]);
+    let second = dec_test_operand_string(&tc.operands[1]);
+    let third = dec_test_operand_string(&tc.operands[2]);
+    match test_type {
+        "decimal32" => {
+            let (a, a_flags) = parse_decimal32_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal32_port_mode(second, rnd_mode);
+            let (c, c_flags) = parse_decimal32_port_mode(third, rnd_mode);
+            let (result, op_flags) = bid32_fma(a, b, c, rnd_mode);
+            Ok((decimal32_string_port(result), a_flags | b_flags | c_flags | op_flags))
+        }
+        "decimal64" => {
+            let (a, a_flags) = parse_decimal64_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal64_port_mode(second, rnd_mode);
+            let (c, c_flags) = parse_decimal64_port_mode(third, rnd_mode);
+            let (result, op_flags) = bid64_fma(a, b, c, rnd_mode);
+            Ok((decimal64_string_port(result), a_flags | b_flags | c_flags | op_flags))
+        }
+        "decimal128" => {
+            let (a, a_flags) = parse_decimal128_port_mode(first, rnd_mode);
+            let (b, b_flags) = parse_decimal128_port_mode(second, rnd_mode);
+            let (c, c_flags) = parse_decimal128_port_mode(third, rnd_mode);
+            let (result, op_flags) = bid128_fma(a, b, c, rnd_mode);
+            Ok((decimal128_string_port(result), a_flags | b_flags | c_flags | op_flags))
+        }
+        _ => Err(format!("unsupported decTest test type: {}", test_type)),
     }
 }
 
@@ -1420,15 +2270,15 @@ const EXPECTED_COVERAGE: &[SuiteCoverage] = &[
     SuiteCoverage {
         name: "Decimal64",
         cases: 11940,
-        executed: 5297,
-        skip_reasons: &[("adapter_operation_out_of_leg", 6152), ("binary_op_nan_payload_precedence", 16), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("ignored_operation_apply", 4), ("tagged_literal", 16), ("unsupported_rounding", 238)],
+        executed: 11066,
+        skip_reasons: &[("abs_nan_operand_gda_propagation", 4), ("binary_op_nan_payload_precedence", 28), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("fma_nan_payload_precedence", 13), ("ignored_operation_apply", 4), ("minmax_equal_operand_cohort_unspecified", 216), ("remainder_gda_division_impossible_context_semantics", 7), ("remaindernear_gda_division_impossible_context_semantics", 7), ("scaleb_exponent_out_of_gda_range", 4), ("scaleb_non_integer_exponent_operand", 38), ("tagged_literal", 42), ("unsupported_rounding", 294)],
         flag_exempt: &[("from_string_zero_low_clamp_divergence", 2)],
     },
     SuiteCoverage {
         name: "Decimal128",
         cases: 12313,
-        executed: 5308,
-        skip_reasons: &[("adapter_operation_out_of_leg", 6240), ("binary_op_nan_payload_precedence", 16), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("ignored_operation_apply", 371), ("tagged_literal", 17), ("unsupported_rounding", 144)],
+        executed: 11147,
+        skip_reasons: &[("abs_nan_operand_gda_propagation", 4), ("binary_op_nan_payload_precedence", 28), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("fma_nan_payload_precedence", 13), ("ignored_operation_apply", 371), ("minmax_equal_operand_cohort_unspecified", 216), ("remainder_gda_division_impossible_context_semantics", 7), ("remaindernear_gda_division_impossible_context_semantics", 7), ("scaleb_exponent_out_of_gda_range", 4), ("scaleb_non_integer_exponent_operand", 38), ("tagged_literal", 43), ("unsupported_rounding", 218)],
         flag_exempt: &[("from_string_zero_low_clamp_divergence", 2)],
     },
 ];
@@ -1672,7 +2522,7 @@ fn generated_dectest_suites_go_port() {
             let path = repo_root.join("devtools").join(file);
             let cases = parse_dec_test_file(&path);
             for tc in &cases {
-                if let Some(reason) = dectest_goport_skip_reason(&suite.ignored_operations, tc) {
+                if let Some(reason) = dectest_goport_skip_reason(&suite.ignored_operations, tc, &suite.test_type) {
                     *skip_reasons.entry(reason).or_insert(0) += 1;
                     continue;
                 }
@@ -1785,4 +2635,302 @@ fn generated_dectest_suites_go_port() {
         "rust dectest value/quantum/flag cross-check: {} case(s) diverged from the IBM expected case",
         total_failed
     );
+}
+
+// plus/minus quantum strength anchor: hand-pinned known answers derived
+// independently from IBM decNumber 3.68, never computed from this engine. They
+// close what the consumed suites leave open -- the Decimal32 suite carries no
+// q>0 zero plus/minus witness, and no suite closes both operations across all
+// three widths, all five rounding modes, and the clamp/etiny/special boundaries
+// at once. Every row runs through run_dectest_goport_case with no skip or
+// flag-exemption classifier in between. The canonical rows are byte-identical to
+// the Go leg's literal and pinned outside every generation path in
+// devtools/verification_sentinels.json.
+
+const DECTEST_PLUS_MINUS_STRENGTH_ROW_COUNT: usize = 96;
+const DECTEST_PLUS_MINUS_STRENGTH_BID5_MASK: u32 = 0x3d;
+
+const DECTEST_PLUS_MINUS_STRENGTH_ROWS: [&str; 96] = [
+    "decimal32 plus mode=half_even in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal32 plus mode=floor in=-0E+3 out=-0E+3 bid5=00000000",
+    "decimal32 plus mode=ceiling in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal32 plus mode=down in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal32 plus mode=half_up in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal32 plus mode=half_even in=56267E+1 out=5.6267E+5 bid5=00000000",
+    "decimal32 plus mode=half_even in=56267 out=56267 bid5=00000000",
+    "decimal32 plus mode=half_even in=56267E-2 out=562.67 bid5=00000000",
+    "decimal32 plus mode=half_even in=12345675E+3 out=1.234568E+10 bid5=00000020",
+    "decimal32 plus mode=half_even in=0E+96 out=0E+90 bid5=00000000",
+    "decimal32 plus mode=half_even in=1E+96 out=1.000000E+96 bid5=00000000",
+    "decimal32 plus mode=half_even in=1E-101 out=1E-101 bid5=00000000",
+    "decimal32 plus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+    "decimal32 plus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+    "decimal32 plus mode=half_even in=Infinity out=Infinity bid5=00000000",
+    "decimal32 plus mode=half_even in=-Infinity out=-Infinity bid5=00000000",
+    "decimal32 minus mode=half_even in=0E+3 out=0E+3 bid5=00000000",
+    "decimal32 minus mode=floor in=0E+3 out=-0E+3 bid5=00000000",
+    "decimal32 minus mode=ceiling in=0E+3 out=0E+3 bid5=00000000",
+    "decimal32 minus mode=down in=0E+3 out=0E+3 bid5=00000000",
+    "decimal32 minus mode=half_up in=0E+3 out=0E+3 bid5=00000000",
+    "decimal32 minus mode=half_even in=56267E+1 out=-5.6267E+5 bid5=00000000",
+    "decimal32 minus mode=half_even in=56267 out=-56267 bid5=00000000",
+    "decimal32 minus mode=half_even in=56267E-2 out=-562.67 bid5=00000000",
+    "decimal32 minus mode=half_even in=12345675E+3 out=-1.234568E+10 bid5=00000020",
+    "decimal32 minus mode=half_even in=0E+96 out=0E+90 bid5=00000000",
+    "decimal32 minus mode=half_even in=1E+96 out=-1.000000E+96 bid5=00000000",
+    "decimal32 minus mode=half_even in=1E-101 out=-1E-101 bid5=00000000",
+    "decimal32 minus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+    "decimal32 minus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+    "decimal32 minus mode=half_even in=Infinity out=-Infinity bid5=00000000",
+    "decimal32 minus mode=half_even in=-Infinity out=Infinity bid5=00000000",
+    "decimal64 plus mode=half_even in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal64 plus mode=floor in=-0E+3 out=-0E+3 bid5=00000000",
+    "decimal64 plus mode=ceiling in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal64 plus mode=down in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal64 plus mode=half_up in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal64 plus mode=half_even in=56267E+1 out=5.6267E+5 bid5=00000000",
+    "decimal64 plus mode=half_even in=56267 out=56267 bid5=00000000",
+    "decimal64 plus mode=half_even in=56267E-2 out=562.67 bid5=00000000",
+    "decimal64 plus mode=half_even in=12345678901234565E+3 out=1.234567890123456E+19 bid5=00000020",
+    "decimal64 plus mode=half_even in=0E+384 out=0E+369 bid5=00000000",
+    "decimal64 plus mode=half_even in=1E+384 out=1.000000000000000E+384 bid5=00000000",
+    "decimal64 plus mode=half_even in=1E-398 out=1E-398 bid5=00000000",
+    "decimal64 plus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+    "decimal64 plus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+    "decimal64 plus mode=half_even in=Infinity out=Infinity bid5=00000000",
+    "decimal64 plus mode=half_even in=-Infinity out=-Infinity bid5=00000000",
+    "decimal64 minus mode=half_even in=0E+3 out=0E+3 bid5=00000000",
+    "decimal64 minus mode=floor in=0E+3 out=-0E+3 bid5=00000000",
+    "decimal64 minus mode=ceiling in=0E+3 out=0E+3 bid5=00000000",
+    "decimal64 minus mode=down in=0E+3 out=0E+3 bid5=00000000",
+    "decimal64 minus mode=half_up in=0E+3 out=0E+3 bid5=00000000",
+    "decimal64 minus mode=half_even in=56267E+1 out=-5.6267E+5 bid5=00000000",
+    "decimal64 minus mode=half_even in=56267 out=-56267 bid5=00000000",
+    "decimal64 minus mode=half_even in=56267E-2 out=-562.67 bid5=00000000",
+    "decimal64 minus mode=half_even in=12345678901234565E+3 out=-1.234567890123456E+19 bid5=00000020",
+    "decimal64 minus mode=half_even in=0E+384 out=0E+369 bid5=00000000",
+    "decimal64 minus mode=half_even in=1E+384 out=-1.000000000000000E+384 bid5=00000000",
+    "decimal64 minus mode=half_even in=1E-398 out=-1E-398 bid5=00000000",
+    "decimal64 minus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+    "decimal64 minus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+    "decimal64 minus mode=half_even in=Infinity out=-Infinity bid5=00000000",
+    "decimal64 minus mode=half_even in=-Infinity out=Infinity bid5=00000000",
+    "decimal128 plus mode=half_even in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal128 plus mode=floor in=-0E+3 out=-0E+3 bid5=00000000",
+    "decimal128 plus mode=ceiling in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal128 plus mode=down in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal128 plus mode=half_up in=-0E+3 out=0E+3 bid5=00000000",
+    "decimal128 plus mode=half_even in=56267E+1 out=5.6267E+5 bid5=00000000",
+    "decimal128 plus mode=half_even in=56267 out=56267 bid5=00000000",
+    "decimal128 plus mode=half_even in=56267E-2 out=562.67 bid5=00000000",
+    "decimal128 plus mode=half_even in=12345678901234567890123456789012345E+3 out=1.234567890123456789012345678901234E+37 bid5=00000020",
+    "decimal128 plus mode=half_even in=0E+6144 out=0E+6111 bid5=00000000",
+    "decimal128 plus mode=half_even in=1E+6144 out=1.000000000000000000000000000000000E+6144 bid5=00000000",
+    "decimal128 plus mode=half_even in=1E-6176 out=1E-6176 bid5=00000000",
+    "decimal128 plus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+    "decimal128 plus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+    "decimal128 plus mode=half_even in=Infinity out=Infinity bid5=00000000",
+    "decimal128 plus mode=half_even in=-Infinity out=-Infinity bid5=00000000",
+    "decimal128 minus mode=half_even in=0E+3 out=0E+3 bid5=00000000",
+    "decimal128 minus mode=floor in=0E+3 out=-0E+3 bid5=00000000",
+    "decimal128 minus mode=ceiling in=0E+3 out=0E+3 bid5=00000000",
+    "decimal128 minus mode=down in=0E+3 out=0E+3 bid5=00000000",
+    "decimal128 minus mode=half_up in=0E+3 out=0E+3 bid5=00000000",
+    "decimal128 minus mode=half_even in=56267E+1 out=-5.6267E+5 bid5=00000000",
+    "decimal128 minus mode=half_even in=56267 out=-56267 bid5=00000000",
+    "decimal128 minus mode=half_even in=56267E-2 out=-562.67 bid5=00000000",
+    "decimal128 minus mode=half_even in=12345678901234567890123456789012345E+3 out=-1.234567890123456789012345678901234E+37 bid5=00000020",
+    "decimal128 minus mode=half_even in=0E+6144 out=0E+6111 bid5=00000000",
+    "decimal128 minus mode=half_even in=1E+6144 out=-1.000000000000000000000000000000000E+6144 bid5=00000000",
+    "decimal128 minus mode=half_even in=1E-6176 out=-1E-6176 bid5=00000000",
+    "decimal128 minus mode=half_even in=NaN13 out=NaN13 bid5=00000000",
+    "decimal128 minus mode=half_even in=sNaN13 out=NaN13 bid5=00000001",
+    "decimal128 minus mode=half_even in=Infinity out=-Infinity bid5=00000000",
+    "decimal128 minus mode=half_even in=-Infinity out=Infinity bid5=00000000",
+];
+
+struct PlusMinusStrengthCase {
+    id: &'static str,
+    width: &'static str,
+    op: &'static str,
+    mode: &'static str,
+    mode_num: i64,
+    input: &'static str,
+    expected: &'static str,
+    bid5: u32,
+}
+
+const DECTEST_PLUS_MINUS_STRENGTH_CASES: [PlusMinusStrengthCase; 96] = [
+    PlusMinusStrengthCase { id: "d32_plus_signed_zero_half_even", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_signed_zero_floor", width: "decimal32", op: "plus", mode: "floor", mode_num: 1, input: "-0E+3", expected: "-0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_signed_zero_ceiling", width: "decimal32", op: "plus", mode: "ceiling", mode_num: 2, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_signed_zero_down", width: "decimal32", op: "plus", mode: "down", mode_num: 3, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_signed_zero_half_up", width: "decimal32", op: "plus", mode: "half_up", mode_num: 4, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_quantum_positive", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "56267E+1", expected: "5.6267E+5", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_quantum_zero", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "56267", expected: "56267", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_quantum_negative", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "56267E-2", expected: "562.67", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_overprecision", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "12345675E+3", expected: "1.234568E+10", bid5: 0x20 },
+    PlusMinusStrengthCase { id: "d32_plus_high_clamp_zero", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "0E+96", expected: "0E+90", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_high_clamp_nonzero", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "1E+96", expected: "1.000000E+96", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_etiny", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "1E-101", expected: "1E-101", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_quiet_nan", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "NaN13", expected: "NaN13", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_signaling_nan", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01 },
+    PlusMinusStrengthCase { id: "d32_plus_positive_infinity", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "Infinity", expected: "Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_plus_negative_infinity", width: "decimal32", op: "plus", mode: "half_even", mode_num: 0, input: "-Infinity", expected: "-Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_signed_zero_half_even", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_signed_zero_floor", width: "decimal32", op: "minus", mode: "floor", mode_num: 1, input: "0E+3", expected: "-0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_signed_zero_ceiling", width: "decimal32", op: "minus", mode: "ceiling", mode_num: 2, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_signed_zero_down", width: "decimal32", op: "minus", mode: "down", mode_num: 3, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_signed_zero_half_up", width: "decimal32", op: "minus", mode: "half_up", mode_num: 4, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_quantum_positive", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "56267E+1", expected: "-5.6267E+5", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_quantum_zero", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "56267", expected: "-56267", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_quantum_negative", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "56267E-2", expected: "-562.67", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_overprecision", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "12345675E+3", expected: "-1.234568E+10", bid5: 0x20 },
+    PlusMinusStrengthCase { id: "d32_minus_high_clamp_zero", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "0E+96", expected: "0E+90", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_high_clamp_nonzero", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "1E+96", expected: "-1.000000E+96", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_etiny", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "1E-101", expected: "-1E-101", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_quiet_nan", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "NaN13", expected: "NaN13", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_signaling_nan", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01 },
+    PlusMinusStrengthCase { id: "d32_minus_positive_infinity", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "Infinity", expected: "-Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d32_minus_negative_infinity", width: "decimal32", op: "minus", mode: "half_even", mode_num: 0, input: "-Infinity", expected: "Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_signed_zero_half_even", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_signed_zero_floor", width: "decimal64", op: "plus", mode: "floor", mode_num: 1, input: "-0E+3", expected: "-0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_signed_zero_ceiling", width: "decimal64", op: "plus", mode: "ceiling", mode_num: 2, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_signed_zero_down", width: "decimal64", op: "plus", mode: "down", mode_num: 3, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_signed_zero_half_up", width: "decimal64", op: "plus", mode: "half_up", mode_num: 4, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_quantum_positive", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "56267E+1", expected: "5.6267E+5", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_quantum_zero", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "56267", expected: "56267", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_quantum_negative", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "56267E-2", expected: "562.67", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_overprecision", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "12345678901234565E+3", expected: "1.234567890123456E+19", bid5: 0x20 },
+    PlusMinusStrengthCase { id: "d64_plus_high_clamp_zero", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "0E+384", expected: "0E+369", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_high_clamp_nonzero", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "1E+384", expected: "1.000000000000000E+384", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_etiny", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "1E-398", expected: "1E-398", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_quiet_nan", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "NaN13", expected: "NaN13", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_signaling_nan", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01 },
+    PlusMinusStrengthCase { id: "d64_plus_positive_infinity", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "Infinity", expected: "Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_plus_negative_infinity", width: "decimal64", op: "plus", mode: "half_even", mode_num: 0, input: "-Infinity", expected: "-Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_signed_zero_half_even", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_signed_zero_floor", width: "decimal64", op: "minus", mode: "floor", mode_num: 1, input: "0E+3", expected: "-0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_signed_zero_ceiling", width: "decimal64", op: "minus", mode: "ceiling", mode_num: 2, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_signed_zero_down", width: "decimal64", op: "minus", mode: "down", mode_num: 3, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_signed_zero_half_up", width: "decimal64", op: "minus", mode: "half_up", mode_num: 4, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_quantum_positive", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "56267E+1", expected: "-5.6267E+5", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_quantum_zero", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "56267", expected: "-56267", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_quantum_negative", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "56267E-2", expected: "-562.67", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_overprecision", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "12345678901234565E+3", expected: "-1.234567890123456E+19", bid5: 0x20 },
+    PlusMinusStrengthCase { id: "d64_minus_high_clamp_zero", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "0E+384", expected: "0E+369", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_high_clamp_nonzero", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "1E+384", expected: "-1.000000000000000E+384", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_etiny", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "1E-398", expected: "-1E-398", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_quiet_nan", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "NaN13", expected: "NaN13", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_signaling_nan", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01 },
+    PlusMinusStrengthCase { id: "d64_minus_positive_infinity", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "Infinity", expected: "-Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d64_minus_negative_infinity", width: "decimal64", op: "minus", mode: "half_even", mode_num: 0, input: "-Infinity", expected: "Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_signed_zero_half_even", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_signed_zero_floor", width: "decimal128", op: "plus", mode: "floor", mode_num: 1, input: "-0E+3", expected: "-0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_signed_zero_ceiling", width: "decimal128", op: "plus", mode: "ceiling", mode_num: 2, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_signed_zero_down", width: "decimal128", op: "plus", mode: "down", mode_num: 3, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_signed_zero_half_up", width: "decimal128", op: "plus", mode: "half_up", mode_num: 4, input: "-0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_quantum_positive", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "56267E+1", expected: "5.6267E+5", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_quantum_zero", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "56267", expected: "56267", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_quantum_negative", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "56267E-2", expected: "562.67", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_overprecision", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "12345678901234567890123456789012345E+3", expected: "1.234567890123456789012345678901234E+37", bid5: 0x20 },
+    PlusMinusStrengthCase { id: "d128_plus_high_clamp_zero", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "0E+6144", expected: "0E+6111", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_high_clamp_nonzero", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "1E+6144", expected: "1.000000000000000000000000000000000E+6144", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_etiny", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "1E-6176", expected: "1E-6176", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_quiet_nan", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "NaN13", expected: "NaN13", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_signaling_nan", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01 },
+    PlusMinusStrengthCase { id: "d128_plus_positive_infinity", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "Infinity", expected: "Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_plus_negative_infinity", width: "decimal128", op: "plus", mode: "half_even", mode_num: 0, input: "-Infinity", expected: "-Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_signed_zero_half_even", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_signed_zero_floor", width: "decimal128", op: "minus", mode: "floor", mode_num: 1, input: "0E+3", expected: "-0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_signed_zero_ceiling", width: "decimal128", op: "minus", mode: "ceiling", mode_num: 2, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_signed_zero_down", width: "decimal128", op: "minus", mode: "down", mode_num: 3, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_signed_zero_half_up", width: "decimal128", op: "minus", mode: "half_up", mode_num: 4, input: "0E+3", expected: "0E+3", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_quantum_positive", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "56267E+1", expected: "-5.6267E+5", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_quantum_zero", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "56267", expected: "-56267", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_quantum_negative", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "56267E-2", expected: "-562.67", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_overprecision", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "12345678901234567890123456789012345E+3", expected: "-1.234567890123456789012345678901234E+37", bid5: 0x20 },
+    PlusMinusStrengthCase { id: "d128_minus_high_clamp_zero", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "0E+6144", expected: "0E+6111", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_high_clamp_nonzero", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "1E+6144", expected: "-1.000000000000000000000000000000000E+6144", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_etiny", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "1E-6176", expected: "-1E-6176", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_quiet_nan", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "NaN13", expected: "NaN13", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_signaling_nan", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "sNaN13", expected: "NaN13", bid5: 0x01 },
+    PlusMinusStrengthCase { id: "d128_minus_positive_infinity", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "Infinity", expected: "-Infinity", bid5: 0x00 },
+    PlusMinusStrengthCase { id: "d128_minus_negative_infinity", width: "decimal128", op: "minus", mode: "half_even", mode_num: 0, input: "-Infinity", expected: "Infinity", bid5: 0x00 },
+];
+
+fn dectest_plus_minus_strength_canonical_row(c: &PlusMinusStrengthCase) -> String {
+    format!(
+        "{} {} mode={} in={} out={} bid5={:08x}",
+        c.width, c.op, c.mode, c.input, c.expected, c.bid5
+    )
+}
+
+#[test]
+fn generated_dectest_plus_minus_quantum_strength_go_port() {
+    assert_eq!(
+        DECTEST_PLUS_MINUS_STRENGTH_ROWS.len(),
+        DECTEST_PLUS_MINUS_STRENGTH_ROW_COUNT,
+        "pinned row literal count diverges from the generated constant"
+    );
+    assert_eq!(
+        DECTEST_PLUS_MINUS_STRENGTH_CASES.len(),
+        DECTEST_PLUS_MINUS_STRENGTH_ROW_COUNT,
+        "executable case count diverges from the generated constant"
+    );
+    for (i, c) in DECTEST_PLUS_MINUS_STRENGTH_CASES.iter().enumerate() {
+        assert_eq!(
+            dectest_plus_minus_strength_canonical_row(c),
+            DECTEST_PLUS_MINUS_STRENGTH_ROWS[i],
+            "case {} renders a different row than the pinned literal",
+            c.id
+        );
+        assert_eq!(
+            c.bid5 & !DECTEST_PLUS_MINUS_STRENGTH_BID5_MASK,
+            0,
+            "case {} pins a flag bit outside the BID five-flag surface",
+            c.id
+        );
+        assert_eq!(
+            dec_test_bid_rounding_mode(c.mode),
+            Some(c.mode_num),
+            "case {} rounding token {:?} resolves to a different BID mode than the pinned number",
+            c.id,
+            c.mode
+        );
+        let tc = DecTestCase {
+            id: c.id.to_string(),
+            operation: c.op.to_string(),
+            operands: vec![c.input.to_string()],
+            result: String::new(),
+            flags: Vec::new(),
+            rounding_mode: c.mode.to_string(),
+            precision: 0,
+            max_exponent: 0,
+        };
+        let (got, got_flags) = run_dectest_goport_case(&tc, c.width)
+            .unwrap_or_else(|e| panic!("run_dectest_goport_case({}): {}", c.id, e));
+        assert!(
+            compare_decimal_results(c.expected, &got),
+            "case {} value mismatch: expected {:?}, engine produced {:?}",
+            c.id,
+            c.expected,
+            got
+        );
+        assert!(
+            quantum_equal(c.expected, &got),
+            "case {} quantum mismatch: expected {:?}, engine produced {:?} (same value, different cohort member)",
+            c.id,
+            c.expected,
+            got
+        );
+        assert_eq!(
+            got_flags & FLAG_MASK,
+            c.bid5,
+            "case {} flag mismatch: expected {:#010x}, engine raised {:#010x}",
+            c.id,
+            c.bid5,
+            got_flags & FLAG_MASK
+        );
+    }
 }
