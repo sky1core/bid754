@@ -342,11 +342,11 @@ func parseExponentLiteral(s string) (int64, error) {
 		body = body[1:]
 	}
 	if !isASCIIDigits(body) {
-		return 0, fmt.Errorf("invalid exponent %q", s)
+		return 0, fmt.Errorf("invalid exponent: expected optional sign and ASCII digits")
 	}
 	n, err := strconv.ParseInt(s, 10, 64)
 	if err != nil || n >= sharedExponentLiteralBound || n <= -sharedExponentLiteralBound {
-		return 0, fmt.Errorf("exponent literal %q at or above the shared exact-integer bound 2^53", s)
+		return 0, fmt.Errorf("exponent literal magnitude must be below 2^53")
 	}
 	return n, nil
 }

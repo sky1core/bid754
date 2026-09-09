@@ -21,6 +21,10 @@ func TestFromStringResourceBoundaryRejects(t *testing.T) {
 		{"nan_payload", "NaN" + digits},
 		{"snan_payload", "sNaN" + digits},
 		{"invalid_nan_payload", "NaN" + zeros + "x"},
+		{"positive_exponent", "1E+" + digits},
+		{"negative_exponent", "1e-" + digits},
+		{"malformed_exponent", "1E" + zeros + "x"},
+		{"whitespace_exponent", "1E" + zeros + "\t1"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			runtime.GC()
@@ -59,6 +63,10 @@ func TestFromStringResourceBoundaryLeadingZeros(t *testing.T) {
 		{"fractional_leading_zeros", "0." + zeros + "1200E+200004", codec.Normal, false, "1200", 0, ""},
 		{"all_zero", "-" + zeros, codec.Zero, true, "", 0, ""},
 		{"fractional_all_zero", "-0." + zeros + "E+7", codec.Zero, true, "", -199993, ""},
+		{"positive_exponent", "1E+" + zeros + "1", codec.Normal, false, "1", 1, ""},
+		{"negative_exponent", "1e-" + zeros + "1", codec.Normal, false, "1", -1, ""},
+		{"zero_exponent", "1E-" + zeros, codec.Normal, false, "1", 0, ""},
+		{"fractional_exponent", "1.2300E+" + zeros + "7", codec.Normal, false, "12300", 3, ""},
 		{"nan_payload_limit", "NaN" + zeros + strings.Repeat("9", 33), codec.QNaN, false, "", 0, strings.Repeat("9", 33)},
 		{"snan_payload", "-sNaN" + zeros + "1200", codec.SNaN, true, "", 0, "1200"},
 		{"zero_nan_payload", "NaN" + zeros, codec.QNaN, false, "", 0, "0"},
