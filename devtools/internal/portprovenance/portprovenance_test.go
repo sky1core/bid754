@@ -3,7 +3,7 @@
 // exported function in bid754-go/internal/bidgo must either trace back to the
 // pinned Intel BID C tree or carry a documented non-Intel-origin reason.
 //
-// Four checks, all exhaustive in the tablecrosscheck style (no empty
+// Five checks, all exhaustive in the tablecrosscheck style (no empty
 // reasons, no unused exclusion entries):
 //
 //  1. File provenance: every non-test bidgo .go file must reference at least
@@ -32,6 +32,14 @@
 //  4. Receiver-method absence: every non-test implementation declaration is
 //     scanned and any receiver method fails. Mechanical-port operations stay
 //     package-level functions that go2rs can translate without dropping API.
+//
+//  5. Non-canonical core registry (noncanonical_core_test.go): checks 1 and 2
+//     are both satisfied by a file that carries a real porting header for its
+//     wrapper regions while its operation core replaces the Intel algorithm
+//     outright, so nonCanonicalCoreFiles registers those files against their
+//     contents and a signature scan surfaces unregistered ones. This is what
+//     makes the transitional debt of docs/ARCHITECTURE_SPEC.md mechanically
+//     enumerable rather than only reviewable.
 //
 // The Intel source tree itself is downloaded (not committed); when it is
 // absent the existence check is skipped with a reason while the reference
