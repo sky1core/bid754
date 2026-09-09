@@ -20,50 +20,57 @@ type expectedFFIMixedDecimalShape struct {
 	operation   string
 	resultBits  int
 	operandBits []int
+	rounding    bool
 	goPort      string
 }
 
 var expectedFFIMixedDecimalShapes = map[string]expectedFFIMixedDecimalShape{
-	"bid64ddq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{64, 64, 128}, goPort: "Bid64ddqFma"},
-	"bid64dqd_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{64, 128, 64}, goPort: "Bid64dqdFma"},
-	"bid64dqq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{64, 128, 128}, goPort: "Bid64dqqFma"},
-	"bid64qdd_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 64, 64}, goPort: "Bid64qddFma"},
-	"bid64qdq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 64, 128}, goPort: "Bid64qdqFma"},
-	"bid64qqd_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 128, 64}, goPort: "Bid64qqdFma"},
-	"bid64qqq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 128, 128}, goPort: "Bid64qqqFma"},
-	"bid128ddd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 64, 64}, goPort: "Bid128dddFma"},
-	"bid128ddq_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 64, 128}, goPort: "Bid128ddqFma"},
-	"bid128dqd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 128, 64}, goPort: "Bid128dqdFma"},
-	"bid128dqq_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 128, 128}, goPort: "Bid128dqqFma"},
-	"bid128qdd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{128, 64, 64}, goPort: "Bid128qddFma"},
-	"bid128qdq_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{128, 64, 128}, goPort: "Bid128qdqFma"},
-	"bid128qqd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{128, 128, 64}, goPort: "Bid128qqdFma"},
-	"bid64q_sqrt":   {format: "decimal64", operation: "sqrt", resultBits: 64, operandBits: []int{128}, goPort: "Bid64qSqrt"},
-	"bid128d_sqrt":  {format: "decimal128", operation: "sqrt", resultBits: 128, operandBits: []int{64}, goPort: "Bid128dSqrt"},
-	"bid64dq_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqAdd"},
-	"bid64dq_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqSub"},
-	"bid64dq_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqMul"},
-	"bid64dq_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{64, 128}, goPort: "Bid64dqDiv"},
-	"bid64qd_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdAdd"},
-	"bid64qd_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdSub"},
-	"bid64qd_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdMul"},
-	"bid64qd_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{128, 64}, goPort: "Bid64qdDiv"},
-	"bid64qq_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqAdd"},
-	"bid64qq_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqSub"},
-	"bid64qq_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqMul"},
-	"bid64qq_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{128, 128}, goPort: "Bid64qqDiv"},
-	"bid128dd_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddAdd"},
-	"bid128dd_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddSub"},
-	"bid128dd_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddMul"},
-	"bid128dd_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{64, 64}, goPort: "Bid128ddDiv"},
-	"bid128dq_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqAdd"},
-	"bid128dq_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqSub"},
-	"bid128dq_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqMul"},
-	"bid128dq_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{64, 128}, goPort: "Bid128dqDiv"},
-	"bid128qd_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdAdd"},
-	"bid128qd_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdSub"},
-	"bid128qd_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdMul"},
-	"bid128qd_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{128, 64}, goPort: "Bid128qdDiv"},
+	"bid64ddq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{64, 64, 128}, rounding: true, goPort: "Bid64ddqFma"},
+	"bid64dqd_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{64, 128, 64}, rounding: true, goPort: "Bid64dqdFma"},
+	"bid64dqq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{64, 128, 128}, rounding: true, goPort: "Bid64dqqFma"},
+	"bid64qdd_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 64, 64}, rounding: true, goPort: "Bid64qddFma"},
+	"bid64qdq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 64, 128}, rounding: true, goPort: "Bid64qdqFma"},
+	"bid64qqd_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 128, 64}, rounding: true, goPort: "Bid64qqdFma"},
+	"bid64qqq_fma":  {format: "decimal64", operation: "fma", resultBits: 64, operandBits: []int{128, 128, 128}, rounding: true, goPort: "Bid64qqqFma"},
+	"bid128ddd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 64, 64}, rounding: true, goPort: "Bid128dddFma"},
+	"bid128ddq_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 64, 128}, rounding: true, goPort: "Bid128ddqFma"},
+	"bid128dqd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 128, 64}, rounding: true, goPort: "Bid128dqdFma"},
+	"bid128dqq_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{64, 128, 128}, rounding: true, goPort: "Bid128dqqFma"},
+	"bid128qdd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{128, 64, 64}, rounding: true, goPort: "Bid128qddFma"},
+	"bid128qdq_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{128, 64, 128}, rounding: true, goPort: "Bid128qdqFma"},
+	"bid128qqd_fma": {format: "decimal128", operation: "fma", resultBits: 128, operandBits: []int{128, 128, 64}, rounding: true, goPort: "Bid128qqdFma"},
+	"bid64q_sqrt":   {format: "decimal64", operation: "sqrt", resultBits: 64, operandBits: []int{128}, rounding: true, goPort: "Bid64qSqrt"},
+	"bid128d_sqrt":  {format: "decimal128", operation: "sqrt", resultBits: 128, operandBits: []int{64}, rounding: true, goPort: "Bid128dSqrt"},
+	"bid64dq_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{64, 128}, rounding: true, goPort: "Bid64dqAdd"},
+	"bid64dq_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{64, 128}, rounding: true, goPort: "Bid64dqSub"},
+	"bid64dq_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{64, 128}, rounding: true, goPort: "Bid64dqMul"},
+	"bid64dq_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{64, 128}, rounding: true, goPort: "Bid64dqDiv"},
+	"bid64qd_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{128, 64}, rounding: true, goPort: "Bid64qdAdd"},
+	"bid64qd_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{128, 64}, rounding: true, goPort: "Bid64qdSub"},
+	"bid64qd_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{128, 64}, rounding: true, goPort: "Bid64qdMul"},
+	"bid64qd_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{128, 64}, rounding: true, goPort: "Bid64qdDiv"},
+	"bid64qq_add":   {format: "decimal64", operation: "add", resultBits: 64, operandBits: []int{128, 128}, rounding: true, goPort: "Bid64qqAdd"},
+	"bid64qq_sub":   {format: "decimal64", operation: "sub", resultBits: 64, operandBits: []int{128, 128}, rounding: true, goPort: "Bid64qqSub"},
+	"bid64qq_mul":   {format: "decimal64", operation: "mul", resultBits: 64, operandBits: []int{128, 128}, rounding: true, goPort: "Bid64qqMul"},
+	"bid64qq_div":   {format: "decimal64", operation: "div", resultBits: 64, operandBits: []int{128, 128}, rounding: true, goPort: "Bid64qqDiv"},
+	"bid128dd_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{64, 64}, rounding: true, goPort: "Bid128ddAdd"},
+	"bid128dd_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{64, 64}, rounding: true, goPort: "Bid128ddSub"},
+	"bid128dd_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{64, 64}, rounding: true, goPort: "Bid128ddMul"},
+	"bid128dd_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{64, 64}, rounding: true, goPort: "Bid128ddDiv"},
+	"bid128dq_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{64, 128}, rounding: true, goPort: "Bid128dqAdd"},
+	"bid128dq_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{64, 128}, rounding: true, goPort: "Bid128dqSub"},
+	"bid128dq_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{64, 128}, rounding: true, goPort: "Bid128dqMul"},
+	"bid128dq_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{64, 128}, rounding: true, goPort: "Bid128dqDiv"},
+	"bid128qd_add":  {format: "decimal128", operation: "add", resultBits: 128, operandBits: []int{128, 64}, rounding: true, goPort: "Bid128qdAdd"},
+	"bid128qd_sub":  {format: "decimal128", operation: "sub", resultBits: 128, operandBits: []int{128, 64}, rounding: true, goPort: "Bid128qdSub"},
+	"bid128qd_mul":  {format: "decimal128", operation: "mul", resultBits: 128, operandBits: []int{128, 64}, rounding: true, goPort: "Bid128qdMul"},
+	"bid128qd_div":  {format: "decimal128", operation: "div", resultBits: 128, operandBits: []int{128, 64}, rounding: true, goPort: "Bid128qdDiv"},
+
+	// Intel declares nexttoward's second operand as BID_UINT128 at every result
+	// width, so the narrow widths are mixed-shape entrypoints like the
+	// arithmetic extensions above. They take no rounding argument.
+	"bid32_nexttoward": {format: "decimal32", operation: "nexttoward", resultBits: 32, operandBits: []int{32, 128}, rounding: false, goPort: "Bid32NextToward"},
+	"bid64_nexttoward": {format: "decimal64", operation: "nexttoward", resultBits: 64, operandBits: []int{64, 128}, rounding: false, goPort: "Bid64NextToward"},
 }
 
 var expectedFFIMixedDecimalFunctionOrder = []string{
@@ -107,6 +114,8 @@ var expectedFFIMixedDecimalFunctionOrder = []string{
 	"bid128qd_sub",
 	"bid128qd_mul",
 	"bid128qd_div",
+	"bid32_nexttoward",
+	"bid64_nexttoward",
 }
 
 func TestBuildFFICasesSupportsClosedWorldMixedDecimalShapes(t *testing.T) {
@@ -197,6 +206,9 @@ func expectedMixedDecimalCaseCount(t *testing.T, shape expectedFFIMixedDecimalSh
 		if mixedShapeCarriesRoundingProbe(shape) {
 			want += ffiRoundingModeCount
 		}
+	case "nexttoward":
+		// Modeless: no Tier 1 rounding-edge block and no rounding-discriminant
+		// probe group, so the baseline is the whole case set.
 	default:
 		t.Fatalf("unexpected mixed decimal operation %q", shape.operation)
 	}
@@ -204,14 +216,18 @@ func expectedMixedDecimalCaseCount(t *testing.T, shape expectedFFIMixedDecimalSh
 }
 
 // mixedShapeCarriesRoundingProbe reports whether a mixed shape can carry a
-// rounding-discriminant probe group at all. Every shape can except Decimal128
-// = Decimal64 x Decimal64 multiplication: two Decimal64 coefficients multiply
-// to at most 32 digits and their exponents sum well inside the Decimal128
-// range, so every finite DD product is exact and no operand pair separates the
-// five rounding modes. Demanding a probe there would only invite a fabricated
-// one, so the shape is excluded here and its baseline block carries the
-// five-mode comparison instead.
+// rounding-discriminant probe group at all. A modeless entrypoint takes no
+// rounding argument, so there is nothing to prove live. Every rounding-taking
+// shape can except Decimal128 = Decimal64 x Decimal64 multiplication: two
+// Decimal64 coefficients multiply to at most 32 digits and their exponents sum
+// well inside the Decimal128 range, so every finite DD product is exact and no
+// operand pair separates the five rounding modes. Demanding a probe there would
+// only invite a fabricated one, so the shape is excluded here and its baseline
+// block carries the five-mode comparison instead.
 func mixedShapeCarriesRoundingProbe(shape expectedFFIMixedDecimalShape) bool {
+	if !shape.rounding {
+		return false
+	}
 	exactDDMul := shape.operation == "mul" && shape.resultBits == 128 && slices.Equal(shape.operandBits, []int{64, 64})
 	return !exactDDMul
 }
@@ -616,8 +632,8 @@ func TestGenerateFFINativeRunnerCallsMixedDecimalSymbolsAndPortsDirectly(t *test
 		t.Fatal("mixed decimal parser contract accepted a fixed operand slot in place of the live width-indexed slot")
 	}
 
-	const shapeRow = `return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 64, 128}}, true`
-	shapeRewriteSource := strings.Replace(supportSource, shapeRow, `return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 64}}, true`, 1)
+	const shapeRow = `return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 64, 128}, true}, true`
+	shapeRewriteSource := strings.Replace(supportSource, shapeRow, `return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 64}, true}, true`, 1)
 	if shapeRewriteSource == supportSource {
 		t.Fatal("mixed decimal shape mutation fixture did not find bid64ddq_fma")
 	}
@@ -791,8 +807,8 @@ func validateGeneratedMixedDecimalShapeBody(fset *token.FileSet, fn *ast.FuncDec
 		if !ok {
 			panic("missing expected mixed decimal shape for " + function)
 		}
-		fmt.Fprintf(&b, "\tcase %q:\n\t\treturn generatedFFIMixedDecimalShape{%q, %q, %d, %#v}, true\n",
-			function, shape.format, shape.operation, shape.resultBits, shape.operandBits)
+		fmt.Fprintf(&b, "\tcase %q:\n\t\treturn generatedFFIMixedDecimalShape{%q, %q, %d, %#v, %t}, true\n",
+			function, shape.format, shape.operation, shape.resultBits, shape.operandBits, shape.rounding)
 	}
 	b.WriteString(`	default:
 		return generatedFFIMixedDecimalShape{}, false
@@ -824,6 +840,12 @@ func validateGeneratedMixedDecimalParserBody(fset *token.FileSet, fn *ast.FuncDe
 	var operands generatedFFIMixedDecimalOperands
 	for i, bits := range shape.operandBits {
 		switch bits {
+		case 32:
+			value, err := strconv.ParseUint(tc.Operands[i], 16, 32)
+			if err != nil {
+				return generatedFFIMixedDecimalOperands{}, fmt.Errorf("parse operand %d as BID32 %q: %w", i, tc.Operands[i], err)
+			}
+			operands.narrow[i] = value
 		case 64:
 			value, err := strconv.ParseUint(tc.Operands[i], 16, 64)
 			if err != nil {
@@ -880,16 +902,22 @@ func expectedGeneratedMixedDecimalRunnerBody() string {
 			panic("missing expected mixed decimal shape for " + function)
 		}
 		nativeCall := fmt.Sprintf("C.%s(%s)", function, strings.Join(expectedMixedDecimalCallArgs(shape, true), ", "))
-		if shape.resultBits == 64 {
+		switch shape.resultBits {
+		case 32:
+			nativeCall = "uint32(" + nativeCall + ")"
+		case 64:
 			nativeCall = "uint64(" + nativeCall + ")"
-		} else {
+		default:
 			nativeCall = "ffiUint128FromC(" + nativeCall + ")"
 		}
 		goPortCall := fmt.Sprintf("bidgo.%s(%s)", shape.goPort, strings.Join(expectedMixedDecimalCallArgs(shape, false), ", "))
 		fmt.Fprintf(&b, "\tcase %q:\n\t\tnative := %s\n\t\texposed, exposedFlags := %s\n", function, nativeCall, goPortCall)
-		if shape.resultBits == 64 {
+		switch shape.resultBits {
+		case 32:
+			b.WriteString("\t\treturn fmt.Sprintf(\"%08x/%08x\", native, uint32(flags)), fmt.Sprintf(\"%08x/%08x\", exposed, exposedFlags), nil\n")
+		case 64:
 			b.WriteString("\t\treturn fmt.Sprintf(\"%016x/%08x\", native, uint32(flags)), fmt.Sprintf(\"%016x/%08x\", exposed, exposedFlags), nil\n")
-		} else {
+		default:
 			b.WriteString("\t\treturn fmt.Sprintf(\"%s/%08x\", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf(\"%s/%08x\", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil\n")
 		}
 	}
@@ -1165,10 +1193,14 @@ func expectedMixedDecimalCallArgs(shape expectedFFIMixedDecimalShape, native boo
 	for i, bits := range shape.operandBits {
 		index := strconv.Itoa(i)
 		switch {
+		case native && bits == 32:
+			args = append(args, "C.BID_UINT32(op.narrow["+index+"])")
 		case native && bits == 64:
 			args = append(args, "C.BID_UINT64(op.narrow["+index+"])")
 		case native && bits == 128:
 			args = append(args, "ffiUint128ToC(op.wide["+index+"])")
+		case !native && bits == 32:
+			args = append(args, "uint32(op.narrow["+index+"])")
 		case !native && bits == 64:
 			args = append(args, "op.narrow["+index+"]")
 		case !native && bits == 128:
@@ -1178,9 +1210,15 @@ func expectedMixedDecimalCallArgs(shape expectedFFIMixedDecimalShape, native boo
 		}
 	}
 	if native {
-		return append(args, "rounding", "&flags")
+		if shape.rounding {
+			args = append(args, "rounding")
+		}
+		return append(args, "&flags")
 	}
-	return append(args, "tc.Rounding")
+	if shape.rounding {
+		return append(args, "tc.Rounding")
+	}
+	return args
 }
 
 func parseGeneratedGoOutput(t *testing.T, name string, source []byte) (*token.FileSet, *ast.File) {

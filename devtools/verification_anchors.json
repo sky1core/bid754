@@ -14,7 +14,13 @@
     "longintsize32": 6652
   },
   "goport_readtest_executed_cases": 86927,
-  "ffi_bitcompare_cases_total": 28439,
+  "ffi_bitcompare_cases_total": 30023,
+  "ffi_profile_functions_total": 680,
+  "ffi_profile_functions_included": 526,
+  "ffi_profile_functions_excluded": 154,
+  "ffi_profile_excluded_by_classification": {
+    "out_of_scope_not_required": 154
+  },
   "tier1_arithmetic_long_boundary_values_by_width": {
     "decimal32": 1238,
     "decimal64": 912,
@@ -519,10 +525,10 @@
   },
   "d32_exhaustive_unary_consumers": 2,
   "verification_artifact_sha256": {
-    "testspec_tree": "96f810c8880987399deb8a1fbd9c3761c169db9749e47396142974fe8087db41",
+    "testspec_tree": "a4e37e59df10ee89cb1f6b53c423a09c0ec1fe2c5419e6d3da3c24ff68156f73",
     "bidcodec_vectors": "ba8f77bbf4816346d6d11f2b00320eaf5d197397268e5e36f8e5b784b40374a7",
     "bidcodec_harnesses": "3edd46062a7c0a849c462e49bd3e0235a1b348a0b4799ceb8142382dbaece8aa",
-    "goport_verification_runners": "5508b274505a979a24af52f29bff686c4cfe643640034eedb0945d659c3ea684",
+    "goport_verification_runners": "3bc392d48ea940d76a73fda467b12fd78d713b197bc481c7f2bc0a591ca831d6",
     "decnumber_differential_runners": "297c12a2a07a721e85ef1d52571124ccc77ca472f228c849688682d2bb9e44e4",
     "d32_exhaustive_runners": "c7cd9761c7b152027adfcf8fd68adf48d8db86dec1e0c765f4a696a6bbce8093",
     "dectest_executor": "6c5acc52b7d315cc53f8f8784f64d048654a9d5c4f2e0dd81a9dfd8da65ecf87",

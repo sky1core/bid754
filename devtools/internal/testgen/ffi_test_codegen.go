@@ -830,21 +830,21 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 			if err != nil {
 				return "", "", err
 			}
-			native, nativeFlags, exposed, exposedFlags := runGeneratedFFICase32Int64Unary(tc.Operation, a)
+			native, nativeFlags, exposed, exposedFlags := runGeneratedFFICase32Int64Unary(tc.Operation, a, tc.Rounding)
 			return formatGeneratedFFIInt64Result(native, nativeFlags), formatGeneratedFFIInt64Result(exposed, exposedFlags), nil
 		case "decimal64":
 			a, err := parseFFIUint64UnaryOperand(tc)
 			if err != nil {
 				return "", "", err
 			}
-			native, nativeFlags, exposed, exposedFlags := runGeneratedFFICase64Int64Unary(tc.Operation, a)
+			native, nativeFlags, exposed, exposedFlags := runGeneratedFFICase64Int64Unary(tc.Operation, a, tc.Rounding)
 			return formatGeneratedFFIInt64Result(native, nativeFlags), formatGeneratedFFIInt64Result(exposed, exposedFlags), nil
 		case "decimal128":
 			a, err := parseFFIUint128UnaryOperand(tc)
 			if err != nil {
 				return "", "", err
 			}
-			native, nativeFlags, exposed, exposedFlags := runGeneratedFFICase128Int64Unary(tc.Operation, a)
+			native, nativeFlags, exposed, exposedFlags := runGeneratedFFICase128Int64Unary(tc.Operation, a, tc.Rounding)
 			return formatGeneratedFFIInt64Result(native, nativeFlags), formatGeneratedFFIInt64Result(exposed, exposedFlags), nil
 		}
 	}
@@ -957,14 +957,14 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		}
 		native, exposed := runGeneratedFFICase32Ternary(tc.Function, a, b, c, tc.Rounding)
 		return native, exposed, nil
-	case "bid32_add", "bid32_sub", "bid32_mul", "bid32_div", "bid32_quantize", "bid32_rem", "bid32_fmod", "bid32_minnum", "bid32_maxnum", "bid32_minnum_mag", "bid32_maxnum_mag", "bid32_copySign":
+	case "bid32_add", "bid32_sub", "bid32_mul", "bid32_div", "bid32_quantize", "bid32_rem", "bid32_fmod", "bid32_minnum", "bid32_maxnum", "bid32_minnum_mag", "bid32_maxnum_mag", "bid32_copySign", "bid32_fdim", "bid32_nextafter":
 		a, b, err := parseFFIUint32BinaryOperands(tc)
 		if err != nil {
 			return "", "", err
 		}
 		native, exposed := runGeneratedFFICase32Binary(tc.Function, a, b, tc.Rounding)
 		return native, exposed, nil
-	case "bid32_round_integral_exact", "bid32_copy", "bid32_negate", "bid32_abs", "bid32_sqrt", "bid32_logb", "bid32_nextup", "bid32_nextdown":
+	case "bid32_round_integral_exact", "bid32_copy", "bid32_negate", "bid32_abs", "bid32_sqrt", "bid32_logb", "bid32_nextup", "bid32_nextdown", "bid32_round_integral_nearest_even", "bid32_round_integral_nearest_away", "bid32_round_integral_positive", "bid32_round_integral_negative", "bid32_round_integral_zero", "bid32_nearbyint":
 		a, err := parseFFIUint32UnaryOperand(tc)
 		if err != nil {
 			return "", "", err
@@ -985,14 +985,14 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		}
 		native, exposed := runGeneratedFFICase64Ternary(tc.Function, a, b, c, tc.Rounding)
 		return native, exposed, nil
-	case "bid64_add", "bid64_sub", "bid64_mul", "bid64_div", "bid64_quantize", "bid64_rem", "bid64_fmod", "bid64_minnum", "bid64_maxnum", "bid64_minnum_mag", "bid64_maxnum_mag", "bid64_copySign":
+	case "bid64_add", "bid64_sub", "bid64_mul", "bid64_div", "bid64_quantize", "bid64_rem", "bid64_fmod", "bid64_minnum", "bid64_maxnum", "bid64_minnum_mag", "bid64_maxnum_mag", "bid64_copySign", "bid64_fdim", "bid64_nextafter":
 		a, b, err := parseFFIUint64BinaryOperands(tc)
 		if err != nil {
 			return "", "", err
 		}
 		native, exposed := runGeneratedFFICase64Binary(tc.Function, a, b, tc.Rounding)
 		return native, exposed, nil
-	case "bid64_round_integral_exact", "bid64_copy", "bid64_negate", "bid64_abs", "bid64_sqrt", "bid64_logb", "bid64_nextup", "bid64_nextdown":
+	case "bid64_round_integral_exact", "bid64_copy", "bid64_negate", "bid64_abs", "bid64_sqrt", "bid64_logb", "bid64_nextup", "bid64_nextdown", "bid64_round_integral_nearest_even", "bid64_round_integral_nearest_away", "bid64_round_integral_positive", "bid64_round_integral_negative", "bid64_round_integral_zero", "bid64_nearbyint":
 		a, err := parseFFIUint64UnaryOperand(tc)
 		if err != nil {
 			return "", "", err
@@ -1013,14 +1013,14 @@ func runGeneratedFFICase(tc generatedFFICase) (string, string, error) {
 		}
 		native, exposed := runGeneratedFFICase128Ternary(tc.Function, a, b, c, tc.Rounding)
 		return native, exposed, nil
-	case "bid128_add", "bid128_sub", "bid128_mul", "bid128_div", "bid128_quantize", "bid128_rem", "bid128_fmod", "bid128_minnum", "bid128_maxnum", "bid128_minnum_mag", "bid128_maxnum_mag", "bid128_copySign":
+	case "bid128_add", "bid128_sub", "bid128_mul", "bid128_div", "bid128_quantize", "bid128_rem", "bid128_fmod", "bid128_minnum", "bid128_maxnum", "bid128_minnum_mag", "bid128_maxnum_mag", "bid128_copySign", "bid128_fdim", "bid128_nextafter", "bid128_nexttoward":
 		a, b, err := parseFFIUint128BinaryOperands(tc)
 		if err != nil {
 			return "", "", err
 		}
 		native, exposed := runGeneratedFFICase128Binary(tc.Function, a, b, tc.Rounding)
 		return native, exposed, nil
-	case "bid128_round_integral_exact", "bid128_copy", "bid128_negate", "bid128_abs", "bid128_sqrt", "bid128_logb", "bid128_nextup", "bid128_nextdown":
+	case "bid128_round_integral_exact", "bid128_copy", "bid128_negate", "bid128_abs", "bid128_sqrt", "bid128_logb", "bid128_nextup", "bid128_nextdown", "bid128_round_integral_nearest_even", "bid128_round_integral_nearest_away", "bid128_round_integral_positive", "bid128_round_integral_negative", "bid128_round_integral_zero", "bid128_nearbyint":
 		a, err := parseFFIUint128UnaryOperand(tc)
 		if err != nil {
 			return "", "", err
@@ -1044,6 +1044,7 @@ type generatedFFIMixedDecimalShape struct {
 	operation   string
 	resultBits  int
 	operandBits []int
+	rounding    bool
 }
 
 type generatedFFIMixedDecimalOperands struct {
@@ -1054,85 +1055,89 @@ type generatedFFIMixedDecimalOperands struct {
 func generatedFFIMixedDecimalShapeFor(function string) (generatedFFIMixedDecimalShape, bool) {
 	switch function {
 	case "bid64ddq_fma":
-		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 64, 128}, true}, true
 	case "bid64dqd_fma":
-		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 64}, true}, true
 	case "bid64dqq_fma":
-		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{64, 128, 128}, true}, true
 	case "bid64qdd_fma":
-		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 64}, true}, true
 	case "bid64qdq_fma":
-		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 64, 128}, true}, true
 	case "bid64qqd_fma":
-		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 64}, true}, true
 	case "bid64qqq_fma":
-		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "fma", 64, []int{128, 128, 128}, true}, true
 	case "bid128ddd_fma":
-		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 64}, true}, true
 	case "bid128ddq_fma":
-		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 64, 128}, true}, true
 	case "bid128dqd_fma":
-		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 64}, true}, true
 	case "bid128dqq_fma":
-		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{64, 128, 128}, true}, true
 	case "bid128qdd_fma":
-		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 64}, true}, true
 	case "bid128qdq_fma":
-		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 64, 128}, true}, true
 	case "bid128qqd_fma":
-		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "fma", 128, []int{128, 128, 64}, true}, true
 	case "bid64q_sqrt":
-		return generatedFFIMixedDecimalShape{"decimal64", "sqrt", 64, []int{128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "sqrt", 64, []int{128}, true}, true
 	case "bid128d_sqrt":
-		return generatedFFIMixedDecimalShape{"decimal128", "sqrt", 128, []int{64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "sqrt", 128, []int{64}, true}, true
 	case "bid64dq_add":
-		return generatedFFIMixedDecimalShape{"decimal64", "add", 64, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "add", 64, []int{64, 128}, true}, true
 	case "bid64dq_sub":
-		return generatedFFIMixedDecimalShape{"decimal64", "sub", 64, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "sub", 64, []int{64, 128}, true}, true
 	case "bid64dq_mul":
-		return generatedFFIMixedDecimalShape{"decimal64", "mul", 64, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "mul", 64, []int{64, 128}, true}, true
 	case "bid64dq_div":
-		return generatedFFIMixedDecimalShape{"decimal64", "div", 64, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "div", 64, []int{64, 128}, true}, true
 	case "bid64qd_add":
-		return generatedFFIMixedDecimalShape{"decimal64", "add", 64, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "add", 64, []int{128, 64}, true}, true
 	case "bid64qd_sub":
-		return generatedFFIMixedDecimalShape{"decimal64", "sub", 64, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "sub", 64, []int{128, 64}, true}, true
 	case "bid64qd_mul":
-		return generatedFFIMixedDecimalShape{"decimal64", "mul", 64, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "mul", 64, []int{128, 64}, true}, true
 	case "bid64qd_div":
-		return generatedFFIMixedDecimalShape{"decimal64", "div", 64, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "div", 64, []int{128, 64}, true}, true
 	case "bid64qq_add":
-		return generatedFFIMixedDecimalShape{"decimal64", "add", 64, []int{128, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "add", 64, []int{128, 128}, true}, true
 	case "bid64qq_sub":
-		return generatedFFIMixedDecimalShape{"decimal64", "sub", 64, []int{128, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "sub", 64, []int{128, 128}, true}, true
 	case "bid64qq_mul":
-		return generatedFFIMixedDecimalShape{"decimal64", "mul", 64, []int{128, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "mul", 64, []int{128, 128}, true}, true
 	case "bid64qq_div":
-		return generatedFFIMixedDecimalShape{"decimal64", "div", 64, []int{128, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal64", "div", 64, []int{128, 128}, true}, true
 	case "bid128dd_add":
-		return generatedFFIMixedDecimalShape{"decimal128", "add", 128, []int{64, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "add", 128, []int{64, 64}, true}, true
 	case "bid128dd_sub":
-		return generatedFFIMixedDecimalShape{"decimal128", "sub", 128, []int{64, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "sub", 128, []int{64, 64}, true}, true
 	case "bid128dd_mul":
-		return generatedFFIMixedDecimalShape{"decimal128", "mul", 128, []int{64, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "mul", 128, []int{64, 64}, true}, true
 	case "bid128dd_div":
-		return generatedFFIMixedDecimalShape{"decimal128", "div", 128, []int{64, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "div", 128, []int{64, 64}, true}, true
 	case "bid128dq_add":
-		return generatedFFIMixedDecimalShape{"decimal128", "add", 128, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "add", 128, []int{64, 128}, true}, true
 	case "bid128dq_sub":
-		return generatedFFIMixedDecimalShape{"decimal128", "sub", 128, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "sub", 128, []int{64, 128}, true}, true
 	case "bid128dq_mul":
-		return generatedFFIMixedDecimalShape{"decimal128", "mul", 128, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "mul", 128, []int{64, 128}, true}, true
 	case "bid128dq_div":
-		return generatedFFIMixedDecimalShape{"decimal128", "div", 128, []int{64, 128}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "div", 128, []int{64, 128}, true}, true
 	case "bid128qd_add":
-		return generatedFFIMixedDecimalShape{"decimal128", "add", 128, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "add", 128, []int{128, 64}, true}, true
 	case "bid128qd_sub":
-		return generatedFFIMixedDecimalShape{"decimal128", "sub", 128, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "sub", 128, []int{128, 64}, true}, true
 	case "bid128qd_mul":
-		return generatedFFIMixedDecimalShape{"decimal128", "mul", 128, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "mul", 128, []int{128, 64}, true}, true
 	case "bid128qd_div":
-		return generatedFFIMixedDecimalShape{"decimal128", "div", 128, []int{128, 64}}, true
+		return generatedFFIMixedDecimalShape{"decimal128", "div", 128, []int{128, 64}, true}, true
+	case "bid32_nexttoward":
+		return generatedFFIMixedDecimalShape{"decimal32", "nexttoward", 32, []int{32, 128}, false}, true
+	case "bid64_nexttoward":
+		return generatedFFIMixedDecimalShape{"decimal64", "nexttoward", 64, []int{64, 128}, false}, true
 	default:
 		return generatedFFIMixedDecimalShape{}, false
 	}
@@ -1144,8 +1149,9 @@ func generatedFFIMixedDecimalFunction(function string) bool {
 }
 
 // generatedFFIMixedShapeCarriesRoundingProbe reports whether a mixed shape
-// admits a rounding-discriminant probe group. Every registered shape does
-// except Decimal128 = Decimal64 x Decimal64 multiplication: two Decimal64
+// admits a rounding-discriminant probe group. A modeless entrypoint takes no
+// rounding argument, so it has none. Every rounding-taking shape does except
+// Decimal128 = Decimal64 x Decimal64 multiplication: two Decimal64
 // coefficients multiply to at most 32 digits and their exponents sum well
 // inside the Decimal128 range, so every finite DD product is exact and no
 // operand pair can separate the five rounding modes. The probe-contract check
@@ -1153,6 +1159,9 @@ func generatedFFIMixedDecimalFunction(function string) bool {
 // per mixed function, so a shape that silently lost its probe group still
 // fails.
 func generatedFFIMixedShapeCarriesRoundingProbe(shape generatedFFIMixedDecimalShape) bool {
+	if !shape.rounding {
+		return false
+	}
 	exactDDMul := shape.operation == "mul" && shape.resultBits == 128 &&
 		len(shape.operandBits) == 2 && shape.operandBits[0] == 64 && shape.operandBits[1] == 64
 	return !exactDDMul
@@ -1173,6 +1182,12 @@ func parseGeneratedFFIMixedDecimalOperands(tc generatedFFICase) (generatedFFIMix
 	var operands generatedFFIMixedDecimalOperands
 	for i, bits := range shape.operandBits {
 		switch bits {
+		case 32:
+			value, err := strconv.ParseUint(tc.Operands[i], 16, 32)
+			if err != nil {
+				return generatedFFIMixedDecimalOperands{}, fmt.Errorf("parse operand %d as BID32 %q: %w", i, tc.Operands[i], err)
+			}
+			operands.narrow[i] = value
 		case 64:
 			value, err := strconv.ParseUint(tc.Operands[i], 16, 64)
 			if err != nil {
@@ -1373,6 +1388,14 @@ func runGeneratedFFICaseMixedDecimal(tc generatedFFICase) (string, string, error
 		native := ffiUint128FromC(C.bid128qd_div(ffiUint128ToC(op.wide[0]), C.BID_UINT64(op.narrow[1]), rounding, &flags))
 		exposed, exposedFlags := bidgo.Bid128qdDiv(decimal128BIDAsBidgo(op.wide[0]), op.narrow[1], tc.Rounding)
 		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags), nil
+	case "bid32_nexttoward":
+		native := uint32(C.bid32_nexttoward(C.BID_UINT32(op.narrow[0]), ffiUint128ToC(op.wide[1]), &flags))
+		exposed, exposedFlags := bidgo.Bid32NextToward(uint32(op.narrow[0]), decimal128BIDAsBidgo(op.wide[1]))
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags), nil
+	case "bid64_nexttoward":
+		native := uint64(C.bid64_nexttoward(C.BID_UINT64(op.narrow[0]), ffiUint128ToC(op.wide[1]), &flags))
+		exposed, exposedFlags := bidgo.Bid64NextToward(op.narrow[0], decimal128BIDAsBidgo(op.wide[1]))
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags), nil
 	default:
 		return "", "", fmt.Errorf("unsupported mixed decimal ffi function %q", tc.Function)
 	}
@@ -1435,7 +1458,12 @@ func generatedFFIIntUnaryOperation(operation string) bool {
 }
 
 func generatedFFIInt64UnaryOperation(operation string) bool {
-	return operation == "llquantexp"
+	switch operation {
+	case "llquantexp", "llrint", "llround":
+		return true
+	default:
+		return false
+	}
 }
 
 func generatedFFIIntBinaryOperation(operation string) bool {
@@ -2851,31 +2879,51 @@ func runGeneratedFFICase128DecimalFlagInt(operation string, a Decimal128BID, n i
 	}
 }
 
-func runGeneratedFFICase32Int64Unary(operation string, a uint32) (int64, uint32, int64, uint32) {
+func runGeneratedFFICase32Int64Unary(operation string, a uint32, rounding int) (int64, uint32, int64, uint32) {
 	switch operation {
 	case "llquantexp":
 		var flags C._IDEC_flags
 		native := int64(C.bid32_llquantexp(C.BID_UINT32(a), &flags))
 		exposed, exposedFlags := bidgo.Bid32LLQuantexp(a)
 		return native, uint32(flags), exposed, exposedFlags
+	case "llrint":
+		var flags C._IDEC_flags
+		native := int64(C.bid32_llrint(C.BID_UINT32(a), generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid32Llrint(a, rounding)
+		return native, uint32(flags), exposed, exposedFlags
+	case "llround":
+		var flags C._IDEC_flags
+		native := int64(C.bid32_llround(C.BID_UINT32(a), &flags))
+		exposed, exposedFlags := bidgo.Bid32Llround(a)
+		return native, uint32(flags), exposed, exposedFlags
 	default:
 		panic("unsupported 32-bit ffi int64 unary operation")
 	}
 }
 
-func runGeneratedFFICase64Int64Unary(operation string, a uint64) (int64, uint32, int64, uint32) {
+func runGeneratedFFICase64Int64Unary(operation string, a uint64, rounding int) (int64, uint32, int64, uint32) {
 	switch operation {
 	case "llquantexp":
 		var flags C._IDEC_flags
 		native := int64(C.bid64_llquantexp(C.BID_UINT64(a), &flags))
 		exposed, exposedFlags := bidgo.Bid64LLQuantexp(a)
 		return native, uint32(flags), exposed, exposedFlags
+	case "llrint":
+		var flags C._IDEC_flags
+		native := int64(C.bid64_llrint(C.BID_UINT64(a), generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid64Llrint(a, rounding)
+		return native, uint32(flags), exposed, exposedFlags
+	case "llround":
+		var flags C._IDEC_flags
+		native := int64(C.bid64_llround(C.BID_UINT64(a), &flags))
+		exposed, exposedFlags := bidgo.Bid64Llround(a)
+		return native, uint32(flags), exposed, exposedFlags
 	default:
 		panic("unsupported 64-bit ffi int64 unary operation")
 	}
 }
 
-func runGeneratedFFICase128Int64Unary(operation string, a Decimal128BID) (int64, uint32, int64, uint32) {
+func runGeneratedFFICase128Int64Unary(operation string, a Decimal128BID, rounding int) (int64, uint32, int64, uint32) {
 	ca := ffiUint128ToC(a)
 	ga := decimal128BIDAsBidgo(a)
 	switch operation {
@@ -2884,6 +2932,16 @@ func runGeneratedFFICase128Int64Unary(operation string, a Decimal128BID) (int64,
 		native := int64(C.bid128_llquantexp(ca, &flags))
 		var exposedFlags uint32
 		exposed := bidgo.Bid128Llquantexp(ga, &exposedFlags)
+		return native, uint32(flags), exposed, exposedFlags
+	case "llrint":
+		var flags C._IDEC_flags
+		native := int64(C.bid128_llrint(ca, generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid128Llrint(ga, rounding)
+		return native, uint32(flags), exposed, exposedFlags
+	case "llround":
+		var flags C._IDEC_flags
+		native := int64(C.bid128_llround(ca, &flags))
+		exposed, exposedFlags := bidgo.Bid128Llround(ga)
 		return native, uint32(flags), exposed, exposedFlags
 	default:
 		panic("unsupported 128-bit ffi int64 unary operation")
@@ -3391,6 +3449,36 @@ func runGeneratedFFICase32Unary(function string, a uint32, rounding int) (string
 		native := uint32(C.bid32_nextdown(C.BID_UINT32(a), &flags))
 		exposed, exposedFlags := bidgo.Bid32NextDown(a)
 		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_round_integral_nearest_even":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_round_integral_nearest_even(C.BID_UINT32(a), &flags))
+		exposed, exposedFlags := bidgo.Bid32RoundIntegralNearestEven(a)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_round_integral_nearest_away":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_round_integral_nearest_away(C.BID_UINT32(a), &flags))
+		exposed, exposedFlags := bidgo.Bid32RoundIntegralNearestAway(a)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_round_integral_positive":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_round_integral_positive(C.BID_UINT32(a), &flags))
+		exposed, exposedFlags := bidgo.Bid32RoundIntegralPositive(a)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_round_integral_negative":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_round_integral_negative(C.BID_UINT32(a), &flags))
+		exposed, exposedFlags := bidgo.Bid32RoundIntegralNegative(a)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_round_integral_zero":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_round_integral_zero(C.BID_UINT32(a), &flags))
+		exposed, exposedFlags := bidgo.Bid32RoundIntegralZero(a)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_nearbyint":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_nearbyint(C.BID_UINT32(a), generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid32NearbyInt(a, rounding)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
 	default:
 		panic("unsupported 32-bit ffi unary function")
 	}
@@ -3455,6 +3543,16 @@ func runGeneratedFFICase32Binary(function string, a uint32, b uint32, rounding i
 		native := uint32(C.bid32_fmod(C.BID_UINT32(a), C.BID_UINT32(b), &flags))
 		exposed, exposedFlags := bidgo.Bid32Fmod(a, b)
 		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_fdim":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_fdim(C.BID_UINT32(a), C.BID_UINT32(b), generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid32Fdim(a, b, rounding)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
+	case "bid32_nextafter":
+		var flags C._IDEC_flags
+		native := uint32(C.bid32_nextafter(C.BID_UINT32(a), C.BID_UINT32(b), &flags))
+		exposed, exposedFlags := bidgo.Bid32NextAfter(a, b)
+		return fmt.Sprintf("%08x/%08x", native, uint32(flags)), fmt.Sprintf("%08x/%08x", exposed, exposedFlags)
 	default:
 		panic("unsupported 32-bit ffi binary function")
 	}
@@ -3516,6 +3614,36 @@ func runGeneratedFFICase64Unary(function string, a uint64, rounding int) (string
 		var flags C._IDEC_flags
 		native := uint64(C.bid64_nextdown(C.BID_UINT64(a), &flags))
 		exposed, exposedFlags := bidgo.Bid64NextDown(a)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_round_integral_nearest_even":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_round_integral_nearest_even(C.BID_UINT64(a), &flags))
+		exposed, exposedFlags := bidgo.Bid64RoundIntegralNearestEven(a)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_round_integral_nearest_away":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_round_integral_nearest_away(C.BID_UINT64(a), &flags))
+		exposed, exposedFlags := bidgo.Bid64RoundIntegralNearestAway(a)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_round_integral_positive":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_round_integral_positive(C.BID_UINT64(a), &flags))
+		exposed, exposedFlags := bidgo.Bid64RoundIntegralPositive(a)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_round_integral_negative":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_round_integral_negative(C.BID_UINT64(a), &flags))
+		exposed, exposedFlags := bidgo.Bid64RoundIntegralNegative(a)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_round_integral_zero":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_round_integral_zero(C.BID_UINT64(a), &flags))
+		exposed, exposedFlags := bidgo.Bid64RoundIntegralZero(a)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_nearbyint":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_nearbyint(C.BID_UINT64(a), generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid64NearbyInt(a, rounding)
 		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
 	default:
 		panic("unsupported 64-bit ffi unary function")
@@ -3580,6 +3708,16 @@ func runGeneratedFFICase64Binary(function string, a uint64, b uint64, rounding i
 		var flags C._IDEC_flags
 		native := uint64(C.bid64_fmod(C.BID_UINT64(a), C.BID_UINT64(b), &flags))
 		exposed, exposedFlags := bidgo.Bid64Fmod(a, b)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_fdim":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_fdim(C.BID_UINT64(a), C.BID_UINT64(b), generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid64Fdim(a, b, rounding)
+		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
+	case "bid64_nextafter":
+		var flags C._IDEC_flags
+		native := uint64(C.bid64_nextafter(C.BID_UINT64(a), C.BID_UINT64(b), &flags))
+		exposed, exposedFlags := bidgo.Bid64NextAfter(a, b)
 		return fmt.Sprintf("%016x/%08x", native, uint32(flags)), fmt.Sprintf("%016x/%08x", exposed, exposedFlags)
 	default:
 		panic("unsupported 64-bit ffi binary function")
@@ -3646,6 +3784,41 @@ func runGeneratedFFICase128Unary(function string, a Decimal128BID, rounding int)
 		var flags C._IDEC_flags
 		native := ffiUint128FromC(C.bid128_nextdown(ca, &flags))
 		exposed, exposedFlags := bidgo.Bid128NextDown(ga)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_round_integral_nearest_even":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_round_integral_nearest_even(ca, &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128RoundIntegralNearestEven(ga, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_round_integral_nearest_away":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_round_integral_nearest_away(ca, &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128RoundIntegralNearestAway(ga, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_round_integral_positive":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_round_integral_positive(ca, &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128RoundIntegralPositive(ga, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_round_integral_negative":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_round_integral_negative(ca, &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128RoundIntegralNegative(ga, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_round_integral_zero":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_round_integral_zero(ca, &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128RoundIntegralZero(ga, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_nearbyint":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_nearbyint(ca, generatedFFICRoundingMode(rounding), &flags))
+		exposed, exposedFlags := bidgo.Bid128Nearbyint(ga, rounding)
 		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
 	default:
 		panic("unsupported 128-bit ffi unary function")
@@ -3720,6 +3893,22 @@ func runGeneratedFFICase128Binary(function string, a, b Decimal128BID, rounding 
 		var flags C._IDEC_flags
 		native := ffiUint128FromC(C.bid128_fmod(ca, cb, &flags))
 		exposed, exposedFlags := bidgo.Bid128Fmod(ga, gb)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_fdim":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_fdim(ca, cb, generatedFFICRoundingMode(rounding), &flags))
+		var exposedFlags uint32
+		exposed := bidgo.Bid128Fdim(ga, gb, rounding, &exposedFlags)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_nextafter":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_nextafter(ca, cb, &flags))
+		exposed, exposedFlags := bidgo.Bid128NextAfter(ga, gb)
+		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
+	case "bid128_nexttoward":
+		var flags C._IDEC_flags
+		native := ffiUint128FromC(C.bid128_nexttoward(ca, cb, &flags))
+		exposed, exposedFlags := bidgo.Bid128NextToward(ga, gb)
 		return fmt.Sprintf("%s/%08x", formatFFIUint128Bits(native), uint32(flags)), fmt.Sprintf("%s/%08x", formatFFIUint128Bits(decimal128BIDFromBidgo(exposed)), exposedFlags)
 	default:
 		panic("unsupported 128-bit ffi binary function")

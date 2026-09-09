@@ -100,6 +100,9 @@ func main() {
 	if err := testgen.WriteFFITestOutputs(repoRoot, spec); err != nil {
 		log.Fatalf("write generated ffi test: %v", err)
 	}
+	if err := testgen.WriteFFIProfileInventoryOutput(repoRoot, manifest); err != nil {
+		log.Fatalf("write generated ffi profile inventory: %v", err)
+	}
 	if err := testgen.WriteTier1ArithmeticLongOutputs(repoRoot); err != nil {
 		log.Fatalf("write generated Tier 1 arithmetic long test: %v", err)
 	}

@@ -35,6 +35,10 @@ type verificationAnchors struct {
 	ReadtestProfileRowSkipReasons                map[string]int               `json:"readtest_profile_row_skip_reasons"`
 	GoportReadtestExecutedCases                  int                          `json:"goport_readtest_executed_cases"`
 	FFIBitcompareCasesTotal                      int                          `json:"ffi_bitcompare_cases_total"`
+	FFIProfileFunctionsTotal                     int                          `json:"ffi_profile_functions_total"`
+	FFIProfileFunctionsIncluded                  int                          `json:"ffi_profile_functions_included"`
+	FFIProfileFunctionsExcluded                  int                          `json:"ffi_profile_functions_excluded"`
+	FFIProfileExcludedByClassification           map[string]int               `json:"ffi_profile_excluded_by_classification"`
 	Tier1ArithmeticBoundaryValues                map[string]uint64            `json:"tier1_arithmetic_long_boundary_values_by_width"`
 	Tier1ArithmeticSemanticRounded               map[string]uint64            `json:"tier1_arithmetic_long_semantic_rounded_pairs_by_width"`
 	Tier1ArithmeticSemanticScale                 map[string]uint64            `json:"tier1_arithmetic_long_semantic_scale_cases_by_width"`
@@ -152,6 +156,81 @@ type verificationAnchors struct {
 
 type dispatchInventoryCounts struct {
 	Dispatched int `json:"dispatched"`
+}
+
+// assertFFIProfileInventoryAnchors compares the checked-in FFI profile census
+// against the external anchors. The census is a generated artifact, so its own
+// header counts cannot police it: a generator that stopped accounting for a
+// group of symbols would emit a smaller, self-consistent census that
+// verify-generated still accepts. The anchors live outside every generation path
+// and pin both the totals and the per-classification split, so a symbol moving
+// into or out of an accounted state has to be re-pinned by hand.
+func assertFFIProfileInventoryAnchors(t *testing.T, anchors verificationAnchors) {
+	t.Helper()
+	path := filepath.Join("..", "..", "generated", "testspec", "ffi_profile_inventory.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read ffi profile inventory: %v", err)
+	}
+	var inventory struct {
+		TotalFunctions           int            `json:"total_functions"`
+		IncludedFunctions        int            `json:"included_functions"`
+		ExcludedFunctions        int            `json:"excluded_functions"`
+		ExcludedByClassification map[string]int `json:"excluded_by_classification"`
+		Functions                []struct {
+			Function string `json:"function"`
+		} `json:"functions"`
+	}
+	if err := json.Unmarshal(raw, &inventory); err != nil {
+		t.Fatalf("unmarshal ffi profile inventory: %v", err)
+	}
+
+	if inventory.TotalFunctions != anchors.FFIProfileFunctionsTotal {
+		t.Errorf("ffi profile total functions = %d, anchor = %d", inventory.TotalFunctions, anchors.FFIProfileFunctionsTotal)
+	}
+	if inventory.IncludedFunctions != anchors.FFIProfileFunctionsIncluded {
+		t.Errorf("ffi profile included functions = %d, anchor = %d", inventory.IncludedFunctions, anchors.FFIProfileFunctionsIncluded)
+	}
+	if inventory.ExcludedFunctions != anchors.FFIProfileFunctionsExcluded {
+		t.Errorf("ffi profile excluded functions = %d, anchor = %d", inventory.ExcludedFunctions, anchors.FFIProfileFunctionsExcluded)
+	}
+	if len(inventory.Functions) != anchors.FFIProfileFunctionsTotal {
+		t.Errorf("ffi profile census rows = %d, anchor total = %d", len(inventory.Functions), anchors.FFIProfileFunctionsTotal)
+	}
+	if inventory.IncludedFunctions+inventory.ExcludedFunctions != inventory.TotalFunctions {
+		t.Errorf("ffi profile included %d + excluded %d != total %d",
+			inventory.IncludedFunctions, inventory.ExcludedFunctions, inventory.TotalFunctions)
+	}
+	// The pinned symbol universe is shared with the readtest census population
+	// count, so a symbol-extraction regression that shrank the world would have
+	// to move both anchors together.
+	if inventory.TotalFunctions != anchors.ReadtestProfileFunctionsTotal {
+		t.Errorf("ffi profile census population = %d, readtest profile population anchor = %d; both censuses enumerate the pinned Intel function world",
+			inventory.TotalFunctions, anchors.ReadtestProfileFunctionsTotal)
+	}
+
+	if len(inventory.ExcludedByClassification) != len(anchors.FFIProfileExcludedByClassification) {
+		t.Errorf("ffi profile excluded classifications = %d, anchor classifications = %d (%v vs %v)",
+			len(inventory.ExcludedByClassification), len(anchors.FFIProfileExcludedByClassification),
+			inventory.ExcludedByClassification, anchors.FFIProfileExcludedByClassification)
+	}
+	excludedSum := 0
+	for classification, want := range anchors.FFIProfileExcludedByClassification {
+		got, ok := inventory.ExcludedByClassification[classification]
+		if !ok {
+			t.Errorf("ffi profile classification %q missing from the generated census", classification)
+			continue
+		}
+		if got != want {
+			t.Errorf("ffi profile classification %q = %d, anchor = %d", classification, got, want)
+		}
+	}
+	for _, count := range inventory.ExcludedByClassification {
+		excludedSum += count
+	}
+	if excludedSum != inventory.ExcludedFunctions {
+		t.Errorf("ffi profile classification counts sum to %d, excluded functions = %d", excludedSum, inventory.ExcludedFunctions)
+	}
 }
 
 func loadVerificationAnchors(t *testing.T) verificationAnchors {
@@ -950,6 +1029,13 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	if len(spec.FFICases) != anchors.FFIBitcompareCasesTotal {
 		t.Errorf("generated FFI bit-compare case total = %d, anchor = %d", len(spec.FFICases), anchors.FFIBitcompareCasesTotal)
 	}
+	// FFI profile census: the case total above says how much the domain runs;
+	// these say which of the pinned Intel symbols it runs on and, for the rest,
+	// under which classification they are accounted. Pinning the
+	// per-classification counts outside the generation path is what keeps the
+	// unresolved bucket from absorbing new symbols silently, and what forces a
+	// deliberate anchor edit when a symbol moves between accounted states.
+	assertFFIProfileInventoryAnchors(t, anchors)
 	tier1ArithmeticOutputs, err := GenerateTier1ArithmeticLongOutputs()
 	if err != nil {
 		t.Fatalf("generate Tier 1 arithmetic long outputs for consumer anchor: %v", err)

@@ -21,6 +21,12 @@ type ffiMixedDecimalShape struct {
 	resultBits   int
 	operandBits  [3]int
 	operandCount int
+	// rounding states whether the pinned Intel declaration takes an
+	// `_IDEC_round` argument. It is declared per entrypoint instead of inferred
+	// from the operation, and the signature check compares it against the
+	// extracted declaration, so a modeless entrypoint cannot silently acquire a
+	// rounding argument (or lose one) when the pinned header changes.
+	rounding bool
 }
 
 func (s ffiMixedDecimalShape) operandWidths() []int {
@@ -32,92 +38,102 @@ func (s ffiMixedDecimalShape) operandWidths() []int {
 // D/Q letters describe x, y, and z in order; keeping the widths explicit here
 // prevents a result-width inference from silently swapping or truncating an
 // operand when the extracted C declaration changes.
+//
+// bid32/bid64_nexttoward join the registry for the same reason the arithmetic
+// extensions are here — Intel declares the second operand as BID_UINT128 while
+// the result keeps the narrow width — even though they are not arithmetic and
+// carry no rounding argument.
 func ffiMixedDecimalShapeFor(function string) (ffiMixedDecimalShape, bool) {
 	const (
+		s = 32
 		d = 64
 		q = 128
 	)
 	switch function {
 	case "bid64ddq_fma":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, d, q}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, d, q}, operandCount: 3, rounding: true}, true
 	case "bid64dqd_fma":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, q, d}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, q, d}, operandCount: 3, rounding: true}, true
 	case "bid64dqq_fma":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, q, q}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{d, q, q}, operandCount: 3, rounding: true}, true
 	case "bid64qdd_fma":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, d, d}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, d, d}, operandCount: 3, rounding: true}, true
 	case "bid64qdq_fma":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, d, q}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, d, q}, operandCount: 3, rounding: true}, true
 	case "bid64qqd_fma":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, q, d}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, q, d}, operandCount: 3, rounding: true}, true
 	case "bid64qqq_fma":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, q, q}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "fma", resultBits: d, operandBits: [3]int{q, q, q}, operandCount: 3, rounding: true}, true
 	case "bid128ddd_fma":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, d, d}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, d, d}, operandCount: 3, rounding: true}, true
 	case "bid128ddq_fma":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, d, q}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, d, q}, operandCount: 3, rounding: true}, true
 	case "bid128dqd_fma":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, q, d}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, q, d}, operandCount: 3, rounding: true}, true
 	case "bid128dqq_fma":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, q, q}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{d, q, q}, operandCount: 3, rounding: true}, true
 	case "bid128qdd_fma":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, d, d}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, d, d}, operandCount: 3, rounding: true}, true
 	case "bid128qdq_fma":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, d, q}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, d, q}, operandCount: 3, rounding: true}, true
 	case "bid128qqd_fma":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, q, d}, operandCount: 3}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "fma", resultBits: q, operandBits: [3]int{q, q, d}, operandCount: 3, rounding: true}, true
 	case "bid64q_sqrt":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "sqrt", resultBits: d, operandBits: [3]int{q}, operandCount: 1}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sqrt", resultBits: d, operandBits: [3]int{q}, operandCount: 1, rounding: true}, true
 	case "bid128d_sqrt":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "sqrt", resultBits: q, operandBits: [3]int{d}, operandCount: 1}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sqrt", resultBits: q, operandBits: [3]int{d}, operandCount: 1, rounding: true}, true
 	case "bid64dq_add":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid64dq_sub":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid64dq_mul":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid64dq_div":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid64qd_add":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
 	case "bid64qd_sub":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
 	case "bid64qd_mul":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
 	case "bid64qd_div":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
 	case "bid64qq_add":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "add", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2, rounding: true}, true
 	case "bid64qq_sub":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "sub", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2, rounding: true}, true
 	case "bid64qq_mul":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "mul", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2, rounding: true}, true
 	case "bid64qq_div":
-		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal64", operation: "div", resultBits: d, operandBits: [3]int{q, q}, operandCount: 2, rounding: true}, true
 	case "bid128dd_add":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2, rounding: true}, true
 	case "bid128dd_sub":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2, rounding: true}, true
 	case "bid128dd_mul":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2, rounding: true}, true
 	case "bid128dd_div":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{d, d}, operandCount: 2, rounding: true}, true
 	case "bid128dq_add":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid128dq_sub":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid128dq_mul":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid128dq_div":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{d, q}, operandCount: 2, rounding: true}, true
 	case "bid128qd_add":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "add", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
 	case "bid128qd_sub":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "sub", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
 	case "bid128qd_mul":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "mul", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
 	case "bid128qd_div":
-		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2}, true
+		return ffiMixedDecimalShape{format: "decimal128", operation: "div", resultBits: q, operandBits: [3]int{q, d}, operandCount: 2, rounding: true}, true
+	case "bid32_nexttoward":
+		return ffiMixedDecimalShape{format: "decimal32", operation: "nexttoward", resultBits: s, operandBits: [3]int{s, q}, operandCount: 2, rounding: false}, true
+	case "bid64_nexttoward":
+		return ffiMixedDecimalShape{format: "decimal64", operation: "nexttoward", resultBits: d, operandBits: [3]int{d, q}, operandCount: 2, rounding: false}, true
 	default:
 		return ffiMixedDecimalShape{}, false
 	}
@@ -185,8 +201,8 @@ func buildFFICases(repoRoot string, spec FFITestSpec) ([]GeneratedFFICase, error
 		}
 		caseIndex := spec.CasesPerFunction
 		if isMixedDecimal {
-			if !hasRoundingParam {
-				return nil, fmt.Errorf("ffi suite %q: mixed decimal operation %q has no rounding parameter", spec.Name, function)
+			if mixedShape.rounding != hasRoundingParam {
+				return nil, fmt.Errorf("ffi suite %q: mixed decimal function %q declares rounding=%t, pinned Intel declaration says %t", spec.Name, function, mixedShape.rounding, hasRoundingParam)
 			}
 			probes, err := ffiMixedDecimalRoundingProbeOperands(mixedShape)
 			if err != nil {
@@ -378,6 +394,13 @@ func verifyFFIMutationCorpusCoverage(cases []GeneratedFFICase) error {
 // separately requires the canonical Intel C result bits to split into at
 // least two distinct values.
 func ffiMixedDecimalRoundingProbeOperands(shape ffiMixedDecimalShape) ([][]string, error) {
+	if !shape.rounding {
+		// A modeless Intel entrypoint has no rounding argument, so there is no
+		// rounding-discriminant to probe. ffiMixedShapeCarriesRoundingProbe
+		// agrees, which is what the census expectations read.
+		return nil, nil
+	}
+
 	var probes [][]modeDiscOperand
 	switch shape.operation {
 	case "fma":
@@ -452,14 +475,18 @@ func ffiMixedDecimalRoundingProbeOperands(shape ffiMixedDecimalShape) ([][]strin
 }
 
 // ffiMixedShapeCarriesRoundingProbe reports whether a mixed shape admits a
-// rounding-discriminant probe group at all. Every registered shape does except
-// Decimal128 = Decimal64 x Decimal64 multiplication: two Decimal64
-// coefficients multiply to at most 32 digits and their exponents sum well
-// inside the Decimal128 range, so every finite DD product is exact and no
-// operand pair can separate the five rounding modes. Generation fails closed
-// for any other shape that produces no probe operands, so this exception
-// cannot be widened by accident.
+// rounding-discriminant probe group at all. A modeless entrypoint takes no
+// rounding argument, so there is nothing to prove live. Every rounding-taking
+// shape carries a probe except Decimal128 = Decimal64 x Decimal64
+// multiplication: two Decimal64 coefficients multiply to at most 32 digits and
+// their exponents sum well inside the Decimal128 range, so every finite DD
+// product is exact and no operand pair can separate the five rounding modes.
+// Generation fails closed for any other shape that produces no probe operands,
+// so these exceptions cannot be widened by accident.
 func ffiMixedShapeCarriesRoundingProbe(shape ffiMixedDecimalShape) bool {
+	if !shape.rounding {
+		return false
+	}
 	exactDDMul := shape.operation == "mul" && shape.resultBits == 128 &&
 		shape.operandCount == 2 && shape.operandBits[0] == 64 && shape.operandBits[1] == 64
 	return !exactDDMul
@@ -693,7 +720,10 @@ func verifyFFIMixedDecimalSignature(function string, symbol symbolSpec, shape ff
 		}
 		expectedParams = append(expectedParams, paramType+" "+paramNames[i])
 	}
-	expectedParams = append(expectedParams, "_IDEC_round rnd_mode", "_IDEC_flags*pfpsf")
+	if shape.rounding {
+		expectedParams = append(expectedParams, "_IDEC_round rnd_mode")
+	}
+	expectedParams = append(expectedParams, "_IDEC_flags*pfpsf")
 	return verifyFFIParameters(function, symbol.Parameters, expectedParams)
 }
 
@@ -832,17 +862,20 @@ func classifyFFIOperation(operation string) (ffiOperationKind, bool) {
 		return ffiOperationKind{returnKind: ffiReturnInt, arity: 1, rounding: true, flags: true}, true
 	}
 	switch operation {
-	case "add", "sub", "mul", "div", "quantize":
+	case "add", "sub", "mul", "div", "quantize", "fdim":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 2, rounding: true, flags: true}, true
 	case "fma":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 3, rounding: true, flags: true}, true
-	case "round_integral_exact", "sqrt":
+	case "round_integral_exact", "sqrt", "nearbyint":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 1, rounding: true, flags: true}, true
+	case "round_integral_nearest_even", "round_integral_nearest_away",
+		"round_integral_positive", "round_integral_negative", "round_integral_zero":
+		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 1, flags: true}, true
 	case "scalbn", "ldexp":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 2, rounding: true, flags: true}, true
 	case "scalbln":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 2, rounding: true, flags: true}, true
-	case "rem", "fmod", "minnum", "maxnum", "minnum_mag", "maxnum_mag":
+	case "rem", "fmod", "minnum", "maxnum", "minnum_mag", "maxnum_mag", "nextafter", "nexttoward":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 2, flags: true}, true
 	case "logb", "nextup", "nextdown", "quantum":
 		return ffiOperationKind{returnKind: ffiReturnDecimal, arity: 1, flags: true}, true
@@ -856,8 +889,10 @@ func classifyFFIOperation(operation string) (ffiOperationKind, bool) {
 		return ffiOperationKind{returnKind: ffiReturnInt, arity: 1}, true
 	case "quantexp", "ilogb":
 		return ffiOperationKind{returnKind: ffiReturnInt, arity: 1, flags: true}, true
-	case "llquantexp":
+	case "llquantexp", "llround":
 		return ffiOperationKind{returnKind: ffiReturnLongLong, arity: 1, flags: true}, true
+	case "llrint":
+		return ffiOperationKind{returnKind: ffiReturnLongLong, arity: 1, rounding: true, flags: true}, true
 	case "totalOrder", "totalOrderMag", "sameQuantum":
 		return ffiOperationKind{returnKind: ffiReturnInt, arity: 2}, true
 	case "quiet_equal", "quiet_greater", "quiet_greater_equal", "quiet_greater_unordered", "quiet_less", "quiet_less_equal", "quiet_less_unordered", "quiet_not_equal", "quiet_not_greater", "quiet_not_less", "quiet_ordered", "quiet_unordered":

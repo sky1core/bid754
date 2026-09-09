@@ -284,6 +284,12 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	assertGeneratedFileMatches(t, repoRoot, ffiGeneratedNativeSupportPath, ffiOutputs[ffiGeneratedNativeSupportPath])
 	assertGeneratedFileMatches(t, repoRoot, ffiGeneratedNativeTestPath, ffiOutputs[ffiGeneratedNativeTestPath])
 	assertGeneratedFileMatches(t, repoRoot, ffiGeneratedStubTestPath, ffiOutputs[ffiGeneratedStubTestPath])
+	ffiInventoryOutputs, err := GenerateFFIProfileInventory(repoRoot, manifest)
+	if err != nil {
+		t.Fatalf("GenerateFFIProfileInventory error: %v", err)
+	}
+	assertGeneratedOutputSet(t, "FFI profile inventory", ffiInventoryOutputs, ffiProfileInventoryPath)
+	assertGeneratedFileMatches(t, repoRoot, ffiProfileInventoryPath, ffiInventoryOutputs[ffiProfileInventoryPath])
 	tier1ArithmeticOutputs, err := GenerateTier1ArithmeticLongOutputs()
 	if err != nil {
 		t.Fatalf("GenerateTier1ArithmeticLongOutputs error: %v", err)
@@ -721,8 +727,14 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	// eleven batch C-2 detection-gap witnesses and to 22 with the six batch
 	// C-7 coverage-guided witnesses (bid64_fma x3, bid64qqq_fma,
 	// bid128_fma x2).
-	if len(spec.FFICases) != 28439 {
-		t.Fatalf("generated %d ffi cases, want 28439", len(spec.FFICases))
+	//
+	// It then grew by 1584 when the last 33 accounted-but-unselected Intel
+	// symbols joined the suite (11 per width: the five fixed-attribute
+	// round_integral variants, nearbyint, fdim, nextafter, nexttoward, llrint,
+	// llround). None is a Tier 1 rounding-edge operation and none carries a
+	// probe group, so each contributes exactly the 48-case baseline.
+	if len(spec.FFICases) != 30023 {
+		t.Fatalf("generated %d ffi cases, want 30023", len(spec.FFICases))
 	}
 	ffiSymbols, err := loadSymbolFile(filepath.Join(repoRoot, "generated", "json", "intel_dfp_symbols.json"))
 	if err != nil {
@@ -784,9 +796,11 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		ffiOperationCaseCounts[tc.Operation]++
 	}
 	// 469 functions before the 24 Intel mixed-format arithmetic entrypoints
-	// (bid{64,128}{dd,dq,qd,qq}_{add,sub,mul,div}) joined the FFI suite.
-	if len(ffiFunctionCaseCounts) != 493 {
-		t.Fatalf("generated ffi function count = %d, want 493 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
+	// (bid{64,128}{dd,dq,qd,qq}_{add,sub,mul,div}) joined the FFI suite, and
+	// 493 before the final 33 (11 per width) closed the census: the FFI profile
+	// inventory now carries no unresolved_required_review row.
+	if len(ffiFunctionCaseCounts) != 526 {
+		t.Fatalf("generated ffi function count = %d, want 526 (counts: %v)", len(ffiFunctionCaseCounts), ffiFunctionCaseCounts)
 	}
 	ffiWitnessRowsByFunction := map[string]int{}
 	for _, witness := range ffiMutationWitnessCases {
@@ -829,10 +843,14 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	//
 	// Batch C-7 adds 4 decimal64 (bid64_fma x3, bid64qqq_fma) and 2 decimal128
 	// (bid128_fma x2) coverage-guided witnesses.
+	//
+	// The final 33 entrypoints add 528 cases (11 functions x 48) to each
+	// format; bid32_nexttoward and bid64_nexttoward count under their narrow
+	// result format even though their second operand is Decimal128.
 	assertCountMap(t, "ffi formats", ffiFormatCaseCounts, map[string]int{
-		"decimal32":  9648,
-		"decimal64":  9399,
-		"decimal128": 9392,
+		"decimal32":  10176,
+		"decimal64":  9927,
+		"decimal128": 9920,
 	})
 	expectedFFIOperations := map[string]int{
 		"abs":                         144,
@@ -842,6 +860,7 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"copySign":                    144,
 		"div":                         3053, // +2048 bid_factors32 sweep (bid32_div); +681 mixed-format div (5 x 113 + bid64qq_div 116)
 		"fma":                         912,  // +12 mutation-audit witnesses (bid64_fma x5, bid128_fma x6, bid64qqq_fma)
+		"fdim":                        144,
 		"fmod":                        144,
 		"from_int32":                  144,
 		"from_int64":                  144,
@@ -860,13 +879,18 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"ldexp":                       144,
 		"logb":                        144,
 		"llquantexp":                  144,
+		"llrint":                      144,
+		"llround":                     144,
 		"maxnum":                      144,
 		"maxnum_mag":                  144,
 		"minnum":                      144,
 		"minnum_mag":                  144,
 		"mul":                         998, // +674 mixed-format mul (4 x 113 + bid64qq_mul 114 + bid128dd_mul 108)
+		"nearbyint":                   144,
 		"negate":                      144,
+		"nextafter":                   144,
 		"nextdown":                    144,
+		"nexttoward":                  144,
 		"nextup":                      144,
 		"quantize":                    325, // +1 mutation-audit witness (bid128_quantize)
 		"quiet_equal":                 144,
@@ -886,6 +910,11 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"radix":                       144,
 		"rem":                         144,
 		"round_integral_exact":        146, // +2 mutation-audit witnesses (bid128_round_integral_exact)
+		"round_integral_nearest_away": 144,
+		"round_integral_nearest_even": 144,
+		"round_integral_negative":     144,
+		"round_integral_positive":     144,
+		"round_integral_zero":         144,
 		"scalbn":                      144,
 		"scalbln":                     300,
 		"sameQuantum":                 144,

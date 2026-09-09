@@ -889,6 +889,7 @@ verify-generated:
 	cmp -s devtools/generated/testspec/rust_readtest_dispatch_inventory.json $$tmpdir/backup/devtools/generated/testspec/rust_readtest_dispatch_inventory.json || failed="$$failed devtools/generated/testspec/rust_readtest_dispatch_inventory.json"; \
 	cmp -s devtools/generated/testspec/public_api_routing_inventory.json $$tmpdir/backup/devtools/generated/testspec/public_api_routing_inventory.json || failed="$$failed devtools/generated/testspec/public_api_routing_inventory.json"; \
 	cmp -s devtools/generated/testspec/dectest_rust_dispatch_inventory.json $$tmpdir/backup/devtools/generated/testspec/dectest_rust_dispatch_inventory.json || failed="$$failed devtools/generated/testspec/dectest_rust_dispatch_inventory.json"; \
+	cmp -s devtools/generated/testspec/ffi_profile_inventory.json $$tmpdir/backup/devtools/generated/testspec/ffi_profile_inventory.json || failed="$$failed devtools/generated/testspec/ffi_profile_inventory.json"; \
 	for f in $(DECTEST_EXECUTOR_OUTPUTS); do cmp -s bid754-go/$$f $$tmpdir/backup/bid754-go/$$f || failed="$$failed bid754-go/$$f"; done; \
 	diff -r $$tmpdir/backup/devtools/generated/testspec devtools/generated/testspec >/dev/null || failed="$$failed devtools/generated/testspec"; \
 	diff -ru $$tmpdir/backup/bid754-rs/src/generated bid754-rs/src/generated >/dev/null || failed="$$failed bid754-rs/src/generated"; \

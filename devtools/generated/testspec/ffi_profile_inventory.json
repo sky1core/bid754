@@ -1,0 +1,4652 @@
+{
+  "version": "1.0",
+  "suite": "bid_native_bitcompare_subset",
+  "symbols": "generated/json/intel_dfp_symbols.json",
+  "source": "devtools/testgen_manifest.json ffi_tests + generated/json/intel_dfp_symbols.json + bid754-go/internal/bidgo",
+  "total_functions": 680,
+  "included_functions": 526,
+  "excluded_functions": 154,
+  "excluded_by_classification": {
+    "out_of_scope_not_required": 154
+  },
+  "functions": [
+    {
+      "function": "__binary128_to_bid128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary128_to_bid32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary128_to_bid64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary32_to_bid128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary32_to_bid32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary32_to_bid64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary64_to_bid128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary64_to_bid32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary64_to_bid64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary80_to_bid128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary80_to_bid32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "__binary80_to_bid64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_abs",
+      "included": true,
+      "port_function": "Bid128Abs",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_acos",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_acosh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_add",
+      "included": true,
+      "port_function": "Bid128Add",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_asin",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_asinh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_atan",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_atan2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_atanh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_cbrt",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_class",
+      "included": true,
+      "port_function": "Bid128Class",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_copy",
+      "included": true,
+      "port_function": "Bid128Copy",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_copySign",
+      "included": true,
+      "port_function": "Bid128CopySign",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_cos",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_cosh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_div",
+      "included": true,
+      "port_function": "Bid128Div",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_erf",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_erfc",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_exp",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_exp10",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_exp2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_expm1",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_fdim",
+      "included": true,
+      "port_function": "Bid128Fdim",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_fma",
+      "included": true,
+      "port_function": "Bid128Fma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_fmod",
+      "included": true,
+      "port_function": "Bid128Fmod",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_frexp",
+      "included": false,
+      "port_function": "Bid128Frexp",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"int*exp\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid128_from_int32",
+      "included": true,
+      "port_function": "Bid128FromInt32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_from_int64",
+      "included": true,
+      "port_function": "Bid128FromInt64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_from_string",
+      "included": false,
+      "port_function": "Bid128FromString",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"char*ps\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid128_from_uint32",
+      "included": true,
+      "port_function": "Bid128FromUint32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_from_uint64",
+      "included": true,
+      "port_function": "Bid128FromUint64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_hypot",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_ilogb",
+      "included": true,
+      "port_function": "Bid128Ilogb",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_inf",
+      "included": false,
+      "port_function": "Bid128Inf",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid128_isCanonical",
+      "included": true,
+      "port_function": "Bid128IsCanonical",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isFinite",
+      "included": true,
+      "port_function": "Bid128IsFinite",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isInf",
+      "included": true,
+      "port_function": "Bid128IsInf",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isNaN",
+      "included": true,
+      "port_function": "Bid128IsNaN",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isNormal",
+      "included": true,
+      "port_function": "Bid128IsNormal",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isSignaling",
+      "included": true,
+      "port_function": "Bid128IsSignaling",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isSigned",
+      "included": true,
+      "port_function": "Bid128IsSigned",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isSubnormal",
+      "included": true,
+      "port_function": "Bid128IsSubnormal",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_isZero",
+      "included": true,
+      "port_function": "Bid128IsZero",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_ldexp",
+      "included": true,
+      "port_function": "Bid128Ldexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_lgamma",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_llquantexp",
+      "included": true,
+      "port_function": "Bid128Llquantexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_llrint",
+      "included": true,
+      "port_function": "Bid128Llrint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_llround",
+      "included": true,
+      "port_function": "Bid128Llround",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_log",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_log10",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_log1p",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_log2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_logb",
+      "included": true,
+      "port_function": "Bid128Logb",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_lrint",
+      "included": false,
+      "port_function": "Bid128Lrint",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration returns platform-width `long int`, which the FFI case model cannot bit-compare as a fixed-width scalar; upstream readtest data carries a `longintsize=32` row class for exactly this width dependency, and the generated profile skips those rows"
+    },
+    {
+      "function": "bid128_lround",
+      "included": false,
+      "port_function": "Bid128Lround",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration returns platform-width `long int`, which the FFI case model cannot bit-compare as a fixed-width scalar; upstream readtest data carries a `longintsize=32` row class for exactly this width dependency, and the generated profile skips those rows"
+    },
+    {
+      "function": "bid128_maxnum",
+      "included": true,
+      "port_function": "Bid128Maxnum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_maxnum_mag",
+      "included": true,
+      "port_function": "Bid128MaxnumMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_minnum",
+      "included": true,
+      "port_function": "Bid128Minnum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_minnum_mag",
+      "included": true,
+      "port_function": "Bid128MinnumMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_modf",
+      "included": false,
+      "port_function": "Bid128Modf",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"BID_UINT128* y\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid128_mul",
+      "included": true,
+      "port_function": "Bid128Mul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_nan",
+      "included": false,
+      "port_function": "Bid128NaN",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"const char*tagp\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid128_nearbyint",
+      "included": true,
+      "port_function": "Bid128Nearbyint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_negate",
+      "included": true,
+      "port_function": "Bid128Negate",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_nextafter",
+      "included": true,
+      "port_function": "Bid128NextAfter",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_nextdown",
+      "included": true,
+      "port_function": "Bid128NextDown",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_nexttoward",
+      "included": true,
+      "port_function": "Bid128NextToward",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_nextup",
+      "included": true,
+      "port_function": "Bid128NextUp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_pow",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_quantexp",
+      "included": true,
+      "port_function": "Bid128Quantexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quantize",
+      "included": true,
+      "port_function": "Bid128Quantize",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quantum",
+      "included": true,
+      "port_function": "Bid128Quantum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_equal",
+      "included": true,
+      "port_function": "Bid128QuietEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_greater",
+      "included": true,
+      "port_function": "Bid128QuietGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_greater_equal",
+      "included": true,
+      "port_function": "Bid128QuietGreaterEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_greater_unordered",
+      "included": true,
+      "port_function": "Bid128QuietGreaterUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_less",
+      "included": true,
+      "port_function": "Bid128QuietLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_less_equal",
+      "included": true,
+      "port_function": "Bid128QuietLessEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_less_unordered",
+      "included": true,
+      "port_function": "Bid128QuietLessUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_not_equal",
+      "included": true,
+      "port_function": "Bid128QuietNotEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_not_greater",
+      "included": true,
+      "port_function": "Bid128QuietNotGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_not_less",
+      "included": true,
+      "port_function": "Bid128QuietNotLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_ordered",
+      "included": true,
+      "port_function": "Bid128QuietOrdered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_quiet_unordered",
+      "included": true,
+      "port_function": "Bid128QuietUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_radix",
+      "included": true,
+      "port_function": "Bid128Radix",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_rem",
+      "included": true,
+      "port_function": "Bid128Rem",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_round_integral_exact",
+      "included": true,
+      "port_function": "Bid128RoundIntegralExact",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_round_integral_nearest_away",
+      "included": true,
+      "port_function": "Bid128RoundIntegralNearestAway",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_round_integral_nearest_even",
+      "included": true,
+      "port_function": "Bid128RoundIntegralNearestEven",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_round_integral_negative",
+      "included": true,
+      "port_function": "Bid128RoundIntegralNegative",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_round_integral_positive",
+      "included": true,
+      "port_function": "Bid128RoundIntegralPositive",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_round_integral_zero",
+      "included": true,
+      "port_function": "Bid128RoundIntegralZero",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_sameQuantum",
+      "included": true,
+      "port_function": "Bid128SameQuantum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_scalbln",
+      "included": true,
+      "port_function": "Bid128Scalbln",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_scalbn",
+      "included": true,
+      "port_function": "Bid128Scalbn",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_greater",
+      "included": true,
+      "port_function": "Bid128SignalingGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_greater_equal",
+      "included": true,
+      "port_function": "Bid128SignalingGreaterEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_greater_unordered",
+      "included": true,
+      "port_function": "Bid128SignalingGreaterUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_less",
+      "included": true,
+      "port_function": "Bid128SignalingLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_less_equal",
+      "included": true,
+      "port_function": "Bid128SignalingLessEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_less_unordered",
+      "included": true,
+      "port_function": "Bid128SignalingLessUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_not_greater",
+      "included": true,
+      "port_function": "Bid128SignalingNotGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_signaling_not_less",
+      "included": true,
+      "port_function": "Bid128SignalingNotLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_sin",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_sinh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_sqrt",
+      "included": true,
+      "port_function": "Bid128Sqrt",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_sub",
+      "included": true,
+      "port_function": "Bid128Sub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_tan",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_tanh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_tgamma",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_to_bid32",
+      "included": true,
+      "port_function": "Bid128ToBid32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_bid64",
+      "included": true,
+      "port_function": "Bid128ToBid64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_binary128",
+      "included": true,
+      "port_function": "Bid128ToBinary128",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_binary32",
+      "included": true,
+      "port_function": "Bid128ToBinary32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_binary64",
+      "included": true,
+      "port_function": "Bid128ToBinary64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_binary80",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid128_to_int16_ceil",
+      "included": true,
+      "port_function": "Bid128ToInt16Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_floor",
+      "included": true,
+      "port_function": "Bid128ToInt16Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_int",
+      "included": true,
+      "port_function": "Bid128ToInt16Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_rnint",
+      "included": true,
+      "port_function": "Bid128ToInt16Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_rninta",
+      "included": true,
+      "port_function": "Bid128ToInt16Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_xceil",
+      "included": true,
+      "port_function": "Bid128ToInt16Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_xfloor",
+      "included": true,
+      "port_function": "Bid128ToInt16Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_xint",
+      "included": true,
+      "port_function": "Bid128ToInt16Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_xrnint",
+      "included": true,
+      "port_function": "Bid128ToInt16Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int16_xrninta",
+      "included": true,
+      "port_function": "Bid128ToInt16Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_ceil",
+      "included": true,
+      "port_function": "Bid128ToInt32Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_floor",
+      "included": true,
+      "port_function": "Bid128ToInt32Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_int",
+      "included": true,
+      "port_function": "Bid128ToInt32Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_rnint",
+      "included": true,
+      "port_function": "Bid128ToInt32Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_rninta",
+      "included": true,
+      "port_function": "Bid128ToInt32Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_xceil",
+      "included": true,
+      "port_function": "Bid128ToInt32Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_xfloor",
+      "included": true,
+      "port_function": "Bid128ToInt32Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_xint",
+      "included": true,
+      "port_function": "Bid128ToInt32Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_xrnint",
+      "included": true,
+      "port_function": "Bid128ToInt32Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int32_xrninta",
+      "included": true,
+      "port_function": "Bid128ToInt32Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_ceil",
+      "included": true,
+      "port_function": "Bid128ToInt64Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_floor",
+      "included": true,
+      "port_function": "Bid128ToInt64Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_int",
+      "included": true,
+      "port_function": "Bid128ToInt64Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_rnint",
+      "included": true,
+      "port_function": "Bid128ToInt64Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_rninta",
+      "included": true,
+      "port_function": "Bid128ToInt64Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_xceil",
+      "included": true,
+      "port_function": "Bid128ToInt64Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_xfloor",
+      "included": true,
+      "port_function": "Bid128ToInt64Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_xint",
+      "included": true,
+      "port_function": "Bid128ToInt64Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_xrnint",
+      "included": true,
+      "port_function": "Bid128ToInt64Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int64_xrninta",
+      "included": true,
+      "port_function": "Bid128ToInt64Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_ceil",
+      "included": true,
+      "port_function": "Bid128ToInt8Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_floor",
+      "included": true,
+      "port_function": "Bid128ToInt8Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_int",
+      "included": true,
+      "port_function": "Bid128ToInt8Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_rnint",
+      "included": true,
+      "port_function": "Bid128ToInt8Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_rninta",
+      "included": true,
+      "port_function": "Bid128ToInt8Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_xceil",
+      "included": true,
+      "port_function": "Bid128ToInt8Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_xfloor",
+      "included": true,
+      "port_function": "Bid128ToInt8Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_xint",
+      "included": true,
+      "port_function": "Bid128ToInt8Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_xrnint",
+      "included": true,
+      "port_function": "Bid128ToInt8Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_int8_xrninta",
+      "included": true,
+      "port_function": "Bid128ToInt8Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_string",
+      "included": false,
+      "port_function": "Bid128ToString",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"char*str\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid128_to_uint16_ceil",
+      "included": true,
+      "port_function": "Bid128ToUint16Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_floor",
+      "included": true,
+      "port_function": "Bid128ToUint16Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_int",
+      "included": true,
+      "port_function": "Bid128ToUint16Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_rnint",
+      "included": true,
+      "port_function": "Bid128ToUint16Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_rninta",
+      "included": true,
+      "port_function": "Bid128ToUint16Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_xceil",
+      "included": true,
+      "port_function": "Bid128ToUint16Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_xfloor",
+      "included": true,
+      "port_function": "Bid128ToUint16Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_xint",
+      "included": true,
+      "port_function": "Bid128ToUint16Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_xrnint",
+      "included": true,
+      "port_function": "Bid128ToUint16Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint16_xrninta",
+      "included": true,
+      "port_function": "Bid128ToUint16Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_ceil",
+      "included": true,
+      "port_function": "Bid128ToUint32Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_floor",
+      "included": true,
+      "port_function": "Bid128ToUint32Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_int",
+      "included": true,
+      "port_function": "Bid128ToUint32Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_rnint",
+      "included": true,
+      "port_function": "Bid128ToUint32Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_rninta",
+      "included": true,
+      "port_function": "Bid128ToUint32Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_xceil",
+      "included": true,
+      "port_function": "Bid128ToUint32Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_xfloor",
+      "included": true,
+      "port_function": "Bid128ToUint32Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_xint",
+      "included": true,
+      "port_function": "Bid128ToUint32Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_xrnint",
+      "included": true,
+      "port_function": "Bid128ToUint32Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint32_xrninta",
+      "included": true,
+      "port_function": "Bid128ToUint32Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_ceil",
+      "included": true,
+      "port_function": "Bid128ToUint64Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_floor",
+      "included": true,
+      "port_function": "Bid128ToUint64Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_int",
+      "included": true,
+      "port_function": "Bid128ToUint64Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_rnint",
+      "included": true,
+      "port_function": "Bid128ToUint64Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_rninta",
+      "included": true,
+      "port_function": "Bid128ToUint64Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_xceil",
+      "included": true,
+      "port_function": "Bid128ToUint64Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_xfloor",
+      "included": true,
+      "port_function": "Bid128ToUint64Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_xint",
+      "included": true,
+      "port_function": "Bid128ToUint64Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_xrnint",
+      "included": true,
+      "port_function": "Bid128ToUint64Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint64_xrninta",
+      "included": true,
+      "port_function": "Bid128ToUint64Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_ceil",
+      "included": true,
+      "port_function": "Bid128ToUint8Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_floor",
+      "included": true,
+      "port_function": "Bid128ToUint8Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_int",
+      "included": true,
+      "port_function": "Bid128ToUint8Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_rnint",
+      "included": true,
+      "port_function": "Bid128ToUint8Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_rninta",
+      "included": true,
+      "port_function": "Bid128ToUint8Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_xceil",
+      "included": true,
+      "port_function": "Bid128ToUint8Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_xfloor",
+      "included": true,
+      "port_function": "Bid128ToUint8Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_xint",
+      "included": true,
+      "port_function": "Bid128ToUint8Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_xrnint",
+      "included": true,
+      "port_function": "Bid128ToUint8Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_to_uint8_xrninta",
+      "included": true,
+      "port_function": "Bid128ToUint8Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_totalOrder",
+      "included": true,
+      "port_function": "Bid128TotalOrder",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128_totalOrderMag",
+      "included": true,
+      "port_function": "Bid128TotalOrderMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128d_sqrt",
+      "included": true,
+      "port_function": "Bid128dSqrt",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dd_add",
+      "included": true,
+      "port_function": "Bid128ddAdd",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dd_div",
+      "included": true,
+      "port_function": "Bid128ddDiv",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dd_mul",
+      "included": true,
+      "port_function": "Bid128ddMul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dd_sub",
+      "included": true,
+      "port_function": "Bid128ddSub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128ddd_fma",
+      "included": true,
+      "port_function": "Bid128dddFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128ddq_fma",
+      "included": true,
+      "port_function": "Bid128ddqFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dq_add",
+      "included": true,
+      "port_function": "Bid128dqAdd",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dq_div",
+      "included": true,
+      "port_function": "Bid128dqDiv",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dq_mul",
+      "included": true,
+      "port_function": "Bid128dqMul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dq_sub",
+      "included": true,
+      "port_function": "Bid128dqSub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dqd_fma",
+      "included": true,
+      "port_function": "Bid128dqdFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128dqq_fma",
+      "included": true,
+      "port_function": "Bid128dqqFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128qd_add",
+      "included": true,
+      "port_function": "Bid128qdAdd",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128qd_div",
+      "included": true,
+      "port_function": "Bid128qdDiv",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128qd_mul",
+      "included": true,
+      "port_function": "Bid128qdMul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128qd_sub",
+      "included": true,
+      "port_function": "Bid128qdSub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128qdd_fma",
+      "included": true,
+      "port_function": "Bid128qddFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128qdq_fma",
+      "included": true,
+      "port_function": "Bid128qdqFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid128qqd_fma",
+      "included": true,
+      "port_function": "Bid128qqdFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_abs",
+      "included": true,
+      "port_function": "Bid32Abs",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_acos",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_acosh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_add",
+      "included": true,
+      "port_function": "Bid32Add",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_asin",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_asinh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_atan",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_atan2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_atanh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_cbrt",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_class",
+      "included": true,
+      "port_function": "Bid32Class",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_copy",
+      "included": true,
+      "port_function": "Bid32Copy",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_copySign",
+      "included": true,
+      "port_function": "Bid32CopySign",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_cos",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_cosh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_div",
+      "included": true,
+      "port_function": "Bid32Div",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_erf",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_erfc",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_exp",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_exp10",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_exp2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_expm1",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_fdim",
+      "included": true,
+      "port_function": "Bid32Fdim",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_fma",
+      "included": true,
+      "port_function": "Bid32Fma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_fmod",
+      "included": true,
+      "port_function": "Bid32Fmod",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_frexp",
+      "included": false,
+      "port_function": "Bid32Frexp",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"int*exp\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid32_from_int32",
+      "included": true,
+      "port_function": "Bid32FromInt32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_from_int64",
+      "included": true,
+      "port_function": "Bid32FromInt64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_from_string",
+      "included": false,
+      "port_function": "Bid32FromStringRaw",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"char*ps\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid32_from_uint32",
+      "included": true,
+      "port_function": "Bid32FromUint32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_from_uint64",
+      "included": true,
+      "port_function": "Bid32FromUint64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_hypot",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_ilogb",
+      "included": true,
+      "port_function": "Bid32ILogb",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_inf",
+      "included": false,
+      "port_function": "Bid32Inf",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid32_isCanonical",
+      "included": true,
+      "port_function": "Bid32IsCanonical",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isFinite",
+      "included": true,
+      "port_function": "Bid32IsFinite",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isInf",
+      "included": true,
+      "port_function": "Bid32IsInf",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isNaN",
+      "included": true,
+      "port_function": "Bid32IsNaN",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isNormal",
+      "included": true,
+      "port_function": "Bid32IsNormal",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isSignaling",
+      "included": true,
+      "port_function": "Bid32IsSignaling",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isSigned",
+      "included": true,
+      "port_function": "Bid32IsSigned",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isSubnormal",
+      "included": true,
+      "port_function": "Bid32IsSubnormal",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_isZero",
+      "included": true,
+      "port_function": "Bid32IsZero",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_ldexp",
+      "included": true,
+      "port_function": "Bid32Ldexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_lgamma",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_llquantexp",
+      "included": true,
+      "port_function": "Bid32LLQuantexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_llrint",
+      "included": true,
+      "port_function": "Bid32Llrint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_llround",
+      "included": true,
+      "port_function": "Bid32Llround",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_log",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_log10",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_log1p",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_log2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_logb",
+      "included": true,
+      "port_function": "Bid32Logb",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_lrint",
+      "included": false,
+      "port_function": "Bid32Lrint",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration returns platform-width `long int`, which the FFI case model cannot bit-compare as a fixed-width scalar; upstream readtest data carries a `longintsize=32` row class for exactly this width dependency, and the generated profile skips those rows"
+    },
+    {
+      "function": "bid32_lround",
+      "included": false,
+      "port_function": "Bid32Lround",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration returns platform-width `long int`, which the FFI case model cannot bit-compare as a fixed-width scalar; upstream readtest data carries a `longintsize=32` row class for exactly this width dependency, and the generated profile skips those rows"
+    },
+    {
+      "function": "bid32_maxnum",
+      "included": true,
+      "port_function": "Bid32MaxNum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_maxnum_mag",
+      "included": true,
+      "port_function": "Bid32MaxNumMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_minnum",
+      "included": true,
+      "port_function": "Bid32MinNum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_minnum_mag",
+      "included": true,
+      "port_function": "Bid32MinNumMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_modf",
+      "included": false,
+      "port_function": "Bid32Modf",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"BID_UINT32* y\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid32_mul",
+      "included": true,
+      "port_function": "Bid32Mul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_nan",
+      "included": false,
+      "port_function": "Bid32NaN",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"const char*tagp\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid32_nearbyint",
+      "included": true,
+      "port_function": "Bid32NearbyInt",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_negate",
+      "included": true,
+      "port_function": "Bid32Negate",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_nextafter",
+      "included": true,
+      "port_function": "Bid32NextAfter",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_nextdown",
+      "included": true,
+      "port_function": "Bid32NextDown",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_nexttoward",
+      "included": true,
+      "port_function": "Bid32NextToward",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_nextup",
+      "included": true,
+      "port_function": "Bid32NextUp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_pow",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_quantexp",
+      "included": true,
+      "port_function": "Bid32Quantexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quantize",
+      "included": true,
+      "port_function": "Bid32Quantize",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quantum",
+      "included": true,
+      "port_function": "Bid32Quantum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_equal",
+      "included": true,
+      "port_function": "Bid32QuietEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_greater",
+      "included": true,
+      "port_function": "Bid32QuietGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_greater_equal",
+      "included": true,
+      "port_function": "Bid32QuietGreaterEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_greater_unordered",
+      "included": true,
+      "port_function": "Bid32QuietGreaterUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_less",
+      "included": true,
+      "port_function": "Bid32QuietLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_less_equal",
+      "included": true,
+      "port_function": "Bid32QuietLessEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_less_unordered",
+      "included": true,
+      "port_function": "Bid32QuietLessUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_not_equal",
+      "included": true,
+      "port_function": "Bid32QuietNotEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_not_greater",
+      "included": true,
+      "port_function": "Bid32QuietNotGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_not_less",
+      "included": true,
+      "port_function": "Bid32QuietNotLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_ordered",
+      "included": true,
+      "port_function": "Bid32QuietOrdered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_quiet_unordered",
+      "included": true,
+      "port_function": "Bid32QuietUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_radix",
+      "included": true,
+      "port_function": "Bid32Radix",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_rem",
+      "included": true,
+      "port_function": "Bid32Rem",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_round_integral_exact",
+      "included": true,
+      "port_function": "Bid32RoundIntegralExact",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_round_integral_nearest_away",
+      "included": true,
+      "port_function": "Bid32RoundIntegralNearestAway",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_round_integral_nearest_even",
+      "included": true,
+      "port_function": "Bid32RoundIntegralNearestEven",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_round_integral_negative",
+      "included": true,
+      "port_function": "Bid32RoundIntegralNegative",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_round_integral_positive",
+      "included": true,
+      "port_function": "Bid32RoundIntegralPositive",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_round_integral_zero",
+      "included": true,
+      "port_function": "Bid32RoundIntegralZero",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_sameQuantum",
+      "included": true,
+      "port_function": "Bid32SameQuantum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_scalbln",
+      "included": true,
+      "port_function": "Bid32Scalbln",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_scalbn",
+      "included": true,
+      "port_function": "Bid32Scalbn",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_greater",
+      "included": true,
+      "port_function": "Bid32SignalingGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_greater_equal",
+      "included": true,
+      "port_function": "Bid32SignalingGreaterEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_greater_unordered",
+      "included": true,
+      "port_function": "Bid32SignalingGreaterUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_less",
+      "included": true,
+      "port_function": "Bid32SignalingLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_less_equal",
+      "included": true,
+      "port_function": "Bid32SignalingLessEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_less_unordered",
+      "included": true,
+      "port_function": "Bid32SignalingLessUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_not_greater",
+      "included": true,
+      "port_function": "Bid32SignalingNotGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_signaling_not_less",
+      "included": true,
+      "port_function": "Bid32SignalingNotLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_sin",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_sinh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_sqrt",
+      "included": true,
+      "port_function": "Bid32Sqrt",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_sub",
+      "included": true,
+      "port_function": "Bid32Sub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_tan",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_tanh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_tgamma",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_to_bid128",
+      "included": true,
+      "port_function": "Bid32ToBid128",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_bid64",
+      "included": true,
+      "port_function": "Bid32ToBid64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_binary128",
+      "included": true,
+      "port_function": "Bid32ToBinary128",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_binary32",
+      "included": true,
+      "port_function": "Bid32ToBinary32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_binary64",
+      "included": true,
+      "port_function": "Bid32ToBinary64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_binary80",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid32_to_int16_ceil",
+      "included": true,
+      "port_function": "Bid32ToInt16Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_floor",
+      "included": true,
+      "port_function": "Bid32ToInt16Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_int",
+      "included": true,
+      "port_function": "Bid32ToInt16Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_rnint",
+      "included": true,
+      "port_function": "Bid32ToInt16Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_rninta",
+      "included": true,
+      "port_function": "Bid32ToInt16Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_xceil",
+      "included": true,
+      "port_function": "Bid32ToInt16Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_xfloor",
+      "included": true,
+      "port_function": "Bid32ToInt16Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_xint",
+      "included": true,
+      "port_function": "Bid32ToInt16Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_xrnint",
+      "included": true,
+      "port_function": "Bid32ToInt16Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int16_xrninta",
+      "included": true,
+      "port_function": "Bid32ToInt16Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_ceil",
+      "included": true,
+      "port_function": "Bid32ToInt32Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_floor",
+      "included": true,
+      "port_function": "Bid32ToInt32Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_int",
+      "included": true,
+      "port_function": "Bid32ToInt32Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_rnint",
+      "included": true,
+      "port_function": "Bid32ToInt32Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_rninta",
+      "included": true,
+      "port_function": "Bid32ToInt32Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_xceil",
+      "included": true,
+      "port_function": "Bid32ToInt32Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_xfloor",
+      "included": true,
+      "port_function": "Bid32ToInt32Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_xint",
+      "included": true,
+      "port_function": "Bid32ToInt32Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_xrnint",
+      "included": true,
+      "port_function": "Bid32ToInt32Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int32_xrninta",
+      "included": true,
+      "port_function": "Bid32ToInt32Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_ceil",
+      "included": true,
+      "port_function": "Bid32ToInt64Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_floor",
+      "included": true,
+      "port_function": "Bid32ToInt64Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_int",
+      "included": true,
+      "port_function": "Bid32ToInt64Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_rnint",
+      "included": true,
+      "port_function": "Bid32ToInt64Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_rninta",
+      "included": true,
+      "port_function": "Bid32ToInt64Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_xceil",
+      "included": true,
+      "port_function": "Bid32ToInt64Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_xfloor",
+      "included": true,
+      "port_function": "Bid32ToInt64Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_xint",
+      "included": true,
+      "port_function": "Bid32ToInt64Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_xrnint",
+      "included": true,
+      "port_function": "Bid32ToInt64Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int64_xrninta",
+      "included": true,
+      "port_function": "Bid32ToInt64Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_ceil",
+      "included": true,
+      "port_function": "Bid32ToInt8Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_floor",
+      "included": true,
+      "port_function": "Bid32ToInt8Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_int",
+      "included": true,
+      "port_function": "Bid32ToInt8Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_rnint",
+      "included": true,
+      "port_function": "Bid32ToInt8Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_rninta",
+      "included": true,
+      "port_function": "Bid32ToInt8Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_xceil",
+      "included": true,
+      "port_function": "Bid32ToInt8Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_xfloor",
+      "included": true,
+      "port_function": "Bid32ToInt8Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_xint",
+      "included": true,
+      "port_function": "Bid32ToInt8Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_xrnint",
+      "included": true,
+      "port_function": "Bid32ToInt8Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_int8_xrninta",
+      "included": true,
+      "port_function": "Bid32ToInt8Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_string",
+      "included": false,
+      "port_function": "Bid32ToString",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"char*ps\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid32_to_uint16_ceil",
+      "included": true,
+      "port_function": "Bid32ToUint16Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_floor",
+      "included": true,
+      "port_function": "Bid32ToUint16Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_int",
+      "included": true,
+      "port_function": "Bid32ToUint16Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_rnint",
+      "included": true,
+      "port_function": "Bid32ToUint16Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_rninta",
+      "included": true,
+      "port_function": "Bid32ToUint16Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_xceil",
+      "included": true,
+      "port_function": "Bid32ToUint16Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_xfloor",
+      "included": true,
+      "port_function": "Bid32ToUint16Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_xint",
+      "included": true,
+      "port_function": "Bid32ToUint16Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_xrnint",
+      "included": true,
+      "port_function": "Bid32ToUint16Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint16_xrninta",
+      "included": true,
+      "port_function": "Bid32ToUint16Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_ceil",
+      "included": true,
+      "port_function": "Bid32ToUint32Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_floor",
+      "included": true,
+      "port_function": "Bid32ToUint32Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_int",
+      "included": true,
+      "port_function": "Bid32ToUint32Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_rnint",
+      "included": true,
+      "port_function": "Bid32ToUint32Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_rninta",
+      "included": true,
+      "port_function": "Bid32ToUint32Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_xceil",
+      "included": true,
+      "port_function": "Bid32ToUint32Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_xfloor",
+      "included": true,
+      "port_function": "Bid32ToUint32Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_xint",
+      "included": true,
+      "port_function": "Bid32ToUint32Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_xrnint",
+      "included": true,
+      "port_function": "Bid32ToUint32Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint32_xrninta",
+      "included": true,
+      "port_function": "Bid32ToUint32Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_ceil",
+      "included": true,
+      "port_function": "Bid32ToUint64Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_floor",
+      "included": true,
+      "port_function": "Bid32ToUint64Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_int",
+      "included": true,
+      "port_function": "Bid32ToUint64Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_rnint",
+      "included": true,
+      "port_function": "Bid32ToUint64Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_rninta",
+      "included": true,
+      "port_function": "Bid32ToUint64Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_xceil",
+      "included": true,
+      "port_function": "Bid32ToUint64Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_xfloor",
+      "included": true,
+      "port_function": "Bid32ToUint64Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_xint",
+      "included": true,
+      "port_function": "Bid32ToUint64Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_xrnint",
+      "included": true,
+      "port_function": "Bid32ToUint64Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint64_xrninta",
+      "included": true,
+      "port_function": "Bid32ToUint64Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_ceil",
+      "included": true,
+      "port_function": "Bid32ToUint8Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_floor",
+      "included": true,
+      "port_function": "Bid32ToUint8Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_int",
+      "included": true,
+      "port_function": "Bid32ToUint8Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_rnint",
+      "included": true,
+      "port_function": "Bid32ToUint8Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_rninta",
+      "included": true,
+      "port_function": "Bid32ToUint8Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_xceil",
+      "included": true,
+      "port_function": "Bid32ToUint8Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_xfloor",
+      "included": true,
+      "port_function": "Bid32ToUint8Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_xint",
+      "included": true,
+      "port_function": "Bid32ToUint8Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_xrnint",
+      "included": true,
+      "port_function": "Bid32ToUint8Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_to_uint8_xrninta",
+      "included": true,
+      "port_function": "Bid32ToUint8Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_totalOrder",
+      "included": true,
+      "port_function": "Bid32TotalOrder",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid32_totalOrderMag",
+      "included": true,
+      "port_function": "Bid32TotalOrderMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_abs",
+      "included": true,
+      "port_function": "Bid64Abs",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_acos",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_acosh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_add",
+      "included": true,
+      "port_function": "Bid64Add",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_asin",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_asinh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_atan",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_atan2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_atanh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_cbrt",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_class",
+      "included": true,
+      "port_function": "Bid64Class",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_copy",
+      "included": true,
+      "port_function": "Bid64Copy",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_copySign",
+      "included": true,
+      "port_function": "Bid64CopySign",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_cos",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_cosh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_div",
+      "included": true,
+      "port_function": "Bid64Div",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_erf",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_erfc",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_exp",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_exp10",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_exp2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_expm1",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_fdim",
+      "included": true,
+      "port_function": "Bid64Fdim",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_fma",
+      "included": true,
+      "port_function": "Bid64Fma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_fmod",
+      "included": true,
+      "port_function": "Bid64Fmod",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_frexp",
+      "included": false,
+      "port_function": "Bid64Frexp",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"int*exp\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid64_from_int32",
+      "included": true,
+      "port_function": "Bid64FromInt32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_from_int64",
+      "included": true,
+      "port_function": "Bid64FromInt64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_from_string",
+      "included": false,
+      "port_function": "Bid64FromString",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"char*ps\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid64_from_uint32",
+      "included": true,
+      "port_function": "Bid64FromUint32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_from_uint64",
+      "included": true,
+      "port_function": "Bid64FromUint64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_hypot",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_ilogb",
+      "included": true,
+      "port_function": "Bid64ILogb",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_inf",
+      "included": false,
+      "port_function": "Bid64Inf",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid64_isCanonical",
+      "included": true,
+      "port_function": "Bid64IsCanonical",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isFinite",
+      "included": true,
+      "port_function": "Bid64IsFinite",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isInf",
+      "included": true,
+      "port_function": "Bid64IsInf",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isNaN",
+      "included": true,
+      "port_function": "Bid64IsNaN",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isNormal",
+      "included": true,
+      "port_function": "Bid64IsNormal",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isSignaling",
+      "included": true,
+      "port_function": "Bid64IsSignaling",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isSigned",
+      "included": true,
+      "port_function": "Bid64IsSigned",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isSubnormal",
+      "included": true,
+      "port_function": "Bid64IsSubnormal",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_isZero",
+      "included": true,
+      "port_function": "Bid64IsZero",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_ldexp",
+      "included": true,
+      "port_function": "Bid64Ldexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_lgamma",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_llquantexp",
+      "included": true,
+      "port_function": "Bid64LLQuantexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_llrint",
+      "included": true,
+      "port_function": "Bid64Llrint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_llround",
+      "included": true,
+      "port_function": "Bid64Llround",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_log",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_log10",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_log1p",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_log2",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_logb",
+      "included": true,
+      "port_function": "Bid64Logb",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_lrint",
+      "included": false,
+      "port_function": "Bid64Lrint",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration returns platform-width `long int`, which the FFI case model cannot bit-compare as a fixed-width scalar; upstream readtest data carries a `longintsize=32` row class for exactly this width dependency, and the generated profile skips those rows"
+    },
+    {
+      "function": "bid64_lround",
+      "included": false,
+      "port_function": "Bid64Lround",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration returns platform-width `long int`, which the FFI case model cannot bit-compare as a fixed-width scalar; upstream readtest data carries a `longintsize=32` row class for exactly this width dependency, and the generated profile skips those rows"
+    },
+    {
+      "function": "bid64_maxnum",
+      "included": true,
+      "port_function": "Bid64MaxNum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_maxnum_mag",
+      "included": true,
+      "port_function": "Bid64MaxNumMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_minnum",
+      "included": true,
+      "port_function": "Bid64MinNum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_minnum_mag",
+      "included": true,
+      "port_function": "Bid64MinNumMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_modf",
+      "included": false,
+      "port_function": "Bid64Modf",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"BID_UINT64* y\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid64_mul",
+      "included": true,
+      "port_function": "Bid64Mul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_nan",
+      "included": false,
+      "port_function": "Bid64NaN",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"const char*tagp\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid64_nearbyint",
+      "included": true,
+      "port_function": "Bid64NearbyInt",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_negate",
+      "included": true,
+      "port_function": "Bid64Negate",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_nextafter",
+      "included": true,
+      "port_function": "Bid64NextAfter",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_nextdown",
+      "included": true,
+      "port_function": "Bid64NextDown",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_nexttoward",
+      "included": true,
+      "port_function": "Bid64NextToward",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_nextup",
+      "included": true,
+      "port_function": "Bid64NextUp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_pow",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_quantexp",
+      "included": true,
+      "port_function": "Bid64Quantexp",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quantize",
+      "included": true,
+      "port_function": "Bid64Quantize",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quantum",
+      "included": true,
+      "port_function": "Bid64Quantum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_equal",
+      "included": true,
+      "port_function": "Bid64QuietEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_greater",
+      "included": true,
+      "port_function": "Bid64QuietGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_greater_equal",
+      "included": true,
+      "port_function": "Bid64QuietGreaterEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_greater_unordered",
+      "included": true,
+      "port_function": "Bid64QuietGreaterUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_less",
+      "included": true,
+      "port_function": "Bid64QuietLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_less_equal",
+      "included": true,
+      "port_function": "Bid64QuietLessEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_less_unordered",
+      "included": true,
+      "port_function": "Bid64QuietLessUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_not_equal",
+      "included": true,
+      "port_function": "Bid64QuietNotEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_not_greater",
+      "included": true,
+      "port_function": "Bid64QuietNotGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_not_less",
+      "included": true,
+      "port_function": "Bid64QuietNotLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_ordered",
+      "included": true,
+      "port_function": "Bid64QuietOrdered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_quiet_unordered",
+      "included": true,
+      "port_function": "Bid64QuietUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_radix",
+      "included": true,
+      "port_function": "Bid64Radix",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_rem",
+      "included": true,
+      "port_function": "Bid64Rem",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_round_integral_exact",
+      "included": true,
+      "port_function": "Bid64RoundIntegralExact",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_round_integral_nearest_away",
+      "included": true,
+      "port_function": "Bid64RoundIntegralNearestAway",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_round_integral_nearest_even",
+      "included": true,
+      "port_function": "Bid64RoundIntegralNearestEven",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_round_integral_negative",
+      "included": true,
+      "port_function": "Bid64RoundIntegralNegative",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_round_integral_positive",
+      "included": true,
+      "port_function": "Bid64RoundIntegralPositive",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_round_integral_zero",
+      "included": true,
+      "port_function": "Bid64RoundIntegralZero",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_sameQuantum",
+      "included": true,
+      "port_function": "Bid64SameQuantum",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_scalbln",
+      "included": true,
+      "port_function": "Bid64Scalbln",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_scalbn",
+      "included": true,
+      "port_function": "Bid64Scalbn",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_greater",
+      "included": true,
+      "port_function": "Bid64SignalingGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_greater_equal",
+      "included": true,
+      "port_function": "Bid64SignalingGreaterEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_greater_unordered",
+      "included": true,
+      "port_function": "Bid64SignalingGreaterUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_less",
+      "included": true,
+      "port_function": "Bid64SignalingLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_less_equal",
+      "included": true,
+      "port_function": "Bid64SignalingLessEqual",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_less_unordered",
+      "included": true,
+      "port_function": "Bid64SignalingLessUnordered",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_not_greater",
+      "included": true,
+      "port_function": "Bid64SignalingNotGreater",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_signaling_not_less",
+      "included": true,
+      "port_function": "Bid64SignalingNotLess",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_sin",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_sinh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_sqrt",
+      "included": true,
+      "port_function": "Bid64Sqrt",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_sub",
+      "included": true,
+      "port_function": "Bid64Sub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_tan",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_tanh",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_tgamma",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_to_bid128",
+      "included": true,
+      "port_function": "Bid64ToBid128",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_bid32",
+      "included": true,
+      "port_function": "Bid64ToBid32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_binary128",
+      "included": true,
+      "port_function": "Bid64ToBinary128",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_binary32",
+      "included": true,
+      "port_function": "Bid64ToBinary32",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_binary64",
+      "included": true,
+      "port_function": "Bid64ToBinary64",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_binary80",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid64_to_int16_ceil",
+      "included": true,
+      "port_function": "Bid64ToInt16Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_floor",
+      "included": true,
+      "port_function": "Bid64ToInt16Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_int",
+      "included": true,
+      "port_function": "Bid64ToInt16Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_rnint",
+      "included": true,
+      "port_function": "Bid64ToInt16Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_rninta",
+      "included": true,
+      "port_function": "Bid64ToInt16Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_xceil",
+      "included": true,
+      "port_function": "Bid64ToInt16Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_xfloor",
+      "included": true,
+      "port_function": "Bid64ToInt16Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_xint",
+      "included": true,
+      "port_function": "Bid64ToInt16Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_xrnint",
+      "included": true,
+      "port_function": "Bid64ToInt16Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int16_xrninta",
+      "included": true,
+      "port_function": "Bid64ToInt16Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_ceil",
+      "included": true,
+      "port_function": "Bid64ToInt32Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_floor",
+      "included": true,
+      "port_function": "Bid64ToInt32Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_int",
+      "included": true,
+      "port_function": "Bid64ToInt32Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_rnint",
+      "included": true,
+      "port_function": "Bid64ToInt32Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_rninta",
+      "included": true,
+      "port_function": "Bid64ToInt32Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_xceil",
+      "included": true,
+      "port_function": "Bid64ToInt32Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_xfloor",
+      "included": true,
+      "port_function": "Bid64ToInt32Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_xint",
+      "included": true,
+      "port_function": "Bid64ToInt32Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_xrnint",
+      "included": true,
+      "port_function": "Bid64ToInt32Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int32_xrninta",
+      "included": true,
+      "port_function": "Bid64ToInt32Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_ceil",
+      "included": true,
+      "port_function": "Bid64ToInt64Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_floor",
+      "included": true,
+      "port_function": "Bid64ToInt64Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_int",
+      "included": true,
+      "port_function": "Bid64ToInt64Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_rnint",
+      "included": true,
+      "port_function": "Bid64ToInt64Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_rninta",
+      "included": true,
+      "port_function": "Bid64ToInt64Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_xceil",
+      "included": true,
+      "port_function": "Bid64ToInt64Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_xfloor",
+      "included": true,
+      "port_function": "Bid64ToInt64Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_xint",
+      "included": true,
+      "port_function": "Bid64ToInt64Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_xrnint",
+      "included": true,
+      "port_function": "Bid64ToInt64Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int64_xrninta",
+      "included": true,
+      "port_function": "Bid64ToInt64Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_ceil",
+      "included": true,
+      "port_function": "Bid64ToInt8Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_floor",
+      "included": true,
+      "port_function": "Bid64ToInt8Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_int",
+      "included": true,
+      "port_function": "Bid64ToInt8Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_rnint",
+      "included": true,
+      "port_function": "Bid64ToInt8Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_rninta",
+      "included": true,
+      "port_function": "Bid64ToInt8Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_xceil",
+      "included": true,
+      "port_function": "Bid64ToInt8Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_xfloor",
+      "included": true,
+      "port_function": "Bid64ToInt8Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_xint",
+      "included": true,
+      "port_function": "Bid64ToInt8Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_xrnint",
+      "included": true,
+      "port_function": "Bid64ToInt8Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_int8_xrninta",
+      "included": true,
+      "port_function": "Bid64ToInt8Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_string",
+      "included": false,
+      "port_function": "Bid64ToString",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes pointer parameter \"char*ps\", which is neither an operand nor the trailing status word; the FFI case model emits raw operand bit patterns and integer literals only, so this signature has no representable case"
+    },
+    {
+      "function": "bid64_to_uint16_ceil",
+      "included": true,
+      "port_function": "Bid64ToUint16Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_floor",
+      "included": true,
+      "port_function": "Bid64ToUint16Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_int",
+      "included": true,
+      "port_function": "Bid64ToUint16Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_rnint",
+      "included": true,
+      "port_function": "Bid64ToUint16Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_rninta",
+      "included": true,
+      "port_function": "Bid64ToUint16Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_xceil",
+      "included": true,
+      "port_function": "Bid64ToUint16Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_xfloor",
+      "included": true,
+      "port_function": "Bid64ToUint16Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_xint",
+      "included": true,
+      "port_function": "Bid64ToUint16Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_xrnint",
+      "included": true,
+      "port_function": "Bid64ToUint16Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint16_xrninta",
+      "included": true,
+      "port_function": "Bid64ToUint16Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_ceil",
+      "included": true,
+      "port_function": "Bid64ToUint32Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_floor",
+      "included": true,
+      "port_function": "Bid64ToUint32Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_int",
+      "included": true,
+      "port_function": "Bid64ToUint32Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_rnint",
+      "included": true,
+      "port_function": "Bid64ToUint32Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_rninta",
+      "included": true,
+      "port_function": "Bid64ToUint32Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_xceil",
+      "included": true,
+      "port_function": "Bid64ToUint32Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_xfloor",
+      "included": true,
+      "port_function": "Bid64ToUint32Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_xint",
+      "included": true,
+      "port_function": "Bid64ToUint32Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_xrnint",
+      "included": true,
+      "port_function": "Bid64ToUint32Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint32_xrninta",
+      "included": true,
+      "port_function": "Bid64ToUint32Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_ceil",
+      "included": true,
+      "port_function": "Bid64ToUint64Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_floor",
+      "included": true,
+      "port_function": "Bid64ToUint64Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_int",
+      "included": true,
+      "port_function": "Bid64ToUint64Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_rnint",
+      "included": true,
+      "port_function": "Bid64ToUint64Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_rninta",
+      "included": true,
+      "port_function": "Bid64ToUint64Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_xceil",
+      "included": true,
+      "port_function": "Bid64ToUint64Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_xfloor",
+      "included": true,
+      "port_function": "Bid64ToUint64Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_xint",
+      "included": true,
+      "port_function": "Bid64ToUint64Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_xrnint",
+      "included": true,
+      "port_function": "Bid64ToUint64Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint64_xrninta",
+      "included": true,
+      "port_function": "Bid64ToUint64Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_ceil",
+      "included": true,
+      "port_function": "Bid64ToUint8Ceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_floor",
+      "included": true,
+      "port_function": "Bid64ToUint8Floor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_int",
+      "included": true,
+      "port_function": "Bid64ToUint8Int",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_rnint",
+      "included": true,
+      "port_function": "Bid64ToUint8Rnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_rninta",
+      "included": true,
+      "port_function": "Bid64ToUint8Rninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_xceil",
+      "included": true,
+      "port_function": "Bid64ToUint8Xceil",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_xfloor",
+      "included": true,
+      "port_function": "Bid64ToUint8Xfloor",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_xint",
+      "included": true,
+      "port_function": "Bid64ToUint8Xint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_xrnint",
+      "included": true,
+      "port_function": "Bid64ToUint8Xrnint",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_to_uint8_xrninta",
+      "included": true,
+      "port_function": "Bid64ToUint8Xrninta",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_totalOrder",
+      "included": true,
+      "port_function": "Bid64TotalOrder",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64_totalOrderMag",
+      "included": true,
+      "port_function": "Bid64TotalOrderMag",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64ddq_fma",
+      "included": true,
+      "port_function": "Bid64ddqFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64dq_add",
+      "included": true,
+      "port_function": "Bid64dqAdd",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64dq_div",
+      "included": true,
+      "port_function": "Bid64dqDiv",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64dq_mul",
+      "included": true,
+      "port_function": "Bid64dqMul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64dq_sub",
+      "included": true,
+      "port_function": "Bid64dqSub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64dqd_fma",
+      "included": true,
+      "port_function": "Bid64dqdFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64dqq_fma",
+      "included": true,
+      "port_function": "Bid64dqqFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64q_sqrt",
+      "included": true,
+      "port_function": "Bid64qSqrt",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qd_add",
+      "included": true,
+      "port_function": "Bid64qdAdd",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qd_div",
+      "included": true,
+      "port_function": "Bid64qdDiv",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qd_mul",
+      "included": true,
+      "port_function": "Bid64qdMul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qd_sub",
+      "included": true,
+      "port_function": "Bid64qdSub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qdd_fma",
+      "included": true,
+      "port_function": "Bid64qddFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qdq_fma",
+      "included": true,
+      "port_function": "Bid64qdqFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qq_add",
+      "included": true,
+      "port_function": "Bid64qqAdd",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qq_div",
+      "included": true,
+      "port_function": "Bid64qqDiv",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qq_mul",
+      "included": true,
+      "port_function": "Bid64qqMul",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qq_sub",
+      "included": true,
+      "port_function": "Bid64qqSub",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qqd_fma",
+      "included": true,
+      "port_function": "Bid64qqdFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid64qqq_fma",
+      "included": true,
+      "port_function": "Bid64qqqFma",
+      "classification": "selected",
+      "reason": "selected by the FFI exact bit-compare profile"
+    },
+    {
+      "function": "bid_dpd_to_bid128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_dpd_to_bid32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_dpd_to_bid64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_feclearexcept",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_fegetexceptflag",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_feraiseexcept",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_fesetexceptflag",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_fetestexcept",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_getDecimalRoundingDirection",
+      "included": false,
+      "port_function": "BidGetDecimalRoundingDirection",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_is754",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_is754R",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_lowerFlags",
+      "included": false,
+      "port_function": "BidLowerFlags",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_restoreFlags",
+      "included": false,
+      "port_function": "BidRestoreFlags",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_round128_19_38",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_round192_39_57",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_round256_58_76",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_round64_2_18",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_saveFlags",
+      "included": false,
+      "port_function": "BidSaveFlags",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_setDecimalRoundingDirection",
+      "included": false,
+      "port_function": "BidSetDecimalRoundingDirection",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_signalException",
+      "included": false,
+      "port_function": "BidSignalException",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_strtod128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_strtod32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_strtod64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_testFlags",
+      "included": false,
+      "port_function": "BidTestFlags",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_testSavedFlags",
+      "included": false,
+      "port_function": "BidTestSavedFlags",
+      "classification": "out_of_scope_not_required",
+      "reason": "the pinned Intel declaration takes no value operand (every parameter is a rounding-mode or status-flag word), so the FFI operand generator has nothing to vary and the profile's operand-driven case model does not apply"
+    },
+    {
+      "function": "bid_to_dpd128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_to_dpd32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_to_dpd64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_wcstod128",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_wcstod32",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    },
+    {
+      "function": "bid_wcstod64",
+      "included": false,
+      "classification": "out_of_scope_not_required",
+      "reason": "bid754-go/internal/bidgo declares no exported mechanical-port counterpart ({base, *WithFlags, *Raw} under the shared readtest name normalization), so the Intel-C-versus-port exact bit-compare has no second leg for this symbol"
+    }
+  ]
+}
