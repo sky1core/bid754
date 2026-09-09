@@ -1,69 +1,60 @@
 #!/usr/bin/env bash
-# verify_digest.sh - compare PLATFORM-DIGEST results across platforms
-# (PLATFORM_SPEC section 4 item 2: direct cross-platform bit comparison).
-#
-# Inputs are test_results/digest_<os>_<arch>.txt files produced by
-# `make digest` on this host and extracted from the `make verify-linux`
-# portable legs. All digests must agree on case count and SHA-256.
 set -euo pipefail
-
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
+python3 - "$@" <<'PYTHON'
+import argparse
+from pathlib import Path
+import re
+import subprocess
+import sys
 
-files=()
-for f in test_results/digest_*.txt; do
-    [ -f "$f" ] && files+=("$f")
-done
+parser = argparse.ArgumentParser(description="Compare platform bit digests from the same clean source tree")
+parser.add_argument("--results-dir", type=Path, default=Path("test_results"))
+parser.add_argument("--expected-tree")
+parser.add_argument("--require-platform", action="append", default=[])
+args = parser.parse_args()
 
-if [ "${#files[@]}" -lt 2 ]; then
-    echo "verify-digest: need PLATFORM-DIGEST results from at least two platforms; found ${#files[@]}" >&2
-    echo "  produce them with 'make digest' (this host) and 'make verify-linux' (Linux legs)" >&2
-    exit 1
-fi
 
-ref_sum=""
-ref_cases=""
-ref_file=""
-ref_tree=""
-for f in "${files[@]}"; do
-    # Tree binding: digests are only comparable when every file was produced
-    # from the same identified, clean source state. Without this, digest files
-    # generated from different commits (or a dirty tree) could still "agree".
-    tree_line=$(grep '^PLATFORM-DIGEST-TREE ' "$f" | tail -1 || true)
-    if [ -z "$tree_line" ]; then
-        echo "verify-digest: $f has no PLATFORM-DIGEST-TREE line; regenerate it with the current 'make digest' / 'make verify-linux'" >&2
-        exit 1
-    fi
-    tree=${tree_line#PLATFORM-DIGEST-TREE }
-    case "$tree" in
-        ""|unknown|*-dirty)
-            echo "verify-digest: $f was produced from an unidentified, empty, or dirty tree ('$tree'); regenerate from a clean checkout" >&2
-            exit 1
-            ;;
-    esac
-    line=$(grep '^PLATFORM-DIGEST ' "$f" | tail -1 || true)
-    if [ -z "$line" ]; then
-        echo "verify-digest: $f has no PLATFORM-DIGEST line" >&2
-        exit 1
-    fi
-    sum=${line##*sha256=}
-    cases=$(printf '%s\n' "$line" | sed -n 's/.*cases=\([0-9]*\).*/\1/p')
-    echo "$f: $line (tree=$tree)"
-    if [ -z "$ref_sum" ]; then
-        ref_sum="$sum"; ref_cases="$cases"; ref_file="$f"; ref_tree="$tree"
-    else
-        if [ "$tree" != "$ref_tree" ]; then
-            echo "verify-digest: tree mismatch: $ref_file=$ref_tree vs $f=$tree (digests from different source states are not comparable)" >&2
-            exit 1
-        fi
-        if [ "$cases" != "$ref_cases" ]; then
-            echo "verify-digest: case-count mismatch: $ref_file=$ref_cases vs $f=$cases" >&2
-            exit 1
-        fi
-        if [ "$sum" != "$ref_sum" ]; then
-            echo "verify-digest: DIGEST MISMATCH: $ref_file=$ref_sum vs $f=$sum" >&2
-            exit 1
-        fi
-    fi
-done
+def fail(message):
+    sys.exit(f"verify-digest: {message}")
 
-echo "verify-digest: ${#files[@]} platforms agree (tree=$ref_tree cases=$ref_cases sha256=$ref_sum)"
+
+expected_tree = args.expected_tree
+if expected_tree is None:
+    expected_tree = subprocess.check_output(["bash", "devtools/scripts/print_tree_id.sh"], text=True).strip()
+if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", expected_tree):
+    fail("expected tree must identify a clean checkout")
+required = set(args.require_platform)
+if any(not re.fullmatch(r"[a-z0-9]+/[a-z0-9]+", platform) for platform in required):
+    fail("required platforms must use os/arch format")
+files = sorted(args.results_dir.glob("digest_*.txt"))
+if len(files) < 2:
+    fail(f"need results from at least two platforms; found {len(files)}")
+reference = None
+platforms = set()
+for path in files:
+    lines = path.read_text().splitlines()
+    if len(lines) != 2:
+        fail(f"{path} must contain exactly one tree and one digest record")
+    if lines[0] != f"PLATFORM-DIGEST-TREE {expected_tree}":
+        fail(f"{path} tree mismatch: expected {expected_tree}, found {lines[0]!r}")
+    match = re.fullmatch(r"PLATFORM-DIGEST goos=([a-z0-9]+) goarch=([a-z0-9]+) cases=([1-9][0-9]*) sha256=([0-9a-f]{64})", lines[1])
+    if match is None:
+        fail(f"{path} has an invalid digest record")
+    goos, goarch, cases, checksum = match.groups()
+    platform = f"{goos}/{goarch}"
+    if path.name != f"digest_{goos}_{goarch}.txt":
+        fail(f"{path} filename disagrees with recorded platform {platform}")
+    if platform in platforms:
+        fail(f"duplicate platform {platform}")
+    platforms.add(platform)
+    value = (cases, checksum)
+    if reference is not None and value != reference:
+        fail(f"{path} case-count or digest mismatch: {value} != {reference}")
+    reference = value
+    print(f"{path}: {lines[1]} (tree={expected_tree})")
+missing = required - platforms
+if missing:
+    fail(f"missing required platforms: {', '.join(sorted(missing))}")
+print(f"verify-digest: {len(platforms)} platforms agree (tree={expected_tree} cases={reference[0]} sha256={reference[1]})")
+PYTHON

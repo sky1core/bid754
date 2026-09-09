@@ -29,48 +29,54 @@
 use super::prelude::*;
 
 pub(crate) fn bid64_to_bid32_local(mut x: u64) -> u32 {
-    let (mut r, _) = bid64_to_bid32(x, 0);
+    let (mut r, _) = bid64_to_bid32_port(x, 0);
     return r;
 }
 
-pub fn bid32_round_integral_exact(mut x: u32, mut rndMode: i64) -> (u32, u32) {
+pub(crate) fn bid32_round_integral_exact_port(mut x: u32, mut rndMode: i64) -> (u32, u32) {
     let (mut x64, mut flags0) = bid32_to_bid64(x);
-    let (mut res64, mut flags1) = bid64_round_integral_exact(x64, rndMode);
-    let (mut res, mut flags2) = bid64_to_bid32(res64, 0);
+    let (mut res64, mut flags1) = bid64_round_integral_exact_port(x64, rndMode);
+    let (mut res, mut flags2) = bid64_to_bid32_port(res64, 0);
     return (res, ((flags0 | flags1) | flags2));
 }
 
 pub fn bid32_round_integral_nearest_even(mut x: u32) -> (u32, u32) {
     let (mut x64, mut flags0) = bid32_to_bid64(x);
     let (mut res64, mut flags1) = bid64_round_integral_nearest_even(x64);
-    let (mut res, mut flags2) = bid64_to_bid32(res64, 0);
+    let (mut res, mut flags2) = bid64_to_bid32_port(res64, 0);
     return (res, ((flags0 | flags1) | flags2));
 }
 
 pub fn bid32_round_integral_negative(mut x: u32) -> (u32, u32) {
     let (mut x64, mut flags0) = bid32_to_bid64(x);
     let (mut res64, mut flags1) = bid64_round_integral_negative(x64);
-    let (mut res, mut flags2) = bid64_to_bid32(res64, 0);
+    let (mut res, mut flags2) = bid64_to_bid32_port(res64, 0);
     return (res, ((flags0 | flags1) | flags2));
 }
 
 pub fn bid32_round_integral_positive(mut x: u32) -> (u32, u32) {
     let (mut x64, mut flags0) = bid32_to_bid64(x);
     let (mut res64, mut flags1) = bid64_round_integral_positive(x64);
-    let (mut res, mut flags2) = bid64_to_bid32(res64, 0);
+    let (mut res, mut flags2) = bid64_to_bid32_port(res64, 0);
     return (res, ((flags0 | flags1) | flags2));
 }
 
 pub fn bid32_round_integral_zero(mut x: u32) -> (u32, u32) {
     let (mut x64, mut flags0) = bid32_to_bid64(x);
     let (mut res64, mut flags1) = bid64_round_integral_zero(x64);
-    let (mut res, mut flags2) = bid64_to_bid32(res64, 0);
+    let (mut res, mut flags2) = bid64_to_bid32_port(res64, 0);
     return (res, ((flags0 | flags1) | flags2));
 }
 
 pub fn bid32_round_integral_nearest_away(mut x: u32) -> (u32, u32) {
     let (mut x64, mut flags0) = bid32_to_bid64(x);
     let (mut res64, mut flags1) = bid64_round_integral_nearest_away(x64);
-    let (mut res, mut flags2) = bid64_to_bid32(res64, 0);
+    let (mut res, mut flags2) = bid64_to_bid32_port(res64, 0);
     return (res, ((flags0 | flags1) | flags2));
+}
+
+#[inline]
+pub fn bid32_round_integral_exact(mut x: u32, mut rndMode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_round_integral_exact_port(x, rndMode)
 }

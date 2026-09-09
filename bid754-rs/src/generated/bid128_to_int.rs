@@ -3075,7 +3075,7 @@ pub fn bid128_to_uint16_xceil(mut x: BID_UINT128) -> (u16, u32) {
     return bid128_to_small_uint16(bid128_to_uint32_xceil, x, 0xffff0000, 0x8000);
 }
 
-pub fn bid128_llrint(mut x: BID_UINT128, mut rnd_mode: i64) -> (i64, u32) {
+pub(crate) fn bid128_llrint_port(mut x: BID_UINT128, mut rnd_mode: i64) -> (i64, u32) {
     match rnd_mode {
         0 => {
             return bid128_to_int64_xrnint(x);
@@ -3095,8 +3095,8 @@ pub fn bid128_llrint(mut x: BID_UINT128, mut rnd_mode: i64) -> (i64, u32) {
     }
 }
 
-pub fn bid128_lrint(mut x: BID_UINT128, mut rnd_mode: i64) -> (i64, u32) {
-    return bid128_llrint(x, rnd_mode);
+pub(crate) fn bid128_lrint_port(mut x: BID_UINT128, mut rnd_mode: i64) -> (i64, u32) {
+    return bid128_llrint_port(x, rnd_mode);
 }
 
 pub fn bid128_llround(mut x: BID_UINT128) -> (i64, u32) {
@@ -3105,4 +3105,16 @@ pub fn bid128_llround(mut x: BID_UINT128) -> (i64, u32) {
 
 pub fn bid128_lround(mut x: BID_UINT128) -> (i64, u32) {
     return bid128_llround(x);
+}
+
+#[inline]
+pub fn bid128_llrint(mut x: BID_UINT128, mut rnd_mode: i64) -> (i64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (i64::MIN, 0x01); }
+    bid128_llrint_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid128_lrint(mut x: BID_UINT128, mut rnd_mode: i64) -> (i64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (i64::MIN, 0x01); }
+    bid128_lrint_port(x, rnd_mode)
 }

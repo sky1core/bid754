@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_quantize(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_quantize_port(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     let mut CT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut sign_y: u64 = 0;
@@ -170,4 +170,10 @@ pub fn bid64_quantize(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     pfpsf |= 1;
     res = 0x7c00000000000000;
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid64_quantize(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_quantize_port(x, y, rndMode)
 }

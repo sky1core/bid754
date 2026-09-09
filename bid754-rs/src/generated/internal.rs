@@ -226,7 +226,7 @@ pub(crate) fn unpack_bid64(mut x: u64) -> (u64, i64, u64, bool) {
 
 pub(crate) fn very_fast_get_bid64(mut sgn: u64, mut expon: i64, mut coeff: u64) -> u64 {
     let mut r: u64 = 0;
-    let mut mask: u64 = ((1 as u64) << 53);
+    let mut mask: u64 = (9007199254740992 as u64);
     if (coeff < mask) {
         r = (expon as u64);
         r = go_checked_shl_u64(r, go_shift_count_u64((53) as u64));
@@ -254,13 +254,13 @@ pub(crate) fn fast_get_bid64(mut sgn: u64, mut expon: i64, mut coeff: u64) -> u6
 
 pub(crate) fn fast_get_bid64_check_of(mut sgn: u64, mut expon: i64, mut coeff: u64, mut rmode: i64) -> u64 {
     let mut r: u64 = 0;
-    if ((expon as u64) >= ((3 * 256) - 1)) {
-        if ((expon == ((3 * 256) - 1)) && (coeff == 10000000000000000)) {
-            expon = (3 * 256);
+    if ((expon as u64) >= (767 as u64)) {
+        if ((expon == (767 as i64)) && (coeff == 10000000000000000)) {
+            expon = (768 as i64);
             coeff = 1000000000000000;
         }
-        if ((expon as u64) >= (3 * 256)) {
-            while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        if ((expon as u64) >= (768 as u64)) {
+            while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
                 expon = expon.wrapping_sub(1);
                 coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
             }
@@ -286,7 +286,7 @@ pub(crate) fn fast_get_bid64_check_of(mut sgn: u64, mut expon: i64, mut coeff: u
             }
         }
     }
-    let mut mask: u64 = ((1 as u64) << 53);
+    let mut mask: u64 = (9007199254740992 as u64);
     if (coeff < mask) {
         r = (expon as u64);
         r = go_checked_shl_u64(r, go_shift_count_u64((53) as u64));
@@ -314,7 +314,7 @@ pub(crate) fn get_bid64(mut sgn: u64, mut expon: i64, mut coeff: u64, mut rmode:
         expon = expon.wrapping_add(1);
         coeff = 1000000000000000;
     }
-    if ((expon as u64) >= (3 * 256)) {
+    if ((expon as u64) >= (768 as u64)) {
         if (expon < 0) {
             if ((expon.wrapping_add(16)) < 0) {
                 if ((rmode == 1) && (sgn != 0)) {
@@ -361,7 +361,7 @@ pub(crate) fn get_bid64(mut sgn: u64, mut expon: i64, mut coeff: u64, mut rmode:
                 expon = 0x2ff;
             }
         }
-        while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
             expon = expon.wrapping_sub(1);
             coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
         }
@@ -444,7 +444,7 @@ pub(crate) fn get_bid64_small_mantissa(mut sgn: u64, mut expon: i64, mut coeff: 
     let mut extra_digits: i64 = 0;
     let mut amount: i64 = 0;
     let mut amount2: i64 = 0;
-    if ((expon as u64) >= (3 * 256)) {
+    if ((expon as u64) >= (768 as u64)) {
         if (expon < 0) {
             if ((expon.wrapping_add(16)) < 0) {
                 if ((rmode == 1) && (sgn != 0)) {
@@ -487,7 +487,7 @@ pub(crate) fn get_bid64_small_mantissa(mut sgn: u64, mut expon: i64, mut coeff: 
                 expon = 0x2ff;
             }
         }
-        while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
             expon = expon.wrapping_sub(1);
             coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
         }
@@ -530,10 +530,10 @@ pub(crate) fn get_bid64_small_mantissa_flags(mut sgn: u64, mut expon: i64, mut c
     let mut amount: i64 = 0;
     let mut amount2: i64 = 0;
     let mut status: u32 = 0;
-    if ((expon as u64) >= (3 * 256)) {
+    if ((expon as u64) >= (768 as u64)) {
         if (expon < 0) {
             if ((expon.wrapping_add(16)) < 0) {
-                (*fpsc) |= (16 | 32);
+                (*fpsc) |= (48 as u32);
                 if ((rmode == 1) && (sgn != 0)) {
                     return 0x8000000000000001;
                 }
@@ -592,12 +592,12 @@ pub(crate) fn get_bid64_small_mantissa_flags(mut sgn: u64, mut expon: i64, mut c
             }
             return (sgn | _C64);
         }
-        while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
             expon = expon.wrapping_sub(1);
             coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
         }
         if (expon > 0x2ff) {
-            (*fpsc) |= (8 | 32);
+            (*fpsc) |= (40 as u32);
             r = (sgn | 0x7800000000000000);
             match rmode {
                 1 => {
@@ -727,10 +727,10 @@ pub(crate) fn get_bid64_flags(mut sgn: u64, mut expon: i64, mut coeff: u64, mut 
         expon = expon.wrapping_add(1);
         coeff = 1000000000000000;
     }
-    if ((expon as u64) >= (3 * 256)) {
+    if ((expon as u64) >= (768 as u64)) {
         if (expon < 0) {
             if ((expon.wrapping_add(16)) < 0) {
-                status = (16 | 32);
+                status = (48 as u32);
                 if ((rmode == 1) && (sgn != 0)) {
                     return (0x8000000000000001, status);
                 }
@@ -790,12 +790,12 @@ pub(crate) fn get_bid64_flags(mut sgn: u64, mut expon: i64, mut coeff: u64, mut 
                 expon = 0x2ff;
             }
         }
-        while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
             expon = expon.wrapping_sub(1);
             coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
         }
         if (expon > 0x2ff) {
-            status = (8 | 32);
+            status = (40 as u32);
             r = (sgn | 0x7800000000000000);
             match rmode {
                 1 => {

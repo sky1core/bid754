@@ -117,6 +117,7 @@ func applyBidCodecConsumerTemplateReplacements(src string) string {
 		"{{BID_CODEC_JS_REJECT_TYPE_DOMAIN}}":               bidCodecJsTypeDomainElems(),
 		"{{BID_CODEC_PY_RAW_DECODE_REJECTS}}":               bidCodecPyRawDecodeRejectElems(),
 		"{{BID_CODEC_JS_RAW_DECODE_REJECTS}}":               bidCodecJsRawDecodeRejectElems(),
+		"{{BID_CODEC_JS_BYTE_DECODE_REJECTS}}":              bidCodecJsByteDecodeRejectElems(),
 	}
 	// go_full consumed/skipped pins are channel-derived, not capability-derived:
 	// the from_string channel is the consumed set, every other channel is the

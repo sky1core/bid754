@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid32_from_int32(mut x: i32, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_from_int32_port(mut x: i32, mut rnd_mode: i64) -> (u32, u32) {
     let mut res: u32 = 0;
     let mut res64: u64 = 0;
     let mut x_sign: u32 = 0;
@@ -96,7 +96,7 @@ pub fn bid32_from_int32(mut x: i32, mut rnd_mode: i64) -> (u32, u32) {
     return (res, pfpsf);
 }
 
-pub fn bid32_from_uint32(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_from_uint32_port(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
     let mut res: u32 = 0;
     let mut res64: u64 = 0;
     let mut C: u32 = 0;
@@ -156,4 +156,16 @@ pub fn bid32_from_uint32(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
         }
     }
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid32_from_int32(mut x: i32, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_from_int32_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_from_uint32(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_from_uint32_port(x, rnd_mode)
 }

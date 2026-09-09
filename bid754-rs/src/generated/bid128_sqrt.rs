@@ -177,7 +177,7 @@ pub(crate) fn bid_long_sqrt128(mut C256: BID_UINT256) -> BID_UINT128 {
     return CS;
 }
 
-pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128_sqrt_port(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let mut M256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut C256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut C4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
@@ -360,7 +360,7 @@ pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) 
     return (res, pfpsf);
 }
 
-pub fn bid128d_sqrt(mut x: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128d_sqrt_port(mut x: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let mut M256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut C256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut C4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
@@ -546,4 +546,16 @@ pub fn bid128d_sqrt(mut x: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     pfpsf |= 32;
     res = bid_get_bid128_fast(0, (go_checked_shr_i64(((exponent_q.wrapping_add(0x1820))), go_shift_count_u64((1) as u64))), CS);
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid128_sqrt(mut x: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128_sqrt_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid128d_sqrt(mut x: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128d_sqrt_port(x, rnd_mode)
 }

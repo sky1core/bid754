@@ -98,7 +98,7 @@ func emitRustFlaglessTargetTable(b *strings.Builder, w rustFlaglessWidth, widthO
 /// with-flags shape fails to compile in the table below.
 struct FlaglessSiblingTarget%d {
     name: &'static str,
-    flagless: fn(%s, %s, i64) -> %s,
+    flagless: fn(%s, %s, i64) -> Result<%s, &'static str>,
     with_flags: fn(%s, %s, i64) -> (%s, u32),
 }
 
@@ -156,7 +156,7 @@ struct FlaglessWitnessRow%d {
 
 func emitRustFlaglessCheckFn(b *strings.Builder, w rustFlaglessWidth) {
 	fmt.Fprintf(b, `fn flagless_sibling_check_%d(target: &FlaglessSiblingTarget%d, x: %s, y: %s, mode: i64) {
-    let got = (target.flagless)(x, y, mode);
+    let got = (target.flagless)(x, y, mode).expect("valid IEEE rounding mode");
     let (want, _) = (target.with_flags)(x, y, mode);
     if got != want {
         panic!(

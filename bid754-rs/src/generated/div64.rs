@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_div(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
+pub(crate) fn bid64_div_port(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
     let mut CA: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut sign_y: u64 = 0;
@@ -276,7 +276,7 @@ pub fn bid64_div(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
     }
 }
 
-pub fn bid64_div_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_div_with_flags_port(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     let mut CA: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut sign_y: u64 = 0;
@@ -546,19 +546,19 @@ pub fn bid64_div_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
     }
 }
 
-pub fn bid64dq_div(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid64dq_div_port(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
     let (mut x1, mut flags) = bid64_to_bid128(x);
-    let (mut res, mut opFlags) = bid64qq_div(x1, y, rnd_mode);
+    let (mut res, mut opFlags) = bid64qq_div_port(x1, y, rnd_mode);
     return (res, (flags | opFlags));
 }
 
-pub fn bid64qd_div(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid64qd_div_port(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
     let (mut y1, mut flags) = bid64_to_bid128(y);
-    let (mut res, mut opFlags) = bid64qq_div(x, y1, rnd_mode);
+    let (mut res, mut opFlags) = bid64qq_div_port(x, y1, rnd_mode);
     return (res, (flags | opFlags));
 }
 
-pub fn bid64qq_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid64qq_div_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
     let mut CA4: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut CA4r: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
     let mut P256: BID_UINT256 = BID_UINT256 { w0: 0, w1: 0, w2: 0, w3: 0 };
@@ -854,4 +854,34 @@ pub fn bid64qq_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) ->
     }
     res = get_bid64_uf_with_flags((signX ^ signY), diffExpon, CQ.lo, (CA4.w1 | CA4.w0), rnd_mode, (&mut flags));
     return (res, flags);
+}
+
+#[inline]
+pub fn bid64_div(mut x: u64, mut y: u64, mut rndMode: i64) -> Result<u64, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid64_div_port(x, y, rndMode))
+}
+
+#[inline]
+pub fn bid64_div_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_div_with_flags_port(x, y, rndMode)
+}
+
+#[inline]
+pub fn bid64dq_div(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid64dq_div_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid64qd_div(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid64qd_div_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid64qq_div(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid64qq_div_port(x, y, rnd_mode)
 }

@@ -48,7 +48,7 @@ pub(crate) fn add_zero32(mut exponent_y: i64, mut sign_z: u32, mut exponent_z: i
     return get_bid32(sign_z, (exponent_z.wrapping_sub(scale_k)), (coefficient_z as u64), (*prounding_mode));
 }
 
-pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_fma_port(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32, u32) {
     let mut P: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut Tmp: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CB: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -363,4 +363,10 @@ pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32,
     }
     res = get_bid32_uf(sign_a, (exponent_b.wrapping_add(extra_digits)), ((C64 as u32) as u64), (R as u32), rnd_mode, (&mut pfpsf));
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid32_fma(mut x: u32, mut y: u32, mut z: u32, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_fma_port(x, y, z, rnd_mode)
 }

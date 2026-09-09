@@ -110,7 +110,7 @@ pub(crate) fn bid32_get_with_flags(mut sgn: u32, mut expon: i64, mut coeff: u64,
     if ((expon as u64) > 191) {
         if (expon < 0) {
             if ((expon.wrapping_add(7)) < 0) {
-                flags |= (16 | 32);
+                flags |= (48 as u32);
                 if ((rmode == 1) && (sgn != 0)) {
                     return (0x80000001, flags);
                 }
@@ -174,7 +174,7 @@ pub(crate) fn bid32_get_with_flags(mut sgn: u32, mut expon: i64, mut coeff: u64,
             expon = expon.wrapping_sub(1);
         }
         if ((expon as u64) > 191) {
-            flags |= (8 | 32);
+            flags |= (40 as u32);
             r = (sgn | 0x78000000);
             match rmode {
                 1 => {
@@ -195,7 +195,7 @@ pub(crate) fn bid32_get_with_flags(mut sgn: u32, mut expon: i64, mut coeff: u64,
             return (r, flags);
         }
     }
-    mask = (1 << 23);
+    mask = (8388608 as u32);
     if (coeff < (mask as u64)) {
         r = (expon as u32);
         r = go_checked_shl_u32(r, go_shift_count_u64((23) as u64));
@@ -205,12 +205,12 @@ pub(crate) fn bid32_get_with_flags(mut sgn: u32, mut expon: i64, mut coeff: u64,
     r = (expon as u32);
     r = go_checked_shl_u32(r, go_shift_count_u64((21) as u64));
     r |= (sgn | 0x60000000);
-    mask = ((1 << 21) - 1);
+    mask = (2097151 as u32);
     r |= (((coeff as u32) & mask));
     return (r, flags);
 }
 
-pub fn bid64_to_bid32(mut x: u64, mut rndMode: i64) -> (u32, u32) {
+pub(crate) fn bid64_to_bid32_port(mut x: u64, mut rndMode: i64) -> (u32, u32) {
     let mut Q: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut coefficient_x: u64 = 0;
@@ -300,4 +300,10 @@ pub fn bid64_to_bid32(mut x: u64, mut rndMode: i64) -> (u32, u32) {
     }
     (res, status) = bid32_get_with_flags(((go_checked_shr_u64(sign_x, go_shift_count_u64((32) as u64))) as u32), exponent_x, coefficient_x, rndMode, status);
     return (res, status);
+}
+
+#[inline]
+pub fn bid64_to_bid32(mut x: u64, mut rndMode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid64_to_bid32_port(x, rndMode)
 }

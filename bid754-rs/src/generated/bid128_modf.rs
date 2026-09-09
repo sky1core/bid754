@@ -37,7 +37,7 @@ pub fn bid128_modf(mut x: BID_UINT128) -> (BID_UINT128, BID_UINT128, u32) {
         res.hi = ((x.hi & 0x8000000000000000) | 0x5ffe000000000000);
         res.lo = 0;
     } else {
-        res = bid128_sub(x, xi, 0, (&mut pfpsf));
+        res = bid128_sub_port(x, xi, 0, (&mut pfpsf));
     }
     xi.hi |= (x.hi & 0x8000000000000000);
     res.hi |= (x.hi & 0x8000000000000000);

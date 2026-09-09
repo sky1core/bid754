@@ -33,15 +33,6 @@
 //   - the threshold and every ns/op sample must be finite and positive, and
 //     the minimum delta must be finite and non-negative
 //     (NaN/Inf/out-of-range values are input errors, never silently compared);
-//   - the two logs must describe comparable runs: the BENCH-META count and go=
-//     tokens and the goos/goarch lines must be present in both logs and,
-//     together with any cpu lines, must match between baseline and candidate,
-//     otherwise the comparison fails as an input error. go= records the Go
-//     toolchain the samples were taken with, because a toolchain change redoes
-//     inlining and code layout and so moves medians on unchanged source; a
-//     BENCH-META line that omits a token carries "(none)" for it, so logs
-//     predating the token still compare with each other but never silently
-//     against a log that records one.
 //
 // Exit codes: 0 pass, 1 regression or vanished benchmark, 2 usage/input
 // errors (unreadable log, no benchmark rows, bad threshold, bad minimum delta
@@ -50,16 +41,17 @@ package main
 
 import (
 	"bufio"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
 	"math"
 	"os"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
 
 const (
@@ -67,7 +59,6 @@ const (
 	thresholdEnvVar               = "BENCH_REGRESSION_THRESHOLD"
 	defaultRegressionMinDeltaNs   = 0.25
 	minDeltaEnvVar                = "BENCH_REGRESSION_MIN_DELTA_NS"
-	benchMetaPrefix               = "BENCH-META "
 )
 
 type diffStatus string
@@ -90,45 +81,69 @@ type diffRow struct {
 }
 
 func main() {
-	baselinePath := flag.String("baseline", "", "path to the saved baseline `go test -bench` log")
-	candidatePath := flag.String("candidate", "", "path to the candidate `go test -bench` log")
-	flag.Parse()
-	if *baselinePath == "" || *candidatePath == "" {
-		fmt.Fprintln(os.Stderr, "benchdiff: -baseline and -candidate are required")
-		os.Exit(2)
-	}
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
 
+func run(args []string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet("benchdiff", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	baselinePath := flags.String("baseline", "", "path to the saved baseline `go test -bench` log")
+	candidatePath := flags.String("candidate", "", "path to the candidate `go test -bench` log")
+	expectedTree := flags.String("expected-candidate-tree", "", "require candidate BENCH-META tree to equal this exact source identifier; baseline may be historical")
+	expectedTarget := flags.String("expected-target", "", "require both logs to use this BENCH-META target")
+	if err := flags.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
+		return 2
+	}
+	inputError := func(format string, args ...any) int {
+		fmt.Fprintf(stderr, "benchdiff: "+format+"\n", args...)
+		return 2
+	}
+	if *baselinePath == "" || *candidatePath == "" || flags.NArg() != 0 {
+		return inputError("-baseline and -candidate are required; positional arguments are not supported")
+	}
+	var flagErr error
+	flags.Visit(func(f *flag.Flag) {
+		if (f.Name == "expected-candidate-tree" || f.Name == "expected-target") && strings.TrimSpace(f.Value.String()) == "" {
+			flagErr = fmt.Errorf("-%s must not be empty when supplied", f.Name)
+		}
+	})
+	if flagErr != nil {
+		return inputError("%v", flagErr)
+	}
 	thresholdPct, err := regressionThresholdPct(os.Getenv(thresholdEnvVar))
 	if err != nil {
-		fatal("%v", err)
+		return inputError("%v", err)
 	}
 	minDeltaNs, err := regressionMinDeltaNs(os.Getenv(minDeltaEnvVar))
 	if err != nil {
-		fatal("%v", err)
+		return inputError("%v", err)
 	}
-
 	baseline, baselineMeta, err := parseBenchLogFile(*baselinePath)
 	if err != nil {
-		fatal("baseline: %v", err)
+		return inputError("baseline: %v", err)
 	}
 	candidate, candidateMeta, err := parseBenchLogFile(*candidatePath)
 	if err != nil {
-		fatal("candidate: %v", err)
+		return inputError("candidate: %v", err)
+	}
+	if *expectedTree != "" && candidateMeta.tokens["tree"] != *expectedTree {
+		return inputError("candidate BENCH-META tree mismatch: expected %q, got %q", *expectedTree, candidateMeta.tokens["tree"])
+	}
+	if *expectedTarget != "" && (baselineMeta.tokens["target"] != *expectedTarget || candidateMeta.tokens["target"] != *expectedTarget) {
+		return inputError("BENCH-META target mismatch: expected %q, baseline %q, candidate %q", *expectedTarget, baselineMeta.tokens["target"], candidateMeta.tokens["target"])
 	}
 	if err := requireComparableMeta(baselineMeta, candidateMeta); err != nil {
-		fatal("baseline %s and candidate %s are not comparable: %v", *baselinePath, *candidatePath, err)
+		return inputError("baseline %s and candidate %s are not comparable: %v", *baselinePath, *candidatePath, err)
 	}
-
 	rows, failed := compareBenchmarks(baseline, candidate, thresholdPct, minDeltaNs)
-	printReport(os.Stdout, rows, *baselinePath, *candidatePath, thresholdPct, minDeltaNs, failed)
+	printReport(stdout, rows, *baselinePath, *candidatePath, thresholdPct, minDeltaNs, failed)
 	if failed {
-		os.Exit(1)
+		return 1
 	}
-}
-
-func fatal(format string, args ...any) {
-	fmt.Fprintf(os.Stderr, "benchdiff: "+format+"\n", args...)
-	os.Exit(2)
+	return 0
 }
 
 // regressionThresholdPct resolves the regression threshold in percent from
@@ -170,15 +185,9 @@ func regressionMinDeltaNs(raw string) (float64, error) {
 	return value, nil
 }
 
-// benchLogMeta carries the comparability identity of one captured log: the
-// BENCH-META count= and go= values and the goos/goarch/cpu environment lines,
-// each as a sorted set of the distinct values seen.
 type benchLogMeta struct {
-	counts     []string
-	toolchains []string
-	goos       []string
-	goarch     []string
-	cpu        []string
+	tokens map[string]string
+	env    map[string]string
 }
 
 func parseBenchLogFile(path string) (map[string][]float64, benchLogMeta, error) {
@@ -191,155 +200,191 @@ func parseBenchLogFile(path string) (map[string][]float64, benchLogMeta, error) 
 	if err != nil {
 		return nil, benchLogMeta{}, fmt.Errorf("%s: %w", path, err)
 	}
-	if len(samples) == 0 {
-		return nil, benchLogMeta{}, fmt.Errorf("%s contains no `go test -bench` result lines", path)
-	}
 	return samples, meta, nil
 }
 
-// parseBenchLog collects every ns/op sample per benchmark name (the full
-// name including the -GOMAXPROCS suffix, so runs from a different parallelism
-// setting never silently pair up) from a `go test -bench` log, plus the
-// BENCH-META count=/go= and goos/goarch/cpu comparability metadata.
 func parseBenchLog(r io.Reader) (map[string][]float64, benchLogMeta, error) {
 	samples := make(map[string][]float64)
-	var meta benchLogMeta
+	meta := benchLogMeta{env: make(map[string]string)}
+	passed, completed := false, false
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
 	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, benchMetaPrefix) {
-			meta.counts = appendDistinct(meta.counts, benchMetaToken(line, "count"))
-			meta.toolchains = appendDistinct(meta.toolchains, benchMetaToken(line, "go"))
-			continue
-		}
-		if value, ok := strings.CutPrefix(line, "goos: "); ok {
-			meta.goos = appendDistinct(meta.goos, strings.TrimSpace(value))
-			continue
-		}
-		if value, ok := strings.CutPrefix(line, "goarch: "); ok {
-			meta.goarch = appendDistinct(meta.goarch, strings.TrimSpace(value))
-			continue
-		}
-		if value, ok := strings.CutPrefix(line, "cpu: "); ok {
-			meta.cpu = appendDistinct(meta.cpu, strings.TrimSpace(value))
-			continue
-		}
+		line := strings.TrimSpace(scanner.Text())
 		fields := strings.Fields(line)
-		if len(fields) < 4 || !strings.HasPrefix(fields[0], "Benchmark") {
+		if len(fields) == 0 {
 			continue
 		}
-		for i := 2; i < len(fields); i++ {
+		if fields[0] == "FAIL" || strings.HasPrefix(line, "--- FAIL:") || strings.HasPrefix(line, "panic:") || strings.HasPrefix(line, "fatal error:") || strings.HasPrefix(line, "exit status ") {
+			return nil, meta, fmt.Errorf("failed benchmark run: %s", line)
+		}
+		if completed {
+			return nil, meta, fmt.Errorf("unexpected output after completed benchmark run: %s", line)
+		}
+		if fields[0] == "BENCH-META" {
+			if meta.tokens != nil || len(samples) != 0 || passed {
+				return nil, meta, fmt.Errorf("BENCH-META must appear exactly once before benchmark samples")
+			}
+			meta.tokens = make(map[string]string)
+			for _, field := range fields[1:] {
+				key, value, ok := strings.Cut(field, "=")
+				if !ok || key == "" || value == "" {
+					return nil, meta, fmt.Errorf("malformed BENCH-META token %q; use non-empty whitespace-free key=value tokens", field)
+				}
+				if _, exists := meta.tokens[key]; exists {
+					return nil, meta, fmt.Errorf("duplicate BENCH-META %s", key)
+				}
+				meta.tokens[key] = value
+			}
+			continue
+		}
+		switch fields[0] {
+		case "goos:", "goarch:", "cpu:", "pkg:":
+			key := strings.TrimSuffix(fields[0], ":")
+			value := strings.TrimSpace(strings.TrimPrefix(line, fields[0]))
+			if value == "" || (meta.env[key] != "" && meta.env[key] != value) || passed {
+				return nil, meta, fmt.Errorf("empty, conflicting, or misplaced %s metadata: %q", key, line)
+			}
+			meta.env[key] = value
+			continue
+		case "PASS":
+			if line != "PASS" || passed || len(samples) == 0 {
+				return nil, meta, fmt.Errorf("unexpected PASS marker: %q", line)
+			}
+			passed = true
+			continue
+		case "ok":
+			if !passed || len(fields) < 3 || fields[1] != meta.env["pkg"] {
+				return nil, meta, fmt.Errorf("invalid package completion: %q", line)
+			}
+			duration, err := time.ParseDuration(fields[2])
+			if err != nil || duration < 0 {
+				return nil, meta, fmt.Errorf("invalid package elapsed time: %q", line)
+			}
+			completed = true
+			continue
+		}
+		if !strings.HasPrefix(fields[0], "Benchmark") {
+			continue
+		}
+		if passed || meta.tokens == nil {
+			return nil, meta, fmt.Errorf("benchmark outside an active BENCH-META run: %q", line)
+		}
+		if len(fields) == 1 {
+			continue
+		}
+		iterations, err := strconv.ParseUint(fields[1], 10, 64)
+		if err != nil || iterations == 0 || len(fields) < 4 || len(fields)%2 != 0 {
+			return nil, meta, fmt.Errorf("malformed benchmark measurement: %q", line)
+		}
+		foundNs := false
+		for i := 3; i < len(fields); i += 2 {
 			if fields[i] != "ns/op" {
 				continue
 			}
-			value, err := strconv.ParseFloat(fields[i-1], 64)
-			if err != nil {
-				return nil, benchLogMeta{}, fmt.Errorf("benchmark line %q has unparsable ns/op value: %v", line, err)
+			if foundNs {
+				return nil, meta, fmt.Errorf("duplicate ns/op metric: %q", line)
 			}
-			// NaN passes a plain `<= 0` comparison; require finite and
-			// positive explicitly so a corrupt sample cannot enter a median.
-			if math.IsNaN(value) || math.IsInf(value, 0) || value <= 0 {
-				return nil, benchLogMeta{}, fmt.Errorf("benchmark line %q has non-positive or non-finite ns/op value", line)
+			value, err := strconv.ParseFloat(fields[i-1], 64)
+			if err != nil || math.IsNaN(value) || math.IsInf(value, 0) || value <= 0 {
+				return nil, meta, fmt.Errorf("benchmark line %q has invalid ns/op value", line)
 			}
 			samples[fields[0]] = append(samples[fields[0]], value)
-			break
+			foundNs = true
+		}
+		if !foundNs {
+			return nil, meta, fmt.Errorf("benchmark measurement lacks ns/op: %q", line)
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, benchLogMeta{}, err
+		return nil, meta, err
+	}
+	if err := requireValidMeta(meta); err != nil {
+		return nil, meta, err
+	}
+	if !completed {
+		return nil, meta, fmt.Errorf("incomplete benchmark run: require PASS followed by timed ok for pkg")
+	}
+	count, _ := strconv.Atoi(meta.tokens["count"])
+	names := make([]string, 0, len(samples))
+	for name := range samples {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if len(samples[name]) != count {
+			return nil, meta, fmt.Errorf("benchmark %s has %d samples; BENCH-META count=%d", name, len(samples[name]), count)
+		}
 	}
 	return samples, meta, nil
 }
 
-// benchMetaToken extracts the value of the `key=` token from a BENCH-META
-// line, which the caller must already have identified by benchMetaPrefix.
-//
-// A BENCH-META line that omits the token still identifies the log as carrying
-// run metadata, so the absence is recorded as the distinct value "(none)"
-// rather than as nothing: a log missing the token then pairs only with another
-// log missing it, and never silently with a log that carries it. That is what
-// makes the go= token retroactively safe to add — two pre-token logs still
-// compare, while a pre-token baseline against a post-token candidate is a
-// reported mismatch instead of a silent comparison across toolchains.
-func benchMetaToken(line, key string) string {
-	for _, field := range strings.Fields(line)[1:] {
-		if value, ok := strings.CutPrefix(field, key+"="); ok {
-			return value
+func requireValidMeta(meta benchLogMeta) error {
+	for _, key := range []string{"count", "go", "target", "tree", "benchtime", "build"} {
+		if value := meta.tokens[key]; value == "" || value == "(none)" || value == "unknown" {
+			return fmt.Errorf("BENCH-META %s is missing or unknown", key)
 		}
 	}
-	return "(none)"
-}
-
-func appendDistinct(values []string, value string) []string {
-	if slices.Contains(values, value) {
-		return values
+	count, err := strconv.Atoi(meta.tokens["count"])
+	if err != nil || count <= 0 {
+		return fmt.Errorf("BENCH-META count must be a positive integer: %q", meta.tokens["count"])
 	}
-	values = append(values, value)
-	slices.Sort(values)
-	return values
-}
-
-// toolchainMismatchHint is the actionable half of a BENCH-META go= mismatch.
-// A Go toolchain change re-runs inlining and code-layout decisions, so it moves
-// medians on unchanged source — IntelCBID128/minnum has been observed shifting
-// 6.93 → 8.17 ns from layout alone — which silently invalidates a saved
-// baseline. The token was added after the current baselines were saved, so the
-// first check against a pre-token baseline lands here by design.
-const toolchainMismatchHint = "toolchain provenance mismatch — the baseline predates toolchain recording (or was measured on a different toolchain), " +
-	"and a Go toolchain change redoes inlining and code layout, so the saved medians are not comparable; " +
-	"re-measure and re-save the baseline on the current toolchain on an idle host " +
-	"(make bench-native && make bench-bidgo && make bench-go-baseline)"
-
-// requireComparableMeta fails when the two logs disagree on the BENCH-META
-// count or go= token or on any goos/goarch/cpu environment line: medians from
-// different sample counts, different toolchains, or different machines are not
-// a like-for-like comparison, and a silent pass here would launder an
-// environment change as a performance result. BENCH-META count and go=, goos,
-// and goarch must be present in both logs (every repo bench target and
-// `go test -bench` run emits them), so stripping the header lines cannot bypass
-// the guard; the cpu line may be absent on platforms Go cannot identify, but
-// must then be absent on both sides. A log whose BENCH-META line omits a token
-// carries "(none)" for it, so pre-token logs still compare with each other.
-func requireComparableMeta(baseline, candidate benchLogMeta) error {
-	for _, item := range []struct {
-		name                string
-		required            bool
-		baseline, candidate []string
-		hint                string
-	}{
-		{name: "BENCH-META count", required: true, baseline: baseline.counts, candidate: candidate.counts},
-		{name: "BENCH-META go", required: true, baseline: baseline.toolchains, candidate: candidate.toolchains, hint: toolchainMismatchHint},
-		{name: "goos", required: true, baseline: baseline.goos, candidate: candidate.goos},
-		{name: "goarch", required: true, baseline: baseline.goarch, candidate: candidate.goarch},
-		{name: "cpu", required: false, baseline: baseline.cpu, candidate: candidate.cpu},
-	} {
-		if item.required && (len(item.baseline) == 0 || len(item.candidate) == 0) {
-			return withHint(fmt.Errorf("%s is missing from baseline and/or candidate (baseline %s, candidate %s); a log without run metadata cannot prove comparability",
-				item.name, formatMetaValues(item.baseline), formatMetaValues(item.candidate)), item.hint)
+	build, err := hex.DecodeString(meta.tokens["build"])
+	if err != nil || len(build) != 32 {
+		return fmt.Errorf("BENCH-META build must be a SHA-256 fingerprint")
+	}
+	benchtime := meta.tokens["benchtime"]
+	if strings.HasSuffix(benchtime, "x") {
+		iterations, err := strconv.ParseUint(strings.TrimSuffix(benchtime, "x"), 10, 64)
+		if err != nil || iterations == 0 {
+			return fmt.Errorf("BENCH-META benchtime must specify a positive iteration count")
 		}
-		if !slices.Equal(item.baseline, item.candidate) {
-			return withHint(fmt.Errorf("%s mismatch: baseline %s vs candidate %s",
-				item.name, formatMetaValues(item.baseline), formatMetaValues(item.candidate)), item.hint)
+	} else if duration, err := time.ParseDuration(benchtime); err != nil || duration <= 0 {
+		return fmt.Errorf("BENCH-META benchtime must specify a positive duration")
+	}
+	for _, key := range []string{"goos", "goarch", "pkg"} {
+		if meta.env[key] == "" {
+			return fmt.Errorf("%s metadata is missing", key)
 		}
 	}
 	return nil
 }
 
-// withHint appends an actionable remediation clause to err, when the failing
-// comparability item carries one.
-func withHint(err error, hint string) error {
-	if hint == "" {
-		return err
+func requireComparableMeta(baseline, candidate benchLogMeta) error {
+	for _, meta := range []benchLogMeta{baseline, candidate} {
+		if err := requireValidMeta(meta); err != nil {
+			return err
+		}
 	}
-	return fmt.Errorf("%w; %s", err, hint)
-}
-
-func formatMetaValues(values []string) string {
-	if len(values) == 0 {
-		return "(absent)"
+	for _, item := range []struct {
+		prefix              string
+		baseline, candidate map[string]string
+	}{
+		{"BENCH-META ", baseline.tokens, candidate.tokens},
+		{"", baseline.env, candidate.env},
+	} {
+		keys := make(map[string]bool)
+		for key := range item.baseline {
+			keys[key] = true
+		}
+		for key := range item.candidate {
+			keys[key] = true
+		}
+		names := make([]string, 0, len(keys))
+		for key := range keys {
+			if item.prefix != "" && (key == "tree" || key == "date") {
+				continue
+			}
+			names = append(names, key)
+		}
+		sort.Strings(names)
+		for _, key := range names {
+			if item.baseline[key] != item.candidate[key] {
+				return fmt.Errorf("%s%s mismatch: baseline %q vs candidate %q", item.prefix, key, item.baseline[key], item.candidate[key])
+			}
+		}
 	}
-	return strings.Join(values, "|")
+	return nil
 }
 
 // median returns the median of values: the middle sample for an odd count,

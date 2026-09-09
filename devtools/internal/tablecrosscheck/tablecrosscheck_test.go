@@ -170,20 +170,24 @@ func bidgoTableMappings() map[string]tableMapping {
 		// bid_round128_19_38_for64 in convert64.go carries local copies of
 		// the first 19 rows of the Intel bid_round.c bid_round128_19_38
 		// tables (the uint64 input path only needs 1 <= x <= 19).
-		"bid_Kx128_for64":           {goName: "BidKx128", generated: generatedtables.BidKx128, pinnedGeneratedLeaves: 74, pinnedBidgoLeaves: 38},
-		"bid_ten2mxtrunc128_for64":  {goName: "BidTen2MxTrunc128", generated: generatedtables.BidTen2MxTrunc128, pinnedGeneratedLeaves: 74, pinnedBidgoLeaves: 38},
-		"bid_Ex128m128_for64":       {goName: "BidEx128M128", generated: generatedtables.BidEx128M128, pinnedGeneratedLeaves: 37, pinnedBidgoLeaves: 19},
-		"bid_half128_for64":         {goName: "BidHalf128", generated: generatedtables.BidHalf128, pinnedGeneratedLeaves: 37, pinnedBidgoLeaves: 19},
-		"bid_mask128_for64":         {goName: "BidMask128", generated: generatedtables.BidMask128, pinnedGeneratedLeaves: 37, pinnedBidgoLeaves: 19},
-		"bid_roundbound_128":        {goName: "BidRoundbound128", generated: generatedtables.BidRoundbound128},
-		"bid_breakpoints_binary32":  {goName: "BidBreakpointsBinary32", generated: generatedtables.BidBreakpointsBinary32},
-		"bid_exponents_binary32":    {goName: "BidExponentsBinary32", generated: generatedtables.BidExponentsBinary32},
-		"bid_multipliers1_binary32": {goName: "BidMultipliers1Binary32", generated: generatedtables.BidMultipliers1Binary32},
-		"bid_multipliers2_binary32": {goName: "BidMultipliers2Binary32", generated: generatedtables.BidMultipliers2Binary32},
-		"bid_breakpoints_binary64":  {goName: "BidBreakpointsBinary64", generated: generatedtables.BidBreakpointsBinary64},
-		"bid_exponents_binary64":    {goName: "BidExponentsBinary64", generated: generatedtables.BidExponentsBinary64},
-		"bid_multipliers1_binary64": {goName: "BidMultipliers1Binary64", generated: generatedtables.BidMultipliers1Binary64},
-		"bid_multipliers2_binary64": {goName: "BidMultipliers2Binary64", generated: generatedtables.BidMultipliers2Binary64},
+		"bid_Kx128_for64":            {goName: "BidKx128", generated: generatedtables.BidKx128, pinnedGeneratedLeaves: 74, pinnedBidgoLeaves: 38},
+		"bid_ten2mxtrunc128_for64":   {goName: "BidTen2MxTrunc128", generated: generatedtables.BidTen2MxTrunc128, pinnedGeneratedLeaves: 74, pinnedBidgoLeaves: 38},
+		"bid_Ex128m128_for64":        {goName: "BidEx128M128", generated: generatedtables.BidEx128M128, pinnedGeneratedLeaves: 37, pinnedBidgoLeaves: 19},
+		"bid_half128_for64":          {goName: "BidHalf128", generated: generatedtables.BidHalf128, pinnedGeneratedLeaves: 37, pinnedBidgoLeaves: 19},
+		"bid_mask128_for64":          {goName: "BidMask128", generated: generatedtables.BidMask128, pinnedGeneratedLeaves: 37, pinnedBidgoLeaves: 19},
+		"bid_roundbound_128":         {goName: "BidRoundbound128", generated: generatedtables.BidRoundbound128},
+		"bid_breakpoints_binary32":   {goName: "BidBreakpointsBinary32", generated: generatedtables.BidBreakpointsBinary32},
+		"bid_exponents_binary32":     {goName: "BidExponentsBinary32", generated: generatedtables.BidExponentsBinary32},
+		"bid_multipliers1_binary32":  {goName: "BidMultipliers1Binary32", generated: generatedtables.BidMultipliers1Binary32},
+		"bid_multipliers2_binary32":  {goName: "BidMultipliers2Binary32", generated: generatedtables.BidMultipliers2Binary32},
+		"bid_breakpoints_binary64":   {goName: "BidBreakpointsBinary64", generated: generatedtables.BidBreakpointsBinary64},
+		"bid_exponents_binary64":     {goName: "BidExponentsBinary64", generated: generatedtables.BidExponentsBinary64},
+		"bid_multipliers1_binary64":  {goName: "BidMultipliers1Binary64", generated: generatedtables.BidMultipliers1Binary64},
+		"bid_multipliers2_binary64":  {goName: "BidMultipliers2Binary64", generated: generatedtables.BidMultipliers2Binary64},
+		"bid_breakpoints_binary128":  {goName: "BidBreakpointsBinary128", generated: generatedtables.BidBreakpointsBinary128},
+		"bid_exponents_binary128":    {goName: "BidExponentsBinary128", generated: generatedtables.BidExponentsBinary128},
+		"bid_multipliers1_binary128": {goName: "BidMultipliers1Binary128", generated: generatedtables.BidMultipliers1Binary128},
+		"bid_multipliers2_binary128": {goName: "BidMultipliers2Binary128", generated: generatedtables.BidMultipliers2Binary128},
 	}
 }
 

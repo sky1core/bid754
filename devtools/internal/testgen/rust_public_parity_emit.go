@@ -987,7 +987,22 @@ func resolvePort(bidgoFn, goSymbol string) (module, fn string, err error) {
 	if !ok {
 		return "", "", fmt.Errorf("rust public parity: no apiemit port path for bidgo_function %q (go_symbol %q); extend devtools/tools/go2rs/apiemit's portPath table first (apiemit itself would fail to emit a wrapper calling an unresolved port function, so this indicates the verification and apiemit's table have drifted)", bidgoFn, goSymbol)
 	}
+	if rustCheckedFlaglessPort(bidgoFn) {
+		if !strings.HasSuffix(fn, "_port") {
+			return "", "", fmt.Errorf("rust public parity: %s must resolve to its internal port", bidgoFn)
+		}
+		fn = strings.TrimSuffix(fn, "_port")
+	}
 	return module, fn, nil
+}
+
+func rustCheckedFlaglessPort(bidgoFn string) bool {
+	switch bidgoFn {
+	case "Bid32Add", "Bid32Sub", "Bid32Mul", "Bid32Div", "Bid64Add", "Bid64Sub", "Bid64Mul", "Bid64Div":
+		return true
+	default:
+		return false
+	}
 }
 
 // emitRustParityUnit dispatches one emitted census row to its shape template
@@ -1704,6 +1719,9 @@ func emitSimpleOp(b *strings.Builder, row rustParityInventoryRow, corpus publicP
 		// predicate, copysign, same_quantum): a bare non-tuple call, exactly
 		// as before this widening.
 		portCall := fmt.Sprintf("bid754::generated::%s::%s(%s)", module, fn, strings.Join(portArgs, ", "))
+		if rustCheckedFlaglessPort(row.BidgoFunction) {
+			portCall += `.expect("valid IEEE rounding mode")`
+		}
 		fmt.Fprintf(b, "%slet pr = %s;\n", indent, portCall)
 	}
 

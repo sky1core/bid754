@@ -434,14 +434,14 @@ pub fn bid32_to_uint16_xceil(mut x: u32) -> (u16, u32) {
     return bid32_to_small_uint16(bid32_to_uint32_xceil, x, 0xffff0000, 0x8000);
 }
 
-pub fn bid32_lrint(mut x: u32, mut rnd_mode: i64) -> (i64, u32) {
+pub(crate) fn bid32_lrint_port(mut x: u32, mut rnd_mode: i64) -> (i64, u32) {
     let (mut x64, _) = bid32_to_bid64(x);
-    return bid64_lrint(x64, rnd_mode);
+    return bid64_lrint_port(x64, rnd_mode);
 }
 
-pub fn bid32_llrint(mut x: u32, mut rnd_mode: i64) -> (i64, u32) {
+pub(crate) fn bid32_llrint_port(mut x: u32, mut rnd_mode: i64) -> (i64, u32) {
     let (mut x64, _) = bid32_to_bid64(x);
-    return bid64_llrint(x64, rnd_mode);
+    return bid64_llrint_port(x64, rnd_mode);
 }
 
 pub fn bid32_lround(mut x: u32) -> (i64, u32) {
@@ -454,14 +454,38 @@ pub fn bid32_llround(mut x: u32) -> (i64, u32) {
     return bid64_llround(x64);
 }
 
-pub fn bid32_from_int64(mut x: i64, mut rnd_mode: i64) -> (u32, u32) {
-    let (mut r64, mut f1) = bid64_from_int64(x, rnd_mode);
-    let (mut r32, mut f2) = bid64_to_bid32(r64, rnd_mode);
+pub(crate) fn bid32_from_int64_port(mut x: i64, mut rnd_mode: i64) -> (u32, u32) {
+    let (mut r64, mut f1) = bid64_from_int64_port(x, rnd_mode);
+    let (mut r32, mut f2) = bid64_to_bid32_port(r64, rnd_mode);
     return (r32, (f1 | f2));
 }
 
-pub fn bid32_from_uint64(mut x: u64, mut rnd_mode: i64) -> (u32, u32) {
-    let (mut r64, mut f1) = bid64_from_uint64(x, rnd_mode);
-    let (mut r32, mut f2) = bid64_to_bid32(r64, rnd_mode);
+pub(crate) fn bid32_from_uint64_port(mut x: u64, mut rnd_mode: i64) -> (u32, u32) {
+    let (mut r64, mut f1) = bid64_from_uint64_port(x, rnd_mode);
+    let (mut r32, mut f2) = bid64_to_bid32_port(r64, rnd_mode);
     return (r32, (f1 | f2));
+}
+
+#[inline]
+pub fn bid32_lrint(mut x: u32, mut rnd_mode: i64) -> (i64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (i64::MIN, 0x01); }
+    bid32_lrint_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_llrint(mut x: u32, mut rnd_mode: i64) -> (i64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (i64::MIN, 0x01); }
+    bid32_llrint_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_from_int64(mut x: i64, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_from_int64_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_from_uint64(mut x: u64, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_from_uint64_port(x, rnd_mode)
 }

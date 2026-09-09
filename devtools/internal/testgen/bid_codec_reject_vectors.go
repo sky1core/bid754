@@ -632,3 +632,61 @@ func bidCodecJsRawDecodeRejectElems() string {
 	b.WriteString("\n")
 	return b.String()
 }
+
+// bidCodecByteDecodeRejectCase is a decodeBytes* argument a JavaScript caller
+// can construct that is not a genuine exact-length Uint8Array: a plain array or
+// duck object, a DataView, or a wrong-element-width/wrong-length typed array. A
+// bare length check would bit-coerce a plain array's elements or truncate a
+// wider typed array's backing bytes, so the production decodeBytes* functions
+// must reject these through the language error channel. This is a JS-only
+// domain because the exact-byte buffer type is language specific.
+type bidCodecByteDecodeRejectCase struct {
+	ID string
+	JS string
+}
+
+var bidCodecByteDecodeRejectCases = []bidCodecByteDecodeRejectCase{
+	{ID: "decodeBytes32_plain_array_nan", JS: `() => Reflect.apply(decodeBytes32, undefined, [[Number.NaN, 0, 0, 0]])`},
+	{ID: "decodeBytes32_plain_array", JS: `() => Reflect.apply(decodeBytes32, undefined, [[1, 2, 3, 4]])`},
+	{ID: "decodeBytes32_duck_length", JS: `() => Reflect.apply(decodeBytes32, undefined, [{ length: 4 }])`},
+	{ID: "decodeBytes32_fractional_element", JS: `() => Reflect.apply(decodeBytes32, undefined, [[1.5, 0, 0, 0]])`},
+	{ID: "decodeBytes32_huge_element", JS: `() => Reflect.apply(decodeBytes32, undefined, [[4294967296, 0, 0, 0]])`},
+	{ID: "decodeBytes32_dataview", JS: `() => Reflect.apply(decodeBytes32, undefined, [new DataView(new ArrayBuffer(4))])`},
+	{ID: "decodeBytes32_uint16array", JS: `() => Reflect.apply(decodeBytes32, undefined, [new Uint16Array(4)])`},
+	{ID: "decodeBytes32_int8array", JS: `() => Reflect.apply(decodeBytes32, undefined, [new Int8Array(4)])`},
+	{ID: "decodeBytes32_uint8clamped", JS: `() => Reflect.apply(decodeBytes32, undefined, [new Uint8ClampedArray(4)])`},
+	{ID: "decodeBytes64_plain_array", JS: `() => Reflect.apply(decodeBytes64, undefined, [[0, 0, 0, 0, 0, 0, 0, 0]])`},
+	{ID: "decodeBytes64_duck_length", JS: `() => Reflect.apply(decodeBytes64, undefined, [{ length: 8 }])`},
+	{ID: "decodeBytes64_dataview", JS: `() => Reflect.apply(decodeBytes64, undefined, [new DataView(new ArrayBuffer(8))])`},
+	{ID: "decodeBytes64_uint16array", JS: `() => Reflect.apply(decodeBytes64, undefined, [new Uint16Array(8)])`},
+	{ID: "decodeBytes64_uint8array_wrong_len", JS: `() => Reflect.apply(decodeBytes64, undefined, [new Uint8Array(4)])`},
+	{ID: "decodeBytes128_plain_array", JS: `() => Reflect.apply(decodeBytes128, undefined, [new Array(16).fill(0)])`},
+	{ID: "decodeBytes128_duck_length", JS: `() => Reflect.apply(decodeBytes128, undefined, [{ length: 16 }])`},
+	{ID: "decodeBytes128_dataview", JS: `() => Reflect.apply(decodeBytes128, undefined, [new DataView(new ArrayBuffer(16))])`},
+	{ID: "decodeBytes128_uint16array", JS: `() => Reflect.apply(decodeBytes128, undefined, [new Uint16Array(16)])`},
+	{ID: "decodeBytes128_uint8array_wrong_len", JS: `() => Reflect.apply(decodeBytes128, undefined, [new Uint8Array(8)])`},
+	// Forged wide tag: a Uint16Array whose own Symbol.toStringTag lies as
+	// "Uint8Array". It has `len` entries (so a length check alone passes) but
+	// 2*len backing bytes. Object.prototype.toString honours the forged tag, but
+	// the intrinsic %TypedArray%.prototype[@@toStringTag] getter reports the real
+	// element type, so the guard must reject it.
+	{ID: "decodeBytes32_forged_wide_tag", JS: `() => { const a = new Uint16Array(4); Object.defineProperty(a, Symbol.toStringTag, { value: "Uint8Array", configurable: true }); return Reflect.apply(decodeBytes32, undefined, [a]); }`},
+	{ID: "decodeBytes64_forged_wide_tag", JS: `() => { const a = new Uint16Array(8); Object.defineProperty(a, Symbol.toStringTag, { value: "Uint8Array", configurable: true }); return Reflect.apply(decodeBytes64, undefined, [a]); }`},
+	{ID: "decodeBytes128_forged_wide_tag", JS: `() => { const a = new Uint16Array(16); Object.defineProperty(a, Symbol.toStringTag, { value: "Uint8Array", configurable: true }); return Reflect.apply(decodeBytes128, undefined, [a]); }`},
+	// Shadowed length: a genuine 2*len-byte Uint8Array whose own `length` data
+	// property lies as `len`. Ordinary `.length` access returns the forged value
+	// (so a bare length check passes), but the intrinsic length getter reads the
+	// real [[ArrayLength]], so the guard must reject the wrong-length view.
+	{ID: "decodeBytes32_shadowed_length", JS: `() => { const a = new Uint8Array(8); Object.defineProperty(a, "length", { value: 4, configurable: true }); return Reflect.apply(decodeBytes32, undefined, [a]); }`},
+	{ID: "decodeBytes64_shadowed_length", JS: `() => { const a = new Uint8Array(16); Object.defineProperty(a, "length", { value: 8, configurable: true }); return Reflect.apply(decodeBytes64, undefined, [a]); }`},
+	{ID: "decodeBytes128_shadowed_length", JS: `() => { const a = new Uint8Array(32); Object.defineProperty(a, "length", { value: 16, configurable: true }); return Reflect.apply(decodeBytes128, undefined, [a]); }`},
+}
+
+func bidCodecJsByteDecodeRejectElems() string {
+	var b strings.Builder
+	for _, tc := range bidCodecByteDecodeRejectCases {
+		fmt.Fprintf(&b, "\n  [%q, %s],", tc.ID, tc.JS)
+	}
+	b.WriteString("\n")
+	return b.String()
+}

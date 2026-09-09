@@ -226,6 +226,10 @@ pub const bid_breakpoints_binary64: [BID_UINT128; BID_BREAKPOINTS_BINARY64.len()
 pub const bid_exponents_binary64: [i32; BID_EXPONENTS_BINARY64.len()] = BID_EXPONENTS_BINARY64;
 pub const bid_multipliers1_binary64: [BID_UINT256; BID_MULTIPLIERS1_BINARY64.len()] = wrap_u256(BID_MULTIPLIERS1_BINARY64);
 pub const bid_multipliers2_binary64: [BID_UINT256; BID_MULTIPLIERS2_BINARY64.len()] = wrap_u256(BID_MULTIPLIERS2_BINARY64);
+pub const bid_breakpoints_binary128: [BID_UINT128; BID_BREAKPOINTS_BINARY128.len()] = wrap_u128(BID_BREAKPOINTS_BINARY128);
+pub const bid_exponents_binary128: [i32; BID_EXPONENTS_BINARY128.len()] = BID_EXPONENTS_BINARY128;
+pub const bid_multipliers1_binary128: [BID_UINT256; BID_MULTIPLIERS1_BINARY128.len()] = wrap_u256(BID_MULTIPLIERS1_BINARY128);
+pub const bid_multipliers2_binary128: [BID_UINT256; BID_MULTIPLIERS2_BINARY128.len()] = wrap_u256(BID_MULTIPLIERS2_BINARY128);
 `
 	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
 		fmt.Fprintf(os.Stderr, "mkdir %s: %v\n", filepath.Dir(outPath), err)

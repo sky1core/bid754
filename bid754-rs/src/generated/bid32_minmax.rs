@@ -43,7 +43,7 @@ pub(crate) fn bid32_minnum_pure(mut x: u32, mut y: u32) -> u32 {
             x = (x & 0xfe000000);
         }
     } else if ((x & 0x78000000) == 0x78000000) {
-        x = (x & (0x80000000 | 0x78000000));
+        x = (x & (4160749568 as u32));
     } else {
         if ((x & 0x60000000) == 0x60000000) {
             if ((((x & 0x1fffff) | 0x800000)) > 9999999) {
@@ -57,7 +57,7 @@ pub(crate) fn bid32_minnum_pure(mut x: u32, mut y: u32) -> u32 {
             y = (y & 0xfe000000);
         }
     } else if ((y & 0x78000000) == 0x78000000) {
-        y = (y & (0x80000000 | 0x78000000));
+        y = (y & (4160749568 as u32));
     } else {
         if ((y & 0x60000000) == 0x60000000) {
             if ((((y & 0x1fffff) | 0x800000)) > 9999999) {
@@ -198,7 +198,7 @@ pub(crate) fn bid32_maxnum_pure(mut x: u32, mut y: u32) -> u32 {
             x = (x & 0xfe000000);
         }
     } else if ((x & 0x78000000) == 0x78000000) {
-        x = (x & (0x80000000 | 0x78000000));
+        x = (x & (4160749568 as u32));
     } else {
         if ((x & 0x60000000) == 0x60000000) {
             if ((((x & 0x1fffff) | 0x800000)) > 9999999) {
@@ -212,7 +212,7 @@ pub(crate) fn bid32_maxnum_pure(mut x: u32, mut y: u32) -> u32 {
             y = (y & 0xfe000000);
         }
     } else if ((y & 0x78000000) == 0x78000000) {
-        y = (y & (0x80000000 | 0x78000000));
+        y = (y & (4160749568 as u32));
     } else {
         if ((y & 0x60000000) == 0x60000000) {
             if ((((y & 0x1fffff) | 0x800000)) > 9999999) {
@@ -350,7 +350,7 @@ pub(crate) fn bid32_minnum_mag_pure(mut x: u32, mut y: u32) -> u32 {
             x = (x & 0xfe000000);
         }
     } else if ((x & 0x78000000) == 0x78000000) {
-        x = (x & (0x80000000 | 0x78000000));
+        x = (x & (4160749568 as u32));
     } else {
         if ((x & 0x60000000) == 0x60000000) {
             if ((((x & 0x1fffff) | 0x800000)) > 9999999) {
@@ -364,7 +364,7 @@ pub(crate) fn bid32_minnum_mag_pure(mut x: u32, mut y: u32) -> u32 {
             y = (y & 0xfe000000);
         }
     } else if ((y & 0x78000000) == 0x78000000) {
-        y = (y & (0x80000000 | 0x78000000));
+        y = (y & (4160749568 as u32));
     } else {
         if ((y & 0x60000000) == 0x60000000) {
             if ((((y & 0x1fffff) | 0x800000)) > 9999999) {
@@ -467,7 +467,7 @@ pub(crate) fn bid32_maxnum_mag_pure(mut x: u32, mut y: u32) -> u32 {
             x = (x & 0xfe000000);
         }
     } else if ((x & 0x78000000) == 0x78000000) {
-        x = (x & (0x80000000 | 0x78000000));
+        x = (x & (4160749568 as u32));
     } else {
         if ((x & 0x60000000) == 0x60000000) {
             if ((((x & 0x1fffff) | 0x800000)) > 9999999) {
@@ -481,7 +481,7 @@ pub(crate) fn bid32_maxnum_mag_pure(mut x: u32, mut y: u32) -> u32 {
             y = (y & 0xfe000000);
         }
     } else if ((y & 0x78000000) == 0x78000000) {
-        y = (y & (0x80000000 | 0x78000000));
+        y = (y & (4160749568 as u32));
     } else {
         if ((y & 0x60000000) == 0x60000000) {
             if ((((y & 0x1fffff) | 0x800000)) > 9999999) {

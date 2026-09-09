@@ -2865,7 +2865,7 @@ fn parity_decimal32_bid_add(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_32[i0];
         let v1 = CORPUS_32[i1];
         let pv = Decimal32::from_bits(v0).add(Decimal32::from_bits(v1));
-        let pr = bid754::generated::bid32_exports::bid32_add(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::bid32_exports::bid32_add(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal32BID.Add: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -3418,7 +3418,7 @@ fn parity_decimal32_bid_div(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_32[i0];
         let v1 = CORPUS_32[i1];
         let pv = Decimal32::from_bits(v0).div(Decimal32::from_bits(v1));
-        let pr = bid754::generated::bid32_exports::bid32_div(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::bid32_exports::bid32_div(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal32BID.Div: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -3798,7 +3798,7 @@ fn parity_decimal32_bid_mul(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_32[i0];
         let v1 = CORPUS_32[i1];
         let pv = Decimal32::from_bits(v0).mul(Decimal32::from_bits(v1));
-        let pr = bid754::generated::bid32_exports::bid32_mul(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::bid32_exports::bid32_mul(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal32BID.Mul: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -4768,7 +4768,7 @@ fn parity_decimal32_bid_sub(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_32[i0];
         let v1 = CORPUS_32[i1];
         let pv = Decimal32::from_bits(v0).sub(Decimal32::from_bits(v1));
-        let pr = bid754::generated::bid32_exports::bid32_sub(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::bid32_exports::bid32_sub(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal32BID.Sub: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -4944,7 +4944,7 @@ fn parity_decimal64_bid_add(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_64[i0];
         let v1 = CORPUS_64[i1];
         let pv = Decimal64::from_bits(v0).add(Decimal64::from_bits(v1));
-        let pr = bid754::generated::add64::bid64_add(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::add64::bid64_add(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal64BID.Add: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -5497,7 +5497,7 @@ fn parity_decimal64_bid_div(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_64[i0];
         let v1 = CORPUS_64[i1];
         let pv = Decimal64::from_bits(v0).div(Decimal64::from_bits(v1));
-        let pr = bid754::generated::div64::bid64_div(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::div64::bid64_div(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal64BID.Div: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -5877,7 +5877,7 @@ fn parity_decimal64_bid_mul(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_64[i0];
         let v1 = CORPUS_64[i1];
         let pv = Decimal64::from_bits(v0).mul(Decimal64::from_bits(v1));
-        let pr = bid754::generated::mul64::bid64_mul(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::mul64::bid64_mul(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal64BID.Mul: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -6847,7 +6847,7 @@ fn parity_decimal64_bid_sub(failures: &mut Vec<String>) -> usize {
         let v0 = CORPUS_64[i0];
         let v1 = CORPUS_64[i1];
         let pv = Decimal64::from_bits(v0).sub(Decimal64::from_bits(v1));
-        let pr = bid754::generated::add64::bid64_sub(v0, v1, BIDGO_ROUND_NEAREST_EVEN);
+        let pr = bid754::generated::add64::bid64_sub(v0, v1, BIDGO_ROUND_NEAREST_EVEN).expect("valid IEEE rounding mode");
         if pv.to_bits() != pr {
             failures.push(format!("public parity Decimal64BID.Sub: operands {:#x},{:#x}: result mismatch public={:#x} port={:#x}", v0, v1, pv.to_bits(), pr));
         }
@@ -11641,7 +11641,7 @@ fn generated_public_api_const_parity_128() {
 /// with-flags shape fails to compile in the table below.
 struct FlaglessSiblingTarget32 {
     name: &'static str,
-    flagless: fn(u32, u32, i64) -> u32,
+    flagless: fn(u32, u32, i64) -> Result<u32, &'static str>,
     with_flags: fn(u32, u32, i64) -> (u32, u32),
 }
 
@@ -11678,7 +11678,7 @@ const FLAGLESS_SIBLING_TARGETS_32: &[FlaglessSiblingTarget32] = &[
 /// with-flags shape fails to compile in the table below.
 struct FlaglessSiblingTarget64 {
     name: &'static str,
-    flagless: fn(u64, u64, i64) -> u64,
+    flagless: fn(u64, u64, i64) -> Result<u64, &'static str>,
     with_flags: fn(u64, u64, i64) -> (u64, u32),
 }
 
@@ -11758,7 +11758,7 @@ const FLAGLESS_WITNESS_ROWS_64: &[FlaglessWitnessRow64] = &[
 ];
 
 fn flagless_sibling_check_32(target: &FlaglessSiblingTarget32, x: u32, y: u32, mode: i64) {
-    let got = (target.flagless)(x, y, mode);
+    let got = (target.flagless)(x, y, mode).expect("valid IEEE rounding mode");
     let (want, _) = (target.with_flags)(x, y, mode);
     if got != want {
         panic!(
@@ -11769,7 +11769,7 @@ fn flagless_sibling_check_32(target: &FlaglessSiblingTarget32, x: u32, y: u32, m
 }
 
 fn flagless_sibling_check_64(target: &FlaglessSiblingTarget64, x: u64, y: u64, mode: i64) {
-    let got = (target.flagless)(x, y, mode);
+    let got = (target.flagless)(x, y, mode).expect("valid IEEE rounding mode");
     let (want, _) = (target.with_flags)(x, y, mode);
     if got != want {
         panic!(

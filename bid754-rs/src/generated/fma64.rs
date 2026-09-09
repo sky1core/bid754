@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_fma_port(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, u32) {
     let mut P: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CZ: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -190,7 +190,7 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
     let mut tempy = (coefficient_y as f64).to_bits();
     bin_expon_cy = ((go_checked_shr_u64((tempy & 0x7ff0000000000000), go_shift_count_u64((52) as u64))) as i64);
     bin_expon_product = (bin_expon_cx.wrapping_add(bin_expon_cy));
-    if (bin_expon_product < (51 + (2 * 0x3ff))) {
+    if (bin_expon_product < (2097 as i64)) {
         C64 = (coefficient_x.wrapping_mul(coefficient_y));
         final_exponent = ((exponent_x.wrapping_add(exponent_y)).wrapping_sub(0x18e));
         if ((final_exponent > 0) || (coefficient_z == 0)) {
@@ -202,12 +202,12 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
         extra_digits = 0;
     } else {
         if (coefficient_z == 0) {
-            let (mut res, mut flags) = bid64_mul_with_flags(x, y, rndMode);
+            let (mut res, mut flags) = bid64_mul_with_flags_port(x, y, rndMode);
             pfpsf |= flags;
             return (res, pfpsf);
         }
         P = __mul_64x64_to_128(coefficient_x, coefficient_y);
-        bin_expon_product = bin_expon_product.wrapping_sub(2 * 0x3ff);
+        bin_expon_product = bin_expon_product.wrapping_sub(2046 as i64);
         bp = __tight_bin_range_128(P, bin_expon_product);
         digits_p = (bid_estimate_decimal_digits[bp as usize] as i64);
         if (!__unsigned_compare_gt_128(bid_power10_table_128[digits_p as usize], P)) {
@@ -216,7 +216,7 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
         extra_digits = (digits_p.wrapping_sub(16));
         final_exponent = (((exponent_x.wrapping_add(exponent_y)).wrapping_add(extra_digits)).wrapping_sub(0x18e));
     }
-    if ((final_exponent as u64) >= (3 * 256)) {
+    if ((final_exponent as u64) >= (768 as u64)) {
         if (final_exponent < 0) {
             tempx = (coefficient_z as f64).to_bits();
             bin_expon_cx = (((go_checked_shr_u64((tempx & 0x7ff0000000000000), go_shift_count_u64((52) as u64))) as i64).wrapping_sub(0x3ff));
@@ -225,7 +225,7 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
                 digits_z = digits_z.wrapping_add(1);
             }
             if ((((final_exponent.wrapping_add(16)) < 0)) || (((exponent_z.wrapping_add(digits_z)) > ((33 as i64).wrapping_add(final_exponent))))) {
-                res = bid_normalize(sign_z, exponent_z, coefficient_z, (sign_x ^ sign_y), 1, rndMode, (&mut pfpsf));
+                res = bid_normalize_port(sign_z, exponent_z, coefficient_z, (sign_x ^ sign_y), 1, rndMode, (&mut pfpsf));
                 return (res, pfpsf);
             }
             ez = ((exponent_z.wrapping_add(digits_z)).wrapping_sub(16));
@@ -288,7 +288,7 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
             res = __bid_full_round64_remainder(sign_z, (ez.wrapping_sub(extra_digits)), CT, extra_digits, remainder_y, rndMode, (&mut pfpsf), uf_status);
             return (res, pfpsf);
         } else {
-            if (((sign_z == (sign_x ^ sign_y))) || ((final_exponent > ((3 * 256) + 15)))) {
+            if (((sign_z == (sign_x ^ sign_y))) || ((final_exponent > (783 as i64)))) {
                 let (mut res, mut flags) = fast_get_bid64_check_of_flags((sign_x ^ sign_y), final_exponent, 1000000000000000, rndMode);
                 pfpsf |= flags;
                 return (res, pfpsf);
@@ -302,4 +302,10 @@ pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, 
     C64 = __low_64(P);
     res = bid_get_add64((sign_x ^ sign_y), ((exponent_x.wrapping_add(exponent_y)).wrapping_sub(0x18e)), C64, sign_z, exponent_z, coefficient_z, rndMode, (&mut pfpsf));
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid64_fma(mut x: u64, mut y: u64, mut z: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_fma_port(x, y, z, rndMode)
 }

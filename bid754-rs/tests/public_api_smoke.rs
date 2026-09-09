@@ -113,7 +113,8 @@ fn map_bidgo_flags(raw: u32) -> u32 {
 fn add_routes_through_port() {
     let a = Decimal64::parse("2.5").expect("valid");
     let b = Decimal64::parse("1.25").expect("valid");
-    let want = bid754::generated::add64::bid64_add(a.to_bits(), b.to_bits(), 0);
+    let want = bid754::generated::add64::bid64_add(a.to_bits(), b.to_bits(), 0)
+        .expect("valid IEEE rounding mode");
     assert_eq!(a.add(b).to_bits(), want);
     // Addition is commutative bit-for-bit.
     assert_eq!(a.add(b), b.add(a));
@@ -286,7 +287,8 @@ fn decimal64_arithmetic_predicate_and_compare_family_routes_through_port() {
     let a = Decimal64::parse("2.5").expect("valid");
     let b = Decimal64::parse("1.25").expect("valid");
 
-    let want_sub = bid754::generated::add64::bid64_sub(a.to_bits(), b.to_bits(), 0);
+    let want_sub = bid754::generated::add64::bid64_sub(a.to_bits(), b.to_bits(), 0)
+        .expect("valid IEEE rounding mode");
     assert_eq!(a.sub(b).to_bits(), want_sub);
 
     assert!(!a.is_zero());

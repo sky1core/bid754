@@ -44,7 +44,7 @@ pub fn bid64_from_uint32(mut x: u32) -> u64 {
     return res;
 }
 
-pub fn bid64_from_int64(mut x: i64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_from_int64_port(mut x: i64, mut rndMode: i64) -> (u64, u32) {
     let mut res: u64 = 0;
     let mut pfpsf: u32 = 0;
     let mut C: u64 = 0;
@@ -109,7 +109,7 @@ pub fn bid64_from_int64(mut x: i64, mut rndMode: i64) -> (u64, u32) {
     return (res, pfpsf);
 }
 
-pub fn bid64_from_uint64(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_from_uint64_port(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     let mut res: u64 = 0;
     let mut pfpsf: u32 = 0;
     let mut incr_exp: i64 = 0;
@@ -293,4 +293,16 @@ pub(crate) fn bid_round128_19_38_for64(mut q: i64, mut x: i64, mut C: u64, incr_
         (*incr_exp) = 0;
     }
     return Cstar.lo;
+}
+
+#[inline]
+pub fn bid64_from_int64(mut x: i64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_from_int64_port(x, rndMode)
+}
+
+#[inline]
+pub fn bid64_from_uint64(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_from_uint64_port(x, rndMode)
 }

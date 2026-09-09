@@ -452,6 +452,34 @@
       "go_name": "BidMultipliers2Binary64",
       "rust_name": "BID_MULTIPLIERS2_BINARY64",
       "expected_shape": [668]
+    },
+    {
+      "name": "bid_breakpoints_binary128",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidBreakpointsBinary128",
+      "rust_name": "BID_BREAKPOINTS_BINARY128",
+      "expected_shape": [9934]
+    },
+    {
+      "name": "bid_exponents_binary128",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidExponentsBinary128",
+      "rust_name": "BID_EXPONENTS_BINARY128",
+      "expected_shape": [9934]
+    },
+    {
+      "name": "bid_multipliers1_binary128",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidMultipliers1Binary128",
+      "rust_name": "BID_MULTIPLIERS1_BINARY128",
+      "expected_shape": [9934]
+    },
+    {
+      "name": "bid_multipliers2_binary128",
+      "source": "third_party/intel_dfp/src/bid_binarydecimal.c",
+      "go_name": "BidMultipliers2Binary128",
+      "rust_name": "BID_MULTIPLIERS2_BINARY128",
+      "expected_shape": [9934]
     }
   ]
 }

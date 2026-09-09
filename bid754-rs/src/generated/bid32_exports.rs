@@ -28,19 +28,19 @@
 
 use super::prelude::*;
 
-pub fn bid32_add(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
+pub(crate) fn bid32_add_port(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
     return bid32_add_pure(x, y, rndMode);
 }
 
-pub fn bid32_sub(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
+pub(crate) fn bid32_sub_port(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
     return bid32_sub_pure(x, y, rndMode);
 }
 
-pub fn bid32_mul(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
+pub(crate) fn bid32_mul_port(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
     return bid32_mul_pure(x, y, rndMode);
 }
 
-pub fn bid32_div(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
+pub(crate) fn bid32_div_port(mut x: u32, mut y: u32, mut rndMode: i64) -> u32 {
     return bid32_div_pure(x, y, rndMode);
 }
 
@@ -82,4 +82,28 @@ pub fn bid32_is_zero(mut x: u32) -> bool {
 
 pub fn bid32_to_string(mut x: u32) -> String {
     return bid32_to_string_raw(x);
+}
+
+#[inline]
+pub fn bid32_add(mut x: u32, mut y: u32, mut rndMode: i64) -> Result<u32, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid32_add_port(x, y, rndMode))
+}
+
+#[inline]
+pub fn bid32_sub(mut x: u32, mut y: u32, mut rndMode: i64) -> Result<u32, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid32_sub_port(x, y, rndMode))
+}
+
+#[inline]
+pub fn bid32_mul(mut x: u32, mut y: u32, mut rndMode: i64) -> Result<u32, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid32_mul_port(x, y, rndMode))
+}
+
+#[inline]
+pub fn bid32_div(mut x: u32, mut y: u32, mut rndMode: i64) -> Result<u32, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid32_div_port(x, y, rndMode))
 }

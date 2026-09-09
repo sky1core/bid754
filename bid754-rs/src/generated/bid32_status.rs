@@ -35,19 +35,19 @@ pub(crate) fn bid32_minmax_flags(mut x: u32, mut y: u32) -> u32 {
     return 0;
 }
 
-pub fn bid32_add_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+pub(crate) fn bid32_add_with_flags_port(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
     return bid32_add_core(x, y, rndMode);
 }
 
-pub fn bid32_sub_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+pub(crate) fn bid32_sub_with_flags_port(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
     return bid32_sub_core(x, y, rndMode);
 }
 
-pub fn bid32_mul_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+pub(crate) fn bid32_mul_with_flags_port(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
     return bid32_mul_core(x, y, rndMode);
 }
 
-pub fn bid32_div_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+pub(crate) fn bid32_div_with_flags_port(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
     return bid32_div_core(x, y, rndMode);
 }
 
@@ -67,14 +67,56 @@ pub fn bid32_max_num_mag_with_flags(mut x: u32, mut y: u32) -> (u32, u32) {
     return (bid32_maxnum_mag_pure(x, y), bid32_minmax_flags(x, y));
 }
 
+pub(crate) fn bid32_scalbn_with_flags_port(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
+    return bid32_scalbn_port(x, n, rndMode);
+}
+
+pub(crate) fn bid32_scalbln_with_flags_port(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
+    return bid32_scalbln_port(x, n, rndMode);
+}
+
+pub(crate) fn bid32_ldexp_with_flags_port(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
+    return bid32_ldexp_port(x, n, rndMode);
+}
+
+#[inline]
+pub fn bid32_add_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_add_with_flags_port(x, y, rndMode)
+}
+
+#[inline]
+pub fn bid32_sub_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_sub_with_flags_port(x, y, rndMode)
+}
+
+#[inline]
+pub fn bid32_mul_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_mul_with_flags_port(x, y, rndMode)
+}
+
+#[inline]
+pub fn bid32_div_with_flags(mut x: u32, mut y: u32, mut rndMode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_div_with_flags_port(x, y, rndMode)
+}
+
+#[inline]
 pub fn bid32_scalbn_with_flags(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
-    return bid32_scalbn(x, n, rndMode);
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_scalbn_with_flags_port(x, n, rndMode)
 }
 
+#[inline]
 pub fn bid32_scalbln_with_flags(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
-    return bid32_scalbln(x, n, rndMode);
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_scalbln_with_flags_port(x, n, rndMode)
 }
 
+#[inline]
 pub fn bid32_ldexp_with_flags(mut x: u32, mut n: i64, mut rndMode: i64) -> (u32, u32) {
-    return bid32_ldexp(x, n, rndMode);
+    if !(0..=4).contains(&rndMode) { return (0x7c000000, 0x01); }
+    bid32_ldexp_with_flags_port(x, n, rndMode)
 }

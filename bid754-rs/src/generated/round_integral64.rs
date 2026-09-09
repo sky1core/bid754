@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_round_integral_exact_port(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     let mut res: u64 = 0xbaddbaddbaddbadd;
     let mut x_sign: u64 = 0;
     let mut x_nr_bits: i64 = 0;
@@ -307,7 +307,7 @@ pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     return (res, pfpsf);
 }
 
-pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_nearby_int_port(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     let mut res: u64 = 0xbaddbaddbaddbadd;
     let mut x_sign: u64 = 0;
     let mut x_nr_bits: i64 = 0;
@@ -975,4 +975,16 @@ pub fn bid64_round_integral_nearest_away(mut x: u64) -> (u64, u32) {
         res = (x_sign | 0x31c0000000000000);
         return (res, pfpsf);
     }
+}
+
+#[inline]
+pub fn bid64_round_integral_exact(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_round_integral_exact_port(x, rndMode)
+}
+
+#[inline]
+pub fn bid64_nearby_int(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_nearby_int_port(x, rndMode)
 }

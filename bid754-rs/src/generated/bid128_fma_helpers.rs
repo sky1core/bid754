@@ -123,7 +123,7 @@ pub(crate) fn bid_rounding_correction(mut rnd_mode: i64, mut is_inexact_lt_midpo
         }
     }
     if (unbexp > 0x17df) {
-        (*ptrfpsf) |= (32 | 8);
+        (*ptrfpsf) |= (40 as u32);
         exp = 0;
         if (sign == 0) {
             if ((rnd_mode == 2) || (rnd_mode == 4)) {

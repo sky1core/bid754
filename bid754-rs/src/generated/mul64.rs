@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_mul(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
+pub(crate) fn bid64_mul_port(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
     let mut P: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut C128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut Q_high: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -114,13 +114,13 @@ pub fn bid64_mul(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
     let mut tempy = (coefficient_y as f64).to_bits();
     bin_expon_cy = ((go_checked_shr_u64((tempy & 0x7ff0000000000000), go_shift_count_u64((52) as u64))) as i64);
     bin_expon_product = (bin_expon_cx.wrapping_add(bin_expon_cy));
-    if (bin_expon_product < (51 + (2 * 0x3ff))) {
+    if (bin_expon_product < (2097 as i64)) {
         C64 = (coefficient_x.wrapping_mul(coefficient_y));
         res = get_bid64_small_mantissa((sign_x ^ sign_y), ((exponent_x.wrapping_add(exponent_y)).wrapping_sub(0x18e)), C64, rndMode);
         return res;
     }
     P = __mul_64x64_to_128(coefficient_x, coefficient_y);
-    bin_expon_product = bin_expon_product.wrapping_sub(2 * 0x3ff);
+    bin_expon_product = bin_expon_product.wrapping_sub(2046 as i64);
     bp = __tight_bin_range_128(P, bin_expon_product);
     digits_p = (bid_estimate_decimal_digits[bp as usize] as i64);
     if (!__unsigned_compare_gt_128(bid_power10_table_128[digits_p as usize], P)) {
@@ -133,7 +133,7 @@ pub fn bid64_mul(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
         rmode = ((3 as i64).wrapping_sub(rmode));
     }
     round_up = 0;
-    if ((final_exponent as u64) >= (3 * 256)) {
+    if ((final_exponent as u64) >= (768 as u64)) {
         if (final_exponent < 0) {
             if ((final_exponent.wrapping_add(16)) < 0) {
                 res = (sign_x ^ sign_y);
@@ -186,7 +186,7 @@ pub fn bid64_mul(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
     return res;
 }
 
-pub fn bid64_mul_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_mul_with_flags_port(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     let mut P: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut C128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut Q_high: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -279,13 +279,13 @@ pub fn bid64_mul_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
     let mut tempy = (coefficient_y as f64).to_bits();
     bin_expon_cy = ((go_checked_shr_u64((tempy & 0x7ff0000000000000), go_shift_count_u64((52) as u64))) as i64);
     bin_expon_product = (bin_expon_cx.wrapping_add(bin_expon_cy));
-    if (bin_expon_product < (51 + (2 * 0x3ff))) {
+    if (bin_expon_product < (2097 as i64)) {
         C64 = (coefficient_x.wrapping_mul(coefficient_y));
         res = get_bid64_small_mantissa_flags((sign_x ^ sign_y), ((exponent_x.wrapping_add(exponent_y)).wrapping_sub(0x18e)), C64, rndMode, (&mut pfpsf));
         return (res, pfpsf);
     }
     P = __mul_64x64_to_128(coefficient_x, coefficient_y);
-    bin_expon_product = bin_expon_product.wrapping_sub(2 * 0x3ff);
+    bin_expon_product = bin_expon_product.wrapping_sub(2046 as i64);
     bp = __tight_bin_range_128(P, bin_expon_product);
     digits_p = (bid_estimate_decimal_digits[bp as usize] as i64);
     if (!__unsigned_compare_gt_128(bid_power10_table_128[digits_p as usize], P)) {
@@ -298,11 +298,11 @@ pub fn bid64_mul_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
         rmode = ((3 as i64).wrapping_sub(rmode));
     }
     round_up = 0;
-    if ((final_exponent as u64) >= (3 * 256)) {
+    if ((final_exponent as u64) >= (768 as u64)) {
         if (final_exponent < 0) {
             if ((final_exponent.wrapping_add(16)) < 0) {
                 res = (sign_x ^ sign_y);
-                pfpsf |= (16 | 32);
+                pfpsf |= (48 as u32);
                 if (rmode == 2) {
                     res |= 1;
                 }
@@ -321,7 +321,7 @@ pub fn bid64_mul_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
                 extra_digits = extra_digits.wrapping_sub(16);
                 if ((remainder_h != 0) || (((Q_low.hi > bid_reciprocals10_128[16].hi) || (((Q_low.hi == bid_reciprocals10_128[16].hi) && (Q_low.lo >= bid_reciprocals10_128[16].lo)))))) {
                     round_up = 1;
-                    pfpsf |= (16 | 32);
+                    pfpsf |= (48 as u32);
                     P.lo = (((go_checked_shl_u64(P.lo, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(P.lo, go_shift_count_u64((1) as u64))))));
                     P.lo |= 1;
                     extra_digits = extra_digits.wrapping_add(1);
@@ -379,4 +379,16 @@ pub fn bid64_mul_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
     C64 = P.lo;
     res = get_bid64((sign_x ^ sign_y), ((exponent_x.wrapping_add(exponent_y)).wrapping_sub(0x18e)), C64, rndMode);
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid64_mul(mut x: u64, mut y: u64, mut rndMode: i64) -> Result<u64, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid64_mul_port(x, y, rndMode))
+}
+
+#[inline]
+pub fn bid64_mul_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_mul_with_flags_port(x, y, rndMode)
 }

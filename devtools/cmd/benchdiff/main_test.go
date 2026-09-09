@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -9,8 +12,18 @@ import (
 // non-benchmark lines a real run emits, so the parser is exercised against
 // the production log shape rather than a bare row list.
 func benchLog(rows ...string) string {
+	count := 0
+	if len(rows) > 0 {
+		name := strings.Fields(rows[0])[0]
+		for _, row := range rows {
+			fields := strings.Fields(row)
+			if len(fields) > 1 && fields[0] == name {
+				count++
+			}
+		}
+	}
 	return benchLogWithMeta([]string{
-		"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
+		fmt.Sprintf("BENCH-META target=bench-bidgo count=%d go=go1.26.5 tree=synthetic benchtime=1s build=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa date=2026-07-13T00:00:00Z", count),
 		"goos: darwin",
 		"goarch: arm64",
 		"pkg: github.com/sky1core/bid754/bid754-go/internal/bidgo",
@@ -50,6 +63,7 @@ func TestParseBenchLogCollectsRepeatedSamplesAndSkipsNoise(t *testing.T) {
 		"BenchmarkFairBID64/add-10 \t23305646\t51.00 ns/op\t0 B/op\t0 allocs/op",
 		"BenchmarkFairBID64/add-10 \t23305646\t53.00 ns/op\t0 B/op\t0 allocs/op",
 		"BenchmarkFairBID64/sqrt-10 \t133136900\t9.028 ns/op",
+		"BenchmarkFairBID64/sqrt-10 \t133136900\t9.100 ns/op",
 	)
 	samples := mustParse(t, log)
 	if len(samples) != 2 {
@@ -58,8 +72,8 @@ func TestParseBenchLogCollectsRepeatedSamplesAndSkipsNoise(t *testing.T) {
 	if got := samples["BenchmarkFairBID64/add-10"]; len(got) != 2 || got[0] != 51.00 || got[1] != 53.00 {
 		t.Fatalf("add samples = %v, want [51 53]", got)
 	}
-	if got := samples["BenchmarkFairBID64/sqrt-10"]; len(got) != 1 || got[0] != 9.028 {
-		t.Fatalf("sqrt samples = %v, want [9.028]", got)
+	if got := samples["BenchmarkFairBID64/sqrt-10"]; len(got) != 2 || got[0] != 9.028 || got[1] != 9.100 {
+		t.Fatalf("sqrt samples = %v, want [9.028 9.100]", got)
 	}
 }
 
@@ -415,203 +429,187 @@ func TestRegressionMinDeltaNs(t *testing.T) {
 
 func TestParseBenchLogRejectsNonPositiveOrNonFiniteNsPerOp(t *testing.T) {
 	for _, value := range []string{"0", "-3.5", "NaN", "Inf", "+Inf", "-Inf"} {
-		log := "BenchmarkX-10 \t1\t" + value + " ns/op\n"
+		log := benchLog("BenchmarkX-10 \t1\t" + value + " ns/op")
 		if _, _, err := parseBenchLog(strings.NewReader(log)); err == nil {
 			t.Fatalf("ns/op value %q accepted, want error", value)
 		}
 	}
 }
 
-func TestParseBenchLogCollectsComparabilityMeta(t *testing.T) {
-	meta := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
-	if len(meta.counts) != 1 || meta.counts[0] != "5" {
-		t.Fatalf("counts = %v, want [5]", meta.counts)
-	}
-	if len(meta.toolchains) != 1 || meta.toolchains[0] != "go1.26.5" {
-		t.Fatalf("toolchains = %v, want [go1.26.5]", meta.toolchains)
-	}
-	if len(meta.goos) != 1 || meta.goos[0] != "darwin" {
-		t.Fatalf("goos = %v, want [darwin]", meta.goos)
-	}
-	if len(meta.goarch) != 1 || meta.goarch[0] != "arm64" {
-		t.Fatalf("goarch = %v, want [arm64]", meta.goarch)
-	}
-	if len(meta.cpu) != 1 || meta.cpu[0] != "Apple M1" {
-		t.Fatalf("cpu = %v, want [Apple M1]", meta.cpu)
-	}
-}
-
-func TestRequireComparableMetaPassesOnIdenticalRuns(t *testing.T) {
-	baseline := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t2.0 ns/op"))
-	if err := requireComparableMeta(baseline, candidate); err != nil {
-		t.Fatalf("identical run metadata rejected: %v", err)
-	}
-}
-
-func TestRequireComparableMetaFailsOnCountMismatch(t *testing.T) {
-	baseline := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta([]string{
-		"BENCH-META target=bench-bidgo count=1 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
-		"goos: darwin", "goarch: arm64", "cpu: Apple M1",
-	}, "BenchmarkX-10 \t1\t1.0 ns/op"))
-	err := requireComparableMeta(baseline, candidate)
-	if err == nil || !strings.Contains(err.Error(), "BENCH-META count") {
-		t.Fatalf("count mismatch err = %v, want BENCH-META count mismatch", err)
-	}
-	// The remediation hint belongs to the go= item only. Leaking it onto another
-	// comparability item would tell the reader to re-measure for a toolchain
-	// change that did not happen, mis-diagnosing the actual mismatch.
-	if strings.Contains(err.Error(), "toolchain provenance mismatch") {
-		t.Fatalf("count mismatch err carries the toolchain hint: %v", err)
-	}
-}
-
-func TestRequireComparableMetaFailsOnEnvironmentMismatch(t *testing.T) {
-	baseline := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
-	for _, tc := range []struct {
-		name string
-		meta []string
-	}{
-		{"goos", []string{
-			"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
-			"goos: linux", "goarch: arm64", "cpu: Apple M1",
-		}},
-		{"goarch", []string{
-			"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
-			"goos: darwin", "goarch: amd64", "cpu: Apple M1",
-		}},
-		{"cpu", []string{
-			"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
-			"goos: darwin", "goarch: arm64", "cpu: Apple M4",
-		}},
+func TestParseBenchLogValidFormats(t *testing.T) {
+	row := "BenchmarkX/sub-10 100 1.25 ns/op 0 B/op 0 allocs/op 3 custom/op"
+	log := benchLog(row, row, row, row, row)
+	for _, tc := range []struct{ name, log string }{
+		{"count five", log},
+		{"CRLF", strings.ReplaceAll(log, "\n", "\r\n")},
+		{"without final newline", strings.TrimSuffix(log, "\n")},
+		{"rounded elapsed time", strings.Replace(log, "10.0s", "0.000s", 1)},
+		{"without cpu", strings.Replace(log, "cpu: Apple M1\n", "", 1)},
+		{"verbose", strings.Replace(log, row, "=== RUN   TestOperandContract\n--- PASS: TestOperandContract (0.00s)\nBenchmarkX\nBenchmarkX/sub\n"+row, 1)},
+		{"same environment repeated", strings.Replace(log, "goos: darwin", "goos: darwin\ngoos: darwin", 1)},
+		{"coverage summary", strings.Replace(log, "10.0s", "10.0s coverage: 20.0% of statements", 1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			candidate := mustParseMeta(t, benchLogWithMeta(tc.meta, "BenchmarkX-10 \t1\t1.0 ns/op"))
-			err := requireComparableMeta(baseline, candidate)
-			if err == nil || !strings.Contains(err.Error(), tc.name) {
-				t.Fatalf("%s mismatch err = %v, want %s mismatch", tc.name, err, tc.name)
+			samples, meta, err := parseBenchLog(strings.NewReader(tc.log))
+			if err != nil {
+				t.Fatal(err)
 			}
-			// Same containment rule as the count item: the go= remediation hint
-			// must not surface on an environment mismatch and send the reader
-			// re-measuring for a toolchain change that did not happen.
-			if strings.Contains(err.Error(), "toolchain provenance mismatch") {
-				t.Fatalf("%s mismatch err carries the toolchain hint: %v", tc.name, err)
+			if len(samples) != 1 || len(samples["BenchmarkX/sub-10"]) != 5 || meta.tokens["count"] != "5" || meta.tokens["go"] != "go1.26.5" || meta.env["goos"] != "darwin" {
+				t.Fatalf("unexpected samples or metadata: %v %+v", samples, meta)
 			}
 		})
 	}
 }
 
-func TestRequireComparableMetaFailsWhenOneSideLacksMeta(t *testing.T) {
-	baseline := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta(nil, "BenchmarkX-10 \t1\t1.0 ns/op"))
-	if err := requireComparableMeta(baseline, candidate); err == nil {
-		t.Fatal("metadata-less candidate paired with a metadata-carrying baseline, want error")
-	}
-}
-
-func TestRequireComparableMetaFailsWhenBothSidesLackMeta(t *testing.T) {
-	// Stripping the header lines from BOTH logs must not bypass the guard:
-	// empty metadata proves nothing about comparability (a cross-machine
-	// comparison could otherwise be laundered by filtering the headers out).
-	baseline := mustParseMeta(t, benchLogWithMeta(nil, "BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta(nil, "BenchmarkX-10 \t1\t1.0 ns/op"))
-	if err := requireComparableMeta(baseline, candidate); err == nil {
-		t.Fatal("two metadata-less logs compared as equal, want missing-metadata error")
-	}
-}
-
-func TestRequireComparableMetaAllowsCpuAbsentOnBothSides(t *testing.T) {
-	// Go omits the cpu line on platforms it cannot identify; absent-on-both
-	// is legitimate, absent-on-one is a mismatch.
-	meta := []string{
-		"BENCH-META target=bench-bidgo count=5 go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
-		"goos: linux", "goarch: arm64",
-	}
-	baseline := mustParseMeta(t, benchLogWithMeta(meta, "BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta(meta, "BenchmarkX-10 \t1\t2.0 ns/op"))
-	if err := requireComparableMeta(baseline, candidate); err != nil {
-		t.Fatalf("cpu-less but otherwise identical runs rejected: %v", err)
-	}
-}
-
-// benchLogToolchainMeta builds the standard synthetic metadata block with a
-// caller-chosen go= token, or with the token omitted entirely when goToken is
-// empty — the shape of every baseline saved before toolchain recording existed.
-func benchLogToolchainMeta(goToken string) []string {
-	meta := "BENCH-META target=bench-bidgo count=5"
-	if goToken != "" {
-		meta += " go=" + goToken
-	}
-	meta += " tree=synthetic date=2026-07-13T00:00:00Z"
-	return []string{meta, "goos: darwin", "goarch: arm64", "cpu: Apple M1"}
-}
-
-func TestRequireComparableMetaPassesOnMatchingToolchain(t *testing.T) {
-	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t2.0 ns/op"))
-	if err := requireComparableMeta(baseline, candidate); err != nil {
-		t.Fatalf("runs on the same toolchain rejected: %v", err)
-	}
-}
-
-func TestRequireComparableMetaFailsWhenBaselinePredatesToolchainRecording(t *testing.T) {
-	// The concrete situation this token exists for: the saved baselines were
-	// captured before go= was emitted, then the host Go toolchain was upgraded.
-	// Without the token the comparison silently spanned two toolchains; with it
-	// the pairing is "(none)" vs "go1.26.5" and must be an input error carrying
-	// the re-measure instruction.
-	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta(""), "BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t1.0 ns/op"))
-	err := requireComparableMeta(baseline, candidate)
-	if err == nil {
-		t.Fatal("pre-token baseline compared against a toolchain-recording candidate, want error")
-	}
-	for _, want := range []string{
-		"BENCH-META go", "(none)", "go1.26.5",
-		"toolchain provenance mismatch",
-		"re-measure and re-save the baseline",
-		"make bench-go-baseline",
+func TestParseBenchLogRejectsInvalidEvidence(t *testing.T) {
+	row := "BenchmarkX-10 100 1.25 ns/op"
+	valid := benchLog(row)
+	for _, tc := range []struct{ name, log, want string }{
+		{"under count", strings.Replace(valid, "count=1", "count=5", 1), "has 1 samples; BENCH-META count=5"},
+		{"over count", strings.Replace(valid, row, row+"\n"+row, 1), "has 2 samples"},
+		{"uneven count", strings.Replace(benchLog(row, row), "PASS", "BenchmarkY-10 100 1.0 ns/op\nPASS", 1), "has 1 samples"},
+		{"appended FAIL", valid + "FAIL\nFAIL simulated-incomplete-benchmark-run\n", "failed benchmark run"},
+		{"failure before PASS", strings.Replace(valid, "PASS", "--- FAIL: BenchmarkX (1.00s)\nPASS", 1), "failed benchmark run"},
+		{"panic", strings.Replace(valid, "PASS", "panic: benchmark crashed\nPASS", 1), "failed benchmark run"},
+		{"fatal", valid + "fatal error: runtime failure\n", "failed benchmark run"},
+		{"exit status", valid + "exit status 2\n", "failed benchmark run"},
+		{"no footer", strings.Split(valid, "PASS")[0], "incomplete benchmark run"},
+		{"PASS only", strings.Split(valid, "PASS")[0] + "PASS\n", "incomplete benchmark run"},
+		{"ok without PASS", strings.Replace(valid, "PASS\n", "", 1), "invalid package completion"},
+		{"wrong package", strings.Replace(valid, "ok  \tgithub.com/sky1core/bid754/bid754-go/internal/bidgo", "ok  \twrong/pkg", 1), "invalid package completion"},
+		{"cached summary", strings.Replace(valid, "10.0s", "(cached)", 1), "invalid package elapsed time"},
+		{"truncated summary", strings.Replace(valid, "10.0s", "", 1), "invalid package completion"},
+		{"duplicate PASS", strings.Replace(valid, "PASS", "PASS\nPASS", 1), "unexpected PASS"},
+		{"row after PASS", strings.Replace(valid, "PASS", "PASS\n"+row, 1), "outside an active"},
+		{"trailing truncated run", valid + "BenchmarkUnfinished\n", "after completed"},
+		{"concatenated runs", valid + valid, "after completed"},
+		{"duplicate header", strings.Split(valid, "\n")[0] + "\n" + valid, "exactly once"},
+		{"conflicting headers", strings.Replace(strings.Split(valid, "\n")[0], "go1.26.5", "go1.26.1", 1) + "\n" + valid, "exactly once"},
+		{"duplicate token", strings.Replace(valid, "count=1", "count=1 count=1", 1), "duplicate BENCH-META count"},
+		{"conflicting token", strings.Replace(valid, "count=1", "count=1 count=5", 1), "duplicate BENCH-META count"},
+		{"malformed token", strings.Replace(valid, "count=1", "count 1", 1), "malformed BENCH-META"},
+		{"empty go", strings.Replace(valid, "go=go1.26.5", "go=", 1), "malformed BENCH-META"},
+		{"missing go", strings.Replace(valid, "go=go1.26.5 ", "", 1), "BENCH-META go"},
+		{"placeholder go", strings.Replace(valid, "go=go1.26.5", "go=(none)", 1), "BENCH-META go"},
+		{"missing target", strings.Replace(valid, "target=bench-bidgo ", "", 1), "BENCH-META target"},
+		{"missing tree", strings.Replace(valid, "tree=synthetic ", "", 1), "BENCH-META tree"},
+		{"unknown tree", strings.Replace(valid, "tree=synthetic", "tree=unknown", 1), "BENCH-META tree"},
+		{"missing benchtime", strings.Replace(valid, "benchtime=1s ", "", 1), "BENCH-META benchtime"},
+		{"invalid benchtime", strings.Replace(valid, "benchtime=1s", "benchtime=0x", 1), "BENCH-META benchtime"},
+		{"negative benchtime", strings.Replace(valid, "benchtime=1s", "benchtime=-1s", 1), "BENCH-META benchtime"},
+		{"missing build", strings.Replace(valid, "build="+strings.Repeat("a", 64)+" ", "", 1), "BENCH-META build"},
+		{"invalid build", strings.Replace(valid, "build="+strings.Repeat("a", 64), "build=abc", 1), "BENCH-META build"},
+		{"missing count", strings.Replace(valid, "count=1 ", "", 1), "BENCH-META count"},
+		{"zero count", strings.Replace(valid, "count=1", "count=0", 1), "positive integer"},
+		{"negative count", strings.Replace(valid, "count=1", "count=-1", 1), "positive integer"},
+		{"fractional count", strings.Replace(valid, "count=1", "count=1.5", 1), "positive integer"},
+		{"overflow count", strings.Replace(valid, "count=1", "count=99999999999999999999", 1), "positive integer"},
+		{"missing header", strings.Join(strings.Split(valid, "\n")[1:], "\n"), "outside an active"},
+		{"missing goos", strings.Replace(valid, "goos: darwin\n", "", 1), "goos metadata is missing"},
+		{"missing goarch", strings.Replace(valid, "goarch: arm64\n", "", 1), "goarch metadata is missing"},
+		{"conflicting goos", strings.Replace(valid, "goos: darwin", "goos: darwin\ngoos: linux", 1), "conflicting"},
+		{"conflicting cpu", strings.Replace(valid, "cpu: Apple M1", "cpu: Apple M1\ncpu: Another CPU", 1), "conflicting"},
+		{"conflicting package", strings.Replace(valid, "cpu: Apple M1", "pkg: wrong/pkg", 1), "conflicting"},
+		{"empty cpu", strings.Replace(valid, "cpu: Apple M1", "cpu:", 1), "empty"},
+		{"missing rows", strings.Replace(valid, row+"\n", "", 1), "unexpected PASS"},
+		{"partial row", strings.Replace(valid, row, "BenchmarkX-10 100", 1), "malformed benchmark"},
+		{"bad iterations", strings.Replace(valid, row, "BenchmarkX-10 zero 1.25 ns/op", 1), "malformed benchmark"},
+		{"zero iterations", strings.Replace(valid, row, "BenchmarkX-10 0 1.25 ns/op", 1), "malformed benchmark"},
+		{"missing ns/op", strings.Replace(valid, "ns/op", "B/op", 1), "lacks ns/op"},
+		{"duplicate ns/op", strings.Replace(valid, row, row+" 1 ns/op", 1), "duplicate ns/op"},
+		{"bad ns/op", strings.Replace(valid, "1.25", "bad", 1), "invalid ns/op"},
 	} {
-		if !strings.Contains(err.Error(), want) {
-			t.Fatalf("toolchain mismatch err = %v, missing %q", err, want)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := parseBenchLog(strings.NewReader(tc.log))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v, want %q", err, tc.want)
+			}
+		})
 	}
 }
 
-func TestRequireComparableMetaAllowsToolchainAbsentOnBothSides(t *testing.T) {
-	// Two logs that both predate the token still describe one toolchain era, so
-	// they remain comparable; adding the token must not retroactively break
-	// baseline/candidate pairs captured before it existed.
-	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta(""), "BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta(""), "BenchmarkX-10 \t1\t2.0 ns/op"))
-	if err := requireComparableMeta(baseline, candidate); err != nil {
-		t.Fatalf("two pre-token logs rejected: %v", err)
+func TestRequireComparableMeta(t *testing.T) {
+	valid := benchLog("BenchmarkX-10 100 1.25 ns/op")
+	for _, tc := range []struct{ name, baseline, candidate, want string }{
+		{"matching", valid, valid, ""},
+		{"historical tree and date", valid, strings.ReplaceAll(strings.ReplaceAll(valid, "synthetic", "current"), "2026-07-13", "2026-09-08"), ""},
+		{"no cpu on both", strings.ReplaceAll(valid, "cpu: Apple M1\n", ""), strings.ReplaceAll(valid, "cpu: Apple M1\n", ""), ""},
+		{"go", valid, strings.ReplaceAll(valid, "go1.26.5", "go1.26.1"), "BENCH-META go"},
+		{"target", valid, strings.ReplaceAll(valid, "target=bench-bidgo", "target=bench-native"), "BENCH-META target"},
+		{"count", valid, benchLog("BenchmarkX-10 100 1.25 ns/op", "BenchmarkX-10 100 1.25 ns/op"), "BENCH-META count"},
+		{"goos", valid, strings.ReplaceAll(valid, "darwin", "linux"), "goos"},
+		{"goarch", valid, strings.ReplaceAll(valid, "arm64", "amd64"), "goarch"},
+		{"cpu", valid, strings.ReplaceAll(valid, "Apple M1", "Apple M1 Max"), "cpu"},
+		{"cpu missing", valid, strings.ReplaceAll(valid, "cpu: Apple M1\n", ""), "cpu"},
+		{"package", valid, strings.ReplaceAll(valid, "github.com/sky1core/bid754/bid754-go/internal/bidgo", "another/pkg"), "pkg"},
+		{"benchtime", valid, strings.Replace(valid, "benchtime=1s", "benchtime=100x", 1), "BENCH-META benchtime"},
+		{"build flags", strings.Replace(valid, "count=1", "count=1 buildflags=sha256:aaa", 1), strings.Replace(valid, "count=1", "count=1 buildflags=sha256:bbb", 1), "BENCH-META buildflags"},
+		{"missing build flags", strings.Replace(valid, "count=1", "count=1 buildflags=default", 1), valid, "BENCH-META buildflags"},
+		{"extra control", valid, strings.Replace(valid, "count=1", "count=1 cgo=1", 1), "BENCH-META cgo"},
+		{"matching controls", strings.Replace(valid, "count=1", "count=1 buildflags=sha256:aaa", 1), strings.Replace(valid, "count=1", "count=1 buildflags=sha256:aaa", 1), ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := requireComparableMeta(mustParseMeta(t, tc.baseline), mustParseMeta(t, tc.candidate))
+			if tc.want == "" && err != nil || tc.want != "" && (err == nil || !strings.Contains(err.Error(), tc.want)) {
+				t.Fatalf("error = %v, want %q", err, tc.want)
+			}
+		})
 	}
 }
 
-func TestRequireComparableMetaFailsOnToolchainVersionMismatch(t *testing.T) {
-	baseline := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.1"), "BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta(benchLogToolchainMeta("go1.26.5"), "BenchmarkX-10 \t1\t1.0 ns/op"))
-	err := requireComparableMeta(baseline, candidate)
-	if err == nil {
-		t.Fatal("medians from two different Go toolchains compared, want error")
+func TestRunEvidenceGate(t *testing.T) {
+	t.Setenv(thresholdEnvVar, "")
+	t.Setenv(minDeltaEnvVar, "")
+	row := "BenchmarkX-10 100 100 ns/op"
+	baseline := strings.Replace(benchLog(row), "synthetic", "historical", 1)
+	candidate := strings.Replace(baseline, "historical", "current", 1)
+	var auditRows []string
+	for i := 0; i < 174; i++ {
+		auditRows = append(auditRows, fmt.Sprintf("BenchmarkAudit/row%d-10 100 100 ns/op", i))
 	}
-	for _, want := range []string{"BENCH-META go", "go1.26.1", "go1.26.5", "toolchain provenance mismatch"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Fatalf("toolchain version mismatch err = %v, missing %q", err, want)
-		}
-	}
-}
-
-func TestRequireComparableMetaFailsOnCountlessBenchMetaLine(t *testing.T) {
-	baseline := mustParseMeta(t, benchLog("BenchmarkX-10 \t1\t1.0 ns/op"))
-	candidate := mustParseMeta(t, benchLogWithMeta([]string{
-		"BENCH-META target=bench-bidgo go=go1.26.5 tree=synthetic date=2026-07-13T00:00:00Z",
-		"goos: darwin", "goarch: arm64", "cpu: Apple M1",
-	}, "BenchmarkX-10 \t1\t1.0 ns/op"))
-	err := requireComparableMeta(baseline, candidate)
-	if err == nil || !strings.Contains(err.Error(), "BENCH-META count") {
-		t.Fatalf("countless BENCH-META err = %v, want BENCH-META count mismatch", err)
+	auditBaseline := strings.Replace(benchLog(auditRows...), "count=1", "count=5", 1)
+	for _, tc := range []struct {
+		name, baseline, candidate string
+		extra                     []string
+		code                      int
+		want                      string
+	}{
+		{"historical baseline current candidate", baseline, candidate, []string{"-expected-candidate-tree=current", "-expected-target=bench-bidgo"}, 0, "benchdiff: PASS"},
+		{"historical comparison without binding", baseline, baseline, nil, 0, "benchdiff: PASS"},
+		{"stale candidate", baseline, baseline, []string{"-expected-candidate-tree=current"}, 2, "tree mismatch"},
+		{"wrong target on both", baseline, candidate, []string{"-expected-target=bench-native"}, 2, "target mismatch"},
+		{"empty tree flag", baseline, candidate, []string{"-expected-candidate-tree="}, 2, "must not be empty"},
+		{"empty target flag", baseline, candidate, []string{"-expected-target="}, 2, "must not be empty"},
+		{"positional argument", baseline, candidate, []string{"unexpected"}, 2, "positional arguments"},
+		{"failed candidate", baseline, candidate + "FAIL\nFAIL simulated-incomplete-benchmark-run\n", nil, 2, "candidate:"},
+		{"failed baseline", baseline + "FAIL\n", candidate, nil, 2, "baseline:"},
+		{"missing benchtime on both", strings.ReplaceAll(baseline, "benchtime=1s ", ""), strings.ReplaceAll(candidate, "benchtime=1s ", ""), nil, 2, "BENCH-META benchtime"},
+		{"missing build on both", strings.ReplaceAll(baseline, "build="+strings.Repeat("a", 64)+" ", ""), strings.ReplaceAll(candidate, "build="+strings.Repeat("a", 64)+" ", ""), nil, 2, "BENCH-META build"},
+		{"missing go on both", strings.ReplaceAll(baseline, "go=go1.26.5 ", ""), strings.ReplaceAll(candidate, "go=go1.26.5 ", ""), nil, 2, "BENCH-META go"},
+		{"ambiguous on both", strings.ReplaceAll(baseline, "count=1", "count=1 count=5"), strings.ReplaceAll(candidate, "count=1", "count=1 count=5"), nil, 2, "duplicate BENCH-META"},
+		{"174 median-only rows", baseline, auditBaseline, nil, 2, "has 1 samples; BENCH-META count=5"},
+		{"174 median-only rows plus FAIL", baseline, auditBaseline + "FAIL\nFAIL simulated-incomplete-benchmark-run\n", nil, 2, "failed benchmark run"},
+		{"regression", baseline, strings.Replace(candidate, "100 ns/op", "120 ns/op", 1), nil, 1, "REGRESSION"},
+		{"new row", baseline, strings.Replace(candidate, "PASS", "BenchmarkNew-10 100 100 ns/op\nPASS", 1), nil, 0, "new (no baseline)"},
+		{"vanished row", baseline, strings.Replace(candidate, "BenchmarkX", "BenchmarkY", 1), nil, 1, "MISSING IN CANDIDATE"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			basePath, candPath := filepath.Join(dir, "baseline.log"), filepath.Join(dir, "candidate.log")
+			for path, content := range map[string]string{basePath: tc.baseline, candPath: tc.candidate} {
+				if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			args := append([]string{"-baseline", basePath, "-candidate", candPath}, tc.extra...)
+			var stdout, stderr strings.Builder
+			code := run(args, &stdout, &stderr)
+			if code != tc.code || !strings.Contains(stdout.String()+stderr.String(), tc.want) {
+				t.Fatalf("exit=%d stdout=%s stderr=%s; want exit=%d containing %q", code, &stdout, &stderr, tc.code, tc.want)
+			}
+			if tc.code != 0 && strings.Contains(stdout.String(), "benchdiff: PASS") {
+				t.Fatal("invalid or regressed evidence printed PASS")
+			}
+		})
 	}
 }

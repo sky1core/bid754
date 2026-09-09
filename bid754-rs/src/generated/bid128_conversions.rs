@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid128_to_bid64(mut x: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid128_to_bid64_port(mut x: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut T128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut TP128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -93,16 +93,16 @@ pub fn bid128_to_bid64(mut x: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
         if ((sign_x != 0) && (((rmode.wrapping_sub(1)) as u32) < 2)) {
             rmode = ((3 as u32).wrapping_sub(rmode));
         }
-        if (exponent_x < (0x1820 - 0x18e)) {
+        if (exponent_x < (5778 as i64)) {
             uf_check = 1;
             if ((((((extra_digits.wrapping_neg()).wrapping_add(exponent_x)).wrapping_sub(0x1820)).wrapping_add(0x18e)).wrapping_add(35)) >= 0) {
-                if (exponent_x == ((0x1820 - 0x18e) - 1)) {
+                if (exponent_x == (5777 as i64)) {
                     T128 = bid_round_const_table_128[rmode as usize][extra_digits as usize];
                     (CX1.lo, carry) = __add_carry_out(T128.lo, CX.lo);
                     CX1.hi = ((CX.hi.wrapping_add(T128.hi)).wrapping_add(carry));
                 }
                 extra_digits = (((extra_digits.wrapping_add(0x1820)).wrapping_sub(0x18e)).wrapping_sub(exponent_x));
-                exponent_x = (0x1820 - 0x18e);
+                exponent_x = (5778 as i64);
             } else {
                 rmode = 3;
             }
@@ -170,7 +170,7 @@ pub fn bid128_to_bid64(mut x: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
     return (res, pfpsf);
 }
 
-pub fn bid128_to_bid32(mut x: BID_UINT128, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid128_to_bid32_port(mut x: BID_UINT128, mut rnd_mode: i64) -> (u32, u32) {
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut T128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut TP128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -234,16 +234,16 @@ pub fn bid128_to_bid32(mut x: BID_UINT128, mut rnd_mode: i64) -> (u32, u32) {
         if ((sign_x != 0) && (((rmode.wrapping_sub(1)) as u32) < 2)) {
             rmode = ((3 as u32).wrapping_sub(rmode));
         }
-        if (exponent_x < (0x1820 - 101)) {
+        if (exponent_x < (6075 as i64)) {
             uf_check = 1;
             if ((((((extra_digits.wrapping_neg()).wrapping_add(exponent_x)).wrapping_sub(0x1820)).wrapping_add(101)).wrapping_add(35)) >= 0) {
-                if (exponent_x == ((0x1820 - 101) - 1)) {
+                if (exponent_x == (6074 as i64)) {
                     T128 = bid_round_const_table_128[rmode as usize][extra_digits as usize];
                     (CX1.lo, carry) = __add_carry_out(T128.lo, CX.lo);
                     CX1.hi = ((CX.hi.wrapping_add(T128.hi)).wrapping_add(carry));
                 }
                 extra_digits = (((extra_digits.wrapping_add(0x1820)).wrapping_sub(101)).wrapping_sub(exponent_x));
-                exponent_x = (0x1820 - 101);
+                exponent_x = (6075 as i64);
             } else {
                 rmode = 3;
             }
@@ -308,4 +308,16 @@ pub fn bid128_to_bid32(mut x: BID_UINT128, mut rnd_mode: i64) -> (u32, u32) {
     }
     res = get_bid32_flags(((go_checked_shr_u64(sign_x, go_shift_count_u64((32) as u64))) as u32), ((exponent_x.wrapping_sub(0x1820)).wrapping_add(101)), CX.lo, rnd_mode, (&mut pfpsf));
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid128_to_bid64(mut x: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid128_to_bid64_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid128_to_bid32(mut x: BID_UINT128, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid128_to_bid32_port(x, rnd_mode)
 }

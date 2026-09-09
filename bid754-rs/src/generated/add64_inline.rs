@@ -130,7 +130,7 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
                         }
                     }
                 }
-            } else if ((((coefficient_a == 1000000000000000) && (diff_dec_expon == (16 + 1))) && ((sign_a ^ sign_b) != 0)) && (coefficient_b > 5000000000000000)) {
+            } else if ((((coefficient_a == 1000000000000000) && (diff_dec_expon == (17 as i64))) && ((sign_a ^ sign_b) != 0)) && (coefficient_b > 5000000000000000)) {
                 coefficient_a = 9999999999999999;
                 exponent_a = exponent_a.wrapping_sub(1);
             }
@@ -191,7 +191,7 @@ pub(crate) fn bid_get_add64(mut sign_x: u64, mut exponent_x: i64, mut coefficien
         amount = (bid_short_recip_scale[extra_digits as usize] as i64);
         C0_64 = (go_checked_shr_u64(CT.hi, go_shift_count_u64((amount as u64) as u64)));
         C64 = (C0_64.wrapping_add(coefficient_a));
-        if ((((C64.wrapping_sub(1000000000000000)).wrapping_sub(1)) as u64) > (9000000000000000 - 2)) {
+        if ((((C64.wrapping_sub(1000000000000000)).wrapping_sub(1)) as u64) > (8999999999999998 as u64)) {
             if (C64 >= 10000000000000000) {
                 if (scale_k == 0) {
                     saved_ca = (saved_ca.wrapping_add(T1));

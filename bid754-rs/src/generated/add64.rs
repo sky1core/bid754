@@ -28,24 +28,24 @@
 
 use super::prelude::*;
 
-pub fn bid64_sub(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
-    let (mut result, _) = bid64_sub_with_flags(x, y, rndMode);
+pub(crate) fn bid64_sub_port(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
+    let (mut result, _) = bid64_sub_with_flags_port(x, y, rndMode);
     return result;
 }
 
-pub fn bid64_sub_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_sub_with_flags_port(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     if ((y & 0x7c00000000000000) != 0x7c00000000000000) {
         y ^= 0x8000000000000000;
     }
-    return bid64_add_with_flags(x, y, rndMode);
+    return bid64_add_with_flags_port(x, y, rndMode);
 }
 
-pub fn bid64_add(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
-    let (mut result, _) = bid64_add_with_flags(x, y, rndMode);
+pub(crate) fn bid64_add_port(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
+    let (mut result, _) = bid64_add_with_flags_port(x, y, rndMode);
     return result;
 }
 
-pub fn bid64_add_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_add_with_flags_port(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     let mut CA: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CT: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CT_new: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -218,7 +218,7 @@ pub fn bid64_add_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
                     }
                 }
             } else {
-                if ((((coefficient_a == 1000000000000000) && (diff_dec_expon == (16 + 1))) && ((sign_a ^ sign_b) != 0)) && (coefficient_b > 5000000000000000)) {
+                if ((((coefficient_a == 1000000000000000) && (diff_dec_expon == (17 as i64))) && ((sign_a ^ sign_b) != 0)) && (coefficient_b > 5000000000000000)) {
                     coefficient_a = 9999999999999999;
                     exponent_a = exponent_a.wrapping_sub(1);
                 }
@@ -283,7 +283,7 @@ pub fn bid64_add_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
         amount = (bid_short_recip_scale[extra_digits as usize] as i64);
         C0_64 = (go_checked_shr_u64(CT.hi, go_shift_count_u64((amount as u64) as u64)));
         C64 = (C0_64.wrapping_add(((coefficient_a as i64) as u64)));
-        if ((((C64.wrapping_sub(1000000000000000)).wrapping_sub(1)) as u64) > (9000000000000000 - 2)) {
+        if ((((C64.wrapping_sub(1000000000000000)).wrapping_sub(1)) as u64) > (8999999999999998 as u64)) {
             if (C64 >= 10000000000000000) {
                 if (scale_k == 0) {
                     saved_ca = (saved_ca.wrapping_add(T1));
@@ -356,18 +356,18 @@ pub fn bid64_add_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u
 pub(crate) fn fast_get_bid64_check_of_flags(mut sgn: u64, mut expon: i64, mut coeff: u64, mut rmode: i64) -> (u64, u32) {
     let mut r: u64 = 0;
     let mut flags: u32 = 0;
-    if ((expon as u64) >= ((3 * 256) - 1)) {
-        if ((expon == ((3 * 256) - 1)) && (coeff == 10000000000000000)) {
-            expon = (3 * 256);
+    if ((expon as u64) >= (767 as u64)) {
+        if ((expon == (767 as i64)) && (coeff == 10000000000000000)) {
+            expon = (768 as i64);
             coeff = 1000000000000000;
         }
-        if ((expon as u64) >= (3 * 256)) {
-            while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        if ((expon as u64) >= (768 as u64)) {
+            while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
                 expon = expon.wrapping_sub(1);
                 coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
             }
             if (expon > 0x2ff) {
-                flags |= (8 | 32);
+                flags |= (40 as u32);
                 r = (sgn | 0x7800000000000000);
                 match rmode {
                     1 => {
@@ -389,7 +389,7 @@ pub(crate) fn fast_get_bid64_check_of_flags(mut sgn: u64, mut expon: i64, mut co
             }
         }
     }
-    let mut mask: u64 = ((1 as u64) << 53);
+    let mut mask: u64 = (9007199254740992 as u64);
     if (coeff < mask) {
         r = (expon as u64);
         r = go_checked_shl_u64(r, go_shift_count_u64((53) as u64));
@@ -409,4 +409,28 @@ pub(crate) fn fast_get_bid64_check_of_flags(mut sgn: u64, mut expon: i64, mut co
     coeff &= mask;
     r |= coeff;
     return (r, flags);
+}
+
+#[inline]
+pub fn bid64_sub(mut x: u64, mut y: u64, mut rndMode: i64) -> Result<u64, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid64_sub_port(x, y, rndMode))
+}
+
+#[inline]
+pub fn bid64_sub_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_sub_with_flags_port(x, y, rndMode)
+}
+
+#[inline]
+pub fn bid64_add(mut x: u64, mut y: u64, mut rndMode: i64) -> Result<u64, &'static str> {
+    if !(0..=4).contains(&rndMode) { return Err("unsupported rounding mode"); }
+    Ok(bid64_add_port(x, y, rndMode))
+}
+
+#[inline]
+pub fn bid64_add_with_flags(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_add_with_flags_port(x, y, rndMode)
 }

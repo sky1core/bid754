@@ -28,14 +28,14 @@
 
 use super::prelude::*;
 
-pub fn bid32_nearby_int(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_nearby_int_port(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
     let (mut x64, mut f1) = bid32_to_bid64(x);
-    let (mut res64, mut f2) = bid64_nearby_int(x64, rnd_mode);
-    let (mut res, mut f3) = bid64_to_bid32(res64, 0);
+    let (mut res64, mut f2) = bid64_nearby_int_port(x64, rnd_mode);
+    let (mut res, mut f3) = bid64_to_bid32_port(res64, 0);
     return (res, ((f1 | f2) | f3));
 }
 
-pub fn bid32_fdim(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_fdim_port(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
     let mut res: u32 = 0;
     let mut pfpsf: u32 = 0;
     let (mut cmpres, _) = bid32_quiet_greater(x, y);
@@ -43,29 +43,29 @@ pub fn bid32_fdim(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
         res = 0x32800000;
         return (res, pfpsf);
     }
-    return bid32_sub_with_flags(x, y, rnd_mode);
+    return bid32_sub_with_flags_port(x, y, rnd_mode);
 }
 
-pub fn bid32_scalbln(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_scalbln_port(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
     let mut n1 = (n as i32);
     if ((n1 as i64) < n) {
         n1 = 0x7fffffff;
     } else if ((n1 as i64) > n) {
         n1 = (-0x80000000);
     }
-    return bid32_scalbn(x, (n1 as i64), rnd_mode);
+    return bid32_scalbn_port(x, (n1 as i64), rnd_mode);
 }
 
 pub fn bid32_modf(mut x: u32) -> (u32, u32, u32) {
     let (mut x64, mut f0) = bid32_to_bid64(x);
     let (mut frac64, mut iptr64, mut flags) = bid64_modf(x64);
-    let (mut frac, mut f1) = bid64_to_bid32(frac64, 0);
-    let (mut iptr, mut f2) = bid64_to_bid32(iptr64, 0);
+    let (mut frac, mut f1) = bid64_to_bid32_port(frac64, 0);
+    let (mut iptr, mut f2) = bid64_to_bid32_port(iptr64, 0);
     return (frac, iptr, (((f0 | flags) | f1) | f2));
 }
 
-pub fn bid32_ldexp(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
-    return bid32_scalbn(x, n, rnd_mode);
+pub(crate) fn bid32_ldexp_port(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
+    return bid32_scalbn_port(x, n, rnd_mode);
 }
 
 pub fn bid32_frexp(mut x: u32) -> (u32, i64, u32) {
@@ -310,7 +310,7 @@ pub fn bid32_na_n(tagp: impl AsRef<str>) -> u32 {
     if (tagp == "") {
         return res;
     }
-    let (mut x, _) = bid32_from_string_raw(tagp, 0);
+    let (mut x, _) = bid32_from_string_raw_port(tagp, 0);
     x = (x & 0x000fffff);
     res = (res | x);
     return res;
@@ -356,14 +356,14 @@ pub fn bid32_next_toward(mut x: u32, mut y: BID_UINT128) -> (u32, u32) {
                 tmp128.hi = (y.hi & 0xfc003fffffffffff);
                 tmp128.lo = y.lo;
             }
-            (res, _) = bid128_to_bid32(tmp128, 0);
+            (res, _) = bid128_to_bid32_port(tmp128, 0);
             return (res, flags);
         } else {
             if ((x & 0x78000000) == 0x78000000) {
-                x = (x & (0x80000000 | 0x78000000));
+                x = (x & (4160749568 as u32));
             }
             if ((y.hi & 0x7c00000000000000) == 0x7800000000000000) {
-                y.hi = (y.hi & (0x8000000000000000 | 0x7800000000000000));
+                y.hi = (y.hi & (17870283321406128128 as u64));
                 y.lo = 0;
             }
         }
@@ -404,7 +404,7 @@ pub fn bid32_next_toward(mut x: u32, mut y: BID_UINT128) -> (u32, u32) {
     return (res, flags);
 }
 
-pub fn bid32_to_binary32(mut x: u32, mut rndMode: i64) -> (u32, u32) {
+pub(crate) fn bid32_to_binary32_port(mut x: u32, mut rndMode: i64) -> (u32, u32) {
     if ((x & 0x7c000000) == 0x7c000000) {
         let mut flags: u32 = 0;
         let mut payload = (x & 0x000fffff);
@@ -417,11 +417,11 @@ pub fn bid32_to_binary32(mut x: u32, mut rndMode: i64) -> (u32, u32) {
         return (((((x & 0x80000000) | 0x7f800000) | 0x00400000) | ((((go_checked_shl_u32(payload, go_shift_count_u64((2) as u64)))) & 0x003fffff))), flags);
     }
     let (mut x64, mut f0) = bid32_to_bid64(x);
-    let (mut res, mut f1) = bid64_to_binary32(x64, rndMode);
+    let (mut res, mut f1) = bid64_to_binary32_port(x64, rndMode);
     return (res, (f0 | f1));
 }
 
-pub fn bid32_to_binary64(mut x: u32, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid32_to_binary64_port(mut x: u32, mut rndMode: i64) -> (u64, u32) {
     if ((x & 0x7c000000) == 0x7c000000) {
         let mut flags: u32 = 0;
         let mut payload = ((x & 0x000fffff) as u64);
@@ -434,11 +434,11 @@ pub fn bid32_to_binary64(mut x: u32, mut rndMode: i64) -> (u64, u32) {
         return ((((((go_checked_shl_u64(((x & 0x80000000) as u64), go_shift_count_u64((32) as u64)))) | 0x7ff0000000000000) | 0x0008000000000000) | ((((go_checked_shl_u64(payload, go_shift_count_u64((31) as u64)))) & 0x0007ffffffffffff))), flags);
     }
     let (mut x64, mut f0) = bid32_to_bid64(x);
-    let (mut res, mut f1) = bid64_to_binary64(x64, rndMode);
+    let (mut res, mut f1) = bid64_to_binary64_port(x64, rndMode);
     return (res, (f0 | f1));
 }
 
-pub fn bid32_to_binary128(mut x: u32, mut rndMode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid32_to_binary128_port(mut x: u32, mut rndMode: i64) -> (BID_UINT128, u32) {
     if ((x & 0x7c000000) == 0x7c000000) {
         let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
         let mut flags: u32 = 0;
@@ -454,7 +454,7 @@ pub fn bid32_to_binary128(mut x: u32, mut rndMode: i64) -> (BID_UINT128, u32) {
         return (res, flags);
     }
     let (mut x64, mut f0) = bid32_to_bid64(x);
-    let (mut res, mut f1) = bid64_to_binary128(x64, rndMode);
+    let (mut res, mut f1) = bid64_to_binary128_port(x64, rndMode);
     return (res, (f0 | f1));
 }
 
@@ -466,4 +466,46 @@ pub fn bid32_to_bid128(mut x: u32) -> (BID_UINT128, u32) {
 
 pub fn bid32_nexttoward(mut x: u32, mut y: BID_UINT128) -> (u32, u32) {
     bid32_next_toward(x, y)
+}
+
+#[inline]
+pub fn bid32_nearby_int(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_nearby_int_port(x, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_fdim(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_fdim_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_scalbln(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_scalbln_port(x, n, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_ldexp(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_ldexp_port(x, n, rnd_mode)
+}
+
+#[inline]
+pub fn bid32_to_binary32(mut x: u32, mut rndMode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7fc00000, 0x01); }
+    bid32_to_binary32_port(x, rndMode)
+}
+
+#[inline]
+pub fn bid32_to_binary64(mut x: u32, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7ff8000000000000, 0x01); }
+    bid32_to_binary64_port(x, rndMode)
+}
+
+#[inline]
+pub fn bid32_to_binary128(mut x: u32, mut rndMode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rndMode) { return (BID_UINT128 { lo: 0, hi: 0x7fff800000000000 }, 0x01); }
+    bid32_to_binary128_port(x, rndMode)
 }

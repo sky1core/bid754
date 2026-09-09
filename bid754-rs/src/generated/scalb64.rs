@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_scalbn(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_scalbn_port(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
     let mut sign_x: u64 = 0;
     let mut coefficient_x: u64 = 0;
     let mut res: u64 = 0;
@@ -77,20 +77,20 @@ pub fn bid64_scalbn(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
     return (res, pfpsf);
 }
 
-pub fn bid64_scalbln(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_scalbln_port(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
     let mut res: u64 = 0;
     let mut n1: i32 = 0;
     n1 = (n as i32);
     if ((n1 as i64) < n) {
         n1 = 0x7fffffff;
     } else if ((n1 as i64) > n) {
-        n1 = ((-0x7fffffff) - 1);
+        n1 = (-2147483648 as i32);
     }
-    let (mut res, mut pfpsf) = bid64_scalbn(x, (n1 as i64), rndMode);
+    let (mut res, mut pfpsf) = bid64_scalbn_port(x, (n1 as i64), rndMode);
     return (res, pfpsf);
 }
 
-pub fn bid64_ldexp(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_ldexp_port(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
     let mut sign_x: u64 = 0;
     let mut coefficient_x: u64 = 0;
     let mut res: u64 = 0;
@@ -139,4 +139,22 @@ pub fn bid64_ldexp(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
     rmode = rndMode;
     (res, pfpsf) = get_bid64_flags(sign_x, exponent_x, coefficient_x, rmode);
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid64_scalbn(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_scalbn_port(x, n, rndMode)
+}
+
+#[inline]
+pub fn bid64_scalbln(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_scalbln_port(x, n, rndMode)
+}
+
+#[inline]
+pub fn bid64_ldexp(mut x: u64, mut n: i64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_ldexp_port(x, n, rndMode)
 }

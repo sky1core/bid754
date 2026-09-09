@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid32_scalbn(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_scalbn_port(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
     let mut sign_x: u32 = 0;
     let mut coefficient_x: u32 = 0;
     let mut res: u32 = 0;
@@ -78,4 +78,10 @@ pub fn bid32_scalbn(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
     rmode = rnd_mode;
     res = get_bid32_flags(sign_x, exponent_x, (coefficient_x as u64), rmode, (&mut pfpsf));
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid32_scalbn(mut x: u32, mut n: i64, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_scalbn_port(x, n, rnd_mode)
 }

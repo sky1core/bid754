@@ -231,6 +231,9 @@ func main() {
 	generateModRs(outDir, modFiles)
 	generatePreludeRs(outDir, modFiles)
 	finalizeRustGenerated(root)
+	if err := emitCheckedRoundingBoundaries(outDir); err != nil {
+		fatal("%v", err)
+	}
 
 	// Emit the public API surface (types + wrappers routing through the port),
 	// the crate root, and the Rust surface inventory. This is the routing/plumbing
@@ -423,6 +426,18 @@ func generatePreludeRs(outDir string, files []string) {
 	sb.WriteString("pub use crate::gen_types::*;\n")
 	sb.WriteString("pub use crate::gen_constants::*;\n")
 	sb.WriteString("pub use crate::tables::*;\n\n")
+	sb.WriteString(`pub const bid_round_const_table: [[u64; 19]; 6] = [
+    crate::tables::bid_round_const_table[0], crate::tables::bid_round_const_table[1],
+    crate::tables::bid_round_const_table[2], crate::tables::bid_round_const_table[3],
+    crate::tables::bid_round_const_table[4], crate::tables::bid_round_const_table[0],
+];
+pub const bid_round_const_table_128: [[BID_UINT128; 36]; 6] = [
+    crate::tables::bid_round_const_table_128[0], crate::tables::bid_round_const_table_128[1],
+    crate::tables::bid_round_const_table_128[2], crate::tables::bid_round_const_table_128[3],
+    crate::tables::bid_round_const_table_128[4], crate::tables::bid_round_const_table_128[0],
+];
+
+`)
 	sb.WriteString("// Shared external support used by generated modules.\n")
 	sb.WriteString("pub use num_bigint::BigUint;\n")
 	sb.WriteString("pub use num_traits::{One, Zero};\n\n")
@@ -2498,17 +2513,20 @@ func isIntegerRustType(t string) bool {
 }
 
 func rustExprValueType(expr ast.Expr) string {
-	if typ := registryBackedRustValueType(expr); typ != "" {
+	if typ := generatedTableRustValueType(expr); typ != "" {
 		return typ
 	}
 	return integerRustType(expr)
 }
 
-func registryBackedRustValueType(expr ast.Expr) string {
+func generatedTableRustValueType(expr ast.Expr) string {
 	switch e := expr.(type) {
 	case *ast.IndexExpr:
-		if typ := registryBackedRustValueType(e.X); strings.HasPrefix(typ, "[") {
+		if typ := generatedTableRustValueType(e.X); strings.HasPrefix(typ, "[") {
 			return arrayElementRustType(typ)
+		}
+		if ident, ok := e.X.(*ast.Ident); ok && ident.Name == "bid_exponents_binary128" {
+			return "i32"
 		}
 		if ident, ok := e.X.(*ast.Ident); ok && activeRegistry != nil {
 			if td, ok := activeRegistry.Tables[ident.Name]; ok {
@@ -2516,7 +2534,7 @@ func registryBackedRustValueType(expr ast.Expr) string {
 			}
 		}
 	case *ast.ParenExpr:
-		return registryBackedRustValueType(e.X)
+		return generatedTableRustValueType(e.X)
 	}
 	return ""
 }
@@ -3008,6 +3026,14 @@ func convertExprStr(fset *token.FileSet, expr ast.Expr, src []byte) string {
 		return convertBasicLit(e)
 
 	case *ast.BinaryExpr:
+		if isIntegerConstExpr(e) {
+			if isUntypedIntegerConstExpr(e) {
+				return activeTypeInfo.Types[e].Value.ExactString()
+			}
+			if rustType := integerRustType(e); rustType != "" {
+				return fmt.Sprintf("(%s as %s)", activeTypeInfo.Types[e].Value.ExactString(), rustType)
+			}
+		}
 		if nilCmp, ok := convertNilComparison(e.X, e.Y, e.Op); ok {
 			return nilCmp
 		}

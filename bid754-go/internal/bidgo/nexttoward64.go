@@ -1,33 +1,8 @@
 // Ported from: IntelRDFPMathLib20U4/LIBRARY/src/bid64_nexttowardd.c
 // (the BID128 NaN narrowing follows bid128_to_bid64 in bid64_to_bid128.c)
 // Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
-//
-// Derived from the Intel BID library: control flow, branch order, magic
-// constants, and comments follow the C source; the wide-value comparisons
-// use math/big instead of the C 128-bit helper macros.
 
 package bidgo
-
-import "math/big"
-
-func bid128NaNToBid64(hi, lo uint64) (uint64, uint32) {
-	payloadHi := hi & 0x00003fffffffffff
-	payloadLo := lo
-	t33hi := uint64(0x0000314dc6448d93)
-	t33lo := uint64(0x38c15b09ffffffff)
-	if payloadHi > t33hi || (payloadHi == t33hi && payloadLo > t33lo) {
-		payloadHi = 0
-		payloadLo = 0
-	}
-	payload := bid128CoeffBig(payloadHi, payloadLo)
-	payload.Quo(payload, big.NewInt(1000000000000000000))
-	return (hi & 0xfc00000000000000) | payload.Uint64(), func() uint32 {
-		if (hi & 0x7e00000000000000) == 0x7e00000000000000 {
-			return BID_INVALID_EXCEPTION
-		}
-		return 0
-	}()
-}
 
 func bid64CanonicalizeNonCanonicalFinite(x uint64) uint64 {
 	if (x & MASK_INF64) == MASK_INF64 {
@@ -41,71 +16,12 @@ func bid64CanonicalizeNonCanonicalFinite(x uint64) uint64 {
 	return x
 }
 
-func bid64DecodeForCompare(x uint64) (sign uint64, exp int, coeff *big.Int, isZero bool) {
-	sign, exp, c := bid64UnpackFiniteForRoundLocal(x)
-	coeff = new(big.Int).SetUint64(c)
-	return sign, exp, coeff, c == 0
-}
-
-func bid64CompareToBid128(x uint64, y BID_UINT128) int {
-	x = bid64CanonicalizeNonCanonicalFinite(x)
-	xSign, xExp, xCoeff, xZero := bid64DecodeForCompare(x)
-	yd := bid128Decode(y.hi, y.lo)
-	if Bid64IsInf(x) != 0 {
-		if yd.isInf {
-			if xSign == yd.sign {
-				return 0
-			}
-			if xSign != 0 {
-				return -1
-			}
-			return 1
-		}
-		if xSign != 0 {
-			return -1
-		}
-		return 1
-	}
-	if yd.isInf {
-		if yd.sign != 0 {
-			return 1
-		}
-		return -1
-	}
-	if xZero && yd.isZero {
-		return 0
-	}
-	if xSign != yd.sign {
-		if xZero && yd.isZero {
-			return 0
-		}
-		if xSign != 0 {
-			return -1
-		}
-		return 1
-	}
-	xc := new(big.Int).Set(xCoeff)
-	yc := new(big.Int).Set(yd.coeff)
-	if xExp > yd.exp {
-		xc.Mul(xc, bid128Pow10Big(xExp-yd.exp))
-	} else if yd.exp > xExp {
-		yc.Mul(yc, bid128Pow10Big(yd.exp-xExp))
-	}
-	cmp := xc.Cmp(yc)
-	if xSign != 0 {
-		cmp = -cmp
-	}
-	return cmp
-}
-
 // Bid64NextToward is ported mechanically from Intel bid64_nexttowardd.c: bid64_nexttoward.
 func Bid64NextToward(x uint64, y BID_UINT128) (uint64, uint32) {
 	var res uint64
 	var tmp1, tmp2 uint64
 	var pfpsf uint32
 	var res1, res2 int
-
-	yd := bid128Decode(y.hi, y.lo)
 
 	// check for NaNs or infinities
 	if (x & MASK_NAN) == MASK_NAN { // x is NAN
@@ -120,7 +36,7 @@ func Bid64NextToward(x uint64, y BID_UINT128) (uint64, uint32) {
 			// return quiet (x)
 			res = x & 0xfdffffffffffffff
 		} else { // x is QNaN
-			if yd.isSNaN { // y is SNAN
+			if (y.hi & MASK_SNAN64) == MASK_SNAN64 { // y is SNAN
 				// set invalid flag
 				pfpsf |= BID_INVALID_EXCEPTION
 			}
@@ -128,12 +44,25 @@ func Bid64NextToward(x uint64, y BID_UINT128) (uint64, uint32) {
 			res = x
 		}
 		return res, pfpsf
-	} else if yd.isNaN { // y is NAN then res = Q (y)
-		res, pfpsf = bid128NaNToBid64(y.hi, y.lo)
+	} else if (y.hi & MASK_NAN) == MASK_NAN { // y is NAN then res = Q (y)
+		if (y.hi & MASK_SNAN64) == MASK_SNAN64 {
+			pfpsf |= BID_INVALID_EXCEPTION
+		}
+		if (y.hi&0x00003fffffffffff) > 0x0000314dc6448d93 ||
+			((y.hi&0x00003fffffffffff) == 0x0000314dc6448d93 && y.lo > 0x38c15b09ffffffff) {
+			y.hi &= 0xffffc00000000000
+			y.lo = 0
+		}
+		y.hi &= 0xfc003fffffffffff
+		res, _ = Bid128ToBid64(y, BID_ROUNDING_TO_NEAREST)
 		return res, pfpsf
 	} else { // at least one is infinity
 		if (x & MASK_INF) == MASK_INF { // x = inf
 			x = x & (MASK_SIGN | MASK_INF)
+		}
+		if (y.hi & MASK_INF) == MASK_INF {
+			y.hi &= MASK_SIGN | MASK_INF
+			y.lo = 0
 		}
 	}
 	// neither x nor y is NaN
@@ -145,8 +74,10 @@ func Bid64NextToward(x uint64, y BID_UINT128) (uint64, uint32) {
 	// no need to check for non-canonical y
 
 	// neither x nor y is NaN
-	res2 = bid64CompareToBid128(x, y)
-	if res2 == 0 { // x = y
+	x128, _ := Bid64ToBid128(x)
+	res1, _ = Bid128QuietEqual(x128, y)
+	res2, _ = Bid128QuietGreater(x128, y)
+	if res1 != 0 { // x = y
 		// return x with the sign of y
 		res = (y.hi & MASK_SIGN) | (x & 0x7fffffffffffffff)
 	} else if res2 > 0 { // x > y

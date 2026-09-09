@@ -106,7 +106,7 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
         str[length as usize] = b'E';
         length = length.wrapping_add(1);
         let mut exp = (((go_checked_shr_u64((x.hi & 0x7ffe000000000000), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
-        if (exp > (((0x5ffe >> 1) - (6176)))) {
+        if (exp > (6111 as i64)) {
             exp = (((go_checked_shr_u64(((((go_checked_shl_u64(x.hi, go_shift_count_u64((2) as u64)))) & 0x7ffe000000000000)), go_shift_count_u64((49) as u64))) as i64).wrapping_sub(6176));
         }
         if (exp >= 0) {
@@ -217,7 +217,7 @@ pub fn bid128_to_string(mut x: BID_UINT128) -> String {
     return go_string_from_bytes(&mut str[..k as usize]);
 }
 
-pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let str = str.as_ref();
     let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut pfpsf: u32 = 0;
@@ -495,7 +495,7 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
         }
         coeff_high = ((buffer[0].wrapping_sub(b'0')) as u64);
         i = 1;
-        while (i < (34 - 17)) {
+        while (i < (17 as i64)) {
             coeff2 = (coeff_high.wrapping_add(coeff_high));
             coeff_high = ((((go_checked_shl_u64(coeff2, go_shift_count_u64((2) as u64)))).wrapping_add(coeff2)).wrapping_add(((buffer[i as usize].wrapping_sub(b'0')) as u64)));
             i = i.wrapping_add(1);
@@ -610,4 +610,10 @@ pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT1
         res = bid_get_bid128(sign_x, dec_expon, CX, rnd_mode, (&mut pfpsf));
         return (res, pfpsf);
     }
+}
+
+#[inline]
+pub fn bid128_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=5).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128_from_string_port(str, rnd_mode)
 }

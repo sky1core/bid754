@@ -482,9 +482,37 @@ export function encode128(comp: Components): [bigint, bigint] {
 
 // --- Byte encoding/decoding (little-endian Uint8Array) ---
 
+const typedArrayPrototype = Object.getPrototypeOf(Uint8Array.prototype) as object;
+
+function intrinsicTypedArrayGetter(key: string | symbol): (this: unknown) => unknown {
+  const getter = Object.getOwnPropertyDescriptor(typedArrayPrototype, key)?.get;
+  if (typeof getter !== "function") {
+    throw new Error(`bid754 codec: missing intrinsic TypedArray getter for ${String(key)}`);
+  }
+  return getter as (this: unknown) => unknown;
+}
+
+const typedArrayToStringTag = intrinsicTypedArrayGetter(Symbol.toStringTag);
+const typedArrayLength = intrinsicTypedArrayGetter("length");
+const typedArrayBuffer = intrinsicTypedArrayGetter("buffer");
+const typedArrayByteOffset = intrinsicTypedArrayGetter("byteOffset");
+
+function requireExactBytes(buf: unknown, len: number, operation: string): Uint8Array {
+  if (typedArrayToStringTag.call(buf) !== "Uint8Array") {
+    throw new Error(`${operation}: expected a Uint8Array`);
+  }
+  const length = typedArrayLength.call(buf) as number;
+  if (length !== len) {
+    throw new Error(`${operation}: expected ${len} bytes, got ${length}`);
+  }
+  const buffer = typedArrayBuffer.call(buf) as ArrayBufferLike;
+  const byteOffset = typedArrayByteOffset.call(buf) as number;
+  return new Uint8Array(buffer as ArrayBuffer, byteOffset, len);
+}
+
 export function decodeBytes32(buf: Uint8Array): Components {
-  if (buf.length !== 4) throw new Error(`decodeBytes32: expected 4 bytes, got ${buf.length}`);
-  const v = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
+  const bytes = requireExactBytes(buf, 4, "decodeBytes32");
+  const v = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
   return decode32(v >>> 0);
 }
 
@@ -499,8 +527,8 @@ export function encodeBytes32(comp: Components): Uint8Array {
 }
 
 export function decodeBytes64(buf: Uint8Array): Components {
-  if (buf.length !== 8) throw new Error(`decodeBytes64: expected 8 bytes, got ${buf.length}`);
-  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  const bytes = requireExactBytes(buf, 8, "decodeBytes64");
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const v = dv.getBigUint64(0, true); // little-endian
   return decode64(v);
 }
@@ -514,8 +542,8 @@ export function encodeBytes64(comp: Components): Uint8Array {
 }
 
 export function decodeBytes128(buf: Uint8Array): Components {
-  if (buf.length !== 16) throw new Error(`decodeBytes128: expected 16 bytes, got ${buf.length}`);
-  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  const bytes = requireExactBytes(buf, 16, "decodeBytes128");
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const lo = dv.getBigUint64(0, true); // little-endian
   const hi = dv.getBigUint64(8, true);
   return decode128(lo, hi);

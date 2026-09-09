@@ -273,7 +273,7 @@ pub fn bid64_na_n(tagp: impl AsRef<str>) -> u64 {
     if (tagp == "") {
         return res;
     }
-    let (mut x, _) = bid64_from_string(tagp, 0);
+    let (mut x, _) = bid64_from_string_port(tagp, 0);
     x = (x & 0x0003ffffffffffff);
     res = (res | x);
     return res;

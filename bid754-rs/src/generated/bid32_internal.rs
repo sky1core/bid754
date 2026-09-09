@@ -31,7 +31,7 @@ use super::prelude::*;
 pub(crate) fn very_fast_get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u32) -> u32 {
     let mut r: u32 = 0;
     let mut mask: u32 = 0;
-    mask = (1 << 23);
+    mask = (8388608 as u32);
     if (coeff < mask) {
         r = (expon as u32);
         r = go_checked_shl_u32(r, go_shift_count_u64((23) as u64));
@@ -41,7 +41,7 @@ pub(crate) fn very_fast_get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u32) 
     r = (expon as u32);
     r = go_checked_shl_u32(r, go_shift_count_u64((21) as u64));
     r |= (sgn | 0x60000000);
-    mask = ((1 << 21) - 1);
+    mask = (2097151 as u32);
     coeff &= mask;
     r |= coeff;
     return r;
@@ -50,7 +50,7 @@ pub(crate) fn very_fast_get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u32) 
 pub(crate) fn fast_get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u32) -> u32 {
     let mut r: u32 = 0;
     let mut mask: u32 = 0;
-    mask = (1 << 23);
+    mask = (8388608 as u32);
     if (coeff > 9999999) {
         expon = expon.wrapping_add(1);
         coeff = 1000000;
@@ -64,7 +64,7 @@ pub(crate) fn fast_get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u32) -> u3
     r = (expon as u32);
     r = go_checked_shl_u32(r, go_shift_count_u64((21) as u64));
     r |= (sgn | 0x60000000);
-    mask = ((1 << 21) - 1);
+    mask = (2097151 as u32);
     coeff &= mask;
     r |= coeff;
     return r;
@@ -119,7 +119,7 @@ pub(crate) fn get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode:
                 expon = 191;
             }
         }
-        while ((coeff < 1000000) && (expon >= (3 * 64))) {
+        while ((coeff < 1000000) && (expon >= (192 as i64))) {
             expon = expon.wrapping_sub(1);
             coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
         }
@@ -136,7 +136,7 @@ pub(crate) fn get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode:
                 }
                 2 => {
                     if (sgn != 0) {
-                        r = (0x80000000 | 0x77f8967f);
+                        r = (4160263807 as u32);
                     }
                 }
                 _ => {}
@@ -144,7 +144,7 @@ pub(crate) fn get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode:
             return r;
         }
     }
-    mask = (1 << 23);
+    mask = (8388608 as u32);
     if ((coeff as u32) < mask) {
         r = (expon as u32);
         r = go_checked_shl_u32(r, go_shift_count_u64((23) as u64));
@@ -154,7 +154,7 @@ pub(crate) fn get_bid32(mut sgn: u32, mut expon: i64, mut coeff: u64, mut rmode:
     r = (expon as u32);
     r = go_checked_shl_u32(r, go_shift_count_u64((21) as u64));
     r |= (sgn | 0x60000000);
-    mask = ((1 << 21) - 1);
+    mask = (2097151 as u32);
     let mut coeff64 = (coeff as u32);
     coeff64 &= mask;
     r |= coeff64;
@@ -180,7 +180,7 @@ pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut 
     if ((expon as u64) > 191) {
         if (expon < 0) {
             if ((expon.wrapping_add(7)) < 0) {
-                (*pfpsf) |= (16 | 32);
+                (*pfpsf) |= (48 as u32);
                 if ((rmode == 1) && (sgn != 0)) {
                     return 0x80000001;
                 }
@@ -246,7 +246,7 @@ pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut 
             expon = expon.wrapping_sub(1);
         }
         if ((expon as u64) > 191) {
-            (*pfpsf) |= (8 | 32);
+            (*pfpsf) |= (40 as u32);
             r = (sgn | 0x78000000);
             match rmode {
                 1 => {
@@ -267,7 +267,7 @@ pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut 
             return r;
         }
     }
-    mask = (1 << 23);
+    mask = (8388608 as u32);
     if ((coeff as u32) < mask) {
         r = (expon as u32);
         r = go_checked_shl_u32(r, go_shift_count_u64((23) as u64));
@@ -277,7 +277,7 @@ pub(crate) fn get_bid32_flags(mut sgn: u32, mut expon: i64, mut coeff: u64, mut 
     r = (expon as u32);
     r = go_checked_shl_u32(r, go_shift_count_u64((21) as u64));
     r |= (sgn | 0x60000000);
-    mask = ((1 << 21) - 1);
+    mask = (2097151 as u32);
     r |= (((coeff as u32) & mask));
     return r;
 }
@@ -298,7 +298,7 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
     if ((expon as u64) > 191) {
         if (expon < 0) {
             if ((expon.wrapping_add(7)) < 0) {
-                (*pfpsf) |= (16 | 32);
+                (*pfpsf) |= (48 as u32);
                 if ((rmode == 1) && (sgn != 0)) {
                     return 0x80000001;
                 }
@@ -364,12 +364,12 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
                 expon = 191;
             }
         }
-        while ((coeff < 1000000) && (expon >= (3 * 64))) {
+        while ((coeff < 1000000) && (expon >= (192 as i64))) {
             expon = expon.wrapping_sub(1);
             coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
         }
         if (expon > 191) {
-            (*pfpsf) |= (8 | 32);
+            (*pfpsf) |= (40 as u32);
             r = (sgn | 0x78000000);
             match rmode {
                 1 => {
@@ -382,7 +382,7 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
                 }
                 2 => {
                     if (sgn != 0) {
-                        r = (0x80000000 | 0x77f8967f);
+                        r = (4160263807 as u32);
                     }
                 }
                 _ => {}
@@ -390,7 +390,7 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
             return r;
         }
     }
-    mask = (1 << 23);
+    mask = (8388608 as u32);
     if ((coeff as u32) < mask) {
         r = (expon as u32);
         r = go_checked_shl_u32(r, go_shift_count_u64((23) as u64));
@@ -400,7 +400,7 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
     r = (expon as u32);
     r = go_checked_shl_u32(r, go_shift_count_u64((21) as u64));
     r |= (sgn | 0x60000000);
-    mask = ((1 << 21) - 1);
+    mask = (2097151 as u32);
     let mut coeff64 = (coeff as u32);
     coeff64 &= mask;
     r |= coeff64;

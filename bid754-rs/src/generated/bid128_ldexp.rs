@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid128_ldexp(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128_ldexp_port(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CX2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CBID_X8: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -88,4 +88,10 @@ pub fn bid128_ldexp(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64) -> (BID_U
     let mut rmode = rnd_mode;
     res = bid_get_bid128(sign_x, exponent_x, CX, rmode, (&mut pfpsf));
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid128_ldexp(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128_ldexp_port(x, n, rnd_mode)
 }

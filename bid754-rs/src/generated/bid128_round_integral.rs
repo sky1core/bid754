@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid128_round_integral_exact(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+pub(crate) fn bid128_round_integral_exact_port(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
     let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     res.lo = 0xbaddbaddbaddbadd;
     res.hi = 0xbaddbaddbaddbadd;
@@ -85,7 +85,7 @@ pub fn bid128_round_integral_exact(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf:
         }
     }
     if ((C1.hi == 0x0) && (C1.lo == 0x0)) {
-        if (x_exp <= (0x1820 << 49)) {
+        if (x_exp <= (3476778912330022912 as u64)) {
             res.hi = ((x.hi & 0x8000000000000000) | 0x3040000000000000);
         } else {
             res.hi = (x_sign | x_exp);
@@ -535,7 +535,7 @@ pub(crate) fn bid128_round_integral_nornd_common(mut x: BID_UINT128, pfpsf: &mut
         }
     }
     if ((C1.hi == 0x0) && (C1.lo == 0x0)) {
-        if (x_exp <= (0x1820 << 49)) {
+        if (x_exp <= (3476778912330022912 as u64)) {
             res.hi = ((x.hi & 0x8000000000000000) | 0x3040000000000000);
         } else {
             res.hi = (x_sign | x_exp);
@@ -886,4 +886,10 @@ pub fn bid128_round_integral_nearest_away(mut x: BID_UINT128, pfpsf: &mut u32) -
         res.lo = 0x0000000000000000;
         return res;
     }
+}
+
+#[inline]
+pub fn bid128_round_integral_exact(mut x: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+    if !(0..=4).contains(&rnd_mode) { *pfpsf |= 0x01; return BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }; }
+    bid128_round_integral_exact_port(x, rnd_mode, pfpsf)
 }

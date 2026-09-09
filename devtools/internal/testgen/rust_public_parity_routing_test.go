@@ -228,6 +228,10 @@ func checkRustParityRouting(callMap map[string]map[string]bool, rows []rustParit
 			continue
 		}
 		expected := bidgoFuncToRustFn(row.BidgoFunction)
+		switch row.BidgoFunction {
+		case "Bid32Add", "Bid32Sub", "Bid32Mul", "Bid32Div", "Bid64Add", "Bid64Sub", "Bid64Mul", "Bid64Div":
+			expected += "_port"
+		}
 		if !calls[expected] {
 			problems = append(problems, fmt.Sprintf(
 				"go_symbol %q: census bidgo_function %q maps (independently of PortPathFor) to port fn %q, but the generated wrapper %q calls {%s} -- the wrapper routes to a different port than the census requires (an altered routing source would surface here)",
@@ -309,7 +313,7 @@ func TestRustPublicParityRoutingDetectsPortAlteration(t *testing.T) {
 	}
 
 	// Clean: the wrapper calls the census-named port.
-	clean := map[string]map[string]bool{"Decimal64.div": {"bid64_div": true}}
+	clean := map[string]map[string]bool{"Decimal64.div": {"bid64_div_port": true}}
 	if p := checkRustParityRouting(clean, rows); len(p) != 0 {
 		t.Fatalf("clean routing should pass, got: %v", p)
 	}
@@ -317,7 +321,7 @@ func TestRustPublicParityRoutingDetectsPortAlteration(t *testing.T) {
 	// Alteration 1: as if PortPathFor mapped Bid64Div -> bid64_mul, the wrapper
 	// now calls bid64_mul. The check must fail (this is the shared-routing-source
 	// coverage gap the whole gate exists to close).
-	changedCalls := map[string]map[string]bool{"Decimal64.div": {"bid64_mul": true}}
+	changedCalls := map[string]map[string]bool{"Decimal64.div": {"bid64_mul_port": true}}
 	if p := checkRustParityRouting(changedCalls, rows); len(p) == 0 {
 		t.Fatal("a wrapper routed to the wrong port (bid64_mul instead of bid64_div) must be detected")
 	}
@@ -329,8 +333,8 @@ func TestRustPublicParityRoutingDetectsPortAlteration(t *testing.T) {
 		{GoSymbol: "Decimal64BID.Mul", Status: "emitted", RustOwner: "Decimal64", RustSurface: "mul", Shape: "binary", BidgoFunction: "Bid64Mul"},
 	}
 	swapped := map[string]map[string]bool{
-		"Decimal64.div": {"bid64_mul": true},
-		"Decimal64.mul": {"bid64_div": true},
+		"Decimal64.div": {"bid64_mul_port": true},
+		"Decimal64.mul": {"bid64_div_port": true},
 	}
 	if p := checkRustParityRouting(swapped, swapRows); len(p) == 0 {
 		t.Fatal("a symmetric Div<->Mul port swap must be detected per-symbol")

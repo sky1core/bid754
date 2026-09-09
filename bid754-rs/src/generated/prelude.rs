@@ -7,6 +7,17 @@ pub use crate::gen_types::*;
 pub use crate::gen_constants::*;
 pub use crate::tables::*;
 
+pub const bid_round_const_table: [[u64; 19]; 6] = [
+    crate::tables::bid_round_const_table[0], crate::tables::bid_round_const_table[1],
+    crate::tables::bid_round_const_table[2], crate::tables::bid_round_const_table[3],
+    crate::tables::bid_round_const_table[4], crate::tables::bid_round_const_table[0],
+];
+pub const bid_round_const_table_128: [[BID_UINT128; 36]; 6] = [
+    crate::tables::bid_round_const_table_128[0], crate::tables::bid_round_const_table_128[1],
+    crate::tables::bid_round_const_table_128[2], crate::tables::bid_round_const_table_128[3],
+    crate::tables::bid_round_const_table_128[4], crate::tables::bid_round_const_table_128[0],
+];
+
 // Shared external support used by generated modules.
 pub use num_bigint::BigUint;
 pub use num_traits::{One, Zero};

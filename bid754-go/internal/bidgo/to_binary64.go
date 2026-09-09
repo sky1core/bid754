@@ -1,430 +1,394 @@
-// Special-value (NaN/Inf) wrapper paths ported from:
-// IntelRDFPMathLib20U4/LIBRARY/src/bid_binarydecimal.c
+// Ported from: IntelRDFPMathLib20U4/LIBRARY/src/bid_binarydecimal.c
 // Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
-//
-// The finite-value conversion core in this file (floorLog2Rat, roundRatToInt,
-// bid64FiniteToBinaryBits, bidFiniteBigToBinary128Bits) is a bid754-authored
-// implementation using exact math/big rational arithmetic; it replaces the
-// Intel breakpoint/multiplier table algorithm while matching its results.
-// The NaN/Inf packing arithmetic is derived from the Intel C macros.
 
 package bidgo
 
-import "math/big"
-
-func bidClampMode(mode int) int {
-	if mode < 0 || mode > 5 {
-		return 0
-	}
-	return mode
-}
-
-func bid128Pow10Big(n int) *big.Int {
-	if n <= 0 {
-		return big.NewInt(1)
-	}
-	// Decimal128 최대 지수는 6144. 그 이상은 입력 범위를 6200으로 제한한다.
-	if n > 6200 {
-		n = 6200
-	}
-	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(n)), nil)
-}
-
-func bid128CoeffBig(hi, lo uint64) *big.Int {
-	res := new(big.Int).SetUint64(hi)
-	res.Lsh(res, 64)
-	res.Or(res, new(big.Int).SetUint64(lo))
-	return res
-}
-
-type bid128Decoded struct {
-	sign   uint64
-	exp    int
-	coeff  *big.Int
-	isNaN  bool
-	isSNaN bool
-	isInf  bool
-	isZero bool
-}
-
-func bid128Decode(hi, lo uint64) bid128Decoded {
-	d := bid128Decoded{sign: hi & 0x8000000000000000, coeff: big.NewInt(0)}
-	if (hi & 0x7c00000000000000) == 0x7c00000000000000 {
-		payloadHi := hi & 0x00003fffffffffff
-		payloadLo := lo
-		t33hi := uint64(0x0000314dc6448d93)
-		t33lo := uint64(0x38c15b09ffffffff)
-		if payloadHi > t33hi || (payloadHi == t33hi && payloadLo > t33lo) {
-			payloadHi = 0
-			payloadLo = 0
-		}
-		d.coeff = bid128CoeffBig(payloadHi, payloadLo)
-		d.isNaN = true
-		d.isSNaN = (hi & 0x7e00000000000000) == 0x7e00000000000000
-		return d
-	}
-	if (hi & 0x7c00000000000000) == 0x7800000000000000 {
-		d.isInf = true
-		return d
-	}
-	d.exp = int((hi>>49)&0x3fff) - 6176
-	coeffHi := hi & 0x0001ffffffffffff
-	coeff := bid128CoeffBig(coeffHi, lo)
-	if coeffHi > 0x0001ed09bead87c0 ||
-		(coeffHi == 0x0001ed09bead87c0 && lo > 0x378d8e63ffffffff) ||
-		((hi & 0x6000000000000000) == 0x6000000000000000) {
-		coeff = big.NewInt(0)
-	}
-	d.coeff = coeff
-	d.isZero = coeff.Sign() == 0
-	return d
-}
-
-func floorLog2Rat(num, den *big.Int) int {
-	exp2 := num.BitLen() - den.BitLen()
-	if exp2 >= 0 {
-		t := new(big.Int).Lsh(new(big.Int).Set(den), uint(exp2))
-		if num.Cmp(t) < 0 {
-			exp2--
-		}
-	} else {
-		t := new(big.Int).Lsh(new(big.Int).Set(num), uint(-exp2))
-		if t.Cmp(den) < 0 {
-			exp2--
-		}
-	}
-	return exp2
-}
-
-func roundRatToInt(num, den *big.Int, sign uint64, mode int) (*big.Int, bool) {
-	q := new(big.Int)
-	r := new(big.Int)
-	q.QuoRem(num, den, r)
-	if r.Sign() == 0 {
-		return q, false
-	}
-	inexact := true
-	twoR := new(big.Int).Lsh(new(big.Int).Set(r), 1)
-	switch mode {
-	case BID_ROUNDING_TO_NEAREST:
-		cmp := twoR.Cmp(den)
-		if cmp > 0 || (cmp == 0 && q.Bit(0) == 1) {
-			q.Add(q, big.NewInt(1))
-		}
-	case BID_ROUNDING_TIES_AWAY:
-		if twoR.Cmp(den) >= 0 {
-			q.Add(q, big.NewInt(1))
-		}
-	case BID_ROUNDING_TO_ZERO:
-	case BID_ROUNDING_UP:
-		if sign == 0 {
-			q.Add(q, big.NewInt(1))
-		}
-	case BID_ROUNDING_DOWN:
-		if sign != 0 {
-			q.Add(q, big.NewInt(1))
-		}
-	}
-	return q, inexact
-}
-
-func bid64FiniteToBinaryBits(sign uint64, exp10 int, coeff uint64, p, bias, expBits, fracBits, totalBits int, mode int) (uint64, uint32) {
-	num := new(big.Int).SetUint64(coeff)
-	den := big.NewInt(1)
-	if exp10 >= 0 {
-		num.Mul(num, bid128Pow10Big(exp10))
-	} else {
-		den = bid128Pow10Big(-exp10)
-	}
-	emin := 1 - bias
-	emax := bias
-	signBit := uint(totalBits - 1)
-	maxExpField := uint64((uint64(1) << uint(expBits)) - 1)
-	exp2 := floorLog2Rat(num, den)
-	flags := uint32(0)
-
-	_ = p
-
-	if exp2 < emin {
-		scale := fracBits - emin
-		scaledNum := new(big.Int).Lsh(new(big.Int).Set(num), uint(scale))
-		m, inexact := roundRatToInt(scaledNum, den, sign, mode)
-		if m.Sign() == 0 {
-			if inexact {
-				flags |= BID_UNDERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+func unpack_bid64_binarydecimal(x uint64) (s int, e int, k int, c uint64, isZero bool, isInf bool, isNaN bool, nanPayloadHi uint64, isSNaN bool) {
+	s = int(x >> 63)
+	if (x & (3 << 61)) == (3 << 61) {
+		if (x & (0xf << 59)) == (0xf << 59) {
+			if (x & (0x1f << 58)) != (0x1f << 58) {
+				isInf = true
+				return
 			}
-			return sign << signBit, flags
-		}
-		limit := new(big.Int).Lsh(big.NewInt(1), uint(fracBits))
-		if m.Cmp(limit) >= 0 {
-			expField := uint64(emin + bias)
-			frac := new(big.Int).Sub(m, limit)
-			if inexact {
-				flags |= BID_UNDERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+			isSNaN = (x & (1 << 57)) != 0
+			isNaN = true
+			if (x & 0x3ffffffffffff) <= 999999999999999 {
+				nanPayloadHi = x << 14
 			}
-			return (sign << signBit) | (expField << uint(fracBits)) | frac.Uint64(), flags
+			return
 		}
-		if inexact {
-			flags |= BID_UNDERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+		e = int((x>>51)&((1<<10)-1)) - 398
+		c = (1 << 53) + (x & ((1 << 51) - 1))
+		if c > 9999999999999999 {
+			isZero = true
 		}
-		return (sign << signBit) | m.Uint64(), flags
+		return
 	}
-
-	scale := fracBits - exp2
-	var scaledNum, scaledDen *big.Int
-	if scale >= 0 {
-		scaledNum = new(big.Int).Lsh(new(big.Int).Set(num), uint(scale))
-		scaledDen = new(big.Int).Set(den)
-	} else {
-		scaledNum = new(big.Int).Set(num)
-		scaledDen = new(big.Int).Lsh(new(big.Int).Set(den), uint(-scale))
+	e = int((x>>53)&((1<<10)-1)) - 398
+	c = x & ((1 << 53) - 1)
+	if c == 0 {
+		isZero = true
+		return
 	}
-	m, inexact := roundRatToInt(scaledNum, scaledDen, sign, mode)
-	limit := new(big.Int).Lsh(big.NewInt(1), uint(fracBits+1))
-	hidden := new(big.Int).Lsh(big.NewInt(1), uint(fracBits))
-	if m.Cmp(limit) >= 0 {
-		m.Rsh(m, 1)
-		exp2++
-	}
-	if exp2 > emax {
-		flags = BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
-		if (sign == 0 && (mode == BID_ROUNDING_DOWN || mode == BID_ROUNDING_TO_ZERO)) ||
-			(sign != 0 && (mode == BID_ROUNDING_UP || mode == BID_ROUNDING_TO_ZERO)) {
-			maxFrac := uint64((uint64(1) << uint(fracBits)) - 1)
-			return (sign << signBit) | ((maxExpField - 1) << uint(fracBits)) | maxFrac, flags
-		}
-		return (sign << signBit) | (maxExpField << uint(fracBits)), flags
-	}
-	if inexact {
-		flags |= BID_INEXACT_EXCEPTION
-	}
-	frac := new(big.Int).Sub(m, hidden)
-	return (sign << signBit) | (uint64(exp2+bias) << uint(fracBits)) | frac.Uint64(), flags
+	k = clz64_nz(c) - 10
+	c <<= uint(k)
+	return
 }
 
-func bidFiniteBigToBinary128Bits(sign uint64, exp10 int, coeff *big.Int, mode int) (uint64, uint64, uint32) {
-	num := new(big.Int).Set(coeff)
-	den := big.NewInt(1)
-	if exp10 >= 0 {
-		num.Mul(num, bid128Pow10Big(exp10))
-	} else {
-		den = bid128Pow10Big(-exp10)
+func Bid64ToBinary32(x uint64, rnd_mode int) (uint32, uint32) {
+	if rnd_mode < BID_ROUNDING_TO_NEAREST || rnd_mode > BID_ROUNDING_TIES_AWAY {
+		return 0x7fc00000, BID_INVALID_EXCEPTION
 	}
-	const bias = 16383
-	const fracBits = 112
-	emin := 1 - bias
-	emax := bias
-	exp2 := floorLog2Rat(num, den)
-	flags := uint32(0)
+	var flags uint32
+	var c_prov uint64
+	var c BID_UINT128
+	var m_min BID_UINT128
+	var e_out int
+	var r BID_UINT256
+	var z BID_UINT384
 
-	pack := func(sign uint64, expField uint64, frac *big.Int) (uint64, uint64) {
-		v := new(big.Int).SetUint64(sign)
-		v.Lsh(v, 127)
-		if expField != 0 {
-			t := new(big.Int).SetUint64(expField)
-			t.Lsh(t, fracBits)
-			v.Or(v, t)
-		}
-		if frac.Sign() != 0 {
-			v.Or(v, frac)
-		}
-		lo := v.Uint64()
-		hi := new(big.Int).Rsh(v, 64).Uint64()
-		return hi, lo
+	s, e, k, coeff, isZero, isInf, isNaN, nanPayloadHi, isSNaN :=
+		unpack_bid64_binarydecimal(x)
+
+	if isZero {
+		return (uint32(s) << 31) + (uint32(0) << 23) + uint32(0), flags
 	}
-
-	if exp2 < emin {
-		scale := fracBits - emin
-		scaledNum := new(big.Int).Lsh(new(big.Int).Set(num), uint(scale))
-		m, inexact := roundRatToInt(scaledNum, den, sign, mode)
-		if m.Sign() == 0 {
-			if inexact {
-				flags |= BID_UNDERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
-			}
-			return sign << 63, 0, flags
-		}
-		limit := new(big.Int).Lsh(big.NewInt(1), fracBits)
-		if m.Cmp(limit) >= 0 {
-			frac := new(big.Int).Sub(m, limit)
-			if inexact {
-				flags |= BID_UNDERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
-			}
-			hi, lo := pack(sign, 1, frac)
-			return hi, lo, flags
-		}
-		if inexact {
-			flags |= BID_UNDERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
-		}
-		hi, lo := pack(sign, 0, m)
-		return hi, lo, flags
+	if isInf {
+		return (uint32(s) << 31) + (uint32(255) << 23) + uint32(0), flags
 	}
-
-	scale := fracBits - exp2
-	var scaledNum, scaledDen *big.Int
-	if scale >= 0 {
-		scaledNum = new(big.Int).Lsh(new(big.Int).Set(num), uint(scale))
-		scaledDen = new(big.Int).Set(den)
-	} else {
-		scaledNum = new(big.Int).Set(num)
-		scaledDen = new(big.Int).Lsh(new(big.Int).Set(den), uint(-scale))
-	}
-	m, inexact := roundRatToInt(scaledNum, scaledDen, sign, mode)
-	limit := new(big.Int).Lsh(big.NewInt(1), fracBits+1)
-	hidden := new(big.Int).Lsh(big.NewInt(1), fracBits)
-	if m.Cmp(limit) >= 0 {
-		m.Rsh(m, 1)
-		exp2++
-	}
-	if exp2 > emax {
-		flags = BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
-		if (sign == 0 && (mode == BID_ROUNDING_DOWN || mode == BID_ROUNDING_TO_ZERO)) ||
-			(sign != 0 && (mode == BID_ROUNDING_UP || mode == BID_ROUNDING_TO_ZERO)) {
-			maxFrac := new(big.Int).Sub(hidden, big.NewInt(1))
-			hi, lo := pack(sign, 0x7ffe, maxFrac)
-			return hi, lo, flags
-		}
-		hi, lo := pack(sign, 0x7fff, big.NewInt(0))
-		return hi, lo, flags
-	}
-	if inexact {
-		flags |= BID_INEXACT_EXCEPTION
-	}
-	frac := new(big.Int).Sub(m, hidden)
-	hi, lo := pack(sign, uint64(exp2+bias), frac)
-	return hi, lo, flags
-}
-
-func bid64FiniteToBinary128Bits(sign uint64, exp10 int, coeff uint64, mode int) (uint64, uint64, uint32) {
-	return bidFiniteBigToBinary128Bits(sign, exp10, new(big.Int).SetUint64(coeff), mode)
-}
-
-func bid128FiniteToBinary128Bits(sign uint64, exp10 int, coeff *big.Int, mode int) (uint64, uint64, uint32) {
-	return bidFiniteBigToBinary128Bits(sign, exp10, coeff, mode)
-}
-
-// Bid64ToBinary32 follows Intel bid_binarydecimal.c bid64_to_binary32 for
-// special values; the finite path goes through bid64FiniteToBinaryBits.
-func Bid64ToBinary32(x uint64, rndMode int) (uint32, uint32) {
-	signX, exponentX, coefficientX, valid := unpack_BID64(x)
-	flags := uint32(0)
-	var bits32 uint32
-	if !valid {
-		if (x << 1) >= 0xf000000000000000 {
-			if (x & SNAN_MASK64) == SNAN_MASK64 {
-				flags |= BID_INVALID_EXCEPTION
-			}
-			if (x&INFINITY_MASK64) == INFINITY_MASK64 && (x&NAN_MASK64) != NAN_MASK64 {
-				bits32 = uint32(signX>>32) | 0x7f800000
-			} else {
-				payload := uint32((coefficientX & 0x0003ffffffffffff) >> 28)
-				bits32 = uint32(signX>>32) | 0x7fc00000 | payload
-			}
-		} else {
-			bits32 = uint32(signX >> 32)
-		}
-	} else {
-		bits64, f := bid64FiniteToBinaryBits(signX>>63, exponentX-398, coefficientX, 24, 127, 8, 23, 32, bidClampMode(rndMode))
-		flags |= f
-		bits32 = uint32(bits64)
-		if (x == 0x2b242d1b1b375b8f || x == 0xab242d1b1b375b8f) &&
-			(bits32 == 0x00800000 || bits32 == 0x80800000) {
-			flags &^= BID_UNDERFLOW_EXCEPTION
-		}
-	}
-	return bits32, flags
-}
-
-// Bid64ToBinary64 follows Intel bid_binarydecimal.c bid64_to_binary64 for
-// special values; the finite path goes through bid64FiniteToBinaryBits.
-func Bid64ToBinary64(x uint64, rndMode int) (uint64, uint32) {
-	signX, exponentX, coefficientX, valid := unpack_BID64(x)
-	flags := uint32(0)
-	var bits64 uint64
-	if !valid {
-		if (x << 1) >= 0xf000000000000000 {
-			if (x & SNAN_MASK64) == SNAN_MASK64 {
-				flags |= BID_INVALID_EXCEPTION
-			}
-			if (x&INFINITY_MASK64) == INFINITY_MASK64 && (x&NAN_MASK64) != NAN_MASK64 {
-				bits64 = signX | 0x7ff0000000000000
-			} else {
-				payload := (coefficientX & 0x0003ffffffffffff) << 1
-				bits64 = signX | 0x7ff8000000000000 | payload
-			}
-		} else {
-			bits64 = signX
-		}
-	} else {
-		bits64, flags = bid64FiniteToBinaryBits(signX>>63, exponentX-398, coefficientX, 53, 1023, 11, 52, 64, bidClampMode(rndMode))
-	}
-	return bits64, flags
-}
-
-// Bid64ToBinary128 follows Intel bid_binarydecimal.c bid64_to_binary128 for
-// special values; the finite path goes through bidFiniteBigToBinary128Bits.
-func Bid64ToBinary128(x uint64, rndMode int) (BID_UINT128, uint32) {
-	signX, exponentX, coefficientX, valid := unpack_BID64(x)
-	flags := uint32(0)
-	var res BID_UINT128
-	if !valid {
-		if (x << 1) >= 0xf000000000000000 {
-			if (x & SNAN_MASK64) == SNAN_MASK64 {
-				flags |= BID_INVALID_EXCEPTION
-			}
-			if (x&INFINITY_MASK64) == INFINITY_MASK64 && (x&NAN_MASK64) != NAN_MASK64 {
-				res.hi = signX | 0x7fff000000000000
-			} else {
-				payload := coefficientX & 0x0003ffffffffffff
-				frac := new(big.Int).SetUint64(payload)
-				frac.Lsh(frac, 61)
-				frac.Or(frac, new(big.Int).Lsh(big.NewInt(1), 111))
-				res.lo = frac.Uint64()
-				res.hi = signX | 0x7fff000000000000 | new(big.Int).Rsh(frac, 64).Uint64()
-			}
-		} else {
-			res.hi = signX
-		}
-	} else {
-		res.hi, res.lo, flags = bid64FiniteToBinary128Bits(signX>>63, exponentX-398, coefficientX, bidClampMode(rndMode))
-	}
-	return res, flags
-}
-
-// Bid128ToBinary128 converts BID128 to binary128.
-// Follows Intel bid_binarydecimal.c bid128_to_binary128 for special values;
-// the finite path goes through bidFiniteBigToBinary128Bits.
-func Bid128ToBinary128(x BID_UINT128, rndMode int) (BID_UINT128, uint32) {
-	d := bid128Decode(x.hi, x.lo)
-	flags := uint32(0)
-	var res BID_UINT128
-
-	if d.isNaN {
-		if d.isSNaN {
+	if isNaN {
+		if isSNaN {
 			flags |= BID_INVALID_EXCEPTION
 		}
-		payloadHi := x.hi & 0x00003fffffffffff
-		payloadLo := x.lo
-		if d.coeff.Sign() == 0 {
-			payloadHi = 0
-			payloadLo = 0
-		}
-		cHi := (payloadHi << 18) + (payloadLo >> 46)
-		cLo := payloadLo << 18
-		fracHi := (cHi >> 17) + (1 << 47)
-		fracLo := (cLo >> 17) + (cHi << 47)
-		res.lo = fracLo
-		res.hi = d.sign | 0x7fff000000000000 | fracHi
-		return res, flags
-	}
-	if d.isInf {
-		res.hi = d.sign | 0x7fff000000000000
-		return res, flags
-	}
-	if d.isZero {
-		res.hi = d.sign
-		return res, flags
+		return (uint32(s) << 31) + (uint32(255) << 23) + uint32((nanPayloadHi>>42)+(1<<22)), flags
 	}
 
-	res.hi, res.lo, flags = bid128FiniteToBinary128Bits(d.sign>>63, d.exp, d.coeff, bidClampMode(rndMode))
-	return res, flags
+	c.lo = coeff
+	c.hi, c.lo = sll128_short(c.hi, c.lo, 59)
+	k += 59
+
+	if e >= 39 {
+		flags |= BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+		if (rnd_mode == BID_ROUNDING_TO_ZERO) ||
+			(rnd_mode == boolToRndMode(s != 0)) {
+			return (uint32(s) << 31) + (uint32(254) << 23) + uint32((1<<23)-1), flags
+		}
+		return (uint32(s) << 31) + (uint32(255) << 23) + uint32(0), flags
+	}
+
+	if e <= -80 {
+		e = -80
+	}
+
+	m_min = bid_breakpoints_binary32[e+80]
+	e_out = bid_exponents_binary32[e+80] - k
+
+	if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
+		r = bid_multipliers1_binary32[e+80]
+	} else {
+		r = bid_multipliers2_binary32[e+80]
+		e_out = e_out + 1
+	}
+
+	z = __mul_128x256_to_384(c, r)
+
+	if e_out < 1 {
+		d := 1 - e_out
+		if d > 26 {
+			d = 26
+		}
+		e_out = 1
+		z.w5, z.w4, z.w3, z.w2 = srl256_short(z.w5, z.w4, z.w3, z.w2, uint(d))
+	}
+	c_prov = z.w5
+
+	rbIdx := (rnd_mode << 2) + ((s & 1) << 1) + int(c_prov&1)
+	if lt128(
+		bid_roundbound_128[rbIdx].hi,
+		bid_roundbound_128[rbIdx].lo,
+		z.w4, z.w3) {
+		c_prov = c_prov + 1
+		if c_prov == (1 << 24) {
+			c_prov = 1 << 23
+			e_out = e_out + 1
+		} else if (c_prov == (1 << 23)) && (e_out == 1) {
+			if (((rnd_mode & 3) == 0) && (z.w4 < (3 << 62))) ||
+				((rnd_mode+int(s&1) == 2) && (z.w4 < (1 << 63))) {
+				flags |= BID_UNDERFLOW_EXCEPTION
+			}
+		}
+	}
+
+	if e_out >= 255 {
+		flags |= BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+		if (rnd_mode == BID_ROUNDING_TO_ZERO) ||
+			(rnd_mode == boolToRndMode(s != 0)) {
+			return (uint32(s) << 31) + (uint32(254) << 23) + uint32((1<<23)-1), flags
+		}
+		return (uint32(s) << 31) + (uint32(255) << 23) + uint32(0), flags
+	}
+
+	if c_prov < (1 << 23) {
+		e_out = 0
+	} else {
+		c_prov = c_prov & ((1 << 23) - 1)
+	}
+
+	if (z.w4 != 0) || (z.w3 != 0) {
+		flags |= BID_INEXACT_EXCEPTION
+		if e_out == 0 {
+			flags |= BID_UNDERFLOW_EXCEPTION
+		}
+	}
+
+	return (uint32(s) << 31) + (uint32(e_out) << 23) + uint32(c_prov), flags
+}
+
+func Bid64ToBinary64(x uint64, rnd_mode int) (uint64, uint32) {
+	if rnd_mode < BID_ROUNDING_TO_NEAREST || rnd_mode > BID_ROUNDING_TIES_AWAY {
+		return 0x7ff8000000000000, BID_INVALID_EXCEPTION
+	}
+	var flags uint32
+	var c_prov uint64
+	var c BID_UINT128
+	var m_min BID_UINT128
+	var e_out int
+	var r BID_UINT256
+	var z BID_UINT384
+
+	s, e, k, coeff, isZero, isInf, isNaN, nanPayloadHi, isSNaN :=
+		unpack_bid64_binarydecimal(x)
+
+	if isZero {
+		return (uint64(s) << 63) + (uint64(0) << 52) + uint64(0), flags
+	}
+	if isInf {
+		return (uint64(s) << 63) + (uint64(2047) << 52) + uint64(0), flags
+	}
+	if isNaN {
+		if isSNaN {
+			flags |= BID_INVALID_EXCEPTION
+		}
+		return (uint64(s) << 63) + (uint64(2047) << 52) + uint64((nanPayloadHi>>13)+(1<<51)), flags
+	}
+
+	c.hi = coeff << 1
+	c.lo = 0
+	k += 59
+
+	if e >= 309 {
+		flags |= BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+		if (rnd_mode == BID_ROUNDING_TO_ZERO) ||
+			(rnd_mode == boolToRndMode(s != 0)) {
+			return (uint64(s) << 63) + (uint64(2046) << 52) + uint64((1<<52)-1), flags
+		}
+		return (uint64(s) << 63) + (uint64(2047) << 52) + uint64(0), flags
+	}
+
+	if e <= -358 {
+		e = -358
+	}
+
+	m_min = bid_breakpoints_binary64[e+358]
+	e_out = bid_exponents_binary64[e+358] - k
+
+	if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
+		r = bid_multipliers1_binary64[e+358]
+	} else {
+		r = bid_multipliers2_binary64[e+358]
+		e_out = e_out + 1
+	}
+
+	product := __mul_64x256_to_320(c.hi, r)
+	z = BID_UINT384{w0: 0, w1: product.w0, w2: product.w1, w3: product.w2, w4: product.w3, w5: product.w4}
+
+	if e_out < 1 {
+		d := 1 - e_out
+		if d > 55 {
+			d = 55
+		}
+		e_out = 1
+		z.w5, z.w4, z.w3, z.w2 = srl256_short(z.w5, z.w4, z.w3, z.w2, uint(d))
+	}
+	c_prov = z.w5
+
+	rbIdx := (rnd_mode << 2) + ((s & 1) << 1) + int(c_prov&1)
+	if lt128(
+		bid_roundbound_128[rbIdx].hi,
+		bid_roundbound_128[rbIdx].lo,
+		z.w4, z.w3) {
+		c_prov = c_prov + 1
+		if c_prov == (1 << 53) {
+			c_prov = 1 << 52
+			e_out = e_out + 1
+		} else if (c_prov == (1 << 52)) && (e_out == 1) {
+			if (((rnd_mode & 3) == 0) && (z.w4 < (3 << 62))) ||
+				((rnd_mode+int(s&1) == 2) && (z.w4 < (1 << 63))) {
+				flags |= BID_UNDERFLOW_EXCEPTION
+			}
+		}
+	}
+
+	if e_out >= 2047 {
+		flags |= BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+		if (rnd_mode == BID_ROUNDING_TO_ZERO) ||
+			(rnd_mode == boolToRndMode(s != 0)) {
+			return (uint64(s) << 63) + (uint64(2046) << 52) + uint64((1<<52)-1), flags
+		}
+		return (uint64(s) << 63) + (uint64(2047) << 52) + uint64(0), flags
+	}
+
+	if c_prov < (1 << 52) {
+		e_out = 0
+	} else {
+		c_prov = c_prov & ((1 << 52) - 1)
+	}
+
+	if (z.w4 != 0) || (z.w3 != 0) {
+		flags |= BID_INEXACT_EXCEPTION
+		if e_out == 0 {
+			flags |= BID_UNDERFLOW_EXCEPTION
+		}
+	}
+
+	return (uint64(s) << 63) + (uint64(e_out) << 52) + uint64(c_prov), flags
+}
+
+func Bid64ToBinary128(x uint64, rnd_mode int) (BID_UINT128, uint32) {
+	if rnd_mode < BID_ROUNDING_TO_NEAREST || rnd_mode > BID_ROUNDING_TIES_AWAY {
+		return BID_UINT128{hi: 0x7fff800000000000}, BID_INVALID_EXCEPTION
+	}
+	var flags uint32
+	s, e, k, coeff, isZero, isInf, isNaN, nanPayloadHi, isSNaN := unpack_bid64_binarydecimal(x)
+	if isZero {
+		return BID_UINT128{hi: uint64(s) << 63}, flags
+	}
+	if isInf {
+		return BID_UINT128{hi: (uint64(s) << 63) + (32767 << 48)}, flags
+	}
+	if isNaN {
+		if isSNaN {
+			flags |= BID_INVALID_EXCEPTION
+		}
+		return BID_UINT128{hi: (uint64(s) << 63) + (32767 << 48) + (nanPayloadHi >> 17) + (1 << 47), lo: nanPayloadHi << 47}, flags
+	}
+	c := BID_UINT128{lo: coeff}
+	c.hi, c.lo = sll128_short(c.hi, c.lo, 61)
+	k += 59
+	m_min := bid_breakpoints_binary128[e+5000]
+	e_out := bid_exponents_binary128[e+5000] - k
+	var r BID_UINT256
+	if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
+		r = bid_multipliers1_binary128[e+5000]
+	} else {
+		r = bid_multipliers2_binary128[e+5000]
+		e_out++
+	}
+	z := __mul_128x256_to_384(c, r)
+	c_prov_hi := z.w5
+	c_prov_lo := z.w4
+	rbIdx := (rnd_mode << 2) + ((s & 1) << 1) + int(c_prov_lo&1)
+	if lt128(bid_roundbound_128[rbIdx].hi, bid_roundbound_128[rbIdx].lo, z.w3, z.w2) {
+		c_prov_lo++
+		if c_prov_lo == 0 {
+			c_prov_hi++
+		}
+	}
+	c_prov_hi &= (1 << 48) - 1
+	if z.w3 != 0 || z.w2 != 0 {
+		flags |= BID_INEXACT_EXCEPTION
+	}
+	return BID_UINT128{hi: (uint64(s) << 63) + (uint64(e_out) << 48) + c_prov_hi, lo: c_prov_lo}, flags
+}
+
+func Bid128ToBinary128(x BID_UINT128, rnd_mode int) (BID_UINT128, uint32) {
+	if rnd_mode < BID_ROUNDING_TO_NEAREST || rnd_mode > BID_ROUNDING_TIES_AWAY {
+		return BID_UINT128{hi: 0x7fff800000000000}, BID_INVALID_EXCEPTION
+	}
+	var flags uint32
+	s, e, k, c, isZero, isInf, isNaN, nanPayloadHi, nanPayloadLo, isSNaN := unpack_bid128_binarydecimal(x)
+	if isZero {
+		return BID_UINT128{hi: uint64(s) << 63}, flags
+	}
+	if isInf {
+		return BID_UINT128{hi: (uint64(s) << 63) + (32767 << 48)}, flags
+	}
+	if isNaN {
+		if isSNaN {
+			flags |= BID_INVALID_EXCEPTION
+		}
+		return BID_UINT128{hi: (uint64(s) << 63) + (32767 << 48) + (nanPayloadHi >> 17) + (1 << 47), lo: (nanPayloadLo >> 17) + (nanPayloadHi << 47)}, flags
+	}
+	c.hi, c.lo = sll128_short(c.hi, c.lo, 2)
+	if e >= 4933 {
+		flags |= BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+		if rnd_mode == BID_ROUNDING_TO_ZERO || rnd_mode == boolToRndMode(s != 0) {
+			return BID_UINT128{hi: (uint64(s) << 63) + (32766 << 48) + ((1 << 48) - 1), lo: 0xffffffffffffffff}, flags
+		}
+		return BID_UINT128{hi: (uint64(s) << 63) + (32767 << 48)}, flags
+	}
+	if e <= -5000 {
+		e = -5000
+	}
+	m_min := bid_breakpoints_binary128[e+5000]
+	e_out := bid_exponents_binary128[e+5000] - k
+	var r BID_UINT256
+	if le128(c.hi, c.lo, m_min.hi, m_min.lo) {
+		r = bid_multipliers1_binary128[e+5000]
+	} else {
+		r = bid_multipliers2_binary128[e+5000]
+		e_out++
+	}
+	z := __mul_128x256_to_384(c, r)
+	if e_out < 1 {
+		d := 1 - e_out
+		if d > 115 {
+			d = 115
+		}
+		if d >= 64 {
+			d -= 64
+			z.w2, z.w3, z.w4, z.w5 = z.w3, z.w4, z.w5, 0
+		}
+		e_out = 1
+		if d > 0 {
+			z.w5, z.w4, z.w3, z.w2 = srl256_short(z.w5, z.w4, z.w3, z.w2, uint(d))
+		}
+	}
+	c_prov_hi := z.w5
+	c_prov_lo := z.w4
+	rbIdx := (rnd_mode << 2) + ((s & 1) << 1) + int(c_prov_lo&1)
+	if lt128(bid_roundbound_128[rbIdx].hi, bid_roundbound_128[rbIdx].lo, z.w3, z.w2) {
+		c_prov_lo++
+		if c_prov_lo == 0 {
+			c_prov_hi++
+			if c_prov_hi == 1<<49 {
+				c_prov_hi = 1 << 48
+				e_out++
+			} else if c_prov_hi == 1<<48 && e_out == 1 {
+				if rnd_mode+(s&1) == 2 && z.w3 < 1<<63 {
+					flags |= BID_UNDERFLOW_EXCEPTION
+				}
+			}
+		}
+	}
+	if e_out >= 32767 {
+		flags |= BID_OVERFLOW_EXCEPTION | BID_INEXACT_EXCEPTION
+		if rnd_mode == BID_ROUNDING_TO_ZERO || rnd_mode == boolToRndMode(s != 0) {
+			return BID_UINT128{hi: (uint64(s) << 63) + (32766 << 48) + ((1 << 48) - 1), lo: 0xffffffffffffffff}, flags
+		}
+		return BID_UINT128{hi: (uint64(s) << 63) + (32767 << 48)}, flags
+	}
+	if c_prov_hi < 1<<48 {
+		e_out = 0
+	} else {
+		c_prov_hi &= (1 << 48) - 1
+	}
+	if z.w3 != 0 || z.w2 != 0 {
+		flags |= BID_INEXACT_EXCEPTION
+		if e_out == 0 {
+			flags |= BID_UNDERFLOW_EXCEPTION
+		}
+	}
+	return BID_UINT128{hi: (uint64(s) << 63) + (uint64(e_out) << 48) + c_prov_hi, lo: c_prov_lo}, flags
 }

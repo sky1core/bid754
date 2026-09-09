@@ -55,26 +55,7 @@ type nonCanonicalCoreEntry struct {
 // check mechanically is refused rather than admitted on the strength of its
 // entry text, so a core written in the port's own fixed-width limbs has to
 // extend the scan before it can be registered.
-var nonCanonicalCoreFiles = map[string]nonCanonicalCoreEntry{
-	"to_binary64.go": {
-		headerDeclaration: "is a bid754-authored implementation using exact math/big rational arithmetic; it replaces the Intel breakpoint/multiplier table algorithm",
-		coreFunctions: []string{
-			"floorLog2Rat",
-			"roundRatToInt",
-			"bid64FiniteToBinaryBits",
-			"bidFiniteBigToBinary128Bits",
-		},
-		reason: "every finite decimal-to-binary conversion here is computed by an exact-rational algorithm (form coeff*10^e as num/den, take the floor base-2 logarithm of the rational, scale, round the rational to an integer significand), which has no predecessor function or source region in pinned bid_binarydecimal.c: the C selects a scaled multiplier by exponent from bid_breakpoints_*, bid_multipliers1_*, bid_multipliers2_* and decides the rounding direction against bid_roundbound_128, all over fixed-width 128/256-bit limb macros. No finite sequence of local semantics-preserving transformations maps one onto the other, so the core is transitional debt, not an optimization of the port. Only the NaN/Inf packing and the exported Bid64ToBinary32/Bid64ToBinary64/Bid64ToBinary128/Bid128ToBinary128 wrappers follow the C, and every finite input reaches the bid754-authored core through them",
-	},
-	"nexttoward64.go": {
-		headerDeclaration: "the wide-value comparisons use math/big instead of the C 128-bit helper macros",
-		coreFunctions: []string{
-			"bid64CompareToBid128",
-			"bid64DecodeForCompare",
-		},
-		reason: "Intel bid64_nexttowardd.c picks the nexttoward direction with three canonical operations this package already ports line for line - bid64_to_bid128 (Bid64ToBid128), bid128_quiet_equal (Bid128QuietEqual) and bid128_quiet_greater (Bid128QuietGreater) - while bid64CompareToBid128 is an independently written trichotomy that decodes both operands itself and aligns them by multiplying a coefficient by 10^(exponent difference) in math/big. Replacing three ported bodies is not a representation substitution inside one of them, so this core has no canonical predecessor. bid128NaNToBid64 in the same file is deliberately not listed: its payload/10^18 is the same division bid128_to_bid64 performs with bid_reciprocals10_128[18] and bid_recip_scale[18], a local semantics-preserving substitution of that macro pair. The pinned header declaration understates the file - it describes only the macro-level substitution and not the replaced comparison operations - and correcting it is a product-source change outside this gate",
-	},
-}
+var nonCanonicalCoreFiles = map[string]nonCanonicalCoreEntry{}
 
 // nonCanonicalSignatureExceptions lists bidgo files that carry the detectable
 // non-canonical signature but whose use of it is a local semantics-preserving
@@ -304,10 +285,6 @@ func TestBidgoNonCanonicalCoreSignatureFilesAreRegisteredOrExcepted(t *testing.T
 		default:
 			t.Errorf("bidgo file %q imports math/big, which pinned Intel BID C has no counterpart for, but is in neither nonCanonicalCoreFiles nor nonCanonicalSignatureExceptions; register the bid754-authored core it holds, or except it naming the pinned C construct its math/big use locally substitutes", fileName)
 		}
-	}
-
-	if len(carriesSignature) == 0 {
-		t.Fatal("no bidgo implementation file imports math/big; this scan lost its subject, so verify the walk before trusting a pass")
 	}
 
 	for _, fileName := range sortedSignatureExceptionNames() {

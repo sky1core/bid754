@@ -66,13 +66,13 @@ pub fn bid32_to_string_raw(mut x: u32) -> String {
         if (coefficient_x >= 1000000) {
             CT = ((coefficient_x as u64).wrapping_mul(0x431BDE83));
             CT = go_checked_shr_u64(CT, go_shift_count_u64((32) as u64));
-            d = ((go_checked_shr_u64(CT, go_shift_count_u64((50 - 32) as u64))) as i64);
+            d = ((go_checked_shr_u64(CT, go_shift_count_u64((18) as u64))) as i64);
             ps[istart as usize] = ((d as u8).wrapping_add(b'0'));
             istart = istart.wrapping_add(1);
             coefficient_x = coefficient_x.wrapping_sub(((d as u32).wrapping_mul(1000000)));
             CT = ((coefficient_x as u64).wrapping_mul(0x20C49BA6));
             CT = go_checked_shr_u64(CT, go_shift_count_u64((32) as u64));
-            d = ((go_checked_shr_u64(CT, go_shift_count_u64((39 - 32) as u64))) as i64);
+            d = ((go_checked_shr_u64(CT, go_shift_count_u64((7) as u64))) as i64);
             ps[istart as usize] = bid_midi_tbl[d as usize][0];
             istart = istart.wrapping_add(1);
             ps[istart as usize] = bid_midi_tbl[d as usize][1];
@@ -89,7 +89,7 @@ pub fn bid32_to_string_raw(mut x: u32) -> String {
         } else if (coefficient_x >= 1000) {
             CT = ((coefficient_x as u64).wrapping_mul(0x20C49BA6));
             CT = go_checked_shr_u64(CT, go_shift_count_u64((32) as u64));
-            d = ((go_checked_shr_u64(CT, go_shift_count_u64((39 - 32) as u64))) as i64);
+            d = ((go_checked_shr_u64(CT, go_shift_count_u64((7) as u64))) as i64);
             istart0 = istart;
             ps[istart as usize] = bid_midi_tbl[d as usize][0];
             if (ps[istart as usize] != b'0') {
@@ -180,7 +180,7 @@ pub(crate) fn has_prefix_fold_ascii_at(s: impl AsRef<str>, mut off: i64, lit: im
     return true;
 }
 
-pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_from_string_raw_port(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {
     let ps = ps.as_ref();
     let mut sign_x: u64 = 0;
     let mut coefficient_x: u64 = 0;
@@ -425,7 +425,7 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
         return (((0x7c000000 | sign_x) as u32), 0);
     }
     while (((idx < (s.len() as i64)) && (s.as_bytes()[idx as usize] >= b'0')) && (s.as_bytes()[idx as usize] <= b'9')) {
-        if (expon_x < (1 << 20)) {
+        if (expon_x < (1048576 as i64)) {
             expon_x = (((go_checked_shl_i64(expon_x, go_shift_count_u64((1) as u64)))).wrapping_add(((go_checked_shl_i64(expon_x, go_shift_count_u64((3) as u64))))));
             expon_x = expon_x.wrapping_add(((s.as_bytes()[idx as usize].wrapping_sub(b'0')) as i64));
         }
@@ -451,4 +451,10 @@ pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u3
     }
     res = (get_bid32_flags((sign_x as u32), expon_x, coefficient_x, rnd_mode, (&mut pfpsf)) as u64);
     return ((res as u32), pfpsf);
+}
+
+#[inline]
+pub fn bid32_from_string_raw(ps: impl AsRef<str>, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=5).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_from_string_raw_port(ps, rnd_mode)
 }

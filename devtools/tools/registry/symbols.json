@@ -177,40 +177,6 @@
       "alias_of": "i32",
       "go_file": "types.go",
       "exported": true
-    },
-    "bid128Decoded": {
-      "fields": [
-        {
-          "name": "sign",
-          "type": "u64"
-        },
-        {
-          "name": "exp",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "\u0026mut Int"
-        },
-        {
-          "name": "isNaN",
-          "type": "bool"
-        },
-        {
-          "name": "isSNaN",
-          "type": "bool"
-        },
-        {
-          "name": "isInf",
-          "type": "bool"
-        },
-        {
-          "name": "isZero",
-          "type": "bool"
-        }
-      ],
-      "go_file": "to_binary64.go",
-      "exported": false
     }
   },
   "constants": {
@@ -1334,6 +1300,12 @@
       "exported": false,
       "is_slice": true
     },
+    "bid_breakpoints_binary128": {
+      "element_type": "BID_UINT128",
+      "length": 9934,
+      "go_file": "tables_binarydecimal.go",
+      "exported": false
+    },
     "bid_breakpoints_binary32": {
       "element_type": "BID_UINT128",
       "length": 120,
@@ -1365,6 +1337,12 @@
       "go_file": "tables.go",
       "exported": false,
       "is_slice": true
+    },
+    "bid_exponents_binary128": {
+      "element_type": "i32",
+      "length": 9934,
+      "go_file": "tables_binarydecimal.go",
+      "exported": false
     },
     "bid_exponents_binary32": {
       "element_type": "i32",
@@ -1512,6 +1490,12 @@
       "go_file": "minmax64.go",
       "exported": false
     },
+    "bid_multipliers1_binary128": {
+      "element_type": "BID_UINT256",
+      "length": 9934,
+      "go_file": "tables_binarydecimal.go",
+      "exported": false
+    },
     "bid_multipliers1_binary32": {
       "element_type": "BID_UINT256",
       "length": 120,
@@ -1521,6 +1505,12 @@
     "bid_multipliers1_binary64": {
       "element_type": "BID_UINT256",
       "length": 668,
+      "go_file": "tables_binarydecimal.go",
+      "exported": false
+    },
+    "bid_multipliers2_binary128": {
+      "element_type": "BID_UINT256",
+      "length": 9934,
       "go_file": "tables_binarydecimal.go",
       "exported": false
     },
@@ -3411,7 +3401,7 @@
           "type": "BID_UINT128"
         },
         {
-          "name": "rndMode",
+          "name": "rnd_mode",
           "type": "i32"
         }
       ],
@@ -10232,7 +10222,7 @@
           "type": "u64"
         },
         {
-          "name": "rndMode",
+          "name": "rnd_mode",
           "type": "i32"
         }
       ],
@@ -10252,7 +10242,7 @@
           "type": "u64"
         },
         {
-          "name": "rndMode",
+          "name": "rnd_mode",
           "type": "i32"
         }
       ],
@@ -10272,7 +10262,7 @@
           "type": "u64"
         },
         {
-          "name": "rndMode",
+          "name": "rnd_mode",
           "type": "i32"
         }
       ],
@@ -13164,109 +13154,6 @@
       "exported": false,
       "group": "misc"
     },
-    "bid128CoeffBig": {
-      "params": [
-        {
-          "name": "hi",
-          "type": "u64"
-        },
-        {
-          "name": "lo",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "\u0026mut Int"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bid128CoeffBig",
-      "exported": false,
-      "group": "bid128"
-    },
-    "bid128Decode": {
-      "params": [
-        {
-          "name": "hi",
-          "type": "u64"
-        },
-        {
-          "name": "lo",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "bid128Decoded"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bid128Decode",
-      "exported": false,
-      "group": "bid128"
-    },
-    "bid128FiniteToBinary128Bits": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "u64"
-        },
-        {
-          "name": "exp10",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "Int",
-          "pointer": true
-        },
-        {
-          "name": "mode",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64",
-        "u32"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bid128FiniteToBinary128Bits",
-      "exported": false,
-      "group": "bid128"
-    },
-    "bid128NaNToBid64": {
-      "params": [
-        {
-          "name": "hi",
-          "type": "u64"
-        },
-        {
-          "name": "lo",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u32"
-      ],
-      "go_file": "nexttoward64.go",
-      "go_name": "bid128NaNToBid64",
-      "exported": false,
-      "group": "bid128"
-    },
-    "bid128Pow10Big": {
-      "params": [
-        {
-          "name": "n",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "\u0026mut Int"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bid128Pow10Big",
-      "exported": false,
-      "group": "bid128"
-    },
     "bid128_check_overflow_10": {
       "params": [
         {
@@ -14518,120 +14405,6 @@
       "exported": false,
       "group": "bid64"
     },
-    "bid64CompareToBid128": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u64"
-        },
-        {
-          "name": "y",
-          "type": "BID_UINT128"
-        }
-      ],
-      "returns": [
-        "i32"
-      ],
-      "go_file": "nexttoward64.go",
-      "go_name": "bid64CompareToBid128",
-      "exported": false,
-      "group": "bid64"
-    },
-    "bid64DecodeForCompare": {
-      "params": [
-        {
-          "name": "x",
-          "type": "u64"
-        }
-      ],
-      "returns": [
-        "u64",
-        "i32",
-        "\u0026mut Int",
-        "bool"
-      ],
-      "go_file": "nexttoward64.go",
-      "go_name": "bid64DecodeForCompare",
-      "exported": false,
-      "group": "bid64"
-    },
-    "bid64FiniteToBinary128Bits": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "u64"
-        },
-        {
-          "name": "exp10",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "mode",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64",
-        "u32"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bid64FiniteToBinary128Bits",
-      "exported": false,
-      "group": "bid64"
-    },
-    "bid64FiniteToBinaryBits": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "u64"
-        },
-        {
-          "name": "exp10",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "u64"
-        },
-        {
-          "name": "p",
-          "type": "i32"
-        },
-        {
-          "name": "bias",
-          "type": "i32"
-        },
-        {
-          "name": "expBits",
-          "type": "i32"
-        },
-        {
-          "name": "fracBits",
-          "type": "i32"
-        },
-        {
-          "name": "totalBits",
-          "type": "i32"
-        },
-        {
-          "name": "mode",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u32"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bid64FiniteToBinaryBits",
-      "exported": false,
-      "group": "bid64"
-    },
     "bid64UnpackFiniteForRoundLocal": {
       "params": [
         {
@@ -14715,51 +14488,6 @@
       "go_name": "bid64qqqFmaCore",
       "exported": false,
       "group": "bid64"
-    },
-    "bidClampMode": {
-      "params": [
-        {
-          "name": "mode",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "i32"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bidClampMode",
-      "exported": false,
-      "group": "misc"
-    },
-    "bidFiniteBigToBinary128Bits": {
-      "params": [
-        {
-          "name": "sign",
-          "type": "u64"
-        },
-        {
-          "name": "exp10",
-          "type": "i32"
-        },
-        {
-          "name": "coeff",
-          "type": "Int",
-          "pointer": true
-        },
-        {
-          "name": "mode",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "u64",
-        "u64",
-        "u32"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "bidFiniteBigToBinary128Bits",
-      "exported": false,
-      "group": "misc"
     },
     "bidSizeLong": {
       "params": null,
@@ -16248,27 +15976,6 @@
       "exported": false,
       "group": "misc"
     },
-    "floorLog2Rat": {
-      "params": [
-        {
-          "name": "num",
-          "type": "Int",
-          "pointer": true
-        },
-        {
-          "name": "den",
-          "type": "Int",
-          "pointer": true
-        }
-      ],
-      "returns": [
-        "i32"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "floorLog2Rat",
-      "exported": false,
-      "group": "misc"
-    },
     "getBinaryExponent": {
       "params": [
         {
@@ -16954,36 +16661,6 @@
       "exported": false,
       "group": "misc"
     },
-    "roundRatToInt": {
-      "params": [
-        {
-          "name": "num",
-          "type": "Int",
-          "pointer": true
-        },
-        {
-          "name": "den",
-          "type": "Int",
-          "pointer": true
-        },
-        {
-          "name": "sign",
-          "type": "u64"
-        },
-        {
-          "name": "mode",
-          "type": "i32"
-        }
-      ],
-      "returns": [
-        "\u0026mut Int",
-        "bool"
-      ],
-      "go_file": "to_binary64.go",
-      "go_name": "roundRatToInt",
-      "exported": false,
-      "group": "misc"
-    },
     "roundingModeToBID": {
       "params": [
         {
@@ -17222,6 +16899,29 @@
       ],
       "go_file": "bid128_to_binary.go",
       "go_name": "unpack_bid128_binarydecimal",
+      "exported": false,
+      "group": "misc"
+    },
+    "unpack_bid64_binarydecimal": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        }
+      ],
+      "returns": [
+        "i32",
+        "i32",
+        "i32",
+        "u64",
+        "bool",
+        "bool",
+        "bool",
+        "u64",
+        "bool"
+      ],
+      "go_file": "to_binary64.go",
+      "go_name": "unpack_bid64_binarydecimal",
       "exported": false,
       "group": "misc"
     },

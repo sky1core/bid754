@@ -132,7 +132,7 @@ pub(crate) fn bid_get_add128(mut sign_x: u64, mut exponent_x: i64, mut coefficie
                         }
                         3 => {
                             if (sign_y != sign_x) {
-                                D = (0 - 1);
+                                D = (-1 as i64);
                                 coefficient_x = coefficient_x.wrapping_add(D as u64);
                             }
                         }

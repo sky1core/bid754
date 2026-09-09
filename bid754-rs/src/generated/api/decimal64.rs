@@ -192,7 +192,7 @@ impl Decimal64 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn add(self, rhs: Decimal64) -> Decimal64 {
-        Decimal64(crate::generated::add64::bid64_add(
+        Decimal64(crate::generated::add64::bid64_add_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,
@@ -204,7 +204,7 @@ impl Decimal64 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn div(self, rhs: Decimal64) -> Decimal64 {
-        Decimal64(crate::generated::div64::bid64_div(
+        Decimal64(crate::generated::div64::bid64_div_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,
@@ -216,7 +216,7 @@ impl Decimal64 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn mul(self, rhs: Decimal64) -> Decimal64 {
-        Decimal64(crate::generated::mul64::bid64_mul(
+        Decimal64(crate::generated::mul64::bid64_mul_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,
@@ -228,7 +228,7 @@ impl Decimal64 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn sub(self, rhs: Decimal64) -> Decimal64 {
-        Decimal64(crate::generated::add64::bid64_sub(
+        Decimal64(crate::generated::add64::bid64_sub_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,

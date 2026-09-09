@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_sqrt(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_sqrt_port(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     let mut CA: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut sign_x: u64 = 0;
     let mut coefficient_x: u64 = 0;
@@ -126,7 +126,7 @@ pub fn bid64_sqrt(mut x: u64, mut rndMode: i64) -> (u64, u32) {
     return (res, pfpsf);
 }
 
-pub fn bid64q_sqrt(mut x: BID_UINT128, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64q_sqrt_port(mut x: BID_UINT128, mut rndMode: i64) -> (u64, u32) {
     let mut M256: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut C4: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut C8: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -293,7 +293,7 @@ pub fn bid64q_sqrt(mut x: BID_UINT128, mut rndMode: i64) -> (u64, u32) {
             }
         }
         if (!exact) {
-            pfpsf |= (16 | 32);
+            pfpsf |= (48 as u32);
         }
         CS.lo = CS0;
         if (mulFactor == 0) {
@@ -384,4 +384,16 @@ pub fn bid64q_sqrt(mut x: BID_UINT128, mut rndMode: i64) -> (u64, u32) {
     let (mut res, mut flags) = get_bid64_flags(0, exponentQ, CS.lo, rndMode);
     pfpsf |= flags;
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid64_sqrt(mut x: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_sqrt_port(x, rndMode)
+}
+
+#[inline]
+pub fn bid64q_sqrt(mut x: BID_UINT128, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64q_sqrt_port(x, rndMode)
 }

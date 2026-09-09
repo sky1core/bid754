@@ -30,12 +30,12 @@ use super::prelude::*;
 
 pub(crate) fn tolower_macro(mut x: u8) -> u8 {
     if ((x >= b'A') && (x <= b'Z')) {
-        return (x.wrapping_add(b'a' - b'A'));
+        return (x.wrapping_add(32 as u8));
     }
     return x;
 }
 
-pub(crate) fn bid64_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid64_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -> (u64, u32) {
     let str = str.as_ref();
     let mut res: u64 = 0;
     let mut pfpsf: u32 = 0;
@@ -260,7 +260,7 @@ pub(crate) fn bid64_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (u64
         return (res, pfpsf);
     }
     while ((c >= b'0') && (c <= b'9')) {
-        if (expon_x < (1 << 20)) {
+        if (expon_x < (1048576 as i64)) {
             expon_x = (((go_checked_shl_i64(expon_x, go_shift_count_u64((1) as u64)))).wrapping_add(((go_checked_shl_i64(expon_x, go_shift_count_u64((3) as u64))))));
             expon_x = expon_x.wrapping_add(((c.wrapping_sub(b'0')) as i64));
         }
@@ -293,18 +293,18 @@ pub(crate) fn bid64_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (u64
 pub(crate) fn fast_get_bid64_check_of_with_flags(mut sgn: u64, mut expon: i64, mut coeff: u64, mut rmode: i64, pfpsf: &mut u32) -> u64 {
     let mut r: u64 = 0;
     let mut mask: u64 = 0;
-    if ((expon as u64) >= ((3 * 256) - 1)) {
-        if ((expon == ((3 * 256) - 1)) && (coeff == 10000000000000000)) {
-            expon = (3 * 256);
+    if ((expon as u64) >= (767 as u64)) {
+        if ((expon == (767 as i64)) && (coeff == 10000000000000000)) {
+            expon = (768 as i64);
             coeff = 1000000000000000;
         }
-        if ((expon as u64) >= (3 * 256)) {
-            while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        if ((expon as u64) >= (768 as u64)) {
+            while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
                 expon = expon.wrapping_sub(1);
                 coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
             }
             if (expon > 0x2ff) {
-                (*pfpsf) |= (8 | 32);
+                (*pfpsf) |= (40 as u32);
                 r = (sgn | 0x7800000000000000);
                 match rmode {
                     1 => {
@@ -362,7 +362,7 @@ pub(crate) fn get_bid64_uf_with_flags(mut sgn: u64, mut expon: i64, mut coeff: u
     let mut amount2: i64 = 0;
     let mut status: u32 = 0;
     if ((expon.wrapping_add(16)) < 0) {
-        (*pfpsf) |= (16 | 32);
+        (*pfpsf) |= (48 as u32);
         if ((rmode == 1) && (sgn != 0)) {
             return 0x8000000000000001;
         }
@@ -443,10 +443,10 @@ pub(crate) fn get_bid64_with_flags(mut sgn: u64, mut expon: i64, mut coeff: u64,
         expon = expon.wrapping_add(1);
         coeff = 1000000000000000;
     }
-    if ((expon as u64) >= (3 * 256)) {
+    if ((expon as u64) >= (768 as u64)) {
         if (expon < 0) {
             if ((expon.wrapping_add(16)) < 0) {
-                (*pfpsf) |= (16 | 32);
+                (*pfpsf) |= (48 as u32);
                 if ((rmode == 1) && (sgn != 0)) {
                     return 0x8000000000000001;
                 }
@@ -509,12 +509,12 @@ pub(crate) fn get_bid64_with_flags(mut sgn: u64, mut expon: i64, mut coeff: u64,
                 expon = 0x2ff;
             }
         }
-        while ((coeff < 1000000000000000) && (expon >= (3 * 256))) {
+        while ((coeff < 1000000000000000) && (expon >= (768 as i64))) {
             expon = expon.wrapping_sub(1);
             coeff = (((go_checked_shl_u64(coeff, go_shift_count_u64((3) as u64)))).wrapping_add(((go_checked_shl_u64(coeff, go_shift_count_u64((1) as u64))))));
         }
         if (expon > 0x2ff) {
-            (*pfpsf) |= (8 | 32);
+            (*pfpsf) |= (40 as u32);
             r = (sgn | 0x7800000000000000);
             match rmode {
                 1 => {
@@ -556,4 +556,10 @@ pub(crate) fn get_bid64_with_flags(mut sgn: u64, mut expon: i64, mut coeff: u64,
     coeff &= mask;
     r |= coeff;
     return r;
+}
+
+#[inline]
+pub fn bid64_from_string(str: impl AsRef<str>, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=5).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid64_from_string_port(str, rnd_mode)
 }

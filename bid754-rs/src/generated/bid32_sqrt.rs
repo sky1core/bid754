@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid32_sqrt(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_sqrt_port(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
     let mut CA: u64 = 0;
     let mut CT: u64 = 0;
     let mut sign_x: u32 = 0;
@@ -105,4 +105,10 @@ pub fn bid32_sqrt(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
     }
     res = fast_get_bid32(0, exponent_q, Q);
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid32_sqrt(mut x: u32, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_sqrt_port(x, rnd_mode)
 }

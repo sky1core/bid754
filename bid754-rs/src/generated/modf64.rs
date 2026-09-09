@@ -49,7 +49,7 @@ pub fn bid64_modf(mut x: u64) -> (u64, u64, u32) {
     if ((x & 0x7c00000000000000) == 0x7800000000000000) {
         res = ((x & 0x8000000000000000) | 0x5fe0000000000000);
     } else {
-        let (mut r, mut subFlags) = bid64_sub_with_flags(x, xi, 0);
+        let (mut r, mut subFlags) = bid64_sub_with_flags_port(x, xi, 0);
         res = r;
         flags |= subFlags;
     }

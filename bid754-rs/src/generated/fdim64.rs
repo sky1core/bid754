@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid64_fdim(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+pub(crate) fn bid64_fdim_port(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
     let mut res: u64 = 0;
     let mut cmpres: i64 = 0;
     let mut tmp_pfpsf: u32 = 0;
@@ -39,6 +39,12 @@ pub fn bid64_fdim(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
         res = 0x31c0000000000000;
         return (res, 0);
     }
-    let (mut res, mut pfpsf) = bid64_sub_with_flags(x, y, rndMode);
+    let (mut res, mut pfpsf) = bid64_sub_with_flags_port(x, y, rndMode);
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid64_fdim(mut x: u64, mut y: u64, mut rndMode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rndMode) { return (0x7c00000000000000, 0x01); }
+    bid64_fdim_port(x, y, rndMode)
 }

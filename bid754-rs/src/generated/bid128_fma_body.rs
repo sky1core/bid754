@@ -100,7 +100,7 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
             if (rnd_mode == 0) {
                 res.hi = (z_sign | 0x7800000000000000);
                 res.lo = 0x0000000000000000;
-                (*pfpsf) |= (32 | 8);
+                (*pfpsf) |= (40 as u32);
             } else {
                 if (p_sign == z_sign) {
                     is_inexact_lt_midpoint = 1;
@@ -321,7 +321,7 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
             if ((e3 > 0x17df) && (rnd_mode == 0)) {
                 res.hi = (z_sign | 0x7800000000000000);
                 res.lo = 0x0000000000000000;
-                (*pfpsf) |= (32 | 8);
+                (*pfpsf) |= (40 as u32);
                 (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
                 (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
                 (*ptr_is_inexact_lt_midpoint) = is_inexact_lt_midpoint;
@@ -512,7 +512,7 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
             if (rnd_mode == 0) {
                 res.hi = (z_sign | 0x7800000000000000);
                 res.lo = 0x0000000000000000;
-                (*pfpsf) |= (32 | 8);
+                (*pfpsf) |= (40 as u32);
             } else {
                 bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
             }
@@ -586,7 +586,7 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
                         if (rnd_mode == 0) {
                             res.hi = (z_sign | 0x7800000000000000);
                             res.lo = 0x0000000000000000;
-                            (*pfpsf) |= (32 | 8);
+                            (*pfpsf) |= (40 as u32);
                         } else {
                             bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
                         }
@@ -1041,7 +1041,7 @@ pub(crate) fn bid_fma_cases_2_to_6(mut p34: i64, res: &mut BID_UINT128, ptr_is_m
         if ((rnd_mode == 0) && (e3 > 0x17df)) {
             res.hi = (z_sign | 0x7800000000000000);
             res.lo = 0x0000000000000000;
-            (*pfpsf) |= (32 | 8);
+            (*pfpsf) |= (40 as u32);
         }
         if (rnd_mode != 0) {
             bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
@@ -1157,7 +1157,7 @@ pub(crate) fn bid_fma_case7(mut p34: i64, res: &mut BID_UINT128, ptr_is_midpoint
     if ((rnd_mode == 0) && (e4 > 0x17df)) {
         res.hi = (p_sign | 0x7800000000000000);
         res.lo = 0x0000000000000000;
-        (*pfpsf) |= (8 | 32);
+        (*pfpsf) |= (40 as u32);
     } else {
         let mut p_exp = (go_checked_shl_u64(((e4.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64)));
         res.hi = ((p_sign | (p_exp & 0x7ffe000000000000)) | res.hi);
@@ -1355,7 +1355,7 @@ pub(crate) fn bid_fma_cases_11_12(mut p34: i64, res: &mut BID_UINT128, ptr_is_mi
     if ((rnd_mode == 0) && (((ind.wrapping_add(e4))) > ((p34.wrapping_add(0x17df))))) {
         res.hi = (p_sign | 0x7800000000000000);
         res.lo = 0x0000000000000000;
-        (*pfpsf) |= (32 | 8);
+        (*pfpsf) |= (40 as u32);
         (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
         (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
         (*ptr_is_inexact_lt_midpoint) = is_inexact_lt_midpoint;
@@ -1597,7 +1597,7 @@ pub(crate) fn bid_add_and_round(mut q3: i64, mut q4: i64, mut e4: i64, mut delta
         res.hi = (p_sign | 0x7800000000000000);
         res.lo = 0x0000000000000000;
         (*ptrres) = res;
-        (*ptrfpsf) |= (32 | 8);
+        (*ptrfpsf) |= (40 as u32);
         return;
     }
     if (e4 < -6176) {

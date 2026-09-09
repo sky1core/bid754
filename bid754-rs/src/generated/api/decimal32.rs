@@ -202,7 +202,7 @@ impl Decimal32 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn add(self, rhs: Decimal32) -> Decimal32 {
-        Decimal32(crate::generated::bid32_exports::bid32_add(
+        Decimal32(crate::generated::bid32_exports::bid32_add_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,
@@ -214,7 +214,7 @@ impl Decimal32 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn div(self, rhs: Decimal32) -> Decimal32 {
-        Decimal32(crate::generated::bid32_exports::bid32_div(
+        Decimal32(crate::generated::bid32_exports::bid32_div_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,
@@ -226,7 +226,7 @@ impl Decimal32 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn mul(self, rhs: Decimal32) -> Decimal32 {
-        Decimal32(crate::generated::bid32_exports::bid32_mul(
+        Decimal32(crate::generated::bid32_exports::bid32_mul_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,
@@ -238,7 +238,7 @@ impl Decimal32 {
     // operator trait is outside the declared generated surface.
     #[allow(clippy::should_implement_trait)]
     pub fn sub(self, rhs: Decimal32) -> Decimal32 {
-        Decimal32(crate::generated::bid32_exports::bid32_sub(
+        Decimal32(crate::generated::bid32_exports::bid32_sub_port(
             self.0,
             rhs.0,
             BIDGO_ROUND_NEAREST_EVEN,

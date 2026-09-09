@@ -250,10 +250,10 @@ fn legs_rounded32(op: RoundedOp, x: u32, y: u32, mode: Mode) -> (u32, u32, u32, 
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
     let flagless = match op {
-        RoundedOp::Add => Some(bid32_add(x, y, i64::from(mode.native))),
-        RoundedOp::Sub => Some(bid32_sub(x, y, i64::from(mode.native))),
-        RoundedOp::Mul => Some(bid32_mul(x, y, i64::from(mode.native))),
-        RoundedOp::Div => Some(bid32_div(x, y, i64::from(mode.native))),
+        RoundedOp::Add => Some(bid32_add(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
+        RoundedOp::Sub => Some(bid32_sub(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
+        RoundedOp::Mul => Some(bid32_mul(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
+        RoundedOp::Div => Some(bid32_div(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
         RoundedOp::Quantize => None,
     };
     (native, native_flags, public.to_bits(), public_raw_flags(flags), flagless)
@@ -290,10 +290,10 @@ fn legs_rounded64(op: RoundedOp, x: u64, y: u64, mode: Mode) -> (u64, u32, u64, 
         RoundedOp::Quantize => left.quantize_with_mode(right, mode.public),
     };
     let flagless = match op {
-        RoundedOp::Add => Some(bid64_add(x, y, i64::from(mode.native))),
-        RoundedOp::Sub => Some(bid64_sub(x, y, i64::from(mode.native))),
-        RoundedOp::Mul => Some(bid64_mul(x, y, i64::from(mode.native))),
-        RoundedOp::Div => Some(bid64_div(x, y, i64::from(mode.native))),
+        RoundedOp::Add => Some(bid64_add(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
+        RoundedOp::Sub => Some(bid64_sub(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
+        RoundedOp::Mul => Some(bid64_mul(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
+        RoundedOp::Div => Some(bid64_div(x, y, i64::from(mode.native)).expect("valid IEEE rounding mode")),
         RoundedOp::Quantize => None,
     };
     (native, native_flags, public.to_bits(), public_raw_flags(flags), flagless)

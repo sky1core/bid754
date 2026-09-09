@@ -1,5 +1,7 @@
+import { Buffer } from "node:buffer";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { runInNewContext } from "node:vm";
 import { describe, expect, it } from "vitest";
 import {
   Kind,
@@ -267,6 +269,74 @@ describe("vectors: reject raw decode domain", () => {
   // exact uint32 number or uint64 bigint before any narrowing/coercing bit op.
   it.each(rawDecodeRejects)("rejects %s", (_id, invoke) => {
     expect(invoke).toThrow();
+  });
+});
+
+const byteDecodeRejects: [string, () => unknown][] = [{{BID_CODEC_JS_BYTE_DECODE_REJECTS}}];
+
+describe("vectors: reject byte decode domain", () => {
+  // TypeScript's Uint8Array parameter type does not constrain runtime callers.
+  // decodeBytes* must require a genuine, exact-length Uint8Array before any
+  // bitwise read or DataView view: a plain array or duck object would be
+  // bit-coerced, and a wider typed array (e.g. Uint16Array of N elements = 2N
+  // bytes) or a DataView would have its backing bytes truncated by a bare
+  // length check. Each case must fail through the error channel.
+  it.each(byteDecodeRejects)("rejects %s", (_id, invoke) => {
+    expect(invoke).toThrow();
+  });
+});
+
+describe("vectors: byte decode accepts non-plain Uint8Array views", () => {
+  // The guard must not over-reject: a genuine exact-length Uint8Array reached
+  // through a Node Buffer (Uint8Array subclass), a nonzero-byteOffset subarray,
+  // or a cross-realm constructor (where instanceof fails but the value is a real
+  // Uint8Array) must decode to the same Components as a plain Uint8Array of the
+  // same bytes. decode is total over all bit patterns, so any bytes are valid.
+  const CrossRealmUint8Array = runInNewContext("Uint8Array") as Uint8ArrayConstructor;
+
+  function sampleBytes(len: number): number[] {
+    const out: number[] = [];
+    for (let i = 0; i < len; i++) out.push((i * 37 + 5) & 0xff);
+    return out;
+  }
+
+  const widths: [string, number, (buf: Uint8Array) => Components][] = [
+    ["bid32", 4, decodeBytes32],
+    ["bid64", 8, decodeBytes64],
+    ["bid128", 16, decodeBytes128],
+  ];
+
+  it.each(widths)("accepts %s Buffer, subarray, and cross-realm views", (_name, len, decode) => {
+    const raw = sampleBytes(len);
+    const expected = decode(new Uint8Array(raw));
+
+    expect(decode(Buffer.from(raw))).toEqual(expected);
+
+    const backing = new Uint8Array(len + 3);
+    backing.set(raw, 2);
+    expect(decode(backing.subarray(2, 2 + len))).toEqual(expected);
+
+    expect(decode(CrossRealmUint8Array.from(raw))).toEqual(expected);
+  });
+
+  it.each(widths)("reads %s actual slot bytes despite forged own metadata", (_name, len, decode) => {
+    // A genuine, exact-length Uint8Array whose own Symbol.toStringTag, length,
+    // byteLength, byteOffset, and buffer data properties all lie. The guard must
+    // read the real element type, length, and backing bytes through the intrinsic
+    // %TypedArray%.prototype getters, never the forged own metadata, so it decodes
+    // to the same Components as the un-forged bytes rather than a decoy buffer.
+    const raw = sampleBytes(len);
+    const expected = decode(new Uint8Array(raw));
+
+    const forged = new Uint8Array(raw);
+    const decoy = new Uint8Array(len).fill(0xff);
+    Object.defineProperty(forged, Symbol.toStringTag, { value: "Uint16Array", configurable: true });
+    Object.defineProperty(forged, "length", { value: len * 2, configurable: true });
+    Object.defineProperty(forged, "byteLength", { value: len * 2, configurable: true });
+    Object.defineProperty(forged, "byteOffset", { value: 1, configurable: true });
+    Object.defineProperty(forged, "buffer", { value: decoy.buffer, configurable: true });
+
+    expect(decode(forged)).toEqual(expected);
   });
 });
 

@@ -185,7 +185,7 @@ pub fn bid128_na_n(tagp: impl AsRef<str>) -> BID_UINT128 {
     if (tagp == "") {
         return res;
     }
-    let (mut x, _) = bid128_from_string(tagp, 0);
+    let (mut x, _) = bid128_from_string_port(tagp, 0);
     x.hi = (x.hi & 0x00003fffffffffff);
     res.hi = (res.hi | x.hi);
     res.lo = x.lo;

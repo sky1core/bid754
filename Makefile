@@ -12,6 +12,7 @@ GOENV = GOCACHE=$${GOCACHE:-/tmp/go-cache}
 # (AGENTS.md Performance Testing Discipline); Criterion handles its own
 # sampling on the Rust leg.
 BENCH_COUNT ?= 5
+BENCH_TIME ?= 1s
 # 신규-seed 탐색 fuzz(explore-fresh-seed)의 (폭, 연산) 타깃당 케이스 수.
 FRESH_SEED_CASES ?= 50000
 # Active Go modules covered by the per-module test/vet/hygiene/purity loops.
@@ -368,6 +369,7 @@ check-scripts:
 		devtools/run_tests_and_benchmarks.sh \
 		devtools/scripts/verify_linux.sh \
 		devtools/scripts/verify_digest.sh \
+		devtools/scripts/bench_go.sh \
 		devtools/scripts/print_tree_id.sh \
 		devtools/scripts/setup_c_libs.sh \
 		devtools/scripts/setup_dependencies.sh \
@@ -577,14 +579,14 @@ bench-aggregate:
 bench-native:
 	@echo "📊 Intel C direct + root public API native-tag 벤치마크 실행 (count=$(BENCH_COUNT))..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '( echo "BENCH-META target=bench-native count=$(BENCH_COUNT) go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ) | tee test_results/latest_benchmark_root_results.txt'
+	@bash -o pipefail -c 'bash ./devtools/scripts/bench_go.sh bench-native "$(BENCH_COUNT)" "$(BENCH_TIME)" $(NATIVE_TAGS) 2>&1 | tee test_results/latest_benchmark_root_results.txt'
 	@$(MAKE) bench-aggregate
 
 # Go mechanical-port direct 벤치마크
 bench-bidgo:
 	@echo "📊 bidgo mechanical-port direct 벤치마크 실행 (count=$(BENCH_COUNT))..."
 	@mkdir -p test_results
-	@bash -o pipefail -c '( echo "BENCH-META target=bench-bidgo count=$(BENCH_COUNT) go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; cd bid754-go && $(GOENV) go test -bench=. -benchmem -count=$(BENCH_COUNT) -run=^$$ -timeout 1800s ./internal/bidgo ) | tee test_results/latest_benchmark_bid_go_results.txt'
+	@bash -o pipefail -c 'bash ./devtools/scripts/bench_go.sh bench-bidgo "$(BENCH_COUNT)" "$(BENCH_TIME)" 2>&1 | tee test_results/latest_benchmark_bid_go_results.txt'
 	@$(MAKE) bench-aggregate
 
 # generated Rust Criterion 벤치마크. Criterion의 change% 는 명명된 기준점
@@ -613,6 +615,9 @@ bench-go-baseline:
 	@echo "📌 Go 벤치 기준점 저장 (직전 bench-native + bench-bidgo 결과)..."
 	@test -f test_results/latest_benchmark_root_results.txt || { echo "❌ test_results/latest_benchmark_root_results.txt 없음 — 먼저 make bench-native 를 실행해라"; exit 1; }
 	@test -f test_results/latest_benchmark_bid_go_results.txt || { echo "❌ test_results/latest_benchmark_bid_go_results.txt 없음 — 먼저 make bench-bidgo 를 실행해라"; exit 1; }
+	@tree=$$(bash ./devtools/scripts/print_tree_id.sh) && \
+		cd devtools && $(GOENV) go run ./cmd/benchdiff -baseline ../test_results/latest_benchmark_root_results.txt -candidate ../test_results/latest_benchmark_root_results.txt -expected-candidate-tree="$$tree" -expected-target=bench-native && \
+		$(GOENV) go run ./cmd/benchdiff -baseline ../test_results/latest_benchmark_bid_go_results.txt -candidate ../test_results/latest_benchmark_bid_go_results.txt -expected-candidate-tree="$$tree" -expected-target=bench-bidgo
 	@cp test_results/latest_benchmark_root_results.txt test_results/bench_baseline_root.txt
 	@cp test_results/latest_benchmark_bid_go_results.txt test_results/bench_baseline_bidgo.txt
 	@echo "✅ Go 벤치 기준점 저장됨: test_results/bench_baseline_root.txt, test_results/bench_baseline_bidgo.txt"
@@ -631,10 +636,8 @@ bench-go-baseline:
 # (상세: docs/BUILD.md).
 # 비교 전제로 BENCH-META count=/go= 와 goos/goarch(및 있으면 cpu)가 양쪽에
 # 존재하고 일치해야 한다 — 불일치는 성능 판정이 아니라 입력 에러(exit 2)다.
-# 현재 커밋된 기준점은 go= 토큰 이전에 측정된 것이라 첫 check 가 'BENCH-META
-# go mismatch' 로 실패한다 (의도된 동작 — 툴체인 업그레이드로 이미 무효화된
-# 기준점이다). 조용한 호스트에서 bench-native + bench-bidgo 재측정 후
-# bench-go-baseline 으로 재저장해라.
+# 후보는 현재 소스 식별자에 결합된다. benchtime/build metadata가 없는 과거
+# 기준점은 새 측정과 비교할 수 없으므로 동일 조건으로 다시 측정해야 한다.
 # Criterion pinned 대비 change% 게이트의 Go 매트릭스 대응물.
 bench-go-check:
 	@echo "🔍 Go 벤치 회귀 비교 (저장된 기준점 대비, benchdiff)..."
@@ -642,10 +645,10 @@ bench-go-check:
 	@test -f test_results/bench_baseline_bidgo.txt || { echo "❌ Go 벤치 기준점 없음: test_results/bench_baseline_bidgo.txt — make bench-native && make bench-bidgo 후 make bench-go-baseline 으로 기준점을 먼저 저장해라"; exit 1; }
 	@test -f test_results/latest_benchmark_root_results.txt || { echo "❌ 비교 대상 없음: test_results/latest_benchmark_root_results.txt — 먼저 make bench-native 를 실행해라"; exit 1; }
 	@test -f test_results/latest_benchmark_bid_go_results.txt || { echo "❌ 비교 대상 없음: test_results/latest_benchmark_bid_go_results.txt — 먼저 make bench-bidgo 를 실행해라"; exit 1; }
-	@bash -o pipefail -c '( rc=0; \
-		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" BENCH_REGRESSION_MIN_DELTA_NS="$(BENCH_REGRESSION_MIN_DELTA_NS)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_root.txt -candidate ../test_results/latest_benchmark_root_results.txt) || rc=1; \
-		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" BENCH_REGRESSION_MIN_DELTA_NS="$(BENCH_REGRESSION_MIN_DELTA_NS)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_bidgo.txt -candidate ../test_results/latest_benchmark_bid_go_results.txt) || rc=1; \
-		exit $$rc ) | tee test_results/latest_bench_go_check_results.txt'
+	@bash -o pipefail -c '( set -e; tree=$$(bash ./devtools/scripts/print_tree_id.sh); rc=0; \
+		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" BENCH_REGRESSION_MIN_DELTA_NS="$(BENCH_REGRESSION_MIN_DELTA_NS)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_root.txt -candidate ../test_results/latest_benchmark_root_results.txt -expected-candidate-tree="$$tree" -expected-target=bench-native) || rc=1; \
+		(cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} BENCH_REGRESSION_THRESHOLD="$(BENCH_REGRESSION_THRESHOLD)" BENCH_REGRESSION_MIN_DELTA_NS="$(BENCH_REGRESSION_MIN_DELTA_NS)" go run ./cmd/benchdiff -baseline ../test_results/bench_baseline_bidgo.txt -candidate ../test_results/latest_benchmark_bid_go_results.txt -expected-candidate-tree="$$tree" -expected-target=bench-bidgo) || rc=1; \
+		exit $$rc ) 2>&1 | tee test_results/latest_bench_go_check_results.txt'
 
 # standalone 코덱 벤치마크 (Go/Rust/JS/Py 4레그; Java/Swift 제외). 4레그 모두
 # 공유 피연산자 계약(bid754-codec-go/testdata/codec_benchmark_operands.json)을

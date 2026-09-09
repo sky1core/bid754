@@ -28,7 +28,7 @@
 
 use super::prelude::*;
 
-pub fn bid32_quantize(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
+pub(crate) fn bid32_quantize_port(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
     let mut CT: u64 = 0;
     let mut sign_x: u32 = 0;
     let mut coefficient_x: u32 = 0;
@@ -177,4 +177,10 @@ pub fn bid32_quantize(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
     pfpsf |= 1;
     res = 0x7c000000;
     return (res, pfpsf);
+}
+
+#[inline]
+pub fn bid32_quantize(mut x: u32, mut y: u32, mut rnd_mode: i64) -> (u32, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c000000, 0x01); }
+    bid32_quantize_port(x, y, rnd_mode)
 }

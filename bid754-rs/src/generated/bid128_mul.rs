@@ -28,19 +28,19 @@
 
 use super::prelude::*;
 
-pub fn bid64dq_mul(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid64dq_mul_port(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
     let (mut x1, mut flags) = bid64_to_bid128(x);
-    let (mut res, mut opFlags) = bid64qq_mul(x1, y, rnd_mode);
+    let (mut res, mut opFlags) = bid64qq_mul_port(x1, y, rnd_mode);
     return (res, (flags | opFlags));
 }
 
-pub fn bid64qd_mul(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid64qd_mul_port(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
     let (mut y1, mut flags) = bid64_to_bid128(y);
-    let (mut res, mut opFlags) = bid64qq_mul(x, y1, rnd_mode);
+    let (mut res, mut opFlags) = bid64qq_mul_port(x, y1, rnd_mode);
     return (res, (flags | opFlags));
 }
 
-pub fn bid64qq_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+pub(crate) fn bid64qq_mul_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
     let mut z = BID_UINT128 { lo: 0x0000000000000000, hi: 0x5ffe000000000000, ..Default::default() };
     if (!(((((((x.hi & 0x7c00000000000000) == 0x7c00000000000000)) || (((y.hi & 0x7c00000000000000) == 0x7c00000000000000))) || (((x.hi & 0x7c00000000000000) == 0x7800000000000000))) || (((y.hi & 0x7c00000000000000) == 0x7800000000000000))))) {
         let mut xSign = (x.hi & 0x8000000000000000);
@@ -73,7 +73,7 @@ pub fn bid64qq_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) ->
         if (truePExp < (-398)) {
             pExp = 0;
         } else if (truePExp > 369) {
-            pExp = (((369 + 398) as u64) << 53);
+            pExp = (6908521828386340864 as u64);
         } else {
             pExp = (go_checked_shl_u64(((truePExp.wrapping_add(398)) as u64), go_shift_count_u64((53) as u64)));
         }
@@ -85,26 +85,26 @@ pub fn bid64qq_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) ->
     return (bid64qqq_fma_core(y, x, z, rnd_mode, (&mut flags)), flags);
 }
 
-pub fn bid128dd_mul(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128dd_mul_port(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let (mut x1, mut flagsX) = bid64_to_bid128(x);
     let (mut y1, mut flagsY) = bid64_to_bid128(y);
-    let (mut res, mut opFlags) = bid128_mul(x1, y1, rnd_mode);
+    let (mut res, mut opFlags) = bid128_mul_port(x1, y1, rnd_mode);
     return (res, ((flagsX | flagsY) | opFlags));
 }
 
-pub fn bid128dq_mul(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128dq_mul_port(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let (mut x1, mut flags) = bid64_to_bid128(x);
-    let (mut res, mut opFlags) = bid128_mul(x1, y, rnd_mode);
+    let (mut res, mut opFlags) = bid128_mul_port(x1, y, rnd_mode);
     return (res, (flags | opFlags));
 }
 
-pub fn bid128qd_mul(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128qd_mul_port(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let (mut y1, mut flags) = bid64_to_bid128(y);
-    let (mut res, mut opFlags) = bid128_mul(x, y1, rnd_mode);
+    let (mut res, mut opFlags) = bid128_mul_port(x, y1, rnd_mode);
     return (res, (flags | opFlags));
 }
 
-pub fn bid128_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+pub(crate) fn bid128_mul_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
     let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut x_sign: u64 = 0;
     let mut y_sign: u64 = 0;
@@ -150,7 +150,7 @@ pub fn bid128_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> 
         if (true_p_exp < (-6176)) {
             p_exp = 0;
         } else if (true_p_exp > 6111) {
-            p_exp = (((6111 + 6176) as u64) << 49);
+            p_exp = (6916966077687660544 as u64);
         } else {
             p_exp = (go_checked_shl_u64(((true_p_exp.wrapping_add(6176)) as u64), go_shift_count_u64((49) as u64)));
         }
@@ -161,5 +161,47 @@ pub fn bid128_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> 
         }
     }
     let mut z = BID_UINT128 { lo: 0x0000000000000000, hi: 0x5ffe000000000000, ..Default::default() };
-    return bid128_fma(y, x, z, rnd_mode);
+    return bid128_fma_port(y, x, z, rnd_mode);
+}
+
+#[inline]
+pub fn bid64dq_mul(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid64dq_mul_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid64qd_mul(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid64qd_mul_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid64qq_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (u64, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (0x7c00000000000000, 0x01); }
+    bid64qq_mul_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid128dd_mul(mut x: u64, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128dd_mul_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid128dq_mul(mut x: u64, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128dq_mul_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid128qd_mul(mut x: BID_UINT128, mut y: u64, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128qd_mul_port(x, y, rnd_mode)
+}
+
+#[inline]
+pub fn bid128_mul(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64) -> (BID_UINT128, u32) {
+    if !(0..=4).contains(&rnd_mode) { return (BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }, 0x01); }
+    bid128_mul_port(x, y, rnd_mode)
 }

@@ -98,15 +98,28 @@ jobs:
       - name: Verify the tree is clean after regeneration
         run: git status --porcelain && git diff --exit-code && test -z "$(git status --porcelain)"
 
-      - name: Run structural verification (zero deps, portable purity, vet, package versions)
+      - name: Run structural verification
         run: |
           make verify-zero-deps
           make verify-portable-purity
           make vet-go-modules
+          make verify-go-modules
+          make verify-cexport-disabled
           make verify-package-versions
 
       - name: Run Go and Rust tests
         run: make test-all
+
+      - name: Verify standalone packages
+        run: |
+          make verify-bidcodec-packages
+          make verify-rust-package
+
+      - name: Run Decimal64 and Decimal128 codec long verification
+        run: make _test-bidcodec-long64-128-full
+
+      - name: Verify Rust overflow policy
+        run: make verify-rust-overflow
 
       # BID string generated verification. Runs make verify-generated first
       # (already done above; regeneration is deterministic so the tree stays
@@ -122,6 +135,16 @@ jobs:
       # Cost is ~30s and it runs in parallel with the other jobs.
       - name: Run Go race detector (bid754-go + bid754-codec-go concurrency gate)
         run: make test-race
+
+      - name: Produce platform digest
+        run: make digest
+
+      - name: Upload platform digest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: platform-digest-${{ matrix.os }}
+          path: test_results/digest_*.txt
+          if-no-files-found: error
 
       - name: Run doctor
         run: make doctor
@@ -178,6 +201,40 @@ jobs:
 
       - name: Run Rust portable tests (fixed string/codec vectors; the Rust readtest oracle gate runs in the native job via the ffi-verify crate)
         run: make test-rust
+
+      - name: Produce platform digest
+        run: make digest
+
+      - name: Upload platform digest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: platform-digest-ubuntu-24.04-arm
+          path: test_results/digest_*.txt
+          if-no-files-found: error
+
+  platform-digest:
+    name: Cross-platform bit comparison
+    needs: [portable-test, portable-arm64-linux]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - name: Download platform digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: platform-digest-*
+          path: test_results/ci-digests
+          merge-multiple: true
+
+      - name: Compare all guaranteed platforms at this commit
+        run: >-
+          bash devtools/scripts/verify_digest.sh
+          --results-dir test_results/ci-digests
+          --expected-tree "$(git rev-parse HEAD)"
+          --require-platform darwin/arm64
+          --require-platform linux/amd64
+          --require-platform linux/arm64
 
   # Native FFI bit-compare against the live Intel BID C oracle, run on both
   # platforms where Intel BID builds (Linux amd64 and macOS arm64). Together

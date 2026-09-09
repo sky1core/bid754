@@ -32,10 +32,10 @@ pub(crate) fn bid_size_long() -> i64 {
     if (std::env::consts::OS == "windows") {
         return 4;
     }
-    return ((usize::BITS as i64) / 8);
+    return (8 as i64);
 }
 
-pub fn bid64_llrint(mut x: u64, mut rndMode: i64) -> (i64, u32) {
+pub(crate) fn bid64_llrint_port(mut x: u64, mut rndMode: i64) -> (i64, u32) {
     let mut res: i64 = 0;
     let mut pfpsf: u32 = 0;
     if (rndMode == 0) {
@@ -52,7 +52,7 @@ pub fn bid64_llrint(mut x: u64, mut rndMode: i64) -> (i64, u32) {
     return (res, pfpsf);
 }
 
-pub fn bid64_lrint(mut x: u64, mut rndMode: i64) -> (i64, u32) {
+pub(crate) fn bid64_lrint_port(mut x: u64, mut rndMode: i64) -> (i64, u32) {
     let mut res32: i32 = 0;
     let mut res64: i64 = 0;
     let mut pfpsf: u32 = 0;
@@ -101,4 +101,16 @@ pub fn bid64_lround(mut x: u64) -> (i64, u32) {
     }
     (res64, pfpsf) = bid64_to_int64_rninta(x);
     return ((res64 as i64), pfpsf);
+}
+
+#[inline]
+pub fn bid64_llrint(mut x: u64, mut rndMode: i64) -> (i64, u32) {
+    if !(0..=4).contains(&rndMode) { return (i64::MIN, 0x01); }
+    bid64_llrint_port(x, rndMode)
+}
+
+#[inline]
+pub fn bid64_lrint(mut x: u64, mut rndMode: i64) -> (i64, u32) {
+    if !(0..=4).contains(&rndMode) { return (i64::MIN, 0x01); }
+    bid64_lrint_port(x, rndMode)
 }

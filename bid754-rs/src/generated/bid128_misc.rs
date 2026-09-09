@@ -96,7 +96,7 @@ pub fn bid128_llquantexp(mut x: BID_UINT128, pfpsf: &mut u32) -> i64 {
     let mut res: i64 = 0;
     if ((x.hi & 0x7800000000000000) == 0x7800000000000000) {
         (*pfpsf) |= 1;
-        res = ((-1) << 63);
+        res = (-9223372036854775808 as i64);
         return res;
     }
     if ((x.hi & 0x6000000000000000) == 0x6000000000000000) {
@@ -140,7 +140,7 @@ pub fn bid128_quantum(mut x: BID_UINT128) -> BID_UINT128 {
     return res;
 }
 
-pub fn bid128_scalbn(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+pub(crate) fn bid128_scalbn_port(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
     let mut CX: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CX2: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut CBID_X8: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
@@ -200,7 +200,7 @@ pub fn bid128_scalbn(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &
     return res;
 }
 
-pub fn bid128_scalbln(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+pub(crate) fn bid128_scalbln_port(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
     let mut n1 = (n as i32);
     n1 = if ((i64::from(n1)) < n) {
         i32::MAX
@@ -209,7 +209,7 @@ pub fn bid128_scalbln(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: 
     } else {
         n1
     };
-    return bid128_scalbn(x, (n1 as i64), rnd_mode, pfpsf);
+    return bid128_scalbn_port(x, (n1 as i64), rnd_mode, pfpsf);
 }
 
 pub fn bid128_ilogb(mut x: BID_UINT128, pfpsf: &mut u32) -> i64 {
@@ -225,7 +225,7 @@ pub fn bid128_ilogb(mut x: BID_UINT128, pfpsf: &mut u32) -> i64 {
         if ((x.hi & 0x7c00000000000000) == 0x7800000000000000) {
             res = 0x7fffffff;
         } else {
-            res = ((((-1) << 31) as i32) as i64);
+            res = (((-2147483648 as i32) as i32) as i64);
         }
         return res;
     }
@@ -275,7 +275,7 @@ pub fn bid128_logb(mut x: BID_UINT128, pfpsf: &mut u32) -> BID_UINT128 {
     return res;
 }
 
-pub fn bid128_fdim(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+pub(crate) fn bid128_fdim_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
     let mut res: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
     let mut tmp_fpsf: u32 = 0;
     tmp_fpsf = (*pfpsf);
@@ -286,6 +286,24 @@ pub fn bid128_fdim(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64, pf
         res.lo = 0x0000000000000000;
         return res;
     }
-    res = bid128_sub(x, y, rnd_mode, pfpsf);
+    res = bid128_sub_port(x, y, rnd_mode, pfpsf);
     return res;
+}
+
+#[inline]
+pub fn bid128_scalbn(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+    if !(0..=4).contains(&rnd_mode) { *pfpsf |= 0x01; return BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }; }
+    bid128_scalbn_port(x, n, rnd_mode, pfpsf)
+}
+
+#[inline]
+pub fn bid128_scalbln(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+    if !(0..=4).contains(&rnd_mode) { *pfpsf |= 0x01; return BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }; }
+    bid128_scalbln_port(x, n, rnd_mode, pfpsf)
+}
+
+#[inline]
+pub fn bid128_fdim(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mode: i64, pfpsf: &mut u32) -> BID_UINT128 {
+    if !(0..=4).contains(&rnd_mode) { *pfpsf |= 0x01; return BID_UINT128 { lo: 0, hi: 0x7c00000000000000 }; }
+    bid128_fdim_port(x, y, rnd_mode, pfpsf)
 }
