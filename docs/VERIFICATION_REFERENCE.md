@@ -16,6 +16,7 @@ reports measure them from generated inventories and external anchors.
 | How are decTest files classified? | `devtools/internal/testgen/spec_build.go` |
 | How are decTest runtime skips and flag exemptions classified? | `devtools/internal/testgen/dectest_skip_reason.go` and its tests |
 | How are FFI cases and wrappers generated? | `devtools/internal/testgen/ffi_spec.go` and `devtools/internal/testgen/ffi_test_codegen.go` |
+| Why is an Intel symbol inside or outside the FFI bit-compare subset? | `devtools/internal/testgen/ffi_profile_inventory.go` and `devtools/generated/testspec/ffi_profile_inventory.json` |
 | How are Tier 1 long corpora generated? | `devtools/internal/testgen/tier1_arithmetic_long_codegen.go` and `devtools/internal/testgen/tier1_compare_conversion_long_codegen.go` |
 | How are BID codec vectors defined? | `devtools/internal/testgen/bid_codec_reference.go` and the `devtools/internal/testgen/bid_codec_*vectors*.go` family |
 | What is selected or excluded in the checked-in tree? | `devtools/generated/testspec/spec_index.json` and sibling dispatch inventories |
@@ -65,6 +66,16 @@ Inputs and suite selection are declared by `dectest_suites` in the manifest.
 `spec_index.json.dectest_file_inventories` records every official file, its operation
 set, whether it was selected, and why it was excluded.
 
+Those rows are a three-bucket partition of the official file set. Every file is
+selected by at least one suite, carries per-suite unsupported operations with a
+reason and classification, or carries a whole-file
+`file_exclusion_reason`/`file_exclusion_classification` assigned from its
+content shape. A file that reaches no bucket fails generation instead of
+emitting a bare row. The partition is closed from outside the generator by the
+hand-maintained expectations in `devtools/internal/testgen/testgen_test.go`:
+every row lands in exactly one bucket, and the three bucket counts must sum to
+the official file total.
+
 Current executor families:
 
 | Family | Current implementation location |
@@ -90,13 +101,30 @@ The current runtime accounting is emitted in:
 Deferred General/GDA, tagged-literal/DPD, logical-digit, optional math, and
 unsupported fixed-width operation buckets are current inventory state. A
 `unresolved_required` classification is the only deferred class that prevents a
-completion claim for the selected mandatory scope.
+completion claim for the selected mandatory scope. `no_cases_include_driver` is
+a whole-file classification rather than a coverage gap: the file carries no test
+case and at least one `dectest:` include directive, and every file it names is
+inventoried in its own right.
 
 ### C FFI exact bit-compare
 
 The current profile name is `bid_native_bitcompare_subset`. Its explicit
 function list, function patterns, baseline strength, and seed are under
 `ffi_tests` in `devtools/testgen_manifest.json`.
+
+`devtools/generated/testspec/ffi_profile_inventory.json` closes that manifest
+selection against the pinned Intel symbol census: every function in
+`devtools/generated/json/intel_dfp_symbols.json` carries one row that is either
+`selected` or excluded by one of four mechanically derived rules — no exported
+Go mechanical-port counterpart under the shared readtest name normalization, a
+non-status pointer parameter the case model cannot express, no value operand to
+vary, or a platform-width `long int` result. A symbol reaching neither state
+fails generation unless the generator's exact-name unclassified register names
+it with a reason, and that register fails on an entry naming no symbol that
+reaches the unclassified state, so the census is closed in both directions.
+Rule declarations and the register live in
+`devtools/internal/testgen/ffi_profile_inventory.go`; the census totals and the
+per-classification exclusion counts are external-anchor data.
 
 `devtools/generated/testspec/ffi/` contains the current generated case shards.
 The generated native wrapper calls pinned Intel C and compares the same inputs
@@ -117,6 +145,10 @@ The Tier 1 long Go and Rust runners are generated from shared corpus rules:
   ScaleB;
 - quiet comparisons and MinNum/MaxNum/MinNumMag/MaxNumMag; and
 - integer/BID, BID-width, and one-way BID-to-binary conversions.
+
+That corpus is the gate's declared scope, not a tier assignment: it also covers
+the Tier 2 operations fused multiply-add, square root, MinNumMag/MaxNumMag, and
+the one-way BID-to-binary conversions.
 
 Their exact operation census, structured/random counts, finite-transition
 limits, complete rounding-mode groups, and tuple hashes are pinned in

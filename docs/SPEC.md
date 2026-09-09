@@ -45,6 +45,33 @@ Project-level commitments:
 - when a path is declared generated, cases/specs, dispatch/wrappers, and test runners/harnesses for that path are all generated rather than hand-maintained glue
 - when an implementation path is declared generated, implementation entrypoints, wrappers, and glue for that path are also generated rather than hand-maintained
 
+## Tier Classification
+
+Tiers name work-priority groups over this repository's BID decimal work
+surface: the BID codec plus the operation families bounded by the pinned Intel
+BID C surface. What they control is defined in
+`Correctness And Performance Priority` below. Tier membership does not
+determine mandatory/optional status; `Mandatory Scope` and `IEEE754_SPEC.md`
+own that classification.
+
+- Tier 1 is the highest-frequency part of that work surface: the full BID codec
+  (encoding, decoding, and string conversion); `add`/`sub`/`mul`/`div` and the
+  remainder/fmod family; `quantize` and `scaleB`; the quiet comparison
+  operations with `minNum`/`maxNum`; and integer-to-BID, BID-to-integer, and
+  BID-width conversions. The cross-cutting contracts those operations carry are
+  Tier 1 with them: status flags, special values, the five rounding modes, and
+  explicit rounding-mode/context passing.
+- Tier 2 is everything else this repository currently supports outside Tier 1
+  and Tier 3; its principal families are `fma`, `sqrt`,
+  `nextUp`/`nextDown`/`nextToward`, `logB`/`ilogB`, `sameQuantum`, and the
+  round-to-integral family; the signaling comparison operations,
+  `totalOrder`/`totalOrderMag`, `minNumMag`/`maxNumMag`, and the
+  classification, predicate, and sign operations; and the one-way
+  BID-to-binary conversions.
+- Tier 3 is the IEEE 754-2019 Clause 9.2 recommended (non-mandatory)
+  transcendental surface, such as `pow`, the `exp*` and `log*` families, and
+  the trigonometric and hyperbolic families.
+
 ## Correctness And Performance Priority
 
 - Correctness is mandatory for every supported implementation path, width,
@@ -177,7 +204,7 @@ Current phase notes:
 
 - one-way BID decimal -> `binary32` / `binary64` / `binary128` conversion helpers are part of the current supported surface
 - the six BID width conversions (`bid32<->bid64<->bid128`, widening and narrowing) are part of the current supported surface
-- `bid32_nexttoward`, `bid64_nexttoward`, and `bid128_nexttoward` are part of the current supported surface; `bid*_nextafter` is covered by the generated readtest verification surface without a public Go wrapper
+- `bid32_nexttoward`, `bid64_nexttoward`, and `bid128_nexttoward` are part of the current supported surface; `bid*_nextafter` is covered by the generated readtest and C FFI exact bit-compare verification surfaces without a public Go wrapper
 - IBM GDA `reduce` is outside the public arithmetic surface because pinned Intel BID C has no canonical `bid*_reduce` predecessor
 - this does not by itself redefine the repository as a full binary arithmetic implementation
 - reverse binary -> BID conversion, `binary80` support, and any still-undocumented binary interchange surface do not become supported merely because one-way BID -> binary helpers exist

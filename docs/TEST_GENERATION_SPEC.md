@@ -298,6 +298,9 @@ change, not only a generator or anchor update.
 The FFI profile is selected by `ffi_tests` in
 `devtools/testgen_manifest.json`. The complete function list, patterns,
 baseline case strength, and seed belong there rather than in this document.
+The generated FFI profile inventory accounts for every function in the pinned
+Intel symbol file as selected or classified-excluded; a symbol reaching neither
+state fails generation.
 
 For every selected case:
 
@@ -483,6 +486,21 @@ separate adoption, not a lane row. `bid32_quantum` is excluded because
 `IEEE754_SPEC.md` classifies quantum as an optional/recommended Clause 5
 `should` example rather than a `shall` requirement.
 
+Two-operand and three-operand Decimal32 entry points are excluded as a
+category rather than one at a time: every binary entry point
+(`bid32_add`/`sub`/`mul`/`div`, `bid32_rem`, `bid32_fmod`, `bid32_quantize`,
+`bid32_scalbn`/`scalbln`, `bid32_nexttoward`, the `bid32` compare predicates,
+and the `bid32_minnum`/`maxnum` family) has an input space of at least 2^64,
+and `bid32_fma` has 2^96, so none of them is enumerable. No lane-runtime
+budget, result-contract adoption, or IEEE classification argument is involved:
+the gate is unary-only by construction — the per-lane case count is fixed at
+2^32 and the runners' lane dispatch takes a single operand — so a
+multi-operand candidate is outside the gate's shape rather than a lane row
+that was weighed and rejected. Their exact per-case Intel C differential
+coverage stays with the domains that do carry multi-operand rows: the Tier 1
+arithmetic and compare/conversion long gates, the Intel readtest domain, and
+the C FFI exact bit-compare domain.
+
 The BID-to-binary conversions (`bid32_to_binary32`, `bid32_to_binary64`,
 `bid32_to_binary128`) are excluded for lane-runtime budget, measured on
 this gate's own path as a same-run cross-lane comparison: with a
@@ -558,6 +576,10 @@ Generated inventories use explicit classifications with these meanings:
 
 - `selected`: required by the claimed profile and dispatched;
 - `out_of_scope_not_required`: outside the repository's supported BID scope;
+- `no_cases_include_driver`: a whole-file classification for an official input
+  file that carries no test case and at least one `dectest:` include directive;
+  it is not a coverage gap, because every file it names is inventoried in its
+  own right;
 - `optional_not_required` or `optional_scope_gap`: optional/recommended work,
   reported separately;
 - `unresolved_required*`: required work not closed; any such entry prevents a

@@ -206,7 +206,7 @@ historical operative scope:
 | fused multiply-add | `bid32_fma`, `bid64*_fma`, `bid128*_fma` | mandatory | Clause 5.4.1 |
 | round-to-integral family | `bid*_round_integral_nearest_even`, `nearest_away`, `positive`, `negative`, `zero`, `exact` | mandatory | Clause 5.3.1 |
 | next family | `bid*_nextup`, `bid*_nextdown` | mandatory | Clause 5.3.1 |
-| next family extension | `bid*_nexttoward`, `bid*_nextafter` | Intel inventory | IEEE mandatory status is judged by the standard classification, not by name similarity. In the current phase this repository raises `bid32/64/128_nexttoward` to the support surface, and `bid*_nextafter` is handled only on the generated readtest verification surface without public wiring |
+| next family extension | `bid*_nexttoward`, `bid*_nextafter` | Intel inventory | IEEE mandatory status is judged by the standard classification, not by name similarity. In the current phase this repository raises `bid32/64/128_nexttoward` to the support surface, and `bid*_nextafter` is handled only on the generated readtest and C FFI exact bit-compare verification surfaces without public wiring |
 | remainder family | `bid*_rem` | mandatory | Clause 5.3.1 remainder |
 | remainder variant | `bid*_fmod` | Intel inventory | not treated as identical to the IEEE mandatory remainder |
 | decimal quantize | `bid32/64/128_quantize` | mandatory | Clause 5.3.2 |

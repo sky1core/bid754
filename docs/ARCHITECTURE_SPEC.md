@@ -103,8 +103,9 @@ path of the target structure above, so it is not classified as an optional artif
 
 If hand-written Go code or transitional glue code remains in the current tree, that means the target structure has not yet been achieved. Such a state is not documented as part of the target structure.
 
-A Decimal operation body admitted by a portprovenance non-Intel-origin exclusion
-has no canonical predecessor and is transitional debt, not an additional
+A Decimal operation body admitted by a portprovenance non-Intel-origin
+exclusion, or registered in the portprovenance non-canonical core registry, has
+no canonical predecessor and is transitional debt, not an additional
 implementation or optimization category. It may receive correctness maintenance
 while its compatibility boundary is resolved, but it is not expanded,
 performance-specialized as an independent path, or used as precedent for another
