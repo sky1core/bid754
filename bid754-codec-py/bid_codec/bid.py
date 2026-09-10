@@ -622,152 +622,84 @@ def _validate_string_components(c: Components) -> None:
 
 
 def from_string(s: str) -> Components:
-    """Parse the shared BID codec string representation into Components."""
-    # (1) Whole-input ASCII gate, before any trim. Any code point above 0x7F (a
-    # Unicode digit variant, Unicode whitespace, etc.) makes the input malformed.
-    # This runs before the trim so Unicode whitespace is rejected, not stripped.
-    for idx, ch in enumerate(s):
-        if ord(ch) > 0x7F:
-            raise ValueError(
-                f"from_string: non-ASCII character U+{ord(ch):04X} at index {idx}"
-            )
-
-    # (2) Trim only the six ASCII whitespace characters (see _ASCII_WS).
-    s = s.strip(_ASCII_WS)
-    if not s:
+    if not isinstance(s, str) or not s.isascii():
+        raise ValueError("from_string: expected an ASCII string")
+    start, end = 0, len(s)
+    while start < end and s[start] in _ASCII_WS:
+        start += 1
+    while end > start and s[end - 1] in _ASCII_WS:
+        end -= 1
+    if start == end:
         raise ValueError("from_string: empty string")
-
-    sign = False
-    if s[0] == "+":
-        s = s[1:]
-    elif s[0] == "-":
-        sign = True
-        s = s[1:]
-
-    # (3) Special tokens, matched with ASCII case-insensitivity.
-    upper = s.upper()
-    if upper in ("INF", "INFINITY"):
+    sign = s[start] == "-"
+    if s[start] in ("+", "-"):
+        start += 1
+    prefix = s[start:min(start + 8, end)].upper()
+    if prefix in ("INF", "INFINITY") and end - start == len(prefix):
         return Components(sign=sign, kind=Kind.INFINITY)
-    if upper.startswith("SNAN"):
-        return Components(sign=sign, kind=Kind.SNAN, payload=_parse_payload(s[4:]))
-    if upper.startswith("NAN"):
-        return Components(sign=sign, kind=Kind.QNAN, payload=_parse_payload(s[3:]))
+    if prefix.startswith("SNAN"):
+        payload = _parse_unsigned_digits(s, start + 4, end, 33, "NaN payload")
+        return Components(sign=sign, kind=Kind.SNAN, payload=payload)
+    if prefix.startswith("NAN"):
+        payload = _parse_unsigned_digits(s, start + 3, end, 33, "NaN payload")
+        return Components(sign=sign, kind=Kind.QNAN, payload=payload)
 
-    # (4) Number: ASCII digits with at most one '.', at least one digit, and an
-    # optional 'E'/'e' exponent. The parsed coefficient value is bounded by the
-    # schema-wide maximum 10^34-1 below; per-BID-width range validation stays in the
-    # encode contract, not here.
     digits = []
-    exp_adjust = 0
+    fraction_digits = 0
     found_dot = False
-    i = 0
-    while i < len(s) and s[i] not in ("E", "e"):
+    found_digit = False
+    i = start
+    while i < end and s[i] not in ("E", "e"):
         ch = s[i]
         if ch == ".":
             if found_dot:
                 raise ValueError("from_string: multiple decimal points")
             found_dot = True
         elif "0" <= ch <= "9":
-            digits.append(ch)
+            found_digit = True
+            if digits or ch != "0":
+                if len(digits) == 34:
+                    raise ValueError("from_string: coefficient exceeds schema max 10^34-1")
+                digits.append(ch)
             if found_dot:
-                exp_adjust -= 1
+                fraction_digits += 1
         else:
-            raise ValueError(f"from_string: unexpected character {ch!r}")
+            raise ValueError("from_string: invalid coefficient digits")
         i += 1
-
-    if not digits:
+    if not found_digit:
         raise ValueError("from_string: no digits")
-
     exp_part = 0
-    if i < len(s):  # stopped on 'E'/'e'
-        exp_part = _parse_exponent_literal(s[i + 1 :])
-
-    start = 0
-    while start < len(digits) - 1 and digits[start] == "0":
-        start += 1
-    digits = digits[start:]
-
-    coeff = int("".join(digits))
-    # Value-based schema limit, applied after leading-zero removal: 35 nines is
-    # rejected, but 40 zeros followed by "1" (value 1) parses.
-    if coeff > _SCHEMA_MAX_COEFF:
-        raise ValueError(
-            f"from_string: coefficient {coeff} exceeds schema max {_SCHEMA_MAX_COEFF}"
-        )
-    exponent = exp_part + exp_adjust
-    if exponent < -(2**31) or exponent > 2**31 - 1:
-        raise ValueError(f"from_string: exponent {exponent} out of signed 32-bit range")
-
-    if coeff == 0:
-        return Components(sign=sign, exponent=exponent, kind=Kind.ZERO)
+    if i < end:
+        i += 1
+        negative = i < end and s[i] == "-"
+        if i < end and s[i] in ("+", "-"):
+            i += 1
+        if i == end:
+            raise ValueError("from_string: no exponent digits")
+        magnitude = _parse_unsigned_digits(s, i, end, 16, "exponent literal")
+        if magnitude >= 1 << 53:
+            raise ValueError("from_string: exponent literal magnitude must be below 2^53")
+        exp_part = -magnitude if negative else magnitude
+    exponent = exp_part - fraction_digits
+    if exponent < -(1 << 31) or exponent >= 1 << 31:
+        raise ValueError("from_string: exponent out of signed 32-bit range")
+    coeff = int("".join(digits)) if digits else 0
     return Components(
         sign=sign,
         coefficient=coeff,
         exponent=exponent,
-        kind=Kind.NORMAL,
+        kind=Kind.NORMAL if coeff else Kind.ZERO,
     )
 
 
-_PAYLOAD_MAX_DIGITS = len(str(_TEN33 - 1))
-
-
-def _parse_payload(s: str) -> int:
-    """Parse an unsigned NaN payload: empty -> 0, otherwise ASCII digits only whose
-    value is below the schema-wide NaN payload limit 10^33.
-
-    A leading sign, underscore, or Unicode digit is rejected. Unicode digits are
-    already rejected by the whole-input ASCII check; the explicit ASCII-digit check
-    keeps this structural rather than relying on that ordering, and avoids int()'s
-    acceptance of "1_0" and Unicode digit strings.
-    """
-    if s == "":
-        return 0
-    if not all("0" <= ch <= "9" for ch in s):
-        raise ValueError(f"from_string: invalid NaN payload {s!r}")
-    significant = s.lstrip("0")
-    if len(significant) > _PAYLOAD_MAX_DIGITS:
-        raise ValueError(
-            "from_string: NaN payload is at or above the schema max 10^33"
-        )
-    return int(significant) if significant else 0
-
-
-# The shared exact-integer exponent-literal bound 2^53: the widest bound every
-# language consumer's number type can check exactly (JavaScript's safe-integer
-# range pins it). A literal at or beyond this magnitude is rejected in every
-# consumer through the same error channel, so every consumer decides each
-# input its runtime can represent by the same mathematical rule (literal below
-# 2^53, fraction-adjusted final exponent in int32) — a fixed-width fraction
-# counter can force a rejection only in regions (over ~2^63 fraction digits)
-# where that rule itself rejects.
-_SHARED_EXPONENT_LITERAL_BOUND = 1 << 53
-_EXPONENT_LITERAL_MAX_DIGITS = len(str(_SHARED_EXPONENT_LITERAL_BOUND))
-
-
-def _parse_exponent_literal(s: str) -> int:
-    """Parse a signed exponent literal: optional single leading sign, then ASCII
-    digits only, with magnitude below the shared exact-integer bound 2^53.
-
-    The literal bound is checked here, at the literal step, in every language.
-    The caller checks only the fraction-adjusted FINAL exponent
-    against the signed 32-bit range, so every to_string rendering
-    (adjusted-exponent literal at most int32 max + 33, far below 2^53)
-    reparses successfully (round-trip closure). The caller's fold is exact by
-    Python's unbounded integer arithmetic.
-    """
-    negative = s[:1] == "-"
-    body = s[1:] if s[:1] in ("+", "-") else s
-    if body == "" or not all("0" <= ch <= "9" for ch in body):
-        raise ValueError(f"from_string: invalid exponent {s!r}")
-    significant = body.lstrip("0")
-    if len(significant) > _EXPONENT_LITERAL_MAX_DIGITS:
-        raise ValueError(
-            "from_string: exponent literal at or above the shared exact-integer bound 2^53"
-        )
-    magnitude = int(significant) if significant else 0
-    value = -magnitude if negative else magnitude
-    if value >= _SHARED_EXPONENT_LITERAL_BOUND or value <= -_SHARED_EXPONENT_LITERAL_BOUND:
-        raise ValueError(
-            "from_string: exponent literal at or above the shared exact-integer bound 2^53"
-        )
-    return value
+def _parse_unsigned_digits(s: str, start: int, end: int, max_digits: int, field: str) -> int:
+    digits = []
+    for i in range(start, end):
+        ch = s[i]
+        if not "0" <= ch <= "9":
+            raise ValueError(f"from_string: invalid {field} digits")
+        if digits or ch != "0":
+            if len(digits) == max_digits:
+                raise ValueError(f"from_string: {field} exceeds {max_digits} significant digits")
+            digits.append(ch)
+    return int("".join(digits)) if digits else 0

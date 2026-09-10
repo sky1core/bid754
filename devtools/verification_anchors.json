@@ -558,5 +558,13 @@
       "64": 560,
       "128": 560
     }
+  },
+  "codec_parser_resource_cases": {
+    "go": 330,
+    "rust": 541,
+    "java": 446,
+    "javascript": 304,
+    "python": 489,
+    "swift": 491
   }
 }

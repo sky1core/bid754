@@ -27,6 +27,7 @@ import (
 // passes silently; this test compares the checked-in generated artifacts
 // against the external anchors instead.
 type verificationAnchors struct {
+	CodecParserResourceCases   map[string]int `json:"codec_parser_resource_cases"`
 	FiniteReferenceCalibration struct {
 		ReadtestByWidth                map[string]int `json:"readtest_by_width"`
 		ReadtestExcludedDecimalText    int            `json:"readtest_excluded_decimal_text"`

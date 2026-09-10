@@ -11,12 +11,8 @@ keywords = ["ieee-754", "decimal", "bid", "floating-point", "arithmetic"]
 categories = ["mathematics"]
 publish = false
 readme = "README.md"
-# rust-version (MSRV) is intentionally left unset: CI only pins the "stable"
-# toolchain channel (rustup toolchain install stable in .github/workflows/build.yml),
-# not a fixed numeric floor, and there is no local multi-toolchain setup here
-# to build-verify an older floor. Declare it only once a specific version is
-# actually build-verified (docs/DEPENDENCIES_SPEC.md pinned-verification
-# principle); do not guess a number from edition/dependency floors alone.
+# rust-version (MSRV) is unset: the verification toolchain is pinned in
+# devtools/rust-version, but an older supported floor has not been verified.
 #
 # `include` is the explicit package file set rather than a default-plus-exclude list:
 # only the public API sources, the license/notice pair, and the reader-facing

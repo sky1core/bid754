@@ -102,7 +102,9 @@ tree_id=$(python3 -B "$snapshot_dir/receiver.py" tree-id "$snapshot_archive" --e
 mkdir "$snapshot_dir/docker-context"
 python3 -B "$snapshot_dir/receiver.py" extract "$snapshot_archive" \
     --expected-id "$snapshot_id" --path devtools/docker/verify/Dockerfile > "$snapshot_dir/docker-context/Dockerfile"
-chmod 444 "$snapshot_dir/docker-context/Dockerfile"
+python3 -B "$snapshot_dir/receiver.py" extract "$snapshot_archive" \
+    --expected-id "$snapshot_id" --path devtools/rust-version > "$snapshot_dir/docker-context/rust-version"
+chmod 444 "$snapshot_dir/docker-context/Dockerfile" "$snapshot_dir/docker-context/rust-version"
 
 case "$1" in
     all)

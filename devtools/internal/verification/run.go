@@ -312,7 +312,12 @@ func CheckEvidence(root, path string, evidence Evidence) error {
 		}
 	}
 	if evidence.Codec {
-		return checkCodecEvidence(root, string(raw))
+		if err := checkCodecEvidence(root, string(raw)); err != nil {
+			return err
+		}
+	}
+	if evidence.ParserResource {
+		return checkParserResourceEvidence(root, string(raw))
 	}
 	return nil
 }

@@ -10,7 +10,12 @@ import (
 )
 
 func TestFromStringResourceBoundaryRejects(t *testing.T) {
-	for _, size := range []int{35, 256, 4096, 65536, 1048576} {
+	checkResourceRejects(t)
+}
+
+func checkResourceRejects(t *testing.T) int {
+	cases := 0
+	for _, size := range []int{35, 256, 4096, 6176, 6177, 61760, 65536, 1048576} {
 		digits := strings.Repeat("9", size)
 		zeros := strings.Repeat("0", size)
 		for _, tc := range []struct {
@@ -28,6 +33,7 @@ func TestFromStringResourceBoundaryRejects(t *testing.T) {
 			{"malformed_exponent", "1E" + zeros + "x"},
 			{"whitespace_exponent", "1E" + zeros + "\t1"},
 		} {
+			cases++
 			t.Run(fmt.Sprintf("%s/%d", tc.name, size), func(t *testing.T) {
 				_, err, allocated := measureFromString(tc.input)
 
@@ -44,11 +50,16 @@ func TestFromStringResourceBoundaryRejects(t *testing.T) {
 			})
 		}
 	}
-
+	return cases
 }
 
 func TestFromStringResourceBoundaryLeadingZeros(t *testing.T) {
-	for _, size := range []int{0, 34, 256, 4096, 65536, 1048576} {
+	checkResourceLeadingZeros(t)
+}
+
+func checkResourceLeadingZeros(t *testing.T) int {
+	cases := 0
+	for _, size := range []int{0, 34, 256, 4096, 6176, 6177, 61760, 65536, 1048576} {
 		zeros := strings.Repeat("0", size)
 		for _, tc := range []struct {
 			name        string
@@ -72,6 +83,7 @@ func TestFromStringResourceBoundaryLeadingZeros(t *testing.T) {
 			{"snan_payload", "-sNaN" + zeros + "1200", codec.SNaN, true, "", 0, "1200"},
 			{"zero_nan_payload", "NaN" + zeros, codec.QNaN, false, "", 0, "0"},
 		} {
+			cases++
 			t.Run(fmt.Sprintf("%s/%d", tc.name, size), func(t *testing.T) {
 				c, err, allocated := measureFromString(tc.input)
 				if allocated > 32<<10 {
@@ -101,7 +113,7 @@ func TestFromStringResourceBoundaryLeadingZeros(t *testing.T) {
 			})
 		}
 	}
-
+	return cases
 }
 
 func measureFromString(input string) (codec.Components, error, uint64) {

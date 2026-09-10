@@ -701,15 +701,18 @@ pub fn from_string(s: &str) -> Result<Components, String> {
         return Err("no digits".into());
     }
 
-    let upper = s.to_ascii_uppercase();
-    if upper == "INF" || upper == "INFINITY" {
+    if s.eq_ignore_ascii_case("INF") || s.eq_ignore_ascii_case("INFINITY") {
         return Ok(Components::new_inf(sign));
     }
-    if upper.starts_with("SNAN") {
+    if s.get(..4)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("SNAN"))
+    {
         let payload = parse_nan_payload(&s[4..])?;
         return Ok(Components::new_nan(sign, Kind::SNaN, payload));
     }
-    if upper.starts_with("NAN") {
+    if s.get(..3)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("NAN"))
+    {
         let payload = parse_nan_payload(&s[3..])?;
         return Ok(Components::new_nan(sign, Kind::QNaN, payload));
     }
@@ -730,13 +733,12 @@ pub fn from_string(s: &str) -> Result<Components, String> {
             }
             found_dot = true;
         } else if b.is_ascii_digit() {
-            // Checked accumulation: a value that overflows u128 is necessarily
-            // above the 10^34-1 schema cap enforced below, so it fails with the
-            // same schema error instead of wrapping.
-            coeff = coeff
-                .checked_mul(10)
-                .and_then(|v| v.checked_add((b - b'0') as u128))
-                .ok_or_else(|| alloc::format!("coefficient exceeds schema max {}", TEN34 - 1))?;
+            if coeff >= TEN34 / 10 {
+                return Err("coefficient exceeds schema max 10^34-1".into());
+            }
+            if coeff != 0 || b != b'0' {
+                coeff = coeff * 10 + (b - b'0') as u128;
+            }
             have_digit = true;
             if found_dot {
                 // i64 fraction counting, matching the Go consumer's width: the
@@ -769,19 +771,6 @@ pub fn from_string(s: &str) -> Result<Components, String> {
     } else {
         0
     };
-
-    // Schema-wide coefficient cap: the parsed value (not the digit count) must
-    // not exceed 10^34-1, the largest coefficient any supported BID width can
-    // hold. This is a shared schema constant, identical in all six language
-    // packages, so fixed-width-integer and big-integer languages fail the same
-    // inputs the same way. Per-width range validation stays in encode*.
-    if coeff >= TEN34 {
-        return Err(alloc::format!(
-            "coefficient {} exceeds schema max {}",
-            coeff,
-            TEN34 - 1
-        ));
-    }
 
     // Only the fraction-adjusted FINAL exponent must fit i32; the literal was
     // allowed past int32 (below the shared 2^53 bound) so every to_string
@@ -840,22 +829,18 @@ fn parse_nan_payload(s: &str) -> Result<u128, String> {
         return Ok(0);
     }
     if !is_ascii_digits(s) {
-        return Err(alloc::format!(
-            "invalid NaN payload {:?}: must be unsigned ASCII digits",
-            s
-        ));
+        return Err("invalid NaN payload: must be unsigned ASCII digits".into());
     }
-    let v = s
+    let digits = s.trim_start_matches('0');
+    if digits.is_empty() {
+        return Ok(0);
+    }
+    if digits.len() > 33 {
+        return Err("NaN payload exceeds schema max 10^33-1".into());
+    }
+    digits
         .parse::<u128>()
-        .map_err(|_| alloc::format!("NaN payload {:?} out of u128 range", s))?;
-    if v >= TEN33 {
-        return Err(alloc::format!(
-            "NaN payload {} exceeds schema max {}",
-            v,
-            TEN33 - 1
-        ));
-    }
-    Ok(v)
+        .map_err(|_| "invalid NaN payload".into())
 }
 
 /// The shared exact-integer exponent-literal bound 2^53: the widest bound
@@ -881,15 +866,26 @@ const SHARED_EXPONENT_LITERAL_BOUND: i64 = 1 << 53;
 fn parse_exponent_literal(s: &str) -> Result<i64, String> {
     let body = s.strip_prefix(['+', '-']).unwrap_or(s);
     if !is_ascii_digits(body) {
-        return Err(alloc::format!("invalid exponent {:?}", s));
+        return Err("invalid exponent: must be signed ASCII digits".into());
     }
-    match s.parse::<i64>() {
-        Ok(v) if v > -SHARED_EXPONENT_LITERAL_BOUND && v < SHARED_EXPONENT_LITERAL_BOUND => Ok(v),
-        _ => Err(alloc::format!(
-            "exponent literal {:?} at or above the shared exact-integer bound 2^53",
-            s
-        )),
+    let digits = body.trim_start_matches('0');
+    if digits.is_empty() {
+        return Ok(0);
     }
+    if digits.len() > 16 {
+        return Err("exponent literal at or above the shared exact-integer bound 2^53".into());
+    }
+    let magnitude = digits
+        .parse::<i64>()
+        .map_err(|_| String::from("invalid exponent"))?;
+    if magnitude >= SHARED_EXPONENT_LITERAL_BOUND {
+        return Err("exponent literal at or above the shared exact-integer bound 2^53".into());
+    }
+    Ok(if s.starts_with('-') {
+        -magnitude
+    } else {
+        magnitude
+    })
 }
 
 // --- Tests ---

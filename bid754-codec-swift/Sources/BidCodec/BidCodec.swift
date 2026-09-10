@@ -883,178 +883,141 @@ public enum BidCodec {
     ///
     /// Throws `BidCodecError.invalidString` if the string cannot be parsed.
     public static func fromString(_ str: String) throws -> Components {
-        // The whole input must be ASCII, checked before trimming: any scalar above
-        // 0x7F anywhere is malformed (Unicode digit variants such as U+FF11/U+0661,
-        // Unicode whitespace such as U+00A0, fractions such as U+00BD, etc.).
-        // trimmingCharacters(in: .whitespaces) strips Unicode whitespace, which
-        // would let a leading U+00A0 pass silently, so it is not used.
-        for u in str.unicodeScalars {
-            if u.value > 0x7F {
-                throw BidCodecError.invalidString(
-                    "non-ASCII character: U+\(String(u.value, radix: 16, uppercase: true))")
-            }
+        var input = ASCIIParser(str)
+        for byte in input.bytes {
+            guard byte < 128 else { throw BidCodecError.invalidString("non-ASCII input") }
         }
-        var s = trimAsciiWhitespace(str)
-        if s.isEmpty { throw BidCodecError.invalidString("empty string") }
-
-        // Sign
-        var sign = false
-        if s.hasPrefix("-") {
-            sign = true
-            s = String(s.dropFirst())
-        } else if s.hasPrefix("+") {
-            s = String(s.dropFirst())
-        }
-
-        // Case-insensitive checks
-        let lower = s.lowercased()
-
-        // Infinity
-        if lower == "infinity" || lower == "inf" {
+        input.trimWhitespace()
+        guard let first = input.peek() else { throw BidCodecError.invalidString("empty string") }
+        let sign = first == 45
+        if first == 43 || first == 45 { input.advance() }
+        if input.consume("infinity") || input.consume("inf") {
+            guard input.peek() == nil else { throw BidCodecError.invalidString("invalid infinity") }
             return Components(sign: sign, kind: .infinity)
         }
-
-        // sNaN (must check before NaN)
-        if lower.hasPrefix("snan") {
-            let payStr = String(s.dropFirst(4))
-            let (payHi, payLo) = try parsePayload(payStr)
-            return Components(sign: sign, kind: .snan, payloadHi: payHi, payloadLo: payLo)
-        }
-
-        // NaN
-        if lower.hasPrefix("nan") {
-            let payStr = String(s.dropFirst(3))
-            let (payHi, payLo) = try parsePayload(payStr)
-            return Components(sign: sign, kind: .qnan, payloadHi: payHi, payloadLo: payLo)
-        }
-
-        // Numeric: split at E/e for scientific notation. The literal is bounded
-        // by the shared exact-integer bound 2^53 (not int32): only the
-        // fraction-adjusted FINAL exponent must fit int32, so every toString
-        // rendering (adjusted-exponent literal at most Int32.max + 33, far
-        // below 2^53) reparses successfully (round-trip closure).
-        var mantissa = s
-        var sciExp: Int = 0
-        if let eIdx = s.firstIndex(where: { $0 == "e" || $0 == "E" }) {
-            let expStr = String(s[s.index(after: eIdx)...])
-            sciExp = try parseExponentLiteral(expStr)
-            mantissa = String(s[..<eIdx])
-        }
-
-        // Split mantissa at decimal point
-        var digits: String
-        var fracLen: Int = 0
-        if let dotIdx = mantissa.firstIndex(of: ".") {
-            let intPart = String(mantissa[..<dotIdx])
-            let fracPart = String(mantissa[mantissa.index(after: dotIdx)...])
-            digits = intPart + fracPart
-            fracLen = fracPart.count
+        let kind: DecimalKind
+        if input.consume("snan") {
+            kind = .snan
+        } else if input.consume("nan") {
+            kind = .qnan
         } else {
-            digits = mantissa
+            kind = .normal
         }
-
-        // Validate all digits are ASCII 0-9. Character.isNumber would also accept
-        // Unicode numerics (fullwidth, arabic, fractions), and wholeNumberValue in
-        // decimalStringToUint128 then silently skips a fraction like "1/2",
-        // altering the coefficient. isEmpty is checked first for a precise error.
-        if digits.isEmpty { throw BidCodecError.invalidString("no digits") }
-        guard isAsciiDigits(digits) else { throw BidCodecError.invalidString("invalid digits: \(digits)") }
-
-        // Remove leading zeros but keep at least one
-        let trimmed = String(digits.drop(while: { $0 == "0" }))
-        if trimmed.isEmpty {
-            // All zeros
-            let exp = try adjustedInt32Exponent(sciExp: sciExp, fracLen: fracLen)
-            return Components(sign: sign, exponent: exp, kind: .zero)
+        if kind != .normal {
+            let payload = try input.unsignedDigits(maxDigits: 33, allowEmpty: true)
+            return Components(sign: sign, kind: kind, payloadHi: payload.hi, payloadLo: payload.lo)
         }
-
-        let exponent = try adjustedInt32Exponent(sciExp: sciExp, fracLen: fracLen)
-
-        // Schema-wide maximum coefficient: the parsed value (after leading-zero
-        // removal) must not exceed 10^34-1, the largest coefficient any
-        // supported BID width can hold. This is a schema constant, not
-        // per-width validation (which stays in encode*): it makes fixed-width
-        // and big-integer languages fail the same inputs the same way instead
-        // of wrapping or diverging. A value that overflows the 128-bit
-        // accumulator (nil) is above the cap by definition.
-        guard let (hi, lo) = decimalStringToUint128(trimmed),
-              !gt128(hi, lo, bid128MaxCoeffHi, bid128MaxCoeffLo) else {
-            throw BidCodecError.invalidString(
-                "coefficient \(trimmed) exceeds schema max 9999999999999999999999999999999999")
+        var coefficient = DecimalAccumulator(maxDigits: 34)
+        var foundDigit = false
+        var foundDot = false
+        var fractionDigits = 0
+        while let byte = input.peek(), byte != 69 && byte != 101 {
+            if byte == 46 {
+                guard !foundDot else { throw BidCodecError.invalidString("multiple decimal points") }
+                foundDot = true
+            } else {
+                guard byte >= 48 && byte <= 57 else {
+                    throw BidCodecError.invalidString("invalid coefficient digits")
+                }
+                foundDigit = true
+                try coefficient.append(byte - 48)
+                if foundDot {
+                    let (next, overflow) = fractionDigits.addingReportingOverflow(1)
+                    guard !overflow else { throw BidCodecError.invalidString("fraction too long") }
+                    fractionDigits = next
+                }
+            }
+            input.advance()
         }
-
-        return Components(
-            sign: sign,
-            coefficientHi: hi,
-            coefficientLo: lo,
-            exponent: exponent,
-            kind: .normal
-        )
+        guard foundDigit else { throw BidCodecError.invalidString("no digits") }
+        var sciExp = 0
+        if input.peek() != nil {
+            input.advance()
+            let negative = input.peek() == 45
+            if input.peek() == 43 || negative { input.advance() }
+            let magnitude = try input.unsignedDigits(maxDigits: 16, allowEmpty: false)
+            guard magnitude.lo < 1 << 53 else {
+                throw BidCodecError.invalidString("exponent literal magnitude must be below 2^53")
+            }
+            sciExp = negative ? -Int(magnitude.lo) : Int(magnitude.lo)
+        }
+        let exponent = try adjustedInt32Exponent(sciExp: sciExp, fracLen: fractionDigits)
+        return Components(sign: sign, coefficientHi: coefficient.hi, coefficientLo: coefficient.lo,
+                          exponent: exponent, kind: coefficient.digits == 0 ? .zero : .normal)
     }
 
-    private static func parsePayload(_ s: String) throws -> (hi: UInt64, lo: UInt64) {
-        if s.isEmpty { return (0, 0) }
-        // ASCII digits only (no sign, no Unicode digits), parsed as a 128-bit
-        // value; reject at or above the schema-wide NaN payload limit 10^33 (the
-        // widest canonical BID128 NaN payload), the same value encode128 rejects.
-        // A value that overflows the 128-bit accumulator (nil) is above the cap.
-        guard isAsciiDigits(s), let (hi, lo) = decimalStringToUint128(s),
-              !gte128(hi, lo, ten33Hi, ten33Lo) else {
-            throw BidCodecError.invalidString("invalid NaN payload: \(s)")
+    private struct DecimalAccumulator {
+        let maxDigits: Int
+        var digits = 0
+        var hi: UInt64 = 0
+        var lo: UInt64 = 0
+
+        mutating func append(_ digit: UInt8) throws {
+            if digits == 0 && digit == 0 { return }
+            guard digits < maxDigits else {
+                throw BidCodecError.invalidString("too many significant digits")
+            }
+            let (hiProduct, mulOverflow) = hi.multipliedReportingOverflow(by: 10)
+            let loProduct = lo.multipliedFullWidth(by: 10)
+            let (hiCarry, carryOverflow) = hiProduct.addingReportingOverflow(loProduct.high)
+            let (nextLo, loOverflow) = loProduct.low.addingReportingOverflow(UInt64(digit))
+            let (nextHi, hiOverflow) = hiCarry.addingReportingOverflow(loOverflow ? 1 : 0)
+            guard !mulOverflow && !carryOverflow && !hiOverflow else {
+                throw BidCodecError.invalidString("numeric overflow")
+            }
+            hi = nextHi
+            lo = nextLo
+            digits += 1
         }
-        return (hi, lo)
     }
 
-    /// True when `s` is non-empty and every scalar is an ASCII digit '0'-'9'.
-    private static func isAsciiDigits(_ s: String) -> Bool {
-        if s.isEmpty { return false }
-        for u in s.unicodeScalars {
-            if u.value < 0x30 || u.value > 0x39 { return false }
-        }
-        return true
-    }
+    private struct ASCIIParser {
+        let bytes: String.UTF8View
+        var index: String.UTF8View.Index
+        var end: String.UTF8View.Index
 
-    /// Trim only ASCII whitespace {TAB, LF, VT, FF, CR, SPACE} from both ends.
-    /// The input has already been verified ASCII, so byte-wise trimming is exact.
-    private static func trimAsciiWhitespace(_ s: String) -> String {
-        let ws: Set<UInt8> = [0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x20]
-        let bytes = Array(s.utf8)
-        var start = 0
-        var end = bytes.count
-        while start < end && ws.contains(bytes[start]) { start += 1 }
-        while end > start && ws.contains(bytes[end - 1]) { end -= 1 }
-        return String(decoding: bytes[start..<end], as: UTF8.self)
-    }
-
-    /// The shared exact-integer exponent-literal bound 2^53: the widest bound
-    /// every language consumer's number type can check exactly (JavaScript's
-    /// safe-integer range pins it). A literal at or beyond this magnitude is
-    /// rejected in every consumer through the same error channel, so every
-    /// consumer decides each input its runtime can represent by the same
-    /// mathematical rule (literal below 2^53, fraction-adjusted final exponent
-    /// in int32) — a fixed-width fraction counter can force a rejection only
-    /// in regions (over ~2^63 fraction digits) where that rule itself rejects.
-    private static let sharedExponentLiteralBound = 1 << 53
-
-    /// Parse an exponent literal: one optional leading '+'/'-' then ASCII digits
-    /// only. Prevents Swift's Int() from silently widening the grammar (embedded
-    /// whitespace, underscores, Unicode digits). The literal's magnitude must be
-    /// below the shared exact-integer bound 2^53 (a literal at or beyond it —
-    /// including anything past a 64-bit Int — is rejected through the same error
-    /// channel); the caller checks the fraction-adjusted FINAL exponent against
-    /// the signed 32-bit range, so every toString rendering (adjusted-exponent
-    /// literal at most Int32.max + 33, far below 2^53) reparses successfully.
-    private static func parseExponentLiteral(_ s: String) throws -> Int {
-        var body = Substring(s)
-        if let first = body.first, first == "+" || first == "-" {
-            body = body.dropFirst()
+        init(_ text: String) {
+            bytes = text.utf8
+            index = bytes.startIndex
+            end = bytes.endIndex
         }
-        guard isAsciiDigits(String(body)), let value = Int(s),
-              value > -sharedExponentLiteralBound, value < sharedExponentLiteralBound else {
-            throw BidCodecError.invalidString(
-                "invalid exponent \(s): not ASCII digits or at/above the shared exact-integer bound 2^53")
+
+        func peek() -> UInt8? { index == end ? nil : bytes[index] }
+
+        mutating func advance() { bytes.formIndex(after: &index) }
+
+        mutating func trimWhitespace() {
+            while let byte = peek(), byte == 32 || (9...13).contains(byte) { advance() }
+            while index != end {
+                let last = bytes.index(before: end)
+                let byte = bytes[last]
+                guard byte == 32 || (9...13).contains(byte) else { break }
+                end = last
+            }
         }
-        return value
+
+        mutating func consume(_ token: String) -> Bool {
+            var cursor = index
+            for byte in token.utf8 {
+                guard cursor != end, bytes[cursor] | 32 == byte else { return false }
+                bytes.formIndex(after: &cursor)
+            }
+            index = cursor
+            return true
+        }
+
+        mutating func unsignedDigits(maxDigits: Int, allowEmpty: Bool) throws -> DecimalAccumulator {
+            guard allowEmpty || peek() != nil else { throw BidCodecError.invalidString("no exponent digits") }
+            var value = DecimalAccumulator(maxDigits: maxDigits)
+            while let byte = peek() {
+                guard byte >= 48 && byte <= 57 else {
+                    throw BidCodecError.invalidString("invalid numeric digits")
+                }
+                try value.append(byte - 48)
+                advance()
+            }
+            return value
+        }
     }
 
     /// Fold the fraction adjustment into the exponent literal and check the

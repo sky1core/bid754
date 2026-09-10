@@ -39,6 +39,7 @@
       "groups": [
         "scripts",
         "harness",
+        "codec-parser",
         "quality",
         "portable"
       ],
@@ -62,6 +63,7 @@
       "groups": [
         "scripts",
         "harness",
+        "codec-parser",
         "quality",
         "portable",
         "native"
@@ -76,6 +78,7 @@
       "groups": [
         "scripts",
         "harness",
+        "codec-parser",
         "quality",
         "portable"
       ],
@@ -93,6 +96,17 @@
       "scope": "profile",
       "platforms": [
         "linux/s390x"
+      ]
+    },
+    "codec-parser": {
+      "groups": [
+        "codec-parser"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64",
+        "linux/arm64"
       ]
     }
   },
@@ -181,7 +195,9 @@
           "TestRunStageRejectsInheritedShardSelection",
           "TestFrozenBuildInputsIgnoreLaterSourceEdits",
           "TestRelayConsoleErrorsPreserveRecordsAndFail",
-          "TestBrokenConsolePipePreservesSpool"
+          "TestBrokenConsolePipePreservesSpool",
+          "TestParserResourceEvidenceRequiresEveryLanguageAndCount",
+          "TestParserResourceGateAppliesToRequiredProfiles"
         ]
       }
     },
@@ -339,6 +355,33 @@
       "evidence": {
         "patterns": [
           "verify-rust-package passed"
+        ]
+      }
+    },
+    {
+      "id": "codec-parser-resource",
+      "target": "test-codec-parser-resource",
+      "group": "codec-parser",
+      "tools": [
+        "go",
+        "cargo",
+        "rustc",
+        "javac",
+        "java",
+        "node",
+        "npm",
+        "python3",
+        "swift"
+      ],
+      "prerequisites": [],
+      "comparison": "schema-width-boundaries-and-parser-resources",
+      "evidence": {
+        "parser_resource": true,
+        "passes": [
+          "TestParserResourceContract"
+        ],
+        "patterns": [
+          "(?m)^PARSER-MEMORY-FAULT language=swift detection=rss-budget$"
         ]
       }
     },

@@ -38,8 +38,9 @@ jobs:
         run: |
           # The minimal profile omits clippy, which make test-rust runs as the
           # lint gate for the generated public API; request it explicitly.
-          rustup toolchain install stable --profile minimal --component clippy
-          rustup default stable
+          rust_version=$(cat devtools/rust-version)
+          rustup toolchain install "$rust_version" --profile minimal --component clippy
+          echo "RUSTUP_TOOLCHAIN=$rust_version" >> "$GITHUB_ENV"
 
       - name: Set up Java
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
@@ -144,8 +145,9 @@ jobs:
         run: |
           # The minimal profile omits clippy, which make test-rust runs as the
           # lint gate for the generated public API; request it explicitly.
-          rustup toolchain install stable --profile minimal --component clippy
-          rustup default stable
+          rust_version=$(cat devtools/rust-version)
+          rustup toolchain install "$rust_version" --profile minimal --component clippy
+          echo "RUSTUP_TOOLCHAIN=$rust_version" >> "$GITHUB_ENV"
 
       - name: Verify toolchains
         run: |
@@ -234,8 +236,9 @@ jobs:
 
       - name: Set up Rust
         run: |
-          rustup toolchain install stable --profile minimal --component clippy
-          rustup default stable
+          rust_version=$(cat devtools/rust-version)
+          rustup toolchain install "$rust_version" --profile minimal --component clippy
+          echo "RUSTUP_TOOLCHAIN=$rust_version" >> "$GITHUB_ENV"
 
       # Pinned-archive caches (see the portable-test job for the full
       # rationale): keyed on each provisioning script's hash, OS-agnostic,

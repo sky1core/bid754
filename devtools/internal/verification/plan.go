@@ -40,10 +40,11 @@ type Gate struct {
 }
 
 type Evidence struct {
-	Domain   string   `json:"domain,omitempty"`
-	Passes   []string `json:"passes,omitempty"`
-	Patterns []string `json:"patterns,omitempty"`
-	Codec    bool     `json:"codec,omitempty"`
+	Domain         string   `json:"domain,omitempty"`
+	Passes         []string `json:"passes,omitempty"`
+	Patterns       []string `json:"patterns,omitempty"`
+	Codec          bool     `json:"codec,omitempty"`
+	ParserResource bool     `json:"parser_resource,omitempty"`
 }
 
 var identifier = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -79,7 +80,7 @@ func Load(path string) (Plan, error) {
 			return p, fmt.Errorf("invalid or duplicate gate %q", g.ID)
 		}
 		ids[g.ID], groups[g.Group] = true, true
-		if g.Comparison == "" || (g.Evidence.Domain == "" && len(g.Evidence.Passes) == 0 && len(g.Evidence.Patterns) == 0 && !g.Evidence.Codec) {
+		if g.Comparison == "" || (g.Evidence.Domain == "" && len(g.Evidence.Passes) == 0 && len(g.Evidence.Patterns) == 0 && !g.Evidence.Codec && !g.Evidence.ParserResource) {
 			return p, fmt.Errorf("gate %s lacks comparison or execution evidence", g.ID)
 		}
 		for _, pattern := range g.Evidence.Patterns {

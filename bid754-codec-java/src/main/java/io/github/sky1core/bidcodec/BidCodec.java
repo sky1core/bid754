@@ -477,104 +477,63 @@ public final class BidCodec {
     public static Components fromString(String s) {
         if (s == null) throw new IllegalArgumentException("null string");
 
-        // (1) Whole-input ASCII gate, before any trim. Any code unit above 0x7F
-        // (a Unicode digit variant, Unicode whitespace, or a surrogate half of an
-        // astral character) makes the input malformed. This runs before the trim so
-        // that Unicode whitespace is rejected rather than stripped.
         for (int i = 0; i < s.length(); i++) {
-            char ch = s.charAt(i);
-            if (ch > 0x7f) {
-                throw new IllegalArgumentException(String.format(Locale.ROOT,
-                        "fromString: non-ASCII character U+%04X at index %d", (int) ch, i));
+            if (s.charAt(i) > 0x7f) {
+                throw new IllegalArgumentException("fromString: non-ASCII character");
             }
         }
+        int start = 0;
+        int end = s.length();
+        while (start < end && isAsciiWhitespace(s.charAt(start))) start++;
+        while (end > start && isAsciiWhitespace(s.charAt(end - 1))) end--;
+        if (start == end) throw new IllegalArgumentException("fromString: empty string");
 
-        // (2) Trim only ASCII whitespace {0x09,0x0A,0x0B,0x0C,0x0D,0x20}. Java's
-        // String.trim() also strips 0x00-0x08 and 0x0E-0x1F, which is wider than the
-        // shared grammar allows, so the trim is done explicitly here.
-        s = asciiWhitespaceTrim(s);
-        if (s.isEmpty()) throw new IllegalArgumentException("fromString: empty string");
-
-        boolean sign = false;
-        if (s.charAt(0) == '+') {
-            s = s.substring(1);
-        } else if (s.charAt(0) == '-') {
-            sign = true;
-            s = s.substring(1);
-        }
-
-        // (3) Special tokens, matched with ASCII case-insensitivity.
-        String upper = asciiUpper(s);
-        if (upper.equals("INF") || upper.equals("INFINITY")) {
+        boolean sign = s.charAt(start) == '-';
+        if (sign || s.charAt(start) == '+') start++;
+        if ((end - start == 3 && matchesAsciiToken(s, start, end, "INF"))
+                || (end - start == 8 && matchesAsciiToken(s, start, end, "INFINITY"))) {
             return new Components(sign, DecimalKind.INFINITY);
         }
-        if (upper.startsWith("SNAN")) {
-            return new Components(sign, DecimalKind.SNAN, parseUnsignedPayload(s.substring(4)));
+        if (matchesAsciiToken(s, start, end, "SNAN")) {
+            return new Components(sign, DecimalKind.SNAN, parseUnsignedPayload(s, start + 4, end));
         }
-        if (upper.startsWith("NAN")) {
-            return new Components(sign, DecimalKind.QNAN, parseUnsignedPayload(s.substring(3)));
+        if (matchesAsciiToken(s, start, end, "NAN")) {
+            return new Components(sign, DecimalKind.QNAN, parseUnsignedPayload(s, start + 3, end));
         }
 
-        // (4) Number: ASCII digits with at most one '.', at least one digit, and an
-        // optional 'E'/'e' exponent. The parsed coefficient value is bounded by the
-        // schema-wide maximum 10^34-1 below; per-BID-width range validation stays in
-        // the encode contract, not here.
-        StringBuilder digits = new StringBuilder();
-        long expAdjust = 0;
+        char[] digits = new char[34];
+        int digitCount = 0;
+        int fractionDigits = 0;
+        boolean foundDigit = false;
         boolean foundDot = false;
-        int i = 0;
-        while (i < s.length() && s.charAt(i) != 'E' && s.charAt(i) != 'e') {
-            char ch = s.charAt(i);
+        int i = start;
+        while (i < end && s.charAt(i) != 'E' && s.charAt(i) != 'e') {
+            char ch = s.charAt(i++);
             if (ch == '.') {
-                if (foundDot) {
-                    throw new IllegalArgumentException("fromString: multiple decimal points");
-                }
+                if (foundDot) throw new IllegalArgumentException("fromString: multiple decimal points");
                 foundDot = true;
             } else if (ch >= '0' && ch <= '9') {
-                digits.append(ch);
-                if (foundDot) {
-                    expAdjust--;
+                foundDigit = true;
+                if (foundDot) fractionDigits++;
+                if (digitCount != 0 || ch != '0') {
+                    if (digitCount == digits.length) {
+                        throw new IllegalArgumentException("fromString: coefficient exceeds schema max 10^34-1");
+                    }
+                    digits[digitCount++] = ch;
                 }
             } else {
-                throw new IllegalArgumentException("fromString: unexpected character '" + ch + "'");
+                throw new IllegalArgumentException("fromString: unexpected character");
             }
-            i++;
         }
-
-        if (digits.length() == 0) {
-            throw new IllegalArgumentException("fromString: no digits");
-        }
-
-        long expPart = 0;
-        if (i < s.length()) { // stopped on 'E'/'e'
-            expPart = parseExponentDigits(s.substring(i + 1));
-        }
-
-        // Remove leading zeros
-        int start = 0;
-        while (start < digits.length() - 1 && digits.charAt(start) == '0') {
-            start++;
-        }
-        String trimmed = digits.substring(start);
-
-        BigInteger coeff = new BigInteger(trimmed);
-        // Value-based schema limit, applied after leading-zero removal: 35 nines is
-        // rejected, but 40 zeros followed by "1" (value 1) parses.
-        if (coeff.compareTo(SCHEMA_MAX_COEFF) > 0) {
-            throw new IllegalArgumentException(
-                    "fromString: coefficient " + coeff + " exceeds schema max " + SCHEMA_MAX_COEFF);
-        }
-        long exponentLong = expPart + expAdjust;
+        if (!foundDigit) throw new IllegalArgumentException("fromString: no digits");
+        long expPart = i < end ? parseExponentDigits(s, i + 1, end) : 0;
+        long exponentLong = expPart - fractionDigits;
         if (exponentLong < Integer.MIN_VALUE || exponentLong > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException(
-                    "fromString: exponent " + exponentLong + " out of signed 32-bit range");
+            throw new IllegalArgumentException("fromString: exponent out of signed 32-bit range");
         }
         int exponent = (int) exponentLong;
-
-        if (coeff.signum() == 0) {
-            return new Components(sign, exponent, DecimalKind.ZERO);
-        }
-        return new Components(sign, coeff, exponent);
+        if (digitCount == 0) return new Components(sign, exponent, DecimalKind.ZERO);
+        return new Components(sign, new BigInteger(new String(digits, 0, digitCount)), exponent);
     }
 
     // ==================== Helpers ====================
@@ -608,105 +567,51 @@ public final class BidCodec {
         return ch == 0x09 || ch == 0x0A || ch == 0x0B || ch == 0x0C || ch == 0x0D || ch == 0x20;
     }
 
-    /** Trims only the six ASCII whitespace characters from both ends. */
-    private static String asciiWhitespaceTrim(String s) {
-        int start = 0;
-        int end = s.length();
-        while (start < end && isAsciiWhitespace(s.charAt(start))) start++;
-        while (end > start && isAsciiWhitespace(s.charAt(end - 1))) end--;
-        return s.substring(start, end);
-    }
-
-    /**
-     * ASCII-only uppercasing. The input is already guaranteed ASCII, so this avoids
-     * the locale sensitivity of {@code String.toUpperCase()} (e.g. Turkish 'i').
-     */
-    private static String asciiUpper(String s) {
-        char[] out = s.toCharArray();
-        for (int i = 0; i < out.length; i++) {
-            char ch = out[i];
-            if (ch >= 'a' && ch <= 'z') out[i] = (char) (ch - 32);
+    private static boolean matchesAsciiToken(String s, int start, int end, String token) {
+        if (end - start < token.length()) return false;
+        for (int i = 0; i < token.length(); i++) {
+            char ch = s.charAt(start + i);
+            if (ch >= 'a' && ch <= 'z') ch = (char) (ch - ('a' - 'A'));
+            if (ch != token.charAt(i)) return false;
         }
-        return new String(out);
+        return true;
     }
 
-    /**
-     * Parses an unsigned NaN payload: an empty string means zero, otherwise the
-     * characters must be unsigned ASCII digits whose value is below the schema-wide
-     * NaN payload limit {@code 10^33} (the widest canonical BID128 payload, the same
-     * kind of schema constant as the {@code 10^34-1} coefficient cap). A leading
-     * sign, underscore, or Unicode digit is rejected (the last is already rejected by
-     * the whole-input ASCII gate); this is why the raw substring is not delegated to
-     * a standard parser that would accept a leading '+'.
-     */
-    private static BigInteger parseUnsignedPayload(String s) {
-        if (s.isEmpty()) return BigInteger.ZERO;
-        for (int i = 0; i < s.length(); i++) {
+    private static BigInteger parseUnsignedPayload(String s, int start, int end) {
+        int firstNonzero = end;
+        for (int i = start; i < end; i++) {
             char ch = s.charAt(i);
             if (ch < '0' || ch > '9') {
-                throw new IllegalArgumentException("fromString: invalid NaN payload '" + s + "'");
+                throw new IllegalArgumentException("fromString: invalid NaN payload");
+            }
+            if (firstNonzero == end && ch != '0') firstNonzero = i;
+            if (firstNonzero != end && i - firstNonzero >= 33) {
+                throw new IllegalArgumentException("fromString: NaN payload is at or above schema max 10^33");
             }
         }
-        BigInteger payload = new BigInteger(s); // charset already gated to ASCII digits
-        if (payload.compareTo(TEN33) >= 0) {
-            throw new IllegalArgumentException(
-                    "fromString: NaN payload '" + s + "' is at or above the schema max 10^33");
-        }
-        return payload;
+        if (firstNonzero == end) return BigInteger.ZERO;
+        return new BigInteger(s.substring(firstNonzero, end));
     }
 
-    /**
-     * The shared exact-integer exponent-literal bound {@code 2^53}: the widest bound
-     * every language consumer's number type can check exactly (JavaScript's
-     * safe-integer range pins it). A literal at or beyond this magnitude is rejected
-     * in every consumer through the same error channel, so every consumer decides
-     * each input its runtime can represent by the same mathematical rule (literal
-     * below 2^53, fraction-adjusted final exponent in int32) — a fixed-width
-     * fraction counter can force a rejection only in regions (over ~2^63 fraction
-     * digits) where that rule itself rejects.
-     */
     private static final long SHARED_EXPONENT_LITERAL_BOUND = 1L << 53;
 
-    /**
-     * Parses a signed exponent field: an optional single leading '+'/'-' then ASCII
-     * digits only. The literal's magnitude must be below the shared exact-integer
-     * bound {@code 2^53} (a literal at or beyond it — including anything past a
-     * 64-bit long — is rejected through the same error channel); the caller folds
-     * in the fraction adjustment and checks the FINAL exponent against the signed
-     * 32-bit range, so every toString rendering — whose adjusted-exponent literal
-     * is at most {@code Integer.MAX_VALUE + 33}, far below {@code 2^53} — reparses
-     * successfully (round-trip closure). The caller's long fold is exact by hard
-     * bounds: the literal magnitude is below {@code 2^53} and the fraction
-     * adjustment magnitude is below {@code 2^31} (a Java String cannot carry more
-     * than {@code Integer.MAX_VALUE} fractional digits), so their sum stays far
-     * inside the 64-bit range and cannot overflow.
-     */
-    private static long parseExponentDigits(String s) {
-        int idx = 0;
+    private static long parseExponentDigits(String s, int start, int end) {
         boolean neg = false;
-        if (idx < s.length() && (s.charAt(idx) == '+' || s.charAt(idx) == '-')) {
-            neg = s.charAt(idx) == '-';
-            idx++;
+        if (start < end && (s.charAt(start) == '+' || s.charAt(start) == '-')) {
+            neg = s.charAt(start++) == '-';
         }
-        if (idx >= s.length()) {
-            throw new IllegalArgumentException("fromString: exponent has no digits");
-        }
+        if (start == end) throw new IllegalArgumentException("fromString: exponent has no digits");
         long val = 0;
-        for (; idx < s.length(); idx++) {
-            char ch = s.charAt(idx);
+        for (int i = start; i < end; i++) {
+            char ch = s.charAt(i);
             if (ch < '0' || ch > '9') {
-                throw new IllegalArgumentException("fromString: invalid exponent character '" + ch + "'");
+                throw new IllegalArgumentException("fromString: invalid exponent character");
             }
-            try {
-                val = Math.addExact(Math.multiplyExact(val, 10), ch - '0');
-            } catch (ArithmeticException e) {
-                throw new IllegalArgumentException(
-                        "fromString: exponent literal at or above the shared exact-integer bound 2^53", e);
+            int digit = ch - '0';
+            if (val > (SHARED_EXPONENT_LITERAL_BOUND - 1 - digit) / 10) {
+                throw new IllegalArgumentException("fromString: exponent literal at or above bound 2^53");
             }
-        }
-        if (val >= SHARED_EXPONENT_LITERAL_BOUND) {
-            throw new IllegalArgumentException(
-                    "fromString: exponent literal at or above the shared exact-integer bound 2^53");
+            val = val * 10 + digit;
         }
         return neg ? -val : val;
     }

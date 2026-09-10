@@ -21,7 +21,7 @@ func main() {
 
 func run() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("usage: verifyplan <run|check|matrix|list> --profile NAME --root DIR [--results DIR] [--invocation ID]")
+		return fmt.Errorf("usage: verifyplan <run|check|matrix|list|evidence> --root DIR [--profile NAME] [--results DIR] [--invocation ID] [--gate ID --log FILE]")
 	}
 	action := os.Args[1]
 	fs := flag.NewFlagSet("verifyplan "+action, flag.ContinueOnError)
@@ -31,6 +31,8 @@ func run() error {
 	resultsBase := fs.String("results-base", "", "parent directory for new runs; default: repository test_results/verification")
 	invocation := fs.String("invocation", "", "invocation identity; required for check/matrix")
 	snapshot := fs.String("snapshot", "", "expected source fingerprint; default: current repository contents")
+	gateID := fs.String("gate", "", "gate ID for evidence validation")
+	logFile := fs.String("log", "", "execution log for evidence validation")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		return err
 	}
@@ -44,6 +46,25 @@ func run() error {
 	plan, err := verification.Load(filepath.Join(root, "devtools/verification_plan.json"))
 	if err != nil {
 		return err
+	}
+	if action == "evidence" {
+		if *gateID == "" || *logFile == "" {
+			return fmt.Errorf("--gate and --log are required for evidence")
+		}
+		for _, gate := range plan.Gates {
+			if gate.ID == *gateID {
+				path, err := filepath.Abs(*logFile)
+				if err != nil {
+					return err
+				}
+				if err := verification.CheckEvidence(root, path, gate.Evidence); err != nil {
+					return err
+				}
+				fmt.Printf("VERIFICATION-EVIDENCE gate=%s comparison=%s\n", gate.ID, gate.Comparison)
+				return nil
+			}
+		}
+		return fmt.Errorf("unknown gate %q", *gateID)
 	}
 	if action == "list" {
 		gates, err := plan.Select(*profile, runtime.GOOS+"/"+runtime.GOARCH)

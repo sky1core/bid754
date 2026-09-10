@@ -170,7 +170,7 @@ func TestCanonicalPlanDoesNotPromotePartialOrRequireExhaustiveByDefault(t *testi
 		}
 		ids[g.ID] = true
 	}
-	for _, id := range []string{"native-decnumber", "rust-native-fuzz", "codec-vectors", "generated-artifacts"} {
+	for _, id := range []string{"native-decnumber", "rust-native-fuzz", "codec-vectors", "codec-parser-resource", "generated-artifacts"} {
 		if !ids[id] {
 			t.Fatalf("missing required gate %s", id)
 		}

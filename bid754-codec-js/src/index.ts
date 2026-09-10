@@ -626,147 +626,106 @@ function validateStringComponents(comp: Components): void {
 }
 
 export function fromString(s: string): Components {
-  // The whole input must be ASCII, checked before trimming: any code unit above
-  // 0x7F anywhere is malformed (Unicode digit variants such as U+FF11/U+0661,
-  // Unicode whitespace such as U+00A0, fractions such as U+00BD, etc.).
-  // String.prototype.trim() strips Unicode whitespace, which would let a leading
-  // U+00A0 pass silently, so it is not used.
+  if (typeof s !== "string") throw new Error("expected a string");
   for (let k = 0; k < s.length; k++) {
-    if (s.charCodeAt(k) > 0x7f) {
-      throw new Error(`non-ASCII character at index ${k}`);
-    }
+    if (s.charCodeAt(k) > 0x7f) throw new Error("non-ASCII character");
   }
-  // Trim only ASCII whitespace {TAB, LF, VT, FF, CR, SPACE}.
-  s = trimAsciiWhitespace(s);
-  if (s.length === 0) throw new Error("empty string");
-
-  let sign = false;
-  if (s[0] === "+") {
-    s = s.slice(1);
-  } else if (s[0] === "-") {
-    sign = true;
-    s = s.slice(1);
-  }
-
-  const upper = s.toUpperCase();
-  if (upper === "INF" || upper === "INFINITY") {
-    return c(sign, Kind.Infinity);
-  }
-  if (upper.startsWith("SNAN")) {
-    const payload = s.length > 4 ? parsePayload(s.slice(4)) : 0n;
-    return c(sign, Kind.SNaN, 0n, 0, payload);
-  }
-  if (upper.startsWith("NAN")) {
-    const payload = s.length > 3 ? parsePayload(s.slice(3)) : 0n;
-    return c(sign, Kind.QNaN, 0n, 0, payload);
-  }
-
-  // Parse number: digits, decimal point, exponent
-  let digits = "";
-  let expAdjust = 0;
-  let foundDot = false;
-  let i = 0;
-  while (i < s.length && s[i] !== "E" && s[i] !== "e") {
-    if (s[i] === ".") {
-      if (foundDot) throw new Error("multiple decimal points");
-      foundDot = true;
-    } else if (s[i] >= "0" && s[i] <= "9") {
-      digits += s[i];
-      if (foundDot) {
-        expAdjust--;
-      }
-    } else {
-      throw new Error(`unexpected character: ${s[i]}`);
-    }
-    i++;
-  }
-
-  let expPart = 0;
-  if (i < s.length && (s[i] === "E" || s[i] === "e")) {
-    i++;
-    expPart = parseExponentLiteral(s.slice(i));
-  }
-
-  if (digits.length === 0) throw new Error("no digits");
-
-  // Remove leading zeros
-  let start = 0;
-  while (start < digits.length - 1 && digits[start] === "0") {
-    start++;
-  }
-  digits = digits.slice(start);
-
-  const coeff = BigInt(digits);
-  // Schema-wide maximum coefficient: the parsed value (after leading-zero
-  // removal) must not exceed 10^34-1, the largest coefficient any supported BID
-  // width can hold. This is a schema constant, not per-width validation (which
-  // stays in encode*): it makes big-integer and fixed-width-integer languages
-  // fail the same inputs the same way instead of wrapping or diverging.
-  if (coeff > schemaMaxCoefficient) {
-    throw new Error(`coefficient ${coeff} exceeds schema max ${schemaMaxCoefficient}`);
-  }
-  // Only the fraction-adjusted FINAL exponent must fit int32; the literal was
-  // allowed past int32 (below the shared 2^53 exact-integer bound) so every
-  // toString rendering (adjusted-exponent literal at most int32 max + 33)
-  // reparses successfully. Exactness of this fold: |expPart| < 2^53 and
-  // |expAdjust| is bounded by the input length (far below 2^30, the engine
-  // string-length ceiling), so either the sum stays within the exact double
-  // range and is computed exactly, or its true magnitude exceeds 2^53 — a
-  // region entirely outside int32, where any rounding (error at most a few
-  // ULPs, each >= 2) cannot move the value into the int32 window, so
-  // checkedInt32's verdict equals the mathematical one either way.
-  const exponent = checkedInt32(expPart + expAdjust, "exponent");
-
-  if (coeff === 0n) {
-    return c(sign, Kind.Zero, 0n, exponent);
-  }
-  return c(sign, Kind.Normal, coeff, exponent);
-}
-
-const asciiWhitespace: ReadonlySet<number> = new Set([0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x20]);
-
-function trimAsciiWhitespace(s: string): string {
   let start = 0;
   let end = s.length;
-  while (start < end && asciiWhitespace.has(s.charCodeAt(start))) start++;
-  while (end > start && asciiWhitespace.has(s.charCodeAt(end - 1))) end--;
-  return s.slice(start, end);
+  while (start < end && isAsciiWhitespace(s.charCodeAt(start))) start++;
+  while (end > start && isAsciiWhitespace(s.charCodeAt(end - 1))) end--;
+  if (start === end) throw new Error("empty string");
+
+  const sign = s[start] === "-";
+  if (sign || s[start] === "+") start++;
+  if ((end - start === 3 && matchesAsciiToken(s, start, end, "INF")) ||
+      (end - start === 8 && matchesAsciiToken(s, start, end, "INFINITY"))) {
+    return c(sign, Kind.Infinity);
+  }
+  if (matchesAsciiToken(s, start, end, "SNAN")) {
+    return c(sign, Kind.SNaN, 0n, 0, parsePayload(s, start + 4, end));
+  }
+  if (matchesAsciiToken(s, start, end, "NAN")) {
+    return c(sign, Kind.QNaN, 0n, 0, parsePayload(s, start + 3, end));
+  }
+
+  let digits = "";
+  let fractionDigits = 0;
+  let foundDigit = false;
+  let foundDot = false;
+  let i = start;
+  while (i < end && s[i] !== "E" && s[i] !== "e") {
+    const ch = s[i++];
+    if (ch === ".") {
+      if (foundDot) throw new Error("multiple decimal points");
+      foundDot = true;
+    } else if (ch >= "0" && ch <= "9") {
+      foundDigit = true;
+      if (foundDot) fractionDigits++;
+      if (digits.length !== 0 || ch !== "0") {
+        if (digits.length === 34) throw new Error("coefficient exceeds schema max 10^34-1");
+        digits += ch;
+      }
+    } else {
+      throw new Error("unexpected character");
+    }
+  }
+  if (!foundDigit) throw new Error("no digits");
+  const expPart = i < end ? parseExponentLiteral(s, i + 1, end) : 0;
+  const exponent = checkedInt32(expPart - fractionDigits, "exponent");
+  const coeff = digits.length === 0 ? 0n : BigInt(digits);
+  return c(sign, coeff === 0n ? Kind.Zero : Kind.Normal, coeff, exponent);
 }
 
-function parsePayload(s: string): bigint {
-  if (!/^[0-9]+$/.test(s)) throw new Error(`invalid NaN payload: ${s}`);
-  const payload = BigInt(s);
-  // Schema-wide NaN payload limit: reject at or above 10^33 (the widest
-  // canonical BID128 NaN payload), the same value encode128 rejects.
-  if (payload >= ten33) {
-    throw new Error(`NaN payload ${payload} exceeds schema max ${ten33 - 1n}`);
-  }
-  return payload;
+function isAsciiWhitespace(ch: number): boolean {
+  return ch === 0x20 || (ch >= 0x09 && ch <= 0x0d);
 }
 
-// parseExponentLiteral parses an exponent literal: one optional sign then
-// ASCII digits, with NO int32 range check — the caller checks the
-// fraction-adjusted FINAL exponent against int32, so every toString rendering
-// (adjusted-exponent literal at most int32 max + 33) reparses successfully
-// (round-trip closure). The literal must be a safe integer (magnitude below
-// 2^53): that IS the shared exact-integer literal bound of the fromString
-// grammar itself — every language consumer rejects a literal at or beyond
-// 2^53 through the same error channel (Number.isSafeInteger pins the bound
-// here; the fixed-width and big-integer consumers enforce the same constant
-// explicitly), so the seven accepted-input sets are mathematically
-// identical, not merely observationally so.
-function parseExponentLiteral(s: string): number {
-  if (!/^[+-]?[0-9]+$/.test(s)) throw new Error(`invalid exponent: ${s}`);
-  const n = Number(s);
-  if (!Number.isSafeInteger(n)) {
-    throw new Error(`exponent literal at or above the shared exact-integer bound 2^53: ${s}`);
+function matchesAsciiToken(s: string, start: number, end: number, token: string): boolean {
+  if (end - start < token.length) return false;
+  for (let i = 0; i < token.length; i++) {
+    let ch = s.charCodeAt(start + i);
+    if (ch >= 0x61 && ch <= 0x7a) ch -= 0x20;
+    if (ch !== token.charCodeAt(i)) return false;
   }
-  return n;
+  return true;
+}
+
+function parsePayload(s: string, start: number, end: number): bigint {
+  let firstNonzero = end;
+  for (let i = start; i < end; i++) {
+    const ch = s.charCodeAt(i);
+    if (ch < 0x30 || ch > 0x39) throw new Error("invalid NaN payload");
+    if (firstNonzero === end && ch !== 0x30) firstNonzero = i;
+    if (firstNonzero !== end && i - firstNonzero >= 33) {
+      throw new Error("NaN payload exceeds schema max 10^33-1");
+    }
+  }
+  return firstNonzero === end ? 0n : BigInt(s.slice(firstNonzero, end));
+}
+
+function parseExponentLiteral(s: string, start: number, end: number): number {
+  let neg = false;
+  if (start < end && (s[start] === "+" || s[start] === "-")) {
+    neg = s[start++] === "-";
+  }
+  if (start === end) throw new Error("exponent has no digits");
+  let value = 0;
+  for (let i = start; i < end; i++) {
+    const ch = s.charCodeAt(i);
+    if (ch < 0x30 || ch > 0x39) throw new Error("invalid exponent character");
+    const digit = ch - 0x30;
+    if (value > Math.floor((Number.MAX_SAFE_INTEGER - digit) / 10)) {
+      throw new Error("exponent literal at or above bound 2^53");
+    }
+    value = value * 10 + digit;
+  }
+  return neg ? -value : value;
 }
 
 function checkedInt32(n: number, label: string): number {
   if (!Number.isSafeInteger(n) || n < -2147483648 || n > 2147483647) {
-    throw new Error(`${label} out of int32 range: ${n}`);
+    throw new Error(`${label} out of int32 range`);
   }
-  return n;
+  return n === 0 ? 0 : n;
 }
