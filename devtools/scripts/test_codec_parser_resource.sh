@@ -16,6 +16,12 @@ trap 'python3 -c '\''import shutil, sys; shutil.rmtree(sys.argv[1])'\'' "$work_d
     GOCACHE="${GOCACHE:-/tmp/go-cache}" go test -count=1 -v -run '^TestParserResourceContract$' .
 )
 (
+    cd bid754-go
+    GOCACHE="${GOCACHE:-/tmp/go-cache}" go test -count=1 -v \
+        -run '^(TestPublicParserResourceBounds|TestPublicParserConvenienceWidths|TestPublicParserConvenienceAnyWidthEquivalence|TestPublicParserConvenienceMinimumPrecision|TestRawStringParserResources|TestRawStringParserLookahead|TestRawStringParserPrefixAcceptance)$' \
+        . ./internal/bidgo
+)
+(
     cd bid754-codec-rs
     cargo test --locked --test parser_resource -- --nocapture --test-threads=1
 )

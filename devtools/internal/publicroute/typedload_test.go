@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/build/constraint"
+	"go/constant"
 	"go/importer"
 	"go/parser"
 	"go/token"
@@ -699,12 +700,22 @@ func (r *routeResolver) proveVariantEquivalence(fn string, covered func(string) 
 	if fnDecl == nil || sibDecl == nil {
 		return "", false
 	}
+	fnSig := fnObj.Type().(*types.Signature)
+	sibSig := sibObj.Type().(*types.Signature)
+	if fnSig.Variadic() || sibSig.Variadic() || fnSig.Params().Len() != sibSig.Params().Len() {
+		return "", false
+	}
+	for i := 0; i < fnSig.Params().Len(); i++ {
+		if !types.Identical(fnSig.Params().At(i).Type(), sibSig.Params().At(i).Type()) {
+			return "", false
+		}
+	}
 	fnCallees := r.bidgoCalleeFuncs(fnDecl)
 	sibCallees := r.bidgoCalleeFuncs(sibDecl)
-	if len(fnCallees) == 1 && fnCallees[sibObj] && r.firstResultFlowsFromCall(fnDecl, sibObj) {
+	if len(fnCallees) == 1 && fnCallees[sibObj] && r.firstResultFlowsFromCall(fnDecl, sibObj) && r.forwardsVariantParameters(fnDecl, sibObj) {
 		return fmt.Sprintf("returns the value of surface sibling %s (sole callee)", sibling), true
 	}
-	if sibCallees[fnObj] && r.firstResultFlowsFromCall(sibDecl, fnObj) {
+	if sibCallees[fnObj] && r.firstResultFlowsFromCall(sibDecl, fnObj) && r.forwardsVariantParameters(sibDecl, fnObj) {
 		return fmt.Sprintf("surface sibling %s returns its value", sibling), true
 	}
 	if len(fnCallees) == 1 {
@@ -712,11 +723,152 @@ func (r *routeResolver) proveVariantEquivalence(fn string, covered func(string) 
 		for c := range fnCallees {
 			sole = c
 		}
-		if sibCallees[sole] && r.firstResultFlowsFromCall(fnDecl, sole) && r.firstResultFlowsFromCall(sibDecl, sole) {
+		if sibCallees[sole] && r.firstResultFlowsFromCall(fnDecl, sole) && r.firstResultFlowsFromCall(sibDecl, sole) && r.equivalentVariantArguments(fnDecl, sibDecl, sole) {
 			return fmt.Sprintf("both return the value of shared delegate %s (surface sibling %s)", sole.Name(), sibling), true
 		}
 	}
 	return "", false
+}
+
+type variantArgument struct {
+	param int
+	typ   types.Type
+	value constant.Value
+}
+
+func (r *routeResolver) variantArgument(expr ast.Expr, params *types.Tuple) (variantArgument, bool) {
+	tv := r.info.Types[expr]
+	if tv.Value != nil && tv.Value.Kind() != constant.Unknown {
+		return variantArgument{param: -1, typ: tv.Type, value: tv.Value}, true
+	}
+	if id, ok := ast.Unparen(expr).(*ast.Ident); ok {
+		for i := 0; i < params.Len(); i++ {
+			if r.info.Uses[id] == params.At(i) {
+				return variantArgument{param: i, typ: params.At(i).Type()}, true
+			}
+		}
+	}
+	return variantArgument{}, false
+}
+
+func (r *routeResolver) variantCallArguments(fn *ast.FuncDecl, callee *types.Func) ([]variantArgument, bool) {
+	if fn == nil || fn.Body == nil || len(fn.Body.List) == 0 || len(fn.Body.List) > 2 {
+		return nil, false
+	}
+	ret, ok := fn.Body.List[len(fn.Body.List)-1].(*ast.ReturnStmt)
+	if !ok || len(ret.Results) == 0 {
+		return nil, false
+	}
+	var call *ast.CallExpr
+	bindings := map[types.Object]bool{}
+	if len(fn.Body.List) == 1 {
+		call, _ = ret.Results[0].(*ast.CallExpr)
+	} else {
+		var lhs, rhs []ast.Expr
+		switch stmt := fn.Body.List[0].(type) {
+		case *ast.AssignStmt:
+			if stmt.Tok != token.DEFINE {
+				return nil, false
+			}
+			lhs, rhs = stmt.Lhs, stmt.Rhs
+		case *ast.DeclStmt:
+			decl, ok := stmt.Decl.(*ast.GenDecl)
+			if !ok || decl.Tok != token.VAR || len(decl.Specs) != 1 {
+				return nil, false
+			}
+			spec := decl.Specs[0].(*ast.ValueSpec)
+			for _, name := range spec.Names {
+				lhs = append(lhs, name)
+			}
+			rhs = spec.Values
+		default:
+			return nil, false
+		}
+		if len(lhs) == 0 || len(rhs) != 1 {
+			return nil, false
+		}
+		call, _ = rhs[0].(*ast.CallExpr)
+		for _, expr := range lhs {
+			id, ok := expr.(*ast.Ident)
+			if !ok {
+				return nil, false
+			}
+			if id.Name != "_" {
+				obj := r.info.Defs[id]
+				if obj == nil {
+					return nil, false
+				}
+				bindings[obj] = true
+			}
+		}
+		id, ok := ret.Results[0].(*ast.Ident)
+		if !ok || r.info.Uses[id] == nil || r.info.Uses[id] != r.objOf(lhs[0].(*ast.Ident)) {
+			return nil, false
+		}
+	}
+	if call == nil || call.Ellipsis.IsValid() {
+		return nil, false
+	}
+	id, ok := call.Fun.(*ast.Ident)
+	if !ok || r.info.Uses[id] != callee {
+		return nil, false
+	}
+	obj, ok := r.info.Defs[fn.Name].(*types.Func)
+	if !ok {
+		return nil, false
+	}
+	params := obj.Type().(*types.Signature).Params()
+	for _, expr := range ret.Results[1:] {
+		if id, ok := ast.Unparen(expr).(*ast.Ident); ok && bindings[r.info.Uses[id]] {
+			continue
+		}
+		if _, ok := r.variantArgument(expr, params); !ok {
+			return nil, false
+		}
+	}
+	args := make([]variantArgument, len(call.Args))
+	for i, expr := range call.Args {
+		arg, ok := r.variantArgument(expr, params)
+		if !ok {
+			return nil, false
+		}
+		args[i] = arg
+	}
+	return args, true
+}
+
+func (r *routeResolver) forwardsVariantParameters(fn *ast.FuncDecl, callee *types.Func) bool {
+	args, ok := r.variantCallArguments(fn, callee)
+	if !ok || len(args) != callee.Type().(*types.Signature).Params().Len() {
+		return false
+	}
+	for i, arg := range args {
+		if arg.param != i {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *routeResolver) equivalentVariantArguments(fn, sibling *ast.FuncDecl, callee *types.Func) bool {
+	args, ok := r.variantCallArguments(fn, callee)
+	if !ok {
+		return false
+	}
+	sibArgs, ok := r.variantCallArguments(sibling, callee)
+	if !ok || len(args) != len(sibArgs) {
+		return false
+	}
+	for i, arg := range args {
+		other := sibArgs[i]
+		if arg.param != other.param || !types.Identical(arg.typ, other.typ) {
+			return false
+		}
+		if arg.param == -1 && !constant.Compare(arg.value, token.EQL, other.value) {
+			return false
+		}
+	}
+	return true
 }
 
 // ---------------------------------------------------------------------------

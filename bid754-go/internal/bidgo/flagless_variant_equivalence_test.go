@@ -5,7 +5,8 @@
 //
 // Why this gate exists: some flagless port entrypoints are separately ported
 // full implementations, not thin wrappers over their WithFlags siblings
-// (BID32 add/sub/mul/div and BID64 mul/div). The goport readtest and FFI
+// (BID32 add/sub/mul/div and BID64 mul/div), while BID64 add/sub select
+// different delegate arguments. The goport readtest and FFI
 // bit-compare gates exercise the WithFlags variants, so the flagless bodies -
 // which the public value-only wrappers actually route through - would
 // otherwise run under no oracle at all. This gate closes that hole
@@ -43,8 +44,8 @@ var flaglessVariantEquivalenceTargets32 = []struct {
 	{name: "Bid32Div", flagless: Bid32Div, withFlags: Bid32DivWithFlags},
 }
 
-// flaglessVariantEquivalenceTargets64 pins the separately ported flagless
-// BID64 entrypoints and their oracle-verified WithFlags siblings. Both
+// flaglessVariantEquivalenceTargets64 pins the BID64 entrypoints whose value
+// agreement with their oracle-verified WithFlags siblings requires execution. Both
 // identifiers must be the real port functions; publicroute verifies the pair
 // is present by name.
 var flaglessVariantEquivalenceTargets64 = []struct {
@@ -52,6 +53,8 @@ var flaglessVariantEquivalenceTargets64 = []struct {
 	flagless  func(x, y uint64, rndMode int) uint64
 	withFlags func(x, y uint64, rndMode int) (uint64, uint32)
 }{
+	{name: "Bid64Add", flagless: Bid64Add, withFlags: Bid64AddWithFlags},
+	{name: "Bid64Sub", flagless: Bid64Sub, withFlags: Bid64SubWithFlags},
 	{name: "Bid64Div", flagless: Bid64Div, withFlags: Bid64DivWithFlags},
 	{name: "Bid64Mul", flagless: Bid64Mul, withFlags: Bid64MulWithFlags},
 }
@@ -153,7 +156,7 @@ func TestFlaglessVariantsMatchWithFlagsValues(t *testing.T) {
 					want, _ := target.withFlags(x, y, mode)
 					executed++
 					if got != want {
-						t.Fatalf("%s(%#010x, %#010x, mode %d) = %#010x, but %sWithFlags value = %#010x: the separately ported flagless implementation diverged from its oracle-verified WithFlags sibling",
+						t.Fatalf("%s(%#010x, %#010x, mode %d) = %#010x, but %sWithFlags value = %#010x: the flagless implementation diverged from its oracle-verified WithFlags sibling",
 							target.name, x, y, mode, got, target.name, want)
 					}
 				}
@@ -191,7 +194,7 @@ func TestFlaglessVariantsMatchWithFlagsValues(t *testing.T) {
 					want, _ := target.withFlags(x, y, mode)
 					executed++
 					if got != want {
-						t.Fatalf("%s(%#018x, %#018x, mode %d) = %#018x, but %sWithFlags value = %#018x: the separately ported flagless implementation diverged from its oracle-verified WithFlags sibling",
+						t.Fatalf("%s(%#018x, %#018x, mode %d) = %#018x, but %sWithFlags value = %#018x: the flagless implementation diverged from its oracle-verified WithFlags sibling",
 							target.name, x, y, mode, got, target.name, want)
 					}
 				}

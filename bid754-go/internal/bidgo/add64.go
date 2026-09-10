@@ -11,8 +11,10 @@ import "math"
 // Bid64Sub subtracts y from x
 // Ported from bid64_sub in bid64_add.c
 func Bid64Sub(x, y uint64, rndMode int) uint64 {
-	result, _ := Bid64SubWithFlags(x, y, rndMode)
-	return result
+	if (y & NAN_MASK64) != NAN_MASK64 {
+		y ^= 0x8000000000000000
+	}
+	return Bid64Add(x, y, rndMode)
 }
 
 // Bid64SubWithFlags subtracts y from x and returns flags
@@ -27,13 +29,17 @@ func Bid64SubWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 // Bid64Add adds x and y
 // Ported from bid64_add in bid64_add.c
 func Bid64Add(x, y uint64, rndMode int) uint64 {
-	result, _ := Bid64AddWithFlags(x, y, rndMode)
+	result, _ := bid64AddResult(x, y, rndMode, false)
 	return result
 }
 
 // Bid64AddWithFlags adds x and y and returns (result, flags)
 // Ported from bid64_add in bid64_add.c (line-by-line mechanical translation)
 func Bid64AddWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
+	return bid64AddResult(x, y, rndMode, true)
+}
+
+func bid64AddResult(x, y uint64, rndMode int, checkRoundedInexact bool) (uint64, uint32) {
 	var CA, CT, CT_new BID_UINT128
 	var sign_x, sign_y, coefficient_x, coefficient_y, C64_new uint64
 	var valid_x, valid_y bool
@@ -445,31 +451,33 @@ func Bid64AddWithFlags(x, y uint64, rndMode int) (uint64, uint32) {
 	// #endif
 
 	// #ifdef BID_SET_STATUS_FLAGS
-	status = BID_INEXACT_EXCEPTION
+	if checkRoundedInexact {
+		status = BID_INEXACT_EXCEPTION
 
-	// get remainder
-	remainder_h = CT.hi << (64 - uint(amount))
+		// get remainder
+		remainder_h = CT.hi << (64 - uint(amount))
 
-	switch rmode {
-	case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
-		// test whether fractional part is 0
-		if remainder_h == 0x8000000000000000 &&
-			CT.lo < bid_reciprocals10_64[extra_digits] {
-			status = BID_EXACT_STATUS
+		switch rmode {
+		case BID_ROUNDING_TO_NEAREST, BID_ROUNDING_TIES_AWAY:
+			// test whether fractional part is 0
+			if remainder_h == 0x8000000000000000 &&
+				CT.lo < bid_reciprocals10_64[extra_digits] {
+				status = BID_EXACT_STATUS
+			}
+		case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
+			if remainder_h == 0 && CT.lo < bid_reciprocals10_64[extra_digits] {
+				status = BID_EXACT_STATUS
+			}
+		default:
+			// round up
+			tmp, carry = __add_carry_out(CT.lo, bid_reciprocals10_64[extra_digits])
+			_ = tmp
+			if (remainder_h>>uint(64-amount))+carry >= (uint64(1) << uint(amount)) {
+				status = BID_EXACT_STATUS
+			}
 		}
-	case BID_ROUNDING_DOWN, BID_ROUNDING_TO_ZERO:
-		if remainder_h == 0 && CT.lo < bid_reciprocals10_64[extra_digits] {
-			status = BID_EXACT_STATUS
-		}
-	default:
-		// round up
-		tmp, carry = __add_carry_out(CT.lo, bid_reciprocals10_64[extra_digits])
-		_ = tmp
-		if (remainder_h>>uint(64-amount))+carry >= (uint64(1) << uint(amount)) {
-			status = BID_EXACT_STATUS
-		}
+		pfpsf |= status
 	}
-	pfpsf |= status
 	// #endif
 
 	res, flags := fast_get_BID64_check_OF_flags(sign_s, exponent_b+extra_digits, C64, rndMode)

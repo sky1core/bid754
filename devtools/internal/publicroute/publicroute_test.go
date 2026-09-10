@@ -564,9 +564,9 @@ func TestPublicAPIInventoryMappingsMatchShimCalls(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // siblingEquivalenceCoveredPortFunctions lists the reachable port functions
-// that are separately ported full implementations of an oracle-verified
-// WithFlags sibling: no AST structure proves the equivalence (the two bodies
-// are independent ports), so a dedicated hand-written runtime gate inside the
+// whose value equivalence to an oracle-verified WithFlags sibling cannot be
+// proved from their AST (independent bodies or different delegate arguments).
+// A dedicated hand-written runtime gate inside the
 // bidgo package (equivalenceGateFileRel) asserts bit-exact value agreement
 // against the sibling over a pinned corpus. Exhaustive and machine-checked:
 // each entry must (a) still be off the goport/FFI surface and not
@@ -579,6 +579,8 @@ var siblingEquivalenceCoveredPortFunctions = map[string]string{
 	"Bid32Div": "separately ported flagless full implementation (bid32_div.go) of the oracle-verified Bid32DivWithFlags; the public value-only Decimal32BID.Div routes through it, and the hand-written bidgo flagless-variant equivalence gate pins flagless==WithFlags value bit-exactly over the edge+seeded corpus in all five modes",
 	"Bid32Mul": "separately ported flagless full implementation (bid32_mul.go) of the oracle-verified Bid32MulWithFlags; the public value-only Decimal32BID.Mul routes through it, and the hand-written bidgo flagless-variant equivalence gate pins flagless==WithFlags value bit-exactly over the edge+seeded corpus in all five modes",
 	"Bid32Sub": "separately ported flagless full implementation (bid32_add.go) of the oracle-verified Bid32SubWithFlags; the public value-only Decimal32BID.Sub routes through it, and the hand-written bidgo flagless-variant equivalence gate pins flagless==WithFlags value bit-exactly over the edge+seeded corpus in all five modes",
+	"Bid64Add": "selective rounded-inexact check in bid64AddResult changes delegate arguments; the bidgo flagless-variant gate verifies exact value agreement with oracle-verified Bid64AddWithFlags in all five modes",
+	"Bid64Sub": "routes subtraction through the selective Bid64Add value path; the bidgo flagless-variant gate verifies exact value agreement with oracle-verified Bid64SubWithFlags in all five modes",
 	"Bid64Div": "separately ported flagless full implementation (div64.go) of the oracle-verified Bid64DivWithFlags; the public value-only Decimal64BID.Div routes through it, and the hand-written bidgo flagless-variant equivalence gate pins flagless==WithFlags value bit-exactly over the edge+seeded corpus in all five modes",
 	"Bid64Mul": "separately ported flagless full implementation (mul64.go) of the oracle-verified Bid64MulWithFlags; the public value-only Decimal64BID.Mul routes through it, and the hand-written bidgo flagless-variant equivalence gate pins flagless==WithFlags value bit-exactly over the edge+seeded corpus in all five modes",
 }

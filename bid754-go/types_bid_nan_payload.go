@@ -91,7 +91,7 @@ func hasASCIIFoldPrefix(s, pat string) bool {
 
 func parseDecimal32BIDNaN(input string) (Decimal32BID, bool) {
 	lit, ok := parseBIDNaNLiteral(input)
-	if !ok {
+	if !ok || len(lit.payload) >= decimal32Precision {
 		return Decimal32BID{}, false
 	}
 	payload, ok := parseUintPayload(lit.payload, 999999)
@@ -112,7 +112,7 @@ func parseDecimal32BIDNaN(input string) (Decimal32BID, bool) {
 
 func parseDecimal64BIDNaN(input string) (Decimal64BID, bool) {
 	lit, ok := parseBIDNaNLiteral(input)
-	if !ok {
+	if !ok || len(lit.payload) >= decimal64Precision {
 		return Decimal64BID{}, false
 	}
 	payload, ok := parseUintPayload(lit.payload, 999999999999999)
@@ -133,7 +133,7 @@ func parseDecimal64BIDNaN(input string) (Decimal64BID, bool) {
 
 func parseDecimal128BIDNaN(input string) (Decimal128BID, bool) {
 	lit, ok := parseBIDNaNLiteral(input)
-	if !ok {
+	if !ok || len(lit.payload) >= decimal128Precision {
 		return Decimal128BID{}, false
 	}
 	payload, ok := parseBigPayload(lit.payload, decimal128NaNPayloadLimit())

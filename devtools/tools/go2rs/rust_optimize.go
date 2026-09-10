@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -17,64 +16,10 @@ func finalizeRustGenerated(projectRoot string) {
 }
 
 func applyRustGeneratedRewrites(generatedDir string) {
-	optimizeByteCursorParser(filepath.Join(generatedDir, "bid64_from_string.rs"), "pub(crate) fn bid64_from_string")
-	optimizeByteCursorParser(filepath.Join(generatedDir, "bid128_string.rs"), "pub fn bid128_from_string")
 	optimizeBid32MiscAliases(filepath.Join(generatedDir, "bid32_misc.rs"))
 	optimizeBid64NextTowardAlias(filepath.Join(generatedDir, "nexttoward64.rs"))
 	optimizeBid128Misc(filepath.Join(generatedDir, "bid128_misc.rs"))
 	optimizeBid128Sqrt(filepath.Join(generatedDir, "bid128_sqrt.rs"))
-}
-
-func optimizeByteCursorParser(path string, fnSignature string) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		fatal("read %s: %v", path, err)
-	}
-	src := string(data)
-
-	newHeader := "    let ps = str.as_bytes();\n    let mut ps_idx: usize = 0;\n    macro_rules! ps_at {\n        ($offset:expr) => {\n            *ps.get(ps_idx + ($offset as usize)).unwrap_or(&0)\n        };\n    }\n"
-	headerRe := regexp.MustCompile(`(?m)^    let mut ps = \(?str\)?\.(?:into_bytes\(\)|as_bytes\(\)\.to_vec\(\));\n    ps = go_append\(ps, 0(?: as u8)?\);\n`)
-	if !headerRe.MatchString(src) {
-		if strings.Contains(src, "    let ps = str.as_bytes();\n    let mut ps_idx: usize = 0;\n    macro_rules! ps_at {") {
-			fmt.Printf("  optimized %s: byte-cursor parser lowering already applied\n", filepath.Base(path))
-			return
-		}
-		fatal("rewrite %s: expected byte parser header not found", path)
-	}
-	src = headerRe.ReplaceAllLiteralString(src, newHeader)
-
-	advanceCount := 0
-	for _, advanceRe := range []*regexp.Regexp{
-		regexp.MustCompile(`ps = \(&mut ps\[(\d+) as usize\.\.\]\)\.to_vec\(\);`),
-		regexp.MustCompile(`ps = &mut ps\[(\d+) as usize\.\.\];`),
-	} {
-		src = advanceRe.ReplaceAllStringFunc(src, func(m string) string {
-			parts := advanceRe.FindStringSubmatch(m)
-			advanceCount++
-			return fmt.Sprintf("ps_idx += %s;", parts[1])
-		})
-	}
-	if advanceCount == 0 {
-		fatal("optimize %s: no cursor advance rewrites applied", path)
-	}
-
-	indexRe := regexp.MustCompile(`ps\[(\d+)(?: as usize)?\]`)
-	indexCount := 0
-	src = indexRe.ReplaceAllStringFunc(src, func(m string) string {
-		parts := indexRe.FindStringSubmatch(m)
-		indexCount++
-		return fmt.Sprintf("ps_at!(%s)", parts[1])
-	})
-	if indexCount == 0 {
-		fatal("optimize %s: no indexed access rewrites applied", path)
-	}
-
-	if !strings.Contains(src, fnSignature) {
-		fatal("optimize %s: missing expected function signature %q", path, fnSignature)
-	}
-
-	writeFile(path, src)
-	fmt.Printf("  optimized %s: byte-cursor parser lowering\n", filepath.Base(path))
 }
 
 func optimizeBid32MiscAliases(path string) {

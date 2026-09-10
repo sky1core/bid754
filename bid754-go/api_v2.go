@@ -1,45 +1,7 @@
 // api_v2.go - high-level convenience API over the BID value types.
 package bid754
 
-import (
-	"fmt"
-	"strings"
-)
-
-// determinePrecisionFromString reports the significant-digit count s needs.
-func determinePrecisionFromString(s string) int {
-	trimmed := strings.TrimSpace(s)
-	if trimmed == "" {
-		return 1
-	}
-
-	lower := strings.ToLower(trimmed)
-	if lower == "inf" || lower == "+inf" || lower == "-inf" ||
-		lower == "infinity" || lower == "+infinity" || lower == "-infinity" {
-		return 1
-	}
-	if _, ok := parseBIDNaNLiteral(trimmed); ok {
-		return 1
-	}
-
-	if idx := strings.IndexAny(trimmed, "eE"); idx >= 0 {
-		trimmed = trimmed[:idx]
-	}
-
-	var digits strings.Builder
-	for _, ch := range trimmed {
-		if ch >= '0' && ch <= '9' {
-			digits.WriteRune(ch)
-		}
-	}
-
-	significant := strings.TrimLeft(digits.String(), "0")
-	significant = strings.TrimRight(significant, "0")
-	if significant == "" {
-		return 1
-	}
-	return len(significant)
-}
+import "fmt"
 
 // NewDecimal32 parses a decimal string literal exactly into a Decimal32BID.
 // It returns an error instead of silently rounding or changing range; use
@@ -234,18 +196,32 @@ func NewDecimal128FromUint64(x uint64) Decimal128BID {
 // IsValidDecimalString reports whether s is a complete decimal literal that
 // is exactly representable in at least one of the three BID widths.
 func IsValidDecimalString(s string) bool {
-	_, err := NewDecimal32BIDDirect(s)
-	if err == nil {
-		return true
+	if literal, ok := parseBIDNaNLiteral(s); ok {
+		return len(literal.payload) < decimal128Precision
 	}
-
-	_, err = NewDecimal64BIDDirect(s)
-	if err == nil {
-		return true
+	literal, ok := parseBIDFiniteLiteral(s)
+	if !ok {
+		return false
 	}
-
-	_, err = NewDecimal128BIDDirect(s)
-	return err == nil
+	if !literal.cohortUnrepresentable(decimal32MinQuantum, decimal32MaxQuantum, decimal32Precision) {
+		value, flags := parseDecimal32BIDPortMode(s, defaultBIDRoundingMode)
+		if !value.IsNaN() && !rejectedBIDStringInput(flags) && !unrepresentableBIDStringFlags(flags) {
+			return true
+		}
+	}
+	if !literal.cohortUnrepresentable(decimal64MinQuantum, decimal64MaxQuantum, decimal64Precision) {
+		value, flags := parseDecimal64BIDPortMode(s, defaultBIDRoundingMode)
+		if !value.IsNaN() && !rejectedBIDStringInput(flags) && !unrepresentableBIDStringFlags(flags) {
+			return true
+		}
+	}
+	if !literal.cohortUnrepresentable(decimal128MinQuantum, decimal128MaxQuantum, decimal128Precision) {
+		value, flags := parseDecimal128BIDPortMode(s, defaultBIDRoundingMode)
+		if !value.IsNaN() && !rejectedBIDStringInput(flags) && !unrepresentableBIDStringFlags(flags) {
+			return true
+		}
+	}
+	return false
 }
 
 // GetRequiredPrecision returns the minimum significant-digit precision the
@@ -255,19 +231,34 @@ func IsValidDecimalString(s string) bool {
 // syntax/precision query, so a finite literal may exceed every supported
 // width's exponent range; malformed input returns an error.
 func GetRequiredPrecision(s string) (int, error) {
-	_, nanLiteral := parseBIDNaNLiteral(s)
-	if !nanLiteral && !validBIDFiniteLiteral(s) {
-		return 0, fmt.Errorf("invalid decimal string: %q", s)
+	if _, ok := parseBIDNaNLiteral(s); ok {
+		return 1, nil
 	}
-	return determinePrecisionFromString(s), nil
+	literal, ok := parseBIDFiniteLiteral(s)
+	if !ok {
+		return 0, invalidBIDLiteralError(s)
+	}
+	precision := literal.coefficientDigits
+	if precision < 2 {
+		return 1, nil
+	}
+	for i := literal.coefficientEnd - 1; precision > 1; i-- {
+		switch s[i] {
+		case '0':
+			precision--
+		case '.':
+		default:
+			return precision, nil
+		}
+	}
+	return precision, nil
 }
 
 // AddSlice32BID returns the left-to-right sum of values, or zero for an
 // empty slice.
 func AddSlice32BID(values []Decimal32BID) Decimal32BID {
 	if len(values) == 0 {
-		zero, _ := NewDecimal32BIDDirect("0")
-		return zero
+		return Zero32BID()
 	}
 
 	result := values[0]
@@ -281,8 +272,7 @@ func AddSlice32BID(values []Decimal32BID) Decimal32BID {
 // with the union of the exception flags raised by each step.
 func AddSlice32BIDWithFlags(values []Decimal32BID) (Decimal32BID, ExceptionFlags) {
 	if len(values) == 0 {
-		zero, _ := NewDecimal32BIDDirect("0")
-		return zero, 0
+		return Zero32BID(), 0
 	}
 
 	result := values[0]
@@ -299,8 +289,7 @@ func AddSlice32BIDWithFlags(values []Decimal32BID) (Decimal32BID, ExceptionFlags
 // empty slice.
 func AddSlice64BID(values []Decimal64BID) Decimal64BID {
 	if len(values) == 0 {
-		zero, _ := NewDecimal64BIDDirect("0")
-		return zero
+		return Zero64BID()
 	}
 
 	result := values[0]
@@ -314,8 +303,7 @@ func AddSlice64BID(values []Decimal64BID) Decimal64BID {
 // with the union of the exception flags raised by each step.
 func AddSlice64BIDWithFlags(values []Decimal64BID) (Decimal64BID, ExceptionFlags) {
 	if len(values) == 0 {
-		zero, _ := NewDecimal64BIDDirect("0")
-		return zero, 0
+		return Zero64BID(), 0
 	}
 
 	result := values[0]
@@ -332,8 +320,7 @@ func AddSlice64BIDWithFlags(values []Decimal64BID) (Decimal64BID, ExceptionFlags
 // empty slice.
 func AddSlice128BID(values []Decimal128BID) Decimal128BID {
 	if len(values) == 0 {
-		zero, _ := NewDecimal128BIDDirect("0")
-		return zero
+		return Zero128BID()
 	}
 
 	result := values[0]
@@ -347,8 +334,7 @@ func AddSlice128BID(values []Decimal128BID) Decimal128BID {
 // with the union of the exception flags raised by each step.
 func AddSlice128BIDWithFlags(values []Decimal128BID) (Decimal128BID, ExceptionFlags) {
 	if len(values) == 0 {
-		zero, _ := NewDecimal128BIDDirect("0")
-		return zero, 0
+		return Zero128BID(), 0
 	}
 
 	result := values[0]

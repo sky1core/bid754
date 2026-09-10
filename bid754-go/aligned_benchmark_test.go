@@ -13,11 +13,9 @@ import "testing"
 //	BenchmarkIntelCBID*   -> Intel C direct (cgo-amortized)
 //	bid*/op (Criterion)   -> generated Rust
 //
-// bid32 asymmetry: value-only Add/Sub/Mul/Div use separate pure-port bodies,
-// while the *WithFlags rows route to the status-aware bodies measured by
-// BenchmarkFairBID32. For 64/128 the value-only methods wrap the status-aware
-// bodies. FMA and Sqrt always return flags. FMA consumes z as x*y+z; Sqrt
-// reuses the non-negative x operand.
+// Value-only BID32 Add/Sub/Mul/Div and BID64 Mul/Div use separate port bodies.
+// BID64 Add/Sub and BID128 arithmetic share status-aware bodies.
+// FMA and Sqrt always return flags. FMA consumes z as x*y+z; Sqrt reuses x.
 
 var (
 	alignedSink32     Decimal32BID

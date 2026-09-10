@@ -67,6 +67,15 @@ func TestParserResourceGateAppliesToRequiredProfiles(t *testing.T) {
 			for _, gate := range gates {
 				if gate.ID == "codec-parser-resource" && gate.Evidence.ParserResource {
 					found = true
+					for _, pass := range []string{"TestPublicParserResourceBounds", "TestPublicParserConvenienceWidths", "TestPublicParserConvenienceAnyWidthEquivalence", "TestPublicParserConvenienceMinimumPrecision", "TestRawStringParserResources", "TestRawStringParserLookahead", "TestRawStringParserPrefixAcceptance"} {
+						present := false
+						for _, required := range gate.Evidence.Passes {
+							present = present || required == pass
+						}
+						if !present {
+							t.Fatalf("full Go parser evidence %s missing from %s/%s", pass, profile, platform)
+						}
+					}
 				}
 			}
 			if !found {

@@ -245,20 +245,18 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 	var buffer [MAX_STRING_DIGITS_128_str]byte
 	var c byte
 
-	// Convert string to byte slice with null terminator for C-like pointer semantics
-	ps := []byte(str)
-	ps = append(ps, 0)
+	ps := 0
 
 	right_radix_leading_zeros = 0
 	rdx_pt_enc = 0
 
 	// eliminate leading white space
-	for (ps[0] == ' ' || ps[0] == '\t') && ps[0] != 0 {
-		ps = ps[1:]
+	for uint(ps) < uint(len(str)) && (str[ps] == ' ' || str[ps] == '\t') {
+		ps++
 	}
 
 	// c gets first character
-	c = ps[0]
+	c = nulTerminatedByteAt(str, ps)
 
 	// if c is null or not equal to a (radix point, negative sign,
 	// positive sign, or number) it might be SNaN, sNaN, Infinity
@@ -267,20 +265,20 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 			(uint(c-'0') > 9)) {
 		res.lo = 0
 		// Infinity?
-		if (tolower_macro(ps[0]) == 'i' && tolower_macro(ps[1]) == 'n' &&
-			tolower_macro(ps[2]) == 'f') &&
-			(ps[3] == 0 ||
-				(tolower_macro(ps[3]) == 'i' &&
-					tolower_macro(ps[4]) == 'n' &&
-					tolower_macro(ps[5]) == 'i' &&
-					tolower_macro(ps[6]) == 't' &&
-					tolower_macro(ps[7]) == 'y' && ps[8] == 0)) {
+		if (tolower_macro(nulTerminatedByteAt(str, ps)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+1)) == 'n' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'f') &&
+			(nulTerminatedByteAt(str, ps+3) == 0 ||
+				(tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'i' &&
+					tolower_macro(nulTerminatedByteAt(str, ps+4)) == 'n' &&
+					tolower_macro(nulTerminatedByteAt(str, ps+5)) == 'i' &&
+					tolower_macro(nulTerminatedByteAt(str, ps+6)) == 't' &&
+					tolower_macro(nulTerminatedByteAt(str, ps+7)) == 'y' && nulTerminatedByteAt(str, ps+8) == 0)) {
 			res.hi = 0x7800000000000000
 			return
 		}
 		// return sNaN
-		if tolower_macro(ps[0]) == 's' && tolower_macro(ps[1]) == 'n' &&
-			tolower_macro(ps[2]) == 'a' && tolower_macro(ps[3]) == 'n' {
+		if tolower_macro(nulTerminatedByteAt(str, ps)) == 's' && tolower_macro(nulTerminatedByteAt(str, ps+1)) == 'n' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'a' && tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'n' {
 			res.hi = 0x7e00000000000000
 			return
 		}
@@ -290,11 +288,11 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 	}
 
 	// if +Inf, -Inf, +Infinity, or -Infinity (case insensitive check for inf)
-	if (tolower_macro(ps[1]) == 'i' && tolower_macro(ps[2]) == 'n' &&
-		tolower_macro(ps[3]) == 'f') && (ps[4] == 0 ||
-		(tolower_macro(ps[4]) == 'i' && tolower_macro(ps[5]) == 'n' &&
-			tolower_macro(ps[6]) == 'i' && tolower_macro(ps[7]) == 't' &&
-			tolower_macro(ps[8]) == 'y' && ps[9] == 0)) {
+	if (tolower_macro(nulTerminatedByteAt(str, ps+1)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'n' &&
+		tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'f') && (nulTerminatedByteAt(str, ps+4) == 0 ||
+		(tolower_macro(nulTerminatedByteAt(str, ps+4)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+5)) == 'n' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+6)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+7)) == 't' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+8)) == 'y' && nulTerminatedByteAt(str, ps+9) == 0)) {
 		res.lo = 0
 
 		if c == '+' {
@@ -309,8 +307,8 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 	}
 
 	// if +sNaN, +SNaN, -sNaN, or -SNaN
-	if tolower_macro(ps[1]) == 's' && tolower_macro(ps[2]) == 'n' &&
-		tolower_macro(ps[3]) == 'a' && tolower_macro(ps[4]) == 'n' {
+	if tolower_macro(nulTerminatedByteAt(str, ps+1)) == 's' && tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'n' &&
+		tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'a' && tolower_macro(nulTerminatedByteAt(str, ps+4)) == 'n' {
 		res.lo = 0
 		if c == '-' {
 			res.hi = 0xfe00000000000000
@@ -329,10 +327,10 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 
 	// go to next character if leading sign
 	if c == '-' || c == '+' {
-		ps = ps[1:]
+		ps++
 	}
 
-	c = ps[0]
+	c = nulTerminatedByteAt(str, ps)
 
 	// if c isn't a decimal point or a decimal digit, return NaN
 	if c != '.' && (uint(c-'0') > 9) {
@@ -342,14 +340,14 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 	}
 	if c == '.' {
 		rdx_pt_enc = 1
-		ps = ps[1:]
+		ps++
 	}
 
 	// detect zero (and eliminate/ignore leading zeros)
-	if ps[0] == '0' {
+	if nulTerminatedByteAt(str, ps) == '0' {
 		// if all numbers are zeros (with possibly 1 radix point, the number is zero
-		for ps[0] == '0' {
-			ps = ps[1:]
+		for uint(ps) < uint(len(str)) && str[ps] == '0' {
+			ps++
 
 			// for numbers such as 0.0000000000000000000000000000000000001001,
 			// we want to count the leading zeros
@@ -358,26 +356,27 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 			}
 			// if this character is a radix point, make sure we haven't already
 			// encountered one
-			if ps[0] == '.' {
+			c = nulTerminatedByteAt(str, ps)
+			if c == '.' {
 				if rdx_pt_enc == 0 {
 					rdx_pt_enc = 1
 					// if this is the first radix point, and the next character is NULL,
 					// we have a zero
-					if ps[1] == 0 {
+					if nulTerminatedByteAt(str, ps+1) == 0 {
 						res.hi =
 							(0x3040000000000000 -
 								(right_radix_leading_zeros << 49)) | sign_x
 						res.lo = 0
 						return
 					}
-					ps = ps[1:]
+					ps++
 				} else {
 					// if 2 radix points, return NaN
 					res.hi = 0x7c00000000000000 | sign_x
 					res.lo = 0
 					return
 				}
-			} else if ps[0] == 0 {
+			} else if c == 0 {
 				if right_radix_leading_zeros > 6176 {
 					right_radix_leading_zeros = 6176
 				}
@@ -390,7 +389,7 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 		}
 	}
 
-	c = ps[0]
+	c = nulTerminatedByteAt(str, ps)
 
 	// initialize local variables
 	ndigits_before = 0
@@ -412,15 +411,15 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 				set_inexact = 1
 				sticky_bit = 1
 			}
-			ps = ps[1:]
-			c = ps[0]
+			ps++
+			c = nulTerminatedByteAt(str, ps)
 			ndigits_before++
 		}
 
 		ndigits_total = ndigits_before
 		if c == '.' {
-			ps = ps[1:]
-			c = ps[0]
+			ps++
+			c = nulTerminatedByteAt(str, ps)
 			if c != 0 {
 				// investigate string (after radix point)
 				for uint(c-'0') <= 9 {
@@ -435,8 +434,8 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 						set_inexact = 1
 						sticky_bit = 1
 					}
-					ps = ps[1:]
-					c = ps[0]
+					ps++
+					c = nulTerminatedByteAt(str, ps)
 					ndigits_total++
 				}
 				ndigits_after = ndigits_total - ndigits_before
@@ -444,7 +443,7 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 		}
 	} else {
 		// we encountered a radix point while detecting zeros
-		c = ps[0]
+		c = nulTerminatedByteAt(str, ps)
 		ndigits_total = 0
 		// investigate string (after radix point)
 		for uint(c-'0') <= 9 {
@@ -459,8 +458,8 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 				set_inexact = 1
 				sticky_bit = 1
 			}
-			ps = ps[1:]
-			c = ps[0]
+			ps++
+			c = nulTerminatedByteAt(str, ps)
 			ndigits_total++
 		}
 		ndigits_after = ndigits_total - ndigits_before
@@ -475,11 +474,11 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 			res.lo = 0
 			return
 		}
-		ps = ps[1:]
-		c = ps[0]
+		ps++
+		c = nulTerminatedByteAt(str, ps)
 
 		if (uint(c-'0') > 9) &&
-			((c != '+' && c != '-') || (uint(ps[1]-'0') > 9)) {
+			((c != '+' && c != '-') || (uint(nulTerminatedByteAt(str, ps+1)-'0') > 9)) {
 			// return NaN
 			res.hi = 0x7c00000000000000
 			res.lo = 0
@@ -488,29 +487,29 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 
 		if c == '-' {
 			sgn_exp = -1
-			ps = ps[1:]
-			c = ps[0]
+			ps++
+			c = nulTerminatedByteAt(str, ps)
 		} else if c == '+' {
-			ps = ps[1:]
-			c = ps[0]
+			ps++
+			c = nulTerminatedByteAt(str, ps)
 		}
 
 		dec_expon = int(c - '0')
 		i = 1
-		ps = ps[1:]
+		ps++
 
 		if dec_expon == 0 {
-			for ps[0] == '0' {
-				ps = ps[1:]
+			for uint(ps) < uint(len(str)) && str[ps] == '0' {
+				ps++
 			}
 		}
-		c = ps[0] - '0'
+		c = nulTerminatedByteAt(str, ps) - '0'
 
 		for uint(c) <= 9 && i < 7 {
 			d2 = dec_expon + dec_expon
 			dec_expon = (d2 << 2) + d2 + int(c)
-			ps = ps[1:]
-			c = ps[0] - '0'
+			ps++
+			c = nulTerminatedByteAt(str, ps) - '0'
 			i++
 		}
 	}

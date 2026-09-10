@@ -243,33 +243,27 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
     let mut sticky_bit: i64 = 0;
     let mut buffer: [u8; 100] = [0; 100];
     let mut c: u8 = 0;
-    let ps = str.as_bytes();
-    let mut ps_idx: usize = 0;
-    macro_rules! ps_at {
-        ($offset:expr) => {
-            *ps.get(ps_idx + ($offset as usize)).unwrap_or(&0)
-        };
-    }
+    let mut ps: i64 = 0;
     right_radix_leading_zeros = 0;
     rdx_pt_enc = 0;
-    while ((((ps_at!(0) == b' ') || (ps_at!(0) == b'\t'))) && (ps_at!(0) != 0)) {
-        ps_idx += 1;
+    while (((ps as u64) < ((str.len() as i64) as u64)) && (((str.as_bytes()[ps as usize] == b' ') || (str.as_bytes()[ps as usize] == b'\t')))) {
+        ps = ps.wrapping_add(1);
     }
-    c = ps_at!(0);
+    c = nul_terminated_byte_at(str, ps);
     if ((c == 0) || (((((c != b'.') && (c != b'-')) && (c != b'+')) && ((((c.wrapping_sub(b'0')) as u64) > 9))))) {
         res.lo = 0;
-        if (((((tolower_macro(ps_at!(0)) == b'i') && (tolower_macro(ps_at!(1)) == b'n')) && (tolower_macro(ps_at!(2)) == b'f'))) && (((ps_at!(3) == 0) || (((((((tolower_macro(ps_at!(3)) == b'i') && (tolower_macro(ps_at!(4)) == b'n')) && (tolower_macro(ps_at!(5)) == b'i')) && (tolower_macro(ps_at!(6)) == b't')) && (tolower_macro(ps_at!(7)) == b'y')) && (ps_at!(8) == 0)))))) {
+        if (((((tolower_macro(nul_terminated_byte_at(str, ps)) == b'i') && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(1)))) == b'n')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(2)))) == b'f'))) && (((nul_terminated_byte_at(str, (ps.wrapping_add(3))) == 0) || (((((((tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(3)))) == b'i') && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(4)))) == b'n')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(5)))) == b'i')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(6)))) == b't')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(7)))) == b'y')) && (nul_terminated_byte_at(str, (ps.wrapping_add(8))) == 0)))))) {
             res.hi = 0x7800000000000000;
             return (res, pfpsf);
         }
-        if ((((tolower_macro(ps_at!(0)) == b's') && (tolower_macro(ps_at!(1)) == b'n')) && (tolower_macro(ps_at!(2)) == b'a')) && (tolower_macro(ps_at!(3)) == b'n')) {
+        if ((((tolower_macro(nul_terminated_byte_at(str, ps)) == b's') && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(1)))) == b'n')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(2)))) == b'a')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(3)))) == b'n')) {
             res.hi = 0x7e00000000000000;
             return (res, pfpsf);
         }
         res.hi = 0x7c00000000000000;
         return (res, pfpsf);
     }
-    if (((((tolower_macro(ps_at!(1)) == b'i') && (tolower_macro(ps_at!(2)) == b'n')) && (tolower_macro(ps_at!(3)) == b'f'))) && (((ps_at!(4) == 0) || (((((((tolower_macro(ps_at!(4)) == b'i') && (tolower_macro(ps_at!(5)) == b'n')) && (tolower_macro(ps_at!(6)) == b'i')) && (tolower_macro(ps_at!(7)) == b't')) && (tolower_macro(ps_at!(8)) == b'y')) && (ps_at!(9) == 0)))))) {
+    if (((((tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(1)))) == b'i') && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(2)))) == b'n')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(3)))) == b'f'))) && (((nul_terminated_byte_at(str, (ps.wrapping_add(4))) == 0) || (((((((tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(4)))) == b'i') && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(5)))) == b'n')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(6)))) == b'i')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(7)))) == b't')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(8)))) == b'y')) && (nul_terminated_byte_at(str, (ps.wrapping_add(9))) == 0)))))) {
         res.lo = 0;
         if (c == b'+') {
             res.hi = 0x7800000000000000;
@@ -280,7 +274,7 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
         }
         return (res, pfpsf);
     }
-    if ((((tolower_macro(ps_at!(1)) == b's') && (tolower_macro(ps_at!(2)) == b'n')) && (tolower_macro(ps_at!(3)) == b'a')) && (tolower_macro(ps_at!(4)) == b'n')) {
+    if ((((tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(1)))) == b's') && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(2)))) == b'n')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(3)))) == b'a')) && (tolower_macro(nul_terminated_byte_at(str, (ps.wrapping_add(4)))) == b'n')) {
         res.lo = 0;
         if (c == b'-') {
             res.hi = 0xfe00000000000000;
@@ -295,9 +289,9 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
         sign_x = 0;
     }
     if ((c == b'-') || (c == b'+')) {
-        ps_idx += 1;
+        ps = ps.wrapping_add(1);
     }
-    c = ps_at!(0);
+    c = nul_terminated_byte_at(str, ps);
     if ((c != b'.') && ((((c.wrapping_sub(b'0')) as u64) > 9))) {
         res.hi = (0x7c00000000000000 | sign_x);
         res.lo = 0;
@@ -305,29 +299,30 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
     }
     if (c == b'.') {
         rdx_pt_enc = 1;
-        ps_idx += 1;
+        ps = ps.wrapping_add(1);
     }
-    if (ps_at!(0) == b'0') {
-        while (ps_at!(0) == b'0') {
-            ps_idx += 1;
+    if (nul_terminated_byte_at(str, ps) == b'0') {
+        while (((ps as u64) < ((str.len() as i64) as u64)) && (str.as_bytes()[ps as usize] == b'0')) {
+            ps = ps.wrapping_add(1);
             if (rdx_pt_enc != 0) {
                 right_radix_leading_zeros = right_radix_leading_zeros.wrapping_add(1);
             }
-            if (ps_at!(0) == b'.') {
+            c = nul_terminated_byte_at(str, ps);
+            if (c == b'.') {
                 if (rdx_pt_enc == 0) {
                     rdx_pt_enc = 1;
-                    if (ps_at!(1) == 0) {
+                    if (nul_terminated_byte_at(str, (ps.wrapping_add(1))) == 0) {
                         res.hi = ((((0x3040000000000000 as u64).wrapping_sub(((go_checked_shl_u64(right_radix_leading_zeros, go_shift_count_u64((49) as u64))))))) | sign_x);
                         res.lo = 0;
                         return (res, pfpsf);
                     }
-                    ps_idx += 1;
+                    ps = ps.wrapping_add(1);
                 } else {
                     res.hi = (0x7c00000000000000 | sign_x);
                     res.lo = 0;
                     return (res, pfpsf);
                 }
-            } else if (ps_at!(0) == 0) {
+            } else if (c == 0) {
                 if (right_radix_leading_zeros > 6176) {
                     right_radix_leading_zeros = 6176;
                 }
@@ -337,7 +332,7 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
             }
         }
     }
-    c = ps_at!(0);
+    c = nul_terminated_byte_at(str, ps);
     ndigits_before = 0;
     ndigits_after = 0;
     ndigits_total = 0;
@@ -355,14 +350,14 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
                 set_inexact = 1;
                 sticky_bit = 1;
             }
-            ps_idx += 1;
-            c = ps_at!(0);
+            ps = ps.wrapping_add(1);
+            c = nul_terminated_byte_at(str, ps);
             ndigits_before = ndigits_before.wrapping_add(1);
         }
         ndigits_total = ndigits_before;
         if (c == b'.') {
-            ps_idx += 1;
-            c = ps_at!(0);
+            ps = ps.wrapping_add(1);
+            c = nul_terminated_byte_at(str, ps);
             if (c != 0) {
                 while (((c.wrapping_sub(b'0')) as u64) <= 9) {
                     if (ndigits_total < 34) {
@@ -376,15 +371,15 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
                         set_inexact = 1;
                         sticky_bit = 1;
                     }
-                    ps_idx += 1;
-                    c = ps_at!(0);
+                    ps = ps.wrapping_add(1);
+                    c = nul_terminated_byte_at(str, ps);
                     ndigits_total = ndigits_total.wrapping_add(1);
                 }
                 ndigits_after = (ndigits_total.wrapping_sub(ndigits_before));
             }
         }
     } else {
-        c = ps_at!(0);
+        c = nul_terminated_byte_at(str, ps);
         ndigits_total = 0;
         while (((c.wrapping_sub(b'0')) as u64) <= 9) {
             if (ndigits_total < 34) {
@@ -398,8 +393,8 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
                 set_inexact = 1;
                 sticky_bit = 1;
             }
-            ps_idx += 1;
-            c = ps_at!(0);
+            ps = ps.wrapping_add(1);
+            c = nul_terminated_byte_at(str, ps);
             ndigits_total = ndigits_total.wrapping_add(1);
         }
         ndigits_after = (ndigits_total.wrapping_sub(ndigits_before));
@@ -411,35 +406,35 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
             res.lo = 0;
             return (res, pfpsf);
         }
-        ps_idx += 1;
-        c = ps_at!(0);
-        if (((((c.wrapping_sub(b'0')) as u64) > 9)) && (((((c != b'+') && (c != b'-'))) || ((((ps_at!(1).wrapping_sub(b'0')) as u64) > 9))))) {
+        ps = ps.wrapping_add(1);
+        c = nul_terminated_byte_at(str, ps);
+        if (((((c.wrapping_sub(b'0')) as u64) > 9)) && (((((c != b'+') && (c != b'-'))) || ((((nul_terminated_byte_at(str, (ps.wrapping_add(1))).wrapping_sub(b'0')) as u64) > 9))))) {
             res.hi = 0x7c00000000000000;
             res.lo = 0;
             return (res, pfpsf);
         }
         if (c == b'-') {
             sgn_exp = (-1);
-            ps_idx += 1;
-            c = ps_at!(0);
+            ps = ps.wrapping_add(1);
+            c = nul_terminated_byte_at(str, ps);
         } else if (c == b'+') {
-            ps_idx += 1;
-            c = ps_at!(0);
+            ps = ps.wrapping_add(1);
+            c = nul_terminated_byte_at(str, ps);
         }
         dec_expon = ((c.wrapping_sub(b'0')) as i64);
         i = 1;
-        ps_idx += 1;
+        ps = ps.wrapping_add(1);
         if (dec_expon == 0) {
-            while (ps_at!(0) == b'0') {
-                ps_idx += 1;
+            while (((ps as u64) < ((str.len() as i64) as u64)) && (str.as_bytes()[ps as usize] == b'0')) {
+                ps = ps.wrapping_add(1);
             }
         }
-        c = (ps_at!(0).wrapping_sub(b'0'));
+        c = (nul_terminated_byte_at(str, ps).wrapping_sub(b'0'));
         while (((c as u64) <= 9) && (i < 7)) {
             d2 = (dec_expon.wrapping_add(dec_expon));
             dec_expon = ((((go_checked_shl_i64(d2, go_shift_count_u64((2) as u64)))).wrapping_add(d2)).wrapping_add(c as i64));
-            ps_idx += 1;
-            c = (ps_at!(0).wrapping_sub(b'0'));
+            ps = ps.wrapping_add(1);
+            c = (nul_terminated_byte_at(str, ps).wrapping_sub(b'0'));
             i = i.wrapping_add(1);
         }
     }

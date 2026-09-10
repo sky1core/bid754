@@ -412,10 +412,18 @@ func decimal32BIDSignPort(d Decimal32BID) int {
 	return 1
 }
 
+func invalidBIDLiteralError(s string) error {
+	const prefixBytes = 32
+	if len(s) > prefixBytes {
+		return fmt.Errorf("invalid decimal string: %q... (%d bytes)", s[:prefixBytes], len(s))
+	}
+	return fmt.Errorf("invalid decimal string: %q", s)
+}
+
 func newDecimal32BIDDirectPort(s string) (Decimal32BID, error) {
 	result, flags := parseDecimal32BIDPort(s)
 	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
-		return Decimal32BID{}, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal32BID{}, invalidBIDLiteralError(s)
 	}
 	return result, nil
 }
@@ -423,7 +431,7 @@ func newDecimal32BIDDirectPort(s string) (Decimal32BID, error) {
 func newDecimal32BIDWithFlagsPort(s string) (Decimal32BID, ExceptionFlags, error) {
 	result, flags := parseDecimal32BIDPort(s)
 	if rejectedBIDStringInput(flags) {
-		return Decimal32BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal32BID{}, 0, invalidBIDLiteralError(s)
 	}
 	return result, flags, nil
 }
@@ -445,7 +453,7 @@ func newDecimal32BIDWithModePort(s string, mode RoundingMode) (Decimal32BID, Exc
 	}
 	result, flags := parseDecimal32BIDPublicMode(s, rnd)
 	if rejectedBIDStringInput(flags) {
-		return Decimal32BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal32BID{}, 0, invalidBIDLiteralError(s)
 	}
 	return result, flags, nil
 }
@@ -844,7 +852,7 @@ func decimal64BIDSignPort(d Decimal64BID) int {
 func newDecimal64BIDDirectPort(s string) (Decimal64BID, error) {
 	result, flags := parseDecimal64BIDPort(s)
 	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
-		return Decimal64BID{}, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal64BID{}, invalidBIDLiteralError(s)
 	}
 	return result, nil
 }
@@ -852,7 +860,7 @@ func newDecimal64BIDDirectPort(s string) (Decimal64BID, error) {
 func newDecimal64BIDWithFlagsPort(s string) (Decimal64BID, ExceptionFlags, error) {
 	result, flags := parseDecimal64BIDPort(s)
 	if rejectedBIDStringInput(flags) {
-		return Decimal64BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal64BID{}, 0, invalidBIDLiteralError(s)
 	}
 	return result, flags, nil
 }
@@ -871,7 +879,7 @@ func newDecimal64BIDWithModePort(s string, mode RoundingMode) (Decimal64BID, Exc
 	}
 	result, flags := parseDecimal64BIDPublicMode(s, rnd)
 	if rejectedBIDStringInput(flags) {
-		return Decimal64BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal64BID{}, 0, invalidBIDLiteralError(s)
 	}
 	return result, flags, nil
 }
@@ -1002,6 +1010,7 @@ type bidFiniteLiteral struct {
 	// the overflow direction is irrelevant: either sign is unrepresentable.
 	quantumOutsideInt64 bool
 	coefficientDigits   int
+	coefficientEnd      int
 }
 
 // parseBIDFiniteLiteral parses the complete finite literal grammar and returns
@@ -1063,9 +1072,11 @@ func parseBIDFiniteLiteral(input string) (bidFiniteLiteral, bool) {
 	return bidFiniteLiteral{
 		quantum:           -int64(fractionalDigits),
 		coefficientDigits: coefficientDigits,
+		coefficientEnd:    len(input),
 	}, true
 
 exponent:
+	coefficientEnd := len(input) - len(rest) + i
 	if !seenDigit || (rest[i] != 'e' && rest[i] != 'E') {
 		return bidFiniteLiteral{}, false
 	}
@@ -1091,7 +1102,7 @@ exponent:
 	if i != len(rest) || i == exponentStart {
 		return bidFiniteLiteral{}, false
 	}
-	literal := bidFiniteLiteral{coefficientDigits: coefficientDigits}
+	literal := bidFiniteLiteral{coefficientDigits: coefficientDigits, coefficientEnd: coefficientEnd}
 	literal.quantum, literal.quantumOutsideInt64 = bidLiteralQuantum(exponentMagnitude, magnitudeOverflows, exponentNegative, uint64(fractionalDigits))
 	return literal, true
 }
@@ -1590,7 +1601,7 @@ func decimal128BIDSignPort(d Decimal128BID) int {
 func newDecimal128BIDDirectPort(s string) (Decimal128BID, error) {
 	result, flags := parseDecimal128BIDPort(s)
 	if rejectedBIDStringInput(flags) || unrepresentableBIDStringFlags(flags) {
-		return Decimal128BID{}, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal128BID{}, invalidBIDLiteralError(s)
 	}
 	return result, nil
 }
@@ -1598,7 +1609,7 @@ func newDecimal128BIDDirectPort(s string) (Decimal128BID, error) {
 func newDecimal128BIDWithFlagsPort(s string) (Decimal128BID, ExceptionFlags, error) {
 	result, flags := parseDecimal128BIDPort(s)
 	if rejectedBIDStringInput(flags) {
-		return Decimal128BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal128BID{}, 0, invalidBIDLiteralError(s)
 	}
 	return result, flags, nil
 }
@@ -1617,7 +1628,7 @@ func newDecimal128BIDWithModePort(s string, mode RoundingMode) (Decimal128BID, E
 	}
 	result, flags := parseDecimal128BIDPublicMode(s, rnd)
 	if rejectedBIDStringInput(flags) {
-		return Decimal128BID{}, 0, fmt.Errorf("invalid decimal string: %s", s)
+		return Decimal128BID{}, 0, invalidBIDLiteralError(s)
 	}
 	return result, flags, nil
 }

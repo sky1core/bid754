@@ -378,7 +378,14 @@
       "evidence": {
         "parser_resource": true,
         "passes": [
-          "TestParserResourceContract"
+          "TestParserResourceContract",
+          "TestPublicParserResourceBounds",
+          "TestPublicParserConvenienceWidths",
+          "TestPublicParserConvenienceAnyWidthEquivalence",
+          "TestPublicParserConvenienceMinimumPrecision",
+          "TestRawStringParserResources",
+          "TestRawStringParserLookahead",
+          "TestRawStringParserPrefixAcceptance"
         ],
         "patterns": [
           "(?m)^PARSER-MEMORY-FAULT language=swift detection=rss-budget$"

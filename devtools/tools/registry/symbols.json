@@ -14390,6 +14390,34 @@
       "exported": false,
       "group": "bid32"
     },
+    "bid64AddResult": {
+      "params": [
+        {
+          "name": "x",
+          "type": "u64"
+        },
+        {
+          "name": "y",
+          "type": "u64"
+        },
+        {
+          "name": "rndMode",
+          "type": "i32"
+        },
+        {
+          "name": "checkRoundedInexact",
+          "type": "bool"
+        }
+      ],
+      "returns": [
+        "u64",
+        "u32"
+      ],
+      "go_file": "add64.go",
+      "go_name": "bid64AddResult",
+      "exported": false,
+      "group": "bid64"
+    },
     "bid64CanonicalizeNonCanonicalFinite": {
       "params": [
         {
@@ -16612,6 +16640,25 @@
       ],
       "go_file": "internal.go",
       "go_name": "noFmaMulAddF64",
+      "exported": false,
+      "group": "misc"
+    },
+    "nulTerminatedByteAt": {
+      "params": [
+        {
+          "name": "s",
+          "type": "String"
+        },
+        {
+          "name": "index",
+          "type": "i32"
+        }
+      ],
+      "returns": [
+        "u8"
+      ],
+      "go_file": "bid64_from_string.go",
+      "go_name": "nulTerminatedByteAt",
       "exported": false,
       "group": "misc"
     },

@@ -12,6 +12,13 @@
 
 package bidgo
 
+func nulTerminatedByteAt(s string, index int) byte {
+	if index < 0 || index >= len(s) {
+		return 0
+	}
+	return s[index]
+}
+
 // tolower_macro from bid_internal.h line 94
 // #define tolower_macro(x) (((unsigned char)((x)-'A')<=('Z'-'A'))?((x)-'A'+'a'):(x))
 func tolower_macro(x byte) byte {
@@ -23,14 +30,8 @@ func tolower_macro(x byte) byte {
 
 // bid64_from_string - Mechanical port of Intel bid64_from_string
 // Original: bid64_string.c lines 245-538
-//
-// This uses a byte slice approach to closely mirror C pointer semantics.
-// ps is treated like a C char* pointer that can be incremented.
 func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
-	// Convert string to byte slice for C-like pointer semantics
-	ps := []byte(str)
-	// Add null terminator for C-like string handling
-	ps = append(ps, 0)
+	ps := 0
 
 	var sign_x, coefficient_x, rounded uint64
 	var expon_x, sgn_expon, ndigits, add_expon, midpoint, rounded_up, dround int
@@ -40,29 +41,29 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 	// line 272-274: eliminate leading whitespace
 	// while (((*ps == ' ') || (*ps == '\t')) && (*ps))
 	//     ps++;
-	for (ps[0] == ' ' || ps[0] == '\t') && ps[0] != 0 {
-		ps = ps[1:]
+	for uint(ps) < uint(len(str)) && (str[ps] == ' ' || str[ps] == '\t') {
+		ps++
 	}
 
 	// line 277: get first non-whitespace character
-	c = ps[0]
+	c = nulTerminatedByteAt(str, ps)
 
 	// line 280: detect special cases (INF or NaN)
 	// if (!c || (c != '.' && c != '-' && c != '+' && (c < '0' || c > '9')))
 	if c == 0 || (c != '.' && c != '-' && c != '+' && (c < '0' || c > '9')) {
 		// line 282-290: Infinity?
-		if tolower_macro(ps[0]) == 'i' && tolower_macro(ps[1]) == 'n' &&
-			tolower_macro(ps[2]) == 'f' && (ps[3] == 0 ||
-			(tolower_macro(ps[3]) == 'i' &&
-				tolower_macro(ps[4]) == 'n' && tolower_macro(ps[5]) == 'i' &&
-				tolower_macro(ps[6]) == 't' && tolower_macro(ps[7]) == 'y' &&
-				ps[8] == 0)) {
+		if tolower_macro(nulTerminatedByteAt(str, ps)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+1)) == 'n' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'f' && (nulTerminatedByteAt(str, ps+3) == 0 ||
+			(tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'i' &&
+				tolower_macro(nulTerminatedByteAt(str, ps+4)) == 'n' && tolower_macro(nulTerminatedByteAt(str, ps+5)) == 'i' &&
+				tolower_macro(nulTerminatedByteAt(str, ps+6)) == 't' && tolower_macro(nulTerminatedByteAt(str, ps+7)) == 'y' &&
+				nulTerminatedByteAt(str, ps+8) == 0)) {
 			res = 0x7800000000000000
 			return
 		}
 		// line 292-296: return sNaN
-		if tolower_macro(ps[0]) == 's' && tolower_macro(ps[1]) == 'n' &&
-			tolower_macro(ps[2]) == 'a' && tolower_macro(ps[3]) == 'n' {
+		if tolower_macro(nulTerminatedByteAt(str, ps)) == 's' && tolower_macro(nulTerminatedByteAt(str, ps+1)) == 'n' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'a' && tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'n' {
 			res = 0x7e00000000000000
 			return
 		}
@@ -72,11 +73,11 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 	}
 
 	// line 304-316: detect +INF or -INF
-	if (tolower_macro(ps[1]) == 'i' && tolower_macro(ps[2]) == 'n' &&
-		tolower_macro(ps[3]) == 'f') && (ps[4] == 0 ||
-		(tolower_macro(ps[4]) == 'i' && tolower_macro(ps[5]) == 'n' &&
-			tolower_macro(ps[6]) == 'i' && tolower_macro(ps[7]) == 't' &&
-			tolower_macro(ps[8]) == 'y' && ps[9] == 0)) {
+	if (tolower_macro(nulTerminatedByteAt(str, ps+1)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'n' &&
+		tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'f') && (nulTerminatedByteAt(str, ps+4) == 0 ||
+		(tolower_macro(nulTerminatedByteAt(str, ps+4)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+5)) == 'n' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+6)) == 'i' && tolower_macro(nulTerminatedByteAt(str, ps+7)) == 't' &&
+			tolower_macro(nulTerminatedByteAt(str, ps+8)) == 'y' && nulTerminatedByteAt(str, ps+9) == 0)) {
 		if c == '+' {
 			res = 0x7800000000000000
 		} else if c == '-' {
@@ -88,8 +89,8 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 	}
 
 	// line 318-324: if +sNaN, +SNaN, -sNaN, or -SNaN
-	if tolower_macro(ps[1]) == 's' && tolower_macro(ps[2]) == 'n' &&
-		tolower_macro(ps[3]) == 'a' && tolower_macro(ps[4]) == 'n' {
+	if tolower_macro(nulTerminatedByteAt(str, ps+1)) == 's' && tolower_macro(nulTerminatedByteAt(str, ps+2)) == 'n' &&
+		tolower_macro(nulTerminatedByteAt(str, ps+3)) == 'a' && tolower_macro(nulTerminatedByteAt(str, ps+4)) == 'n' {
 		if c == '-' {
 			res = 0xfe00000000000000
 		} else {
@@ -107,8 +108,8 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 
 	// line 333-336: get next character if leading +/- sign
 	if c == '-' || c == '+' {
-		ps = ps[1:]
-		c = ps[0]
+		ps++
+		c = nulTerminatedByteAt(str, ps)
 	}
 
 	// line 338-342: if c isn't a decimal point or a decimal digit, return NaN
@@ -121,36 +122,37 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 	rdx_pt_enc = 0
 
 	// line 347-388: detect zero (and eliminate/ignore leading zeros)
-	if ps[0] == '0' || ps[0] == '.' {
+	if nulTerminatedByteAt(str, ps) == '0' || nulTerminatedByteAt(str, ps) == '.' {
 		// line 349-352
-		if ps[0] == '.' {
+		if nulTerminatedByteAt(str, ps) == '.' {
 			rdx_pt_enc = 1
-			ps = ps[1:]
+			ps++
 		}
 
 		// line 355-387: while (*ps == '0')
-		for ps[0] == '0' {
-			ps = ps[1:]
+		for uint(ps) < uint(len(str)) && str[ps] == '0' {
+			ps++
 			// line 359-361
 			if rdx_pt_enc != 0 {
 				right_radix_leading_zeros++
 			}
 			// line 364-386
-			if ps[0] == '.' {
+			c = nulTerminatedByteAt(str, ps)
+			if c == '.' {
 				if rdx_pt_enc == 0 {
 					rdx_pt_enc = 1
 					// line 369-373
-					if ps[1] == 0 {
+					if nulTerminatedByteAt(str, ps+1) == 0 {
 						res = (uint64(398-right_radix_leading_zeros) << 53) | sign_x
 						return
 					}
-					ps = ps[1:]
+					ps++
 				} else {
 					// line 377-379: if 2 radix points, return NaN
 					res = 0x7c00000000000000 | sign_x
 					return
 				}
-			} else if ps[0] == 0 {
+			} else if c == 0 {
 				// line 381-385
 				res = (uint64(398-right_radix_leading_zeros) << 53) | sign_x
 				return
@@ -159,7 +161,7 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 	}
 
 	// line 390
-	c = ps[0]
+	c = nulTerminatedByteAt(str, ps)
 
 	// line 392
 	ndigits = 0
@@ -173,8 +175,8 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 				return
 			}
 			rdx_pt_enc = 1
-			ps = ps[1:]
-			c = ps[0]
+			ps++
+			c = nulTerminatedByteAt(str, ps)
 			continue
 		}
 
@@ -294,8 +296,8 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 		}
 
 		// line 466-467
-		ps = ps[1:]
-		c = ps[0]
+		ps++
+		c = nulTerminatedByteAt(str, ps)
 	}
 
 	// line 470
@@ -319,8 +321,8 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 	}
 
 	// line 489-490
-	ps = ps[1:]
-	c = ps[0]
+	ps++
+	c = nulTerminatedByteAt(str, ps)
 
 	// line 491
 	if c == '-' {
@@ -331,8 +333,8 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 
 	// line 492-495
 	if c == '-' || c == '+' {
-		ps = ps[1:]
-		c = ps[0]
+		ps++
+		c = nulTerminatedByteAt(str, ps)
 	}
 
 	// line 496-500
@@ -347,8 +349,8 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 			expon_x = (expon_x << 1) + (expon_x << 3)
 			expon_x += int(c - '0')
 		}
-		ps = ps[1:]
-		c = ps[0]
+		ps++
+		c = nulTerminatedByteAt(str, ps)
 	}
 
 	// line 511-515
