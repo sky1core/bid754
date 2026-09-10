@@ -676,6 +676,67 @@ pinned Intel build (`make setup-native`); in a worktree,
 so symlink its `lib`, `src`, `include`, and `LIBRARY` subdirectories from
 the primary checkout first.
 
+`explorediff -campaign relations -ops add,sub,mul,div,fma,quantize`
+adds an independent exact integer/rational model to every generated case.
+`-cases` is the number of samples per family, width and rounding mode for
+this campaign. `-campaign uniform-finite` uses separate finite
+operand fields as a comparison campaign, with samples per operation, width
+and mode. Both compare C/Go raw bits and flags separately from the model's
+numeric value, sign, class and flags. Neither supports square root or nonfinite
+inputs in the model. Counter records distinguish generated inputs, executed
+operations and completed model comparisons, with numeric situation histograms.
+
+The driver builds from a captured source snapshot and copies its native build
+inputs into that isolated directory. Results record the snapshot, executable,
+linked static library and pinned archive identities. Existing output files are
+never overwritten. Input, model, execution, comparison or output errors fail the run.
+
+Findings include original raw samples and, when successful, a reduced sample
+that preserves the numeric situation and discrepancy. `-shrink-attempts 128`
+sets the reduction budget; `0` explicitly disables it. Replay a JSONL file
+containing only `sample` or `finding` records with `explorediff -replay FILE`;
+operands are consumed as recorded, without seed regeneration. Extract finding
+records from a run's mixed output before replay. A recorded mismatch still
+requires adjudication against the specification; model agreement does not
+define correctness.
+
+`make test-finite-reference` checks relation predicates, the public-path
+comparator's fault detection, semantic shrinking and official raw readtest
+calibration. `make test-native-finite-reference` additionally calibrates against
+pinned decNumber. Their bounded evidence belongs to the shared portable/native
+profiles. To search beyond their seed inputs, run Go's coverage-guided target:
+
+```bash
+cd bid754-go
+go test -run '^$' -fuzz '^FuzzFiniteArithmeticExact$' -fuzztime=60s .
+```
+
+The fuzz input exposes family, width, mode, coefficient entropy, exponent and
+sign separately. A failed case is saved by Go's fuzz runner and replayed by
+ordinary `go test`; inspect its raw case diagnostic before promotion.
+
+`mutgate -stages exactprobe` evaluates real mechanical-port mutations with
+the same model and public Go API. Select explicit `-exact-seeds`, then either
+`-exact-cases N` or `-exact-cases 0 -exact-cpu-budget 250ms`. CPU accounting is
+process user plus system time for generation, model, arithmetic and comparison,
+including GC; build/startup time is separate. The budget is checked between
+inputs, so the report includes measured CPU and any overshoot. Each campaign
+and seed runs independently, even after another campaign detects the mutation.
+
+`-mode exactcheck -stages exactprobe -exact-probes calibration` checks three
+specific kernel faults and their precise wrong-answer witnesses. The `heldout`
+set uses different mutation sites and requires `-exact-tuning-seeds` to reject
+seed overlap with tuning. These small sets evaluate specified fault classes;
+they do not establish a general mutation score for the whole library. Findings
+outside the pristine run's tested input prefix remain inconclusive.
+
+Mutation runs require an isolated detached `-worktree` at `-commit` and a
+`-jsonl` result path. For uncommitted changes, `-mode snapshot` captures tracked
+edits and explicitly listed `-snapshot-files` into a temporary commit without
+moving a branch or changing the main index. The ordinary verification profiles
+run the bounded harness checks; CPU campaigns and kernel mutation audits are
+opt-in.
+
 ## ARM64 Intel BID
 
 Keep the ARM64 `BID_SIZE_LONG=8` override explicit when required by the pinned upstream. This preserves the intended 64-bit BID build behavior; it is not an alternate arithmetic implementation.

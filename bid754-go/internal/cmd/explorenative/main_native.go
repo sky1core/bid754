@@ -4,7 +4,7 @@ package main
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../../../../devtools/third_party/intel_dfp/src -I${SRCDIR}/../../../../devtools/third_party/intel_dfp/include
-#cgo LDFLAGS: -L${SRCDIR}/../../../../devtools/third_party/intel_dfp/lib -lbid -lm
+#cgo LDFLAGS: ${SRCDIR}/../../../../devtools/third_party/intel_dfp/lib/libbid.a -lm
 
 #include <stdint.h>
 #include "bid_conf.h"
@@ -24,6 +24,7 @@ import "C"
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"math"
@@ -90,16 +91,86 @@ type summaryRecord struct {
 }
 
 func main() {
-	seedText := flag.String("seed", "", "case-stream seed, decimal or 0x hex uint64 (required)")
-	cases := flag.Int("cases", 20000, "cases per (width, op) target; each case runs under every selected mode")
-	bias := flag.Float64("bias", 0.25, "probability in [0,1] that a case is boundary-biased (pool draw + exponent correlation)")
-	opsText := flag.String("ops", strings.Join(allOps, ","), "CSV of Tier 1 arithmetic ops")
+	campaign := flag.String("campaign", campaignLegacy, "campaign: legacy (default, C-vs-Go fresh-seed fuzz), relations (decimalprobe relational generators + model oracle), or uniform-finite (uniform finite operands + model oracle)")
+	replay := flag.String("replay", "", "exact fixed-input JSONL replay: re-run recorded sample/finding cases through C, the Go port, and the model (ignores seed/campaign generation)")
+	shrinkAttempts := flag.Int("shrink-attempts", 128, "max reference-campaign shrink attempts per finding; 0 disables shrinking (recorded disabled)")
+	seedText := flag.String("seed", "", "case-stream seed, decimal or 0x hex uint64 (required for generation)")
+	cases := flag.Int("cases", 20000, "explicit budget: legacy=cases per (width, op) target x every mode; relations=samples per (family, width, mode); uniform-finite=samples per (op, width, mode)")
+	bias := flag.Float64("bias", 0.25, "legacy only: probability in [0,1] that a case is boundary-biased (pool draw + exponent correlation)")
+	opsText := flag.String("ops", "", "legacy/uniform-finite: CSV of ops; reference campaigns support add/sub/mul/div/fma/quantize and reject sqrt")
 	widthsText := flag.String("widths", "32,64,128", "CSV of decimal widths")
 	modesText := flag.String("modes", modeNamesCSV(), "CSV of rounding-mode names")
-	commit := flag.String("commit", "", "commit descriptor recorded in the config record")
+	commit := flag.String("commit", "", "commit/source-snapshot descriptor recorded in the config and finding records")
+	validateOnly := flag.Bool("validate-only", false, "validate campaign and replay inputs without execution")
+	sourceID := flag.String("source-id", "", "required source content identity")
+	flag.StringVar(&sourceSnapshotPath, "source-snapshot", "", "captured source archive used to build this executable")
+	librarySHA := flag.String("c-library-sha256", "", "required linked static library identity")
+	binarySHA := flag.String("binary-sha256", "", "required executable identity")
+	archiveSHA := flag.String("c-archive-sha256", "", "required pinned archive identity")
+	names := map[string]bool{"campaign": true, "replay": true, "shrink-attempts": true, "seed": true, "cases": true, "bias": true, "ops": true, "widths": true, "modes": true, "commit": true, "validate-only": false, "source-id": true, "c-library-sha256": true, "binary-sha256": true, "c-archive-sha256": true, "h": false, "help": false}
+	names["source-snapshot"] = true
+	if err := validateFlagArgs(os.Args[1:], names); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	flag.Parse()
+	opsSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "ops" {
+			opsSet = true
+		}
+	})
+	if !opsSet {
+		*opsText = "add,sub,mul,div,fma,quantize"
+		if *campaign == campaignLegacy && *replay == "" {
+			*opsText = strings.Join(allOps, ",")
+		}
+	}
+	effectiveCampaign := *campaign
+	if *replay != "" {
+		effectiveCampaign = campaignUniform
+	}
+	if err := validateOptions(effectiveCampaign, *cases, *bias, *opsText, *widthsText, *modesText, *shrinkAttempts); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := validateCampaign(*campaign); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if *replay != "" {
+		if _, err := loadReplay(*replay); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	} else if err := validateSeed(*seedText); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if *validateOnly {
+		return
+	}
+	activeProvenance = provenanceRecord{Type: "provenance", SourceID: *sourceID, CLibrarySHA256: *librarySHA, BinarySHA256: *binarySHA, CArchiveSHA256: *archiveSHA}
+	if err := verifyProvenance(activeProvenance); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := json.NewEncoder(os.Stdout).Encode(activeProvenance); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
-	if err := run(*seedText, *cases, *bias, *opsText, *widthsText, *modesText, *commit); err != nil {
+	var err error
+	switch {
+	case *replay != "":
+		err = runReplay(*replay, *commit)
+	case *campaign == campaignLegacy:
+		err = runLegacy(*seedText, *cases, *bias, *opsText, *widthsText, *modesText, *commit)
+	default:
+		err = runReference(*campaign, *seedText, *cases, *opsText, *widthsText, *modesText, *shrinkAttempts, *commit)
+	}
+	err = errors.Join(err, verifyProvenance(activeProvenance))
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "explorenative: %v\n", err)
 		os.Exit(1)
 	}
@@ -113,7 +184,10 @@ func modeNamesCSV() string {
 	return strings.Join(names, ",")
 }
 
-func run(seedText string, cases int, bias float64, opsText, widthsText, modesText, commit string) error {
+func runLegacy(seedText string, cases int, bias float64, opsText, widthsText, modesText, commit string) (runErr error) {
+	if err := validateOptions(campaignLegacy, cases, bias, opsText, widthsText, modesText, 0); err != nil {
+		return err
+	}
 	if seedText == "" {
 		return fmt.Errorf("-seed is required (the driver always passes the resolved seed)")
 	}
@@ -169,7 +243,7 @@ func run(seedText string, cases int, bias float64, opsText, widthsText, modesTex
 	}
 
 	out := bufio.NewWriterSize(os.Stdout, 1<<16)
-	defer out.Flush()
+	defer func() { runErr = errors.Join(runErr, out.Flush()) }()
 	emit := func(record any) error {
 		b, err := json.Marshal(record)
 		if err != nil {

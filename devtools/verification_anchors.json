@@ -544,5 +544,19 @@
     "bid64": 185,
     "bid128": 170
   },
-  "bid_codec_parse_oracle_sha256": "a16b0223a9f18c6dfa2e85df5e594482209eb1fa9440d3bcf4ded15f71ce882e"
+  "bid_codec_parse_oracle_sha256": "a16b0223a9f18c6dfa2e85df5e594482209eb1fa9440d3bcf4ded15f71ce882e",
+  "finite_reference_calibration": {
+    "readtest_by_width": {
+      "32": 119,
+      "64": 695,
+      "128": 789
+    },
+    "readtest_excluded_decimal_text": 2325,
+    "readtest_excluded_nonfinite_input": 454,
+    "decnumber_by_width": {
+      "32": 560,
+      "64": 560,
+      "128": 560
+    }
+  }
 }

@@ -166,6 +166,187 @@ func TestRunStageFailsWhenRunExprMatchesNoTests(t *testing.T) {
 	}
 }
 
+// buildOutcomeFixtureBinary compiles a package whose tests reproduce every
+// distinct stage outcome mutgate must classify — an assertion failure, a
+// panic, a self-timeout, and a nonzero exit with no failing-test evidence —
+// so runStage is exercised against real `go test -c` binaries rather than a
+// hand-faked production backend.
+func buildOutcomeFixtureBinary(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module mutgateoutcome\n\ngo 1.21\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	src := `package fixture
+
+import (
+	"flag"
+	"os"
+	"testing"
+	"time"
+)
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if flag.Lookup("test.run").Value.String() == "^TestHangs$" {
+		if err := flag.Set("test.timeout", "20ms"); err != nil { os.Exit(2) }
+	}
+	os.Exit(m.Run())
+}
+
+func TestPasses(t *testing.T) {}
+
+func TestSkips(t *testing.T) { t.Skip("required input absent") }
+
+func TestAssertMismatch(t *testing.T) {
+	t.Errorf("value mismatch: got 0x01 want 0x02")
+}
+
+func TestPanics(t *testing.T) {
+	panic("boom from mutant")
+}
+
+func TestHangs(t *testing.T) {
+	time.Sleep(30 * time.Second)
+}
+
+func TestExitsWithoutDiagnostic(t *testing.T) {
+	os.Exit(3)
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, "fixture_test.go"), []byte(src), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	bin := filepath.Join(dir, "fixture.test")
+	cmd := exec.Command("go", "test", "-c", "-o", bin, ".")
+	cmd.Dir = dir
+	cmd.Env = append(append([]string{}, os.Environ()...), "GOFLAGS=", "CGO_ENABLED=0")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build outcome fixture binary: %v\n%s", err, out)
+	}
+	return bin
+}
+
+// TestRunStageClassifiesRealTestOutcomes drives runStage against a real
+// compiled test binary and asserts each outcome maps to the correct verdict:
+// a pass, an assertion failure ("killed" — the only class that means a
+// value/flag mismatch), a panic and a self-timeout (detections kept distinct
+// from an assertion kill), and a bare nonzero exit ("inconclusive", never
+// mistaken for a mismatch).
+func TestRunStageClassifiesRealTestOutcomes(t *testing.T) {
+	bin := buildOutcomeFixtureBinary(t)
+	e := &engine{
+		cfg:   config{stageTimeout: 30 * time.Second},
+		goDir: filepath.Dir(bin),
+	}
+	cases := []struct {
+		run  string
+		want string
+	}{
+		{"^TestPasses$", "pass"},
+		{"^TestSkips$", "inconclusive"},
+		{"^TestAssertMismatch$", "killed"},
+		{"^TestPanics$", "panic"},
+		{"^TestHangs$", "timeout"},
+		{"^TestExitsWithoutDiagnostic$", "inconclusive"},
+	}
+	for _, c := range cases {
+		verdict, out, _ := e.runStage(stage{Name: "probe", Binary: "portable", RunExpr: c.run}, bin)
+		if verdict != c.want {
+			t.Errorf("runStage %s: verdict = %q, want %q\noutput:\n%s", c.run, verdict, c.want, out)
+			continue
+		}
+		switch verdict {
+		case "timeout":
+			if !strings.Contains(out, "panic: test timed out after 20ms") {
+				t.Errorf("runtime timeout diagnostic missing; an outer deadline is insufficient: %s", out)
+			}
+		case "killed":
+			if lines := failLines(out); len(lines) == 0 {
+				t.Errorf("runStage %s: killed verdict carried no failing-test diagnostic (fail lines empty)", c.run)
+			}
+		case "panic":
+			// The panic banner must survive as evidence even though it precedes
+			// a long goroutine dump that a tail would drop.
+			found := false
+			for _, l := range failLines(out) {
+				if strings.HasPrefix(l, "panic:") {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("runStage %s: panic verdict did not preserve the panic banner in fail lines: %v", c.run, failLines(out))
+			}
+		}
+	}
+}
+
+func TestRunStageRejectsInheritedShardSelection(t *testing.T) {
+	e := &engine{cfg: config{stageTimeout: time.Second}}
+	for _, key := range []string{"BID754_TIER1_ARITH_SHARD_COUNT", "BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX", "BID754_D32_EXHAUSTIVE_SHARD_COUNT"} {
+		t.Run(key, func(t *testing.T) {
+			t.Setenv(key, "18446744073709551615")
+			verdict, diagnostic, _ := e.runStage(stage{Name: "tier1rand"}, "must-not-execute")
+			if verdict != "inconclusive" || !strings.Contains(diagnostic, "unsharded execution") || !strings.Contains(diagnostic, key) {
+				t.Fatalf("%s: %s", verdict, diagnostic)
+			}
+		})
+	}
+}
+
+func TestClassifyStageFailure(t *testing.T) {
+	cases := []struct {
+		name string
+		out  string
+		want string
+	}{
+		{"assertion", "=== RUN   TestX\n    x_test.go:9: got 1 want 2\n--- FAIL: TestX (0.00s)\nFAIL\n", "killed"},
+		{"panic", "panic: boom\n\ngoroutine 1 [running]:\nmain.main()\n", "panic"},
+		{"runtime-fatal", "fatal error: concurrent map writes\n\ngoroutine 5 [running]:\n", "panic"},
+		{"self-timeout", "panic: test timed out after 2s\n\ngoroutine 1 [running]:\n", "timeout"},
+		{"bare-exit", "", "inconclusive"},
+		{"loader-error", "dyld[123]: Library not loaded: libfoo.dylib\n", "inconclusive"},
+		// A panic banner and a --- FAIL line together (as a crashing test emits)
+		// still classifies as a crash, not an assertion mismatch.
+		{"panic-with-fail-line", "--- FAIL: TestX (0.00s)\npanic: boom [recovered]\n\tpanic: boom\n", "panic"},
+		// "panic:" appearing only inside an assertion message (not line-anchored)
+		// stays an assertion kill.
+		{"fail-message-mentions-panic", "    x_test.go:9: expected no panic: got one\n--- FAIL: TestX (0.00s)\n", "killed"},
+	}
+	for _, c := range cases {
+		if got := classifyStageFailure(c.out); got != c.want {
+			t.Errorf("classifyStageFailure(%s) = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestFailLinesCapturesBanners(t *testing.T) {
+	lines := failLines("--- FAIL: TestX (0.00s)\n    x_test.go:9: got 1 want 2\n")
+	if len(lines) == 0 || !strings.HasPrefix(lines[0], "--- FAIL") {
+		t.Fatalf("assertion fail lines = %v", lines)
+	}
+	lines = failLines("panic: boom\n\ngoroutine 1 [running]:\n")
+	if len(lines) == 0 || !strings.HasPrefix(lines[0], "panic:") {
+		t.Fatalf("panic fail lines = %v", lines)
+	}
+	lines = failLines("panic: test timed out after 2s\n\ngoroutine 1 [running]:\n")
+	if len(lines) == 0 || !strings.HasPrefix(lines[0], "panic:") {
+		t.Fatalf("timeout fail lines = %v", lines)
+	}
+}
+
+func TestHasLinePrefix(t *testing.T) {
+	if !hasLinePrefix("foo\npanic: boom\n", "panic:") {
+		t.Error("hasLinePrefix missed a line-anchored panic banner")
+	}
+	if hasLinePrefix("expected no panic: got one\n", "panic:") {
+		t.Error("hasLinePrefix matched a non-anchored occurrence")
+	}
+	if !hasLinePrefix("\t  panic: boom", "panic:") {
+		t.Error("hasLinePrefix should ignore leading whitespace")
+	}
+}
+
 func TestCountListedTests(t *testing.T) {
 	if got := countListedTests(""); got != 0 {
 		t.Fatalf("empty list output counted %d tests", got)
@@ -288,5 +469,22 @@ func TestStubBackedBinariesCarryTheirGateTags(t *testing.T) {
 	}
 	if _, ok := required[st.Binary]; !ok {
 		t.Fatalf("d32exh names binary %q, which is not covered by the stub-backed tag table", st.Binary)
+	}
+}
+
+func TestSelfCheckRequiresItsArithmeticDiagnostic(t *testing.T) {
+	spec := selfChecks[0]
+	for _, result := range []mutantResult{
+		{Status: "killed", FailLines: []string{"--- FAIL: TestGeneratedDecnumberDifferentialStructured"}},
+		{Status: "killed", FailLines: []string{"DIVERGENCE d128 mul mode=0"}},
+		{Status: "panic", FailLines: []string{"DIVERGENCE d128 fma mode=0"}},
+	} {
+		if selfCheckDiagnosticMatches(spec, result) {
+			t.Fatalf("accepted unintended failure: %+v", result)
+		}
+	}
+	result := mutantResult{Status: "killed", FailLines: []string{"generated.go:42: DIVERGENCE d128 fma mode=0"}}
+	if !selfCheckDiagnosticMatches(spec, result) {
+		t.Fatal("rejected intended arithmetic diagnostic")
 	}
 }

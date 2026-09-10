@@ -77,8 +77,9 @@ type stage struct {
 }
 
 var stageCatalog = map[string]stage{
-	"readtest": {Name: "readtest", Binary: "portable", RunExpr: "^TestGeneratedReadCasesGoPort$"},
-	"dectest":  {Name: "dectest", Binary: "portable", RunExpr: "^TestGeneratedDectestSuitesGoPort$"},
+	"exactprobe": {Name: "exactprobe", Binary: "portable", RunExpr: "^TestFiniteArithmeticCampaign$"},
+	"readtest":   {Name: "readtest", Binary: "portable", RunExpr: "^TestGeneratedReadCasesGoPort$"},
+	"dectest":    {Name: "dectest", Binary: "portable", RunExpr: "^TestGeneratedDectestSuitesGoPort$"},
 	"parity": {Name: "parity", Binary: "portable",
 		RunExpr: "^(TestGeneratedPublicAPIParity|TestGeneratedPublicAPIFlaglessSiblingEquivalence)$"},
 	"native": {Name: "native", Binary: "native", RunExpr: "^(TestGeneratedReadCases|TestGeneratedDectestSuites|TestGeneratedFFIBitCompareSubset)$"},
@@ -150,12 +151,29 @@ func (s mutationSite) ID() string {
 	return fmt.Sprintf("%s:%d:%s:%s", s.File, s.Offset, s.Category, s.Variant)
 }
 
+// mutantResult.Status classifies one mutant's fate. The classes are disjoint:
+//
+//	killed        a stage's test reported a --- FAIL assertion (evidence in
+//	              FailLines); the mutation changed an observed value/flag
+//	panic         a stage crashed with a panic/fatal runtime banner
+//	timeout       a stage exceeded its deadline (context kill or the test
+//	              binary's own -test.timeout)
+//	survived      every requested stage executed real cases and passed
+//	invalid       the mutated source did not compile (a mutant property)
+//	inconclusive  execution/infrastructure fault, not a mutant verdict:
+//	              native build failure, an unknown nonzero exit with no
+//	              failing-test evidence, or a stage selecting zero tests
+//
+// panic and timeout are detections but are kept separate from killed so an
+// assertion mismatch is never conflated with a crash or hang. invalid and
+// inconclusive are excluded from the kill/detection denominator.
 type mutantResult struct {
+	Exact     *exactEvidence   `json:"exactprobe,omitempty"`
 	ID        string           `json:"id"`
 	Site      mutationSite     `json:"site"`
-	Status    string           `json:"status"` // killed|survived|invalid
+	Status    string           `json:"status"` // killed|panic|timeout|survived|invalid|inconclusive
 	KilledBy  string           `json:"killed_by,omitempty"`
-	Reason    string           `json:"reason,omitempty"` // fail|timeout|compile_error|native_build_error
+	Reason    string           `json:"reason,omitempty"` // assertion_fail|panic|timeout|compile_error|native_build_error|no_test_match|exec_error|write_error
 	FailLines []string         `json:"fail_lines,omitempty"`
 	StageMS   map[string]int64 `json:"stage_ms,omitempty"`
 	BuildMS   map[string]int64 `json:"build_ms,omitempty"`
@@ -164,27 +182,34 @@ type mutantResult struct {
 }
 
 type config struct {
-	mode         string
-	repo         string
-	worktree     string
-	commit       string
-	files        string
-	perFile      int
-	seed         int64
-	stages       string
-	stageTimeout time.Duration
-	buildTimeout time.Duration
-	jsonlPath    string
-	maxMutants   int
-	logEvery     int
-	strata       string
-	failfast     bool
-	idsFile      string
+	exactCampaigns   string
+	exactSeeds       string
+	exactTuningSeeds string
+	exactCases       int
+	exactCPU         time.Duration
+	exactProbeSet    string
+	snapshotFiles    string
+	mode             string
+	repo             string
+	worktree         string
+	commit           string
+	files            string
+	perFile          int
+	seed             int64
+	stages           string
+	stageTimeout     time.Duration
+	buildTimeout     time.Duration
+	jsonlPath        string
+	maxMutants       int
+	logEvery         int
+	strata           string
+	failfast         bool
+	idsFile          string
 }
 
 func main() {
 	var cfg config
-	flag.StringVar(&cfg.mode, "mode", "run", "run|list|selfcheck|setup|teardown")
+	flag.StringVar(&cfg.mode, "mode", "run", "run|list|selfcheck|setup|teardown|snapshot|exactcheck")
 	flag.StringVar(&cfg.repo, "repo", "", "primary repo root (default: git toplevel of cwd)")
 	flag.StringVar(&cfg.worktree, "worktree", "", "isolated worktree path (required; created by setup/run if absent)")
 	flag.StringVar(&cfg.commit, "commit", "HEAD", "commit for worktree creation")
@@ -203,6 +228,7 @@ func main() {
 		"per-file per-category quotas; leftover slots backfill uniformly ('' = pure uniform)")
 	flag.BoolVar(&cfg.failfast, "failfast", true, "pass -test.failfast to stage runs (kill verdict unchanged, much faster)")
 	flag.StringVar(&cfg.idsFile, "ids-file", "", "run mode: newline-separated mutant IDs to evaluate instead of sampling")
+	registerExactFlags(&cfg)
 	flag.Parse()
 
 	if err := run(cfg); err != nil {
@@ -224,6 +250,10 @@ func run(cfg config) error {
 		return err
 	}
 	switch cfg.mode {
+	case "snapshot":
+		return snapshotSource(cfg)
+	case "exactcheck":
+		return runExactCheck(cfg)
 	case "setup":
 		return setupWorktree(cfg)
 	case "teardown":
@@ -790,15 +820,23 @@ func sitesByIDFile(path string, sites map[string][]mutationSite, files []string)
 // ---------- execution engine ----------
 
 type engine struct {
-	cfg      config
-	worktree string
-	repo     string
-	goDir    string // worktree/bid754-go
-	binDir   string
-	jsonl    *os.File
+	exact      *exactEvidence
+	exactRuns  []exactRun
+	buildFault string
+	cfg        config
+	worktree   string
+	repo       string
+	goDir      string // worktree/bid754-go
+	binDir     string
+	jsonl      *os.File
 }
 
 func newEngine(cfg config) (*engine, error) {
+	if hasExactStage(cfg.stages) {
+		if _, err := exactConfigs(cfg); err != nil {
+			return nil, err
+		}
+	}
 	// Structural isolation guard on the exact path evaluateMutant will write
 	// under; setupWorktree re-checks the same invariant.
 	if err := assertWorktreeIsolated(cfg.repo, cfg.worktree); err != nil {
@@ -818,10 +856,18 @@ func newEngine(cfg config) (*engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &engine{
+	e := &engine{
 		cfg: cfg, worktree: cfg.worktree, repo: cfg.repo,
 		goDir: filepath.Join(cfg.worktree, "bid754-go"), binDir: binDir, jsonl: jf,
-	}, nil
+	}
+	if hasExactStage(cfg.stages) {
+		e.exact, err = exactSource(cfg)
+		if err != nil {
+			e.close()
+			return nil, err
+		}
+	}
+	return e, nil
 }
 
 func (e *engine) close() {
@@ -902,6 +948,7 @@ func (e *engine) buildArgs(binary, outPath string) []string {
 // buildBinary compiles the bid754-go test binary for the given tag set.
 // Returns (ok, output, duration).
 func (e *engine) buildBinary(binary string) (bool, string, time.Duration, string) {
+	e.buildFault = ""
 	outPath := filepath.Join(e.binDir, "mut_"+binary+".test")
 	ctx, cancel := context.WithTimeout(context.Background(), e.cfg.buildTimeout)
 	defer cancel()
@@ -912,13 +959,23 @@ func (e *engine) buildBinary(binary string) (bool, string, time.Duration, string
 	out, err := cmd.CombinedOutput()
 	dur := time.Since(start)
 	if err != nil {
+		if e.exact != nil {
+			e.buildFault = exactBuildFault(string(out), err, ctx.Err())
+		}
 		return false, tail(string(out), 2000), dur, outPath
 	}
 	return true, "", dur, outPath
 }
 
 // runStage executes one stage against a prebuilt binary.
-// verdict: "pass", "fail", "timeout", "nomatch".
+// verdict: "pass", "killed", "panic", "timeout", "inconclusive", "nomatch".
+// On any non-pass, non-nomatch verdict the returned string is the full stage
+// output so the caller can extract failure lines that a tail would drop (a
+// panic banner precedes a long goroutine dump).
+//
+// The verdict is evidence-based: a nonzero exit is classified from the real
+// Go test output (see classifyStageFailure), never assumed to be an assertion
+// mismatch.
 //
 // Before running, the stage's -test.run expression is resolved with
 // -test.list against the same binary: an expression that selects zero tests
@@ -927,6 +984,15 @@ func (e *engine) buildBinary(binary string) (bool, string, time.Duration, string
 // stage error ("nomatch"), never a pass — in baseline and per-mutant runs
 // alike, since baseline reuses this path.
 func (e *engine) runStage(st stage, binPath string) (string, string, time.Duration) {
+	for _, entry := range os.Environ() {
+		key, value, _ := strings.Cut(entry, "=")
+		if value != "" && strings.HasPrefix(key, "BID754_") && strings.Contains(key, "_SHARD_") {
+			return "inconclusive", "mutation stages require unsharded execution; inherited selection: " + key, 0
+		}
+	}
+	if st.Name == "exactprobe" {
+		return e.runExactStage(binPath)
+	}
 	dir := e.goDir
 	if st.Binary == "bidgopkg" {
 		dir = filepath.Join(e.goDir, "internal", "bidgo")
@@ -943,7 +1009,7 @@ func (e *engine) runStage(st stage, binPath string) (string, string, time.Durati
 
 	ctx, cancel := context.WithTimeout(context.Background(), e.cfg.stageTimeout)
 	defer cancel()
-	args := []string{"-test.run", st.RunExpr, "-test.count=1",
+	args := []string{"-test.run", st.RunExpr, "-test.count=1", "-test.v=true",
 		"-test.timeout", e.cfg.stageTimeout.String()}
 	if e.cfg.failfast {
 		args = append(args, "-test.failfast")
@@ -953,13 +1019,77 @@ func (e *engine) runStage(st stage, binPath string) (string, string, time.Durati
 	cmd.Env = append(append([]string{}, os.Environ()...), "GOFLAGS=")
 	out, err := cmd.CombinedOutput()
 	dur := time.Since(start)
+	full := string(out)
 	if ctx.Err() == context.DeadlineExceeded {
-		return "timeout", tail(string(out), 1500), dur
+		return "timeout", full, dur
 	}
 	if err != nil {
-		return "fail", tail(string(out), 1500), dur
+		return classifyStageFailure(full), full, dur
+	}
+	if err := requireSelectedPasses(listOut, full); err != nil {
+		return "inconclusive", err.Error() + "\n" + full, dur
 	}
 	return "pass", "", dur
+}
+
+func requireSelectedPasses(listing, output string) error {
+	passed := map[string]bool{}
+	for _, line := range strings.Split(output, "\n") {
+		if strings.HasPrefix(line, "--- PASS: ") {
+			fields := strings.Fields(line)
+			if len(fields) >= 3 {
+				passed[fields[2]] = true
+			}
+		}
+	}
+	for _, name := range strings.Split(listing, "\n") {
+		name = strings.TrimSpace(name)
+		if executableTest(name) && !passed[name] {
+			return fmt.Errorf("selected test %s did not complete with PASS (skip or missing execution)", name)
+		}
+	}
+	return nil
+}
+
+func executableTest(name string) bool {
+	return strings.HasPrefix(name, "Test") || strings.HasPrefix(name, "Example") || strings.HasPrefix(name, "Fuzz")
+}
+
+// classifyStageFailure maps a failed stage's full output to a verdict from
+// real run evidence rather than treating every nonzero exit as an assertion
+// mismatch:
+//
+//   - a test binary that exhausted its own -test.timeout prints a
+//     "test timed out after" banner (as a panic); that is a hang, so it maps
+//     to "timeout" even though a panic banner is present;
+//   - a top-level panic:/fatal error: banner is a crash -> "panic";
+//   - a --- FAIL line with no crash banner is a real failing-test assertion
+//     -> "killed";
+//   - anything else is a nonzero exit with no failing-test evidence (a
+//     missing shared library, an os.Exit, an exec fault) -> "inconclusive".
+func classifyStageFailure(out string) string {
+	if strings.Contains(out, "test timed out after") {
+		return "timeout"
+	}
+	if hasLinePrefix(out, "panic:") || hasLinePrefix(out, "fatal error:") {
+		return "panic"
+	}
+	if strings.Contains(out, "--- FAIL") {
+		return "killed"
+	}
+	return "inconclusive"
+}
+
+// hasLinePrefix reports whether any line of out, after trimming leading
+// whitespace, begins with prefix. Line-anchored so a "panic:" appearing inside
+// a test's own failure message does not masquerade as a crash banner.
+func hasLinePrefix(out, prefix string) bool {
+	for _, l := range strings.Split(out, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(l), prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // listMatchedTests runs `binary -test.list <expr>` and counts the selected
@@ -984,7 +1114,7 @@ func listMatchedTests(binPath, dir, runExpr string, timeout time.Duration) (int,
 func countListedTests(out string) int {
 	n := 0
 	for _, line := range strings.Split(out, "\n") {
-		if strings.TrimSpace(line) != "" {
+		if executableTest(strings.TrimSpace(line)) {
 			n++
 		}
 	}
@@ -998,12 +1128,20 @@ func tail(s string, n int) string {
 	return "..." + s[len(s)-n:]
 }
 
+// failLines extracts up to four diagnostic lines from a failed stage's output:
+// the failing-test markers for an assertion kill and the crash/timeout banners
+// for a panic or timeout, so the recorded evidence names why the stage failed.
 func failLines(out string) []string {
 	var lines []string
 	for _, l := range strings.Split(out, "\n") {
 		t := strings.TrimSpace(l)
-		if strings.HasPrefix(t, "--- FAIL") || strings.Contains(t, ".go:") && strings.Contains(t, "expected") {
-			lines = append(lines, truncate(t, 220))
+		if strings.HasPrefix(t, "--- FAIL") ||
+			strings.HasPrefix(t, "panic:") ||
+			strings.HasPrefix(t, "fatal error:") ||
+			strings.Contains(t, "DIVERGENCE d") ||
+			strings.Contains(t, "port!=Intel:") ||
+			strings.Contains(t, ".go:") && strings.Contains(t, "expected") {
+			lines = append(lines, truncate(t, 1000))
 			if len(lines) >= 4 {
 				break
 			}
@@ -1016,6 +1154,12 @@ func failLines(out string) []string {
 // kill-suite stages. The target file is restored before returning.
 func (e *engine) evaluateMutant(site mutationSite, pristine []byte, stages []stage) mutantResult {
 	res := mutantResult{ID: site.ID(), Site: site, StageMS: map[string]int64{}, BuildMS: map[string]int64{}}
+	if e.exact != nil {
+		evidence := *e.exact
+		evidence.MutationID = site.ID()
+		evidence.Runs = nil
+		res.Exact = &evidence
+	}
 	path := filepath.Join(e.worktree, bidgoRel, site.File)
 
 	mutated := make([]byte, 0, len(pristine)+len(site.Repl))
@@ -1023,7 +1167,9 @@ func (e *engine) evaluateMutant(site mutationSite, pristine []byte, stages []sta
 	mutated = append(mutated, site.Repl...)
 	mutated = append(mutated, pristine[site.End:]...)
 	if err := os.WriteFile(path, mutated, 0o644); err != nil {
-		res.Status = "invalid"
+		// Could not even apply the mutation: an infrastructure fault, not a
+		// mutant property, so it must not count as a compile-invalid mutant.
+		res.Status = "inconclusive"
 		res.Reason = "write_error"
 		res.Note = err.Error()
 		return res
@@ -1043,16 +1189,23 @@ func (e *engine) evaluateMutant(site mutationSite, pristine []byte, stages []sta
 			okBuild, out, dur, p := e.buildBinary(st.Binary)
 			res.BuildMS[st.Binary] = dur.Milliseconds()
 			if !okBuild {
+				if e.exact != nil && e.buildFault != "compile_error" {
+					res.Status, res.Reason, res.Note = "inconclusive", e.buildFault, truncate(out, 400)
+					return res
+				}
+				// The portable build is the only compile-validity gate: its
+				// failure means the mutated source itself does not compile.
 				if st.Binary == "portable" {
 					res.Status = "invalid"
 					res.Reason = "compile_error"
 					res.Note = truncate(out, 400)
 					return res
 				}
-				// Native build failure for a portable-valid mutant is an
-				// infrastructure fault, not a mutant property. The mutant did
-				// survive every stage that actually ran.
-				res.Status = "survived"
+				// A native (or other cgo-tagged) build failure for a
+				// portable-valid mutant is an infrastructure fault, not a
+				// mutant verdict: the gate never executed, so the mutant is
+				// neither killed nor proven to have survived it.
+				res.Status = "inconclusive"
 				res.Reason = "native_build_error"
 				res.Note = "native build failed: " + truncate(out, 300)
 				return res
@@ -1062,19 +1215,39 @@ func (e *engine) evaluateMutant(site mutationSite, pristine []byte, stages []sta
 		}
 		verdict, out, dur := e.runStage(st, binPath)
 		res.StageMS[st.Name] = dur.Milliseconds()
+		if st.Name == "exactprobe" {
+			res.Exact.Runs = append([]exactRun(nil), e.exactRuns...)
+		}
 		switch verdict {
 		case "pass":
 			res.Passed = append(res.Passed, st.Name)
-		case "fail", "timeout":
+		case "killed":
 			res.Status = "killed"
 			res.KilledBy = st.Name
-			res.Reason = map[string]string{"fail": "fail", "timeout": "timeout"}[verdict]
+			res.Reason = "assertion_fail"
 			res.FailLines = failLines(out)
+			return res
+		case "panic", "timeout":
+			// Detections, but recorded distinctly from an assertion kill so a
+			// crash or hang is never reported as a value/flag mismatch.
+			res.Status = verdict
+			res.KilledBy = st.Name
+			res.Reason = verdict
+			res.FailLines = failLines(out)
+			return res
+		case "inconclusive":
+			// Nonzero exit with no failing-test evidence: an execution or
+			// infrastructure fault, not a mutant verdict.
+			res.Status = "inconclusive"
+			res.KilledBy = st.Name
+			res.Reason = "exec_error"
+			res.Note = truncate("stage "+st.Name+": "+tail(out, 400), 400)
 			return res
 		case "nomatch":
 			// A zero-test selection is a harness error, not a mutant verdict:
-			// counting it as survived would silently deflate the kill rate.
-			res.Status = "invalid"
+			// counting it as killed or survived would distort the rate, so it
+			// is inconclusive.
+			res.Status = "inconclusive"
 			res.Reason = "no_test_match"
 			res.Note = truncate("stage "+st.Name+": "+out, 400)
 			return res
@@ -1084,11 +1257,8 @@ func (e *engine) evaluateMutant(site mutationSite, pristine []byte, stages []sta
 	return res
 }
 
-func (e *engine) writeResult(r mutantResult) {
-	b, err := json.Marshal(r)
-	if err == nil {
-		e.jsonl.Write(append(b, '\n'))
-	}
+func (e *engine) writeResult(r mutantResult) error {
+	return json.NewEncoder(e.jsonl).Encode(r)
 }
 
 func resolveStages(cfg config) ([]stage, error) {
@@ -1130,8 +1300,14 @@ func (e *engine) baseline(stages []stage) error {
 		}
 		verdict, out, dur := e.runStage(st, binPath)
 		fmt.Printf("baseline stage %-9s %-7s %6dms\n", st.Name, verdict, dur.Milliseconds())
+		if st.Name == "exactprobe" {
+			e.exact.Baseline = append([]exactRun(nil), e.exactRuns...)
+			if err := json.NewEncoder(e.jsonl).Encode(map[string]any{"type": "exactprobe_baseline", "status": verdict, "exactprobe": e.exact}); err != nil {
+				return err
+			}
+		}
 		if verdict != "pass" {
-			return fmt.Errorf("baseline stage %s did not pass (%s):\n%s", st.Name, verdict, out)
+			return fmt.Errorf("baseline stage %s did not pass (%s):\n%s", st.Name, verdict, tail(out, 2000))
 		}
 	}
 	return nil
@@ -1183,37 +1359,53 @@ func runMutants(cfg config) error {
 	fmt.Printf("worktree commit: %s", head)
 
 	summary := map[string]int{}
-	killedByStage := map[string]int{}
+	detectedByStage := map[string]int{}
 	byCat := map[string]map[string]int{}
+	isDetection := func(status string) bool {
+		return status == "killed" || status == "panic" || status == "timeout"
+	}
 	start := time.Now()
 	for i, site := range picked {
 		r := e.evaluateMutant(site, pristine[site.File], stages)
-		e.writeResult(r)
+		if err := e.writeResult(r); err != nil {
+			return err
+		}
 		summary[r.Status]++
-		if r.Status == "killed" {
-			killedByStage[r.KilledBy]++
+		if isDetection(r.Status) {
+			detectedByStage[r.KilledBy]++
 		}
 		if byCat[site.Category] == nil {
 			byCat[site.Category] = map[string]int{}
 		}
 		byCat[site.Category][r.Status]++
 		if (i+1)%cfg.logEvery == 0 || i == len(picked)-1 {
-			fmt.Printf("[%d/%d] killed=%d survived=%d invalid=%d elapsed=%s\n",
-				i+1, len(picked), summary["killed"], summary["survived"], summary["invalid"],
+			fmt.Printf("[%d/%d] killed=%d panic=%d timeout=%d survived=%d invalid=%d inconclusive=%d elapsed=%s\n",
+				i+1, len(picked), summary["killed"], summary["panic"], summary["timeout"],
+				summary["survived"], summary["invalid"], summary["inconclusive"],
 				time.Since(start).Round(time.Second))
 		}
 	}
 
 	fmt.Println("---- SUMMARY ----")
-	valid := summary["killed"] + summary["survived"]
-	fmt.Printf("total=%d valid=%d killed=%d survived=%d invalid=%d\n",
-		len(picked), valid, summary["killed"], summary["survived"], summary["invalid"])
-	if valid > 0 {
-		fmt.Printf("kill rate (killed/valid) = %.1f%%\n", 100*float64(summary["killed"])/float64(valid))
+	// The denominator is the conclusive, actually-tested mutants only; invalid
+	// (did not compile) and inconclusive (execution/infrastructure fault) are
+	// excluded so a build or environment problem never moves the rate.
+	detected := summary["killed"] + summary["panic"] + summary["timeout"]
+	conclusive := detected + summary["survived"]
+	fmt.Printf("total=%d conclusive=%d detected=%d survived=%d invalid=%d inconclusive=%d\n",
+		len(picked), conclusive, detected, summary["survived"], summary["invalid"], summary["inconclusive"])
+	if conclusive > 0 {
+		// Detection groups assertion kills, panics, and timeouts; they are
+		// reported separately so an assertion (value/flag) kill is never
+		// conflated with a crash or a hang.
+		fmt.Printf("detection rate (detected/conclusive) = %.1f%%  [assertion-kill=%d panic=%d timeout=%d]\n",
+			100*float64(detected)/float64(conclusive),
+			summary["killed"], summary["panic"], summary["timeout"])
 	}
-	fmt.Printf("killed by stage: %v\n", formatCatMap(killedByStage))
+	fmt.Printf("detected by stage: %v\n", formatCatMap(detectedByStage))
 	for cat, m := range byCat {
-		fmt.Printf("category %-8s killed=%d survived=%d invalid=%d\n", cat, m["killed"], m["survived"], m["invalid"])
+		fmt.Printf("category %-8s killed=%d panic=%d timeout=%d survived=%d invalid=%d inconclusive=%d\n",
+			cat, m["killed"], m["panic"], m["timeout"], m["survived"], m["invalid"], m["inconclusive"])
 	}
 	return e.reportWorktreeClean()
 }
@@ -1245,29 +1437,33 @@ func checkWorktreeCleanAfterRun(worktree string) error {
 
 // selfCheckSpec pins a known mutant by (file, function, category, substring).
 type selfCheckSpec struct {
-	name     string
-	file     string
-	funcName string
-	category string
-	contains string
-	expect   string // killed|survived
-	why      string
+	name              string
+	file              string
+	funcName          string
+	category          string
+	contains          string
+	expect            string // killed|panic|timeout|survived
+	requireDiagnostic bool
+	requiredText      string
+	why               string
 }
 
 var selfChecks = []selfCheckSpec{
 	{
 		name: "killable-fma-clamp", file: "bid128_fma_body.go",
 		funcName: "bid_fma_delta_ge_zero", category: "negcond",
-		contains: "bid_fma_case1ppB_psign_ne_zsign(p34, res",
-		expect:   "killed",
-		why:      "inverts the D2-regression-area overflow-clamp helper branch in Bid128Fma (the goto-done exit restored by commit c08ac65 stops firing on the exact rows that need it and fires on all others); differential gates must fail",
+		contains:          "bid_fma_case1ppB_psign_ne_zsign(p34, res",
+		expect:            "killed",
+		requireDiagnostic: true,
+		requiredText:      "decimal128 fma port!=Intel:",
+		why:               "inverts the D2-regression-area overflow-clamp helper branch in Bid128Fma (the goto-done exit restored by commit c08ac65 stops firing on the exact rows that need it and fires on all others); a differential gate must fail on it with an assertion diagnostic, not merely crash or hang",
 	},
 	{
 		name: "equivalent-dead-func", file: "to_bid3264.go",
 		funcName: "bid32GetNoFlags", category: "cmp",
 		contains: "coeff > 9999999",
 		expect:   "survived",
-		why:      "bid32GetNoFlags is referenced nowhere in package bidgo (definition-only symbol, unexported, so unreachable from any other package); any mutation inside it is semantics-preserving for every gate",
+		why:      "bid32GetNoFlags is referenced nowhere in package bidgo (definition-only symbol, unexported, so unreachable from any other package); any mutation inside it is semantics-preserving, so the probe must run every requested stage to completion and survive — not return inconclusive",
 	},
 }
 
@@ -1323,16 +1519,24 @@ func runSelfCheck(cfg config) error {
 		}
 		fmt.Printf("self-check %s: %s:%d %s %q -> %q\n  rationale: %s\n", sc.name, site.File, site.Line, site.Category, site.Orig, site.Mutated, sc.why)
 		r := e.evaluateMutant(site, pristine, stages)
-		e.writeResult(r)
+		if err := e.writeResult(r); err != nil {
+			return err
+		}
 		verdictNote := ""
-		if r.Status == "killed" {
+		if r.KilledBy != "" {
 			verdictNote = fmt.Sprintf(" (killed_by=%s)", r.KilledBy)
 		}
-		if r.Status != sc.expect {
+		statusOK := r.Status == sc.expect
+		missingDiag := statusOK && sc.requireDiagnostic && !selfCheckDiagnosticMatches(sc, r)
+		if !statusOK || missingDiag {
 			failed++
-			fmt.Printf("self-check %s: FAIL expected %s got %s%s note=%s\n", sc.name, sc.expect, r.Status, verdictNote, r.Note)
+			why := fmt.Sprintf("expected %s got %s%s", sc.expect, r.Status, verdictNote)
+			if missingDiag {
+				why = fmt.Sprintf("status %s but no failing-test diagnostic captured (need the intended assertion, not a bare status match)", r.Status)
+			}
+			fmt.Printf("self-check %s: FAIL %s note=%s fail_lines=%v\n", sc.name, why, r.Note, r.FailLines)
 		} else {
-			fmt.Printf("self-check %s: OK %s%s\n", sc.name, r.Status, verdictNote)
+			fmt.Printf("self-check %s: OK %s%s fail_lines=%v\n", sc.name, r.Status, verdictNote, r.FailLines)
 		}
 	}
 	if err := e.reportWorktreeClean(); err != nil {
@@ -1343,4 +1547,22 @@ func runSelfCheck(cfg config) error {
 	}
 	fmt.Println("self-check: all OK")
 	return nil
+}
+
+func selfCheckDiagnosticMatches(sc selfCheckSpec, result mutantResult) bool {
+	if result.Status != "killed" || sc.requiredText == "" {
+		return false
+	}
+	for _, line := range result.FailLines {
+		if strings.Contains(line, sc.requiredText) {
+			return true
+		}
+		if sc.name == "killable-fma-clamp" && strings.Contains(line, "bid128_fma") && strings.Contains(line, "expected") && strings.Contains(line, "got") {
+			return true
+		}
+		if sc.name == "killable-fma-clamp" && strings.Contains(line, "DIVERGENCE d128 fma ") {
+			return true
+		}
+	}
+	return false
 }

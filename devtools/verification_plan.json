@@ -138,7 +138,9 @@
           "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/platformdigest\\s",
           "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/goboundary\\s",
           "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/rustboundary\\s",
-          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/verifylog\\s"
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/verifylog\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/mutgate\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/explorediff\\s"
         ],
         "passes": [
           "TestExternalConsumer",
@@ -163,7 +165,22 @@
           "TestSourceSnapshotContainerTreeID",
           "TestRunnerRejectsInheritedTestSelection",
           "TestSourceSnapshotPortableSymlinkMode",
-          "TestDefaultProductSourceOwnershipRejectsRenamedGeneratedSupport"
+          "TestDefaultProductSourceOwnershipRejectsRenamedGeneratedSupport",
+          "TestExactReferenceDependencyBoundary",
+          "TestRunStageClassifiesRealTestOutcomes",
+          "TestExactVerdictRequiresIntendedEvidence",
+          "TestExactCampaignRealBinary",
+          "TestExactCLIAndSnapshotKeepPrimaryIndex",
+          "TestExactVerdictAggregationIsOrderIndependent",
+          "TestSelfCheckRequiresItsArithmeticDiagnostic",
+          "TestSourceIdentityBindsUntrackedContentAndSnapshot",
+          "TestOutputCannotOverwriteReplayOrExistingFile",
+          "TestRelayRejectsInvalidTotals",
+          "TestPublishRecordsExclusiveAndFlushErrors",
+          "TestRunStageRejectsInheritedShardSelection",
+          "TestFrozenBuildInputsIgnoreLaterSourceEdits",
+          "TestRelayConsoleErrorsPreserveRecordsAndFail",
+          "TestBrokenConsolePipePreservesSpool"
         ]
       }
     },
@@ -780,6 +797,79 @@
       "evidence": {
         "passes": [
           "TestGeneratedPublicAPIParity"
+        ]
+      }
+    },
+    {
+      "id": "finite-reference",
+      "target": "test-finite-reference",
+      "group": "portable",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [
+        "generation-inputs"
+      ],
+      "comparison": "independent-exact-model-and-fault-detection",
+      "evidence": {
+        "patterns": [
+          "FINITE-ORACLE-STRENGTH width=32 mode-directions=20/20",
+          "FINITE-ORACLE-STRENGTH width=64 mode-directions=20/20",
+          "FINITE-ORACLE-STRENGTH width=128 mode-directions=20/20",
+          "FINITE-REFERENCE-READTEST width=32 cases=[1-9][0-9]*",
+          "FINITE-REFERENCE-READTEST width=64 cases=[1-9][0-9]*",
+          "FINITE-REFERENCE-READTEST width=128 cases=[1-9][0-9]*",
+          "RELATION-COVERAGE width=32 families=20 reached=1600 oracle_completed=1600",
+          "RELATION-COVERAGE width=64 families=20 reached=1600 oracle_completed=1600",
+          "RELATION-COVERAGE width=128 families=20 reached=1600 oracle_completed=1600"
+        ],
+        "passes": [
+          "TestFiniteArithmeticOracleStrength",
+          "TestFiniteArithmeticSemanticShrinkAndReplay",
+          "TestFiniteReferenceReadtestCalibration",
+          "FuzzFiniteArithmeticExact",
+          "TestRelationCoverage",
+          "TestRelationValidationRejectsFalseClaims",
+          "TestShrinkRequiresReproducedFailure",
+          "TestCarryBoundaryRequiresActualCarry",
+          "TestShrinkPreservesNonzeroResultSign"
+        ]
+      }
+    },
+    {
+      "id": "finite-reference-decnumber",
+      "target": "test-native-finite-reference",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "independent-engine-calibration",
+      "evidence": {
+        "patterns": [
+          "FINITE-REFERENCE-CALIBRATION width=32 cases=[1-9][0-9]* excluded=0",
+          "FINITE-REFERENCE-CALIBRATION width=64 cases=[1-9][0-9]* excluded=0",
+          "FINITE-REFERENCE-CALIBRATION width=128 cases=[1-9][0-9]* excluded=0"
+        ],
+        "passes": [
+          "TestFiniteReferenceDecnumberCalibration",
+          "TestEvaluateCaseAgreesOnKnownFiniteInputs",
+          "TestReferenceSweepReconcilesNative",
+          "TestNativeCLINegatives",
+          "TestNativeCLIReplayCountsAndProvenance",
+          "TestNativeCLIRelationsHonorOps",
+          "TestReplayContractNegatives",
+          "TestReplayFlushErrorPropagates",
+          "TestGenerateErrorsAreAuditable",
+          "TestSameClassesRequiresExactSet",
+          "TestAttachShrinkRefusesNonReproducing",
+          "TestEvaluatorRegressionOverlays",
+          "TestFlagDifferenceKeepsDirection",
+          "TestEvaluationCountsRejectUnfinishedStages",
+          "TestEvaluationInputErrorsRemainDistinctFromModelErrors"
         ]
       }
     }

@@ -394,6 +394,32 @@ anchors. Seed replay can be part of ordinary tests, but a mutation run or a
 result-only differential fuzz path is not evidence that a regular domain is
 closed.
 
+Finite arithmetic exploration is an auxiliary discovery path for
+add/sub/mul/div/FMA/quantize at all three widths and five rounding modes.
+Its reference model uses exact integer/rational intermediates and a single
+final rounding, has no implementation-library dependency, and accepts finite
+operands only. It compares numeric value, class, sign and the IEEE five flags;
+the C/Go comparison separately retains exact representation and flags.
+Square root and nonfinite-input semantics are outside this model's scope.
+
+Relation labels must be checked by exact arithmetic, including midpoint
+position, deep cancellation, and whether an FMA case distinguishes intermediate
+rounding. Shrinking must reproduce the same discrepancy while preserving the
+declared numeric situation. Original and reduced raw operands remain replayable
+without regenerating them from a seed. Findings carry source and tool identities,
+campaign configuration and both reference and implementation observations.
+Generated, executed and independently adjudicated counts must reconcile; an
+oracle or execution error cannot become a successful numeric comparison.
+
+The model is calibrated against official raw readtest rows and pinned decNumber
+with explicitly counted scope exclusions. Bounded dependency, relation, comparator
+and shrinker checks are required by their verification profiles. Longer searches
+and mutation evaluations remain separate from regular-domain closure. Mutation
+reports distinguish assertion failures, crashes, timeouts, invalid builds and
+inconclusive execution; only completed stages support a survival verdict.
+Comparative discovery claims require declared budgets, multiple seeds and an
+evaluation set distinct from tuning data.
+
 ## decNumber Differential Gate
 
 An additional generated differential gate (like public-API parity, not a

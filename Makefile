@@ -201,7 +201,16 @@ verify-all-native-gates:
 	@$(MAKE) verify-profile VERIFY_PROFILE=native
 
 test-harness:
-	@cd devtools && $(GOENV) go test -count=1 -v ./internal/verification ./internal/scriptcheck ./internal/platformdigest ./internal/goboundary ./internal/rustboundary ./cmd/verifylog
+	@cd devtools && $(GOENV) go test -count=1 -v ./internal/verification ./internal/scriptcheck ./internal/platformdigest ./internal/goboundary ./internal/rustboundary ./cmd/verifylog ./cmd/mutgate ./cmd/explorediff
+
+.PHONY: test-finite-reference test-native-finite-reference
+test-finite-reference:
+	@cd bid754-go && $(GOENV) go test -count=1 -v -run '^(TestFiniteArithmeticOracleStrength|TestFiniteArithmeticSemanticShrinkAndReplay|TestFiniteReferenceReadtestCalibration|FuzzFiniteArithmeticExact)$$' .
+	@cd bid754-go && $(GOENV) go test -count=1 -v ./internal/decimalref ./internal/decimalprobe
+
+test-native-finite-reference:
+	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestFiniteReferenceDecnumberCalibration$$" .'
+	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v ./internal/cmd/explorenative'
 
 test-codec-go:
 	@cd bid754-codec-go && $(GOENV) go test -count=1 ./...
@@ -342,43 +351,43 @@ test-bid-string:
 test-native:
 	@echo "🧪 native 테스트 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -timeout 120s ./...) | tee test_results/latest_test_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -timeout 120s ./...) | tee test_results/latest_test_results.txt'
 
 # native smoke 테스트
 test-native-smoke:
 	@echo "🧪 native smoke 테스트 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -short ./...) | tee test_results/latest_native_smoke_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -short ./...) | tee test_results/latest_native_smoke_results.txt'
 	@$(MAKE) verify-go-benchmark-registry-native
 
 test-native-ffi:
 	@echo "🧬 generated FFI bit-compare native non-short 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedFFIBitCompareSubset|TestGeneratedMixedFormatFFIRoutingSentinels)$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedFFIBitCompareSubset) | tee test_results/latest_native_ffi_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedFFIBitCompareSubset|TestGeneratedMixedFormatFFIRoutingSentinels)$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedFFIBitCompareSubset) | tee test_results/latest_native_ffi_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_ffi_results.txt -domain native-ffi
 
 test-native-tier1-arithmetic-long:
 	@echo "🏦 Tier 1 산술 structured + 대량 결정론 Intel C exact bit/flag 장기 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
 
 _test-native-tier1-arithmetic-long-full:
 	@echo "🏦 Tier 1 산술 canonical full verification Intel C exact bit/flag 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_ARITH_SHARD_COUNT BID754_TIER1_ARITH_SHARD_INDEX; \
-		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
+		bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_tier1_arithmetic_long_results.txt -domain tier1-arithmetic-go
 
 test-native-tier1-compare-conversion-long:
 	@echo "🏦 Tier 1 quiet 비교·MinNum/MaxNum·정수/BID·BID 폭 변환 Intel C exact 장기 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|CompareConversionRoutingSentinels|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|CompareConversionRoutingSentinels|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
 
 _test-native-tier1-compare-conversion-long-full:
 	@echo "🏦 Tier 1 비교·변환 canonical full verification Intel C exact 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_COMPARE_CONVERSION_SHARD_COUNT BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX; \
-		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|CompareConversionRoutingSentinels|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
+		bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|CompareConversionRoutingSentinels|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_tier1_compare_conversion_long_results.txt -domain tier1-compare-conversion-go
 
 # decNumber 제3 실행 oracle 차등 게이트: pinned Intel BID C / Go mechanical
@@ -388,12 +397,12 @@ _test-native-tier1-compare-conversion-long-full:
 test-native-decnumber-differential:
 	@echo "🔱 decNumber 제3 oracle 차등 게이트 실행 (Intel C / Go port / decNumber 3.68 exact)..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$$" -timeout 0 ./...) | tee test_results/latest_native_decnumber_differential_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$$" -timeout 0 ./...) | tee test_results/latest_native_decnumber_differential_results.txt'
 
 _test-native-decnumber-differential-full:
 	@echo "🔱 decNumber 차등 게이트 canonical full 실행 + verifylog 증거 바인딩..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$$" -timeout 0 ./...) | tee test_results/latest_native_decnumber_differential_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$$" -timeout 0 ./...) | tee test_results/latest_native_decnumber_differential_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_decnumber_differential_results.txt -domain decnumber-differential
 
 # Decimal32 단항 exhaustive 차등 게이트: 전체 2^32 입력 공간(비트패턴
@@ -405,13 +414,13 @@ _test-native-decnumber-differential-full:
 test-native-d32-exhaustive:
 	@echo "🔬 Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
 
 _test-native-d32-exhaustive-full:
 	@echo "🔬 Decimal32 단항 exhaustive canonical full 실행 + verifylog 증거 바인딩 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_D32_EXHAUSTIVE_SHARD_COUNT BID754_D32_EXHAUSTIVE_SHARD_INDEX; \
-		bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
+		bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_d32_exhaustive_results.txt -domain d32-exhaustive
 
 # Decimal32 단항 exhaustive 차등 게이트의 생성 Rust 레그: 같은 레인 테이블을
@@ -458,13 +467,13 @@ explore-fresh-seed:
 test-native-readtest:
 	@echo "🔎 generated readtest native non-short 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedReadCases$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedReadCases) | tee test_results/latest_native_readtest_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedReadCases$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedReadCases) | tee test_results/latest_native_readtest_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_readtest_results.txt -domain native-readtest
 
 test-native-dectest:
 	@echo "🔍 generated decTest native non-short 검증 실행..."
 	@mkdir -p test_results
-	@bash -o pipefail -lc '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedDectestSuites|TestGeneratedDectestPlusMinusQuantumStrengthGoPort|TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter)$$" -timeout 300s ./...) | tee test_results/latest_native_dectest_results.txt'
+	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedDectestSuites|TestGeneratedDectestPlusMinusQuantumStrengthGoPort|TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter)$$" -timeout 300s ./...) | tee test_results/latest_native_dectest_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -log ../test_results/latest_native_dectest_results.txt -passes TestGeneratedDectestSuites,TestGeneratedDectestPlusMinusQuantumStrengthGoPort,TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter
 
 # 전체 테스트 및 벤치마크 실행 (결과 파일 자동 생성)

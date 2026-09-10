@@ -34,7 +34,7 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -47,27 +47,43 @@ import (
 )
 
 type config struct {
-	repo     string
-	seedText string
-	cases    int
-	bias     float64
-	ops      string
-	widths   string
-	modes    string
-	out      string
+	repo           string
+	campaign       string
+	replay         string
+	shrinkAttempts int
+	seedText       string
+	cases          int
+	bias           float64
+	ops            string
+	opsSet         bool
+	widths         string
+	modes          string
+	out            string
 }
 
 func main() {
 	var cfg config
 	flag.StringVar(&cfg.repo, "repo", "", "repository root holding bid754-go and the pinned Intel build (default: git toplevel of cwd)")
+	flag.StringVar(&cfg.campaign, "campaign", "legacy", "campaign: legacy (default, unchanged C-vs-Go fresh-seed fuzz), relations (decimalprobe relational generators + decimalref model oracle), or uniform-finite (uniform finite operands + model oracle)")
+	flag.StringVar(&cfg.replay, "replay", "", "exact fixed-input JSONL replay: re-run recorded sample/finding cases through C, the Go port, and the model (no seed regeneration)")
+	flag.IntVar(&cfg.shrinkAttempts, "shrink-attempts", 128, "max reference-campaign shrink attempts per finding; 0 disables shrinking (recorded disabled)")
 	flag.StringVar(&cfg.seedText, "seed", "", "case-stream seed, decimal or 0x hex uint64 (default: fresh from the current time)")
-	flag.IntVar(&cfg.cases, "cases", 20000, "cases per (width, op) target; each case runs under every selected mode")
-	flag.Float64Var(&cfg.bias, "bias", 0.25, "probability in [0,1] that a case is boundary-biased (pool draw + exponent correlation)")
-	flag.StringVar(&cfg.ops, "ops", "add,sub,mul,div,fma,sqrt,quantize", "CSV of Tier 1 arithmetic ops")
+	flag.IntVar(&cfg.cases, "cases", 20000, "explicit budget: legacy=cases per (width, op) target x every mode; relations=samples per (family, width, mode); uniform-finite=samples per (op, width, mode)")
+	flag.Float64Var(&cfg.bias, "bias", 0.25, "legacy only: probability in [0,1] that a case is boundary-biased (pool draw + exponent correlation)")
+	flag.StringVar(&cfg.ops, "ops", "", "legacy/uniform-finite CSV of ops; reference campaigns support add/sub/mul/div/fma/quantize and reject sqrt")
 	flag.StringVar(&cfg.widths, "widths", "32,64,128", "CSV of decimal widths")
 	flag.StringVar(&cfg.modes, "modes", "nearest_even,toward_negative,toward_positive,toward_zero,nearest_away", "CSV of rounding-mode names")
-	flag.StringVar(&cfg.out, "out", "", "JSONL findings/summary path (default: <repo>/test_results/explore_fresh_seed_<utc>_seed<seed>.jsonl)")
+	flag.StringVar(&cfg.out, "out", "", "JSONL findings/summary path (default: <repo>/test_results/explore_<campaign>_<utc>_seed<seed>.jsonl)")
+	if err := validateFlagArgs(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	flag.Parse()
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "ops" {
+			cfg.opsSet = true
+		}
+	})
 
 	code, err := run(cfg)
 	if err != nil {
@@ -104,8 +120,13 @@ func scramble(x uint64) uint64 {
 // and runs the binary directly instead of `go run`, which would fold the
 // exit-3 counterexample signal into exit 1.
 func reproCommand(cfg config, repo string, seed uint64) string {
-	return fmt.Sprintf("(cd %s/devtools && bin=$(mktemp -d)/explorediff && go build -o \"$bin\" ./cmd/explorediff && \"$bin\" -repo %s -seed %d -cases %d -bias %g -ops %s -widths %s -modes %s)",
-		repo, repo, seed, cfg.cases, cfg.bias, cfg.ops, cfg.widths, cfg.modes)
+	base := fmt.Sprintf("(cd %s && bin=$(mktemp -d)/explorediff && go build -o \"$bin\" ./cmd/explorediff && \"$bin\" -repo %s",
+		shellQuote(filepath.Join(repo, "devtools")), shellQuote(repo))
+	if cfg.replay != "" {
+		return base + fmt.Sprintf(" -replay %s)", shellQuote(cfg.replay))
+	}
+	return base + fmt.Sprintf(" -campaign %s -seed %d -cases %d -bias %g -ops %s -widths %s -modes %s -shrink-attempts %d)",
+		shellQuote(cfg.campaign), seed, cfg.cases, cfg.bias, shellQuote(cfg.ops), shellQuote(cfg.widths), shellQuote(cfg.modes), cfg.shrinkAttempts)
 }
 
 func gitTopLevel() (string, error) {
@@ -116,21 +137,17 @@ func gitTopLevel() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// describeCommit reports the repo state recorded into the config record.
-func describeCommit(repo string) string {
-	head, err := exec.Command("git", "-C", repo, "rev-parse", "--short", "HEAD").Output()
-	if err != nil {
-		return "unknown"
+func run(cfg config) (code int, runErr error) {
+	console := consoleWriter(os.Stdout)
+	defer func() {
+		runErr = errors.Join(runErr, console.err)
+		if runErr != nil {
+			code = 1
+		}
+	}()
+	if err := resolveConfig(&cfg); err != nil {
+		return 1, err
 	}
-	desc := strings.TrimSpace(string(head))
-	status, err := exec.Command("git", "-C", repo, "status", "--porcelain", "--untracked-files=no").Output()
-	if err == nil && strings.TrimSpace(string(status)) != "" {
-		desc += "-dirty"
-	}
-	return desc
-}
-
-func run(cfg config) (int, error) {
 	repo := cfg.repo
 	var err error
 	if repo == "" {
@@ -154,12 +171,18 @@ func run(cfg config) (int, error) {
 	if err != nil {
 		return 1, err
 	}
+	label := cfg.campaign
+	if cfg.replay != "" {
+		label = "replay"
+	}
 	outPath := cfg.out
 	if outPath == "" {
 		outPath = filepath.Join(repo, "test_results",
-			fmt.Sprintf("explore_fresh_seed_%s_seed%d.jsonl", time.Now().UTC().Format("20060102T150405Z"), seed))
+			fmt.Sprintf("explore_%s_%s_seed%d.jsonl", label, time.Now().UTC().Format("20060102T150405Z"), seed))
 	}
-	if err := os.MkdirAll(filepath.Dir(outPath), 0o755); err != nil {
+	if _, err := os.Lstat(outPath); err == nil {
+		return 1, fmt.Errorf("output already exists: %s", outPath)
+	} else if !os.IsNotExist(err) {
 		return 1, err
 	}
 
@@ -169,31 +192,103 @@ func run(cfg config) (int, error) {
 	}
 	defer os.RemoveAll(binDir)
 	binPath := filepath.Join(binDir, "explorenative")
-	build := exec.Command("go", "build", "-o", binPath, "-tags", "bid754_native", "./internal/cmd/explorenative")
+	frozenRepo, sourceID, snapshot, err := freezeSource(repo, binDir)
+	if err != nil {
+		return 1, err
+	}
+	goDir = filepath.Join(frozenRepo, "bid754-go")
+	intelLib = filepath.Join(frozenRepo, "devtools/third_party/intel_dfp/lib/libbid.a")
+	librarySHA, err := hashFile(intelLib)
+	if err != nil {
+		return 1, err
+	}
+	archivePath := filepath.Join(frozenRepo, "devtools/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz")
+	archiveSHA, err := hashFile(archivePath)
+	if err != nil {
+		return 1, err
+	}
+	checkSource := func() error {
+		if err := verifyFrozenSource(frozenRepo, snapshot, sourceID); err != nil {
+			return err
+		}
+		for path, want := range map[string]string{intelLib: librarySHA, archivePath: archiveSHA} {
+			got, err := hashFile(path)
+			if err != nil {
+				return err
+			}
+			if got != want {
+				return fmt.Errorf("C provenance changed: %s", path)
+			}
+		}
+		return nil
+	}
+	build := exec.Command("go", "build", "-a", "-o", binPath, "-tags", "bid754_native", "./internal/cmd/explorenative")
 	build.Dir = goDir
-	build.Env = append(append([]string{}, os.Environ()...), "GOFLAGS=", "CGO_ENABLED=1")
+	build.Env = append(buildEnvironment(), "GOCACHE="+filepath.Join(binDir, "go-cache"))
 	if out, err := build.CombinedOutput(); err != nil {
 		return 1, fmt.Errorf("build explorenative: %v\n%s", err, out)
 	}
 
-	fmt.Printf("explorediff: seed=%d (%s) cases=%d bias=%g ops=%s widths=%s modes=%s\n",
-		seed, seedSource, cfg.cases, cfg.bias, cfg.ops, cfg.widths, cfg.modes)
-	fmt.Printf("explorediff: repo=%s commit=%s\n", repo, describeCommit(repo))
-	fmt.Printf("explorediff: findings JSONL -> %s\n", outPath)
-
-	outFile, err := os.Create(outPath)
+	if err := checkSource(); err != nil {
+		return 1, err
+	}
+	binarySHA, err := hashFile(binPath)
 	if err != nil {
 		return 1, err
 	}
-	defer outFile.Close()
-	fileBuf := bufio.NewWriterSize(outFile, 1<<16)
+	if cfg.replay != "" {
+		fmt.Fprintf(console, "explorediff: campaign=replay replay=%s\n", cfg.replay)
+	} else {
+		fmt.Fprintf(console, "explorediff: campaign=%s seed=%d (%s) cases=%d bias=%g ops=%s widths=%s modes=%s shrink-attempts=%d\n",
+			cfg.campaign, seed, seedSource, cfg.cases, cfg.bias, cfg.ops, cfg.widths, cfg.modes, cfg.shrinkAttempts)
+	}
+	fmt.Fprintf(console, "explorediff: repo=%s commit=%s\n", repo, sourceID)
+	fmt.Fprintf(console, "explorediff: findings JSONL -> %s\n", outPath)
 
-	runner := exec.Command(binPath,
+	args := []string{
+		"-campaign", cfg.campaign, "-shrink-attempts", strconv.Itoa(cfg.shrinkAttempts),
 		"-seed", strconv.FormatUint(seed, 10),
 		"-cases", strconv.Itoa(cfg.cases),
 		"-bias", strconv.FormatFloat(cfg.bias, 'g', -1, 64),
 		"-ops", cfg.ops, "-widths", cfg.widths, "-modes", cfg.modes,
-		"-commit", describeCommit(repo))
+		"-commit", sourceID,
+	}
+	if cfg.replay != "" {
+		replayAbs, err := filepath.Abs(cfg.replay)
+		if err != nil {
+			return 1, err
+		}
+		if _, err := os.Stat(replayAbs); err != nil {
+			return 1, fmt.Errorf("replay file: %v", err)
+		}
+		args = append(args, "-replay", replayAbs)
+	}
+	validate := exec.Command(binPath, append(append([]string{}, args...), "-validate-only")...)
+	validate.Dir = goDir
+	if out, err := validate.CombinedOutput(); err != nil {
+		return 1, fmt.Errorf("input preflight: %w: %s", err, out)
+	}
+	spool, err := os.CreateTemp(binDir, "records-*.jsonl")
+	if err != nil {
+		return 1, err
+	}
+	fileBuf := bufio.NewWriterSize(spool, 1<<16)
+	published := false
+	publish := func() error {
+		if published {
+			return nil
+		}
+		published = true
+		return publishRecords(fileBuf, spool, outPath)
+	}
+	defer func() {
+		runErr = errors.Join(runErr, publish())
+		if runErr != nil {
+			code = 1
+		}
+	}()
+	args = append(args, "-source-snapshot", snapshot, "-source-id", sourceID, "-c-library-sha256", librarySHA, "-binary-sha256", binarySHA, "-c-archive-sha256", archiveSHA)
+	runner := exec.Command(binPath, args...)
 	runner.Dir = goDir
 	runner.Stderr = os.Stderr
 	stdout, err := runner.StdoutPipe()
@@ -204,101 +299,51 @@ func run(cfg config) (int, error) {
 		return 1, err
 	}
 
-	mismatches, sawSummary, err := relayRecords(stdout, fileBuf, os.Stdout)
+	counterexamples, sawSummary, err := relayRecords(stdout, fileBuf, console)
 	if err != nil {
 		// The relay stopped consuming stdout; kill the producer so Wait
 		// cannot block on a full pipe.
 		_ = runner.Process.Kill()
 	}
 	waitErr := runner.Wait()
-	flushErr := fileBuf.Flush()
-	if err != nil {
-		return 1, err
+	identityErr := checkSource()
+	gotBinary, hashErr := hashFile(binPath)
+	if hashErr == nil && gotBinary != binarySHA {
+		hashErr = fmt.Errorf("built binary changed during run")
 	}
 	if waitErr != nil {
-		return 1, fmt.Errorf("explorenative run failed: %v", waitErr)
+		waitErr = fmt.Errorf("explorenative run failed: %w", waitErr)
 	}
-	if flushErr != nil {
-		return 1, flushErr
+	err = errors.Join(err, waitErr, identityErr, hashErr, publish())
+	if err != nil {
+		return 1, err
 	}
 	if !sawSummary {
 		return 1, fmt.Errorf("explorenative exited without a summary record; %s is truncated", outPath)
 	}
 
-	fmt.Printf("explorediff: reproduce with:\n  %s\n", reproCommand(cfg, repo, seed))
-	if mismatches > 0 {
-		fmt.Printf("explorediff: RESULT counterexamples found: %d mismatch record(s) in %s\n", mismatches, outPath)
-		fmt.Println("explorediff: triage them through the existing manual procedures (regression vectors / sentinels / corpus promotion)")
+	fmt.Fprintf(console, "explorediff: reproduce with:\n  %s\n", reproCommand(cfg, repo, seed))
+	if counterexamples > 0 {
+		fmt.Fprintf(console, "explorediff: RESULT counterexamples found: %d record(s) in %s\n", counterexamples, outPath)
+		fmt.Fprintln(console, "explorediff: auxiliary exploration only; a reference/candidate disagreement is a finding to triage against the spec, not an automatic product bug")
 		return 3, nil
 	}
-	fmt.Println("explorediff: RESULT no mismatch in this stream")
+	fmt.Fprintln(console, "explorediff: RESULT no counterexample in this stream")
 	return 0, nil
 }
 
-// relayRecords streams every subprocess JSONL line into the findings file
-// while rendering console progress: per-target summaries, the first
-// mismatches (all of them are always in the file), and the run total.
-func relayRecords(in io.Reader, file io.Writer, console io.Writer) (int, bool, error) {
-	const consoleMismatchLimit = 20
-	type record struct {
-		Type        string `json:"type"`
-		Target      string `json:"target"`
-		Mode        string `json:"mode"`
-		CaseIndex   int    `json:"case_index"`
-		X           string `json:"x"`
-		Y           string `json:"y"`
-		Z           string `json:"z"`
-		CBits       string `json:"c_bits"`
-		CFlags      string `json:"c_flags"`
-		GoBits      string `json:"go_bits"`
-		GoFlags     string `json:"go_flags"`
-		Targets     int    `json:"targets"`
-		Cases       int    `json:"cases"`
-		Comparisons int    `json:"comparisons"`
-		Mismatches  int    `json:"mismatches"`
-		ElapsedMS   int64  `json:"elapsed_ms"`
+func publishRecords(fileBuf *bufio.Writer, spool *os.File, outPath string) error {
+	flushErr := fileBuf.Flush()
+	if _, err := spool.Seek(0, 0); err != nil {
+		return errors.Join(flushErr, err, spool.Close())
 	}
-	scanner := bufio.NewScanner(in)
-	scanner.Buffer(make([]byte, 0, 1<<20), 1<<20)
-	mismatches := 0
-	sawSummary := false
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if _, err := file.Write(line); err != nil {
-			return mismatches, sawSummary, err
-		}
-		if _, err := file.Write([]byte{'\n'}); err != nil {
-			return mismatches, sawSummary, err
-		}
-		var rec record
-		if err := json.Unmarshal(line, &rec); err != nil {
-			return mismatches, sawSummary, fmt.Errorf("bad subprocess record %q: %v", line, err)
-		}
-		switch rec.Type {
-		case "mismatch":
-			mismatches++
-			if mismatches <= consoleMismatchLimit {
-				operands := rec.X
-				if rec.Y != "" {
-					operands += " y=" + rec.Y
-				}
-				if rec.Z != "" {
-					operands += " z=" + rec.Z
-				}
-				fmt.Fprintf(console, "MISMATCH %s %s case=%d x=%s C=%s/%s go=%s/%s\n",
-					rec.Target, rec.Mode, rec.CaseIndex, operands,
-					rec.CBits, rec.CFlags, rec.GoBits, rec.GoFlags)
-			} else if mismatches == consoleMismatchLimit+1 {
-				fmt.Fprintln(console, "... further mismatches recorded in the JSONL only")
-			}
-		case "target_summary":
-			fmt.Fprintf(console, "target %-14s cases=%d comparisons=%d mismatches=%d elapsed=%dms\n",
-				rec.Target, rec.Cases, rec.Comparisons, rec.Mismatches, rec.ElapsedMS)
-		case "summary":
-			sawSummary = true
-			fmt.Fprintf(console, "TOTAL targets=%d cases=%d comparisons=%d mismatches=%d elapsed=%dms\n",
-				rec.Targets, rec.Cases, rec.Comparisons, rec.Mismatches, rec.ElapsedMS)
-		}
+	if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+		return errors.Join(flushErr, err, spool.Close())
 	}
-	return mismatches, sawSummary, scanner.Err()
+	outFile, err := os.OpenFile(outPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	if err != nil {
+		return errors.Join(flushErr, err, spool.Close())
+	}
+	_, copyErr := io.Copy(outFile, spool)
+	return errors.Join(flushErr, copyErr, outFile.Close(), spool.Close())
 }

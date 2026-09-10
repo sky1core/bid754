@@ -27,6 +27,12 @@ import (
 // passes silently; this test compares the checked-in generated artifacts
 // against the external anchors instead.
 type verificationAnchors struct {
+	FiniteReferenceCalibration struct {
+		ReadtestByWidth                map[string]int `json:"readtest_by_width"`
+		ReadtestExcludedDecimalText    int            `json:"readtest_excluded_decimal_text"`
+		ReadtestExcludedNonfiniteInput int            `json:"readtest_excluded_nonfinite_input"`
+		DecnumberByWidth               map[string]int `json:"decnumber_by_width"`
+	} `json:"finite_reference_calibration"`
 	BidCodecParseOracleSHA256                    string                       `json:"bid_codec_parse_oracle_sha256"`
 	BidCodecParseOracleTuples                    int                          `json:"bid_codec_parse_oracle_tuples"`
 	BidCodecParseOracleByWidth                   map[string]int               `json:"bid_codec_parse_oracle_by_width"`
