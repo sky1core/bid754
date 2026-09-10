@@ -171,6 +171,7 @@
           "TestExactVerdictRequiresIntendedEvidence",
           "TestExactCampaignRealBinary",
           "TestExactCLIAndSnapshotKeepPrimaryIndex",
+          "TestSnapshotStagedPaths",
           "TestExactVerdictAggregationIsOrderIndependent",
           "TestSelfCheckRequiresItsArithmeticDiagnostic",
           "TestSourceIdentityBindsUntrackedContentAndSnapshot",

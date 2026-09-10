@@ -378,6 +378,10 @@ func snapshotSource(cfg config) error {
 	if err != nil {
 		return err
 	}
+	sourceIndex, err := exec.Command("git", "-C", cfg.repo, "ls-files", "--stage", "-z").Output()
+	if err != nil {
+		return fmt.Errorf("snapshot source index: %w", err)
+	}
 	dir, err := os.MkdirTemp("", "mutgate-index-")
 	if err != nil {
 		return err
@@ -399,7 +403,13 @@ func snapshotSource(cfg config) error {
 		}
 		return strings.TrimSpace(string(out)), nil
 	}
-	if _, err = git("", "read-tree", parent); err != nil {
+	if _, err = git("", "read-tree", "--empty"); err != nil {
+		return err
+	}
+	if _, err = git(string(sourceIndex), "update-index", "-z", "--index-info"); err != nil {
+		return err
+	}
+	if _, err = git("", "write-tree"); err != nil {
 		return err
 	}
 	if _, err = git("", "add", "-u", "--", "."); err != nil {

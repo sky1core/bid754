@@ -268,6 +268,105 @@ func TestExactCheckRejectsTuningSeedOverlapBeforeSetup(t *testing.T) {
 	}
 }
 
+func TestSnapshotStagedPaths(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "mutgate")
+	if out, err := exec.Command("go", "build", "-o", bin, ".").CombinedOutput(); err != nil {
+		t.Fatalf("build CLI: %v\n%s", err, out)
+	}
+	for _, kind := range []string{"regular", "split", "linked", "unmerged"} {
+		t.Run(kind, func(t *testing.T) {
+			repo := gitFixtureRepo(t)
+			git := func(args ...string) string {
+				t.Helper()
+				out, err := gitText(repo, args...)
+				if err != nil {
+					t.Fatal(err)
+				}
+				return out
+			}
+			if kind == "linked" {
+				linked := filepath.Join(t.TempDir(), "linked")
+				git("worktree", "add", "--detach", linked, "HEAD")
+				repo = linked
+			}
+			original := "bid754-go/internal/bidgo/dummy.go"
+			added := "bid754-go/added \t\n_test.go"
+			renamed := "bid754-go/internal/bidgo/renamed.go"
+			untracked := "bid754-go/untracked_test.go"
+			write := func(path, content string) {
+				t.Helper()
+				if err := os.WriteFile(filepath.Join(repo, path), []byte(content), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			write(added, "package bid754\nvar staged = 1\n")
+			git("add", "--", added)
+			write(added, "package bid754\nvar working = 2\n")
+			git("mv", "--", original, renamed)
+			write(renamed, "package bidgo\nvar renamedWorking = 3\n")
+			git("update-index", "--force-remove", "--", "devtools/tests/.keep")
+			write(untracked, "package bid754\n")
+			if kind == "split" {
+				git("update-index", "--split-index")
+			}
+			if kind == "unmerged" {
+				blob := git("rev-parse", "HEAD:"+original)
+				cmd := exec.Command("git", "-C", repo, "update-index", "--index-info")
+				cmd.Stdin = strings.NewReader("0 " + strings.Repeat("0", len(blob)) + "\t" + renamed + "\n" +
+					"100644 " + blob + " 1\t" + renamed + "\n" +
+					"100644 " + blob + " 2\t" + renamed + "\n" +
+					"100644 " + blob + " 3\t" + renamed + "\n")
+				if out, err := cmd.CombinedOutput(); err != nil {
+					t.Fatalf("prepare unmerged index: %v\n%s", err, out)
+				}
+			}
+			index := git("rev-parse", "--git-path", "index")
+			if !filepath.IsAbs(index) {
+				index = filepath.Join(repo, index)
+			}
+			beforeIndex, err := os.ReadFile(index)
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeHead := git("rev-parse", "HEAD")
+			out, snapshotErr := exec.Command(bin, "-mode", "snapshot", "-repo", repo).CombinedOutput()
+			afterIndex, err := os.ReadFile(index)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(beforeIndex) != string(afterIndex) || git("rev-parse", "HEAD") != beforeHead {
+				t.Fatal("snapshot changed source index or HEAD")
+			}
+			if kind == "unmerged" {
+				if snapshotErr == nil || !strings.Contains(string(out), "unmerged") {
+					t.Fatalf("unmerged index was not rejected: %v\n%s", snapshotErr, out)
+				}
+				return
+			}
+			if snapshotErr != nil {
+				t.Fatalf("snapshot CLI: %v\n%s", snapshotErr, out)
+			}
+			snapshot := strings.TrimSpace(string(out))
+			for path, want := range map[string]string{
+				added:   "package bid754\nvar working = 2",
+				renamed: "package bidgo\nvar renamedWorking = 3",
+			} {
+				if got := git("show", snapshot+":"+path); got != want {
+					t.Errorf("snapshot %q: got %q, want %q", path, got, want)
+				}
+			}
+			for _, path := range []string{original, "devtools/tests/.keep", untracked} {
+				if err := exec.Command("git", "-C", repo, "cat-file", "-e", snapshot+":"+path).Run(); err == nil {
+					t.Errorf("snapshot included deleted or untracked path %q", path)
+				}
+			}
+			if got := git("rev-parse", snapshot+"^"); got != beforeHead {
+				t.Errorf("snapshot parent %s, want %s", got, beforeHead)
+			}
+		})
+	}
+}
+
 func TestIntendedExactProbeRejectsOtherArithmeticFailures(t *testing.T) {
 	probe := exactProbe{Name: "mul-midpoint"}
 	finding := exactFinding{ValueMismatch: true, Rounding: "tie", ForbiddenRaw: "32800001"}
