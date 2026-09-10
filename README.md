@@ -63,6 +63,9 @@ Authoritative goal/spec documents (under `docs/`):
 Current verification implementation locations are indexed by the
 non-normative `docs/VERIFICATION_REFERENCE.md`.
 
+Confirmed unresolved defects and reproductions are recorded in
+[Known Issues](docs/KNOWN_ISSUES.md).
+
 This `README.md` describes the current checked-out tree and developer workflow. It must not silently redefine the project goal.
 
 Project goal and scope are defined in `docs/SPEC.md`.
