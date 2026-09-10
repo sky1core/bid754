@@ -147,11 +147,11 @@ func FuzzFiniteArithmeticExact(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw, flags, err := finitePublic(sample.Case)
+		observations, err := finitePublicPaths(sample.Case)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := decimalref.Compare(sample.Case.Width, want, raw, flags); err != nil {
+		if err := finiteCheckPaths(sample.Case, want, observations, []string{"go"}); err != nil {
 			t.Fatalf("sample=%+v: %v", sample, err)
 		}
 	})

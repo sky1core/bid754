@@ -234,7 +234,7 @@ func Validate(s Sample) (decimalref.Result, error) {
 	if err != nil {
 		return decimalref.Result{}, err
 	}
-	if s.Family == "uniform-finite" {
+	if s.Family == "uniform-finite" || s.Family == "boundary-finite" {
 		return r, nil
 	}
 	f, err := findFamily(s.Family)

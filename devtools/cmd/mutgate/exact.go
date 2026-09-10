@@ -101,7 +101,7 @@ func registerExactFlags(cfg *config) {
 	flag.StringVar(&cfg.exactTuningSeeds, "exact-tuning-seeds", "0,754", "exactcheck declared generator-tuning seeds; heldout seeds must be disjoint; extend to include all seeds used for tuning")
 	flag.IntVar(&cfg.exactCases, "exact-cases", 300, "exactprobe cases per campaign/seed; set 0 for CPU budget")
 	flag.DurationVar(&cfg.exactCPU, "exact-cpu-budget", 0, "opt-in process user+system CPU per campaign/seed, excluding compilation; requires -exact-cases=0; wall timeout is only a safety limit")
-	flag.StringVar(&cfg.exactProbeSet, "exact-probes", "calibration", "exactcheck probe set: calibration|heldout (distinct mechanical mutations and fixed witnesses)")
+	flag.StringVar(&cfg.exactProbeSet, "exact-probes", "calibration", "exactcheck probe set: calibration|heldout|widths (distinct mechanical mutations and fixed witnesses; widths covers D64/D128 tie, inexact, and unfused FMA; pathcheck additionally accepts quantum)")
 	flag.StringVar(&cfg.snapshotFiles, "snapshot-files", "", "snapshot mode: explicit CSV of additional untracked source paths to capture with tracked working-tree edits; prints dangling commit, changes no branch/index")
 }
 

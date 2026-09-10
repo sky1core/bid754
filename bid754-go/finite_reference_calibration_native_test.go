@@ -73,7 +73,7 @@ func TestFiniteReferenceDecnumberCalibration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("decNumber result cannot be encoded: %v sample=%+v", err, s)
 		}
-		if err := decimalref.Compare(s.Case.Width, want, raw, flags); err != nil {
+		if err := decimalref.CompareQuantum(s.Case.Width, want, raw, flags); err != nil {
 			t.Fatalf("reference/decNumber disagreement: %v sample=%+v decNumber=%s/%x reference=%+v", err, s, dn.triple.key(), flags, want)
 		}
 		checked[s.Case.Width]++

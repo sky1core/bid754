@@ -63,6 +63,25 @@ func TestExactProbeSitesAreRealAndDisjoint(t *testing.T) {
 			}
 		}
 	}
+	widthsSeen := map[string]bool{}
+	widthsProbes, err := exactProbes("widths")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, probe := range widthsProbes {
+		site, src, err := exactProbeSite(root, probe)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := site.File + ":" + site.Func + ":" + site.OrigFull
+		if widthsSeen[key] {
+			t.Fatalf("widths mutation is not single-site: %s", site.ID())
+		}
+		widthsSeen[key] = true
+		if site.Offset < 0 || site.End > len(src) || site.OrigFull != string(src[site.Offset:site.End]) {
+			t.Fatalf("invalid source span: %+v", site)
+		}
+	}
 }
 
 func TestExactCampaignRealBinary(t *testing.T) {
@@ -113,7 +132,7 @@ func TestExactCampaignRealBinary(t *testing.T) {
 			t.Fatalf("CPU budget not measured: %+v", measured)
 		}
 	}
-	for _, set := range []string{"calibration", "heldout"} {
+	for _, set := range []string{"calibration", "heldout", "widths"} {
 		probes, _ := exactProbes(set)
 		for _, p := range probes {
 			e.exact.Configs = []exactConfig{{Campaign: "witness", Cases: 1, Witness: p.Name}}
@@ -371,6 +390,7 @@ func TestIntendedExactProbeRejectsOtherArithmeticFailures(t *testing.T) {
 	probe := exactProbe{Name: "mul-midpoint"}
 	finding := exactFinding{ValueMismatch: true, Rounding: "tie", ForbiddenRaw: "32800001"}
 	finding.Sample.Case.Mode = "nearest_even"
+	finding.Sample.Case.Width = 32
 	run := exactRun{Config: exactConfig{Campaign: "witness", Witness: probe.Name}, Status: "killed", Report: &exactReport{Findings: []exactFinding{finding}}}
 	if intendedExactFinding(probe, run) {
 		t.Fatal("arbitrary arithmetic mismatch satisfied the intended witness")
@@ -379,6 +399,11 @@ func TestIntendedExactProbeRejectsOtherArithmeticFailures(t *testing.T) {
 	if !intendedExactFinding(probe, run) {
 		t.Fatal("precise midpoint witness was rejected")
 	}
+	run.Report.Findings[0].Sample.Case.Width = 128
+	if intendedExactFinding(probe, run) {
+		t.Fatal("another width credited to the witness")
+	}
+	run.Report.Findings[0].Sample.Case.Width = 32
 	run.Status = "panic"
 	if intendedExactFinding(probe, run) {
 		t.Fatal("panic satisfied the intended witness")

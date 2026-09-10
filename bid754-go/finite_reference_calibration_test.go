@@ -105,7 +105,7 @@ func TestFiniteReferenceReadtestCalibration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := decimalref.Compare(width, want, expected, uint32(flags)); err != nil {
+		if err := decimalref.CompareQuantum(width, want, expected, uint32(flags)); err != nil {
 			t.Fatalf("official row %s: %v sample=%+v expected=%s/%s reference=%+v", row.ID, err, c, expected, row.Status, want)
 		}
 		checked[width]++

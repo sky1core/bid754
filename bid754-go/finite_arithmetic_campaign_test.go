@@ -93,6 +93,16 @@ func finiteCampaignWitness(name string) (decimalprobe.Sample, string, uint32, st
 		op, operands, expected = "fma", []operand{{"1000001", 0, false}, {"1000001", 0, false}, {"1000002", 6, true}}, operand{"1", 0, false}
 	case "unfused64":
 		width, op, operands, expected = 64, "fma", []operand{{"1000000000000001", 0, false}, {"1000000000000001", 0, false}, {"1000000000000002", 15, true}}, operand{"1", 0, false}
+	case "quantize-midpoint64":
+		width, op, operands, expected, flags = 64, "quantize", []operand{{"1000000000000005", 0, false}, {"1", 1, false}}, operand{"100000000000000", 1, false}, 0x20
+	case "quantize-inexact64":
+		width, op, operands, expected, flags = 64, "quantize", []operand{{"1", -30, false}, {"1", 0, false}}, operand{"0", 0, false}, 0x20
+	case "quantize-midpoint128":
+		width, op, operands, expected, flags = 128, "quantize", []operand{{"1000000000000000000000000000000005", 0, false}, {"1", 1, false}}, operand{"100000000000000000000000000000000", 1, false}, 0x20
+	case "quantize-inexact128":
+		width, op, operands, expected, flags = 128, "quantize", []operand{{"1", -40, false}, {"1", 0, false}}, operand{"0", 0, false}, 0x20
+	case "unfused128":
+		width, op, operands, expected = 128, "fma", []operand{{"1000000000000000000000000000000001", 0, false}, {"1000000000000000000000000000000001", 0, false}, {"1000000000000000000000000000000002", 33, true}}, operand{"1", 0, false}
 	default:
 		return decimalprobe.Sample{}, "", 0, "", 0, fmt.Errorf("unknown witness %q", name)
 	}
@@ -107,6 +117,14 @@ func finiteCampaignWitness(name string) (decimalprobe.Sample, string, uint32, st
 		forbidden, forbiddenFlags = operand{"0", 6, false}, 0x20
 	case "unfused64":
 		forbidden, forbiddenFlags = operand{"0", 15, false}, 0x20
+	case "quantize-midpoint64":
+		forbidden, forbiddenFlags = operand{"100000000000001", 1, false}, 0x20
+	case "quantize-midpoint128":
+		forbidden, forbiddenFlags = operand{"100000000000000000000000000000001", 1, false}, 0x20
+	case "quantize-inexact64", "quantize-inexact128":
+		forbidden = expected
+	case "unfused128":
+		forbidden, forbiddenFlags = operand{"0", 33, false}, 0x20
 	}
 	encode := func(o operand) (string, error) {
 		n, ok := new(big.Int).SetString(o.coeff, 10)

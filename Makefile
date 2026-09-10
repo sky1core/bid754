@@ -203,10 +203,13 @@ verify-all-native-gates:
 test-harness:
 	@cd devtools && $(GOENV) go test -count=1 -v ./internal/verification ./internal/scriptcheck ./internal/platformdigest ./internal/goboundary ./internal/rustboundary ./cmd/verifylog ./cmd/mutgate ./cmd/explorediff
 
-.PHONY: test-finite-reference test-native-finite-reference
+.PHONY: test-finite-reference test-native-finite-reference test-finite-paths
 test-finite-reference:
 	@cd bid754-go && $(GOENV) go test -count=1 -v -run '^(TestFiniteArithmeticOracleStrength|TestFiniteArithmeticSemanticShrinkAndReplay|TestFiniteReferenceReadtestCalibration|FuzzFiniteArithmeticExact)$$' .
 	@cd bid754-go && $(GOENV) go test -count=1 -v ./internal/decimalref ./internal/decimalprobe
+
+test-finite-paths:
+	@bash devtools/scripts/test_finite_paths.sh
 
 test-native-finite-reference:
 	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestFiniteReferenceDecnumberCalibration$$" .'
@@ -746,6 +749,8 @@ verify-generated:
 		bid754-rs/tests/dectest_generated.rs \
 		bid754-go/generated_public_parity_dispatch_test.go \
 		bid754-go/generated_public_parity_cases_test.go \
+		bid754-go/generated_finite_public_paths_test.go \
+		bid754-rs/examples/finite_probe.rs \
 		bid754-go/generated_dectest_cases_native_test.go \
 		bid754-go/generated_dectest_cases_stub_test.go \
 		bid754-go/generated_dectest_dispatch_test.go \
@@ -841,6 +846,8 @@ verify-generated:
 	cmp -s bid754-rs/tests/dectest_generated.rs $$tmpdir/backup/bid754-rs/tests/dectest_generated.rs || failed="$$failed bid754-rs/tests/dectest_generated.rs"; \
 	cmp -s bid754-go/generated_public_parity_dispatch_test.go $$tmpdir/backup/bid754-go/generated_public_parity_dispatch_test.go || failed="$$failed bid754-go/generated_public_parity_dispatch_test.go"; \
 	cmp -s bid754-go/generated_public_parity_cases_test.go $$tmpdir/backup/bid754-go/generated_public_parity_cases_test.go || failed="$$failed bid754-go/generated_public_parity_cases_test.go"; \
+	cmp -s bid754-go/generated_finite_public_paths_test.go $$tmpdir/backup/bid754-go/generated_finite_public_paths_test.go || failed="$$failed bid754-go/generated_finite_public_paths_test.go"; \
+	cmp -s bid754-rs/examples/finite_probe.rs $$tmpdir/backup/bid754-rs/examples/finite_probe.rs || failed="$$failed bid754-rs/examples/finite_probe.rs"; \
 	cmp -s bid754-go/generated_dectest_cases_native_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_native_test.go || failed="$$failed bid754-go/generated_dectest_cases_native_test.go"; \
 	cmp -s bid754-go/generated_dectest_cases_stub_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_stub_test.go || failed="$$failed bid754-go/generated_dectest_cases_stub_test.go"; \
 	cmp -s bid754-go/generated_dectest_dispatch_test.go $$tmpdir/backup/bid754-go/generated_dectest_dispatch_test.go || failed="$$failed bid754-go/generated_dectest_dispatch_test.go"; \

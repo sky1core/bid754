@@ -711,6 +711,30 @@ cd bid754-go
 go test -run '^$' -fuzz '^FuzzFiniteArithmeticExact$' -fuzztime=60s .
 ```
 
+`make test-finite-paths` runs the same raw finite operands through Go and Rust
+public explicit-mode, default-value/default-flags, and direct port paths. All
+five modes use each operand tuple; default APIs run under nearest-even only.
+Results compare to the independent model including finite coefficient/exponent
+and all observable flags. Missing or duplicate paths and coverage cells fail.
+Each width/mode/status-aware path must observe all five IEEE flags across the
+campaign, including nonzero division by both signs of zero.
+The bounded portable profile runs 2 samples per relation and per uniform
+operation, plus 20 signed zero/cohort/range-boundary tuples per operation at
+each width. It does not extend the model to nonfinite inputs or
+other operation families.
+
+To expand the campaign with a recorded seed:
+
+```bash
+BID754_FINITE_PATHS='{"seed":20260911,"samples":32,"uniform":32}' make test-finite-paths
+```
+
+A failure records original/reduced raw samples and executable identities under
+`test_results/finite-paths.*/finding.json`. Replay both samples with
+`BID754_FINITE_PATHS='{"replay":"/path/to/finding.json"}' make test-finite-paths`.
+The ordinary Go fuzz target also uses the strengthened Go path comparisons;
+Rust participates in `test-finite-paths`.
+
 The fuzz input exposes family, width, mode, coefficient entropy, exponent and
 sign separately. A failed case is saved by Go's fuzz runner and replayed by
 ordinary `go test`; inspect its raw case diagnostic before promotion.
@@ -729,6 +753,19 @@ set uses different mutation sites and requires `-exact-tuning-seeds` to reject
 seed overlap with tuning. These small sets evaluate specified fault classes;
 they do not establish a general mutation score for the whole library. Findings
 outside the pristine run's tested input prefix remain inconclusive.
+
+`mutgate -mode pathcheck -stages finitepaths,rustfinite` tests the selected
+`-exact-probes` set against each language separately using the finite path
+executor and a declared operation-specific witness. The pristine baseline runs
+the complete bounded campaign. For Rust, it mutates the Go predecessor and regenerates through
+go2rs before building the real crate; generated implementation files are never
+hand-patched. The Go predecessor is restored and Rust regenerated after each
+probe. Only recorded discrepancies in the specified width, operation and fault count
+as detections; build errors,
+missing paths, crashes and timeouts remain distinct. The `calibration` and
+`widths` sets together exercise the three widths. `-exact-probes quantum`
+selects three zero-result quantize exponent faults that preserve numeric value
+and flags; these require the strengthened cohort comparison.
 
 Mutation runs require an isolated detached `-worktree` at `-commit` and a
 `-jsonl` result path. For uncommitted changes, `-mode snapshot` captures tracked

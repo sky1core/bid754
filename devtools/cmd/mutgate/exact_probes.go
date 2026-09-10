@@ -33,6 +33,15 @@ func exactProbes(set string) ([]exactProbe, error) {
 			{Name: "add-inexact", File: "bid32_add.go", Function: "bid32_add_core", Original: "flags |= BID_INEXACT_EXCEPTION", Replacement: "flags |= 0"},
 			{Name: "unfused64", File: "fma64.go", Function: "Bid64Fma", Body: true, Replacement: "{ { p, pf := Bid64MulWithFlags(x, y, rndMode); r, rf := Bid64AddWithFlags(p, z, rndMode); return r, pf | rf }"},
 		}, nil
+	case "widths":
+		return []exactProbe{
+			{Name: "quantize-midpoint64", File: "quantize64.go", Function: "Bid64Quantize", Original: "C64&1 != 0", Replacement: "C64&1 == 0"},
+			{Name: "quantize-inexact64", File: "quantize64.go", Function: "Bid64Quantize", Original: "pfpsf |= BID_INEXACT_EXCEPTION", Replacement: "pfpsf |= 0"},
+			{Name: "unfused64", File: "fma64.go", Function: "Bid64Fma", Body: true, Replacement: "{ { p, pf := Bid64MulWithFlags(x, y, rndMode); r, rf := Bid64AddWithFlags(p, z, rndMode); return r, pf | rf }"},
+			{Name: "quantize-midpoint128", File: "bid128_quantize.go", Function: "Bid128Quantize", Original: "CR.lo&1 != 0", Replacement: "CR.lo&1 == 0"},
+			{Name: "quantize-inexact128", File: "bid128_quantize.go", Function: "Bid128Quantize", Original: "pfpsf |= BID_INEXACT_EXCEPTION", Replacement: "pfpsf |= 0"},
+			{Name: "unfused128", File: "bid128_fma.go", Function: "Bid128Fma", Body: true, Replacement: "{ { z0 := BID_UINT128{lo: 0, hi: 0x5ffe000000000000 | ((x.hi ^ y.hi) & 0x8000000000000000)}; var mf uint32; p, _, _, _, _ := bid128_ext_fma(x, y, z0, rnd_mode, &mf); var af uint32; r := Bid128Add(p, z, rnd_mode, &af); return r, mf | af }"},
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown exact probe set %q", set)
 	}
@@ -95,15 +104,25 @@ func intendedExactFinding(p exactProbe, run exactRun) bool {
 		return false
 	}
 	f := run.Report.Findings[0]
+	width := 32
+	switch p.Name {
+	case "quantize-midpoint64", "quantize-inexact64", "unfused64":
+		width = 64
+	case "quantize-midpoint128", "quantize-inexact128", "unfused128":
+		width = 128
+	}
+	if f.Sample.Case.Width != width {
+		return false
+	}
 	if !f.IntendedWitness || f.ForbiddenRaw == "" {
 		return false
 	}
 	switch p.Name {
-	case "quantize-midpoint", "mul-midpoint":
+	case "quantize-midpoint", "mul-midpoint", "quantize-midpoint64", "quantize-midpoint128":
 		return f.Sample.Case.Mode == "nearest_even" && f.Rounding == "tie" && f.ValueMismatch && !f.FlagsMismatch
-	case "mul-inexact", "add-inexact":
+	case "mul-inexact", "add-inexact", "quantize-inexact64", "quantize-inexact128":
 		return !f.ValueMismatch && f.FlagsMismatch && f.ExpectedFlags&0x20 != 0 && f.ActualFlags == f.ExpectedFlags&^0x20
-	case "unfused32", "unfused64":
+	case "unfused32", "unfused64", "unfused128":
 		return f.Sample.Case.Op == "fma" && f.ValueMismatch && f.ExpectedFlags == 0 && f.ActualFlags == 0x20
 	}
 	return false

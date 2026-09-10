@@ -77,9 +77,11 @@ type stage struct {
 }
 
 var stageCatalog = map[string]stage{
-	"exactprobe": {Name: "exactprobe", Binary: "portable", RunExpr: "^TestFiniteArithmeticCampaign$"},
-	"readtest":   {Name: "readtest", Binary: "portable", RunExpr: "^TestGeneratedReadCasesGoPort$"},
-	"dectest":    {Name: "dectest", Binary: "portable", RunExpr: "^TestGeneratedDectestSuitesGoPort$"},
+	"finitepaths": {Name: "finitepaths", Binary: "portable", RunExpr: "^TestFiniteArithmeticPaths$"},
+	"rustfinite":  {Name: "rustfinite", Binary: "portable", RunExpr: "^TestFiniteArithmeticPaths$"},
+	"exactprobe":  {Name: "exactprobe", Binary: "portable", RunExpr: "^TestFiniteArithmeticCampaign$"},
+	"readtest":    {Name: "readtest", Binary: "portable", RunExpr: "^TestGeneratedReadCasesGoPort$"},
+	"dectest":     {Name: "dectest", Binary: "portable", RunExpr: "^TestGeneratedDectestSuitesGoPort$"},
 	"parity": {Name: "parity", Binary: "portable",
 		RunExpr: "^(TestGeneratedPublicAPIParity|TestGeneratedPublicAPIFlaglessSiblingEquivalence)$"},
 	"native": {Name: "native", Binary: "native", RunExpr: "^(TestGeneratedReadCases|TestGeneratedDectestSuites|TestGeneratedFFIBitCompareSubset)$"},
@@ -209,7 +211,7 @@ type config struct {
 
 func main() {
 	var cfg config
-	flag.StringVar(&cfg.mode, "mode", "run", "run|list|selfcheck|setup|teardown|snapshot|exactcheck")
+	flag.StringVar(&cfg.mode, "mode", "run", "run|list|selfcheck|setup|teardown|snapshot|exactcheck|pathcheck")
 	flag.StringVar(&cfg.repo, "repo", "", "primary repo root (default: git toplevel of cwd)")
 	flag.StringVar(&cfg.worktree, "worktree", "", "isolated worktree path (required; created by setup/run if absent)")
 	flag.StringVar(&cfg.commit, "commit", "HEAD", "commit for worktree creation")
@@ -254,6 +256,8 @@ func run(cfg config) error {
 		return snapshotSource(cfg)
 	case "exactcheck":
 		return runExactCheck(cfg)
+	case "pathcheck":
+		return runFinitePathCheck(cfg)
 	case "setup":
 		return setupWorktree(cfg)
 	case "teardown":
@@ -820,15 +824,17 @@ func sitesByIDFile(path string, sites map[string][]mutationSite, files []string)
 // ---------- execution engine ----------
 
 type engine struct {
-	exact      *exactEvidence
-	exactRuns  []exactRun
-	buildFault string
-	cfg        config
-	worktree   string
-	repo       string
-	goDir      string // worktree/bid754-go
-	binDir     string
-	jsonl      *os.File
+	exact       *exactEvidence
+	exactRuns   []exactRun
+	pathFinding json.RawMessage
+	pathWitness string
+	buildFault  string
+	cfg         config
+	worktree    string
+	repo        string
+	goDir       string // worktree/bid754-go
+	binDir      string
+	jsonl       *os.File
 }
 
 func newEngine(cfg config) (*engine, error) {
@@ -992,6 +998,9 @@ func (e *engine) runStage(st stage, binPath string) (string, string, time.Durati
 	}
 	if st.Name == "exactprobe" {
 		return e.runExactStage(binPath)
+	}
+	if st.Name == "finitepaths" || st.Name == "rustfinite" {
+		return e.runFinitePathStage(st, binPath)
 	}
 	dir := e.goDir
 	if st.Binary == "bidgopkg" {
@@ -1179,6 +1188,15 @@ func (e *engine) evaluateMutant(site mutationSite, pristine []byte, stages []sta
 			// A restore failure poisons every later mutant: stop hard.
 			fmt.Fprintf(os.Stderr, "FATAL: restore %s failed: %v\n", path, err)
 			os.Exit(2)
+		}
+		for _, st := range stages {
+			if st.Name == "rustfinite" {
+				if _, err := e.regenerateFiniteRust(); err != nil {
+					fmt.Fprintf(os.Stderr, "FATAL: regenerate pristine Rust: %v\n", err)
+					os.Exit(2)
+				}
+				break
+			}
 		}
 	}()
 

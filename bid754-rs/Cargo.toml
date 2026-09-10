@@ -81,3 +81,7 @@ required-features = ["verification"]
 [[test]]
 name = "smoke"
 required-features = ["verification"]
+
+[[example]]
+name = "finite_probe"
+required-features = ["verification"]

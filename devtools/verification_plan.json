@@ -888,6 +888,28 @@
       }
     },
     {
+      "id": "finite-paths",
+      "target": "test-finite-paths",
+      "group": "portable",
+      "tools": [
+        "go",
+        "cargo"
+      ],
+      "prerequisites": [],
+      "comparison": "independent-finite-cohort-and-flags-across-public-and-port-paths",
+      "evidence": {
+        "patterns": [
+          "FINITE-PATHS languages=go,rust seed=754 samples=2 uniform=2 cases=2580 observations=12240 cells=2286 flag_cells=66 replay=false"
+        ],
+        "passes": [
+          "TestFiniteArithmeticPaths",
+          "TestFinitePathCoverageContract",
+          "TestFinitePathInputContract",
+          "TestFiniteRustDeadline"
+        ]
+      }
+    },
+    {
       "id": "finite-reference-decnumber",
       "target": "test-native-finite-reference",
       "group": "native",

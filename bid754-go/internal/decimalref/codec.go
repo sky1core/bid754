@@ -172,3 +172,20 @@ func Compare(width int, want Result, actualBits string, actualFlags uint32) erro
 	}
 	return nil
 }
+
+func CompareQuantum(width int, want Result, actualBits string, actualFlags uint32) error {
+	if err := Compare(width, want, actualBits, actualFlags); err != nil {
+		return err
+	}
+	if want.Value.Kind != "finite" {
+		return nil
+	}
+	actual, err := Decode(width, actualBits)
+	if err != nil {
+		return err
+	}
+	if actual.Exp != want.Value.Exp || actual.Coeff.Cmp(want.Value.Coeff) != 0 {
+		return fmt.Errorf("finite cohort differs: got %sE%d, want %sE%d", actual.Coeff, actual.Exp, want.Value.Coeff, want.Value.Exp)
+	}
+	return nil
+}

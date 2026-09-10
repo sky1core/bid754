@@ -108,6 +108,48 @@ func TestCompareContract(t *testing.T) {
 	}
 }
 
+func TestCompareQuantumCohort(t *testing.T) {
+	for _, width := range []int{32, 64, 128} {
+		for _, tc := range []struct {
+			want, other Decimal
+		}{
+			{finite("1", 0), finite("100", -2)},
+			{finite("50", -2), finite("5", -1)},
+			{finite("0", 0), finite("0", -2)},
+			{Decimal{Kind: "finite", Negative: true, Coeff: big.NewInt(0), Exp: 0}, Decimal{Kind: "finite", Negative: true, Coeff: big.NewInt(0), Exp: 3}},
+		} {
+			want := Result{Value: tc.want}
+			same, err := Encode(width, tc.want)
+			if err != nil {
+				t.Fatal(err)
+			}
+			other, err := Encode(width, tc.other)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if exactValue(tc.want).Cmp(exactValue(tc.other)) != 0 {
+				t.Fatalf("test cohorts differ in value: %+v vs %+v", tc.want, tc.other)
+			}
+			if err := Compare(width, want, other, 0); err != nil {
+				t.Fatalf("numeric Compare rejected equal value: %v", err)
+			}
+			if CompareQuantum(width, want, other, 0) == nil {
+				t.Fatalf("CompareQuantum accepted %sE%d for want %sE%d", tc.other.Coeff, tc.other.Exp, tc.want.Coeff, tc.want.Exp)
+			}
+			if err := CompareQuantum(width, want, same, 0); err != nil {
+				t.Fatalf("CompareQuantum rejected exact cohort: %v", err)
+			}
+		}
+	}
+	nan := Result{Value: Decimal{Kind: "nan"}, Flags: flagInvalid}
+	if err := CompareQuantum(32, nan, "7c000000", flagInvalid); err != nil {
+		t.Fatalf("CompareQuantum changed canonical quiet NaN judgment: %v", err)
+	}
+	if CompareQuantum(32, nan, "7e000000", flagInvalid) == nil {
+		t.Fatal("CompareQuantum accepted signaling NaN")
+	}
+}
+
 func TestRejectInputs(t *testing.T) {
 	for _, raw := range []string{"", "0", "3280000A", " 32800001", "0x32800001", "3280000g", strings.Repeat("0", 100000)} {
 		if _, err := Decode(32, raw); err == nil {
