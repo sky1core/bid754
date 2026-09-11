@@ -231,6 +231,10 @@ test-native-finite-reference:
 	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestFiniteReferenceDecnumberCalibration$$" .'
 	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v ./internal/cmd/explorenative'
 
+.PHONY: test-native-tier1-reference
+test-native-tier1-reference:
+	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestTier1(ReferenceDecnumberCalibration|DecnumberRoutingWitnesses|DecnumberComparatorStrength)$$" .'
+
 test-codec-go:
 	@cd bid754-codec-go && $(GOENV) go test -count=1 ./...
 
@@ -768,6 +772,9 @@ verify-generated:
 		bid754-go/generated_finite_public_paths_test.go \
 		bid754-rs/examples/finite_probe.rs \
 		devtools/java/BigDecimalProbe.java \
+		bid754-go/generated_tier1_public_paths_test.go \
+		bid754-rs/examples/tier1_probe.rs \
+		devtools/java/Tier1BigDecimalProbe.java \
 		bid754-go/generated_dectest_cases_native_test.go \
 		bid754-go/generated_dectest_cases_stub_test.go \
 		bid754-go/generated_dectest_dispatch_test.go \
@@ -866,6 +873,9 @@ verify-generated:
 	cmp -s bid754-go/generated_finite_public_paths_test.go $$tmpdir/backup/bid754-go/generated_finite_public_paths_test.go || failed="$$failed bid754-go/generated_finite_public_paths_test.go"; \
 	cmp -s bid754-rs/examples/finite_probe.rs $$tmpdir/backup/bid754-rs/examples/finite_probe.rs || failed="$$failed bid754-rs/examples/finite_probe.rs"; \
 	cmp -s devtools/java/BigDecimalProbe.java $$tmpdir/backup/devtools/java/BigDecimalProbe.java || failed="$$failed devtools/java/BigDecimalProbe.java"; \
+	cmp -s bid754-go/generated_tier1_public_paths_test.go $$tmpdir/backup/bid754-go/generated_tier1_public_paths_test.go || failed="$$failed bid754-go/generated_tier1_public_paths_test.go"; \
+	cmp -s bid754-rs/examples/tier1_probe.rs $$tmpdir/backup/bid754-rs/examples/tier1_probe.rs || failed="$$failed bid754-rs/examples/tier1_probe.rs"; \
+	cmp -s devtools/java/Tier1BigDecimalProbe.java $$tmpdir/backup/devtools/java/Tier1BigDecimalProbe.java || failed="$$failed devtools/java/Tier1BigDecimalProbe.java"; \
 	cmp -s bid754-go/generated_dectest_cases_native_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_native_test.go || failed="$$failed bid754-go/generated_dectest_cases_native_test.go"; \
 	cmp -s bid754-go/generated_dectest_cases_stub_test.go $$tmpdir/backup/bid754-go/generated_dectest_cases_stub_test.go || failed="$$failed bid754-go/generated_dectest_cases_stub_test.go"; \
 	cmp -s bid754-go/generated_dectest_dispatch_test.go $$tmpdir/backup/bid754-go/generated_dectest_dispatch_test.go || failed="$$failed bid754-go/generated_dectest_dispatch_test.go"; \

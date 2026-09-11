@@ -531,7 +531,7 @@
     "bidcodec_vectors": "4ae46c32a7ae279d135e32c6a7a0e7cdf7f128723564d461731829e8b26c93ee",
     "bidcodec_harnesses": "876b344649d8b13e9e5ef3c59fda326d0cea0099524fe6bad9dfebd912ee590a",
     "goport_verification_runners": "81ac29f8d5388c78acba2546510e74dc9e89840478f4df049b3d3659d502926d",
-    "decnumber_differential_runners": "0e00e7e5535f3385047b6e56041f65562519c6bd0aa292829464f6ee5b678705",
+    "decnumber_differential_runners": "e0e2596ba85bab83743f17572d06f6b9602efbf832197a6562da7f1ccd59cdd3",
     "d32_exhaustive_runners": "b23f99b7f028909b71030cae9c36822e950223648248c105f64ec5480e8e9e5e",
     "dectest_executor": "77b06a819674940e9ccb39dd77e93c7779e777058edf60a4d6227d9ce491615d",
     "spec_loader": "b927e5d6393ed9e69b506a52555e5cbef062f5f3ed8de536e981ea823d0e3b5d",

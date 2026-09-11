@@ -42,7 +42,9 @@ static int bid754_decnumber_diff_rounding(int intelRounding, enum rounding* out)
 	}
 }
 
-// op: 0 add, 1 sub, 2 mul, 3 div, 4 fma, 5 quantize, 6 sqrt.
+// op: 0 add, 1 sub, 2 mul, 3 div, 4 fma, 5 quantize, 6 sqrt,
+// 7 remainderNear, 8 remainder, 9 scaleB, 10 min, 11 max,
+// 12 compare, 13 toIntegralExact, 14 toIntegralValue.
 // Returns 0 ok; 1 bad width; 2 operand parse failure (parse_status set);
 // 3 bad op; 4 bad rounding mode.
 static int bid754_decnumber_diff_op(int op, int width, int rnd,
@@ -95,6 +97,14 @@ static int bid754_decnumber_diff_op(int op, int width, int rnd,
 	case 4: decNumberFMA(&r, &a, &b, &c, &ctx); break;
 	case 5: decNumberQuantize(&r, &a, &b, &ctx); break;
 	case 6: decNumberSquareRoot(&r, &a, &ctx); break;
+	case 7: decNumberRemainderNear(&r, &a, &b, &ctx); break;
+	case 8: decNumberRemainder(&r, &a, &b, &ctx); break;
+	case 9: decNumberScaleB(&r, &a, &b, &ctx); break;
+	case 10: decNumberMin(&r, &a, &b, &ctx); break;
+	case 11: decNumberMax(&r, &a, &b, &ctx); break;
+	case 12: decNumberCompare(&r, &a, &b, &ctx); break;
+	case 13: decNumberToIntegralExact(&r, &a, &ctx); break;
+	case 14: decNumberToIntegralValue(&r, &a, &ctx); break;
 	default: return 3;
 	}
 
@@ -141,9 +151,8 @@ type decnumberDiffRawDnResult struct {
 }
 
 // decnumberDiffRunDnRaw evaluates one case on the pinned decNumber leg.
-// opCode: 0 add, 1 sub, 2 mul, 3 div, 4 fma, 5 quantize, 6 sqrt (the
-// generated runner's fixed operation numbering); arity selects how many
-// operand strings are passed.
+// opCode follows bid754_decnumber_diff_op; arity selects how many operand
+// strings are passed.
 func decnumberDiffRunDnRaw(opCode, widthBits, intelRounding int, s1, s2, s3 string, arity int) decnumberDiffRawDnResult {
 	c1 := C.CString(s1)
 	defer C.free(unsafe.Pointer(c1))

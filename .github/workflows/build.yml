@@ -149,6 +149,12 @@ jobs:
           rustup toolchain install "$rust_version" --profile minimal --component clippy
           echo "RUSTUP_TOOLCHAIN=$rust_version" >> "$GITHUB_ENV"
 
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Verify toolchains
         run: |
           go version
@@ -156,6 +162,8 @@ jobs:
           rustc --version
           cargo --version
           cargo clippy --version
+          javac -version
+          java -version
 
       # Pinned-archive cache (see the portable-test job for the full rationale):
       # keyed on the provisioning script hash, OS-agnostic, sha256 re-verified

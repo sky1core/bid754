@@ -166,7 +166,13 @@
           "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/rustboundary\\s",
           "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/verifylog\\s",
           "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/mutgate\\s",
-          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/explorediff\\s"
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/cmd/explorediff\\s",
+          "TIER1-REFERENCE-STRENGTH mutant quiet_less_predicate rejected by ",
+          "TIER1-REFERENCE-STRENGTH mutant remainder_zero_sign rejected by ",
+          "TIER1-REFERENCE-STRENGTH mutant to_integer_upper_bound rejected by ",
+          "TIER1-REFERENCE-STRENGTH mutant scaleb_shift_direction rejected by ",
+          "TIER1-REFERENCE-STRENGTH mutant underflow_flag rejected by ",
+          "TIER1-REFERENCE-STRENGTH crash control rejected"
         ],
         "passes": [
           "TestExternalConsumer",
@@ -209,7 +215,11 @@
           "TestRelayConsoleErrorsPreserveRecordsAndFail",
           "TestBrokenConsolePipePreservesSpool",
           "TestParserResourceEvidenceRequiresEveryLanguageAndCount",
-          "TestParserResourceGateAppliesToRequiredProfiles"
+          "TestParserResourceGateAppliesToRequiredProfiles",
+          "TestTier1ReferenceFaultInjection",
+          "TestTier1BigDecimalRequiredAcrossPortableProfiles",
+          "TestNumericProfileKeepsDeterministicAndFuzz",
+          "TestTier1DecnumberRequiredAcrossNativeProfiles"
         ]
       }
     },
@@ -1022,7 +1032,7 @@
     {
       "id": "tier1-bigdecimal",
       "target": "test-tier1-bigdecimal",
-      "group": "discovery",
+      "group": "portable",
       "tools": [
         "go",
         "cargo",
@@ -1040,10 +1050,12 @@
           "TestTier1MissingOracleReplay",
           "TestTier1OracleProtocols",
           "TestJavaProbeWitnesses",
-          "TestJavaProbeRejectsMalformedRequests"
+          "TestJavaProbeRejectsMalformedRequests",
+          "TestTier1MetamorphicProperties"
         ],
         "patterns": [
-          "TIER1-BIGDECIMAL seeds=754,2019,57025 cases=14040 checked=[1-9][0-9]* excluded=.* observations=[1-9][0-9]* cells=585 java_cells=585"
+          "TIER1-BIGDECIMAL seeds=754,2019,57025 cases=14040 checked=[1-9][0-9]* excluded=.* observations=[1-9][0-9]* cells=585 java_cells=585",
+          "TIER1-PROPERTIES comparisons=1596"
         ]
       }
     },
@@ -1061,6 +1073,31 @@
       "comparison": "go-coverage-guided-java-and-independent-tier1-oracle",
       "evidence": {
         "go_fuzz": "FuzzTier1BigDecimal"
+      }
+    },
+    {
+      "id": "tier1-reference-decnumber",
+      "target": "test-native-tier1-reference",
+      "group": "native",
+      "tools": [
+        "go",
+        "cc"
+      ],
+      "prerequisites": [
+        "native"
+      ],
+      "comparison": "independent-tier1-model-and-public-path-decnumber-calibration",
+      "evidence": {
+        "passes": [
+          "TestTier1ReferenceDecnumberCalibration",
+          "TestTier1DecnumberRoutingWitnesses",
+          "TestTier1DecnumberComparatorStrength"
+        ],
+        "patterns": [
+          "TIER1-DECNUMBER width=32 cases=4680 cells=195 flags=39 excluded=0",
+          "TIER1-DECNUMBER width=64 cases=4680 cells=195 flags=39 excluded=0",
+          "TIER1-DECNUMBER width=128 cases=4680 cells=195 flags=39 excluded=0"
+        ]
       }
     }
   ],

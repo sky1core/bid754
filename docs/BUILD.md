@@ -807,6 +807,27 @@ combination of zero sign and exponent is rejected. NaN results are
 checked for class, quietness, canonical form and flags, without claiming an
 independent payload-selection oracle.
 
+This deterministic gate is required by the portable, CI portable and full
+profiles. The two BigDecimal fuzz targets remain optional discovery gates.
+
+`make test-native-tier1-reference` independently calibrates the Tier 1 model
+and Go public/port paths against pinned IBM decNumber 3.68. The native and
+full profiles require its 14,040 cases, covering 585 width/operation/mode/target
+cells with seeds 10754, 12019 and 67025. Values, signed zeros, defined quantum
+and IEEE flags are compared; quiet comparisons and integer conversions use
+decNumber comparison and integral-rounding primitives. Width conversion and
+integer construction use multiplication by exact one in the destination
+context, preserving zero sign and operand quantum before rounding.
+The bounded calibration corpus keeps remainder quotients within decNumber's
+precision and scaleB shifts within its supported range. It has no runtime
+exclusions and does not claim NaN payload/sign-selection validation.
+
+The deterministic Tier 1 gate also requires 1,596 law comparisons across the
+Go public/port paths and reference model for remainder signs, scaleB, exact
+width round trips, quiet comparisons and special-value flags. Harness checks
+inject five source faults into a temporary copy of the reference model and
+require the corresponding witness assertions to fail.
+
 `make fuzz-tier1-bigdecimal` searches these families for 60 seconds with two
 workers. Every byte input maps to a valid case; mutations include raw BID
 patterns, finite values, integer boundaries, midpoint cases, zeros, NaNs and
