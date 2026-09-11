@@ -9,4 +9,4 @@ export BID754_FINITE_RUST="$target/debug/examples/finite_probe"
 run_dir=$(mktemp -d "$root/test_results/finite-paths.XXXXXX")
 export BID754_FINITE_FAILURES="$run_dir/finding.json"
 cd "$root/bid754-go"
-go test -count=1 -v -run '^(TestFiniteArithmeticPaths|TestFinitePathCoverageContract|TestFinitePathInputContract|TestFiniteRustDeadline)$' .
+go test -count=1 -v -run '^(TestFiniteArithmeticPaths|TestFinitePathCoverageContract|TestFinitePathInputContract|TestFiniteRustDeadline|TestBigDecimalOracle|TestBigDecimalFuzzOracleContract)$' .

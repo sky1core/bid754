@@ -1,0 +1,103 @@
+package testgen
+
+import "github.com/sky1core/bid754/devtools/internal/genmarker"
+
+func GenerateBigDecimalOutputs() (map[string][]byte, error) {
+	return map[string][]byte{
+		"../devtools/java/BigDecimalProbe.java": []byte(genmarker.Line("testgen") + "\n" + bigDecimalJavaSource),
+	}, nil
+}
+
+const bigDecimalJavaSource = `import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.Base64;
+import java.util.HexFormat;
+
+public final class BigDecimalProbe {
+    private static int integer(String text) {
+        if (!text.matches("0|-?[1-9][0-9]*")) throw new IllegalArgumentException("noncanonical integer");
+        return Integer.parseInt(text);
+    }
+
+    private static String evaluate(String line) {
+        if (line.length() > 1024) throw new IllegalArgumentException("request too long");
+        String[] fields = line.split("\t", -1);
+        if (fields.length < 4 || !fields[0].equals("1")) throw new IllegalArgumentException("request version/shape");
+        int[] format = switch (integer(fields[1])) {
+            case 32 -> new int[]{7, -101, 90};
+            case 64 -> new int[]{16, -398, 369};
+            case 128 -> new int[]{34, -6176, 6111};
+            default -> throw new IllegalArgumentException("unsupported width");
+        };
+        String op = fields[2];
+        int arity = switch (op) {
+            case "add", "sub", "mul", "div", "quantize" -> 2;
+            case "fma" -> 3;
+            default -> throw new IllegalArgumentException("unsupported operation");
+        };
+        if (fields.length != 4 + 2 * arity) throw new IllegalArgumentException("operand arity");
+        RoundingMode mode = switch (fields[3]) {
+            case "nearest_even" -> RoundingMode.HALF_EVEN;
+            case "nearest_away" -> RoundingMode.HALF_UP;
+            case "toward_zero" -> RoundingMode.DOWN;
+            case "toward_positive" -> RoundingMode.CEILING;
+            case "toward_negative" -> RoundingMode.FLOOR;
+            default -> throw new IllegalArgumentException("unsupported rounding mode");
+        };
+        BigDecimal[] values = new BigDecimal[arity];
+        for (int i = 0; i < arity; i++) {
+            String coefficient = fields[4 + 2 * i];
+            if (!coefficient.matches("0|-?[1-9][0-9]*")) throw new IllegalArgumentException("noncanonical coefficient");
+            int digits = coefficient.length() - (coefficient.startsWith("-") ? 1 : 0);
+            if (digits > format[0]) throw new IllegalArgumentException("coefficient exceeds format precision");
+            int exponent = integer(fields[5 + 2 * i]);
+            if (exponent < format[1] || exponent > format[2]) throw new IllegalArgumentException("input exponent outside format");
+            values[i] = new BigDecimal(new BigInteger(coefficient), -exponent);
+        }
+        if (op.equals("div") && values[1].signum() == 0) return "1\texcluded\tdivision-by-zero";
+        MathContext context = new MathContext(format[0], mode);
+        BigDecimal result = switch (op) {
+            case "add" -> values[0].add(values[1], context);
+            case "sub" -> values[0].subtract(values[1], context);
+            case "mul" -> values[0].multiply(values[1], context);
+            case "div" -> values[0].divide(values[1], context);
+            case "fma" -> values[0].multiply(values[1]).add(values[2]).round(context);
+            case "quantize" -> values[0].setScale(values[1].scale(), mode);
+            default -> throw new IllegalArgumentException("unsupported operation");
+        };
+        if (op.equals("quantize") && result.precision() > format[0]) return "1\texcluded\tquantize-precision";
+        if (result.signum() != 0) {
+            int adjusted = -result.scale() + result.precision() - 1;
+            if (adjusted < format[1] + format[0] - 1 || adjusted > format[2] + format[0] - 1) {
+                return "1\texcluded\texponent-range";
+            }
+        }
+        return "1\tok\t" + result.unscaledValue() + "\t" + (-result.scale());
+    }
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 0) throw new IllegalArgumentException("unexpected arguments");
+        String runtime = Base64.getEncoder().encodeToString(System.getProperty("java.runtime.version").getBytes(StandardCharsets.UTF_8));
+        String vendor = Base64.getEncoder().encodeToString(System.getProperty("java.vendor").getBytes(StandardCharsets.UTF_8));
+        String digest;
+        try (var source = BigDecimalProbe.class.getResourceAsStream("BigDecimalProbe.class")) {
+            if (source == null) throw new IllegalStateException("class identity unavailable");
+            digest = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(source.readAllBytes()));
+        }
+        System.out.println("1\tready\t" + runtime + "\t" + vendor + "\t" + digest);
+        System.out.flush();
+        try (var input = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
+            for (String line; (line = input.readLine()) != null;) {
+                System.out.println(evaluate(line));
+                System.out.flush();
+            }
+        }
+    }
+}
+`

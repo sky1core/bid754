@@ -50,6 +50,7 @@ type finitePathFinding struct {
 	Reason       string                   `json:"reason"`
 	Shrink       decimalprobe.ShrinkStats `json:"shrink"`
 	Source       map[string]string        `json:"source"`
+	BigDecimal   *bigDecimalResult        `json:"bigdecimal,omitempty"`
 }
 
 func finitePathFailureKey(err error) string {
@@ -119,7 +120,7 @@ func finiteCheckPaths(c decimalref.Case, want decimalref.Result, observations []
 	return nil
 }
 
-type finiteRustClient struct {
+type finiteProcessClient struct {
 	cmd    *exec.Cmd
 	stdin  io.WriteCloser
 	reader *bufio.Reader
@@ -128,14 +129,22 @@ type finiteRustClient struct {
 	done   chan error
 }
 
-func finiteStartRust(ctx context.Context, path string, args ...string) (*finiteRustClient, error) {
-	client := &finiteRustClient{cmd: exec.CommandContext(ctx, path, args...), done: make(chan error, 1)}
+func finiteStartProcess(ctx context.Context, path string, args ...string) (*finiteProcessClient, error) {
+	return finiteStartProcessWithInputCancel(ctx, false, path, args...)
+}
+
+func finiteStartProcessWithInputCancel(ctx context.Context, closeInput bool, path string, args ...string) (*finiteProcessClient, error) {
+	client := &finiteProcessClient{cmd: exec.CommandContext(ctx, path, args...), done: make(chan error, 1)}
 	client.cmd.WaitDelay = 250 * time.Millisecond
 	client.cmd.Stderr = &client.stderr
 	var err error
 	client.stdin, err = client.cmd.StdinPipe()
 	if err != nil {
 		return nil, err
+	}
+	if closeInput {
+		client.cmd.Cancel = client.stdin.Close
+		client.cmd.WaitDelay = 2 * time.Second
 	}
 	reader, writer := io.Pipe()
 	client.reader, client.output = bufio.NewReader(reader), reader
@@ -163,13 +172,30 @@ func finiteStartRust(ctx context.Context, path string, args ...string) (*finiteR
 	return client, nil
 }
 
-func (client *finiteRustClient) exchange(c decimalref.Case) ([]finiteObservation, error) {
-	if err := json.NewEncoder(client.stdin).Encode(c); err != nil {
-		return nil, fmt.Errorf("Rust input: %w", err)
+func (client *finiteProcessClient) exchangeLine(data []byte) ([]byte, error) {
+	if _, err := client.stdin.Write(append(data, '\n')); err != nil {
+		return nil, fmt.Errorf("process input: %w", err)
 	}
-	line, err := client.reader.ReadBytes('\n')
+	line, err := client.readLine()
 	if err != nil {
-		return nil, fmt.Errorf("Rust output: %w", err)
+		return nil, fmt.Errorf("process output: %w", err)
+	}
+	return line, nil
+}
+
+func (client *finiteProcessClient) readLine() ([]byte, error) {
+	line, err := client.reader.ReadSlice('\n')
+	return bytes.Clone(line), err
+}
+
+func (client *finiteProcessClient) rustExchange(c decimalref.Case) ([]finiteObservation, error) {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
+	line, err := client.exchangeLine(data)
+	if err != nil {
+		return nil, fmt.Errorf("Rust exchange: %w", err)
 	}
 	var observations []finiteObservation
 	if err := finitePathsDecode(line, &observations); err != nil {
@@ -178,7 +204,7 @@ func (client *finiteRustClient) exchange(c decimalref.Case) ([]finiteObservation
 	return observations, nil
 }
 
-func (client *finiteRustClient) close() error {
+func (client *finiteProcessClient) close() error {
 	closeErr := client.stdin.Close()
 	if errors.Is(closeErr, os.ErrClosed) {
 		closeErr = nil
@@ -187,7 +213,7 @@ func (client *finiteRustClient) close() error {
 	waitErr := <-client.done
 	client.output.Close()
 	if closeErr != nil || readErr != nil || waitErr != nil || len(rest) != 0 {
-		return fmt.Errorf("Rust shutdown: input=%v wait=%v read=%v extra=%q stderr=%s", closeErr, waitErr, readErr, rest, client.stderr.String())
+		return fmt.Errorf("process shutdown: input=%v wait=%v read=%v extra=%q stderr=%s", closeErr, waitErr, readErr, rest, client.stderr.String())
 	}
 	return nil
 }
@@ -206,7 +232,7 @@ func finiteTestContext(t *testing.T) context.Context {
 func finiteRustPaths(t *testing.T, path string) func(decimalref.Case) ([]finiteObservation, error) {
 	t.Helper()
 	ctx := finiteTestContext(t)
-	client, err := finiteStartRust(ctx, path)
+	client, err := finiteStartProcess(ctx, path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,18 +245,18 @@ func finiteRustPaths(t *testing.T, path string) func(decimalref.Case) ([]finiteO
 			t.Error(err)
 		}
 	})
-	return client.exchange
+	return client.rustExchange
 }
 
 func TestFiniteRustDeadline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
-	client, err := finiteStartRust(ctx, "sh", "-c", "exec sleep 300")
+	client, err := finiteStartProcess(ctx, "sh", "-c", "exec sleep 300")
 	if err != nil {
 		t.Fatal(err)
 	}
 	started := time.Now()
-	_, exchangeErr := client.exchange(decimalref.Case{})
+	_, exchangeErr := client.exchangeLine([]byte("stall"))
 	closeErr := client.close()
 	if exchangeErr == nil || closeErr == nil || ctx.Err() != context.DeadlineExceeded {
 		t.Fatalf("stalled subprocess not rejected: exchange=%v close=%v context=%v", exchangeErr, closeErr, ctx.Err())
@@ -274,6 +300,9 @@ func finitePathSamples(cfg finitePathsConfig, visit func(decimalprobe.Sample) er
 		var finding finitePathFinding
 		if err := finitePathsDecode(data, &finding); err != nil {
 			return err
+		}
+		if finding.BigDecimal != nil && os.Getenv("BID754_BIGDECIMAL_CLASSES") == "" {
+			return fmt.Errorf("BigDecimal finding replay requires BID754_BIGDECIMAL_CLASSES and BID754_BIGDECIMAL_JAVA")
 		}
 		if finding.Version != 1 {
 			return fmt.Errorf("unsupported finding version %d", finding.Version)
@@ -411,6 +440,10 @@ func TestFiniteArithmeticPaths(t *testing.T) {
 		}
 		return observations, nil
 	}
+	java := startBigDecimal(t)
+	javaCoverage := make(map[string]int)
+	javaExcluded := make(map[string]int)
+	javaChecked := 0
 	coverage := make(map[string]int)
 	flagCoverage := make(map[string]uint32)
 	cases, checked := 0, 0
@@ -424,7 +457,29 @@ func TestFiniteArithmeticPaths(t *testing.T) {
 		if err != nil {
 			return fmt.Errorf("execution %+v: %w", s, err)
 		}
-		if mismatch := finiteCheckPaths(s.Case, want, observations, languages); mismatch != nil {
+		var javaResult *bigDecimalResult
+		var mismatch error
+		if java != nil {
+			result, err := java.evaluate(s.Case)
+			if err != nil {
+				return fmt.Errorf("BigDecimal execution %+v: %w", s, err)
+			}
+			javaResult = &result
+			if result.Status == "excluded" {
+				javaExcluded[result.Reason]++
+			} else {
+				javaChecked++
+				for _, observation := range observations {
+					key := fmt.Sprintf("width=%d op=%s mode=%s path=%s", s.Case.Width, s.Case.Op, s.Case.Mode, observation.Path)
+					javaCoverage[key]++
+				}
+				mismatch = compareBigDecimal(s.Case.Width, result, observations)
+			}
+		}
+		if mismatch == nil {
+			mismatch = finiteCheckPaths(s.Case, want, observations, languages)
+		}
+		if mismatch != nil {
 			failureKey := finitePathFailureKey(mismatch)
 			reduced, stats, err := decimalprobe.Shrink(s, 128, func(candidate decimalprobe.Sample) (bool, error) {
 				want, err := decimalprobe.Validate(candidate)
@@ -435,7 +490,19 @@ func TestFiniteArithmeticPaths(t *testing.T) {
 				if err != nil {
 					return false, err
 				}
-				failure := finiteCheckPaths(candidate.Case, want, got, languages)
+				var failure error
+				if java != nil {
+					result, err := java.evaluate(candidate.Case)
+					if err != nil {
+						return false, err
+					}
+					if result.Status == "ok" {
+						failure = compareBigDecimal(candidate.Case.Width, result, got)
+					}
+				}
+				if failure == nil {
+					failure = finiteCheckPaths(candidate.Case, want, got, languages)
+				}
 				return failure != nil && finitePathFailureKey(failure) == failureKey, nil
 			})
 			if err != nil {
@@ -449,7 +516,12 @@ func TestFiniteArithmeticPaths(t *testing.T) {
 			if err != nil {
 				return fmt.Errorf("%v; source identity: %w", mismatch, err)
 			}
-			finding := finitePathFinding{1, cfg, s, reduced, expected, want.Flags, observations, mismatch.Error(), stats, source}
+			if java != nil {
+				for k, v := range java.source {
+					source[k] = v
+				}
+			}
+			finding := finitePathFinding{1, cfg, s, reduced, expected, want.Flags, observations, mismatch.Error(), stats, source, javaResult}
 			data, err := json.Marshal(finding)
 			if err != nil {
 				return err
@@ -482,6 +554,22 @@ func TestFiniteArithmeticPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	if cfg.Replay == "" && cfg.Witness == "" {
+		if java != nil {
+			for _, width := range []int{32, 64, 128} {
+				for _, op := range []string{"add", "sub", "mul", "div", "fma", "quantize"} {
+					for _, mode := range finiteModes {
+						for _, language := range languages {
+							for path := range finitePathNames(decimalref.Case{Op: op, Mode: mode}, language) {
+								key := fmt.Sprintf("width=%d op=%s mode=%s path=%s", width, op, mode, path)
+								if javaCoverage[key] == 0 {
+									t.Fatalf("missing BigDecimal numeric comparisons: %s", key)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 		expected := make(map[string]int)
 		for _, width := range []int{32, 64, 128} {
 			families := make(map[string]string)
@@ -552,6 +640,28 @@ func TestFiniteArithmeticPaths(t *testing.T) {
 	sort.Strings(flagKeys)
 	for _, key := range flagKeys {
 		t.Logf("FINITE-FLAG-COVERAGE %s flags=%#x", key, flagCoverage[key])
+	}
+	if java != nil {
+		javaObs, excluded := 0, 0
+		for _, n := range javaCoverage {
+			javaObs += n
+		}
+		for _, reason := range []string{"division-by-zero", "exponent-range", "quantize-precision"} {
+			excluded += javaExcluded[reason]
+			t.Logf("BIGDECIMAL-EXCLUDED reason=%s cases=%d", reason, javaExcluded[reason])
+		}
+		if javaChecked+excluded != cases {
+			t.Fatalf("BigDecimal adjudication counts checked=%d excluded=%d generated=%d", javaChecked, excluded, cases)
+		}
+		javaKeys := make([]string, 0, len(javaCoverage))
+		for key := range javaCoverage {
+			javaKeys = append(javaKeys, key)
+		}
+		sort.Strings(javaKeys)
+		for _, key := range javaKeys {
+			t.Logf("BIGDECIMAL-COVERAGE %s comparisons=%d", key, javaCoverage[key])
+		}
+		t.Logf("BIGDECIMAL languages=%s generated=%d checked=%d excluded=%d observations=%d cells=%d", strings.Join(languages, ","), cases, javaChecked, excluded, javaObs, len(javaCoverage))
 	}
 	t.Logf("FINITE-PATHS languages=%s seed=%d samples=%d uniform=%d cases=%d observations=%d cells=%d flag_cells=%d replay=%t witness=%s", strings.Join(languages, ","), cfg.Seed, cfg.Samples, cfg.Uniform, cases, checked, len(coverage), len(flagCoverage), cfg.Replay != "", cfg.Witness)
 }

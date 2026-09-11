@@ -317,7 +317,12 @@ func CheckEvidence(root, path string, evidence Evidence) error {
 		}
 	}
 	if evidence.ParserResource {
-		return checkParserResourceEvidence(root, string(raw))
+		if err := checkParserResourceEvidence(root, string(raw)); err != nil {
+			return err
+		}
+	}
+	if evidence.GoFuzz != "" {
+		return checkGoFuzzEvidence(string(raw), evidence.GoFuzz)
 	}
 	return nil
 }

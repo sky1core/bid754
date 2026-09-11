@@ -85,18 +85,22 @@ func TestFinitePathRustTimeoutClassification(t *testing.T) {
 	}
 	dir := t.TempDir()
 	binary := filepath.Join(dir, "finite.test")
-	e := &engine{repo: root, goDir: filepath.Join(root, "bid754-go"), cfg: config{stageTimeout: 3 * time.Second}}
+	e := &engine{repo: root, goDir: filepath.Join(root, "bid754-go"), cfg: config{stageTimeout: 10 * time.Second}}
 	build := exec.Command("go", e.buildArgs("portable", binary)...)
 	build.Dir, build.Env = e.goDir, e.buildEnv("portable")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build public test binary: %v\n%s", err, out)
+	}
+	innerTimeout := filepath.Join(dir, "inner-timeout")
+	if err := os.WriteFile(innerTimeout, []byte("#!/bin/sh\nsleep 2\nexec '"+strings.ReplaceAll(binary, "'", "'\"'\"'")+"' \"$@\" -test.timeout=2s\n"), 0o700); err != nil {
+		t.Fatal(err)
 	}
 	stall := filepath.Join(dir, "stall")
 	if err := os.WriteFile(stall, []byte("#!/bin/sh\nexec sleep 300\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	env := append(os.Environ(), "BID754_FINITE_RUST="+stall, "BID754_FINITE_FAILURES=")
-	status, out, elapsed := e.runFinitePathBinary(binary, "rust", env, time.Now())
+	status, out, elapsed := e.runFinitePathBinary(innerTimeout, "rust", env, time.Now())
 	if status != "timeout" || !finiteExecutionTimedOut(out, "rust") || !strings.Contains(out, "--- FAIL: TestFiniteArithmeticPaths") || len(e.pathFinding) != 0 {
 		t.Fatalf("inner Rust timeout classified as %s: %s", status, out)
 	}

@@ -108,6 +108,18 @@
         "linux/amd64",
         "linux/arm64"
       ]
+    },
+    "numeric": {
+      "groups": [
+        "portable",
+        "discovery"
+      ],
+      "scope": "profile",
+      "platforms": [
+        "darwin/arm64",
+        "linux/amd64",
+        "linux/arm64"
+      ]
     }
   },
   "gates": [
@@ -552,7 +564,8 @@
         "patterns": [
           "(?m)^test generated_dectest_suites_go_port \\.\\.\\. ok$",
           "(?m)^test test_generated_bid_string_vectors \\.\\.\\. ok$",
-          "(?m)^test test_bid_codec_vectors_encode_decode \\.\\.\\. ok$"
+          "(?m)^test test_bid_codec_vectors_encode_decode \\.\\.\\. ok$",
+          "(?m)^test generated_public_api_parity \\.\\.\\. ok$"
         ]
       }
     },
@@ -852,6 +865,21 @@
       }
     },
     {
+      "id": "go-public-routing",
+      "target": "test-portable-public-api-parity",
+      "group": "portable",
+      "tools": [
+        "go"
+      ],
+      "prerequisites": [],
+      "comparison": "public-port-bits-flags",
+      "evidence": {
+        "passes": [
+          "TestGeneratedPublicAPIParity"
+        ]
+      }
+    },
+    {
       "id": "finite-reference",
       "target": "test-finite-reference",
       "group": "portable",
@@ -910,6 +938,35 @@
       }
     },
     {
+      "id": "bigdecimal",
+      "target": "test-bigdecimal",
+      "group": "portable",
+      "tools": [
+        "go",
+        "cargo",
+        "java",
+        "javac"
+      ],
+      "prerequisites": [],
+      "comparison": "java-bigdecimal-normal-and-zero-numeric-values",
+      "evidence": {
+        "patterns": [
+          "BIGDECIMAL languages=go,rust generated=2580 checked=2079 excluded=501 observations=9866 cells=426",
+          "BIGDECIMAL-EXCLUDED reason=division-by-zero cases=90",
+          "BIGDECIMAL-EXCLUDED reason=exponent-range cases=301",
+          "BIGDECIMAL-EXCLUDED reason=quantize-precision cases=110"
+        ],
+        "passes": [
+          "TestBigDecimalOracle",
+          "TestFiniteArithmeticPaths",
+          "TestFinitePathCoverageContract",
+          "TestFinitePathInputContract",
+          "TestFiniteRustDeadline",
+          "TestBigDecimalFuzzOracleContract"
+        ]
+      }
+    },
+    {
       "id": "finite-reference-decnumber",
       "target": "test-native-finite-reference",
       "group": "native",
@@ -944,6 +1001,22 @@
           "TestEvaluationCountsRejectUnfinishedStages",
           "TestEvaluationInputErrorsRemainDistinctFromModelErrors"
         ]
+      }
+    },
+    {
+      "id": "bigdecimal-fuzz",
+      "target": "fuzz-bigdecimal",
+      "group": "discovery",
+      "tools": [
+        "go",
+        "cargo",
+        "java",
+        "javac"
+      ],
+      "prerequisites": [],
+      "comparison": "go-coverage-guided-java-numeric-and-go-rust-cohort-flags",
+      "evidence": {
+        "go_fuzz": "FuzzFiniteArithmeticBigDecimal"
       }
     }
   ],

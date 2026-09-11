@@ -12,8 +12,8 @@ func TestFinitePathsOutputsReproduce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) != 2 {
-		t.Fatalf("finite path artifacts=%d, want Go and Rust", len(files))
+	if len(files) != 3 {
+		t.Fatalf("finite path artifacts=%d, want Go, Rust and BigDecimal", len(files))
 	}
 	for path, generated := range files {
 		actual, err := os.ReadFile(filepath.Join("..", "..", path))

@@ -732,8 +732,66 @@ BID754_FINITE_PATHS='{"seed":20260911,"samples":32,"uniform":32}' make test-fini
 A failure records original/reduced raw samples and executable identities under
 `test_results/finite-paths.*/finding.json`. Replay both samples with
 `BID754_FINITE_PATHS='{"replay":"/path/to/finding.json"}' make test-finite-paths`.
-The ordinary Go fuzz target also uses the strengthened Go path comparisons;
-Rust participates in `test-finite-paths`.
+The ordinary `FuzzFiniteArithmeticExact` target uses the strengthened Go path
+comparisons. Rust participates in `test-finite-paths` and the BigDecimal fuzz
+target below.
+
+`make test-bigdecimal` adds Java `BigDecimal` to the same Go/Rust campaign.
+It requires `java` and `javac` on `PATH` (JDK 17 or newer), compiles the generated
+runner with `--release 17`, and records the actual JVM version and class hash.
+The Java leg uses precision 7/16/34 and the selected rounding mode; FMA computes
+the exact product and sum before one final rounding. Inputs transfer as integer
+coefficients and exponents, without binary floating-point conversion.
+
+Java independently compares numeric values on every public/port path for normal
+or zero results. Its own calculation classifies division by zero, nonzero
+results outside the BID normal exponent range, and quantize results exceeding
+the width's precision as excluded, with separate reconciled counts. These are
+not Java passes. Signed zero, finite cohorts and IEEE flags remain checked by
+the existing finite model. JVM/protocol errors fail the run.
+
+Use `BID754_FINITE_PATHS='{"seed":20260911,"samples":32,"uniform":32}' make test-bigdecimal`
+for a larger deterministic campaign. A failure includes the Java result and
+runtime identity alongside the original/reduced raw inputs. Replay Java findings
+with `BID754_FINITE_PATHS='{"replay":"/path/to/finding.json"}' make test-bigdecimal`.
+
+`make verify-numeric` runs the portable regression profile, including Go/Rust
+public routing, readtest/decTest consumers and the finite reference checks,
+followed by `make fuzz-bigdecimal`. The verification runner records the source,
+tool versions, per-gate logs and their hashes under `test_results/verification/`.
+This profile is bounded numeric verification; native and exhaustive closure
+remain separate profiles and targets.
+
+`make fuzz-bigdecimal` runs `FuzzFiniteArithmeticBigDecimal` for 60 seconds with
+two workers. Each input is checked through the actual Go and generated Rust
+public/port paths against Java and the exact model. Inputs include relational,
+uniform-finite and boundary lanes across all three widths and five modes.
+Coverage feedback comes from Go; Rust and Java execute as comparison processes.
+The numeric profile rejects seed-only replay, incomplete warmup, skipped targets
+and runs with no executions beyond the initial corpus.
+
+| Scope | Value reference | Representation and flags |
+| --- | --- | --- |
+| Finite add/sub/mul/div/quantize/FMA | BigDecimal for normal/zero numeric results; exact integer/rational model for every input | Exact model and Go/Rust public/port comparison |
+| Other operations and nonfinite inputs | Applicable generated readtest/decTest rows | Existing domain comparators and generated public routing checks |
+
+BigDecimal fuzzing has the same six-operation scope and Java exclusions as the
+seeded campaign; it does not claim Java coverage for the remaining Tier 1
+families. A failure reports raw operands, expected/actual results and executable
+identities. The semantic shrinker preserves the discrepancy and numeric
+situation, recording original/reduced raw samples in
+`test_results/bigdecimal-fuzz.*/finding-*.json`. Replay both with
+`BID754_FINITE_PATHS='{"replay":"/path/to/finding.json"}' make test-bigdecimal`.
+Go separately saves the discovery input under
+`bid754-go/testdata/fuzz/FuzzFiniteArithmeticBigDecimal/`; replay requires the
+same Java and Rust setup, so a missing comparison process cannot silently turn a
+replay into a Go-only pass.
+
+Use `bash devtools/scripts/fuzz_bigdecimal.sh --duration 5m --parallel 2` for a
+longer search, or `bash devtools/scripts/fuzz_bigdecimal.sh --replay <corpus-id>`
+to rebuild the comparison processes and execute one saved input. Initial corpus
+entries can also be selected with `--replay 'seed#N'`. A missing or unexecuted
+entry fails replay.
 
 The fuzz input exposes family, width, mode, coefficient entropy, exponent and
 sign separately. A failed case is saved by Go's fuzz runner and replayed by

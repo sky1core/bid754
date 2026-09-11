@@ -152,7 +152,7 @@ func copyRoundingProbeTree(t *testing.T, source, dest string) {
 func newRoundingProbeCrateAt(t *testing.T, repo string) (string, func(args ...string) ([]byte, error)) {
 	t.Helper()
 	root := t.TempDir()
-	for _, rel := range []string{"bid754-go", "bid754-rs/src", "bid754-rs/benches", "bid754-rs/tests", "devtools/tools/registry"} {
+	for _, rel := range []string{"bid754-go", "bid754-rs/src", "bid754-rs/benches", "bid754-rs/tests", "bid754-rs/examples", "devtools/tools/registry"} {
 		copyRoundingProbeTree(t, filepath.Join(repo, rel), filepath.Join(root, rel))
 	}
 	for _, rel := range []string{"devtools/go.mod", "devtools/generated/testspec/public_api_routing_inventory.json", "bid754-rs/Cargo.toml", "bid754-rs/Cargo.lock"} {

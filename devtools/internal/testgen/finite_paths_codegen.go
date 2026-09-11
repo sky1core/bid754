@@ -21,10 +21,13 @@ func GenerateFinitePathsOutputs() (map[string][]byte, error) {
 		return nil, fmt.Errorf("format finite public paths Go output: %w", err)
 	}
 	rustSrc := genmarker.Line("testgen") + "\n" + finitePathsRustBody
-	return map[string][]byte{
-		finitePathsGoPath:   formatted,
-		finitePathsRustPath: []byte(rustSrc),
-	}, nil
+	outputs, err := GenerateBigDecimalOutputs()
+	if err != nil {
+		return nil, err
+	}
+	outputs[finitePathsGoPath] = formatted
+	outputs[finitePathsRustPath] = []byte(rustSrc)
+	return outputs, nil
 }
 
 func WriteFinitePathsOutputs(repoRoot string) error {

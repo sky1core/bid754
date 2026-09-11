@@ -53,7 +53,7 @@ func finiteNumericFinding(out, language string) json.RawMessage {
 		if !discrepancy {
 			continue
 		}
-		for _, failure := range []string{": cross-path bits differ:", ": finite value differs:", ": finite cohort differs:", ": flags: got", ": class: got", ": sign: got", ": noncanonical actual", ": actual result is signaling NaN"} {
+		for _, failure := range []string{": BigDecimal value differs:", ": cross-path bits differ:", ": finite value differs:", ": finite cohort differs:", ": flags: got", ": class: got", ": sign: got", ": noncanonical actual", ": actual result is signaling NaN"} {
 			if strings.Contains(finding.Reason, failure) {
 				return json.RawMessage(raw)
 			}
@@ -130,7 +130,7 @@ func finiteIntendedFinding(probe exactProbe, raw json.RawMessage, language strin
 		}
 		switch fault {
 		case "midpoint":
-			return actual.Bits != finding.Expected && actual.Flags == finding.Flags && strings.Contains(finding.Reason, ": finite value differs:")
+			return actual.Bits != finding.Expected && actual.Flags == finding.Flags && (strings.Contains(finding.Reason, ": finite value differs:") || strings.Contains(finding.Reason, ": BigDecimal value differs:"))
 		case "inexact":
 			return actual.Bits == finding.Expected && finding.Flags == 0x20 && actual.Flags == 0
 		case "unfused":
@@ -197,7 +197,7 @@ func (e *engine) runFinitePathBinary(binary, language string, env []string, star
 		return "timeout", full, time.Since(started)
 	}
 	if err != nil {
-		if finiteExecutionTimedOut(full, language) || classifyStageFailure(full) == "timeout" {
+		if finiteExecutionTimedOut(full, language) || finiteExecutionTimedOut(full, "java") || classifyStageFailure(full) == "timeout" {
 			return "timeout", full, time.Since(started)
 		}
 		e.pathFinding = finiteNumericFinding(full, language)

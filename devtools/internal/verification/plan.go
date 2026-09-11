@@ -45,6 +45,7 @@ type Evidence struct {
 	Patterns       []string `json:"patterns,omitempty"`
 	Codec          bool     `json:"codec,omitempty"`
 	ParserResource bool     `json:"parser_resource,omitempty"`
+	GoFuzz         string   `json:"go_fuzz,omitempty"`
 }
 
 var identifier = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
@@ -80,8 +81,11 @@ func Load(path string) (Plan, error) {
 			return p, fmt.Errorf("invalid or duplicate gate %q", g.ID)
 		}
 		ids[g.ID], groups[g.Group] = true, true
-		if g.Comparison == "" || (g.Evidence.Domain == "" && len(g.Evidence.Passes) == 0 && len(g.Evidence.Patterns) == 0 && !g.Evidence.Codec && !g.Evidence.ParserResource) {
+		if g.Comparison == "" || (g.Evidence.Domain == "" && len(g.Evidence.Passes) == 0 && len(g.Evidence.Patterns) == 0 && !g.Evidence.Codec && !g.Evidence.ParserResource && g.Evidence.GoFuzz == "") {
 			return p, fmt.Errorf("gate %s lacks comparison or execution evidence", g.ID)
+		}
+		if g.Evidence.GoFuzz != "" && !regexp.MustCompile(`^Fuzz[A-Z][A-Za-z0-9_]*$`).MatchString(g.Evidence.GoFuzz) {
+			return p, fmt.Errorf("gate %s has an invalid Go fuzz target", g.ID)
 		}
 		for _, pattern := range g.Evidence.Patterns {
 			if _, err := regexp.Compile(pattern); err != nil {
