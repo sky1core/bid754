@@ -18,6 +18,7 @@ func GenerateGoTestOutputs(repoRoot string, manifest Manifest, spec SharedSpec) 
 		func() (map[string][]byte, error) { return GenerateDecnumberDifferentialOutputs(manifest) },
 		GenerateD32ExhaustiveOutputs,
 		GenerateFinitePathsOutputs,
+		GenerateTier1Outputs,
 		GenerateBidCodecVectorTestOutputs,
 		func() (map[string][]byte, error) { return GenerateBidStringVectorTestOutputs(spec), nil },
 		func() (map[string][]byte, error) { return GeneratePublicParityOutputs(repoRoot, manifest) },

@@ -757,7 +757,8 @@ with `BID754_FINITE_PATHS='{"replay":"/path/to/finding.json"}' make test-bigdeci
 
 `make verify-numeric` runs the portable regression profile, including Go/Rust
 public routing, readtest/decTest consumers and the finite reference checks,
-followed by `make fuzz-bigdecimal`. The verification runner records the source,
+followed by both BigDecimal fuzz targets and the remaining Tier 1 comparison
+campaign. The verification runner records the source,
 tool versions, per-gate logs and their hashes under `test_results/verification/`.
 This profile is bounded numeric verification; native and exhaustive closure
 remain separate profiles and targets.
@@ -773,12 +774,12 @@ and runs with no executions beyond the initial corpus.
 | Scope | Value reference | Representation and flags |
 | --- | --- | --- |
 | Finite add/sub/mul/div/quantize/FMA | BigDecimal for normal/zero numeric results; exact integer/rational model for every input | Exact model and Go/Rust public/port comparison |
-| Other operations and nonfinite inputs | Applicable generated readtest/decTest rows | Existing domain comparators and generated public routing checks |
+| Remainder/fmod, scaleB, 12 quiet predicates, minNum/maxNum, integer and BID-width conversions | BigDecimal for eligible finite results; independent integer model for every input, including nonfinite encodings | Independent model checks class/sign, defined quantum and five flags; Go/Rust public and port paths |
+| Other operations and nonfinite inputs to the six-operation finite model | Applicable generated readtest/decTest rows | Existing domain comparators and generated public routing checks |
 
-BigDecimal fuzzing has the same six-operation scope and Java exclusions as the
-seeded campaign; it does not claim Java coverage for the remaining Tier 1
-families. A failure reports raw operands, expected/actual results and executable
-identities. The semantic shrinker preserves the discrepancy and numeric
+`FuzzFiniteArithmeticBigDecimal` retains the six-operation scope and Java
+exclusions of its seeded campaign. A failure reports raw operands,
+expected/actual results and executable identities. The semantic shrinker preserves the discrepancy and numeric
 situation, recording original/reduced raw samples in
 `test_results/bigdecimal-fuzz.*/finding-*.json`. Replay both with
 `BID754_FINITE_PATHS='{"replay":"/path/to/finding.json"}' make test-bigdecimal`.
@@ -792,6 +793,37 @@ longer search, or `bash devtools/scripts/fuzz_bigdecimal.sh --replay <corpus-id>
 to rebuild the comparison processes and execute one saved input. Initial corpus
 entries can also be selected with `--replay 'seed#N'`. A missing or unexecuted
 entry fails replay.
+
+`make test-tier1-bigdecimal` exercises the additional Tier 1 families in the
+coverage table. Three PCG seeds (754, 2019, 57025) produce 14,040 cases over
+585 width/operation/mode/target cells. Integer inputs cover signed/unsigned
+32/64-bit types; integer outputs cover 8/16/32/64-bit types, including variants
+that signal inexact. All six BID-width conversions execute. Every cell must
+have a completed Java numeric comparison. Nonfinite inputs, invalid integer
+results, zero divisors and results outside Java's supported BID region are
+counted separately; the independent model still checks them. Equal min/max
+operands may select either canonical input; a third cohort or a different
+combination of zero sign and exponent is rejected. NaN results are
+checked for class, quietness, canonical form and flags, without claiming an
+independent payload-selection oracle.
+
+`make fuzz-tier1-bigdecimal` searches these families for 60 seconds with two
+workers. Every byte input maps to a valid case; mutations include raw BID
+patterns, finite values, integer boundaries, midpoint cases, zeros, NaNs and
+extreme scaleB exponents. Go supplies coverage guidance and minimizes failing
+byte inputs. Raw findings retain tool/source identities and all observations
+under `test_results/tier1-bigdecimal.*/tier1-finding-*.json`.
+
+```bash
+bash devtools/scripts/test_tier1_bigdecimal.sh --fuzz 5m --parallel 2
+bash devtools/scripts/test_tier1_bigdecimal.sh --replay /path/to/tier1-finding.json
+bash devtools/scripts/test_tier1_bigdecimal.sh --corpus '<corpus-id|seed#N>'
+```
+
+The Tier 1 corpus lives under `bid754-go/testdata/fuzz/FuzzTier1BigDecimal/`.
+Replay rebuilds Java and generated Rust; missing or unexecuted corpus entries
+fail. These auxiliary campaigns do not replace the six-language BID codec
+vector domain or establish full IEEE conformance.
 
 The fuzz input exposes family, width, mode, coefficient entropy, exponent and
 sign separately. A failed case is saved by Go's fuzz runner and replayed by

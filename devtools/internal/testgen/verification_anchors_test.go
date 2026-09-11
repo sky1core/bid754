@@ -2594,6 +2594,8 @@ var implementationExclusionRules = []struct {
 // marker line and are added to the hashed set separately by the test.
 func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 	switch rel {
+	case "bid754-go/generated_tier1_public_paths_test.go", "bid754-rs/examples/tier1_probe.rs", "devtools/java/Tier1BigDecimalProbe.java":
+		return "tier1_independent_runners", ""
 	case "bid754-go/generated_finite_public_paths_test.go", "bid754-rs/examples/finite_probe.rs", "devtools/java/BigDecimalProbe.java":
 		return "finite_path_runners", ""
 	case "bid754-codec-go/vector_test.go",

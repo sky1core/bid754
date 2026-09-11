@@ -1018,6 +1018,50 @@
       "evidence": {
         "go_fuzz": "FuzzFiniteArithmeticBigDecimal"
       }
+    },
+    {
+      "id": "tier1-bigdecimal",
+      "target": "test-tier1-bigdecimal",
+      "group": "discovery",
+      "tools": [
+        "go",
+        "cargo",
+        "java",
+        "javac"
+      ],
+      "prerequisites": [],
+      "comparison": "java-numeric-and-independent-specials-flags-conversions",
+      "evidence": {
+        "passes": [
+          "TestTier1BigDecimal",
+          "TestTier1CorpusContract",
+          "TestTier1OracleStrength",
+          "TestTier1JavaProtocol",
+          "TestTier1MissingOracleReplay",
+          "TestTier1OracleProtocols",
+          "TestJavaProbeWitnesses",
+          "TestJavaProbeRejectsMalformedRequests"
+        ],
+        "patterns": [
+          "TIER1-BIGDECIMAL seeds=754,2019,57025 cases=14040 checked=[1-9][0-9]* excluded=.* observations=[1-9][0-9]* cells=585 java_cells=585"
+        ]
+      }
+    },
+    {
+      "id": "tier1-bigdecimal-fuzz",
+      "target": "fuzz-tier1-bigdecimal",
+      "group": "discovery",
+      "tools": [
+        "go",
+        "cargo",
+        "java",
+        "javac"
+      ],
+      "prerequisites": [],
+      "comparison": "go-coverage-guided-java-and-independent-tier1-oracle",
+      "evidence": {
+        "go_fuzz": "FuzzTier1BigDecimal"
+      }
     }
   ],
   "matrix": [

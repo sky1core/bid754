@@ -203,10 +203,16 @@ verify-all-native-gates:
 test-harness:
 	@cd devtools && $(GOENV) go test -count=1 -v ./internal/verification ./internal/scriptcheck ./internal/platformdigest ./internal/goboundary ./internal/rustboundary ./cmd/verifylog ./cmd/mutgate ./cmd/explorediff
 
-.PHONY: test-finite-reference test-native-finite-reference test-finite-paths test-bigdecimal fuzz-bigdecimal verify-numeric
+.PHONY: test-finite-reference test-native-finite-reference test-finite-paths test-bigdecimal fuzz-bigdecimal verify-numeric test-tier1-bigdecimal fuzz-tier1-bigdecimal
 
 verify-numeric:
 	@$(MAKE) verify-profile VERIFY_PROFILE=numeric
+
+test-tier1-bigdecimal:
+	@bash devtools/scripts/test_tier1_bigdecimal.sh
+
+fuzz-tier1-bigdecimal:
+	@bash devtools/scripts/test_tier1_bigdecimal.sh --fuzz 60s
 
 fuzz-bigdecimal:
 	@bash devtools/scripts/fuzz_bigdecimal.sh

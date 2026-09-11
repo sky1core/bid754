@@ -85,3 +85,7 @@ required-features = ["verification"]
 [[example]]
 name = "finite_probe"
 required-features = ["verification"]
+
+[[example]]
+name = "tier1_probe"
+required-features = ["verification"]

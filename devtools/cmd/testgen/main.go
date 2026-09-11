@@ -104,6 +104,9 @@ func main() {
 	if err := testgen.WriteRustPublicParityOutputs(repoRoot); err != nil {
 		log.Fatalf("write generated rust public parity outputs: %v", err)
 	}
+	if err := testgen.WriteTier1Outputs(repoRoot); err != nil {
+		log.Fatalf("write generated Tier1 comparison outputs: %v", err)
+	}
 	if err := testgen.WriteFinitePathsOutputs(repoRoot); err != nil {
 		log.Fatalf("write generated finite path outputs: %v", err)
 	}

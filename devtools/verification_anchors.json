@@ -526,6 +526,7 @@
   "d32_exhaustive_unary_consumers": 2,
   "verification_artifact_sha256": {
     "finite_path_runners": "e4c2a1f13a8e15c43d55c789cc412fa2f0cad7fabaee0dcfbce2586855b8b2a3",
+    "tier1_independent_runners": "b4e652f977f464e55c4b13430fb249c8f5de4ab556d078e659d0f254c6073881",
     "testspec_tree": "83d84c6e47427106a7f1bc47d2499fe770cd78c84e2559fd6bba97e6034dd08a",
     "bidcodec_vectors": "4ae46c32a7ae279d135e32c6a7a0e7cdf7f128723564d461731829e8b26c93ee",
     "bidcodec_harnesses": "876b344649d8b13e9e5ef3c59fda326d0cea0099524fe6bad9dfebd912ee590a",

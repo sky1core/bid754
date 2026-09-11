@@ -7,12 +7,15 @@ import (
 	"testing"
 )
 
-func checkReferenceDependencies(packages []listedPackage) error {
-	const model = modulePath + "/internal/decimalref"
+func checkReferenceDependencies(packages []listedPackage, name string) error {
+	model := modulePath + "/internal/" + name
 	found := false
 	for _, p := range packages {
 		if p.ImportPath == model {
 			found = true
+			continue
+		}
+		if p.ImportPath == modulePath+"/internal/decimalref" {
 			continue
 		}
 		if !p.Standard {
@@ -26,6 +29,12 @@ func checkReferenceDependencies(packages []listedPackage) error {
 }
 
 func TestExactReferenceDependencyBoundary(t *testing.T) {
+	for _, name := range []string{"decimalref", "tier1ref"} {
+		t.Run(name, func(t *testing.T) { checkReferenceDependencyBoundary(t, name) })
+	}
+}
+
+func checkReferenceDependencyBoundary(t *testing.T, name string) {
 	source, err := filepath.Abs("../../../bid754-go")
 	if err != nil {
 		t.Fatal(err)
@@ -34,10 +43,10 @@ func TestExactReferenceDependencyBoundary(t *testing.T) {
 	copyGoModuleSources(t, source, module)
 	check := func(phase string) error {
 		t.Helper()
-		if out, err := runGo(module, "0", "build", "./internal/decimalref"); err != nil {
+		if out, err := runGo(module, "0", "build", "./internal/"+name); err != nil {
 			t.Fatalf("%s model build: %v\n%s", phase, err, out)
 		}
-		out, err := runGo(module, "0", "list", "-deps", "-json", "./internal/decimalref")
+		out, err := runGo(module, "0", "list", "-deps", "-json", "./internal/"+name)
 		if err != nil {
 			t.Fatalf("%s dependency listing: %v\n%s", phase, err, out)
 		}
@@ -45,14 +54,14 @@ func TestExactReferenceDependencyBoundary(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return checkReferenceDependencies(packages)
+		return checkReferenceDependencies(packages, name)
 	}
 	if err := check("baseline"); err != nil {
 		t.Fatal(err)
 	}
 	t.Log("REFERENCE-DEPENDENCIES baseline built: standard library only")
-	path := filepath.Join(module, "internal/decimalref/production_dependency.go")
-	if err := os.WriteFile(path, []byte("package decimalref\nimport _ \""+modulePath+"\"\n"), 0600); err != nil {
+	path := filepath.Join(module, "internal/"+name+"/production_dependency.go")
+	if err := os.WriteFile(path, []byte("package "+name+"\nimport _ \""+modulePath+"\"\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := check("mutant"); err == nil {
