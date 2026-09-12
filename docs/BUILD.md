@@ -810,6 +810,13 @@ independent payload-selection oracle.
 This deterministic gate is required by the portable, CI portable and full
 profiles. The two BigDecimal fuzz targets remain optional discovery gates.
 
+The same gate adds 66,270 systematic integer-construction and narrowing cases
+across 75 cells. Midpoint neighbors, coefficient parity, decimal carries,
+integer limits and exponent boundaries are compared through Go and Rust public
+and port paths. Java independently checks 59,550 numeric results; 6,720
+exponent-range cases remain checked by the exact model. The native conversion
+gates include the same boundary families in their Intel C bit/flag comparisons.
+
 `make test-native-tier1-reference` independently calibrates the Tier 1 model
 and Go public/port paths against pinned IBM decNumber 3.68. The native and
 full profiles require its 14,040 cases, covering 585 width/operation/mode/target
@@ -827,6 +834,10 @@ Go public/port paths and reference model for remainder signs, scaleB, exact
 width round trips, quiet comparisons and special-value flags. Harness checks
 inject five source faults into a temporary copy of the reference model and
 require the corresponding witness assertions to fail.
+Production fault injection also restores intermediate-width rounding in signed
+and unsigned integer construction and Decimal128-to-32 narrowing. Parser
+witnesses restore fixed exponent caps in all three widths. A crash does not
+count as a numeric assertion failure.
 
 `make fuzz-tier1-bigdecimal` searches these families for 60 seconds with two
 workers. Every byte input maps to a valid case; mutations include raw BID
@@ -834,6 +845,9 @@ patterns, finite values, integer boundaries, midpoint cases, zeros, NaNs and
 extreme scaleB exponents. Go supplies coverage guidance and minimizes failing
 byte inputs. Raw findings retain tool/source identities and all observations
 under `test_results/tier1-bigdecimal.*/tier1-finding-*.json`.
+The systematic boundary corpus contributes 1,250 representative fuzz seeds;
+integer and raw BID bits mutate beyond those seeds. The full boundary corpus
+remains in the deterministic gate so seed replay leaves time for exploration.
 
 ```bash
 bash devtools/scripts/test_tier1_bigdecimal.sh --fuzz 5m --parallel 2

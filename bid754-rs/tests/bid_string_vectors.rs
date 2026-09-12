@@ -24,6 +24,9 @@ const GENERATED_BID_STRING_SHARD_FILES: &[&str] = &[
     "readtest/bid64_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid64_from_string_ieee754_overflow_cmatch.json",
     "readtest/bid128_from_string_ieee754_overflow_cmatch.json",
+    "readtest/bid32_from_string_ieee754_exponent_cdiverge.json",
+    "readtest/bid64_from_string_ieee754_exponent_cdiverge.json",
+    "readtest/bid128_from_string_ieee754_exponent_cdiverge.json",
 ];
 
 #[derive(Deserialize)]
@@ -73,15 +76,15 @@ struct GeneratedBIDStringCounts {
 }
 
 const EXPECTED_GENERATED_BID_STRING_COUNTS: GeneratedBIDStringCounts = GeneratedBIDStringCounts {
-    total: 351,
-    from_string: 288,
+    total: 354,
+    from_string: 291,
     to_string: 63,
-    decimal32: 135,
-    decimal64: 100,
-    decimal128: 116,
-    decimal32_from_string: 115,
-    decimal64_from_string: 88,
-    decimal128_from_string: 85,
+    decimal32: 136,
+    decimal64: 101,
+    decimal128: 117,
+    decimal32_from_string: 116,
+    decimal64_from_string: 89,
+    decimal128_from_string: 86,
     decimal32_to_string: 20,
     decimal64_to_string: 12,
     decimal128_to_string: 31,
@@ -371,4 +374,142 @@ fn normalize_status(input: &str) -> String {
         s = format!("0{s}");
     }
     s
+}
+
+#[test]
+fn test_generated_parser_exponent_cancellation_regression() {
+    struct ExpCancelCase {
+        id: &'static str,
+        width: u32,
+        neg: bool,
+        frac_zeros: usize,
+        exp_lz: usize,
+        exp_mag: i64,
+        integer_zeros: usize,
+        hi: u64,
+        lo: u64,
+    }
+    let cases = [
+        ExpCancelCase { id: "d32_q0_short", width: 32, neg: false, frac_zeros: 4, exp_lz: 0, exp_mag: 5, integer_zeros: 0, hi: 0x0, lo: 0x32800001 },
+        ExpCancelCase { id: "d64_q0_short", width: 64, neg: false, frac_zeros: 4, exp_lz: 0, exp_mag: 5, integer_zeros: 0, hi: 0x0, lo: 0x31c0000000000001 },
+        ExpCancelCase { id: "d128_q0_short", width: 128, neg: false, frac_zeros: 4, exp_lz: 0, exp_mag: 5, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_q0_short_neg", width: 128, neg: true, frac_zeros: 4, exp_lz: 0, exp_mag: 5, integer_zeros: 0, hi: 0xb040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_lz0_7dig", width: 128, neg: false, frac_zeros: 999999, exp_lz: 0, exp_mag: 1000000, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_lz1_7dig_confirmed", width: 128, neg: false, frac_zeros: 999999, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_lz2_7dig", width: 128, neg: false, frac_zeros: 999999, exp_lz: 2, exp_mag: 1000000, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d32_n10485760", width: 32, neg: false, frac_zeros: 10485759, exp_lz: 0, exp_mag: 10485760, integer_zeros: 0, hi: 0x0, lo: 0x32800001 },
+        ExpCancelCase { id: "d64_n10485760", width: 64, neg: false, frac_zeros: 10485759, exp_lz: 0, exp_mag: 10485760, integer_zeros: 0, hi: 0x0, lo: 0x31c0000000000001 },
+        ExpCancelCase { id: "d128_n10485760", width: 128, neg: false, frac_zeros: 10485759, exp_lz: 0, exp_mag: 10485760, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d32_neighbor_999999", width: 32, neg: false, frac_zeros: 999998, exp_lz: 0, exp_mag: 999999, integer_zeros: 0, hi: 0x0, lo: 0x32800001 },
+        ExpCancelCase { id: "d32_neighbor_9999999", width: 32, neg: false, frac_zeros: 9999998, exp_lz: 0, exp_mag: 9999999, integer_zeros: 0, hi: 0x0, lo: 0x32800001 },
+        ExpCancelCase { id: "d32_neighbor_10000000", width: 32, neg: false, frac_zeros: 9999999, exp_lz: 0, exp_mag: 10000000, integer_zeros: 0, hi: 0x0, lo: 0x32800001 },
+        ExpCancelCase { id: "d32_neighbor_10485759", width: 32, neg: false, frac_zeros: 10485758, exp_lz: 0, exp_mag: 10485759, integer_zeros: 0, hi: 0x0, lo: 0x32800001 },
+        ExpCancelCase { id: "d32_neighbor_10485761", width: 32, neg: false, frac_zeros: 10485760, exp_lz: 0, exp_mag: 10485761, integer_zeros: 0, hi: 0x0, lo: 0x32800001 },
+        ExpCancelCase { id: "d32_negative_1000000", width: 32, neg: true, frac_zeros: 999999, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x0, lo: 0xb2800001 },
+        ExpCancelCase { id: "d32_integer_1000000_negative_false", width: 32, neg: false, frac_zeros: 0, exp_lz: 1, exp_mag: -1000000, integer_zeros: 1000000, hi: 0x0, lo: 0x2f8f4240 },
+        ExpCancelCase { id: "d32_integer_1000000_negative_true", width: 32, neg: true, frac_zeros: 0, exp_lz: 1, exp_mag: -1000000, integer_zeros: 1000000, hi: 0x0, lo: 0xaf8f4240 },
+        ExpCancelCase { id: "d32_negative_10485760", width: 32, neg: true, frac_zeros: 10485759, exp_lz: 1, exp_mag: 10485760, integer_zeros: 0, hi: 0x0, lo: 0xb2800001 },
+        ExpCancelCase { id: "d32_integer_10485760_negative_false", width: 32, neg: false, frac_zeros: 0, exp_lz: 1, exp_mag: -10485760, integer_zeros: 10485760, hi: 0x0, lo: 0x2f8f4240 },
+        ExpCancelCase { id: "d32_integer_10485760_negative_true", width: 32, neg: true, frac_zeros: 0, exp_lz: 1, exp_mag: -10485760, integer_zeros: 10485760, hi: 0x0, lo: 0xaf8f4240 },
+        ExpCancelCase { id: "d32_quantum_-101", width: 32, neg: false, frac_zeros: 1000100, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x0, lo: 0x1 },
+        ExpCancelCase { id: "d32_quantum_90", width: 32, neg: false, frac_zeros: 999909, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x0, lo: 0x5f800001 },
+        ExpCancelCase { id: "d64_neighbor_999999", width: 64, neg: false, frac_zeros: 999998, exp_lz: 0, exp_mag: 999999, integer_zeros: 0, hi: 0x0, lo: 0x31c0000000000001 },
+        ExpCancelCase { id: "d64_neighbor_9999999", width: 64, neg: false, frac_zeros: 9999998, exp_lz: 0, exp_mag: 9999999, integer_zeros: 0, hi: 0x0, lo: 0x31c0000000000001 },
+        ExpCancelCase { id: "d64_neighbor_10000000", width: 64, neg: false, frac_zeros: 9999999, exp_lz: 0, exp_mag: 10000000, integer_zeros: 0, hi: 0x0, lo: 0x31c0000000000001 },
+        ExpCancelCase { id: "d64_neighbor_10485759", width: 64, neg: false, frac_zeros: 10485758, exp_lz: 0, exp_mag: 10485759, integer_zeros: 0, hi: 0x0, lo: 0x31c0000000000001 },
+        ExpCancelCase { id: "d64_neighbor_10485761", width: 64, neg: false, frac_zeros: 10485760, exp_lz: 0, exp_mag: 10485761, integer_zeros: 0, hi: 0x0, lo: 0x31c0000000000001 },
+        ExpCancelCase { id: "d64_negative_1000000", width: 64, neg: true, frac_zeros: 999999, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x0, lo: 0xb1c0000000000001 },
+        ExpCancelCase { id: "d64_integer_1000000_negative_false", width: 64, neg: false, frac_zeros: 0, exp_lz: 1, exp_mag: -1000000, integer_zeros: 1000000, hi: 0x0, lo: 0x2fe38d7ea4c68000 },
+        ExpCancelCase { id: "d64_integer_1000000_negative_true", width: 64, neg: true, frac_zeros: 0, exp_lz: 1, exp_mag: -1000000, integer_zeros: 1000000, hi: 0x0, lo: 0xafe38d7ea4c68000 },
+        ExpCancelCase { id: "d64_negative_10485760", width: 64, neg: true, frac_zeros: 10485759, exp_lz: 1, exp_mag: 10485760, integer_zeros: 0, hi: 0x0, lo: 0xb1c0000000000001 },
+        ExpCancelCase { id: "d64_integer_10485760_negative_false", width: 64, neg: false, frac_zeros: 0, exp_lz: 1, exp_mag: -10485760, integer_zeros: 10485760, hi: 0x0, lo: 0x2fe38d7ea4c68000 },
+        ExpCancelCase { id: "d64_integer_10485760_negative_true", width: 64, neg: true, frac_zeros: 0, exp_lz: 1, exp_mag: -10485760, integer_zeros: 10485760, hi: 0x0, lo: 0xafe38d7ea4c68000 },
+        ExpCancelCase { id: "d64_quantum_-398", width: 64, neg: false, frac_zeros: 1000397, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x0, lo: 0x1 },
+        ExpCancelCase { id: "d64_quantum_369", width: 64, neg: false, frac_zeros: 999630, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x0, lo: 0x5fe0000000000001 },
+        ExpCancelCase { id: "d128_neighbor_999999", width: 128, neg: false, frac_zeros: 999998, exp_lz: 0, exp_mag: 999999, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_neighbor_9999999", width: 128, neg: false, frac_zeros: 9999998, exp_lz: 0, exp_mag: 9999999, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_neighbor_10000000", width: 128, neg: false, frac_zeros: 9999999, exp_lz: 0, exp_mag: 10000000, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_neighbor_10485759", width: 128, neg: false, frac_zeros: 10485758, exp_lz: 0, exp_mag: 10485759, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_neighbor_10485761", width: 128, neg: false, frac_zeros: 10485760, exp_lz: 0, exp_mag: 10485761, integer_zeros: 0, hi: 0x3040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_negative_1000000", width: 128, neg: true, frac_zeros: 999999, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0xb040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_integer_1000000_negative_false", width: 128, neg: false, frac_zeros: 0, exp_lz: 1, exp_mag: -1000000, integer_zeros: 1000000, hi: 0x2ffe314dc6448d93, lo: 0x38c15b0a00000000 },
+        ExpCancelCase { id: "d128_integer_1000000_negative_true", width: 128, neg: true, frac_zeros: 0, exp_lz: 1, exp_mag: -1000000, integer_zeros: 1000000, hi: 0xaffe314dc6448d93, lo: 0x38c15b0a00000000 },
+        ExpCancelCase { id: "d128_negative_10485760", width: 128, neg: true, frac_zeros: 10485759, exp_lz: 1, exp_mag: 10485760, integer_zeros: 0, hi: 0xb040000000000000, lo: 0x1 },
+        ExpCancelCase { id: "d128_integer_10485760_negative_false", width: 128, neg: false, frac_zeros: 0, exp_lz: 1, exp_mag: -10485760, integer_zeros: 10485760, hi: 0x2ffe314dc6448d93, lo: 0x38c15b0a00000000 },
+        ExpCancelCase { id: "d128_integer_10485760_negative_true", width: 128, neg: true, frac_zeros: 0, exp_lz: 1, exp_mag: -10485760, integer_zeros: 10485760, hi: 0xaffe314dc6448d93, lo: 0x38c15b0a00000000 },
+        ExpCancelCase { id: "d128_quantum_-6176", width: 128, neg: false, frac_zeros: 1006175, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x0, lo: 0x1 },
+        ExpCancelCase { id: "d128_quantum_6111", width: 128, neg: false, frac_zeros: 993888, exp_lz: 1, exp_mag: 1000000, integer_zeros: 0, hi: 0x5ffe000000000000, lo: 0x1 },
+    ];
+    let build = |c: &ExpCancelCase| -> String {
+        let mut s = String::new();
+        if c.neg { s.push('-'); }
+
+        if c.integer_zeros > 0 {
+            s.push('1');
+            s.push_str(&"0".repeat(c.integer_zeros));
+            s.push('e');
+        } else {
+            s.push_str("0.");
+            s.push_str(&"0".repeat(c.frac_zeros));
+            s.push_str("1e+");
+        }
+        if c.exp_mag < 0 { s.push('-'); }
+        s.push_str(&"0".repeat(c.exp_lz));
+        s.push_str(&c.exp_mag.abs().to_string());
+        s
+    };
+    for c in cases.iter() {
+        let input = build(c);
+        for &mode in &[0i64, 1, 2, 3, 4] {
+            let (hi, lo, flags) = match c.width {
+                32 => { let (bits, f) = bid32_from_string_raw(&input, mode); (0u64, bits as u64, f) }
+                64 => { let (bits, f) = bid64_from_string_raw(&input, mode as i32); (0u64, bits, f) }
+                _ => { let (r, f) = bid128_from_string(&input, mode); (r.hi, r.lo, f) }
+            };
+            assert_eq!(
+                (hi, lo, flags),
+                (c.hi, c.lo, 0u32),
+                "{} mode={} exact cohort",
+                c.id,
+                mode
+            );
+        }
+
+        macro_rules! check_public {
+            ($ty:ty, $bits:expr) => {{
+                let bits = $bits;
+                if c.integer_zeros > 0 {
+                    assert!(<$ty>::parse(&input).is_err(), "{} exact rejection", c.id);
+                    assert!(<$ty>::parse_with_flags(&input).is_err(), "{} flag rejection", c.id);
+                    let (v, f) = <$ty>::parse_raw(&input);
+                    assert!(v.is_nan() && f.contains(bid754::ExceptionFlags::INVALID_OPERATION), "{} raw rejection", c.id);
+                } else {
+                    let v = <$ty>::parse(&input).expect(c.id);
+                    assert_eq!(bits(v), (c.hi, c.lo), "{} exact public", c.id);
+                    let (v, f) = <$ty>::parse_with_flags(&input).expect(c.id);
+                    assert_eq!((bits(v), f.bits()), ((c.hi, c.lo), 0), "{} flags public", c.id);
+                    let (v, f) = <$ty>::parse_raw(&input);
+                    assert_eq!((bits(v), f.bits()), ((c.hi, c.lo), 0), "{} raw public", c.id);
+                }
+                for mode in [bid754::RoundingMode::NearestEven, bid754::RoundingMode::NearestAway,
+                    bid754::RoundingMode::TowardZero, bid754::RoundingMode::TowardPositive,
+                    bid754::RoundingMode::TowardNegative] {
+                    let result = <$ty>::parse_with_mode(&input, mode);
+                    if c.integer_zeros > 0 {
+                        assert!(result.is_err(), "{} mode {:?} rejection", c.id, mode);
+                    } else {
+                        let (v, f) = result.expect(c.id);
+                        assert_eq!((bits(v), f.bits()), ((c.hi, c.lo), 0), "{} mode {:?} public", c.id, mode);
+                    }
+                }
+            }};
+        }
+        match c.width {
+            32 => check_public!(bid754::Decimal32, |v: bid754::Decimal32| (0u64, v.to_bits() as u64)),
+            64 => check_public!(bid754::Decimal64, |v: bid754::Decimal64| (0u64, v.to_bits())),
+            _ => check_public!(bid754::Decimal128, |v: bid754::Decimal128| {
+                let n = u128::from_le_bytes(v.to_le_bytes()); ((n >> 64) as u64, n as u64)
+            }),
+        }
+    }
 }

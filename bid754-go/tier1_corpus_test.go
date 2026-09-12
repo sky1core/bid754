@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/sky1core/bid754/bid754-go/internal/decimalref"
@@ -54,6 +55,52 @@ func tier1Finite(width int, coeff *big.Int, exponent int, negative bool) (string
 func tier1Sample(data []byte) (tier1ref.Case, error) {
 	if len(data) != tier1InputSize {
 		return tier1ref.Case{}, fmt.Errorf("input requires %d bytes", tier1InputSize)
+	}
+	if data[4]&0x80 != 0 {
+		cases, err := tier1RoundingBoundaryCases()
+		if err != nil {
+			return tier1ref.Case{}, err
+		}
+		c := cases[binary.LittleEndian.Uint64(data[5:13])%uint64(len(cases))]
+		c.Mode = finiteModes[data[2]%5]
+		mask := binary.LittleEndian.Uint64(data[13:21])
+		if c.Op == "from_int" {
+			n, err := strconv.ParseInt(c.Param, 10, c.Target)
+			if err != nil {
+				return c, err
+			}
+			n = int64(uint64(n) ^ mask)
+			if c.Target == 32 {
+				n = int64(int32(n))
+			}
+			c.Param = strconv.FormatInt(n, 10)
+		} else if c.Op == "from_uint" {
+			n, err := strconv.ParseUint(c.Param, 10, c.Target)
+			if err != nil {
+				return c, err
+			}
+			n ^= mask
+			if c.Target == 32 {
+				n = uint64(uint32(n))
+			}
+			c.Param = strconv.FormatUint(n, 10)
+		} else {
+			hiText, loText, wide := strings.Cut(c.Operands[0], ":")
+			if !wide {
+				loText, hiText = hiText, "0"
+			}
+			hi, err := strconv.ParseUint(hiText, 16, 64)
+			if err != nil {
+				return c, err
+			}
+			lo, err := strconv.ParseUint(loText, 16, 64)
+			if err != nil {
+				return c, err
+			}
+			hi ^= binary.LittleEndian.Uint64(data[21:29])
+			c.Operands = []string{tier1Raw(c.Width, hi, lo^mask)}
+		}
+		return c, tier1ref.Validate(c)
 	}
 	width := []int{32, 64, 128}[data[1]%3]
 	op := tier1Ops[int(data[0])%len(tier1Ops)]
@@ -174,6 +221,148 @@ func tier1Sample(data []byte) (tier1ref.Case, error) {
 		c.Operands = append(c.Operands, y)
 	}
 	return c, tier1ref.Validate(c)
+}
+
+func tier1BoundaryPower(n int) *big.Int {
+	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(n)), nil)
+}
+
+func tier1BoundaryCoefficients(precision, shift int) []*big.Int {
+	low, high := tier1BoundaryPower(precision-1), tier1BoundaryPower(precision)
+	pattern := new(big.Int).Mul(big.NewInt(1234566), tier1BoundaryPower(precision-7))
+	retained := []*big.Int{
+		new(big.Int).Sub(low, big.NewInt(1)), low, new(big.Int).Add(low, big.NewInt(1)),
+		pattern, new(big.Int).Add(pattern, big.NewInt(1)),
+		new(big.Int).Sub(high, big.NewInt(2)), new(big.Int).Sub(high, big.NewInt(1)),
+	}
+	scale := tier1BoundaryPower(shift)
+	half := new(big.Int).Quo(scale, big.NewInt(2))
+	var out []*big.Int
+	for _, q := range retained {
+		base := new(big.Int).Mul(q, scale)
+		out = append(out, new(big.Int).Set(base))
+		for delta := int64(-2); delta <= 2; delta++ {
+			n := new(big.Int).Add(base, half)
+			out = append(out, n.Add(n, big.NewInt(delta)))
+		}
+	}
+	return out
+}
+
+func tier1BoundaryIntegers(bits int, unsigned bool) []*big.Int {
+	lo := new(big.Int)
+	hi := new(big.Int).Lsh(big.NewInt(1), uint(bits))
+	if !unsigned {
+		hi.Rsh(hi, 1)
+		lo.Neg(hi)
+	}
+	hi.Sub(hi, big.NewInt(1))
+	var out []*big.Int
+	seen := map[string]bool{}
+	add := func(n *big.Int) {
+		if n.Cmp(lo) >= 0 && n.Cmp(hi) <= 0 && !seen[n.String()] {
+			seen[n.String()] = true
+			out = append(out, new(big.Int).Set(n))
+		}
+	}
+	for _, limit := range []*big.Int{lo, hi, big.NewInt(0)} {
+		for delta := int64(-2); delta <= 2; delta++ {
+			add(new(big.Int).Add(limit, big.NewInt(delta)))
+		}
+	}
+	for digits := 1; digits <= len(hi.String()); digits++ {
+		for delta := int64(-1); delta <= 1; delta++ {
+			n := new(big.Int).Add(tier1BoundaryPower(digits), big.NewInt(delta))
+			add(n)
+			add(new(big.Int).Neg(n))
+		}
+	}
+	for _, precision := range []int{7, 16} {
+		for shift := 1; shift <= len(hi.String())-precision; shift++ {
+			for _, n := range tier1BoundaryCoefficients(precision, shift) {
+				add(n)
+				add(new(big.Int).Neg(n))
+			}
+		}
+	}
+	return out
+}
+
+var tier1RoundingBoundaryCases = sync.OnceValues(func() ([]tier1ref.Case, error) {
+	var out []tier1ref.Case
+	seen := map[string]bool{}
+	add := func(c tier1ref.Case) error {
+		if err := tier1ref.Validate(c); err != nil {
+			return err
+		}
+		key := fmt.Sprintf("%+v", c)
+		if !seen[key] {
+			seen[key] = true
+			out = append(out, c)
+		}
+		return nil
+	}
+	for _, width := range []int{32, 64, 128} {
+		for _, bits := range []int{32, 64} {
+			for _, op := range []string{"from_int", "from_uint"} {
+				for _, n := range tier1BoundaryIntegers(bits, op == "from_uint") {
+					for _, mode := range finiteModes {
+						if err := add(tier1ref.Case{Width: width, Target: bits, Op: op, Mode: mode, Param: n.String()}); err != nil {
+							return nil, err
+						}
+					}
+				}
+			}
+		}
+	}
+	for _, pair := range [][2]int{{64, 32}, {128, 32}, {128, 64}} {
+		src, _ := decimalref.ParametersFor(pair[0])
+		dst, _ := decimalref.ParametersFor(pair[1])
+		gap := src.Precision - dst.Precision
+		shifts := map[int]bool{}
+		for _, shift := range []int{1, 2, gap - 1, gap, 16 - dst.Precision, 17 - dst.Precision} {
+			if shift < 1 || shift > gap || shifts[shift] {
+				continue
+			}
+			shifts[shift] = true
+			for _, coeff := range tier1BoundaryCoefficients(dst.Precision, shift) {
+				for _, exp := range []int{0, -shift, dst.MinExp - shift, dst.MinExp - shift - 1, dst.MaxExp - shift} {
+					for _, negative := range []bool{false, true} {
+						raw, err := tier1Finite(pair[0], coeff, exp, negative)
+						if err != nil {
+							return nil, err
+						}
+						for _, mode := range finiteModes {
+							if err := add(tier1ref.Case{Width: pair[0], Target: pair[1], Op: "convert", Mode: mode, Operands: []string{raw}}); err != nil {
+								return nil, err
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return out, nil
+})
+
+func tier1BoundaryFuzzSeedIndices(cases []tier1ref.Case) []int {
+	counts := map[string]int{}
+	var selected []int
+	for i, c := range cases {
+		key := fmt.Sprintf("%s/%d/%d/%s", c.Op, c.Width, c.Target, c.Mode)
+		include := counts[key]%64 == 0
+		counts[key]++
+		if c.Op == "from_int" || c.Op == "from_uint" {
+			switch strings.TrimPrefix(c.Param, "-") {
+			case "12345665000000001", "12345664999999999", "12345675000000001", "12345674999999999":
+				include = true
+			}
+		}
+		if include {
+			selected = append(selected, i)
+		}
+	}
+	return selected
 }
 
 func tier1Corpus(seed uint64, lanes int, yield func([]byte) error) error {

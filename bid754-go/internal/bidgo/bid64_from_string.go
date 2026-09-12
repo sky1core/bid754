@@ -2,13 +2,7 @@
 // Function: bid64_from_string (lines 245-538)
 // Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
 //
-// This file is a MECHANICAL LINE-BY-LINE translation of the Intel BID library to Go.
-// All logic, magic numbers, variable names, and control flow are preserved exactly,
-// with one documented IEEE-conformance deviation: the directed-rounding overflow on
-// the no-exponent from_string path follows IEEE 754 (largest finite) instead of
-// pinned Intel C (which ignores the rounding mode and returns Inf). See
-// IEEE754_SPEC.md "pinned Intel BID C 대비 의도적 IEEE 편차".
-// DO NOT REFACTOR OR "IMPROVE" THIS CODE beyond that documented deviation.
+// Mechanical port with the IEEE-conformance deviations registered in docs/IEEE754_SPEC.md.
 
 package bidgo
 
@@ -344,10 +338,13 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 	}
 
 	// line 502-509
+	exponent_limit := len(str) + 2*DECIMAL_EXPONENT_BIAS
 	for c >= '0' && c <= '9' {
-		if expon_x < (1 << 20) {
+		if expon_x <= (exponent_limit-int(c-'0'))/10 {
 			expon_x = (expon_x << 1) + (expon_x << 3)
 			expon_x += int(c - '0')
+		} else {
+			expon_x = exponent_limit
 		}
 		ps++
 		c = nulTerminatedByteAt(str, ps)

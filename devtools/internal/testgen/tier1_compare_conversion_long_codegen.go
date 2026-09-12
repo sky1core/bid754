@@ -396,6 +396,9 @@ func tier1ConversionSemanticInputs() ([]uint32, []uint64, []bid128BidCodecValue,
 		tier1DecimalInputSpec{negative: true, coefficient: "9", exponent: -399},
 	)
 
+	specs64 = append(specs64, tier1NativeNarrowingBoundaries(16)...)
+	specs128 = append(specs128, tier1NativeNarrowingBoundaries(34)...)
+
 	boundary32 := make(map[uint32]struct{})
 	for _, value := range tier1SharedLongBoundary32Values() {
 		boundary32[value] = struct{}{}
@@ -509,37 +512,41 @@ func tier1EncodeSemantic128(spec tier1DecimalInputSpec) (bid128BidCodecValue, er
 }
 
 func tier1ConstructorInt32Inputs() []int32 {
-	return []int32{
+	base := []int32{
 		-2147483648, -2147483647, -10000001, -10000000, -9999999, -8388609,
 		-8388608, -128, -1, 0, 1, 127, 8388607, 8388608, 9999999,
 		10000000, 10000001, 2147483646, 2147483647,
 	}
+	return tier1AppendConstructorBoundaries(base, 32, false)
 }
 
 func tier1ConstructorUint32Inputs() []uint32 {
-	return []uint32{
+	base := []uint32{
 		0, 1, 127, 255, 65535, 8388607, 8388608, 9999999, 10000000,
 		10000001, 2147483647, 2147483648, 4294967294, 4294967295,
 	}
+	return tier1AppendConstructorBoundaries(base, 32, true)
 }
 
 func tier1ConstructorInt64Inputs() []int64 {
-	return []int64{
+	base := []int64{
 		-9223372036854775808, -9223372036854775807,
 		-10000000000000001, -10000000000000000, -9999999999999999,
 		-10000001, -10000000, -9999999, -1, 0, 1, 9999999, 10000000,
 		10000001, 9999999999999999, 10000000000000000, 10000000000000001,
 		9223372036854775806, 9223372036854775807,
 	}
+	return tier1AppendConstructorBoundaries(base, 64, false)
 }
 
 func tier1ConstructorUint64Inputs() []uint64 {
-	return []uint64{
+	base := []uint64{
 		0, 1, 127, 255, 65535, 9999999, 10000000, 10000001,
 		9999999999999999, 10000000000000000, 10000000000000001,
 		9223372036854775807, 9223372036854775808,
 		18446744073709551614, 18446744073709551615,
 	}
+	return tier1AppendConstructorBoundaries(base, 64, true)
 }
 
 func tier1Int32Literals(values []int32) string {

@@ -710,6 +710,7 @@ func parseReadtestSubset(path string, spec ReadTestSpec) ([]parsedReadtestCase, 
 	rowSkips := map[string]int{}
 	var cases []parsedReadtestCase
 	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
 	for lineNo := 1; scanner.Scan(); lineNo++ {
 		// Intel readtest.c removes the comment before tokenizing a row:
 		//   p = strstr(line, "--"); if (p) *p = 0;   (readtest.c ~1834)

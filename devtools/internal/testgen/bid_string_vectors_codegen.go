@@ -542,7 +542,8 @@ func normalizeGeneratedBIDStringStatus(input string) string {
 	return trimmed
 }
 `, "@@STRING_SHARD_FILES@@", goBidStringShardFilesLiteral(shardFiles), 1)
-	return replaceBidStringCountPlaceholders(src, counts)
+	return replaceBidStringCountPlaceholders(src, counts) +
+		parserExpRegressionGoSource(parserExponentRegressionCases())
 }
 
 func bidStringVectorsRustTestSource(counts bidStringVectorCounts, shardFiles []string) string {
@@ -909,5 +910,6 @@ fn normalize_status(input: &str) -> String {
     s
 }
 `, "@@STRING_SHARD_FILES@@", rustBidStringShardFilesLiteral(shardFiles), 1)
-	return replaceBidStringCountPlaceholders(src, counts)
+	return replaceBidStringCountPlaceholders(src, counts) +
+		parserExpRegressionRustSource(parserExponentRegressionCases())
 }

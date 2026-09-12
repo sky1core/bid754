@@ -1,16 +1,22 @@
 # Known Issues
 
-These are observed implementation defects, not changes to the contracts in
+Observed defects and their resolution status. The contracts remain defined in
 [SPEC.md](SPEC.md).
 
 ## D128-EXP-001: leading-zero exponent breaks exact cancellation
 
-**Open.** Confirmed in repository revision `3e447c2` on 2026-09-11. The
-Decimal128 string parser inherits this defect from pinned Intel BID C 2.0U4.
-The Go mechanical port and generated Rust retain the affected logic; no local
-IEEE-conformance deviation has been registered for this issue.
+**Fixed.** First confirmed in revision `3e447c2` on 2026-09-11. The Go
+mechanical port and generated Rust now accumulate the complete exponent up to
+a bound derived from input length and the destination exponent range. The
+[registered IEEE deviation](IEEE754_SPEC.md) also covers the related fixed
+exponent limits inherited from pinned Intel BID C 2.0U4 in Decimal32/64/128.
 
-### Reproduction
+Both spellings below now produce exact `1` with no flags in all five rounding
+modes. Regular generated readtest vectors and Go/Rust parser boundary tests
+cover the regression; production fault injection checks that restoring a
+fixed exponent cap fails the numeric assertions.
+
+### Original reproduction
 
 The following two strings both represent exactly `1`, with no rounding or
 exception flags required:
@@ -45,14 +51,14 @@ func main() {
 }
 ```
 
-Observed output:
+Output before the fix:
 
 ```text
 1000000 value=+1E+0 flags=0 error=false
 01000000 value=+0E-6176 flags=3 error=false
 ```
 
-### Affected behavior
+### Behavior before the fix
 
 | Public API | Affected input result |
 | --- | --- |
@@ -73,26 +79,22 @@ any supported width accepts it. The existing
 checks that predicate's consistency, not the correctness of the Decimal128
 result for this input.
 
-### Cause and verification boundary
+### Cause and coverage
 
-In the [Go parser](../bid754-go/internal/bidgo/bid128_string.go),
-`Bid128FromString` counts the first exponent character with `i = 1`. If that
-character is zero, subsequent leading zeros are skipped without resetting
-the count. The `i < 7` loop then reads only six significant exponent digits:
-`01000000` becomes `100000`. Combining that with the million fractional
-places produces exponent `-900000` instead of `0`.
-The [generated Rust parser](../bid754-rs/src/generated/bid128_string.rs)
-preserves this logic from Intel's `bid128_string.c`.
+The old Decimal128 parser counted the first exponent character toward its
+seven-digit limit even when that character was zero. It interpreted
+`01000000` as `100000`, so the million fractional places yielded exponent
+`-900000` instead of `0`. Its seven-digit cap also broke exact cancellation
+at `10000000` without any leading zero. Decimal32/64 stopped accumulation at
+`1 << 20`; an exponent of `10485760` reproduced the same class of failure.
 
-Public Go and Rust reproductions on macOS arm64 cover both spellings and all
-five rounding modes. Earlier direct builds of the pinned C sources reproduced
-the same defect with `-O0` and `-O2` on arm64 and x86_64 via Rosetta 2; the C
-probe covered eight inputs and five modes per build. Physical Intel/AMD CPU
-execution remains unverified. The faulty character/counting logic is shared
-parser code, with no ARM-specific branch in the affected region.
+The regression family checks exponent cancellation, leading zeros, signs,
+rounding modes, written cohorts, rejection boundaries, and exception flags
+through the Go mechanical port, public Go constructors, generated Rust, and
+public Rust constructors. Native comparison skips are limited to registered
+vectors on which pinned Intel C disagrees with the required IEEE result.
 
-This is a string-to-Decimal128 conversion defect. Its reproduction does not
-establish an error in `ScaleB` or in arithmetic on already-encoded values.
-For the demonstrated input, using `e1000000` instead of `e01000000`, or the
-equivalent literal `1`, avoids the failure. This workaround does not establish
-correctness for every long-exponent input. The parser defect remains unresolved.
+Earlier direct builds of pinned C reproduced the original leading-zero
+case with `-O0` and `-O2` on arm64 and x86_64 via Rosetta 2. Physical Intel/AMD
+CPU execution remains unverified. This defect concerns string conversion;
+it does not establish an error in `ScaleB` or arithmetic on encoded values.

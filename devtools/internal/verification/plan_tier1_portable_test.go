@@ -2,6 +2,7 @@ package verification
 
 import (
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -59,10 +60,41 @@ func TestTier1BigDecimalRequiredAcrossPortableProfiles(t *testing.T) {
 			} else if !hasPattern(g, "TIER1-BIGDECIMAL") || len(g.Evidence.Passes) == 0 {
 				t.Errorf("%s/%s: %s gate lost its deterministic evidence", profile, platform, deterministic)
 			}
+			for _, witness := range []string{"TestTier1RoundingBoundaryContract", "TestTier1RoundingBoundaryGo", "TestTier1RoundingBoundaryBigDecimal", "TestTier1BoundaryMutation", "TestTier1BoundaryFuzzSeeds"} {
+				if !slices.Contains(g.Evidence.Passes, witness) {
+					t.Errorf("%s/%s: missing mandatory boundary evidence %s", profile, platform, witness)
+				}
+			}
 			for _, f := range fuzz {
 				if _, present := gates[f]; present {
 					t.Errorf("%s/%s: long fuzz gate %s must stay optional, not required", profile, platform, f)
 				}
+			}
+		}
+	}
+}
+
+func TestTier1ParserAndProductionFaultsRequired(t *testing.T) {
+	plan := repoPlan(t)
+	for _, profile := range []string{"ci-portable", "full", "full-portable"} {
+		for _, platform := range plan.Profiles[profile].Platforms {
+			gates := selectedGates(t, plan, profile, platform)
+			for id, witnesses := range map[string][]string{
+				"harness-contracts": {"TestTier1ConversionFaultInjection", "TestParserExponentFaultInjection"},
+				"string-vectors":    {"TestParserExponentCancellation", "TestParserNegativeExponentCancellation", "TestGeneratedParserExponentCancellationRegression"},
+			} {
+				gate, ok := gates[id]
+				if !ok {
+					t.Errorf("%s/%s: missing gate %s", profile, platform, id)
+				}
+				for _, witness := range witnesses {
+					if !slices.Contains(gate.Evidence.Passes, witness) {
+						t.Errorf("%s/%s: missing mandatory evidence %s", profile, platform, witness)
+					}
+				}
+			}
+			if !hasPattern(gates["string-vectors"], "test_generated_parser_exponent_cancellation_regression") {
+				t.Errorf("%s/%s: missing Rust parser exponent evidence", profile, platform)
 			}
 		}
 	}

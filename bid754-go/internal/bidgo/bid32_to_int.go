@@ -413,16 +413,206 @@ func Bid32Llround(x uint32) (int64, uint32) {
 	return Bid64Llround(x64)
 }
 
-// === from_int64/uint64 (via bid64) ===
-
 func Bid32FromInt64(x int64, rnd_mode int) (uint32, uint32) {
-	r64, f1 := Bid64FromInt64(x, rnd_mode)
-	r32, f2 := Bid64ToBid32(r64, rnd_mode)
-	return r32, f1 | f2
+	var res uint32
+	var res64 uint64
+	var x_sign uint32
+	var C uint64
+	var q, ind uint32
+	var incr_exp int
+	var is_midpoint_lt_even, is_midpoint_gt_even int
+	var is_inexact_lt_midpoint, is_inexact_gt_midpoint int
+	var pfpsf uint32
+
+	x_sign = uint32(uint64(x)>>32) & MASK_SIGN32
+	if x_sign != 0 {
+		C = ^uint64(x) + 1
+	} else {
+		C = uint64(x)
+	}
+	if C <= uint64(BID32_SIG_MAX) {
+		if C < 0x00800000 {
+			res = x_sign | 0x32800000 | uint32(C)
+		} else {
+			res = x_sign | 0x6ca00000 | (uint32(C) & 0x001fffff)
+		}
+	} else {
+		if C < 100000000 {
+			q = 8
+			ind = 1
+		} else if C < 1000000000 {
+			q = 9
+			ind = 2
+		} else if C < 10000000000 {
+			q = 10
+			ind = 3
+		} else if C < 100000000000 {
+			q = 11
+			ind = 4
+		} else if C < 1000000000000 {
+			q = 12
+			ind = 5
+		} else if C < 10000000000000 {
+			q = 13
+			ind = 6
+		} else if C < 100000000000000 {
+			q = 14
+			ind = 7
+		} else if C < 1000000000000000 {
+			q = 15
+			ind = 8
+		} else if C < 10000000000000000 {
+			q = 16
+			ind = 9
+		} else if C < 100000000000000000 {
+			q = 17
+			ind = 10
+		} else if C < 1000000000000000000 {
+			q = 18
+			ind = 11
+		} else {
+			q = 19
+			ind = 12
+		}
+		res64 = bid_round64_2_18(int(q), int(ind), uint64(C), &incr_exp,
+			&is_midpoint_lt_even, &is_midpoint_gt_even,
+			&is_inexact_lt_midpoint, &is_inexact_gt_midpoint)
+		res = uint32(res64)
+		if incr_exp != 0 {
+			ind++
+		}
+		if is_inexact_lt_midpoint != 0 || is_inexact_gt_midpoint != 0 ||
+			is_midpoint_lt_even != 0 || is_midpoint_gt_even != 0 {
+			pfpsf |= BID_INEXACT_EXCEPTION
+		}
+		if rnd_mode != BID_ROUNDING_TO_NEAREST {
+			if (x_sign == 0 &&
+				((rnd_mode == BID_ROUNDING_UP && is_inexact_lt_midpoint != 0) ||
+					((rnd_mode == BID_ROUNDING_TIES_AWAY || rnd_mode == BID_ROUNDING_UP) && is_midpoint_gt_even != 0))) ||
+				(x_sign != 0 &&
+					((rnd_mode == BID_ROUNDING_DOWN && is_inexact_lt_midpoint != 0) ||
+						((rnd_mode == BID_ROUNDING_TIES_AWAY || rnd_mode == BID_ROUNDING_DOWN) && is_midpoint_gt_even != 0))) {
+				res = res + 1
+				if res == 10000000 {
+					res = 1000000
+					ind = ind + 1
+				}
+			} else if (is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0) &&
+				((x_sign != 0 && (rnd_mode == BID_ROUNDING_UP || rnd_mode == BID_ROUNDING_TO_ZERO)) ||
+					(x_sign == 0 && (rnd_mode == BID_ROUNDING_DOWN || rnd_mode == BID_ROUNDING_TO_ZERO))) {
+				res = res - 1
+				if res == 999999 {
+					res = 9999999
+					ind = ind - 1
+				}
+			}
+		}
+		if res < 0x00800000 {
+			res = x_sign | ((ind + 101) << 23) | res
+		} else {
+			res = x_sign | 0x60000000 | ((ind + 101) << 21) | (res & 0x001fffff)
+		}
+	}
+	return res, pfpsf
 }
 
 func Bid32FromUint64(x uint64, rnd_mode int) (uint32, uint32) {
-	r64, f1 := Bid64FromUint64(x, rnd_mode)
-	r32, f2 := Bid64ToBid32(r64, rnd_mode)
-	return r32, f1 | f2
+	var res uint32
+	var res64 uint64
+	var C uint64
+	var q, ind uint32
+	var incr_exp int
+	var is_midpoint_lt_even, is_midpoint_gt_even int
+	var is_inexact_lt_midpoint, is_inexact_gt_midpoint int
+	var pfpsf uint32
+
+	C = x
+	if C <= uint64(BID32_SIG_MAX) {
+		if C < 0x00800000 {
+			res = 0x32800000 | uint32(C)
+		} else {
+			res = 0x6ca00000 | (uint32(C) & 0x001fffff)
+		}
+	} else {
+		if C < 100000000 {
+			q = 8
+			ind = 1
+		} else if C < 1000000000 {
+			q = 9
+			ind = 2
+		} else if C < 10000000000 {
+			q = 10
+			ind = 3
+		} else if C < 100000000000 {
+			q = 11
+			ind = 4
+		} else if C < 1000000000000 {
+			q = 12
+			ind = 5
+		} else if C < 10000000000000 {
+			q = 13
+			ind = 6
+		} else if C < 100000000000000 {
+			q = 14
+			ind = 7
+		} else if C < 1000000000000000 {
+			q = 15
+			ind = 8
+		} else if C < 10000000000000000 {
+			q = 16
+			ind = 9
+		} else if C < 100000000000000000 {
+			q = 17
+			ind = 10
+		} else if C < 1000000000000000000 {
+			q = 18
+			ind = 11
+		} else if C < 10000000000000000000 {
+			q = 19
+			ind = 12
+		} else {
+			q = 20
+			ind = 13
+		}
+		if q <= 19 {
+			res64 = bid_round64_2_18(int(q), int(ind), uint64(C), &incr_exp,
+				&is_midpoint_lt_even, &is_midpoint_gt_even,
+				&is_inexact_lt_midpoint, &is_inexact_gt_midpoint)
+			res = uint32(res64)
+		} else {
+			var res128 BID_UINT128
+			res128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint = bid_round128_19_38(int(q), int(ind), BID_UINT128{lo: C, hi: 0})
+			res = uint32(res128.lo)
+		}
+		if incr_exp != 0 {
+			ind++
+		}
+		if is_inexact_lt_midpoint != 0 || is_inexact_gt_midpoint != 0 ||
+			is_midpoint_lt_even != 0 || is_midpoint_gt_even != 0 {
+			pfpsf |= BID_INEXACT_EXCEPTION
+		}
+		if rnd_mode != BID_ROUNDING_TO_NEAREST {
+			if (rnd_mode == BID_ROUNDING_UP && is_inexact_lt_midpoint != 0) ||
+				((rnd_mode == BID_ROUNDING_TIES_AWAY || rnd_mode == BID_ROUNDING_UP) && is_midpoint_gt_even != 0) {
+				res = res + 1
+				if res == 10000000 {
+					res = 1000000
+					ind = ind + 1
+				}
+			} else if (is_midpoint_lt_even != 0 || is_inexact_gt_midpoint != 0) &&
+				(rnd_mode == BID_ROUNDING_DOWN || rnd_mode == BID_ROUNDING_TO_ZERO) {
+				res = res - 1
+				if res == 999999 {
+					res = 9999999
+					ind = ind - 1
+				}
+			}
+		}
+		if res < 0x00800000 {
+			res = ((ind + 101) << 23) | res
+		} else {
+			res = 0x60000000 | ((ind + 101) << 21) | (res & 0x001fffff)
+		}
+	}
+	return res, pfpsf
 }

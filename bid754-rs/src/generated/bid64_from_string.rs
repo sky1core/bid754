@@ -262,10 +262,13 @@ pub(crate) fn bid64_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) ->
         res = (0x7c00000000000000 | sign_x);
         return (res, pfpsf);
     }
+    let mut exponent_limit = ((str.len() as i64).wrapping_add(796 as i64));
     while ((c >= b'0') && (c <= b'9')) {
-        if (expon_x < (1048576 as i64)) {
+        if (expon_x <= (((exponent_limit.wrapping_sub(((c.wrapping_sub(b'0')) as i64)))) / 10)) {
             expon_x = (((go_checked_shl_i64(expon_x, go_shift_count_u64((1) as u64)))).wrapping_add(((go_checked_shl_i64(expon_x, go_shift_count_u64((3) as u64))))));
             expon_x = expon_x.wrapping_add(((c.wrapping_sub(b'0')) as i64));
+        } else {
+            expon_x = exponent_limit;
         }
         ps = ps.wrapping_add(1);
         c = nul_terminated_byte_at(str, ps);

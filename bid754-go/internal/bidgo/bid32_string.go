@@ -1,9 +1,5 @@
 // Ported from: Intel bid32_string.c
-// Mechanical translation of the Intel BID library to Go, with one documented
-// IEEE-conformance deviation: the directed-rounding overflow on the no-exponent
-// from_string path follows IEEE 754 (largest finite) instead of pinned Intel C
-// (which ignores the rounding mode and returns Inf). See IEEE754_SPEC.md
-// "pinned Intel BID C 대비 의도적 IEEE 편차". All other logic is preserved exactly.
+// Mechanical port with the IEEE-conformance deviations registered in docs/IEEE754_SPEC.md.
 
 package bidgo
 
@@ -470,10 +466,13 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 		return uint32(0x7c000000 | sign_x), 0
 	}
 
+	exponent_limit := len(s) + 2*DECIMAL_EXPONENT_BIAS_32
 	for idx < len(s) && s[idx] >= '0' && s[idx] <= '9' {
-		if expon_x < (1 << 20) {
+		if expon_x <= (exponent_limit-int(s[idx]-'0'))/10 {
 			expon_x = (expon_x << 1) + (expon_x << 3)
 			expon_x += int(s[idx] - '0')
+		} else {
+			expon_x = exponent_limit
 		}
 		idx++
 	}

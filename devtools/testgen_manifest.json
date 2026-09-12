@@ -277,6 +277,69 @@
         3,
         4
       ]
+    },
+    {
+      "name": "bid32_from_string_ieee754_exponent_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_exponent_cancellation.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C caps the exponent magnitude before fractional-digit cancellation; this row pins the IEEE 754 exact decimal character-sequence value and flags",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0
+      ]
+    },
+    {
+      "name": "bid64_from_string_ieee754_exponent_cdiverge",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_exponent_cancellation.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C caps the exponent magnitude before fractional-digit cancellation; this row pins the IEEE 754 exact decimal character-sequence value and flags",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0
+      ]
+    },
+    {
+      "name": "bid128_from_string_ieee754_exponent_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_ieee754_exponent_cancellation.in",
+      "function": "bid128_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C counts a leading exponent zero against its seven-digit limit before fractional-digit cancellation; this row pins the IEEE 754 exact decimal character-sequence value and flags",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0
+      ]
     }
   ],
   "readtest_profiles": [

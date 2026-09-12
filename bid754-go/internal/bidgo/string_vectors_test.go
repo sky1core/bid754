@@ -28,6 +28,9 @@ var generatedBIDStringShardFiles = []string{
 	"readtest/bid64_from_string_ieee754_overflow_cdiverge.json",
 	"readtest/bid64_from_string_ieee754_overflow_cmatch.json",
 	"readtest/bid128_from_string_ieee754_overflow_cmatch.json",
+	"readtest/bid32_from_string_ieee754_exponent_cdiverge.json",
+	"readtest/bid64_from_string_ieee754_exponent_cdiverge.json",
+	"readtest/bid128_from_string_ieee754_exponent_cdiverge.json",
 }
 
 type generatedStringShard struct {
@@ -74,15 +77,15 @@ type generatedBIDStringCounts struct {
 }
 
 var expectedGeneratedBIDStringCounts = generatedBIDStringCounts{
-	Total:                351,
-	FromString:           288,
+	Total:                354,
+	FromString:           291,
 	ToString:             63,
-	Decimal32:            135,
-	Decimal64:            100,
-	Decimal128:           116,
-	Decimal32FromString:  115,
-	Decimal64FromString:  88,
-	Decimal128FromString: 85,
+	Decimal32:            136,
+	Decimal64:            101,
+	Decimal128:           117,
+	Decimal32FromString:  116,
+	Decimal64FromString:  89,
+	Decimal128FromString: 86,
 	Decimal32ToString:    20,
 	Decimal64ToString:    12,
 	Decimal128ToString:   31,
@@ -400,4 +403,112 @@ func normalizeGeneratedBIDStringStatus(input string) string {
 		trimmed = "0" + trimmed
 	}
 	return trimmed
+}
+
+func TestGeneratedParserExponentCancellationRegression(t *testing.T) {
+	type expCancelCase struct {
+		id       string
+		width    int
+		neg      bool
+		fracZeros int
+		expLZ    int
+		expMag   int
+		integerZeros int
+		hi, lo   uint64
+	}
+	cases := []expCancelCase{
+		{"d32_q0_short", 32, false, 4, 0, 5, 0, 0x0, 0x32800001},
+		{"d64_q0_short", 64, false, 4, 0, 5, 0, 0x0, 0x31c0000000000001},
+		{"d128_q0_short", 128, false, 4, 0, 5, 0, 0x3040000000000000, 0x1},
+		{"d128_q0_short_neg", 128, true, 4, 0, 5, 0, 0xb040000000000000, 0x1},
+		{"d128_lz0_7dig", 128, false, 999999, 0, 1000000, 0, 0x3040000000000000, 0x1},
+		{"d128_lz1_7dig_confirmed", 128, false, 999999, 1, 1000000, 0, 0x3040000000000000, 0x1},
+		{"d128_lz2_7dig", 128, false, 999999, 2, 1000000, 0, 0x3040000000000000, 0x1},
+		{"d32_n10485760", 32, false, 10485759, 0, 10485760, 0, 0x0, 0x32800001},
+		{"d64_n10485760", 64, false, 10485759, 0, 10485760, 0, 0x0, 0x31c0000000000001},
+		{"d128_n10485760", 128, false, 10485759, 0, 10485760, 0, 0x3040000000000000, 0x1},
+		{"d32_neighbor_999999", 32, false, 999998, 0, 999999, 0, 0x0, 0x32800001},
+		{"d32_neighbor_9999999", 32, false, 9999998, 0, 9999999, 0, 0x0, 0x32800001},
+		{"d32_neighbor_10000000", 32, false, 9999999, 0, 10000000, 0, 0x0, 0x32800001},
+		{"d32_neighbor_10485759", 32, false, 10485758, 0, 10485759, 0, 0x0, 0x32800001},
+		{"d32_neighbor_10485761", 32, false, 10485760, 0, 10485761, 0, 0x0, 0x32800001},
+		{"d32_negative_1000000", 32, true, 999999, 1, 1000000, 0, 0x0, 0xb2800001},
+		{"d32_integer_1000000_negative_false", 32, false, 0, 1, -1000000, 1000000, 0x0, 0x2f8f4240},
+		{"d32_integer_1000000_negative_true", 32, true, 0, 1, -1000000, 1000000, 0x0, 0xaf8f4240},
+		{"d32_negative_10485760", 32, true, 10485759, 1, 10485760, 0, 0x0, 0xb2800001},
+		{"d32_integer_10485760_negative_false", 32, false, 0, 1, -10485760, 10485760, 0x0, 0x2f8f4240},
+		{"d32_integer_10485760_negative_true", 32, true, 0, 1, -10485760, 10485760, 0x0, 0xaf8f4240},
+		{"d32_quantum_-101", 32, false, 1000100, 1, 1000000, 0, 0x0, 0x1},
+		{"d32_quantum_90", 32, false, 999909, 1, 1000000, 0, 0x0, 0x5f800001},
+		{"d64_neighbor_999999", 64, false, 999998, 0, 999999, 0, 0x0, 0x31c0000000000001},
+		{"d64_neighbor_9999999", 64, false, 9999998, 0, 9999999, 0, 0x0, 0x31c0000000000001},
+		{"d64_neighbor_10000000", 64, false, 9999999, 0, 10000000, 0, 0x0, 0x31c0000000000001},
+		{"d64_neighbor_10485759", 64, false, 10485758, 0, 10485759, 0, 0x0, 0x31c0000000000001},
+		{"d64_neighbor_10485761", 64, false, 10485760, 0, 10485761, 0, 0x0, 0x31c0000000000001},
+		{"d64_negative_1000000", 64, true, 999999, 1, 1000000, 0, 0x0, 0xb1c0000000000001},
+		{"d64_integer_1000000_negative_false", 64, false, 0, 1, -1000000, 1000000, 0x0, 0x2fe38d7ea4c68000},
+		{"d64_integer_1000000_negative_true", 64, true, 0, 1, -1000000, 1000000, 0x0, 0xafe38d7ea4c68000},
+		{"d64_negative_10485760", 64, true, 10485759, 1, 10485760, 0, 0x0, 0xb1c0000000000001},
+		{"d64_integer_10485760_negative_false", 64, false, 0, 1, -10485760, 10485760, 0x0, 0x2fe38d7ea4c68000},
+		{"d64_integer_10485760_negative_true", 64, true, 0, 1, -10485760, 10485760, 0x0, 0xafe38d7ea4c68000},
+		{"d64_quantum_-398", 64, false, 1000397, 1, 1000000, 0, 0x0, 0x1},
+		{"d64_quantum_369", 64, false, 999630, 1, 1000000, 0, 0x0, 0x5fe0000000000001},
+		{"d128_neighbor_999999", 128, false, 999998, 0, 999999, 0, 0x3040000000000000, 0x1},
+		{"d128_neighbor_9999999", 128, false, 9999998, 0, 9999999, 0, 0x3040000000000000, 0x1},
+		{"d128_neighbor_10000000", 128, false, 9999999, 0, 10000000, 0, 0x3040000000000000, 0x1},
+		{"d128_neighbor_10485759", 128, false, 10485758, 0, 10485759, 0, 0x3040000000000000, 0x1},
+		{"d128_neighbor_10485761", 128, false, 10485760, 0, 10485761, 0, 0x3040000000000000, 0x1},
+		{"d128_negative_1000000", 128, true, 999999, 1, 1000000, 0, 0xb040000000000000, 0x1},
+		{"d128_integer_1000000_negative_false", 128, false, 0, 1, -1000000, 1000000, 0x2ffe314dc6448d93, 0x38c15b0a00000000},
+		{"d128_integer_1000000_negative_true", 128, true, 0, 1, -1000000, 1000000, 0xaffe314dc6448d93, 0x38c15b0a00000000},
+		{"d128_negative_10485760", 128, true, 10485759, 1, 10485760, 0, 0xb040000000000000, 0x1},
+		{"d128_integer_10485760_negative_false", 128, false, 0, 1, -10485760, 10485760, 0x2ffe314dc6448d93, 0x38c15b0a00000000},
+		{"d128_integer_10485760_negative_true", 128, true, 0, 1, -10485760, 10485760, 0xaffe314dc6448d93, 0x38c15b0a00000000},
+		{"d128_quantum_-6176", 128, false, 1006175, 1, 1000000, 0, 0x0, 0x1},
+		{"d128_quantum_6111", 128, false, 993888, 1, 1000000, 0, 0x5ffe000000000000, 0x1},
+	}
+	build := func(c expCancelCase) string {
+		var sb strings.Builder
+		if c.neg {
+			sb.WriteByte('-')
+		}
+
+        if c.integerZeros > 0 {
+            sb.WriteByte('1')
+            sb.WriteString(strings.Repeat("0", c.integerZeros))
+            sb.WriteByte('e')
+        } else {
+            sb.WriteString("0.")
+            sb.WriteString(strings.Repeat("0", c.fracZeros))
+            sb.WriteString("1e+")
+        }
+        exp := c.expMag
+        if exp < 0 { sb.WriteByte('-'); exp = -exp }
+        sb.WriteString(strings.Repeat("0", c.expLZ))
+        sb.WriteString(strconv.Itoa(exp))
+		return sb.String()
+	}
+	modes := []int{BID_ROUNDING_TO_NEAREST, BID_ROUNDING_DOWN, BID_ROUNDING_UP, BID_ROUNDING_TO_ZERO, BID_ROUNDING_TIES_AWAY}
+	for _, c := range cases {
+		s := build(c)
+		for _, m := range modes {
+			var hi, lo uint64
+			var fl uint32
+			switch c.width {
+			case 32:
+				b, f := Bid32FromStringRaw(s, m)
+				hi, lo, fl = 0, uint64(b), f
+			case 64:
+				b, f := Bid64FromString(s, m)
+				hi, lo, fl = 0, b, f
+			default:
+				r, f := Bid128FromString(s, m)
+				hi, lo = Bid128Words(r)
+				fl = f
+			}
+			if hi != c.hi || lo != c.lo || fl != 0 {
+				t.Errorf("%s mode=%d: got %#x,%#x fl=%#x; want exact cohort %#x,%#x fl=0", c.id, m, hi, lo, fl, c.hi, c.lo)
+			}
+		}
+	}
 }

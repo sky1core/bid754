@@ -30,11 +30,11 @@ type goportReadCaseCounts struct {
 }
 
 var expectedGoportReadCaseCounts = goportReadCaseCounts{
-	Total:         86927,
-	Decimal32:     20931,
-	Decimal64:     21789,
-	Decimal128:    44070,
-	FromString:    288,
+	Total:         86930,
+	Decimal32:     20932,
+	Decimal64:     21790,
+	Decimal128:    44071,
+	FromString:    291,
 	ToString:      63,
 	UnaryOp:       61366,
 	BinaryOp:      23256,
@@ -53,7 +53,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid128_frexp":                       47,
 		"bid128_from_int32":                  20,
 		"bid128_from_int64":                  20,
-		"bid128_from_string":                 85,
+		"bid128_from_string":                 86,
 		"bid128_from_uint32":                 20,
 		"bid128_from_uint64":                 20,
 		"bid128_ilogb":                       78,
@@ -243,7 +243,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid32_frexp":                        49,
 		"bid32_from_int32":                   125,
 		"bid32_from_int64":                   120,
-		"bid32_from_string":                  115,
+		"bid32_from_string":                  116,
 		"bid32_from_uint32":                  120,
 		"bid32_from_uint64":                  114,
 		"bid32_ilogb":                        73,
@@ -413,7 +413,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid64_frexp":                        45,
 		"bid64_from_int32":                   20,
 		"bid64_from_int64":                   122,
-		"bid64_from_string":                  88,
+		"bid64_from_string":                  89,
 		"bid64_from_uint32":                  20,
 		"bid64_from_uint64":                  111,
 		"bid64_ilogb":                        72,
@@ -601,20 +601,20 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid_testSavedFlags":                 19,
 	},
 	Groups: map[string]int{
-		"decimal128_ieee754_regressions": 15,
+		"decimal128_ieee754_regressions": 16,
 		"decimal128_operations":          43954,
 		"decimal128_strings":             101,
-		"decimal32_ieee754_regressions":  25,
+		"decimal32_ieee754_regressions":  26,
 		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
-		"decimal64_ieee754_regressions":  15,
+		"decimal64_ieee754_regressions":  16,
 		"decimal64_operations":           21689,
 		"decimal64_strings":              85,
 		"status_control_operations":      137,
 	},
 	CompareGroups: map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 85672,
+		"CMP_FUZZYSTATUS": 85675,
 		"CMP_RELATIVEERR": 228,
 	},
 }
@@ -626,8 +626,8 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 // Rows carrying a native-compare skip reason (cdiverge) pin intended IEEE
 // behavior, so they must execute and pass here too.
 const (
-	expectedGoportExecutedReadCases         = 86927
-	expectedGoportCDivergeExecutedReadCases = 8
+	expectedGoportExecutedReadCases         = 86930
+	expectedGoportCDivergeExecutedReadCases = 11
 )
 
 // goportReadtestStringBackend routes the readtest.c check_results string

@@ -91,7 +91,7 @@ require_discovered_consumer "$rust_tests_file" "./bid754-rs:bid_string_vectors" 
 sort -u "$go_modules_file" | while IFS= read -r module_dir; do
   [ -n "$module_dir" ] || continue
   echo "==> go BID string vector tests: $module_dir"
-  (cd "$module_dir" && GOCACHE="$go_cache" go test -count=1 ./... -run TestGeneratedBIDStringVectors)
+  (cd "$module_dir" && GOCACHE="$go_cache" go test -count=1 -v ./... -run 'TestGeneratedBIDStringVectors|TestGeneratedParserExponentCancellationRegression|TestParserExponentCancellation|TestParserNegativeExponentCancellation')
 done
 
 sort -u "$rust_tests_file" | while IFS= read -r key; do

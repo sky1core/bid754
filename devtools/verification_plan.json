@@ -217,9 +217,12 @@
           "TestParserResourceEvidenceRequiresEveryLanguageAndCount",
           "TestParserResourceGateAppliesToRequiredProfiles",
           "TestTier1ReferenceFaultInjection",
+          "TestTier1ConversionFaultInjection",
+          "TestParserExponentFaultInjection",
           "TestTier1BigDecimalRequiredAcrossPortableProfiles",
           "TestNumericProfileKeepsDeterministicAndFuzz",
-          "TestTier1DecnumberRequiredAcrossNativeProfiles"
+          "TestTier1DecnumberRequiredAcrossNativeProfiles",
+          "TestTier1ParserAndProductionFaultsRequired"
         ]
       }
     },
@@ -467,7 +470,16 @@
       "comparison": "bits-and-string",
       "evidence": {
         "patterns": [
-          "(?m)^test test_generated_bid_string_vectors \\.\\.\\. ok$"
+          "(?m)^test test_generated_bid_string_vectors \\.\\.\\. ok$",
+          "test test_generated_parser_exponent_cancellation_regression \\.\\.\\. ok"
+        ],
+        "passes": [
+          "TestGeneratedBIDStringVectors",
+          "TestGeneratedParserExponentCancellationRegression",
+          "TestParserExponentCancellation",
+          "TestParserExponentCancellationReferenceEncoder",
+          "TestParserExponentCancellationSignSymmetry",
+          "TestParserNegativeExponentCancellation"
         ]
       }
     },
@@ -1045,6 +1057,11 @@
         "passes": [
           "TestTier1BigDecimal",
           "TestTier1CorpusContract",
+          "TestTier1RoundingBoundaryContract",
+          "TestTier1RoundingBoundaryGo",
+          "TestTier1RoundingBoundaryBigDecimal",
+          "TestTier1BoundaryMutation",
+          "TestTier1BoundaryFuzzSeeds",
           "TestTier1OracleStrength",
           "TestTier1JavaProtocol",
           "TestTier1MissingOracleReplay",

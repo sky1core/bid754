@@ -325,8 +325,29 @@ Currently registered deviations:
    including the sign under roundTowardZero/roundTowardNegative (positive) and
    roundTowardZero/roundTowardPositive (negative) (the negative largest finite
    when negative). The exponent-notation path is not a deviation because
-   pinned C also conforms to IEEE there. `bid128_from_string` has no deviation
-   because pinned C conforms to IEEE on both paths.
+   pinned C also conforms to IEEE there. For these overflow inputs,
+   `bid128_from_string` conforms on both paths.
+
+2. `bid32_from_string` / `bid64_from_string` / `bid128_from_string`
+   exponent cancellation: IEEE 754-2019 §5.4.2 conversion uses the value of
+   the complete decimal character sequence, including insignificant leading
+   exponent zeros. Pinned C stops accumulating the exponent at a fixed
+   magnitude (Decimal32/64) or digit count (Decimal128), before subtracting
+   fractional digits; Decimal128 also counts the first leading exponent zero
+   against that digit limit. This repository retains every exponent digit
+   that can affect the result after cancellation and saturates only beyond
+   the input-length and format-range bound.
+
+   Direct pinned-C probes confirm that a fraction `10^-1000000` followed by
+   `e01000000` returns zero with Underflow/Inexact instead of exact `1` in
+   Decimal128. At `10^-10485760 e10485760`, all three widths return zero with
+   Underflow/Inexact instead of exact `1`. The
+   `bid*_from_string_ieee754_exponent_cdiverge` manifest blocks register the
+   mismatching readtest rows in
+   `devtools/testdata/readtest_ieee754_exponent_cancellation.in`; only those
+   rows skip native comparison. Generated string tests and public-path
+   regression families cover neighboring lengths, signs, exponent spellings,
+   rounding modes, exact results, and unrepresentable written cohorts.
 
 ## decTest
 

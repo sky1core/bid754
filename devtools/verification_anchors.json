@@ -6,14 +6,14 @@
     "Regenerate first, update the affected anchors in the same change, and run make verify-generated.",
     "The public_api and rust_public_api entries are architecture checks, not additional regular verification domains."
   ],
-  "readtest_cases_total": 86927,
+  "readtest_cases_total": 86930,
   "readtest_status_control_cases": 137,
-  "readtest_native_compare_skip_cases": 8,
+  "readtest_native_compare_skip_cases": 11,
   "readtest_profile_rows_accepted": 86872,
   "readtest_profile_row_skip_reasons": {
     "longintsize32": 6652
   },
-  "goport_readtest_executed_cases": 86927,
+  "goport_readtest_executed_cases": 86930,
   "ffi_bitcompare_cases_total": 30023,
   "ffi_profile_functions_total": 680,
   "ffi_profile_functions_included": 526,
@@ -107,8 +107,8 @@
   },
   "tier1_compare_conversion_long_semantic_values_by_width": {
     "decimal32": 42,
-    "decimal64": 68,
-    "decimal128": 85
+    "decimal64": 1744,
+    "decimal128": 4267
   },
   "tier1_compare_conversion_long_quiet_predicates": 6,
   "tier1_compare_conversion_long_minmax_operations": 4,
@@ -135,8 +135,8 @@
   "tier1_compare_conversion_long_to_integer_operations": 80,
   "tier1_compare_conversion_long_to_integer_total_by_width": {
     "decimal32": 364544,
-    "decimal64": 340544,
-    "decimal128": 764272
+    "decimal64": 474624,
+    "decimal128": 1098832
   },
   "tier1_compare_conversion_long_to_integer_random_stream_hash_by_width": {
     "decimal32": 5565143809330466923,
@@ -150,8 +150,8 @@
   },
   "tier1_compare_conversion_long_width_total_by_source": {
     "decimal32": 264704,
-    "decimal64": 268024,
-    "decimal128": 210222
+    "decimal64": 278080,
+    "decimal128": 252042
   },
   "tier1_compare_conversion_long_width_random_stream_hash_by_width": {
     "decimal32": 3418391819236514937,
@@ -164,12 +164,12 @@
     "decimal128": 17758890156621210295
   },
   "tier1_compare_conversion_long_constructor_operations": 36,
-  "tier1_compare_conversion_long_constructor_total": 1049181,
-  "tier1_compare_conversion_long_constructor_convenience_checks": 57,
+  "tier1_compare_conversion_long_constructor_total": 1074036,
+  "tier1_compare_conversion_long_constructor_convenience_checks": 2883,
   "tier1_compare_conversion_long_constructor_random_stream_hash": 3224779711172605996,
-  "tier1_compare_conversion_long_conversion_structured": 1054820,
+  "tier1_compare_conversion_long_conversion_structured": 1688061,
   "tier1_compare_conversion_long_conversion_random": 3014656,
-  "tier1_compare_conversion_long_conversion_total": 4069476,
+  "tier1_compare_conversion_long_conversion_total": 4702717,
   "tier1_compare_conversion_long_consumers": 2,
   "dectest_suite_cases": {
     "Decimal32": 909,
@@ -527,10 +527,10 @@
   "verification_artifact_sha256": {
     "finite_path_runners": "e4c2a1f13a8e15c43d55c789cc412fa2f0cad7fabaee0dcfbce2586855b8b2a3",
     "tier1_independent_runners": "b4e652f977f464e55c4b13430fb249c8f5de4ab556d078e659d0f254c6073881",
-    "testspec_tree": "83d84c6e47427106a7f1bc47d2499fe770cd78c84e2559fd6bba97e6034dd08a",
+    "testspec_tree": "f256b946377a6d34918f555c02a0714eb3e6d527497beca79f9096428d30202d",
     "bidcodec_vectors": "4ae46c32a7ae279d135e32c6a7a0e7cdf7f128723564d461731829e8b26c93ee",
-    "bidcodec_harnesses": "876b344649d8b13e9e5ef3c59fda326d0cea0099524fe6bad9dfebd912ee590a",
-    "goport_verification_runners": "81ac29f8d5388c78acba2546510e74dc9e89840478f4df049b3d3659d502926d",
+    "bidcodec_harnesses": "cda5092527215efe3f5843fe8aa281e047eb79365189270c3af818a9dc03069a",
+    "goport_verification_runners": "fb68caf660e332bd755c3f457ac9b0f6efcc76dd09c6468fd5e3dbb5799ff30a",
     "decnumber_differential_runners": "e0e2596ba85bab83743f17572d06f6b9602efbf832197a6562da7f1ccd59cdd3",
     "d32_exhaustive_runners": "b23f99b7f028909b71030cae9c36822e950223648248c105f64ec5480e8e9e5e",
     "dectest_executor": "77b06a819674940e9ccb39dd77e93c7779e777058edf60a4d6227d9ce491615d",
@@ -538,7 +538,7 @@
     "rust_readtest_runner": "0da7f73583990123a5824807d2ec50b881e66b0b981ce4c9fc4289ccd7c1feaf",
     "rust_public_parity_runner": "e85eca9773b367292a9202012a420f9c86b8f84b7f3fe694207a2bf3ff54bcb4",
     "rust_dectest_runner": "24bc52b2e5ee87347594aa621035c3853253aa99fe349c7dbd48c64ac93d088e",
-    "rust_tier1_long_runners": "f100e5a4cd69525adb74c565b88895b0b4bf536ee93b55165d5fddbf3a85560c"
+    "rust_tier1_long_runners": "d2918c127871efa94e8197ec11cbf48233727a2b89d8d2775c012abed2826381"
   },
   "bid_codec_parse_oracle_tuples": 540,
   "bid_codec_parse_oracle_by_width": {

@@ -424,10 +424,13 @@ pub(crate) fn bid32_from_string_raw_port(ps: impl AsRef<str>, mut rnd_mode: i64)
     if ((c < b'0') || (c > b'9')) {
         return (((0x7c000000 | sign_x) as u32), 0);
     }
+    let mut exponent_limit = ((s.len() as i64).wrapping_add(202 as i64));
     while (((idx < (s.len() as i64)) && (s.as_bytes()[idx as usize] >= b'0')) && (s.as_bytes()[idx as usize] <= b'9')) {
-        if (expon_x < (1048576 as i64)) {
+        if (expon_x <= (((exponent_limit.wrapping_sub(((s.as_bytes()[idx as usize].wrapping_sub(b'0')) as i64)))) / 10)) {
             expon_x = (((go_checked_shl_i64(expon_x, go_shift_count_u64((1) as u64)))).wrapping_add(((go_checked_shl_i64(expon_x, go_shift_count_u64((3) as u64))))));
             expon_x = expon_x.wrapping_add(((s.as_bytes()[idx as usize].wrapping_sub(b'0')) as i64));
+        } else {
+            expon_x = exponent_limit;
         }
         idx = idx.wrapping_add(1);
     }

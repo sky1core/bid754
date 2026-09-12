@@ -455,15 +455,196 @@ pub fn bid32_llround(mut x: u32) -> (i64, u32) {
 }
 
 pub(crate) fn bid32_from_int64_port(mut x: i64, mut rnd_mode: i64) -> (u32, u32) {
-    let (mut r64, mut f1) = bid64_from_int64_port(x, rnd_mode);
-    let (mut r32, mut f2) = bid64_to_bid32_port(r64, rnd_mode);
-    return (r32, (f1 | f2));
+    let mut res: u32 = 0;
+    let mut res64: u64 = 0;
+    let mut x_sign: u32 = 0;
+    let mut C: u64 = 0;
+    let mut q: u32 = 0;
+    let mut ind: u32 = 0;
+    let mut incr_exp: i64 = 0;
+    let mut is_midpoint_lt_even: i64 = 0;
+    let mut is_midpoint_gt_even: i64 = 0;
+    let mut is_inexact_lt_midpoint: i64 = 0;
+    let mut is_inexact_gt_midpoint: i64 = 0;
+    let mut pfpsf: u32 = 0;
+    x_sign = (((go_checked_shr_u64((x as u64), go_shift_count_u64((32) as u64))) as u32) & 0x80000000);
+    if (x_sign != 0) {
+        C = ((!(x as u64)).wrapping_add(1));
+    } else {
+        C = (x as u64);
+    }
+    if (C <= (0x98967f as u64)) {
+        if (C < 0x00800000) {
+            res = ((x_sign | 0x32800000) | (C as u32));
+        } else {
+            res = ((x_sign | 0x6ca00000) | (((C as u32) & 0x001fffff)));
+        }
+    } else {
+        if (C < 100000000) {
+            q = 8;
+            ind = 1;
+        } else if (C < 1000000000) {
+            q = 9;
+            ind = 2;
+        } else if (C < 10000000000) {
+            q = 10;
+            ind = 3;
+        } else if (C < 100000000000) {
+            q = 11;
+            ind = 4;
+        } else if (C < 1000000000000) {
+            q = 12;
+            ind = 5;
+        } else if (C < 10000000000000) {
+            q = 13;
+            ind = 6;
+        } else if (C < 100000000000000) {
+            q = 14;
+            ind = 7;
+        } else if (C < 1000000000000000) {
+            q = 15;
+            ind = 8;
+        } else if (C < 10000000000000000) {
+            q = 16;
+            ind = 9;
+        } else if (C < 100000000000000000) {
+            q = 17;
+            ind = 10;
+        } else if (C < 1000000000000000000) {
+            q = 18;
+            ind = 11;
+        } else {
+            q = 19;
+            ind = 12;
+        }
+        res64 = bid_round64_2_18((q as i64), (ind as i64), (C as u64), (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+        res = (res64 as u32);
+        if (incr_exp != 0) {
+            ind = ind.wrapping_add(1);
+        }
+        if ((((is_inexact_lt_midpoint != 0) || (is_inexact_gt_midpoint != 0)) || (is_midpoint_lt_even != 0)) || (is_midpoint_gt_even != 0)) {
+            pfpsf |= 32;
+        }
+        if (rnd_mode != 0) {
+            if ((((x_sign == 0) && (((((rnd_mode == 2) && (is_inexact_lt_midpoint != 0))) || (((((rnd_mode == 4) || (rnd_mode == 2))) && (is_midpoint_gt_even != 0))))))) || (((x_sign != 0) && (((((rnd_mode == 1) && (is_inexact_lt_midpoint != 0))) || (((((rnd_mode == 4) || (rnd_mode == 1))) && (is_midpoint_gt_even != 0)))))))) {
+                res = (res.wrapping_add(1));
+                if (res == 10000000) {
+                    res = 1000000;
+                    ind = (ind.wrapping_add(1));
+                }
+            } else if ((((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0))) && (((((x_sign != 0) && (((rnd_mode == 2) || (rnd_mode == 3))))) || (((x_sign == 0) && (((rnd_mode == 1) || (rnd_mode == 3)))))))) {
+                res = (res.wrapping_sub(1));
+                if (res == 999999) {
+                    res = 9999999;
+                    ind = (ind.wrapping_sub(1));
+                }
+            }
+        }
+        if (res < 0x00800000) {
+            res = ((x_sign | ((go_checked_shl_u32(((ind.wrapping_add(101))), go_shift_count_u64((23) as u64))))) | res);
+        } else {
+            res = (((x_sign | 0x60000000) | ((go_checked_shl_u32(((ind.wrapping_add(101))), go_shift_count_u64((21) as u64))))) | (res & 0x001fffff));
+        }
+    }
+    return (res, pfpsf);
 }
 
 pub(crate) fn bid32_from_uint64_port(mut x: u64, mut rnd_mode: i64) -> (u32, u32) {
-    let (mut r64, mut f1) = bid64_from_uint64_port(x, rnd_mode);
-    let (mut r32, mut f2) = bid64_to_bid32_port(r64, rnd_mode);
-    return (r32, (f1 | f2));
+    let mut res: u32 = 0;
+    let mut res64: u64 = 0;
+    let mut C: u64 = 0;
+    let mut q: u32 = 0;
+    let mut ind: u32 = 0;
+    let mut incr_exp: i64 = 0;
+    let mut is_midpoint_lt_even: i64 = 0;
+    let mut is_midpoint_gt_even: i64 = 0;
+    let mut is_inexact_lt_midpoint: i64 = 0;
+    let mut is_inexact_gt_midpoint: i64 = 0;
+    let mut pfpsf: u32 = 0;
+    C = x;
+    if (C <= (0x98967f as u64)) {
+        if (C < 0x00800000) {
+            res = (0x32800000 | (C as u32));
+        } else {
+            res = (0x6ca00000 | (((C as u32) & 0x001fffff)));
+        }
+    } else {
+        if (C < 100000000) {
+            q = 8;
+            ind = 1;
+        } else if (C < 1000000000) {
+            q = 9;
+            ind = 2;
+        } else if (C < 10000000000) {
+            q = 10;
+            ind = 3;
+        } else if (C < 100000000000) {
+            q = 11;
+            ind = 4;
+        } else if (C < 1000000000000) {
+            q = 12;
+            ind = 5;
+        } else if (C < 10000000000000) {
+            q = 13;
+            ind = 6;
+        } else if (C < 100000000000000) {
+            q = 14;
+            ind = 7;
+        } else if (C < 1000000000000000) {
+            q = 15;
+            ind = 8;
+        } else if (C < 10000000000000000) {
+            q = 16;
+            ind = 9;
+        } else if (C < 100000000000000000) {
+            q = 17;
+            ind = 10;
+        } else if (C < 1000000000000000000) {
+            q = 18;
+            ind = 11;
+        } else if (C < 10000000000000000000) {
+            q = 19;
+            ind = 12;
+        } else {
+            q = 20;
+            ind = 13;
+        }
+        if (q <= 19) {
+            res64 = bid_round64_2_18((q as i64), (ind as i64), (C as u64), (&mut incr_exp), (&mut is_midpoint_lt_even), (&mut is_midpoint_gt_even), (&mut is_inexact_lt_midpoint), (&mut is_inexact_gt_midpoint));
+            res = (res64 as u32);
+        } else {
+            let mut res128: BID_UINT128 = BID_UINT128 { lo: 0, hi: 0 };
+            (res128, incr_exp, is_midpoint_lt_even, is_midpoint_gt_even, is_inexact_lt_midpoint, is_inexact_gt_midpoint) = bid_round128_19_38((q as i64), (ind as i64), BID_UINT128 { lo: C, hi: 0, ..Default::default() });
+            res = (res128.lo as u32);
+        }
+        if (incr_exp != 0) {
+            ind = ind.wrapping_add(1);
+        }
+        if ((((is_inexact_lt_midpoint != 0) || (is_inexact_gt_midpoint != 0)) || (is_midpoint_lt_even != 0)) || (is_midpoint_gt_even != 0)) {
+            pfpsf |= 32;
+        }
+        if (rnd_mode != 0) {
+            if ((((rnd_mode == 2) && (is_inexact_lt_midpoint != 0))) || (((((rnd_mode == 4) || (rnd_mode == 2))) && (is_midpoint_gt_even != 0)))) {
+                res = (res.wrapping_add(1));
+                if (res == 10000000) {
+                    res = 1000000;
+                    ind = (ind.wrapping_add(1));
+                }
+            } else if ((((is_midpoint_lt_even != 0) || (is_inexact_gt_midpoint != 0))) && (((rnd_mode == 1) || (rnd_mode == 3)))) {
+                res = (res.wrapping_sub(1));
+                if (res == 999999) {
+                    res = 9999999;
+                    ind = (ind.wrapping_sub(1));
+                }
+            }
+        }
+        if (res < 0x00800000) {
+            res = (((go_checked_shl_u32(((ind.wrapping_add(101))), go_shift_count_u64((23) as u64)))) | res);
+        } else {
+            res = ((0x60000000 | ((go_checked_shl_u32(((ind.wrapping_add(101))), go_shift_count_u64((21) as u64))))) | (res & 0x001fffff));
+        }
+    }
+    return (res, pfpsf);
 }
 
 #[inline]

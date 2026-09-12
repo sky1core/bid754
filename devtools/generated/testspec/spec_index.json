@@ -14542,7 +14542,10 @@
     "readtest/bid32_from_string_underflow_boundary_cmatch.json",
     "readtest/bid64_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid64_from_string_ieee754_overflow_cmatch.json",
-    "readtest/bid128_from_string_ieee754_overflow_cmatch.json"
+    "readtest/bid128_from_string_ieee754_overflow_cmatch.json",
+    "readtest/bid32_from_string_ieee754_exponent_cdiverge.json",
+    "readtest/bid64_from_string_ieee754_exponent_cdiverge.json",
+    "readtest/bid128_from_string_ieee754_exponent_cdiverge.json"
   ],
   "ffi_shard_files": [
     "ffi/bid32_add.json",

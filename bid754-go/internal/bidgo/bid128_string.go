@@ -2,9 +2,7 @@
 // Functions: bid128_to_string, bid128_from_string
 // Version: Intel(R) Decimal Floating-Point Math Library 2.0 Update 4
 //
-// This file is a MECHANICAL LINE-BY-LINE translation of the Intel BID library to Go.
-// All logic, magic numbers, variable names, and control flow are preserved exactly.
-// DO NOT REFACTOR OR "IMPROVE" THIS CODE.
+// Mechanical port with the IEEE-conformance deviations registered in docs/IEEE754_SPEC.md.
 
 package bidgo
 
@@ -494,23 +492,17 @@ func Bid128FromString(str string, rnd_mode int) (res BID_UINT128, pfpsf uint32) 
 			c = nulTerminatedByteAt(str, ps)
 		}
 
-		dec_expon = int(c - '0')
-		i = 1
-		ps++
-
-		if dec_expon == 0 {
-			for uint(ps) < uint(len(str)) && str[ps] == '0' {
-				ps++
+		dec_expon = 0
+		exponent_limit := len(str) + 2*EXPONENT_BIAS128
+		for c >= '0' && c <= '9' {
+			if dec_expon <= (exponent_limit-int(c-'0'))/10 {
+				d2 = dec_expon + dec_expon
+				dec_expon = (d2 << 2) + d2 + int(c-'0')
+			} else {
+				dec_expon = exponent_limit
 			}
-		}
-		c = nulTerminatedByteAt(str, ps) - '0'
-
-		for uint(c) <= 9 && i < 7 {
-			d2 = dec_expon + dec_expon
-			dec_expon = (d2 << 2) + d2 + int(c)
 			ps++
-			c = nulTerminatedByteAt(str, ps) - '0'
-			i++
+			c = nulTerminatedByteAt(str, ps)
 		}
 	}
 

@@ -421,21 +421,17 @@ pub(crate) fn bid128_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) -
             ps = ps.wrapping_add(1);
             c = nul_terminated_byte_at(str, ps);
         }
-        dec_expon = ((c.wrapping_sub(b'0')) as i64);
-        i = 1;
-        ps = ps.wrapping_add(1);
-        if (dec_expon == 0) {
-            while (((ps as u64) < ((str.len() as i64) as u64)) && (str.as_bytes()[ps as usize] == b'0')) {
-                ps = ps.wrapping_add(1);
+        dec_expon = 0;
+        let mut exponent_limit = ((str.len() as i64).wrapping_add(12352 as i64));
+        while ((c >= b'0') && (c <= b'9')) {
+            if (dec_expon <= (((exponent_limit.wrapping_sub(((c.wrapping_sub(b'0')) as i64)))) / 10)) {
+                d2 = (dec_expon.wrapping_add(dec_expon));
+                dec_expon = ((((go_checked_shl_i64(d2, go_shift_count_u64((2) as u64)))).wrapping_add(d2)).wrapping_add(((c.wrapping_sub(b'0')) as i64)));
+            } else {
+                dec_expon = exponent_limit;
             }
-        }
-        c = (nul_terminated_byte_at(str, ps).wrapping_sub(b'0'));
-        while (((c as u64) <= 9) && (i < 7)) {
-            d2 = (dec_expon.wrapping_add(dec_expon));
-            dec_expon = ((((go_checked_shl_i64(d2, go_shift_count_u64((2) as u64)))).wrapping_add(d2)).wrapping_add(c as i64));
             ps = ps.wrapping_add(1);
-            c = (nul_terminated_byte_at(str, ps).wrapping_sub(b'0'));
-            i = i.wrapping_add(1);
+            c = nul_terminated_byte_at(str, ps);
         }
     }
     dec_expon = (((dec_expon.wrapping_add(sgn_exp))) ^ sgn_exp);

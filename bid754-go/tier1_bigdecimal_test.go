@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -412,6 +413,22 @@ func FuzzTier1BigDecimal(f *testing.F) {
 	}
 	if err := tier1Corpus(754, 4, func(data []byte) error { f.Add(data); return nil }); err != nil {
 		f.Fatal(err)
+	}
+	boundaries, err := tier1RoundingBoundaryCases()
+	if err != nil {
+		f.Fatal(err)
+	}
+	for _, i := range tier1BoundaryFuzzSeedIndices(boundaries) {
+		c := boundaries[i]
+		data := make([]byte, tier1InputSize)
+		data[4] = 0x80
+		for mode, name := range finiteModes {
+			if name == c.Mode {
+				data[2] = byte(mode)
+			}
+		}
+		binary.LittleEndian.PutUint64(data[5:13], uint64(i))
+		f.Add(data)
 	}
 	var s *tier1Session
 	f.Cleanup(func() {
