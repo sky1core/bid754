@@ -99,6 +99,38 @@ func TestSetupWorktreeRejectsDirtyReuse(t *testing.T) {
 	}
 }
 
+func TestSetupWorktreeRejectsWrongCommitAndAttachedReuse(t *testing.T) {
+	repo := gitFixtureRepo(t)
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	worktree := filepath.Join(t.TempDir(), "detached")
+	cfg := config{repo: repo, worktree: worktree, commit: "HEAD"}
+	if err := setupWorktree(cfg); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(repo, "bid754-go/internal/bidgo/dummy.go")
+	if err := os.WriteFile(path, []byte("package bidgo // second commit\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	git("add", "--", "bid754-go/internal/bidgo/dummy.go")
+	git("commit", "-qm", "second fixture commit")
+	if err := setupWorktree(cfg); err == nil || !strings.Contains(err.Error(), "HEAD") {
+		t.Fatalf("reused worktree at old commit accepted: %v", err)
+	}
+
+	attached := filepath.Join(t.TempDir(), "attached")
+	git("worktree", "add", "-q", "-b", "fixture-attached", attached, "HEAD")
+	cfg.worktree = attached
+	if err := setupWorktree(cfg); err == nil || !strings.Contains(err.Error(), "detached") {
+		t.Fatalf("reused attached worktree accepted: %v", err)
+	}
+}
+
 // TestCheckWorktreeCleanAfterRunFailsOnLeftoverMutation reproduces the
 // failure mode where a dirty exit only printed a WARNING and returned exit
 // code 0: the post-run clean check must now return an error that propagates
@@ -213,6 +245,46 @@ func TestHangs(t *testing.T) {
 func TestExitsWithoutDiagnostic(t *testing.T) {
 	os.Exit(3)
 }
+
+func TestAssertionMessageMentionsTimeout(t *testing.T) {
+	t.Errorf("expected error containing test timed out after, got a different error")
+}
+
+func TestPanicMessageMentionsTimeout(t *testing.T) {
+	panic("unexpected error containing test timed out after")
+}
+
+func TestExitMessageMentionsFailure(t *testing.T) {
+	t.Log("upstream output: --- FAIL: TestNotRun (0.00s)")
+	os.Exit(3)
+}
+
+func TestAssertionMessageMentionsTimeoutMultiline(t *testing.T) {
+	t.Errorf("upstream output:\npanic: test timed out after 1s")
+}
+
+func TestExitMessageMentionsFailureMultiline(t *testing.T) {
+	t.Log("upstream output:\n--- FAIL: TestNotRun (0.00s)")
+	os.Exit(3)
+}
+
+func TestExitMessageMentionsPanicMultiline(t *testing.T) {
+	t.Log("upstream output:\npanic: upstream error")
+	os.Exit(3)
+}
+
+func TestPanicMessageMentionsTimeoutMultiline(t *testing.T) {
+	panic("upstream error:\npanic: test timed out after 1s")
+}
+
+func TestFiniteArithmeticPaths(t *testing.T) {
+	t.Log("FINITE-PATH-FINDING {\"version\":1,\"reason\":\"go/port: flags: got 0, want 32\",\"expected\":\"32800001\",\"flags\":32,\"observations\":[{\"path\":\"go/port\",\"bits\":\"32800001\",\"flags\":0,\"has_flags\":true}]}")
+	if os.Getenv("MUTGATE_FIXTURE_ASSERTION") == "yes" {
+		t.Fatal("value mismatch")
+	}
+	t.Log("quoted output: --- FAIL: TestFiniteArithmeticPaths (0.00s)\n--- FAIL: TestFiniteArithmeticPaths (0.00s)")
+	os.Exit(3)
+}
 `
 	if err := os.WriteFile(filepath.Join(dir, "fixture_test.go"), []byte(src), 0o644); err != nil {
 		t.Fatal(err)
@@ -281,6 +353,32 @@ func TestRunStageClassifiesRealTestOutcomes(t *testing.T) {
 	}
 }
 
+func TestRunStageIgnoresDiagnosticWords(t *testing.T) {
+	bin := buildOutcomeFixtureBinary(t)
+	e := &engine{
+		cfg:   config{stageTimeout: 30 * time.Second},
+		goDir: filepath.Dir(bin),
+	}
+	for _, tc := range []struct {
+		name, want string
+	}{
+		{"TestAssertionMessageMentionsTimeout", "killed"},
+		{"TestPanicMessageMentionsTimeout", "panic"},
+		{"TestExitMessageMentionsFailure", "inconclusive"},
+		{"TestAssertionMessageMentionsTimeoutMultiline", "killed"},
+		{"TestExitMessageMentionsFailureMultiline", "inconclusive"},
+		{"TestExitMessageMentionsPanicMultiline", "inconclusive"},
+		{"TestPanicMessageMentionsTimeoutMultiline", "panic"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, output, _ := e.runStage(stage{Name: "probe", Binary: "portable", RunExpr: "^" + tc.name + "$"}, bin)
+			if got != tc.want {
+				t.Fatalf("verdict = %q, want %q\n%s", got, tc.want, output)
+			}
+		})
+	}
+}
+
 func TestRunStageRejectsInheritedShardSelection(t *testing.T) {
 	e := &engine{cfg: config{stageTimeout: time.Second}}
 	for _, key := range []string{"BID754_TIER1_ARITH_SHARD_COUNT", "BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX", "BID754_D32_EXHAUSTIVE_SHARD_COUNT"} {
@@ -321,6 +419,9 @@ func TestClassifyStageFailure(t *testing.T) {
 }
 
 func TestFailLinesCapturesBanners(t *testing.T) {
+	if lines := failLines("    fixture_test.go:1: upstream output:\n        --- FAIL: TestNotRun (0.00s)\n        panic: not a runtime panic\n"); len(lines) != 0 {
+		t.Fatalf("quoted banners counted as failure evidence: %v", lines)
+	}
 	lines := failLines("--- FAIL: TestX (0.00s)\n    x_test.go:9: got 1 want 2\n")
 	if len(lines) == 0 || !strings.HasPrefix(lines[0], "--- FAIL") {
 		t.Fatalf("assertion fail lines = %v", lines)
@@ -342,8 +443,8 @@ func TestHasLinePrefix(t *testing.T) {
 	if hasLinePrefix("expected no panic: got one\n", "panic:") {
 		t.Error("hasLinePrefix matched a non-anchored occurrence")
 	}
-	if !hasLinePrefix("\t  panic: boom", "panic:") {
-		t.Error("hasLinePrefix should ignore leading whitespace")
+	if hasLinePrefix("\t  panic: boom", "panic:") {
+		t.Error("hasLinePrefix matched an indented log continuation")
 	}
 }
 

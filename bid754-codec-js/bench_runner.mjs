@@ -155,7 +155,10 @@ function benchRow(name, fn) {
     samples.push(Number(elapsed) / iters);
   }
   const sorted = [...samples].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)];
+  const middle = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
   const rendered = samples.map((v) => v.toFixed(1)).join(",");
   console.log(`BENCH ${name} ns_op_median=${median.toFixed(1)} iters=${iters} samples_ns_op=[${rendered}]`);
 }

@@ -1,6 +1,6 @@
 # bid754 Makefile - 자동화된 테스트 및 벤치마크
 
-.PHONY: all test verify-profile test-harness test-codec-go test-portable-public-api-parity verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-codec-parser-resource test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full test-rust-native-d32-exhaustive _test-rust-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-aggregate bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check bench-codec bench-codec-go bench-codec-rs bench-codec-rs-baseline bench-codec-js bench-codec-py bench-compare-go bench-compare-rs bench-compare-rs-baseline test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
+.PHONY: verify-native-inputs all test verify-profile test-harness test-codec-go test-portable-public-api-parity verify-all-native-gates test-portable test-portable-readtest test-portable-dectest test-go-modules verify-go-benchmark-registry verify-go-benchmark-registry-portable verify-go-benchmark-registry-native test-race vet-go-modules verify-go-modules verify-zero-deps verify-portable-purity test-rust verify-rust-benchmark-registry test-rust-native test-rust-native-fuzz test-rust-native-tier1-arithmetic-long _test-rust-native-tier1-arithmetic-long-full test-rust-native-tier1-compare-conversion-long _test-rust-native-tier1-compare-conversion-long-full test-all verify-all _verify-all test-bidcodec test-codec-parser-resource test-bidcodec-exhaustive32 test-bidcodec-long64-128 _test-bidcodec-long64-128-full verify-bidcodec-packages verify-rust-package verify-package-versions verify-cexport-disabled check-scripts check-generated-markers test-bid-string verify-intel-bid-v20u4 verify-rust-overflow test-native test-native-smoke test-native-ffi test-native-tier1-arithmetic-long _test-native-tier1-arithmetic-long-full test-native-tier1-compare-conversion-long _test-native-tier1-compare-conversion-long-full test-native-decnumber-differential _test-native-decnumber-differential-full test-native-d32-exhaustive _test-native-d32-exhaustive-full test-rust-native-d32-exhaustive _test-rust-native-d32-exhaustive-full explore-fresh-seed test-native-readtest test-native-dectest test-dectest test-and-bench bench bench-aggregate bench-quick bench-native bench-bidgo bench-rust bench-rust-baseline bench-go-baseline bench-go-check bench-codec bench-codec-go bench-codec-rs bench-codec-rs-baseline bench-codec-js bench-codec-py bench-compare-go bench-compare-rs bench-compare-rs-baseline test-quick ci clean show-results summary help install-deps doctor setup-native setup-generation-inputs generate-types generate-tables generate-symbols generate-testspec verify-generated digest verify-digest verify-linux verify-linux-portable-arm64 verify-linux-portable-amd64 verify-linux-native-amd64 verify-linux-digest-s390x
 
 NATIVE_TAGS ?= -tags bid754_native
 TIER1_LONG_NATIVE_TAGS ?= -tags bid754_native,bid754_tier1_long
@@ -23,29 +23,6 @@ GO_MODULES = bid754-go bid754-codec-go devtools
 # build re-runs the whole generation pipeline (>10 min measured), so racing it
 # buys no safety signal at a large cost.
 RACE_MODULES = bid754-go bid754-codec-go
-DECTEST_EXECUTOR_OUTPUTS = \
-	dectest_native_adapter_test.go \
-	dectest_class_test.go \
-	dectest_compare_test.go \
-	dectest_comparetotal_test.go \
-	dectest_copy_test.go \
-	dectest_driver_support_test.go \
-	dectest_spec_test.go \
-	dectest_fma_test.go \
-	dectest_helpers_test.go \
-	dectest_logb_test.go \
-	dectest_minmax_test.go \
-	dectest_native.go \
-	dectest_native_stub_test.go \
-	dectest_next_test.go \
-	dectest_nexttoward_test.go \
-	dectest_remainder_test.go \
-	dectest_remaindernear_test.go \
-	dectest_samequantum_test.go \
-	dectest_scaleb_test.go \
-	dectest_tointegral_test.go \
-	dectest_unary_test.go
-
 # 기본 타겟
 all: test
 
@@ -63,7 +40,7 @@ test-portable-readtest:
 	@cd devtools && $(GOENV) go run ./cmd/verifylog -domain goport-readtest -log ../test_results/latest_portable_readtest_results.txt
 
 # Go 기계 포트(bidgo) 직접 decTest 값 교차검증 (cgo 불요, portable). 무태그 러너라 test-go-modules(go test ./...)에도 자동 포함된다.
-test-portable-dectest:
+test-portable-dectest: verify-dectest-inputs
 	@echo "🔎 generated decTest goport portable 값 교차검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-go && $(GOENV) go test -count=1 -v -run "^(TestGeneratedDectestSuitesGoPort|TestGeneratedDectestPlusMinusQuantumStrengthGoPort|TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter|TestGoportDectestRunnerRejectsPartialExecution)$$" -timeout 600s ./...) | tee test_results/latest_portable_dectest_results.txt'
@@ -79,13 +56,13 @@ test-go-modules:
 	done | tee test_results/latest_go_modules_test_results.txt'
 	@$(MAKE) verify-go-benchmark-registry-portable
 
-verify-go-benchmark-registry:
+verify-go-benchmark-registry: verify-native-inputs
 	@bash ./devtools/scripts/verify_go_benchmark_registry.sh all
 
 verify-go-benchmark-registry-portable:
 	@bash ./devtools/scripts/verify_go_benchmark_registry.sh portable
 
-verify-go-benchmark-registry-native:
+verify-go-benchmark-registry-native: verify-native-inputs
 	@bash ./devtools/scripts/verify_go_benchmark_registry.sh native
 
 # Go race detector gate. Exercises the public concurrent-use contract of the
@@ -137,7 +114,7 @@ test-rust:
 verify-rust-benchmark-registry:
 	@bash ./devtools/scripts/verify_rust_benchmark_registry.sh
 
-test-rust-native:
+test-rust-native: verify-native-inputs
 	@echo "🦀 Rust native 테스트 실행 (Intel BID C oracle 필요: readtest)..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked) | tee test_results/latest_rust_native_test_results.txt'
@@ -149,29 +126,29 @@ test-rust-native:
 # as C FFI exact bit-compare completion. Kept a separate target from
 # test-rust-native so that readtest's regular-domain meaning stays intact. Same
 # Intel BID C oracle prerequisite as test-rust-native.
-test-rust-native-fuzz:
+test-rust-native-fuzz: verify-native-inputs
 	@echo "🎲 Rust ffi-fuzz auxiliary 실행 (Rust generated vs Intel BID C oracle, 정규 도메인 아님)..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features ffi-fuzz) | tee test_results/latest_rust_native_fuzz_results.txt'
 
-test-rust-native-tier1-arithmetic-long:
+test-rust-native-tier1-arithmetic-long: verify-native-inputs
 	@echo "🏦 Rust Tier 1 산술 structured + 결정론 Intel C exact + 등록 편차 독립 장기 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_arithmetic_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_tier1_arithmetic_long_results.txt'
 
-_test-rust-native-tier1-arithmetic-long-full:
+_test-rust-native-tier1-arithmetic-long-full: verify-native-inputs
 	@echo "🏦 Rust Tier 1 산술 canonical full verification Intel C exact + 등록 편차 독립 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_ARITH_SHARD_COUNT BID754_TIER1_ARITH_SHARD_INDEX; \
 		bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_arithmetic_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_tier1_arithmetic_long_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_rust_native_tier1_arithmetic_long_results.txt -domain tier1-arithmetic-rust
 
-test-rust-native-tier1-compare-conversion-long:
+test-rust-native-tier1-compare-conversion-long: verify-native-inputs
 	@echo "🏦 Rust Tier 1 비교·MinNum/MaxNum·정수/BID·폭 변환 Intel C exact 장기 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --locked --features tier1-long --test tier1_compare_conversion_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_tier1_compare_conversion_long_results.txt'
 
-_test-rust-native-tier1-compare-conversion-long-full:
+_test-rust-native-tier1-compare-conversion-long-full: verify-native-inputs
 	@echo "🏦 Rust Tier 1 비교·변환 canonical full verification Intel C exact 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_COMPARE_CONVERSION_SHARD_COUNT BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX; \
@@ -201,7 +178,9 @@ verify-all-native-gates:
 	@$(MAKE) verify-profile VERIFY_PROFILE=native
 
 test-harness:
-	@cd devtools && $(GOENV) go test -count=1 -v ./internal/verification ./internal/scriptcheck ./internal/platformdigest ./internal/goboundary ./internal/rustboundary ./cmd/verifylog ./cmd/mutgate ./cmd/explorediff
+	@cd devtools && $(GOENV) go test -count=1 -v ./internal/verification ./internal/scriptcheck ./internal/platformdigest ./internal/goboundary ./internal/rustboundary ./internal/genmarker ./cmd/verifylog ./cmd/mutgate ./cmd/explorediff
+	@python3 -B -m unittest -v devtools/scripts/test_generation_input_alias.py devtools/scripts/test_python_package_smoke.py devtools/scripts/test_benchmark_statistics.py devtools/scripts/test_numeric_regressions.py
+	@cd benchcompare-go && GOWORK=off $(GOENV) go test -count=1 -v -run '^TestOperandContract$$' .
 
 .PHONY: test-finite-reference test-native-finite-reference test-finite-paths test-bigdecimal fuzz-bigdecimal verify-numeric test-tier1-bigdecimal fuzz-tier1-bigdecimal
 
@@ -227,12 +206,12 @@ test-bigdecimal:
 test-finite-paths:
 	@bash devtools/scripts/test_finite_paths.sh
 
-test-native-finite-reference:
+test-native-finite-reference: verify-native-inputs
 	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestFiniteReferenceDecnumberCalibration$$" .'
 	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v ./internal/cmd/explorenative'
 
 .PHONY: test-native-tier1-reference
-test-native-tier1-reference:
+test-native-tier1-reference: verify-native-inputs
 	@bash -c 'source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestTier1(ReferenceDecnumberCalibration|DecnumberRoutingWitnesses|DecnumberComparatorStrength)$$" .'
 
 test-codec-go:
@@ -301,12 +280,14 @@ verify-cexport-disabled:
 verify-zero-deps:
 	@echo "🧊 bid754-go/bid754-codec-go/devtools zero-dependency 계약 검증..."
 	@bash -o pipefail -c 'set -e; \
+		export GOWORK=off GOFLAGS= CGO_ENABLED=1; \
 	for module in $(GO_MODULES); do \
-		allowed="^github.com/sky1core/bid754/$$module"; \
-		deps=$$(cd "$$module" && $(GOENV) go list -deps -f "{{if not .Standard}}{{.ImportPath}}{{end}}" ./...); \
-		out=$$(printf "%s\n" "$$deps" | grep -Ev "$$allowed" | grep -v "^$$" || true); \
+		module_path=$$(cd "$$module" && $(GOENV) go list -m -f "{{.Path}}"); \
+		modules=$$(cd "$$module" && $(GOENV) go list -m -f "{{.Path}}" all); \
+		deps=$$(cd "$$module" && $(GOENV) go list -deps -test -f "{{if not .Standard}}{{if .Module}}{{.Module.Path}}{{else}}MISSING MODULE: {{.ImportPath}}{{end}}{{end}}" ./...); \
+		out=$$(printf "%s\n" "$$modules" "$$deps" | awk -v own="$$module_path" '"'"'NF && $$0 != own'"'"' | sort -u); \
 		if [ -n "$$out" ]; then \
-			echo "ERROR: $$module imports non-stdlib packages outside its own module:"; \
+			echo "ERROR: $$module depends on modules outside its own module:"; \
 			echo "$$out"; \
 			exit 1; \
 		fi; \
@@ -318,11 +299,12 @@ verify-zero-deps:
 verify-portable-purity:
 	@echo "🧊 portable 빌드 cgo 비유입 검증..."
 	@bash -o pipefail -c 'set -e; \
+		export GOWORK=off GOFLAGS=; \
 	for module in $(GO_MODULES); do \
-		files=$$(cd "$$module" && CGO_ENABLED=1 $(GOENV) go list -f "{{if .CgoFiles}}{{.ImportPath}}: {{.CgoFiles}}{{end}}" ./...); \
-		out=$$(printf "%s\n" "$$files" | grep -v "^$$" || true); \
+		files=$$(cd "$$module" && CGO_ENABLED=1 $(GOENV) go list -deps -f "{{if not .Standard}}{{if or .CgoFiles .SwigFiles .SwigCXXFiles}}{{.ImportPath}}: cgo={{.CgoFiles}} swig={{.SwigFiles}} swigcxx={{.SwigCXXFiles}}{{end}}{{end}}" ./...); \
+		out=$$(printf "%s\n" "$$files" | awk "NF"); \
 		if [ -n "$$out" ]; then \
-			echo "ERROR: cgo files reachable in the default (portable) build of $$module:"; \
+			echo "ERROR: cgo/SWIG inputs reachable in the default (portable) build of $$module:"; \
 			echo "$$out"; \
 			exit 1; \
 		fi; \
@@ -376,42 +358,42 @@ test-bid-string:
 	@bash -o pipefail -c './devtools/scripts/test_bid_string.sh | tee test_results/latest_bid_string_results.txt'
 
 # native 전체 테스트
-test-native:
+test-native: verify-native-inputs
 	@echo "🧪 native 테스트 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -timeout 120s ./...) | tee test_results/latest_test_results.txt'
 
 # native smoke 테스트
-test-native-smoke:
+test-native-smoke: verify-native-inputs
 	@echo "🧪 native smoke 테스트 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -short ./...) | tee test_results/latest_native_smoke_results.txt'
 	@$(MAKE) verify-go-benchmark-registry-native
 
-test-native-ffi:
+test-native-ffi: verify-native-inputs
 	@echo "🧬 generated FFI bit-compare native non-short 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedFFIBitCompareSubset|TestGeneratedMixedFormatFFIRoutingSentinels|TestGeneratedFFIQuantumSteeringAdjudicationStrength|TestGeneratedFFIQuantumSteeringSamples)$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedFFIBitCompareSubset) | tee test_results/latest_native_ffi_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -sentinels verification_sentinels.json -log ../test_results/latest_native_ffi_results.txt -domain native-ffi
 
-test-native-tier1-arithmetic-long:
+test-native-tier1-arithmetic-long: verify-native-inputs
 	@echo "🏦 Tier 1 산술 structured + 대량 결정론 Intel C exact + 등록 편차 독립 장기 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|ScaleBIntel003Witness|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
 
-_test-native-tier1-arithmetic-long-full:
+_test-native-tier1-arithmetic-long-full: verify-native-inputs
 	@echo "🏦 Tier 1 산술 canonical full verification Intel C exact + 등록 편차 독립 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_ARITH_SHARD_COUNT BID754_TIER1_ARITH_SHARD_INDEX; \
 		bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1Arithmetic(CorpusContract|RoutingSentinels|ScaleBIntel003Witness|StructuredNativeDifferential|DeterministicRandomNativeDifferential)$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_arithmetic_long_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_tier1_arithmetic_long_results.txt -domain tier1-arithmetic-go
 
-test-native-tier1-compare-conversion-long:
+test-native-tier1-compare-conversion-long: verify-native-inputs
 	@echo "🏦 Tier 1 quiet 비교·MinNum/MaxNum·정수/BID·BID 폭 변환 Intel C exact 장기 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(TIER1_LONG_NATIVE_TAGS) -v -run "^TestTier1(QuietComparisonSemanticMatrix|CompareConversionRoutingSentinels|ComparisonMinMax(StructuredNativeDifferential|DeterministicRandomNativeDifferential)|Conversion(StructuredNativeDifferential|DeterministicRandomNativeDifferential))$$" -timeout 0 ./...) | tee test_results/latest_native_tier1_compare_conversion_long_results.txt'
 
-_test-native-tier1-compare-conversion-long-full:
+_test-native-tier1-compare-conversion-long-full: verify-native-inputs
 	@echo "🏦 Tier 1 비교·변환 canonical full verification Intel C exact 장기 검증 실행 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_TIER1_COMPARE_CONVERSION_SHARD_COUNT BID754_TIER1_COMPARE_CONVERSION_SHARD_INDEX; \
@@ -422,12 +404,12 @@ _test-native-tier1-compare-conversion-long-full:
 # port / pinned IBM decNumber 3.68 3-leg exact 비교 (추가 generated 게이트,
 # 정규 4개 도메인 아님; decNumber는 divergence tripwire이지 정확성 정의가
 # 아님). 항상 전량 실행 (shard 변수 없음).
-test-native-decnumber-differential:
+test-native-decnumber-differential: verify-native-inputs
 	@echo "🔱 decNumber 제3 oracle 차등 게이트 실행 (Intel C / Go port / decNumber 3.68 exact)..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$$" -timeout 0 ./...) | tee test_results/latest_native_decnumber_differential_results.txt'
 
-_test-native-decnumber-differential-full:
+_test-native-decnumber-differential-full: verify-native-inputs
 	@echo "🔱 decNumber 차등 게이트 canonical full 실행 + verifylog 증거 바인딩..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(DECNUMBER_DIFF_NATIVE_TAGS) -v -run "^TestGeneratedDecnumberDifferential(CorpusContract|RoutingSentinels|Structured|DeterministicRandom)$$" -timeout 0 ./...) | tee test_results/latest_native_decnumber_differential_results.txt'
@@ -439,12 +421,12 @@ _test-native-decnumber-differential-full:
 # 게이트로, verify-all 체인에는 포함하지 않는다. 레인별 결과 다이제스트는
 # devtools/verification_anchors.json에 수기 핀되고 _full 변형의 verifylog가
 # 로그 증거와 대조한다.
-test-native-d32-exhaustive:
+test-native-d32-exhaustive: verify-native-inputs
 	@echo "🔬 Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(D32_EXHAUSTIVE_NATIVE_TAGS) -v -run "^TestGeneratedD32Exhaustive(LaneContract|RoutingSentinels|UnaryDifferential)$$" -timeout 0 .) | tee test_results/latest_native_d32_exhaustive_results.txt'
 
-_test-native-d32-exhaustive-full:
+_test-native-d32-exhaustive-full: verify-native-inputs
 	@echo "🔬 Decimal32 단항 exhaustive canonical full 실행 + verifylog 증거 바인딩 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_D32_EXHAUSTIVE_SHARD_COUNT BID754_D32_EXHAUSTIVE_SHARD_INDEX; \
@@ -463,12 +445,12 @@ _test-native-d32-exhaustive-full:
 # 구현부는 crate 수준에서 이미 해당 lint를 allow하므로(verify-rust-overflow가
 # 그 경계를 강제) 값 semantics는 프로파일과 무관하며, 결과는 매 케이스
 # pinned Intel C와 exact 비교되고 레인 다이제스트로 외부 핀에 묶인다.
-test-rust-native-d32-exhaustive:
+test-rust-native-d32-exhaustive: verify-native-inputs
 	@echo "🔬 Rust Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(cd bid754-rs/ffi-verify && cargo test --release --locked --features d32-exhaustive-long --test d32_exhaustive_long_generated -- --nocapture --test-threads=1) 2>&1 | tee test_results/latest_rust_native_d32_exhaustive_results.txt'
 
-_test-rust-native-d32-exhaustive-full:
+_test-rust-native-d32-exhaustive-full: verify-native-inputs
 	@echo "🔬 Rust Decimal32 단항 exhaustive canonical full 실행 + verifylog 증거 바인딩 (shard 비활성)..."
 	@mkdir -p test_results
 	@unset BID754_D32_EXHAUSTIVE_SHARD_COUNT BID754_D32_EXHAUSTIVE_SHARD_INDEX; \
@@ -484,7 +466,7 @@ _test-rust-native-d32-exhaustive-full:
 # exit 3, 실행 실패 시 exit 1로 실패한다. `go run`은 자식 exit 코드를 1로
 # 접으므로 0/3/1 계약이 보이도록 반드시 빌드한 바이너리를 직접 실행한다
 # (도구가 출력하는 재현 명령도 같은 형태).
-explore-fresh-seed:
+explore-fresh-seed: verify-native-inputs
 	@echo "🎲 신규-seed Tier 1 산술 Go port vs Intel C exact 차등 탐색 실행 (타깃당 $(FRESH_SEED_CASES) 케이스)..."
 	@mkdir -p test_results
 	@bash -o pipefail -c 'set -e; \
@@ -492,13 +474,13 @@ explore-fresh-seed:
 		(cd devtools && $(GOENV) go build -o "$$tmpdir/explorediff" ./cmd/explorediff); \
 		"$$tmpdir/explorediff" -repo . -cases $(FRESH_SEED_CASES) | tee test_results/latest_explore_fresh_seed.txt'
 
-test-native-readtest:
+test-native-readtest: verify-native-inputs
 	@echo "🔎 generated readtest native non-short 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^TestGeneratedReadCases$$" -timeout 300s ./...) | (cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/testlogcompact -root TestGeneratedReadCases) | tee test_results/latest_native_readtest_results.txt'
 	@cd devtools && GOCACHE=$${GOCACHE:-/tmp/go-cache} go run ./cmd/verifylog -anchors verification_anchors.json -log ../test_results/latest_native_readtest_results.txt -domain native-readtest
 
-test-native-dectest:
+test-native-dectest: verify-native-inputs verify-dectest-inputs
 	@echo "🔍 generated decTest native non-short 검증 실행..."
 	@mkdir -p test_results
 	@bash -o pipefail -c '(source ./.env.sh && cd bid754-go && $(GOENV) go test -count=1 $(NATIVE_TAGS) -v -run "^(TestGeneratedDectestSuites|TestGeneratedDectestPlusMinusQuantumStrengthGoPort|TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter|TestNativeDectestRunnerRejectsPartialExecution)$$" -timeout 300s ./...) | tee test_results/latest_native_dectest_results.txt'
@@ -520,7 +502,7 @@ test:
 	@$(MAKE) test-portable
 
 # 빠른 벤치마크 (공개 API 계층만, 1회 샘플 — 스모크용이며 회귀 판정 근거로 쓰지 않는다)
-bench-quick:
+bench-quick: verify-native-inputs
 	@echo "⚡ native 빠른 벤치마크 실행 (public API 계층, count=1 스모크)..."
 	@mkdir -p test_results
 	@bash -o pipefail -lc '( echo "BENCH-META target=bench-quick count=1 go=$$(go env GOVERSION) tree=$$(bash ./devtools/scripts/print_tree_id.sh) date=$$(date -u +%Y-%m-%dT%H:%M:%SZ)"; source ./.env.sh && cd bid754-go && $(GOENV) go test $(NATIVE_TAGS) -bench="^BenchmarkAligned" -benchmem -run=^$$ -timeout 300s ) | tee test_results/quick_benchmark_results.txt'
@@ -552,7 +534,7 @@ bench-aggregate:
 	fi
 
 # Intel C direct + root public API native-tag 벤치마크
-bench-native:
+bench-native: verify-native-inputs
 	@echo "📊 Intel C direct + root public API native-tag 벤치마크 실행 (count=$(BENCH_COUNT))..."
 	@mkdir -p test_results
 	@bash -o pipefail -c 'bash ./devtools/scripts/bench_go.sh bench-native "$(BENCH_COUNT)" "$(BENCH_TIME)" $(NATIVE_TAGS) 2>&1 | tee test_results/latest_benchmark_root_results.txt'
@@ -698,6 +680,13 @@ install-deps:
 	@echo "Intel DFP 라이브러리:"
 	@ls -la devtools/third_party/intel_dfp/lib/libbid.a 2>/dev/null || echo "❌ Intel DFP 라이브러리 없음"
 	@$(MAKE) verify-go-modules
+
+verify-native-inputs:
+	@bash ./devtools/scripts/setup_generation_inputs.sh verify-intel
+
+.PHONY: verify-dectest-inputs
+verify-dectest-inputs:
+	@bash ./devtools/scripts/setup_generation_inputs.sh verify-dectest
 
 setup-native:
 	@echo "🛠️  native 의존성 설치..."
@@ -913,9 +902,9 @@ help:
 	@echo "  make test-portable-dectest generated decTest Go 포트 값 교차검증 (cgo 불요)"
 	@echo "  make test-native-smoke  native 짧은 검증"
 	@echo "  make test-native-ffi generated FFI bit-compare native non-short 검증"
-	@echo "  make test-native-tier1-arithmetic-long Tier 1 산술 structured + 대량 결정론 Intel C exact bit/flag 장기 검증"
+	@echo "  make test-native-tier1-arithmetic-long Tier 1 산술 structured + 대량 결정론 Intel C exact + 등록 편차 독립 장기 검증"
 	@echo "  make test-native-tier1-compare-conversion-long Tier 1 비교·MinNum/MaxNum·정수/BID·폭 변환 Intel C exact 장기 검증"
-	@echo "  make test-rust-native-tier1-arithmetic-long 동일 Tier 1 산술 corpus의 Rust public API vs Intel C exact 검증"
+	@echo "  make test-rust-native-tier1-arithmetic-long 동일 Tier 1 산술 corpus의 Rust public API vs Intel C exact + 등록 편차 독립 검증"
 	@echo "  make test-native-decnumber-differential decNumber 제3 oracle 3-leg 차등 게이트 (Intel C / Go port / decNumber)"
 	@echo "  make test-native-d32-exhaustive Decimal32 단항 전체 2^32 exhaustive Intel C exact bit/flag 장기 차등 (verify-all 비포함 독립 장기 게이트)"
 	@echo "  make test-rust-native-d32-exhaustive Rust 레그: 생성 Rust port vs Intel C, 동일 레인/동일 핀 다이제스트 (verify-all 비포함 독립 장기 게이트)"

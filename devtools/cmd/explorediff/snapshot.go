@@ -56,18 +56,16 @@ func freezeSource(repo, dir string) (root, id, archive string, err error) {
 		return
 	}
 	rel := "devtools/third_party/intel_dfp"
-	paths := []string{"lib/libbid.a", "IntelRDFPMathLib20U4.tar.gz"}
-	for _, headerDir := range []string{"src", "include"} {
-		var headers []string
-		headers, err = filepath.Glob(filepath.Join(repo, rel, headerDir, "*.h"))
-		if err != nil {
-			return
-		}
-		for _, header := range headers {
-			paths = append(paths, filepath.Join(headerDir, filepath.Base(header)))
-		}
+	archivePath := "IntelRDFPMathLib20U4.tar.gz"
+	if err = copyFrozenInput(filepath.Join(repo, rel, archivePath), filepath.Join(root, rel, archivePath)); err != nil {
+		return
 	}
-	for _, path := range paths {
+	setup := exec.Command("bash", filepath.Join(root, "devtools/scripts/setup_generation_inputs.sh"), "intel")
+	if out, setupErr := setup.CombinedOutput(); setupErr != nil {
+		err = fmt.Errorf("prepare frozen Intel source: %w: %s", setupErr, out)
+		return
+	}
+	for _, path := range []string{"lib/libbid.a", "lib/.libbid.build-flags"} {
 		if err = copyFrozenInput(filepath.Join(repo, rel, path), filepath.Join(root, rel, path)); err != nil {
 			return
 		}

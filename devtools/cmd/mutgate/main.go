@@ -345,6 +345,25 @@ func setupWorktree(cfg config) error {
 		if dirty != "" {
 			return fmt.Errorf("refusing to reuse dirty worktree %s (leftover state would poison every mutant verdict):\n%s", cfg.worktree, dirty)
 		}
+		head, err := gitText(cfg.worktree, "rev-parse", "HEAD")
+		if err != nil {
+			return err
+		}
+		expected, err := gitText(cfg.repo, "rev-parse", cfg.commit+"^{commit}")
+		if err != nil {
+			return err
+		}
+		if head != expected {
+			return fmt.Errorf("reused worktree HEAD %s differs from requested snapshot %s", head, expected)
+		}
+		if err := exec.Command("git", "-C", cfg.worktree, "symbolic-ref", "-q", "HEAD").Run(); err == nil {
+			return errors.New("reused worktree must be detached")
+		} else {
+			var exit *exec.ExitError
+			if !errors.As(err, &exit) || exit.ExitCode() != 1 {
+				return err
+			}
+		}
 		fmt.Printf("worktree already present (verified clean): %s\n", cfg.worktree)
 	} else {
 		cmd := exec.Command("git", "-C", cfg.repo, "worktree", "add", "--detach", cfg.worktree, cfg.commit)
@@ -1077,24 +1096,27 @@ func executableTest(name string) bool {
 //   - anything else is a nonzero exit with no failing-test evidence (a
 //     missing shared library, an os.Exit, an exec fault) -> "inconclusive".
 func classifyStageFailure(out string) string {
-	if strings.Contains(out, "test timed out after") {
-		return "timeout"
+	for _, line := range strings.Split(out, "\n") {
+		if strings.HasPrefix(line, "panic:") {
+			if strings.HasPrefix(line, "panic: test timed out after ") {
+				return "timeout"
+			}
+			return "panic"
+		}
+		if strings.HasPrefix(line, "fatal error:") {
+			return "panic"
+		}
 	}
-	if hasLinePrefix(out, "panic:") || hasLinePrefix(out, "fatal error:") {
-		return "panic"
-	}
-	if strings.Contains(out, "--- FAIL") {
+	if hasLinePrefix(out, "--- FAIL: ") {
 		return "killed"
 	}
 	return "inconclusive"
 }
 
-// hasLinePrefix reports whether any line of out, after trimming leading
-// whitespace, begins with prefix. Line-anchored so a "panic:" appearing inside
-// a test's own failure message does not masquerade as a crash banner.
+// hasLinePrefix reports whether any output line begins with prefix.
 func hasLinePrefix(out, prefix string) bool {
 	for _, l := range strings.Split(out, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(l), prefix) {
+		if strings.HasPrefix(l, prefix) {
 			return true
 		}
 	}
@@ -1144,9 +1166,9 @@ func failLines(out string) []string {
 	var lines []string
 	for _, l := range strings.Split(out, "\n") {
 		t := strings.TrimSpace(l)
-		if strings.HasPrefix(t, "--- FAIL") ||
-			strings.HasPrefix(t, "panic:") ||
-			strings.HasPrefix(t, "fatal error:") ||
+		if strings.HasPrefix(l, "--- FAIL: ") ||
+			strings.HasPrefix(l, "panic:") ||
+			strings.HasPrefix(l, "fatal error:") ||
 			strings.Contains(t, "DIVERGENCE d") ||
 			strings.Contains(t, "port!=Intel:") ||
 			strings.Contains(t, ".go:") && strings.Contains(t, "expected") {

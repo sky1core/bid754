@@ -46,6 +46,10 @@ func verifyProvenance(p provenanceRecord) error {
 	if err != nil {
 		return err
 	}
+	nativeCheck := exec.Command("bash", filepath.Join(root, "devtools/scripts/setup_generation_inputs.sh"), "verify-intel")
+	if out, err := nativeCheck.CombinedOutput(); err != nil {
+		return fmt.Errorf("pinned Intel native provenance: %w: %s", err, out)
+	}
 	args := []string{"-B", filepath.Join(root, "devtools/scripts/lib/source_snapshot.py"), "current-tree-id", "--root", root}
 	if sourceSnapshotPath != "" {
 		args = []string{"-B", filepath.Join(root, "devtools/scripts/lib/source_snapshot.py"), "verify-source", sourceSnapshotPath, "--root", root, "--expected-id", p.SourceID}

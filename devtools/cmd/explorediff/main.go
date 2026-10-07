@@ -166,6 +166,9 @@ func run(cfg config) (code int, runErr error) {
 	if _, err := os.Stat(intelLib); err != nil {
 		return 1, fmt.Errorf("pinned Intel build missing (%s): run make setup-native; in a worktree, symlink the lib, src, include, and LIBRARY subdirectories of devtools/third_party/intel_dfp from the primary checkout (the directory itself already exists there)", intelLib)
 	}
+	if err := verifyPinnedIntelNative(repo); err != nil {
+		return 1, err
+	}
 
 	seed, seedSource, err := resolveSeed(cfg.seedText, time.Now().UnixNano())
 	if err != nil {
@@ -197,6 +200,9 @@ func run(cfg config) (code int, runErr error) {
 		return 1, err
 	}
 	goDir = filepath.Join(frozenRepo, "bid754-go")
+	if err := verifyPinnedIntelNative(frozenRepo); err != nil {
+		return 1, err
+	}
 	intelLib = filepath.Join(frozenRepo, "devtools/third_party/intel_dfp/lib/libbid.a")
 	librarySHA, err := hashFile(intelLib)
 	if err != nil {
@@ -209,6 +215,9 @@ func run(cfg config) (code int, runErr error) {
 	}
 	checkSource := func() error {
 		if err := verifyFrozenSource(frozenRepo, snapshot, sourceID); err != nil {
+			return err
+		}
+		if err := verifyPinnedIntelNative(frozenRepo); err != nil {
 			return err
 		}
 		for path, want := range map[string]string{intelLib: librarySHA, archivePath: archiveSHA} {

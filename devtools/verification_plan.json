@@ -151,7 +151,8 @@
         "python3",
         "bash",
         "git",
-        "cc"
+        "cc",
+        "node"
       ],
       "prerequisites": [
         "generation-inputs"
@@ -172,15 +173,29 @@
           "TIER1-REFERENCE-STRENGTH mutant to_integer_upper_bound rejected by ",
           "TIER1-REFERENCE-STRENGTH mutant scaleb_shift_direction rejected by ",
           "TIER1-REFERENCE-STRENGTH mutant underflow_flag rejected by ",
-          "TIER1-REFERENCE-STRENGTH crash control rejected"
+          "TIER1-REFERENCE-STRENGTH crash control rejected",
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/genmarker\\s",
+          "(?m)^ok\\s+github.com/sky1core/bid754/benchcompare-go\\s"
         ],
         "passes": [
           "TestExternalConsumer",
           "TestDefaultBuildExcludesGeneratedVerification",
+          "TestZeroDependencyGateRejectsExternalModules",
+          "TestPortablePurityGateRejectsReachableCgo",
+          "TestPortablePurityGateRejectsReachableSwig",
+          "TestDependencyGatesAllowNativeTaggedCgo",
+          "TestDependencyGatesRejectInspectionFailure",
           "TestExternalConsumerBoundary",
           "TestShellSyntaxChecksEverySelectedScript",
+          "TestRustPackageGateRejectsForeignCode",
+          "TestRustPackageGateRejectsDependencyOverrides",
+          "TestRustOverflowGateParsesProfiles",
+          "TestGeneratedArtifactComparatorRejectsDrift",
+          "TestGeneratedMarkerCoverageRejectsUnregisteredComparisons",
+          "TestGeneratedMarkerCoverageRejectsInspectionFailures",
           "TestRunnerRejectsNoOpAndDetectsTheIntendedSyntaxDefect",
           "TestAdjudicatorRejectsMissingMixedStaleAndWeakenedEvidence",
+          "TestEvidenceAcceptsRelativeLogPath",
           "TestCodecAdjudicationRequiresEachLanguageAndItsAnchoredCounts",
           "TestMatrixRejectsMissingRequiredPlatform",
           "TestSourceSnapshotRoundTrip",
@@ -193,6 +208,8 @@
           "TestSourceSnapshotUnsafeIndex",
           "TestSourceSnapshotDestinationSafety",
           "TestSourceSnapshotSHA256Index",
+          "TestSourceSnapshotDigestCompatibility",
+          "TestVerifyDigestEvidence",
           "TestSourceSnapshotVerifySourceAfterBuild",
           "TestSourceSnapshotContainerTreeID",
           "TestRunnerRejectsInheritedTestSelection",
@@ -200,6 +217,8 @@
           "TestDefaultProductSourceOwnershipRejectsRenamedGeneratedSupport",
           "TestExactReferenceDependencyBoundary",
           "TestRunStageClassifiesRealTestOutcomes",
+          "TestRunStageIgnoresDiagnosticWords",
+          "TestFinitePathRejectsQuotedFailureMarker",
           "TestExactVerdictRequiresIntendedEvidence",
           "TestExactCampaignRealBinary",
           "TestExactCLIAndSnapshotKeepPrimaryIndex",
@@ -222,7 +241,8 @@
           "TestTier1BigDecimalRequiredAcrossPortableProfiles",
           "TestNumericProfileKeepsDeterministicAndFuzz",
           "TestTier1DecnumberRequiredAcrossNativeProfiles",
-          "TestTier1ParserAndProductionFaultsRequired"
+          "TestTier1ParserAndProductionFaultsRequired",
+          "TestGeneratedArtifactManifestRejectsUnsafePaths"
         ]
       }
     },
@@ -437,7 +457,22 @@
       "prerequisites": [],
       "comparison": "bits-components-reject-closure",
       "evidence": {
-        "codec": true
+        "codec": true,
+        "patterns": [
+          "(?m)^tests/test_bid\\.py::TestToString::test_integer_subclass_closure PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_integer_enum_size PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[float32\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[float64\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[float128\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[complex32\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[complex64\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[complex128\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[decimal\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[true\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[false\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[none\\] PASSED$",
+          "(?m)^tests/test_bid\\.py::TestEncodeBytes::test_size_requires_integer\\[string\\] PASSED$"
+        ]
       }
     },
     {

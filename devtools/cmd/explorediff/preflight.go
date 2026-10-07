@@ -115,6 +115,14 @@ func sourceIdentity(repo string) (string, error) {
 	return id, nil
 }
 
+func verifyPinnedIntelNative(repo string) error {
+	out, err := exec.Command("bash", filepath.Join(repo, "devtools/scripts/setup_generation_inputs.sh"), "verify-intel").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("pinned Intel native provenance: %w: %s", err, out)
+	}
+	return nil
+}
+
 func hashFile(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {

@@ -201,7 +201,7 @@ func (e *engine) runFinitePathBinary(binary, language string, env []string, star
 			return "timeout", full, time.Since(started)
 		}
 		e.pathFinding = finiteNumericFinding(full, language)
-		if len(e.pathFinding) != 0 && strings.Contains(full, "--- FAIL: TestFiniteArithmeticPaths") {
+		if len(e.pathFinding) != 0 && hasLinePrefix(full, "--- FAIL: TestFiniteArithmeticPaths (") {
 			return "killed", full, time.Since(started)
 		}
 		if classifyStageFailure(full) == "panic" || strings.Contains(full, "panicked at") {

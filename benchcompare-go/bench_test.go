@@ -169,7 +169,8 @@ func partsComponents(r partsRow) codec.Components {
 }
 
 func d128Words(v bid.Decimal128BID) (lo, hi uint64) {
-	return binary.LittleEndian.Uint64(v[0:8]), binary.LittleEndian.Uint64(v[8:16])
+	raw := v.ToBytes()
+	return binary.LittleEndian.Uint64(raw[0:8]), binary.LittleEndian.Uint64(raw[8:16])
 }
 
 func BenchmarkParse(b *testing.B) {
@@ -341,7 +342,7 @@ func BenchmarkToParts(b *testing.B) {
 	b.Run("d32_bid754codec", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			sinkComp = codec.Decode32(uint32(bid32Vals[i%n]))
+			sinkComp = codec.Decode32(bid32Vals[i%n].ToUint32())
 		}
 	})
 	b.Run("d32_shopspring", func(b *testing.B) {
@@ -355,7 +356,7 @@ func BenchmarkToParts(b *testing.B) {
 	b.Run("d64_bid754codec", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			sinkComp = codec.Decode64(uint64(bid64Vals[i%n]))
+			sinkComp = codec.Decode64(bid64Vals[i%n].ToUint64())
 		}
 	})
 	b.Run("d64_shopspring", func(b *testing.B) {

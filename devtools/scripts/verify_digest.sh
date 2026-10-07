@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 
-parser = argparse.ArgumentParser(description="Compare platform bit digests from the same clean source tree")
+parser = argparse.ArgumentParser(description="Compare platform bit digests from the same source snapshot")
 parser.add_argument("--results-dir", type=Path, default=Path("test_results"))
 parser.add_argument("--expected-tree")
 parser.add_argument("--require-platform", action="append", default=[])
@@ -22,8 +22,8 @@ def fail(message):
 expected_tree = args.expected_tree
 if expected_tree is None:
     expected_tree = subprocess.check_output(["bash", "devtools/scripts/print_tree_id.sh"], text=True).strip()
-if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", expected_tree):
-    fail("expected tree must identify a clean checkout")
+if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}(?:-dirty)?", expected_tree):
+    fail("expected tree must identify a clean commit or a source snapshot")
 required = set(args.require_platform)
 if any(not re.fullmatch(r"[a-z0-9]+/[a-z0-9]+", platform) for platform in required):
     fail("required platforms must use os/arch format")

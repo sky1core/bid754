@@ -46,6 +46,22 @@ func TestFiniteQuantumProbeSites(t *testing.T) {
 	}
 }
 
+func TestFinitePathRejectsQuotedFailureMarker(t *testing.T) {
+	binary := buildOutcomeFixtureBinary(t)
+	e := &engine{goDir: filepath.Dir(binary), cfg: config{stageTimeout: 30 * time.Second}}
+	for _, assertion := range []bool{true, false} {
+		setting, want := "no", "inconclusive"
+		if assertion {
+			setting, want = "yes", "killed"
+		}
+		t.Setenv("MUTGATE_FIXTURE_ASSERTION", setting)
+		got, output, _ := e.runFinitePathBinary(binary, "go", os.Environ(), time.Now())
+		if got != want {
+			t.Errorf("assertion=%v verdict=%s want=%s\n%s", assertion, got, want, output)
+		}
+	}
+}
+
 func TestFinitePathMutationRequiresIntendedOperationAndFault(t *testing.T) {
 	base := `{"version":1,"config":{"witness":"unfused128"},"sample":{"case":{"width":128,"op":"fma","mode":"nearest_even"}},"reason":"rust/public/mode: flags: got 0x20, want 0","expected":"3040000000000000:0000000000000001","flags":0,"observations":[{"path":"rust/public/mode","bits":"3082000000000000:0000000000000000","flags":32,"has_flags":true}]}`
 	probe := exactProbe{Name: "unfused128"}

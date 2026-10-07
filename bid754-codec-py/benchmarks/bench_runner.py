@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import re
+import statistics
 import sys
 import time
 from dataclasses import dataclass
@@ -176,7 +177,7 @@ def _bench_row(name: str, samples: int, fn) -> None:
     for _ in range(samples):
         elapsed = _run_batch(fn, iters)
         measured.append(elapsed / iters)
-    median = sorted(measured)[len(measured) // 2]
+    median = statistics.median(measured)
     rendered = ",".join(f"{v:.1f}" for v in measured)
     print(f"BENCH {name} ns_op_median={median:.1f} iters={iters} samples_ns_op=[{rendered}]")
 

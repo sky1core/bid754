@@ -47,7 +47,8 @@ func nativeProvenanceArgs(t *testing.T) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := exec.Command("python3", "-B", filepath.Join(root, "devtools/scripts/lib/source_snapshot.py"), "current-tree-id", "--root", root).CombinedOutput()
+	snapshot := filepath.Join(t.TempDir(), "source.tar")
+	out, err := exec.Command("python3", "-B", filepath.Join(root, "devtools/scripts/lib/source_snapshot.py"), "create", snapshot, "--root", root).CombinedOutput()
 	if err != nil {
 		t.Fatalf("source identity: %s %v", out, err)
 	}
@@ -56,7 +57,7 @@ func nativeProvenanceArgs(t *testing.T) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	args := []string{"-source-id", source, "-commit", source}
+	args := []string{"-source-snapshot", snapshot, "-source-id", source, "-commit", source}
 	for name, path := range map[string]string{"binary-sha256": binary, "c-library-sha256": filepath.Join(root, "devtools/third_party/intel_dfp/lib/libbid.a"), "c-archive-sha256": filepath.Join(root, "devtools/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz")} {
 		hash, err := hashFile(path)
 		if err != nil {

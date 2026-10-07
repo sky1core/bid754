@@ -314,7 +314,7 @@ func exactVerdict(out string, runErr error, deadline bool, cfg exactConfig) (str
 	if runErr == nil && report.Mismatches == 0 {
 		return "pass", report, ""
 	}
-	if runErr != nil && report.Mismatches > 0 && strings.Contains(out, "--- FAIL: TestFiniteArithmeticCampaign ") && strings.Contains(out, fmt.Sprintf("EXACTPROBE_ARITHMETIC_MISMATCH count=%d", report.Mismatches)) {
+	if runErr != nil && report.Mismatches > 0 && hasLinePrefix(out, "--- FAIL: TestFiniteArithmeticCampaign (") && strings.Contains(out, fmt.Sprintf("EXACTPROBE_ARITHMETIC_MISMATCH count=%d", report.Mismatches)) {
 		return "killed", report, "EXACTPROBE_ARITHMETIC_MISMATCH"
 	}
 	return "inconclusive", report, "exit status and precise arithmetic evidence disagree"

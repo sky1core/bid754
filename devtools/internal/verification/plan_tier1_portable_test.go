@@ -60,7 +60,7 @@ func TestTier1BigDecimalRequiredAcrossPortableProfiles(t *testing.T) {
 			} else if !hasPattern(g, "TIER1-BIGDECIMAL") || len(g.Evidence.Passes) == 0 {
 				t.Errorf("%s/%s: %s gate lost its deterministic evidence", profile, platform, deterministic)
 			}
-			for _, witness := range []string{"TestTier1RoundingBoundaryContract", "TestTier1RoundingBoundaryGo", "TestTier1RoundingBoundaryBigDecimal", "TestTier1BoundaryMutation", "TestTier1BoundaryFuzzSeeds"} {
+			for _, witness := range []string{"TestTier1RoundingBoundaryContract", "TestTier1RoundingBoundaryGo", "TestTier1RoundingBoundaryBigDecimal", "TestTier1BoundaryMutation", "TestTier1BoundaryFuzzSeeds", "TestTier1ScaleBBoundaryGo", "TestTier1ScaleBBoundaryBigDecimal", "TestTier1ScaleBBoundaryFuzzSeeds"} {
 				if !slices.Contains(g.Evidence.Passes, witness) {
 					t.Errorf("%s/%s: missing mandatory boundary evidence %s", profile, platform, witness)
 				}
@@ -95,6 +95,28 @@ func TestTier1ParserAndProductionFaultsRequired(t *testing.T) {
 			}
 			if !hasPattern(gates["string-vectors"], "test_generated_parser_exponent_cancellation_regression") {
 				t.Errorf("%s/%s: missing Rust parser exponent evidence", profile, platform)
+			}
+		}
+	}
+}
+
+func TestPolicyGatesRequiredAcrossPortableProfiles(t *testing.T) {
+	plan := repoPlan(t)
+	for _, profile := range []string{"ci-portable", "full", "full-portable"} {
+		for _, platform := range plan.Profiles[profile].Platforms {
+			gates := selectedGates(t, plan, profile, platform)
+			for _, id := range []string{"zero-dependencies", "portable-purity", "rust-package", "rust-overflow", "generated-artifacts", "harness-contracts"} {
+				if _, ok := gates[id]; !ok {
+					t.Errorf("%s/%s: missing gate %s", profile, platform, id)
+				}
+			}
+			for _, witness := range []string{"TestZeroDependencyGateRejectsExternalModules", "TestPortablePurityGateRejectsReachableCgo", "TestPortablePurityGateRejectsReachableSwig", "TestDependencyGatesAllowNativeTaggedCgo", "TestDependencyGatesRejectInspectionFailure", "TestRustPackageGateRejectsForeignCode", "TestRustPackageGateRejectsDependencyOverrides", "TestRustOverflowGateParsesProfiles", "TestGeneratedArtifactComparatorRejectsDrift", "TestGeneratedMarkerCoverageRejectsUnregisteredComparisons", "TestGeneratedMarkerCoverageRejectsInspectionFailures", "TestGeneratedArtifactManifestRejectsUnsafePaths"} {
+				if !slices.Contains(gates["harness-contracts"].Evidence.Passes, witness) {
+					t.Errorf("%s/%s: missing mandatory evidence %s", profile, platform, witness)
+				}
+			}
+			if !hasPattern(gates["generated-artifacts"], "GENERATED-COMPARE") {
+				t.Errorf("%s/%s: missing artifact comparison execution evidence", profile, platform)
 			}
 		}
 	}

@@ -533,22 +533,57 @@ func TestSourceSnapshotSHA256Index(t *testing.T) {
 }
 
 func TestSourceSnapshotDigestCompatibility(t *testing.T) {
-	dir := worktreeFixture(t)
-	commitWorktreeFixture(t, dir)
-	archive, identity := createSnapshot(t, dir)
-	tree := strings.TrimSpace(string(snapshotCommand(t, dir, "tree-id", archive, "--expected-id", identity)))
-	if tree != identity {
-		t.Fatalf("clean tree contract lost: %s != %s", tree, identity)
-	}
-	results := t.TempDir()
-	for _, platform := range []string{"darwin/arm64", "linux/amd64"} {
-		parts := strings.Split(platform, "/")
-		record := "PLATFORM-DIGEST-TREE " + tree + "\nPLATFORM-DIGEST goos=" + parts[0] + " goarch=" + parts[1] + " cases=1 sha256=" + strings.Repeat("a", 64) + "\n"
-		writeWorktreeFile(t, results, "digest_"+parts[0]+"_"+parts[1]+".txt", record)
-	}
-	out := worktreeCommand(t, ".", "bash", "../../scripts/verify_digest.sh", "--results-dir", results, "--expected-tree", tree, "--require-platform", "darwin/arm64", "--require-platform", "linux/amd64")
-	if !strings.Contains(string(out), "2 platforms agree") {
-		t.Fatalf("snapshot ID rejected by verify_digest: %s", out)
+	for _, dirty := range []bool{false, true} {
+		name := "clean"
+		if dirty {
+			name = "dirty"
+		}
+		t.Run(name, func(t *testing.T) {
+			dir := worktreeFixture(t)
+			raw, err := os.ReadFile("../../scripts/verify_digest.sh")
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeWorktreeFile(t, dir, "devtools/scripts/verify_digest.sh", string(raw))
+			worktreeCommand(t, dir, "git", "add", "--", "devtools/scripts/verify_digest.sh")
+			commitWorktreeFixture(t, dir)
+			if dirty {
+				writeWorktreeFile(t, dir, "README.md", "modified source")
+			}
+			archive, identity := createSnapshot(t, dir)
+			tree := strings.TrimSpace(string(snapshotCommand(t, dir, "tree-id", archive, "--expected-id", identity)))
+			want := identity
+			if dirty {
+				want += "-dirty"
+			}
+			if tree != want {
+				t.Fatalf("source snapshot identity lost: %s != %s", tree, want)
+			}
+			results := t.TempDir()
+			for _, platform := range []string{"darwin/arm64", "linux/amd64"} {
+				parts := strings.Split(platform, "/")
+				record := "PLATFORM-DIGEST-TREE " + tree + "\nPLATFORM-DIGEST goos=" + parts[0] + " goarch=" + parts[1] + " cases=1 sha256=" + strings.Repeat("a", 64) + "\n"
+				writeWorktreeFile(t, results, "digest_"+parts[0]+"_"+parts[1]+".txt", record)
+			}
+			args := []string{"devtools/scripts/verify_digest.sh", "--results-dir", results, "--require-platform", "darwin/arm64", "--require-platform", "linux/amd64"}
+			for _, selection := range []string{"explicit", "current-source"} {
+				command := append([]string{"bash"}, args...)
+				if selection == "explicit" {
+					command = append(command, "--expected-tree", tree)
+				}
+				out := worktreeCommand(t, dir, command[0], command[1:]...)
+				if !strings.Contains(string(out), "2 platforms agree") {
+					t.Fatalf("%s source snapshot rejected by verify_digest: %s", selection, out)
+				}
+			}
+			writeWorktreeFile(t, dir, "README.md", "different modified source")
+			cmd := exec.Command("bash", args...)
+			cmd.Dir = dir
+			out, err := cmd.CombinedOutput()
+			if err == nil || (dirty && !strings.Contains(string(out), "tree mismatch")) {
+				t.Fatalf("digest from an earlier source snapshot accepted: %v %s", err, out)
+			}
+		})
 	}
 }
 

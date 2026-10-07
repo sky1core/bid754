@@ -84,8 +84,15 @@ echo "==> [dependencies] pin and FFI-absence verification (bid754-rs)"
 # The Rust analogue of the Go zero-dependency/cgo-purity contract: the
 # generated public API's only runtime dependencies are the pinned
 # num-bigint/num-traits pair, and no FFI/native-link plumbing rides along.
-python3 - "$crate_dir/Cargo.toml" <<'PY'
+python3 - "$crate_dir/Cargo.toml" "$package_list" <<'PY'
+import hashlib
+import io
+import json
+import os
+from pathlib import Path, PurePosixPath
+import subprocess
 import sys
+import tarfile
 import tomllib
 
 path = sys.argv[1]
@@ -138,46 +145,108 @@ for name, want_version in expected.items():
     print(f"  {name}: {got_version}")
 
 print(f"  ✅ [dependencies] is exactly the pinned set {sorted(expected_names)}")
-PY
 
-echo "==> native-link construct inspection of packaged .rs files (bid754-rs)"
-# The manifest check above cannot see FFI added directly inside a source file.
-# Inspect every .rs file that `cargo package` actually ships (the package_list
-# entries under src/, narrowed to real files in the working tree) for
-# foreign-ABI / native-link constructs. Patterns tolerate whitespace variants:
-#   extern[[:space:]]*"      -> extern "C" / "system" / "C-unwind" ... (explicit foreign ABI)
-#   extern[[:space:]]*\{     -> extern { ... } (implicit C-ABI FFI block)
-#   #\[[[:space:]]*link      -> #[link(...)], #[link_name = ...], #[linkage] (also inner #![link...])
-#   link[[:space:]]*\([[:space:]]*name -> the link(name = "...") form, wherever it appears
-# extern crate / extern "Rust" callback-only code is not the target, but a
-# pure generated port should carry none of these anyway (current tree: 0).
-ffi_pattern='extern[[:space:]]*"|extern[[:space:]]*\{|#\[[[:space:]]*link|link[[:space:]]*\([[:space:]]*name'
-ffi_hits=0
-ffi_checked=0
-while IFS= read -r entry; do
-  [ -z "$entry" ] && continue
-  case "$entry" in
-    *.rs) ;;
-    *) continue ;;
-  esac
-  file="$crate_dir/$entry"
-  [ -f "$file" ] || continue
-  ffi_checked=$((ffi_checked + 1))
-  if grep -nE "$ffi_pattern" "$file" >/dev/null 2>&1; then
-    echo "ERROR: FFI/native-link construct found in a packaged source file: $entry" >&2
-    grep -nE "$ffi_pattern" "$file" >&2 || true
-    ffi_hits=$((ffi_hits + 1))
-  fi
-done <<<"$package_list"
-if [ "$ffi_checked" -lt 1 ]; then
-  echo "ERROR: no packaged .rs files were available for inspection" >&2
-  exit 1
-fi
-if [ "$ffi_hits" -ne 0 ]; then
-  echo "bid754-rs is a pure-Rust generated port; no FFI/native-link construct may ship in its package sources" >&2
-  exit 1
-fi
-echo "  ✅ no extern-ABI / #[link] / link(name=…) construct in any of the $ffi_checked packaged .rs files"
+metadata = json.loads(subprocess.check_output(
+    ["cargo", "metadata", "--locked", "--all-features", "--format-version", "1"], text=True))
+manifest_path = Path(path).resolve()
+packages = [p for p in metadata["packages"] if Path(p["manifest_path"]).resolve() == manifest_path]
+if len(packages) != 1:
+    sys.exit("ERROR: cargo metadata must identify exactly one package for the crate manifest")
+resolved = {package["id"]: package for package in metadata["packages"]}
+nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
+root_id = packages[0]["id"]
+runtime_direct = [resolved[dep["pkg"]] for dep in nodes[root_id]["deps"]
+                  if any(kind["kind"] is None for kind in dep["dep_kinds"])]
+if len(runtime_direct) != len(expected) or {p["name"]: "=" + p["version"] for p in runtime_direct} != expected:
+    sys.exit("ERROR: resolved dependency names and versions do not match the pinned runtime set")
+pending = [root_id]
+seen = {root_id}
+cargo_home = Path(os.environ["CARGO_HOME"]) if "CARGO_HOME" in os.environ else Path.home() / ".cargo"
+with (manifest_path.parent / "Cargo.lock").open("rb") as source:
+    locked = {(p["name"], p["version"], p.get("source")): p for p in tomllib.load(source)["package"]}
+
+def walk_error(error):
+    raise error
+
+def verify_source(package):
+    identity = (package["name"], package["version"], package["source"])
+    checksum = locked[identity].get("checksum")
+    if not isinstance(checksum, str) or len(checksum) != 64:
+        sys.exit(f"ERROR: resolved dependency {package['name']} has no locked archive checksum")
+    stem = f"{package['name']}-{package['version']}"
+    archive_data = None
+    for candidate in sorted((cargo_home / "registry" / "cache").glob(f"*/{stem}.crate")):
+        data = candidate.read_bytes()
+        if hashlib.sha256(data).hexdigest() == checksum:
+            archive_data = data
+            break
+    if archive_data is None:
+        sys.exit(f"ERROR: resolved dependency {stem} has no cached archive matching Cargo.lock")
+    expected_files = {}
+    with tarfile.open(fileobj=io.BytesIO(archive_data), mode="r:*") as archive:
+        for member in archive.getmembers():
+            parts = PurePosixPath(member.name).parts
+            if not parts or parts[0] != stem or ".." in parts:
+                sys.exit(f"ERROR: resolved dependency {stem} has an invalid archive path")
+            if member.isdir():
+                continue
+            if not member.isfile() or len(parts) < 2:
+                sys.exit(f"ERROR: resolved dependency {stem} has an unsupported archive entry")
+            expected_files["/".join(parts[1:])] = archive.extractfile(member).read()
+    source_root = Path(package["manifest_path"]).resolve().parent
+    actual_files = set()
+    for parent, directories, files in os.walk(source_root, followlinks=False, onerror=walk_error):
+        for name in directories + files:
+            if (Path(parent) / name).is_symlink():
+                sys.exit(f"ERROR: resolved dependency {stem} contains a source symlink")
+        for name in files:
+            relative = (Path(parent) / name).relative_to(source_root).as_posix()
+            if relative not in {".cargo-ok", ".cargo-checksum.json"}:
+                actual_files.add(relative)
+    if actual_files != expected_files.keys():
+        missing = sorted(expected_files.keys() - actual_files)
+        extra = sorted(actual_files - expected_files.keys())
+        sys.exit(f"ERROR: resolved dependency {stem} source file set differs from its locked archive: missing={missing}, extra={extra}")
+    for relative, expected_bytes in expected_files.items():
+        if (source_root / relative).read_bytes() != expected_bytes:
+            sys.exit(f"ERROR: resolved dependency {stem} source differs from its locked archive: {relative}")
+
+while pending:
+    for dep in nodes[pending.pop()]["deps"]:
+        if not any(kind["kind"] != "dev" for kind in dep["dep_kinds"]):
+            continue
+        package_id = dep["pkg"]
+        package = resolved[package_id]
+        if package["source"] != "registry+https://github.com/rust-lang/crates.io-index":
+            sys.exit(f"ERROR: resolved dependency {package['name']} {package['version']} is not from crates.io: {package['source']!r}")
+        if package.get("links") is not None:
+            sys.exit(f"ERROR: resolved dependency {package['name']} declares native linkage")
+        if package_id not in seen:
+            verify_source(package)
+            seen.add(package_id)
+            pending.append(package_id)
+print(f"  ✅ resolved dependency graph: {len(seen) - 1} runtime/build dependencies match locked crates.io archives")
+shipped = {manifest_path.parent / entry for entry in sys.argv[2].splitlines()}
+targets = [target for target in packages[0]["targets"] if Path(target["src_path"]) in shipped]
+if not targets:
+    sys.exit("ERROR: no Cargo targets are included in the package")
+
+print("==> compiler-enforced pure Rust packaged targets (default and all features)", flush=True)
+for target in targets:
+    kinds = target["kind"]
+    if len(kinds) == 1 and kinds[0] in {"bin", "example", "test", "bench"}:
+        selector = ["--" + kinds[0], target["name"]]
+    elif kinds and set(kinds) <= {"lib", "rlib", "dylib", "cdylib", "staticlib", "proc-macro"}:
+        selector = ["--lib"]
+    else:
+        sys.exit(f"ERROR: unsupported packaged Cargo target: {target['name']} ({kinds})")
+    required = target.get("required-features", [])
+    feature_sets = [["--features", ",".join(required)] if required else [], ["--all-features"]]
+    for features in feature_sets:
+        subprocess.run(["cargo", "rustc", "--locked", *selector, *features,
+                        "--", "-F", "unsafe-code", "--cap-lints=forbid"], check=True)
+print(f"  ✅ {len(targets)} packaged Cargo target(s) forbid unsafe code and foreign function declarations")
+PY
 
 echo "==> cargo publish --dry-run: not run while publish = false"
 echo "    Publication status is a separate user-approved change."

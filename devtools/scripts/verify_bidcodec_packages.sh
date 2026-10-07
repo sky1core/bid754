@@ -259,7 +259,7 @@ PY
   py_venv="$verify_tmp/python-venv"
   python3 -m venv "$py_venv"
   "$py_venv/bin/python" -m pip install --no-index --find-links "$wheel_dir" "bid754-codec==$py_version"
-  "$py_venv/bin/python" - <<'PY'
+  "$py_venv/bin/python" -I - <<'PY'
 from bid_codec import Kind, decode32, to_string
 
 c = decode32(0x32800001)

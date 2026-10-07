@@ -57,6 +57,19 @@ var toolCommands = map[string][]string{
 	"bash": {"bash", "--version"}, "rg": {"rg", "--version"},
 }
 
+var canonicalNativeTags = []struct{ name, value string }{
+	{"NATIVE_TAGS", "-tags bid754_native"},
+	{"TIER1_LONG_NATIVE_TAGS", "-tags bid754_native,bid754_tier1_long"},
+	{"DECNUMBER_DIFF_NATIVE_TAGS", "-tags bid754_native,bid754_decnumber_diff"},
+	{"D32_EXHAUSTIVE_NATIVE_TAGS", "-tags bid754_native,bid754_d32_exhaustive"},
+}
+
+var canonicalMakeSettings = []struct{ name, value string }{
+	{"MAKE", "make"},
+	{"MAKEFILES", ""},
+	{"GNUMAKEFLAGS", ""},
+}
+
 func SourceID(root string) (string, error) {
 	archive, expected := os.Getenv("BID754_SNAPSHOT_ARCHIVE"), os.Getenv("BID754_SNAPSHOT_ID")
 	args := []string{"-B", "devtools/scripts/lib/worktree_files.py", "--fingerprint"}
@@ -145,10 +158,17 @@ func toolVersions(gates []Gate) (map[string]string, error) {
 func prerequisite(root, name string) error {
 	switch name {
 	case "native":
-		for _, rel := range []string{".env.sh", "devtools/third_party/intel_dfp/lib/libbid.a"} {
-			if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
-				return fmt.Errorf("native prerequisite %s: %w", rel, err)
-			}
+		st, err := os.Stat(filepath.Join(root, ".env.sh"))
+		if err != nil {
+			return fmt.Errorf("native prerequisite .env.sh: %w", err)
+		}
+		if !st.Mode().IsRegular() || st.Size() == 0 {
+			return fmt.Errorf("native prerequisite .env.sh must be a nonempty regular file")
+		}
+		cmd := exec.Command("bash", "devtools/scripts/setup_generation_inputs.sh", "verify-intel")
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("native prerequisite verify-intel: %w: %s", err, strings.TrimSpace(string(out)))
 		}
 	case "generation-inputs":
 		for _, rel := range []string{"devtools/third_party/intel_dfp/src", "devtools/tests/add.decTest"} {
@@ -202,10 +222,6 @@ func Run(root string, plan Plan, profile, dir, invocation string, output io.Writ
 	if err != nil {
 		return result, err
 	}
-	result.Tools, err = toolVersions(gates)
-	if err != nil {
-		return result, err
-	}
 	flags, err := exec.Command("go", "env", "GOFLAGS").CombinedOutput()
 	if err != nil {
 		return result, fmt.Errorf("read Go verification configuration: %w: %s", err, flags)
@@ -214,17 +230,50 @@ func Run(root string, plan Plan, profile, dir, invocation string, output io.Writ
 	for _, name := range []string{"CGO_ENABLED", "CC", "CGO_CFLAGS", "CGO_LDFLAGS", "RUSTFLAGS", "RUSTUP_TOOLCHAIN", "CARGO_BUILD_TARGET"} {
 		result.Configuration[name] = os.Getenv(name)
 	}
+	for _, setting := range canonicalNativeTags {
+		value, present := os.LookupEnv(setting.name)
+		if !present {
+			value = setting.value
+		}
+		result.Configuration[setting.name] = value
+	}
+	for _, setting := range canonicalMakeSettings {
+		value, present := os.LookupEnv(setting.name)
+		if !present {
+			value = setting.value
+		}
+		result.Configuration[setting.name] = value
+	}
 	if result.Configuration["GOFLAGS"] != "" {
 		return result, fmt.Errorf("verification profiles require empty GOFLAGS; test selection and build tags belong to the execution plan")
+	}
+	for _, setting := range canonicalNativeTags {
+		if result.Configuration[setting.name] != setting.value {
+			return result, fmt.Errorf("verification profiles require canonical %s=%q; got %q", setting.name, setting.value, result.Configuration[setting.name])
+		}
+	}
+	for _, setting := range canonicalMakeSettings {
+		if result.Configuration[setting.name] != setting.value {
+			return result, fmt.Errorf("verification profiles require canonical %s=%q; Make overrides must not alter the execution plan", setting.name, setting.value)
+		}
+	}
+	result.Tools, err = toolVersions(gates)
+	if err != nil {
+		return result, err
 	}
 	if err := writeResult(dir, result); err != nil {
 		return result, err
 	}
+	checkedPrerequisites := map[string]bool{}
 	for _, gate := range gates {
 		for _, name := range gate.Prerequisites {
+			if checkedPrerequisites[name] {
+				continue
+			}
 			if err := prerequisite(root, name); err != nil {
 				return result, err
 			}
+			checkedPrerequisites[name] = true
 		}
 		entry := GateResult{ID: gate.ID, RunID: result.RunID, SnapshotID: result.SnapshotID, Comparison: gate.Comparison, Log: gate.ID + ".log", Started: time.Now().UTC(), ExitCode: -1}
 		path := filepath.Join(dir, entry.Log)
@@ -237,7 +286,7 @@ func Run(root string, plan Plan, profile, dir, invocation string, output io.Writ
 			return result, err
 		}
 		fmt.Fprintf(output, "==> verification profile=%s gate=%s\n", profile, gate.ID)
-		cmd := exec.Command("make", "--no-print-directory", gate.Target)
+		cmd := exec.Command("make", "--no-print-directory", "MAKE=make", gate.Target)
 		cmd.Dir, cmd.Env = root, cleanMakeEnvironment()
 		cmd.Stdout, cmd.Stderr = io.MultiWriter(output, log), io.MultiWriter(output, log)
 		commandErr := cmd.Run()
@@ -283,6 +332,10 @@ func Run(root string, plan Plan, profile, dir, invocation string, output io.Writ
 }
 
 func CheckEvidence(root, path string, evidence Evidence) error {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -353,6 +406,16 @@ func Validate(root string, plan Plan, dir string, result Result, snapshot, invoc
 	}
 	if flags, present := result.Configuration["GOFLAGS"]; !present || flags != "" {
 		return fmt.Errorf("missing or noncanonical Go verification configuration")
+	}
+	for _, setting := range canonicalNativeTags {
+		if value, present := result.Configuration[setting.name]; !present || value != setting.value {
+			return fmt.Errorf("missing or noncanonical native tag verification configuration %s", setting.name)
+		}
+	}
+	for _, setting := range canonicalMakeSettings {
+		if value, present := result.Configuration[setting.name]; !present || value != setting.value {
+			return fmt.Errorf("missing or noncanonical Make verification configuration %s", setting.name)
+		}
 	}
 	if len(result.Gates) != len(gates) {
 		return fmt.Errorf("missing required gates: got %d, require %d", len(result.Gates), len(gates))

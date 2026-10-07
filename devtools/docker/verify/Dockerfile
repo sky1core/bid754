@@ -7,18 +7,12 @@ FROM ubuntu:24.04
 
 ARG TARGETARCH
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        ca-certificates \
-        clang \
-        curl \
-        gcc \
-        git \
-        libc6-dev \
-        make \
-        perl \
-        python3 \
-        unzip \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -eu; \
+    packages="ca-certificates clang curl gcc git libc6-dev make perl python3 unzip"; \
+    if [ "$TARGETARCH" != "s390x" ]; then packages="$packages openjdk-17-jdk-headless"; fi; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $packages; \
+    rm -rf /var/lib/apt/lists/*
 
 # Go pinned to the go.mod toolchain directive (toolchain go1.26.8).
 ARG GO_VERSION=1.26.8

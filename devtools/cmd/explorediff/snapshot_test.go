@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -33,14 +34,33 @@ func TestFrozenBuildInputsIgnoreLaterSourceEdits(t *testing.T) {
 		write(filepath.Join(repo, "devtools/scripts/lib", name), data)
 	}
 	write(filepath.Join(repo, ".gitignore"), []byte("devtools/third_party/\n__pycache__/\n"))
-	for _, rel := range []string{"kernel.go", "devtools/third_party/intel_dfp/lib/libbid.a", "devtools/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz", "devtools/third_party/intel_dfp/src/bid_functions.h"} {
+	for _, rel := range []string{"kernel.go", "devtools/third_party/intel_dfp/lib/libbid.a"} {
 		write(filepath.Join(repo, rel), []byte("original "+rel))
 	}
+	for _, rel := range []string{"devtools/scripts/setup_generation_inputs.sh", "devtools/third_party/intel_dfp/IntelRDFPMathLib20U4.tar.gz"} {
+		body, err := os.ReadFile(filepath.Join("../../..", rel))
+		if err != nil {
+			t.Fatal(err)
+		}
+		write(filepath.Join(repo, rel), body)
+	}
+	setup := exec.Command("bash", filepath.Join(repo, "devtools/scripts/setup_generation_inputs.sh"), "intel")
+	if out, err := setup.CombinedOutput(); err != nil {
+		t.Fatalf("fixture Intel setup: %v %s", err, out)
+	}
+	aux := ""
+	if runtime.GOARCH == "arm64" {
+		aux = "-DBID_SIZE_LONG=8"
+	}
+	write(filepath.Join(repo, "devtools/third_party/intel_dfp/lib/.libbid.build-flags"), []byte("CALL_BY_REF=0\nGLOBAL_RND=0\nGLOBAL_FLAGS=0\nUNCHANGED_BINARY_FLAGS=0\nCFLAGS_AUX="+aux+"\nCFLAGS_OPT=-O3 -ffp-contract=off\n"))
 	frozen, id, snapshot, err := freezeSource(repo, t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, rel := range []string{"kernel.go", "devtools/third_party/intel_dfp/lib/libbid.a", "devtools/third_party/intel_dfp/src/bid_functions.h"} {
+	if err := verifyPinnedIntelNative(frozen); err != nil {
+		t.Fatalf("frozen Intel inputs lost provenance: %v", err)
+	}
+	for _, rel := range []string{"kernel.go", "devtools/third_party/intel_dfp/lib/libbid.a"} {
 		write(filepath.Join(repo, rel), []byte("changed"))
 		got, err := os.ReadFile(filepath.Join(frozen, rel))
 		if err != nil || string(got) != "original "+rel {

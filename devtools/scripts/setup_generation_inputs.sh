@@ -19,7 +19,7 @@ DECTEST_ARCHIVE="$PROJECT_ROOT/devtools/tests/dectest.zip"
 DECTEST_DIR="$PROJECT_ROOT/devtools/tests"
 
 usage() {
-    echo "usage: $0 [all|intel|dectest]" >&2
+    echo "usage: $0 [all|intel|dectest|verify-intel|verify-dectest]" >&2
 }
 
 require_tool() {
@@ -113,28 +113,72 @@ intel_inputs_present() {
 }
 
 validate_intel_inputs() {
-    local tmpdir
-    tmpdir="$(mktemp -d)"
-
-    tar -xzf "$INTEL_ARCHIVE" -C "$tmpdir"
+    local tmpdir listing
+    tmpdir="$(mktemp -d)" || return 1
+    listing="$tmpdir-files"
+    if ! tar -xzf "$INTEL_ARCHIVE" -C "$tmpdir"; then
+        echo "failed to unpack pinned Intel DFP archive" >&2
+        rm -rf "$tmpdir"
+        return 1
+    fi
+    if ! find "$tmpdir" -type f | sort > "$listing" || [ ! -s "$listing" ]; then
+        echo "failed to enumerate pinned Intel DFP inputs" >&2
+        rm -rf "$tmpdir" "$listing"
+        return 1
+    fi
 
     local expected rel
     while IFS= read -r expected; do
         rel="${expected#$tmpdir/}"
         if [ ! -f "$INTEL_DIR/$rel" ]; then
             echo "Intel DFP $INTEL_VERSION input is missing from extracted tree: $rel" >&2
-            rm -rf "$tmpdir"
+            rm -rf "$tmpdir" "$listing"
             return 1
         fi
         if ! cmp -s "$expected" "$INTEL_DIR/$rel"; then
             echo "Intel DFP $INTEL_VERSION input differs from pinned archive: $rel" >&2
-            rm -rf "$tmpdir"
+            rm -rf "$tmpdir" "$listing"
             return 1
         fi
-    done < <(find "$tmpdir" -type f | sort)
+    done < "$listing"
 
-    rm -rf "$tmpdir"
+    rm -rf "$tmpdir" "$listing"
     return 0
+}
+
+verify_intel_native_inputs() {
+    require_tool shasum
+    require_tool tar
+    [ -f "$INTEL_ARCHIVE" ] || { echo "missing Intel DFP archive" >&2; return 1; }
+    verify_sha256 "$INTEL_ARCHIVE" "$INTEL_SHA256"
+    if ! validate_intel_inputs; then
+        return 1
+    fi
+    if [ ! -L "$INTEL_DIR/src" ] || [ ! "$INTEL_DIR/src" -ef "$INTEL_DIR/LIBRARY/src" ]; then
+        echo "Intel DFP src alias does not resolve to pinned LIBRARY/src" >&2
+        return 1
+    fi
+    local stamp="$INTEL_DIR/lib/.libbid.build-flags"
+    if [ ! -s "$INTEL_DIR/lib/libbid.a" ] || [ ! -f "$stamp" ]; then
+        echo "Intel DFP native library or build stamp missing" >&2
+        return 1
+    fi
+    local aux="" opt="-O3 -ffp-contract=off"
+    if [ -n "${INTEL_DFP_OPT_CFLAGS:-}" ] && [ "$INTEL_DFP_OPT_CFLAGS" != "$opt" ]; then
+        echo "Intel DFP native verification requires pinned CFLAGS_OPT=$opt" >&2
+        return 1
+    fi
+    case "$(uname -m)" in
+        arm64|aarch64) aux="-DBID_SIZE_LONG=8" ;;
+    esac
+    local expected actual
+    expected="$(printf 'CALL_BY_REF=0\nGLOBAL_RND=0\nGLOBAL_FLAGS=0\nUNCHANGED_BINARY_FLAGS=0\nCFLAGS_AUX=%s\nCFLAGS_OPT=%s\n' "$aux" "$opt")"
+    actual="$(cat "$stamp")"
+    if [ "$actual" != "$expected" ]; then
+        echo "Intel DFP native build stamp does not match pinned flags" >&2
+        return 1
+    fi
+    echo "Intel DFP pinned archive, source, and native build stamp verified"
 }
 
 clear_intel_inputs() {
@@ -160,14 +204,33 @@ clear_dectest_inputs() {
     find "$DECTEST_DIR" -maxdepth 1 -type f -name "*.decTest" -delete
 }
 
+dectest_file_names() {
+    local path
+    while IFS= read -r path; do
+        printf '%s\n' "${path##*/}" || return 1
+    done
+}
+
 validate_dectest_inputs() {
     local tmpdir
-    tmpdir="$(mktemp -d)"
+    tmpdir="$(mktemp -d)" || return 1
 
-    unzip -oq "$DECTEST_ARCHIVE" -d "$tmpdir"
+    if ! unzip -oq "$DECTEST_ARCHIVE" -d "$tmpdir"; then
+        echo "failed to unpack pinned IBM decTest archive" >&2
+        rm -rf "$tmpdir"
+        return 1
+    fi
 
-    find "$tmpdir" -type f -name "*.decTest" -exec basename {} \; | sort >"$tmpdir/expected.list"
-    find "$DECTEST_DIR" -maxdepth 1 -type f -name "*.decTest" -exec basename {} \; | sort >"$tmpdir/actual.list"
+    if ! find "$tmpdir" -type f -name "*.decTest" -print | dectest_file_names | sort >"$tmpdir/expected.list" || [ ! -s "$tmpdir/expected.list" ]; then
+        echo "failed to enumerate pinned IBM decTest archive inputs" >&2
+        rm -rf "$tmpdir"
+        return 1
+    fi
+    if ! find "$DECTEST_DIR" -maxdepth 1 -type f -name "*.decTest" -print | dectest_file_names | sort >"$tmpdir/actual.list" || [ ! -s "$tmpdir/actual.list" ]; then
+        echo "failed to enumerate pinned IBM decTest extracted inputs" >&2
+        rm -rf "$tmpdir"
+        return 1
+    fi
 
     if ! cmp -s "$tmpdir/expected.list" "$tmpdir/actual.list"; then
         echo "IBM decTest inputs do not match the pinned 2.62 file list" >&2
@@ -178,7 +241,11 @@ validate_dectest_inputs() {
 
     local name expected_file
     while IFS= read -r name; do
-        expected_file="$(find "$tmpdir" -type f -name "$name" -print -quit)"
+        if ! expected_file="$(find "$tmpdir" -type f -name "$name" -print -quit)"; then
+            echo "failed to locate pinned IBM decTest input: $name" >&2
+            rm -rf "$tmpdir"
+            return 1
+        fi
         if [ -z "$expected_file" ] || ! cmp -s "$expected_file" "$DECTEST_DIR/$name"; then
             echo "IBM decTest input differs from pinned 2.62 archive: $name" >&2
             rm -rf "$tmpdir"
@@ -188,6 +255,17 @@ validate_dectest_inputs() {
 
     rm -rf "$tmpdir"
     return 0
+}
+
+verify_dectest_inputs() {
+    require_tool shasum
+    require_tool unzip
+    [ -f "$DECTEST_ARCHIVE" ] || { echo "missing IBM decTest archive" >&2; return 1; }
+    verify_sha256 "$DECTEST_ARCHIVE" "$DECTEST_SHA256"
+    if ! validate_dectest_inputs; then
+        return 1
+    fi
+    echo "IBM decTest pinned archive and source verified"
 }
 
 ensure_intel_dfp() {
@@ -210,6 +288,10 @@ ensure_intel_dfp() {
     fi
 
     normalize_intel_layout
+    if [ ! -L "$INTEL_DIR/src" ] || [ ! "$INTEL_DIR/src" -ef "$INTEL_DIR/LIBRARY/src" ]; then
+        echo "Intel DFP src alias does not resolve to pinned LIBRARY/src" >&2
+        return 1
+    fi
 }
 
 ensure_dectest() {
@@ -244,6 +326,12 @@ main() {
             ;;
         intel)
             ensure_intel_dfp
+            ;;
+        verify-intel)
+            verify_intel_native_inputs
+            ;;
+        verify-dectest)
+            verify_dectest_inputs
             ;;
         dectest)
             ensure_dectest

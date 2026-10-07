@@ -199,6 +199,8 @@ func TestExactVerdictRequiresIntendedEvidence(t *testing.T) {
 	}{
 		{"--- FAIL: TestFiniteArithmeticCampaign (0.00s)\n", errors.New("exit 1"), false, "inconclusive"},
 		{strings.ReplaceAll(evidence, "EXACTPROBE_ARITHMETIC_MISMATCH", "unrelated assertion"), errors.New("exit 1"), false, "inconclusive"},
+		{strings.Replace(evidence, "\n--- FAIL: ", "\n    campaign_test.go:2: quoted --- FAIL: ", 1), errors.New("exit 3"), false, "inconclusive"},
+		{strings.Replace(evidence, "\n--- FAIL: ", "\n    campaign_test.go:2: quoted output:\n        --- FAIL: ", 1), errors.New("exit 3"), false, "inconclusive"},
 		{evidence, nil, false, "inconclusive"},
 		{evidence + "panic: broken kernel\n", errors.New("exit 2"), false, "panic"},
 		{evidence, errors.New("deadline"), true, "timeout"},

@@ -17,10 +17,22 @@ if [ "$generated_count" != "104" ]; then
   exit 1
 fi
 
-if grep -Fq 'overflow-checks = false' Cargo.toml; then
-  echo "bid754-rs must not disable Rust overflow checks at the Cargo profile level" >&2
-  exit 1
-fi
+python3 - Cargo.toml <<'PY'
+import sys
+import tomllib
+
+with open(sys.argv[1], "rb") as source:
+    profiles = tomllib.load(source).get("profile", {})
+
+def check(table, path):
+    for key, value in table.items():
+        if key == "overflow-checks" and value is False:
+            sys.exit(f"ERROR: bid754-rs must not disable Rust overflow checks at {path}.{key}")
+        if isinstance(value, dict):
+            check(value, f"{path}.{key}")
+
+check(profiles, "profile")
+PY
 
 # The overflow lints are allowed at the crate level for the generated
 # implementation/compat modules, and the public API module re-denies them so the
@@ -48,6 +60,6 @@ echo "==> Rust generated implementation tests with default overflow policy"
 cargo test --locked --features verification --quiet
 
 echo "==> Rust generated implementation tests with overflow-checks=yes"
-RUSTFLAGS='-C overflow-checks=yes' cargo test --locked --features verification --quiet
+(unset CARGO_ENCODED_RUSTFLAGS; RUSTFLAGS='-C overflow-checks=yes' cargo test --locked --features verification --quiet)
 
 echo "Rust overflow policy verification passed: generated Rust no longer requires Cargo-level overflow-checks=false."
