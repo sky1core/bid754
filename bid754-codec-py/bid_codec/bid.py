@@ -513,6 +513,8 @@ def encode_bytes(c: Components, size: int) -> bytes:
         c: The components to encode.
         size: Target size in bytes: 4 (BID32), 8 (BID64), or 16 (BID128).
     """
+    if isinstance(size, bool) or not isinstance(size, int):
+        raise ValueError("BID codec byte size must be an integer")
     if size == 4:
         v = encode32(c)
         return v.to_bytes(4, byteorder="little", signed=False)
@@ -594,16 +596,16 @@ def to_string(c: Components) -> str:
     if c.kind == Kind.INFINITY:
         return prefix + "Inf"
     if c.kind == Kind.QNAN:
-        return f"{prefix}NaN{c.payload}" if c.payload else prefix + "NaN"
+        return f"{prefix}NaN{int.__index__(c.payload)}" if c.payload else prefix + "NaN"
     if c.kind == Kind.SNAN:
-        return f"{prefix}SNaN{c.payload}" if c.payload else prefix + "SNaN"
+        return f"{prefix}SNaN{int.__index__(c.payload)}" if c.payload else prefix + "SNaN"
     if c.kind == Kind.ZERO:
         if c.exponent == 0:
             return prefix + "0"
-        return f"{prefix}0E{c.exponent:+d}"
+        return f"{prefix}0E{int.__index__(c.exponent):+d}"
 
-    digits = str(c.coefficient)
-    exp = c.exponent + len(digits) - 1
+    digits = str(int.__index__(c.coefficient))
+    exp = int.__index__(c.exponent) + len(digits) - 1
     if len(digits) == 1:
         return f"{prefix}{digits}E{exp:+d}"
     return f"{prefix}{digits[0]}.{digits[1:]}E{exp:+d}"

@@ -4,6 +4,7 @@ Test vectors mirror the Go test suite in ../bidcodec/decimal_test.go.
 """
 
 from decimal import Decimal
+from enum import Enum
 
 import pytest
 
@@ -515,6 +516,24 @@ class TestEncodeBytes:
         with pytest.raises(ValueError):
             encode_bytes(c, 5)
 
+    @pytest.mark.parametrize(
+        "size", [4.0, 8.0, 16.0, 4 + 0j, 8 + 0j, 16 + 0j, Decimal(4), True, False, None, "4"],
+        ids=["float32", "float64", "float128", "complex32", "complex64", "complex128", "decimal", "true", "false", "none", "string"],
+    )
+    def test_size_requires_integer(self, size):
+        with pytest.raises(ValueError):
+            encode_bytes(Components(coefficient=1), size)
+
+    def test_integer_enum_size(self):
+        class Size(int, Enum):
+            BID32 = 4
+            BID64 = 8
+            BID128 = 16
+
+        value = Components(coefficient=1)
+        for size in Size:
+            assert encode_bytes(value, size) == encode_bytes(value, size.value)
+
 
 # ---------------------------------------------------------------------------
 # decode_bytes{32,64,128} / encode_bytes{32,64,128}
@@ -604,6 +623,36 @@ class TestEncodeBytes128:
 
 
 class TestToString:
+    def test_integer_subclass_closure(self):
+        class Numeric(int, Enum):
+            COEFFICIENT = 1100
+            EXPONENT = -3
+            PAYLOAD = 42
+
+        class DisplayInteger(int):
+            def __str__(self):
+                return "display"
+
+            def __format__(self, spec):
+                return "display"
+
+        for integer in (Numeric, DisplayInteger):
+            for sign in (False, True):
+                for value, suffix in (
+                    (Components(sign=sign, coefficient=integer(1100), exponent=integer(-3)), "1.100E+0"),
+                    (Components(sign=sign, kind=Kind.ZERO, exponent=integer(-3)), "0E-3"),
+                    (Components(sign=sign, kind=Kind.QNAN, payload=integer(42)), "NaN42"),
+                    (Components(sign=sign, kind=Kind.SNAN, payload=integer(42)), "SNaN42"),
+                ):
+                    expected = ("-" if sign else "+") + suffix
+                    rendered = to_string(value)
+                    assert rendered == expected
+                    parsed = from_string(rendered)
+                    assert parsed == value
+                    assert to_string(parsed) == rendered
+                    for encode in (encode32, encode64, encode128):
+                        assert encode(value) == encode(parsed)
+
     def test_normal(self):
         c = Components(coefficient=12345, exponent=-2, kind=Kind.NORMAL)
         s = to_string(c)
