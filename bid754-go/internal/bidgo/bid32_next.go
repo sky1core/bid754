@@ -147,10 +147,20 @@ func Bid32NextAfter(x, y uint32) (uint32, uint32) {
 		return res, pfpsf
 	}
 
+	if (x & 0x7c000000) == MASK_INF32 {
+		x &= MASK_SIGN32 | MASK_INF32
+	} else if (x&MASK_STEERING_BITS32) == MASK_STEERING_BITS32 &&
+		((x&MASK_BINARY_SIG2_32)|MASK_BINARY_OR2_32) > 9999999 {
+		x = (x & MASK_SIGN32) | ((x & MASK_BINARY_EXPONENT2_32) << 2)
+	}
+	if (y & 0x7c000000) == MASK_INF32 {
+		y &= MASK_SIGN32 | MASK_INF32
+	}
+
 	// compare x and y using quiet comparison
 	eqRes, _ := Bid32QuietEqual(x, y)
 	if eqRes != 0 {
-		res = y
+		res = (y & MASK_SIGN32) | (x &^ MASK_SIGN32)
 		return res, pfpsf
 	}
 
@@ -167,7 +177,7 @@ func Bid32NextAfter(x, y uint32) (uint32, uint32) {
 	if ((x & MASK_INF32) != MASK_INF32) && ((res & MASK_INF32) == MASK_INF32) {
 		pfpsf |= BID_INEXACT_EXCEPTION | BID_OVERFLOW_EXCEPTION
 	}
-	tmp1 := uint32(0x00784000) // +1E-101 * 10^6
+	tmp1 := uint32(0x000f4240)
 	tmp2 := res & 0x7fffffff
 	gtRes, _ := Bid32QuietGreater(tmp1, tmp2)
 	neRes, _ := Bid32QuietNotEqual(x, res)

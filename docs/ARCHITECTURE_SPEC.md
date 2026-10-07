@@ -39,7 +39,7 @@ Important:
 - do not confuse the table generation path with the implementation generation path
 - tables are generated from C to both Go and Rust
 - the Go implementation is a direct mechanical port path of the C implementation
-- Go optimization may improve representation, lowering, and language/runtime overhead only while each optimized region remains mechanically traceable to the corresponding pinned Intel BID C algorithm and preserves its special-case, rounding, and status semantics, except for deviations that satisfy the IEEE `shall`, native-compare skip-reason, and checked-in regression-vector requirements of `SPEC.md` and `IEEE754_SPEC.md`
+- Go optimization may improve representation, lowering, and language/runtime overhead only while each optimized region remains mechanically traceable to the corresponding pinned Intel BID C algorithm and preserves its special-case, rounding, and status semantics, except for deviations registered under the policy, native-compare skip-reason, and checked-in regression-vector requirements of `SPEC.md` and `IEEE754_SPEC.md`
 - the Rust implementation is generated from the Go implementation
 - the full Rust implementation artifacts in `bid754-rs/src/generated` must be `devtools/tools/go2rs` output
 - Rust implementation quality, Rust idiom, and performance optimization improvements are made only by fixing `devtools/tools/go2rs` or its support/prelude generation rules and regenerating

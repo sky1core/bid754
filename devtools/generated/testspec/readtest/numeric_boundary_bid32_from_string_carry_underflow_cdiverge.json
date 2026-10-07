@@ -1,0 +1,25 @@
+{
+  "suite": "numeric_boundary_bid32_from_string_carry_underflow_cdiverge",
+  "group": "decimal32_ieee754_regressions",
+  "format": "decimal32",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "testdata/readtest_numeric_boundary_bid32_from_string_carry_underflow_cdiverge.in",
+  "function": "bid32_from_string",
+  "kind": "from_string",
+  "output_type": "OP_DEC32",
+  "input_types": [
+    "OP_DEC32"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "native_compare_skip_reason": "INTEL-BID-013: pinned Intel BID C from_string normalizes a delayed directed-rounding carry before testing tininess and omits Underflow; IEEE 754 section 7.5 requires Underflow|Inexact for the inexact tiny input",
+  "cases": [
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_2","line":2,"operands":["999999901e-104"],"expected":"[000f4240]","status":"30","rounding":2},
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_3","line":3,"operands":["0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000999999901"],"expected":"[000f4240]","status":"30","rounding":2},
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_4","line":4,"operands":["-999999901e-104"],"expected":"[800f4240]","status":"30","rounding":1},
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_5","line":5,"operands":["-0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000999999901"],"expected":"[800f4240]","status":"30","rounding":1},
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_6","line":6,"operands":["9999999001e-105"],"expected":"[000f4240]","status":"30","rounding":2},
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_7","line":7,"operands":["0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009999999001"],"expected":"[000f4240]","status":"30","rounding":2},
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_8","line":8,"operands":["-9999999001e-105"],"expected":"[800f4240]","status":"30","rounding":1},
+    {"id":"numeric_boundary_bid32_from_string_carry_underflow_cdiverge_line_9","line":9,"operands":["-0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000009999999001"],"expected":"[800f4240]","status":"30","rounding":1}
+  ]
+}

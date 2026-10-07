@@ -58,6 +58,7 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 				InputTypes:              append([]string(nil), shard.InputTypes...),
 				CompareGroup:            shard.CompareGroup,
 				NativeCompareSkipReason: shard.NativeCompareSkipReason,
+				InitialStatus:           shard.InitialStatus,
 				Operands:                tc.Operands,
 				Expected:                tc.Expected,
 				Status:                  tc.Status,

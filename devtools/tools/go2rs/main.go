@@ -305,9 +305,10 @@ func parseTypeCheckedPackage(srcDir string, targets []string) (*token.FileSet, m
 		}
 	}
 	info := &types.Info{
-		Types: make(map[ast.Expr]types.TypeAndValue),
-		Defs:  make(map[*ast.Ident]types.Object),
-		Uses:  make(map[*ast.Ident]types.Object),
+		Types:      make(map[ast.Expr]types.TypeAndValue),
+		Defs:       make(map[*ast.Ident]types.Object),
+		Uses:       make(map[*ast.Ident]types.Object),
+		Selections: make(map[*ast.SelectorExpr]*types.Selection),
 	}
 	conf := types.Config{Importer: importer.Default()}
 	if _, err := conf.Check("github.com/sky1core/bid754/bid754-go/internal/bidgo", fset, parsedFiles, info); err != nil {
@@ -887,6 +888,12 @@ func convertParsedFile(fset *token.FileSet, f *ast.File, path string, reg *Regis
 	if err := rejectGoStringSlicing(fset, f, path); err != nil {
 		return "", err
 	}
+	if err := rejectUnsupportedParallelAssignments(fset, f, path); err != nil {
+		return "", err
+	}
+	if err := rejectLabeledLoopBranches(fset, f, path); err != nil {
+		return "", err
+	}
 	if activeSourceFunctions == nil {
 		activeSourceFunctions = make(map[string]bool)
 	}
@@ -946,6 +953,106 @@ func convertParsedFile(fset *token.FileSet, f *ast.File, path string, reg *Regis
 	sb.WriteString("use super::prelude::*;\n\n")
 	sb.WriteString(body.String())
 	return sb.String(), nil
+}
+
+func rejectLabeledLoopBranches(fset *token.FileSet, file *ast.File, path string) error {
+	var found error
+	ast.Inspect(file, func(node ast.Node) bool {
+		branch, ok := node.(*ast.BranchStmt)
+		if ok && branch.Label != nil && (branch.Tok == token.BREAK || branch.Tok == token.CONTINUE) {
+			found = fmt.Errorf("go2rs input %s:%d: labeled loop branches are unsupported", filepath.Base(path), fset.Position(branch.Pos()).Line)
+		}
+		return found == nil
+	})
+	return found
+}
+
+func rejectUnsupportedParallelAssignments(fset *token.FileSet, f *ast.File, path string) error {
+	var found error
+	ast.Inspect(f, func(n ast.Node) bool {
+		if found != nil {
+			return false
+		}
+		s, ok := n.(*ast.AssignStmt)
+		if !ok || len(s.Lhs) < 2 {
+			return true
+		}
+		for _, lhs := range s.Lhs {
+			if !stableParallelAssignmentTarget(lhs, f) {
+				pos := fset.Position(lhs.Pos())
+				found = fmt.Errorf("go2rs input %s:%d: parallel assignment target requires Go address evaluation; only stable local targets without indexed addresses or pointer rebinding are supported", filepath.Base(path), pos.Line)
+				return false
+			}
+		}
+		return true
+	})
+	return found
+}
+
+func stableParallelAssignmentTarget(lhs ast.Expr, file *ast.File) bool {
+	switch target := lhs.(type) {
+	case *ast.Ident:
+		return true
+	case *ast.StarExpr:
+		return stableParallelAssignmentPointer(target.X, file)
+	case *ast.SelectorExpr:
+		if _, ok := target.X.(*ast.Ident); !ok {
+			return false
+		}
+		typ := resolveExprType(target.X)
+		if typ == nil {
+			return false
+		}
+		if activeTypeInfo == nil || activeTypeInfo.Selections[target] == nil || len(activeTypeInfo.Selections[target].Index()) != 1 {
+			return false
+		}
+		if ptr, ok := typ.Underlying().(*types.Pointer); ok {
+			typ = ptr.Elem()
+			if !stableParallelAssignmentPointer(target.X, file) {
+				return false
+			}
+		}
+		_, ok := typ.Underlying().(*types.Struct)
+		return ok
+	default:
+		return false
+	}
+}
+
+func stableParallelAssignmentPointer(expr ast.Expr, file *ast.File) bool {
+	id, ok := expr.(*ast.Ident)
+	if !ok || activeTypeInfo == nil {
+		return false
+	}
+	obj := activeTypeInfo.ObjectOf(id)
+	if obj == nil || obj.Pkg() == nil || obj.Parent() == obj.Pkg().Scope() {
+		return false
+	}
+	isTarget := func(expr ast.Expr) bool {
+		id, ok := expr.(*ast.Ident)
+		return ok && activeTypeInfo.ObjectOf(id) == obj
+	}
+	stable := true
+	ast.Inspect(file, func(node ast.Node) bool {
+		switch node := node.(type) {
+		case *ast.AssignStmt:
+			for _, lhs := range node.Lhs {
+				if isTarget(lhs) && (node.Tok != token.DEFINE || activeTypeInfo.Defs[lhs.(*ast.Ident)] == nil) {
+					stable = false
+				}
+			}
+		case *ast.RangeStmt:
+			if node.Tok == token.ASSIGN && (isTarget(node.Key) || isTarget(node.Value)) {
+				stable = false
+			}
+		case *ast.UnaryExpr:
+			if node.Op == token.AND && isTarget(node.X) {
+				stable = false
+			}
+		}
+		return stable
+	})
+	return stable
 }
 
 func rejectReceiverMethods(fset *token.FileSet, f *ast.File, path string) error {
@@ -2167,25 +2274,25 @@ func convertAssignStmt(fset *token.FileSet, s *ast.AssignStmt, src []byte, inden
 		return fmt.Sprintf("%s%s = %s;\n", ind, lhsStr, rhs)
 	}
 
-	// Multi-assign with multiple RHS
-	var sb strings.Builder
+	var lhsParts, rhsParts, tempParts []string
 	for i := range s.Lhs {
-		if i < len(s.Rhs) {
-			lhs := convertExprStr(fset, s.Lhs[i], src)
-			rhs := convertExprStr(fset, s.Rhs[i], src)
-			if shifted, ok := checkedShiftAssignExpr(s.Tok, s.Lhs[i], s.Rhs[i], lhs, rhs); ok {
-				sb.WriteString(fmt.Sprintf("%s%s = %s;\n", ind, lhs, shifted))
-				continue
-			}
-			if method, ok := wrappingAssignMethod(s.Tok, s.Lhs[i]); ok {
-				rhs = castIntegerExprToContext(rhs, rustExprValueType(s.Rhs[i]), integerRustType(s.Lhs[i]), s.Rhs[i])
-				sb.WriteString(fmt.Sprintf("%s%s = %s.%s(%s);\n", ind, lhs, lhs, method, rhs))
-				continue
-			}
-			if s.Tok == token.ASSIGN {
-				rhs = castIntegerExprToContext(rhs, rustExprValueType(s.Rhs[i]), integerRustType(s.Lhs[i]), s.Rhs[i])
-			}
-			sb.WriteString(fmt.Sprintf("%s%s %s %s;\n", ind, lhs, convertAssignOp(s.Tok), rhs))
+		lhs := convertExprStr(fset, s.Lhs[i], src)
+		rhs := convertExprStr(fset, s.Rhs[i], src)
+		rhs = castIntegerExprToContext(rhs, rustExprValueType(s.Rhs[i]), integerRustType(s.Lhs[i]), s.Rhs[i])
+		lhsParts = append(lhsParts, lhs)
+		rhsParts = append(rhsParts, rhs)
+		tempParts = append(tempParts, fmt.Sprintf("__go2rs_rhs_%d_%d", s.Pos(), i))
+	}
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%slet (%s) = (%s);\n", ind, strings.Join(tempParts, ", "), strings.Join(rhsParts, ", ")))
+	for i, lhs := range lhsParts {
+		if lhs == "_" {
+			continue
+		}
+		if s.Tok == token.DEFINE && activeTypeInfo != nil && activeTypeInfo.Defs[s.Lhs[i].(*ast.Ident)] != nil {
+			sb.WriteString(fmt.Sprintf("%slet mut %s = %s;\n", ind, lhs, tempParts[i]))
+		} else {
+			sb.WriteString(fmt.Sprintf("%s%s = %s;\n", ind, lhs, tempParts[i]))
 		}
 	}
 	return sb.String()
@@ -2799,7 +2906,6 @@ func convertForStmt(fset *token.FileSet, s *ast.ForStmt, src []byte, indent int,
 		return sb.String()
 	}
 
-	// C-style for loop: emit init, then while loop with post at end
 	if s.Init != nil {
 		sb.WriteString(convertStmt(fset, s.Init, src, indent, namedReturns))
 	}
@@ -2807,15 +2913,47 @@ func convertForStmt(fset *token.FileSet, s *ast.ForStmt, src []byte, indent int,
 	if s.Cond != nil {
 		cond = convertExprStr(fset, s.Cond, src)
 	}
-	sb.WriteString(fmt.Sprintf("%swhile %s {\n", ind, cond))
+	if s.Post == nil || !loopBodyContinues(s.Body) {
+		sb.WriteString(fmt.Sprintf("%swhile %s {\n", ind, cond))
+		for _, stmt := range s.Body.List {
+			sb.WriteString(convertStmt(fset, stmt, src, indent+1, namedReturns))
+		}
+		if s.Post != nil {
+			sb.WriteString(convertStmt(fset, s.Post, src, indent+1, namedReturns))
+		}
+		sb.WriteString(fmt.Sprintf("%s}\n", ind))
+		return sb.String()
+	}
+	first := fmt.Sprintf("__go2rs_first_%d", s.Pos())
+	sb.WriteString(fmt.Sprintf("%slet mut %s = true;\n", ind, first))
+	sb.WriteString(fmt.Sprintf("%sloop {\n", ind))
+	sb.WriteString(fmt.Sprintf("%s    if %s {\n", ind, first))
+	sb.WriteString(fmt.Sprintf("%s        %s = false;\n", ind, first))
+	sb.WriteString(fmt.Sprintf("%s    } else {\n", ind))
+	if s.Post != nil {
+		sb.WriteString(convertStmt(fset, s.Post, src, indent+2, namedReturns))
+	}
+	sb.WriteString(fmt.Sprintf("%s    }\n", ind))
+	sb.WriteString(fmt.Sprintf("%s    if !(%s) { break; }\n", ind, cond))
 	for _, stmt := range s.Body.List {
 		sb.WriteString(convertStmt(fset, stmt, src, indent+1, namedReturns))
 	}
-	if s.Post != nil {
-		sb.WriteString(convertStmt(fset, s.Post, src, indent+1, namedReturns))
-	}
 	sb.WriteString(fmt.Sprintf("%s}\n", ind))
 	return sb.String()
+}
+
+func loopBodyContinues(body *ast.BlockStmt) bool {
+	found := false
+	ast.Inspect(body, func(node ast.Node) bool {
+		switch s := node.(type) {
+		case *ast.ForStmt, *ast.RangeStmt, *ast.FuncLit:
+			return false
+		case *ast.BranchStmt:
+			found = found || s.Tok == token.CONTINUE
+		}
+		return !found
+	})
+	return found
 }
 
 // -------------------------------------------------------

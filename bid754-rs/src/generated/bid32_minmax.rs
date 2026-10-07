@@ -602,6 +602,10 @@ pub(crate) fn bid32_quantum_pure(mut x: u32) -> u32 {
     if ((x & 0x7c000000) == 0x7c000000) {
         return (x & 0x7fffffff);
     }
-    int_exp = (((((go_checked_shr_u32(x, go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(101));
+    if ((x & 0x60000000) == 0x60000000) {
+        int_exp = (((((go_checked_shr_u32(x, go_shift_count_u64((21) as u64)))) & 0xff) as i64).wrapping_sub(101));
+    } else {
+        int_exp = (((((go_checked_shr_u32(x, go_shift_count_u64((23) as u64)))) & 0xff) as i64).wrapping_sub(101));
+    }
     return (((go_checked_shl_i64(((int_exp.wrapping_add(101))), go_shift_count_u64((23) as u64))) as u32).wrapping_add(1));
 }

@@ -2,7 +2,6 @@ package bidgo
 
 import (
 	"bufio"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,14 +9,7 @@ import (
 )
 
 func TestBid64SqrtIntelReadtest(t *testing.T) {
-	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
-
-	file, err := os.Open(testFile)
-	if err != nil {
-		t.Skipf("Intel test file not found: %v", err)
-		return
-	}
-	defer file.Close()
+	file := openAuxIntelReadtest(t)
 
 	hexPattern := regexp.MustCompile(`^\[([0-9a-fA-F]+)\]$`)
 
@@ -63,6 +55,7 @@ func TestBid64SqrtIntelReadtest(t *testing.T) {
 		}
 	}
 
+	finishAuxIntelReadtest(t, scanner, "bid64_sqrt", passed, failed)
 	t.Logf("bid64_sqrt: %d passed, %d failed, %d skipped", passed, failed, skipped)
 	if failed > 0 {
 		t.Fatalf("bid64_sqrt: %d tests failed", failed)

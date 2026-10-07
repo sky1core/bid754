@@ -113,6 +113,7 @@ func applyBidCodecConsumerTemplateReplacements(src string) string {
 		// languages, so a Go/Rust public-parse divergence fails a gate.
 		"{{BID_CODEC_RUST_FULL_PARSE_FROM_STRING_CLASSES}}": bidCodecRustFullParseFromStringClassElems(),
 		"{{BID_CODEC_GO_FULL_STRING_CLASSES}}":              bidCodecGoFullStringClassElems(),
+		"{{BID_CODEC_RUST_FULL_PARSE_STRING_CLASSES}}":      bidCodecRustFullParseStringClassElems(),
 		"{{BID_CODEC_PY_REJECT_TYPE_DOMAIN}}":               bidCodecPyTypeDomainElems(),
 		"{{BID_CODEC_JS_REJECT_TYPE_DOMAIN}}":               bidCodecJsTypeDomainElems(),
 		"{{BID_CODEC_PY_RAW_DECODE_REJECTS}}":               bidCodecPyRawDecodeRejectElems(),
@@ -153,6 +154,10 @@ func applyBidCodecConsumerTemplateReplacements(src string) string {
 
 func GenerateBidCodecVectorTestOutputs() (map[string][]byte, error) {
 	oracleRows, err := bidCodecParseOracleRows()
+	if err != nil {
+		return nil, err
+	}
+	exactRows, err := bidCodecExactParseExpectations()
 	if err != nil {
 		return nil, err
 	}
@@ -1513,9 +1518,9 @@ fn test_bid_codec_vectors_encode_decode() {
 // channels are channel-skipped (and counted) because the library exposes no
 // public Components construction surface. Expected observation classes:
 //
-//   - exact:    Direct succeeds; WithFlags succeeds with zero flags and the
-//               same bits; WithMode(RoundNearestEven) matches WithFlags; and
-//               the public render/parse closure holds (Direct(v.String())==v).
+//   - exact:    Direct, WithFlags, and all five WithMode lanes match
+//               independently encoded bits with zero flags; public
+//               render/parse preserves the raw bits.
 //   - rounded:  Direct errors with a zero value (exact-only contract);
 //               WithFlags and all five WithMode modes match independent
 //               Intel C result bits and exact flags.
@@ -1569,6 +1574,48 @@ var goFullFromStringClasses = map[string]string{ {{BID_CODEC_GO_FULL_FROM_STRING
 // input for widths 32, 64, and 128 in that order.
 var goFullStringVectorClasses = map[string][3]string{ {{BID_CODEC_GO_FULL_STRING_CLASSES}} }
 
+type goFullExactExpectation struct { input, expected string; width int; lo, hi uint64 }
+var goFullExactExpectations = []goFullExactExpectation{ {{BID_CODEC_EXACT_EXPECTATIONS}} }
+
+func goFullExactExpected(input string, width int) (goFullExactExpectation, bool) {
+	for _, row := range goFullExactExpectations {
+		if row.input == input && row.width == width { return row, true }
+	}
+	return goFullExactExpectation{}, false
+}
+
+func goFullCompareExact(want goFullExactExpectation, lo, hi uint64, flags bid754.ExceptionFlags, err error) string {
+	if err != nil { return "error" }
+	if lo != want.lo || hi != want.hi { return "bits" }
+	if flags != 0 { return "flags" }
+	return ""
+}
+
+func goFullAssertExact(t *testing.T, input string, width int, lo, hi uint64) {
+	t.Helper()
+	want, ok := goFullExactExpected(input, width)
+	if !ok { t.Fatalf("exact d%d input=%q has no independent expected bits", width, input) }
+	if reason := goFullCompareExact(want, lo, hi, 0, nil); reason != "" {
+		t.Errorf("exact d%d input=%q Direct mismatch=%s got=%x:%x want=%x:%x", width, input, reason, hi, lo, want.hi, want.lo)
+	}
+	for mode, rounding := range goFullParseModes {
+		gotLo, gotHi, flags, err := goFullParseWithMode(goFullParseExpectation{input: input, width: width}, rounding, false)
+		if reason := goFullCompareExact(want, gotLo, gotHi, flags, err); reason != "" {
+			t.Errorf("exact d%d input=%q mode=%d mismatch=%s got=%x:%x flags=%v err=%v want=%x:%x", width, input, mode, reason, gotHi, gotLo, flags, err, want.hi, want.lo)
+		}
+	}
+}
+
+func goFullAssertRejectedModes(t *testing.T, label, input string, width int) {
+	t.Helper()
+	for mode, rounding := range goFullParseModes {
+		lo, hi, flags, err := goFullParseWithMode(goFullParseExpectation{input: input, width: width}, rounding, false)
+		if err == nil || lo != 0 || hi != 0 || flags != 0 {
+			t.Errorf("%s %q d%d mode=%d: want WithMode reject with zero value and flags, got (%x:%x, %v, err=%v)", label, input, width, mode, hi, lo, flags, err)
+		}
+	}
+}
+
 func goFullLoadVectors(t *testing.T) goFullVectorFile {
 	t.Helper()
 	data, err := os.ReadFile("../bid754-codec-vectors/vectors.json")
@@ -1602,6 +1649,7 @@ func goFullAssertClass32(t *testing.T, label, input, class string) {
 				label, input, derr, w.ToUint32(), wf, werr, d.ToUint32())
 			return
 		}
+		goFullAssertExact(t, input, 32, uint64(d.ToUint32()), 0)
 		rendered := d.String()
 		rt, rterr := bid754.NewDecimal32(rendered)
 		if rterr != nil || rt != d {
@@ -1621,6 +1669,7 @@ func goFullAssertClass32(t *testing.T, label, input, class string) {
 			t.Errorf("%s %q d32: want WithFlags reject with zero value and flags, got (%#08x, %v, err=%v)",
 				label, input, w.ToUint32(), wf, werr)
 		}
+		goFullAssertRejectedModes(t, label, input, 32)
 	default:
 		t.Fatalf("%s %q d32: unknown go_full class %q", label, input, class)
 	}
@@ -1643,6 +1692,7 @@ func goFullAssertClass64(t *testing.T, label, input, class string) {
 				label, input, derr, w.ToUint64(), wf, werr, d.ToUint64())
 			return
 		}
+		goFullAssertExact(t, input, 64, d.ToUint64(), 0)
 		rendered := d.String()
 		rt, rterr := bid754.NewDecimal64(rendered)
 		if rterr != nil || rt != d {
@@ -1662,6 +1712,7 @@ func goFullAssertClass64(t *testing.T, label, input, class string) {
 			t.Errorf("%s %q d64: want WithFlags reject with zero value and flags, got (%#016x, %v, err=%v)",
 				label, input, w.ToUint64(), wf, werr)
 		}
+		goFullAssertRejectedModes(t, label, input, 64)
 	default:
 		t.Fatalf("%s %q d64: unknown go_full class %q", label, input, class)
 	}
@@ -1685,6 +1736,8 @@ func goFullAssertClass128(t *testing.T, label, input, class string) {
 				label, input, derr, w.ToBytes(), wf, werr, d.ToBytes())
 			return
 		}
+		bits := d.ToBytes()
+		goFullAssertExact(t, input, 128, binary.LittleEndian.Uint64(bits[:8]), binary.LittleEndian.Uint64(bits[8:]))
 		rendered := d.String()
 		rt, rterr := bid754.NewDecimal128(rendered)
 		if rterr != nil || rt != d {
@@ -1704,6 +1757,7 @@ func goFullAssertClass128(t *testing.T, label, input, class string) {
 			t.Errorf("%s %q d128: want WithFlags reject with zero value and flags, got (%x, %v, err=%v)",
 				label, input, w.ToBytes(), wf, werr)
 		}
+		goFullAssertRejectedModes(t, label, input, 128)
 	default:
 		t.Fatalf("%s %q d128: unknown go_full class %q", label, input, class)
 	}
@@ -1760,6 +1814,11 @@ func TestGoFullBidCodecStringVectors(t *testing.T) {
 		if !ok {
 			t.Fatalf("string_vectors input %q has no go_full expectation classes", sv.Input)
 		}
+		for i, width := range []int{32, 64, 128} {
+			if classes[i] != "exact" { continue }
+			want, ok := goFullExactExpected(sv.Input, width)
+			if !ok || want.expected != sv.Expected { t.Fatalf("string_vectors input=%q d%d expected rendering=%q has no matching generated exact expectation", sv.Input, width, sv.Expected) }
+		}
 		goFullAssertClass32(t, "string_vectors", sv.Input, classes[0])
 		goFullAssertClass64(t, "string_vectors", sv.Input, classes[1])
 		goFullAssertClass128(t, "string_vectors", sv.Input, classes[2])
@@ -1771,7 +1830,34 @@ func TestGoFullBidCodecStringVectors(t *testing.T) {
 		t.Fatalf("go_full string_vectors expectation table has %d entries, want %d (stale or missing entries)",
 			len(goFullStringVectorClasses), consumed)
 	}
-	t.Logf("go_full string_vectors: consumed=%d", consumed)
+	if len(goFullExactExpectations) != {{BID_CODEC_EXACT_COUNT}} { t.Fatalf("go_full exact expectations = %d, want {{BID_CODEC_EXACT_COUNT}}", len(goFullExactExpectations)) }
+	t.Logf("go_full string_vectors: consumed=%d exact_width_cases=%d", consumed, len(goFullExactExpectations))
+}
+
+func TestGoFullBidCodecExactComparatorStrength(t *testing.T) {
+	for _, want := range goFullExactExpectations {
+		if got := goFullCompareExact(want, want.lo, want.hi, 0, nil); got != "" { t.Fatalf("baseline %q d%d: %s", want.input, want.width, got) }
+		if got := goFullCompareExact(want, want.lo^1, want.hi, 0, nil); got != "bits" { t.Fatalf("same wrong low bits across all parse families: %q", got) }
+		if got := goFullCompareExact(want, want.lo, want.hi^1, 0, nil); got != "bits" { t.Fatalf("same wrong high bits across all parse families: %q", got) }
+		for _, flags := range []bid754.ExceptionFlags{bid754.FlagInexact, 1 << 12} {
+			if got := goFullCompareExact(want, want.lo, want.hi, flags, nil); got != "flags" { t.Fatalf("unexpected exact flags accepted: %q", got) }
+		}
+		if got := goFullCompareExact(want, want.lo, want.hi, 0, os.ErrInvalid); got != "error" { t.Fatalf("exact parse error accepted: %q", got) }
+	}
+	injectedFailures := 0
+	for _, input := range []string{"NaN000123", "001.100"} {
+		for _, width := range []int{32, 64, 128} {
+			want, ok := goFullExactExpected(input, width)
+			if !ok { t.Fatalf("missing fault witness %q d%d", input, width) }
+			wrongLo := want.lo ^ 1
+			if input == "NaN000123" { wrongLo = want.lo &^ 0x7b }
+			if got := goFullCompareExact(want, wrongLo, want.hi, 0, nil); got != "bits" {
+				t.Fatalf("same wrong result %q d%d passed comparator: %q", input, width, got)
+			}
+			injectedFailures++
+		}
+	}
+	t.Logf("go_full exact comparator fault witnesses=%d same-wrong-result injected_failures=%d", len(goFullExactExpectations), injectedFailures)
 }
 `)),
 		bidCodecVectorsRustFullParseTestPath: []byte(applyBidCodecConsumerTemplateReplacements(genmarker.Line("testgen") + `
@@ -1812,25 +1898,59 @@ struct RejectEntry {
 }
 
 #[derive(serde::Deserialize)]
+struct StringEntry {
+    input: String,
+    expected: String,
+}
+
+#[derive(serde::Deserialize)]
 struct VectorFile {
     format_version: i64,
     reject_vectors: Vec<RejectEntry>,
+    string_vectors: Vec<StringEntry>,
 }
 
 const EXPECTED_FORMAT_VERSION: i64 = {{BID_CODEC_VECTOR_FORMAT_VERSION}};
 const EXPECTED_REJECT_TOTAL: usize = {{BID_CODEC_REJECT_TOTAL}};
 const EXPECTED_REJECT_CONSUMED: usize = {{BID_CODEC_GO_FULL_REJECT_CONSUMED}};
 const EXPECTED_REJECT_SKIPPED: usize = {{BID_CODEC_GO_FULL_REJECT_SKIPPED}};
+const EXPECTED_STRING_TOTAL: usize = {{BID_CODEC_STRING_TOTAL}};
 
 /// The public observation class of every reject_vectors from_string input,
 /// width-independent on this channel. Shared with the Go consumer's table.
 const FROM_STRING_CLASSES: &[(&str, &str)] = &[ {{BID_CODEC_RUST_FULL_PARSE_FROM_STRING_CLASSES}} ];
+const STRING_CLASSES: &[(&str, [&str; 3])] = &[{{BID_CODEC_RUST_FULL_PARSE_STRING_CLASSES}} ];
+
+#[derive(Clone, Copy)]
+struct ExactParseExpectation { input: &'static str, expected: &'static str, width: usize, lo: u64, hi: u64 }
+const EXACT_EXPECTATIONS: &[ExactParseExpectation] = &[{{BID_CODEC_EXACT_EXPECTATIONS}} ];
+
+fn exact_expected(input: &str, width: usize) -> Option<&'static ExactParseExpectation> {
+    EXACT_EXPECTATIONS.iter().find(|row| row.input == input && row.width == width)
+}
+
+fn compare_exact(want: &ExactParseExpectation, lo: u64, hi: u64, flags: u32) -> &'static str {
+    if lo != want.lo || hi != want.hi { "bits" }
+    else if flags != 0 { "flags" }
+    else { "" }
+}
+
+fn words32(v: &Decimal32) -> (u64,u64) { (v.to_bits() as u64,0) }
+fn words64(v: &Decimal64) -> (u64,u64) { (v.to_bits(),0) }
+fn words128(v: &Decimal128) -> (u64,u64) {
+    let b = v.to_le_bytes();
+    (u64::from_le_bytes(b[..8].try_into().unwrap()),u64::from_le_bytes(b[8..].try_into().unwrap()))
+}
 
 fn class_of(input: &str) -> Option<&'static str> {
     FROM_STRING_CLASSES
         .iter()
         .find(|(k, _)| *k == input)
         .map(|(_, v)| *v)
+}
+
+fn string_classes_of(input: &str) -> Option<[&'static str; 3]> {
+    STRING_CLASSES.iter().find(|(k, _)| *k == input).map(|(_, v)| *v)
 }
 
 fn load_vectors() -> VectorFile {
@@ -1865,7 +1985,7 @@ fn guard<T>(failures: &mut Vec<String>, label: &str, input: &str, family: &str, 
 // to_bits(), Decimal128 exposes to_le_bytes() (there is no u128 bits form), so
 // the comparison accessor is a macro parameter rather than a fixed method.
 macro_rules! assert_class {
-    ($ty:ty, $bits:ident, $failures:expr, $label:expr, $input:expr, $class:expr) => {{
+    ($ty:ty, $bits:ident, $words:ident, $failures:expr, $label:expr, $input:expr, $class:expr) => {{
         let failures: &mut Vec<String> = $failures;
         let label: &str = $label;
         let input: &str = $input;
@@ -1899,13 +2019,9 @@ macro_rules! assert_class {
             }
 
             match class {
-                // No from_string reject row is "exact" today, and the generator
-                // test pins that count at zero, so this arm is unreachable from
-                // the current corpus. It is kept because the class set is
-                // shared with the Go consumer, where the string_vectors channel
-                // does use it: a shared table with a missing arm here would be
-                // a silent asymmetry the moment a row moved channels.
                 "exact" => {
+                    let expected = exact_expected(input, core::mem::size_of::<$ty>()*8)
+                        .unwrap_or_else(|| panic!("exact {input:?} {width} missing independent expected bits"));
                     match (&direct, &with_flags) {
                         (Ok(d), Ok((w, f))) => {
                             if f.bits() != 0 {
@@ -1918,10 +2034,38 @@ macro_rules! assert_class {
                                     "{label} {input:?} {width}: parse and parse_with_flags disagree on bits"
                                 ));
                             }
+                            let (lo,hi) = $words(d);
+                            if let reason @ ("bits" | "flags") = compare_exact(expected,lo,hi,0) {
+                                failures.push(format!("{label} {input:?} {width}: parse independent exact {reason}: got={hi:x}:{lo:x} want={:x}:{:x}",expected.hi,expected.lo));
+                            }
+                            let (lo,hi) = $words(w);
+                            if let reason @ ("bits" | "flags") = compare_exact(expected,lo,hi,f.bits()) {
+                                failures.push(format!("{label} {input:?} {width}: parse_with_flags independent exact {reason}: got={hi:x}:{lo:x} flags={:?}",f.bits()));
+                            }
+                            let rendered = d.to_string();
+                            if let Some(reparsed) = guard(failures,label,input,&format!("{width}::parse(rendered)"),|| <$ty>::parse(&rendered)) {
+                                match reparsed {
+                                    Ok(v) if $words(&v) == $words(d) => {}
+                                    other => failures.push(format!("{label} {input:?} {width}: render/parse raw closure failed: rendered={rendered:?} reparsed={other:?}")),
+                                }
+                            }
                         }
                         _ => failures.push(format!(
                             "{label} {input:?} {width}: want exact success from both families"
                         )),
+                    }
+                    for (mode_index,mode) in PARSE_MODES.iter().copied().enumerate() {
+                        if let Some(result) = guard(failures,label,input,&format!("{width}::parse_with_mode({mode_index})"),|| <$ty>::parse_with_mode(input,mode)) {
+                            match result {
+                                Ok((v,f)) => {
+                                    let (lo,hi) = $words(&v);
+                                    if let reason @ ("bits" | "flags") = compare_exact(expected,lo,hi,f.bits()) {
+                                        failures.push(format!("{label} {input:?} {width}: mode={mode_index} independent exact {reason}: got={hi:x}:{lo:x} flags={:?}",f.bits()));
+                                    }
+                                }
+                                Err(e) => failures.push(format!("{label} {input:?} {width}: exact mode={mode_index} rejected: {e:?}")),
+                            }
+                        }
                     }
                 }
                 "rounded" => {
@@ -1942,6 +2086,17 @@ macro_rules! assert_class {
                         failures.push(format!(
                             "{label} {input:?} {width}: want parse_with_flags reject, got success"
                         ));
+                    }
+                    for (mode_index, mode) in PARSE_MODES.iter().copied().enumerate() {
+                        let accepted = if mode_index == 0 {
+                            with_mode.is_ok()
+                        } else {
+                            guard(failures, label, input, &format!("{width}::parse_with_mode({mode_index})"), || <$ty>::parse_with_mode(input, mode))
+                                .is_some_and(|result| result.is_ok())
+                        };
+                        if accepted {
+                            failures.push(format!("{label} {input:?} {width}: parse_with_mode({mode_index}) accepted rejected input"));
+                        }
                     }
                 }
                 other => panic!("{label} {input:?} {width}: unknown class {other:?}"),
@@ -1975,9 +2130,9 @@ fn test_rust_full_parse_reject_vectors() {
                     panic!("reject from_string input {input:?} ({}) has no expectation class", r.reason)
                 });
                 let label = format!("reject from_string ({})", r.reason);
-                assert_class!(Decimal32, to_bits, &mut failures, &label, input, class);
-                assert_class!(Decimal64, to_bits, &mut failures, &label, input, class);
-                assert_class!(Decimal128, to_le_bytes, &mut failures, &label, input, class);
+                assert_class!(Decimal32, to_bits, words32, &mut failures, &label, input, class);
+                assert_class!(Decimal64, to_bits, words64, &mut failures, &label, input, class);
+                assert_class!(Decimal128, to_le_bytes, words128, &mut failures, &label, input, class);
             }
             // Channel skip: these channels address a Components construction
             // surface, which the public Decimal API does not expose.
@@ -2003,6 +2158,52 @@ fn test_rust_full_parse_reject_vectors() {
 
     eprintln!("rust_full_parse reject_vectors: consumed={consumed} channel_skipped={skipped}");
 }
+
+#[test]
+fn test_rust_full_parse_string_vectors() {
+    let file = load_vectors();
+    assert_eq!(file.string_vectors.len(), EXPECTED_STRING_TOTAL, "string_vectors total changed");
+    let mut seen = std::collections::BTreeSet::new();
+    let mut failures = Vec::new();
+    for row in &file.string_vectors {
+        assert!(seen.insert(row.input.as_str()), "duplicate string_vectors input {:?}", row.input);
+        let classes = string_classes_of(&row.input)
+            .unwrap_or_else(|| panic!("string_vectors input {:?} has no expectation classes", row.input));
+        for (index,width) in [32,64,128].iter().copied().enumerate() {
+            if classes[index] == "exact" {
+                let want = exact_expected(&row.input,width).unwrap_or_else(|| panic!("missing exact row {:?} d{width}",row.input));
+                assert_eq!(want.expected,row.expected,"string_vectors expected rendering changed for {:?} d{width}",row.input);
+            }
+        }
+        assert_class!(Decimal32, to_bits, words32, &mut failures, "string_vectors", &row.input, classes[0]);
+        assert_class!(Decimal64, to_bits, words64, &mut failures, "string_vectors", &row.input, classes[1]);
+        assert_class!(Decimal128, to_le_bytes, words128, &mut failures, "string_vectors", &row.input, classes[2]);
+    }
+    assert_eq!(seen.len(), STRING_CLASSES.len(), "string_vectors expectation table has stale entries");
+    assert!(failures.is_empty(), "rust_full_parse string_vectors failures ({}):\n{}", failures.len(), failures.join("\n"));
+    assert_eq!(EXACT_EXPECTATIONS.len(), {{BID_CODEC_EXACT_COUNT}});
+    eprintln!("rust_full_parse string_vectors: consumed={} exact_width_cases={}", seen.len(), EXACT_EXPECTATIONS.len());
+}
+
+#[test]
+fn test_rust_full_parse_exact_comparator_strength() {
+    for want in EXACT_EXPECTATIONS {
+        assert_eq!(compare_exact(want,want.lo,want.hi,0),"");
+        assert_eq!(compare_exact(want,want.lo^1,want.hi,0),"bits","same wrong low bits across all parse families");
+        assert_eq!(compare_exact(want,want.lo,want.hi^1,0),"bits","same wrong high bits across all parse families");
+        for flags in [0x20, 1 << 12] { assert_eq!(compare_exact(want,want.lo,want.hi,flags),"flags","unexpected exact flags accepted"); }
+    }
+    let mut injected_failures = 0;
+    for input in ["NaN000123","001.100"] {
+        for width in [32,64,128] {
+            let want = exact_expected(input,width).unwrap();
+            let wrong_lo = if input == "NaN000123" { want.lo & !0x7b } else { want.lo ^ 1 };
+            assert_eq!(compare_exact(want,wrong_lo,want.hi,0),"bits","same wrong result {input:?} d{width} passed comparator");
+            injected_failures += 1;
+        }
+    }
+    eprintln!("rust_full_parse exact comparator fault witnesses={} same-wrong-result injected_failures={injected_failures}",EXACT_EXPECTATIONS.len());
+}
 `)),
 	}
 	for _, target := range []struct {
@@ -2019,6 +2220,9 @@ fn test_rust_full_parse_reject_vectors() {
 		inputs, expectations := bidCodecParseExpectationLiterals(oracleRows, target.rust)
 		rendered := strings.ReplaceAll(string(body), "{{BID_CODEC_PARSE_EXPECTATIONS}}", expectations)
 		rendered = strings.ReplaceAll(rendered, "{{BID_CODEC_PARSE_INPUTS}}", inputs)
+		rendered = strings.ReplaceAll(rendered, "{{BID_CODEC_EXACT_EXPECTATIONS}}", bidCodecExactParseExpectationLiterals(exactRows, target.rust))
+		files[target.path] = []byte(strings.ReplaceAll(string(files[target.path]), "{{BID_CODEC_EXACT_EXPECTATIONS}}", bidCodecExactParseExpectationLiterals(exactRows, target.rust)))
+		files[target.path] = []byte(strings.ReplaceAll(string(files[target.path]), "{{BID_CODEC_EXACT_COUNT}}", fmt.Sprintf("%d", len(exactRows))))
 		files[target.path] = append(files[target.path], []byte("\n"+rendered)...)
 	}
 	files[bidCodecVectorsGoExternalTestPath] = bidCodecGoExternalVectorTestOutput(files[bidCodecVectorsGoTestPath])

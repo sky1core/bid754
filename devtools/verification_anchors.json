@@ -6,14 +6,14 @@
     "Regenerate first, update the affected anchors in the same change, and run make verify-generated.",
     "The public_api and rust_public_api entries are architecture checks, not additional regular verification domains."
   ],
-  "readtest_cases_total": 86930,
+  "readtest_cases_total": 91816,
   "readtest_status_control_cases": 137,
-  "readtest_native_compare_skip_cases": 11,
+  "readtest_native_compare_skip_cases": 1507,
   "readtest_profile_rows_accepted": 86872,
   "readtest_profile_row_skip_reasons": {
     "longintsize32": 6652
   },
-  "goport_readtest_executed_cases": 86930,
+  "goport_readtest_executed_cases": 91816,
   "ffi_bitcompare_cases_total": 30023,
   "ffi_profile_functions_total": 680,
   "ffi_profile_functions_included": 526,
@@ -34,7 +34,7 @@
   "tier1_arithmetic_long_semantic_scale_cases_by_width": {
     "decimal32": 4,
     "decimal64": 4,
-    "decimal128": 4
+    "decimal128": 40
   },
   "tier1_arithmetic_long_semantic_remainder_pairs_by_width": {
     "decimal32": 4,
@@ -54,7 +54,7 @@
   "tier1_arithmetic_long_structured_comparisons_by_width": {
     "decimal32": 1198710,
     "decimal64": 886392,
-    "decimal128": 7513856
+    "decimal128": 7514036
   },
   "tier1_arithmetic_long_random_operations": 10,
   "tier1_arithmetic_long_random_cases_per_operation_by_width": {
@@ -97,7 +97,7 @@
   "tier1_arithmetic_long_total_comparisons_by_width": {
     "decimal32": 11684470,
     "decimal64": 11372152,
-    "decimal128": 12756736
+    "decimal128": 12756916
   },
   "tier1_arithmetic_long_consumers": 2,
   "tier1_compare_conversion_long_boundary_values_by_width": {
@@ -177,6 +177,12 @@
     "Decimal128": 12313,
     "General": 7490
   },
+  "native_dectest_skipped_cases": {
+    "Decimal32": 0,
+    "Decimal64": 191,
+    "Decimal128": 577,
+    "General": 125
+  },
   "goport_dectest_executed_cases": {
     "Decimal32": 788,
     "Decimal64": 11066,
@@ -188,9 +194,9 @@
     "Decimal128": 1166
   },
   "goport_dectest_flag_exempt_cases": {
-    "Decimal32": 2,
-    "Decimal64": 2,
-    "Decimal128": 2
+    "Decimal32": 0,
+    "Decimal64": 0,
+    "Decimal128": 0
   },
   "rust_dectest_executed_cases": {
     "Decimal32": 788,
@@ -203,9 +209,9 @@
     "Decimal128": 1166
   },
   "rust_dectest_flag_exempt_cases": {
-    "Decimal32": 2,
-    "Decimal64": 2,
-    "Decimal128": 2
+    "Decimal32": 0,
+    "Decimal64": 0,
+    "Decimal128": 0
   },
   "readtest_profile_functions_total": 680,
   "readtest_profile_functions_selected": 561,
@@ -527,31 +533,31 @@
   "verification_artifact_sha256": {
     "finite_path_runners": "e4c2a1f13a8e15c43d55c789cc412fa2f0cad7fabaee0dcfbce2586855b8b2a3",
     "tier1_independent_runners": "b4e652f977f464e55c4b13430fb249c8f5de4ab556d078e659d0f254c6073881",
-    "testspec_tree": "f256b946377a6d34918f555c02a0714eb3e6d527497beca79f9096428d30202d",
+    "testspec_tree": "ec301b711d6ace889a918e5e18cc75edbb7e57ec5d7508f166b5480dfc4c1d07",
     "bidcodec_vectors": "4ae46c32a7ae279d135e32c6a7a0e7cdf7f128723564d461731829e8b26c93ee",
-    "bidcodec_harnesses": "cda5092527215efe3f5843fe8aa281e047eb79365189270c3af818a9dc03069a",
-    "goport_verification_runners": "fb68caf660e332bd755c3f457ac9b0f6efcc76dd09c6468fd5e3dbb5799ff30a",
+    "bidcodec_harnesses": "b87659ad6685ffd8086d8f5c61deed75450c180654941c3684a9bc872be57f6e",
+    "goport_verification_runners": "8c57ecd38bf78ca472540f921bade350fe121dec2666bb6a6dbc820b4ae16bba",
     "decnumber_differential_runners": "e0e2596ba85bab83743f17572d06f6b9602efbf832197a6562da7f1ccd59cdd3",
     "d32_exhaustive_runners": "b23f99b7f028909b71030cae9c36822e950223648248c105f64ec5480e8e9e5e",
-    "dectest_executor": "77b06a819674940e9ccb39dd77e93c7779e777058edf60a4d6227d9ce491615d",
-    "spec_loader": "b927e5d6393ed9e69b506a52555e5cbef062f5f3ed8de536e981ea823d0e3b5d",
-    "rust_readtest_runner": "0da7f73583990123a5824807d2ec50b881e66b0b981ce4c9fc4289ccd7c1feaf",
-    "rust_public_parity_runner": "e85eca9773b367292a9202012a420f9c86b8f84b7f3fe694207a2bf3ff54bcb4",
-    "rust_dectest_runner": "24bc52b2e5ee87347594aa621035c3853253aa99fe349c7dbd48c64ac93d088e",
-    "rust_tier1_long_runners": "d2918c127871efa94e8197ec11cbf48233727a2b89d8d2775c012abed2826381"
+    "dectest_executor": "6e2eff81cd8a1290eb3eaded88dd006f518629fdd339275b7be7be7fa8780dee",
+    "spec_loader": "9655af2d797b5f9a3da0400158588d0e62bcee9c67d491e774ab1cd68b241947",
+    "rust_readtest_runner": "3ee417863bd82d28522dee7144e61a009415777cf74d49d20fceefec9db6fa06",
+    "rust_public_parity_runner": "eb1d9c480d1ae8b97c1421e28fd90a16dc929ea8b6b6985375a69aefc5de867b",
+    "rust_dectest_runner": "e169abe8771d80e2c051e0678241e668b7b5222f3751cb2852fe06018a815c64",
+    "rust_tier1_long_runners": "9866206c5a584a162a5eeb02433f02d4223401e1a417d8bc9c58ae6f9203c3d7"
   },
-  "bid_codec_parse_oracle_tuples": 540,
+  "bid_codec_parse_oracle_tuples": 525,
   "bid_codec_parse_oracle_by_width": {
-    "bid32": 185,
-    "bid64": 185,
-    "bid128": 170
+    "bid32": 180,
+    "bid64": 180,
+    "bid128": 165
   },
-  "bid_codec_parse_oracle_sha256": "a16b0223a9f18c6dfa2e85df5e594482209eb1fa9440d3bcf4ded15f71ce882e",
+  "bid_codec_parse_oracle_sha256": "fc937608df1800cc76b88b1c1cf099c97ca7afdec391a896d292f43a5fcb33ab",
   "finite_reference_calibration": {
     "readtest_by_width": {
       "32": 119,
       "64": 695,
-      "128": 789
+      "128": 1109
     },
     "readtest_excluded_decimal_text": 2325,
     "readtest_excluded_nonfinite_input": 454,
@@ -568,5 +574,25 @@
     "javascript": 304,
     "python": 489,
     "swift": 491
-  }
+  },
+  "rust_ieee_readtest_regressions_total": 2136,
+  "rust_ieee_readtest_regressions_by_function": {
+    "bid128_fma": 320,
+    "bid128_scalbn": 350,
+    "bid128_scalbln": 350,
+    "bid128_ldexp": 180,
+    "bid32_nextafter": 40,
+    "bid32_quantum": 896
+  },
+  "rust_ieee_readtest_regressions_native_divergences": 784,
+  "tier1_arithmetic_long_intel003_structured_deviations": 160,
+  "tier1_arithmetic_long_intel003_random_deviations": 0,
+  "bid_codec_string_vectors_rust_full_parse_consumed": 62,
+  "bid_codec_exact_parse_width_cases": 112,
+  "bid_codec_exact_parse_by_width": {
+    "bid32": 34,
+    "bid64": 34,
+    "bid128": 44
+  },
+  "ffi_intel006_independent_cases": 2
 }

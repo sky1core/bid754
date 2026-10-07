@@ -1,19 +1,7 @@
-// Package genmarker is the single source of the standard generated-code
-// marker line for every devtools generator.
-//
-// devtools/scripts/check_generated_marker_coverage.sh discovers generated
-// artifacts by matching Pattern, so a generator that emits a non-matching
-// marker silently escapes reproducibility verification. Emitters must build
-// their marker lines through this package instead of hardcoding the string;
-// TestNoHardcodedMarkerLiteralsInEmitters enforces that.
+// Package genmarker emits generated-code marker lines for devtools generators.
 package genmarker
 
-// Pattern is the regex the coverage check uses to discover marked files.
-// It must stay byte-identical to the `marker_regex=` line in
-// devtools/scripts/check_generated_marker_coverage.sh;
-// TestPatternMatchesCoverageScript enforces that, and
-// TestMarkerLinesMatchPattern enforces that every marker line emitted by
-// this package matches it.
+// Pattern matches marker lines emitted by this package.
 const Pattern = `^(//|#) Code generated .* DO NOT EDIT\.$`
 
 // Line returns the standard marker line as a `//` comment, without a

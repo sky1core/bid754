@@ -90,7 +90,11 @@ GDA operation names such as `plus`, `minus`, `abs`, `remainder`,
 `remaindernear`, `comparetotal`, and `scaleb` are not inferred from similarly
 named Intel helpers. The adapter templates define the mapping, while
 `dectest_skip_reason.go` defines operation-family skip and flag-exemption
-classifications.
+classifications. A standalone `#` operand is a null reference, not a numeric
+string or a DPD encoding. Native cases on this unsupported reference channel
+are counted as `null_reference_operand`, following the [official decTest
+format rule](https://speleotrove.com/decimal/dtfile.html). Malformed decimal
+strings still execute and compare `Conversion_syntax` exactly.
 
 The current runtime accounting is emitted in:
 

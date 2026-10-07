@@ -15,114 +15,59 @@ func TestStatusToExceptionFlagsMapsNativeStatusBits(t *testing.T) {
 	}
 }
 
-func TestShouldAddClampedFlagDetectsZeroClampBoundary(t *testing.T) {
-	tc := decTestCase{
-		Operation:   "add",
-		Precision:   16,
-		MinExponent: -383,
-		Clamp:       1,
+func TestNativeDectestConditionComparisonRejectsMutation(t *testing.T) {
+	tc := decTestCase{Operation: "divide", Operands: []string{"00.00", "0.000"}, Result: "NaN", Flags: []string{"Division_undefined"}}
+	exec := func(decTestCase, string) (decTestExecResult, error) {
+		return decTestExecResult{Result: "NaN"}, nil
 	}
-
-	if !shouldAddClampedFlag(tc, "0E-398", 0) {
-		t.Fatal("expected zero result at clamp boundary to add clamped flag")
+	if err := runGeneratedDectestCase(tc, "decimal64", 2, exec, generatedDectestCompareDecimalResult, generatedDectestFlagCheckNative); err == nil {
+		t.Fatal("missing native division undefined condition passed")
 	}
-}
-
-func TestShouldAddClampedFlagDetectsFiniteClampWithoutRounding(t *testing.T) {
-	tc := decTestCase{
-		Operation:   "add",
-		Precision:   16,
-		MaxExponent: 384,
-		Clamp:       1,
+	exec = func(decTestCase, string) (decTestExecResult, error) {
+		return decTestExecResult{Result: "NaN", Conditions: decTestInvalidOperation}, nil
 	}
-
-	if !shouldAddClampedFlag(tc, "1.2300E+374", 0) {
-		t.Fatal("expected trailing-zero finite result beyond adjusted max exponent to add clamped flag")
+	if err := runGeneratedDectestCase(tc, "decimal64", 2, exec, generatedDectestCompareDecimalResult, generatedDectestFlagCheckNative); err == nil {
+		t.Fatal("different GDA invalid condition passed")
 	}
-
-	if shouldAddClampedFlag(tc, "1.2300E+374", FlagRounded) {
-		t.Fatal("expected rounded result to not add heuristic clamped flag")
+	exec = func(decTestCase, string) (decTestExecResult, error) {
+		return decTestExecResult{Result: "NaN", Conditions: decTestDivisionUndefined}, nil
 	}
-}
-
-func TestShouldAddClampedFlagDetectsDecimal64BoundaryClampCases(t *testing.T) {
-	tc := decTestCase{
-		Operation:   "add",
-		Precision:   16,
-		MaxExponent: 384,
-		Clamp:       1,
+	if err := runGeneratedDectestCase(tc, "decimal64", 2, exec, generatedDectestCompareDecimalResult, generatedDectestFlagCheckNative); err != nil {
+		t.Fatalf("matching native condition rejected: %v", err)
 	}
-
-	testCases := []struct {
-		name   string
-		result string
-	}{
-		{name: "ddadd380", result: "2.000000000000000E+384"},
-		{name: "ddadd381", result: "2.00000000000E+380"},
-		{name: "ddadd382", result: "2.0000000E+376"},
-		{name: "ddadd383", result: "2.000E+372"},
-		{name: "dddiv274", result: "9.000000000000000E+384"},
-		{name: "dddiv275", result: "9.900000000000000E+384"},
-		{name: "dddiv276", result: "9.990000000000000E+384"},
-		{name: "dddiv277", result: "9.999999999999900E+384"},
-	}
-
-	for _, tcResult := range testCases {
-		t.Run(tcResult.name, func(t *testing.T) {
-			if !shouldAddClampedFlag(tc, tcResult.result, 0) {
-				t.Fatalf("expected %s result %q to add clamped flag", tcResult.name, tcResult.result)
+	for _, condition := range []string{"Conversion_syntax", "Division_impossible", "Insufficient_storage", "Invalid_operation"} {
+		t.Run(condition, func(t *testing.T) {
+			mutated := tc
+			mutated.Flags = []string{condition}
+			if err := runGeneratedDectestCase(mutated, "decimal64", 2, exec, generatedDectestCompareDecimalResult, generatedDectestFlagCheckNative); err == nil {
+				t.Fatal("different GDA invalid condition passed")
 			}
 		})
 	}
 }
 
-func TestShouldAddClampedFlagDoesNotHeuristicallyClampReadOperations(t *testing.T) {
-	tc := decTestCase{
-		Operation:   "toSci",
-		Precision:   7,
-		MaxExponent: 96,
-		Clamp:       1,
+func TestNativeDectestGetsDivisionUndefinedFromEngine(t *testing.T) {
+	tc := decTestCase{Operation: "divide", Operands: []string{"00.00", "0.000"}, Precision: 16, MaxExponent: 384, MinExponent: -383, Clamp: 1}
+	got, err := executeDecTestOperation(tc, "decimal64")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	if shouldAddClampedFlag(tc, "1.0E+91", 0) {
-		t.Fatal("expected read operations to rely on native status instead of arithmetic clamped heuristic")
+	if got.Conditions != decTestDivisionUndefined {
+		t.Fatalf("native conditions = %d, want Division_undefined", got.Conditions)
 	}
-}
-
-func TestShouldAddInvalidOperationFlagNormalizesOperationName(t *testing.T) {
-	tc := decTestCase{
-		Operation: "Divide",
-		Operands:  []string{"0", "0"},
-	}
-
-	if !shouldAddInvalidOperationFlag(tc) {
-		t.Fatal("expected divide alias with 0/0 operands to add invalid operation")
+	if got.Flags != FlagInvalidOperation {
+		t.Fatalf("native IEEE flags = %s, want invalid", got.Flags)
 	}
 }
 
-func TestApplyDecTestFlagHeuristicsAddsExpectedFlags(t *testing.T) {
-	tc := decTestCase{
-		Operation:   "divide",
-		Operands:    []string{"0", "0"},
-		Precision:   16,
-		MinExponent: -383,
-		Clamp:       1,
+func TestNativeDectestGetsClampedFromEngine(t *testing.T) {
+	tc := decTestCase{Operation: "add", Operands: []string{"1E+384", "1E+384"}, Precision: 16, MaxExponent: 384, MinExponent: -383, Clamp: 1}
+	got, err := executeDecTestOperation(tc, "decimal64")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	flags := applyDecTestFlagHeuristics(tc, "0E-398", 0)
-
-	expected := FlagClamped | FlagInvalidOperation
-	if flags != expected {
-		t.Fatalf("expected %s, got %s", expected.String(), flags.String())
-	}
-}
-
-func TestApplyDecTestFlagHeuristicsSuppressesToIntegralSubnormal(t *testing.T) {
-	flags := applyDecTestFlagHeuristics(decTestCase{Operation: "tointegralx"}, "0", FlagSubnormal|FlagInexact|FlagRounded)
-
-	expected := FlagInexact | FlagRounded
-	if flags != expected {
-		t.Fatalf("expected %s, got %s", expected.String(), flags.String())
+	if got.Conditions != decTestClamped {
+		t.Fatalf("native conditions = %d, want Clamped", got.Conditions)
 	}
 }
 
@@ -137,8 +82,13 @@ func TestExecuteDecTestOperationNativeSupportsCompareFamily(t *testing.T) {
 		{
 			name: "decimal64 compare finite",
 			tc: decTestCase{
-				Operation: "compare",
-				Operands:  []string{"70E-1", "7"},
+				Operation:    "compare",
+				Operands:     []string{"70E-1", "7"},
+				Precision:    16,
+				RoundingMode: "half_even",
+				MaxExponent:  384,
+				MinExponent:  -383,
+				Clamp:        1,
 			},
 			testType: "decimal64",
 			result:   "0",
@@ -146,8 +96,13 @@ func TestExecuteDecTestOperationNativeSupportsCompareFamily(t *testing.T) {
 		{
 			name: "decimal64 comparesig quiet nan signals",
 			tc: decTestCase{
-				Operation: "compareSig",
-				Operands:  []string{"NaN8", "999"},
+				Operation:    "compareSig",
+				Operands:     []string{"NaN8", "999"},
+				Precision:    16,
+				RoundingMode: "half_even",
+				MaxExponent:  384,
+				MinExponent:  -383,
+				Clamp:        1,
 			},
 			testType: "decimal64",
 			result:   "NaN8",

@@ -571,6 +571,10 @@ func parseReadtestFunctionSpecs(path string) ([]readtestFunctionSpec, error) {
 // returns the accepted case count and the per-reason row-skip counts for its
 // function (see parseReadtestSubset).
 func appendGeneratedReadCases(repoRoot string, spec *SharedSpec, read ReadTestSpec) (int, map[string]int, error) {
+	if read.InitialStatus&^uint32(0x3d) != 0 || (read.InitialStatus != 0 &&
+		(read.Function != "bid128_scalbn" && read.Function != "bid128_scalbln")) {
+		return 0, nil, fmt.Errorf("readtest %q has unsupported initial status %x for %s", read.Name, read.InitialStatus, read.Function)
+	}
 	headerPath := filepath.Join(repoRoot, read.Header)
 	if err := verifyReadtestFunction(headerPath, read.Function); err != nil {
 		return 0, nil, err
@@ -597,6 +601,7 @@ func appendGeneratedReadCases(repoRoot string, spec *SharedSpec, read ReadTestSp
 			InputTypes:              append([]string(nil), read.InputTypes...),
 			CompareGroup:            read.CompareGroup,
 			NativeCompareSkipReason: read.NativeCompareSkipReason,
+			InitialStatus:           read.InitialStatus,
 			Operands:                append([]string(nil), tc.Operands...),
 			Expected:                tc.Result,
 			Status:                  tc.Status,

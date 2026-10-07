@@ -836,10 +836,16 @@ func goportCategoryReturnType(category string) (goType, zero string) {
 
 func emitGoportDispatchFunc(buf *bytes.Buffer, name, category string, plans []goportCallPlan, withSecondary bool) error {
 	returnType, zero := goportCategoryReturnType(category)
-	if withSecondary {
-		fmt.Fprintf(buf, "func %s(function string, rounding int, operands []string) (%s, readtestSecondaryOutput, string, error) {\n", name, returnType)
+	if name == "goportReadtestGeneratedBID128" {
+		fmt.Fprintf(buf, "func %s(function string, rounding int, operands []string) (%s, readtestSecondaryOutput, string, error) {\n\treturn %sWithStatus(function, rounding, operands, 0)\n}\n\n", name, returnType, name)
+		fmt.Fprintf(buf, "func %sWithStatus(function string, rounding int, operands []string, initialStatus uint32) (%s, readtestSecondaryOutput, string, error) {\n", name, returnType)
+		buf.WriteString("\tif initialStatus & ^uint32(0x3d) != 0 || (initialStatus != 0 && function != \"bid128_scalbn\" && function != \"bid128_scalbln\") {\n\t\treturn [16]byte{}, readtestNoSecondaryOutput(), \"\", fmt.Errorf(\"unsupported initial status %x for %s\", initialStatus, function)\n\t}\n")
 	} else {
-		fmt.Fprintf(buf, "func %s(function string, rounding int, operands []string) (%s, string, error) {\n", name, returnType)
+		if withSecondary {
+			fmt.Fprintf(buf, "func %s(function string, rounding int, operands []string) (%s, readtestSecondaryOutput, string, error) {\n", name, returnType)
+		} else {
+			fmt.Fprintf(buf, "func %s(function string, rounding int, operands []string) (%s, string, error) {\n", name, returnType)
+		}
 	}
 	buf.WriteString("\tswitch function {\n")
 	for _, plan := range plans {
@@ -1080,7 +1086,11 @@ func emitGoportDispatchCase(buf *bytes.Buffer, category, zero string, plan gopor
 		callArgs = append(callArgs, "rounding")
 	}
 	if plan.FlagsKind == goportFlagsPointer {
-		buf.WriteString("\t\tvar flags uint32\n")
+		if plan.Function == "bid128_scalbn" || plan.Function == "bid128_scalbln" {
+			buf.WriteString("\t\tflags := initialStatus\n")
+		} else {
+			buf.WriteString("\t\tvar flags uint32\n")
+		}
 		callArgs = append(callArgs, "&flags")
 	}
 
@@ -1739,7 +1749,7 @@ func goportReadCaseOperationBits(tc testspec.GeneratedReadCase) (string, readtes
 		}
 		return fmt.Sprintf("[%016x]", raw), sec, status, nil
 	case "decimal128":
-		raw, sec, status, err := goportReadtestGeneratedBID128(tc.Function, tc.Rounding, tc.Operands)
+		raw, sec, status, err := goportReadtestGeneratedBID128WithStatus(tc.Function, tc.Rounding, tc.Operands, tc.InitialStatus)
 		if err != nil {
 			return "", readtestNoSecondaryOutput(), "", err
 		}

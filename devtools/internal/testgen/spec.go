@@ -85,6 +85,7 @@ type ReadTestSpec struct {
 	InputTypes              []string `json:"input_types,omitempty"`
 	CompareGroup            string   `json:"compare_group,omitempty"`
 	NativeCompareSkipReason string   `json:"native_compare_skip_reason,omitempty"`
+	InitialStatus           uint32   `json:"initial_status,omitempty"`
 	Statuses                []string `json:"statuses"`
 	RoundingModes           []int    `json:"rounding_modes"`
 	Limit                   int      `json:"limit,omitempty"`
@@ -177,7 +178,7 @@ type SpecIndex struct {
 	FFIShardFiles                     []string                               `json:"ffi_shard_files"`
 }
 
-// ReadtestShardHeader holds the eleven GeneratedReadCase fields that are
+// ReadtestShardHeader holds the GeneratedReadCase fields that are
 // constant for every case of one readtest suite.
 type ReadtestShardHeader struct {
 	Suite                   string   `json:"suite"`
@@ -191,6 +192,7 @@ type ReadtestShardHeader struct {
 	InputTypes              []string `json:"input_types,omitempty"`
 	CompareGroup            string   `json:"compare_group,omitempty"`
 	NativeCompareSkipReason string   `json:"native_compare_skip_reason,omitempty"`
+	InitialStatus           uint32   `json:"initial_status,omitempty"`
 }
 
 // ReadtestShard is one generated/testspec/readtest/<suite>.json file.
@@ -300,6 +302,7 @@ type GeneratedReadCase struct {
 	InputTypes              []string `json:"input_types,omitempty"`
 	CompareGroup            string   `json:"compare_group,omitempty"`
 	NativeCompareSkipReason string   `json:"native_compare_skip_reason,omitempty"`
+	InitialStatus           uint32   `json:"initial_status,omitempty"`
 	Operands                []string `json:"operands"`
 	Expected                string   `json:"expected"`
 	Status                  string   `json:"status"`

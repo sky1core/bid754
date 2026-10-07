@@ -3,11 +3,6 @@
 
 package bidgo
 
-// bid_mult_factor32 for minmax operations
-var bid_mult_factor32 = []uint32{
-	1, 10, 100, 1000, 10000, 100000, 1000000,
-}
-
 // bid32_minnum_pure returns the smaller of two numbers
 func bid32_minnum_pure(x, y uint32) uint32 {
 	var res uint32
@@ -700,10 +695,11 @@ func bid32_quantum_pure(x uint32) uint32 {
 		return x & 0x7fffffff
 	}
 
-	// Extract exponent
-	// Note: C uses MASK_STEERING_BITS (64-bit 0x6000000000000000) with 32-bit x,
-	// so the condition is always false. We replicate this behavior.
-	int_exp = int((x>>23)&0xff) - 101
+	if (x & MASK_STEERING_BITS32) == MASK_STEERING_BITS32 {
+		int_exp = int((x>>21)&0xff) - 101
+	} else {
+		int_exp = int((x>>23)&0xff) - 101
+	}
 
 	// Form 10^exponent * 1
 	// Result is 1 * 10^(int_exp + bias) where bias = 101

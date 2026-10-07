@@ -331,56 +331,57 @@ var publicParityStringCases = []struct {
 	signaling      bool
 	nanMinWidth    int
 	cohortMinWidth int
+	zeroLiteral    bool
 }{
-	{"0", "port", false, 0, 0},
-	{"-0", "port", false, 0, 0},
-	{"1", "port", false, 0, 0},
-	{"1000000.0", "cohort_coercion", false, 0, 64},
-	{"1.2345678901234567890123456789012345", "port", false, 0, 0},
-	{"1e91", "cohort_coercion", false, 0, 64},
-	{"3.14159265", "port", false, 0, 0},
-	{"1e6145", "port", false, 0, 0},
-	{"0e-102", "cohort_coercion", false, 0, 64},
-	{"1e370", "cohort_coercion", false, 0, 128},
-	{"0e-399", "cohort_coercion", false, 0, 128},
-	{"9999999999999999999999999999999999", "port", false, 0, 0},
-	{"1e6112", "cohort_coercion", false, 0, 0},
-	{"0e-6177", "cohort_coercion", false, 0, 0},
-	{"1e100", "port", false, 0, 0},
-	{"1e-100", "port", false, 0, 0},
-	{"12345678901234567890.12345", "port", false, 0, 0},
-	{"Infinity", "port", false, 0, 0},
-	{"-Infinity", "port", false, 0, 0},
-	{"inf", "port", false, 0, 0},
-	{"1000000000000000.0", "cohort_coercion", false, 0, 128},
-	{"1000000000000000000000000000000000.0", "cohort_coercion", false, 0, 0},
-	{"-0.1", "port", false, 0, 0},
-	{"1e-6177", "port", false, 0, 0},
-	{"abc", "invalid_syntax", false, 0, 0},
-	{"1.2.3", "invalid_syntax", false, 0, 0},
-	{"\nnan", "invalid_syntax", false, 0, 0},
-	{"1e", "invalid_syntax", false, 0, 0},
-	{"1e5x", "invalid_syntax", false, 0, 0},
-	{"nan(123)", "invalid_syntax", false, 0, 0},
-	{"nan ", "invalid_syntax", false, 0, 0},
-	{".", "invalid_syntax", false, 0, 0},
-	{"+.", "invalid_syntax", false, 0, 0},
-	{"-.", "invalid_syntax", false, 0, 0},
-	{".e1", "invalid_syntax", false, 0, 0},
-	{"nan9999999999999999999999999999999999", "nan_literal", false, 0, 0},
-	{"snan9999999999999999999999999999999999", "nan_literal", true, 0, 0},
-	{"", "blank", false, 0, 0},
-	{"   ", "blank", false, 0, 0},
-	{"nan", "nan_literal", false, 32, 0},
-	{"-nan", "nan_literal", false, 32, 0},
-	{"NaN1000000", "nan_literal", false, 64, 0},
-	{"qnan", "nan_literal", false, 32, 0},
-	{"SNaN1000000000000000", "nan_literal", true, 128, 0},
-	{"snan", "nan_literal", true, 32, 0},
-	{" \t-snan", "nan_literal", true, 32, 0},
-	{"NaN123", "nan_literal", false, 32, 0},
-	{"SNaN42", "nan_literal", true, 32, 0},
-	{"qnan999999", "nan_literal", false, 32, 0},
+	{"0", "port", false, 0, 0, true},
+	{"-0", "port", false, 0, 0, true},
+	{"1", "port", false, 0, 0, false},
+	{"1000000.0", "cohort_coercion", false, 0, 64, false},
+	{"1.2345678901234567890123456789012345", "port", false, 0, 0, false},
+	{"1e91", "cohort_coercion", false, 0, 64, false},
+	{"3.14159265", "port", false, 0, 0, false},
+	{"1e6145", "port", false, 0, 0, false},
+	{"0e-102", "cohort_coercion", false, 0, 64, true},
+	{"1e370", "cohort_coercion", false, 0, 128, false},
+	{"0e-399", "cohort_coercion", false, 0, 128, true},
+	{"9999999999999999999999999999999999", "port", false, 0, 0, false},
+	{"1e6112", "cohort_coercion", false, 0, 0, false},
+	{"0e-6177", "cohort_coercion", false, 0, 0, true},
+	{"1e100", "port", false, 0, 0, false},
+	{"1e-100", "port", false, 0, 0, false},
+	{"12345678901234567890.12345", "port", false, 0, 0, false},
+	{"Infinity", "port", false, 0, 0, false},
+	{"-Infinity", "port", false, 0, 0, false},
+	{"inf", "port", false, 0, 0, false},
+	{"1000000000000000.0", "cohort_coercion", false, 0, 128, false},
+	{"1000000000000000000000000000000000.0", "cohort_coercion", false, 0, 0, false},
+	{"-0.1", "port", false, 0, 0, false},
+	{"1e-6177", "port", false, 0, 0, false},
+	{"abc", "invalid_syntax", false, 0, 0, false},
+	{"1.2.3", "invalid_syntax", false, 0, 0, false},
+	{"\nnan", "invalid_syntax", false, 0, 0, false},
+	{"1e", "invalid_syntax", false, 0, 0, false},
+	{"1e5x", "invalid_syntax", false, 0, 0, false},
+	{"nan(123)", "invalid_syntax", false, 0, 0, false},
+	{"nan ", "invalid_syntax", false, 0, 0, false},
+	{".", "invalid_syntax", false, 0, 0, false},
+	{"+.", "invalid_syntax", false, 0, 0, false},
+	{"-.", "invalid_syntax", false, 0, 0, false},
+	{".e1", "invalid_syntax", false, 0, 0, false},
+	{"nan9999999999999999999999999999999999", "nan_literal", false, 0, 0, false},
+	{"snan9999999999999999999999999999999999", "nan_literal", true, 0, 0, false},
+	{"", "blank", false, 0, 0, false},
+	{"   ", "blank", false, 0, 0, false},
+	{"nan", "nan_literal", false, 32, 0, false},
+	{"-nan", "nan_literal", false, 32, 0, false},
+	{"NaN1000000", "nan_literal", false, 64, 0, false},
+	{"qnan", "nan_literal", false, 32, 0, false},
+	{"SNaN1000000000000000", "nan_literal", true, 128, 0, false},
+	{"snan", "nan_literal", true, 32, 0, false},
+	{" \t-snan", "nan_literal", true, 32, 0, false},
+	{"NaN123", "nan_literal", false, 32, 0, false},
+	{"SNaN42", "nan_literal", true, 32, 0, false},
+	{"qnan999999", "nan_literal", false, 32, 0, false},
 }
 
 func publicParity_Add128DDBIDWithMode(t *testing.T) int {
@@ -10947,8 +10948,8 @@ func publicParity_NewDecimal128(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid128FromString(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && prf == 0
-			shouldError := (bidgo.Bid128IsNaN(pr) != 0) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid128IsNaN(pr) != 0) || rejectedCohort
 			shouldError = shouldError || portFlags&(FlagInvalidOperation|FlagOverflow|FlagUnderflow|FlagInexact) != 0
 			switch {
 			case shouldError:
@@ -11006,8 +11007,8 @@ func publicParity_NewDecimal128BIDDirect(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid128FromString(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && prf == 0
-			shouldError := (bidgo.Bid128IsNaN(pr) != 0) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid128IsNaN(pr) != 0) || rejectedCohort
 			shouldError = shouldError || portFlags&(FlagInvalidOperation|FlagOverflow|FlagUnderflow|FlagInexact) != 0
 			switch {
 			case shouldError:
@@ -11152,8 +11153,8 @@ func publicParity_NewDecimal128WithFlags(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid128FromString(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && prf == 0
-			shouldError := (bidgo.Bid128IsNaN(pr) != 0) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid128IsNaN(pr) != 0) || rejectedCohort
 			switch {
 			case shouldError:
 				if err == nil {
@@ -11225,9 +11226,9 @@ func publicParity_NewDecimal128WithMode(t *testing.T) int {
 				}
 			default:
 				pr, prf := bidgo.Bid128FromString(sc.input, mode.port)
-				silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && prf == 0
+				rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && (sc.zeroLiteral || prf == 0)
 				switch {
-				case (bidgo.Bid128IsNaN(pr) != 0) || silentCohortCoercion:
+				case (bidgo.Bid128IsNaN(pr) != 0) || rejectedCohort:
 					if err == nil {
 						t.Errorf("public parity NewDecimal128WithMode: input %q mode %v: rejected NaN or unrepresentable cohort result must error", sc.input, mode.pub)
 					}
@@ -11333,8 +11334,8 @@ func publicParity_NewDecimal32(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid32FromStringRaw(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && prf == 0
-			shouldError := (bidgo.Bid32IsNaN(pr)) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid32IsNaN(pr)) || rejectedCohort
 			shouldError = shouldError || portFlags&(FlagInvalidOperation|FlagOverflow|FlagUnderflow|FlagInexact) != 0
 			switch {
 			case shouldError:
@@ -11392,8 +11393,8 @@ func publicParity_NewDecimal32BIDDirect(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid32FromStringRaw(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && prf == 0
-			shouldError := (bidgo.Bid32IsNaN(pr)) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid32IsNaN(pr)) || rejectedCohort
 			shouldError = shouldError || portFlags&(FlagInvalidOperation|FlagOverflow|FlagUnderflow|FlagInexact) != 0
 			switch {
 			case shouldError:
@@ -11598,8 +11599,8 @@ func publicParity_NewDecimal32WithFlags(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid32FromStringRaw(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && prf == 0
-			shouldError := (bidgo.Bid32IsNaN(pr)) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid32IsNaN(pr)) || rejectedCohort
 			switch {
 			case shouldError:
 				if err == nil {
@@ -11671,9 +11672,9 @@ func publicParity_NewDecimal32WithMode(t *testing.T) int {
 				}
 			default:
 				pr, prf := bidgo.Bid32FromStringRaw(sc.input, mode.port)
-				silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && prf == 0
+				rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && (sc.zeroLiteral || prf == 0)
 				switch {
-				case (bidgo.Bid32IsNaN(pr)) || silentCohortCoercion:
+				case (bidgo.Bid32IsNaN(pr)) || rejectedCohort:
 					if err == nil {
 						t.Errorf("public parity NewDecimal32WithMode: input %q mode %v: rejected NaN or unrepresentable cohort result must error", sc.input, mode.pub)
 					}
@@ -11779,8 +11780,8 @@ func publicParity_NewDecimal64(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid64FromString(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && prf == 0
-			shouldError := (bidgo.Bid64IsNaN(pr) != 0) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid64IsNaN(pr) != 0) || rejectedCohort
 			shouldError = shouldError || portFlags&(FlagInvalidOperation|FlagOverflow|FlagUnderflow|FlagInexact) != 0
 			switch {
 			case shouldError:
@@ -11838,8 +11839,8 @@ func publicParity_NewDecimal64BIDDirect(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid64FromString(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && prf == 0
-			shouldError := (bidgo.Bid64IsNaN(pr) != 0) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid64IsNaN(pr) != 0) || rejectedCohort
 			shouldError = shouldError || portFlags&(FlagInvalidOperation|FlagOverflow|FlagUnderflow|FlagInexact) != 0
 			switch {
 			case shouldError:
@@ -12014,8 +12015,8 @@ func publicParity_NewDecimal64WithFlags(t *testing.T) int {
 		default:
 			pr, prf := bidgo.Bid64FromString(sc.input, 0)
 			portFlags := mapPortFlagsForParity(prf)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && prf == 0
-			shouldError := (bidgo.Bid64IsNaN(pr) != 0) || silentCohortCoercion
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && (sc.zeroLiteral || prf == 0)
+			shouldError := (bidgo.Bid64IsNaN(pr) != 0) || rejectedCohort
 			switch {
 			case shouldError:
 				if err == nil {
@@ -12087,9 +12088,9 @@ func publicParity_NewDecimal64WithMode(t *testing.T) int {
 				}
 			default:
 				pr, prf := bidgo.Bid64FromString(sc.input, mode.port)
-				silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && prf == 0
+				rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && (sc.zeroLiteral || prf == 0)
 				switch {
-				case (bidgo.Bid64IsNaN(pr) != 0) || silentCohortCoercion:
+				case (bidgo.Bid64IsNaN(pr) != 0) || rejectedCohort:
 					if err == nil {
 						t.Errorf("public parity NewDecimal64WithMode: input %q mode %v: rejected NaN or unrepresentable cohort result must error", sc.input, mode.pub)
 					}
@@ -12185,9 +12186,9 @@ func publicParity_ParseDecimal128BIDRaw(t *testing.T) int {
 			}
 		} else {
 			pr, prf := bidgo.Bid128FromString(sc.input, 0)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && prf == 0
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 128) && (sc.zeroLiteral || prf == 0)
 			malformedInput := sc.kind == "blank" || sc.kind == "invalid_syntax"
-			if malformedInput || silentCohortCoercion {
+			if malformedInput || rejectedCohort {
 				if bits := pv.ToBytes(); bits != ([16]byte{15: 0x7c}) {
 					t.Errorf("public parity ParseDecimal128BIDRaw: input %q: rejected-input result bits = %x, want canonical qNaN", sc.input, bits)
 				}
@@ -12233,9 +12234,9 @@ func publicParity_ParseDecimal32BIDRaw(t *testing.T) int {
 			}
 		} else {
 			pr, prf := bidgo.Bid32FromStringRaw(sc.input, 0)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && prf == 0
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 32) && (sc.zeroLiteral || prf == 0)
 			malformedInput := sc.kind == "blank" || sc.kind == "invalid_syntax"
-			if malformedInput || silentCohortCoercion {
+			if malformedInput || rejectedCohort {
 				if bits := pv.ToUint32(); bits != 0x7c000000 {
 					t.Errorf("public parity ParseDecimal32BIDRaw: input %q: rejected-input result bits = %#x, want canonical qNaN 0x7c000000", sc.input, bits)
 				}
@@ -12281,9 +12282,9 @@ func publicParity_ParseDecimal64BIDRaw(t *testing.T) int {
 			}
 		} else {
 			pr, prf := bidgo.Bid64FromString(sc.input, 0)
-			silentCohortCoercion := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && prf == 0
+			rejectedCohort := sc.kind == "cohort_coercion" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > 64) && (sc.zeroLiteral || prf == 0)
 			malformedInput := sc.kind == "blank" || sc.kind == "invalid_syntax"
-			if malformedInput || silentCohortCoercion {
+			if malformedInput || rejectedCohort {
 				if bits := pv.ToUint64(); bits != 0x7c00000000000000 {
 					t.Errorf("public parity ParseDecimal64BIDRaw: input %q: rejected-input result bits = %#x, want canonical qNaN 0x7c00000000000000", sc.input, bits)
 				}

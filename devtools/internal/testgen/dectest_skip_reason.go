@@ -6,6 +6,9 @@ import (
 )
 
 func generatedDectestSkipReason(suite GeneratedDectestSuite, tc parsedCase) (string, bool) {
+	if generatedDectestNullReferenceOperand(tc.Operands) {
+		return "null_reference_operand", true
+	}
 	if generatedDectestIgnoredOperation(suite.IgnoredOperations, tc.Operation) {
 		return "ignored_operation_" + normalizeDecTestOperation(tc.Operation), true
 	}
@@ -400,104 +403,8 @@ func generatedDectestSameCohortMember(left, right generatedDectestNumericValue) 
 	return left.sign == right.sign && left.rawCoeff == right.rawCoeff && left.rawExp == right.rawExp
 }
 
-// generatedDectestGoportFlagExemptReason is the generator-side mirror of the
-// runtime dectestGoportFlagExemptReason emitted into the generated goport
-// runner: executed cases whose expected flags are not compared (value and
-// quantum still are), each a documented decNumber-vs-Intel-BID semantic
-// divergence. It must stay in lockstep with the runtime function so the
-// pinned FlagExempt buckets match the live recount.
-//
-//   - from_string_zero_low_clamp_divergence: a string-conversion (tosci/toeng)
-//     case whose zero operand carries an exponent below the format minimum,
-//     clamped upward on parse. decNumber raises only Clamped (projecting to
-//     None on the five-flag surface) while the Intel BID from_string path the
-//     port mechanically reproduces raises Inexact|Underflow for the same low
-//     clamp (measured). The measured complement — high-side zero clamps and
-//     every arithmetic-result zero clamp (divide/multiply) — matched
-//     decNumber exactly, so the class is keyed off a tosci/toeng op,
-//     clamped-only Conditions, and a zero expected result with a negative
-//     exponent.
-//
-// Strict: a case carrying any condition token outside the recognized
-// decTest set is never classified as exempt — the generated runner validates
-// the expected Conditions before consulting its mirror of this classifier and
-// fails the harness on an unrecognized token, and this side refuses the
-// classification so the pinned exemption buckets cannot absorb such a case.
-func generatedDectestGoportFlagExemptReason(tc parsedCase) (string, bool) {
-	if !generatedDectestGoportRecognizedConditions(tc.Flags) {
-		return "", false
-	}
-	op := normalizeDecTestOperation(tc.Operation)
-	if op != "tosci" && op != "toeng" {
-		return "", false
-	}
-	if !generatedDectestGoportHasOnlyClampedCondition(tc.Flags) {
-		return "", false
-	}
-	if generatedDectestZeroResultLowExponent(tc.Result) {
-		return "from_string_zero_low_clamp_divergence", true
-	}
+func generatedDectestGoportFlagExemptReason(_ parsedCase) (string, bool) {
 	return "", false
-}
-
-// generatedDectestGoportRecognizedConditions reports whether every condition
-// token is in the decTest condition set the generated runner's
-// parseDecTestFlags mapping recognizes. The token list must stay in lockstep
-// with parseDecTestFlags in bid754-go/dectest_driver.go; an unrecognized
-// token fails the generated runner as a harness failure, so this side must
-// never count such a case into an exemption bucket.
-func generatedDectestGoportRecognizedConditions(flags []string) bool {
-	for _, flag := range flags {
-		switch generatedDectestNormalizeFlag(flag) {
-		case "", "none", "noflags", "inexact", "underflow", "overflow", "divisionbyzero",
-			"invalidoperation", "divisionundefined", "divisionimpossible", "insufficientstorage",
-			"conversionsyntax", "subnormal", "rounded", "clamped":
-		default:
-			return false
-		}
-	}
-	return true
-}
-
-// generatedDectestZeroResultLowExponent reports whether an expected result
-// literal is a zero with a negative exponent (the low-side clamp shape, e.g.
-// 0E-398 or -0E-6176), mirroring the generated runner's quantum decomposition
-// of the same literal.
-func generatedDectestZeroResultLowExponent(result string) bool {
-	trimmed := strings.TrimSpace(strings.Trim(result, "'\""))
-	if trimmed == "" {
-		return false
-	}
-	switch trimmed[0] {
-	case '+', '-':
-		trimmed = trimmed[1:]
-	}
-	if trimmed == "" {
-		return false
-	}
-	mantissa := trimmed
-	exponent := 0
-	if idx := strings.IndexAny(trimmed, "Ee"); idx >= 0 {
-		mantissa = trimmed[:idx]
-		parsed, err := strconv.Atoi(trimmed[idx+1:])
-		if err != nil {
-			return false
-		}
-		exponent = parsed
-	}
-	if dot := strings.IndexByte(mantissa, '.'); dot >= 0 {
-		exponent -= len(mantissa) - dot - 1
-		mantissa = mantissa[:dot] + mantissa[dot+1:]
-	}
-	if mantissa == "" {
-		return false
-	}
-	for _, r := range mantissa {
-		if r != '0' {
-			return false
-		}
-	}
-	return exponent < 0
 }
 
 // generatedDectestGoportOracleOperation is the goport leg's oracle-dispatch set:
@@ -565,26 +472,10 @@ func generatedDectestGoportCompareHasNaNOperand(tc parsedCase) bool {
 	return false
 }
 
-// generatedDectestGoportHasOnlyClampedCondition closes the exemption over the
-// exact Conditions shape registered by the specification. Empty/no-flags
-// aliases contribute no condition; every non-empty condition must be Clamped,
-// and at least one Clamped token must be present.
-func generatedDectestGoportHasOnlyClampedCondition(flags []string) bool {
-	clamped := false
-	for _, flag := range flags {
-		switch generatedDectestNormalizeFlag(flag) {
-		case "", "none", "noflags":
-			continue
-		case "clamped":
-			clamped = true
-		default:
-			return false
-		}
-	}
-	return clamped
-}
-
 func generatedDectestCaseSkipReason(tc parsedCase, testType string) (string, bool) {
+	if generatedDectestNullReferenceOperand(tc.Operands) {
+		return "null_reference_operand", true
+	}
 	if (testType == "general" || testType == "decimal128") && generatedDectestUsesTaggedLiteral(tc) {
 		return "tagged_literal", true
 	}
@@ -997,6 +888,15 @@ func generatedDectestUsesTaggedLiteral(tc parsedCase) bool {
 		}
 	}
 	return strings.Contains(tc.Result, "#")
+}
+
+func generatedDectestNullReferenceOperand(operands []string) bool {
+	for _, operand := range operands {
+		if generatedDectestOperandString(operand) == "#" {
+			return true
+		}
+	}
+	return false
 }
 
 func generatedDectestIgnoredOperation(ignoredOperations []string, operation string) bool {

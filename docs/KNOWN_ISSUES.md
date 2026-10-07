@@ -3,6 +3,10 @@
 Observed defects and their resolution status. The contracts remain defined in
 [SPEC.md](SPEC.md).
 
+Defects inherited from pinned Intel BID C are tracked separately in
+[Intel BID Issues](INTEL_BID_ISSUES.md), including upstream evidence and the
+independent status of each bid754 fix.
+
 ## D128-EXP-001: leading-zero exponent breaks exact cancellation
 
 **Fixed.** First confirmed in revision `3e447c2` on 2026-09-11. The Go

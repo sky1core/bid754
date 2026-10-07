@@ -241,6 +241,7 @@ func TestGeneratedDectestSuitesGoPort(t *testing.T) {
 	}
 
 	totalFailed := 0
+	var completedSuites []string
 	for _, suite := range spec.DectestSuites {
 		if !isGoportDectestRunnerSuite(suite.TestType) {
 			continue
@@ -248,7 +249,16 @@ func TestGeneratedDectestSuitesGoPort(t *testing.T) {
 		suite := suite
 		t.Run(suite.Name, func(t *testing.T) {
 			totalFailed += runGoportDectestSuite(t, suite)
+			completedSuites = append(completedSuites, suite.Name)
 		})
+	}
+	if len(completedSuites) != len(expectedGoportDectestSuiteCoverage) {
+		t.Fatalf("goport decTest executed suite count = %d, want %d", len(completedSuites), len(expectedGoportDectestSuiteCoverage))
+	}
+	for i, name := range completedSuites {
+		if name != expectedGoportDectestSuiteCoverage[i].Name {
+			t.Fatalf("goport decTest executed suite[%d] = %q, want %q", i, name, expectedGoportDectestSuiteCoverage[i].Name)
+		}
 	}
 	if totalFailed != 0 {
 		t.Fatalf("goport decTest value/quantum/flag cross-check: %d case(s) diverged from the IBM expected case", totalFailed)
@@ -327,7 +337,7 @@ func runGoportDectestSuite(t *testing.T, suite testspec.GeneratedDectestSuite) i
 	if executed != expected.Executed {
 		t.Errorf("goport decTest suite %q executed = %d, want %d", suite.Name, executed, expected.Executed)
 	}
-	t.Logf("%s: executed=%d failed=%d skipped=%d flagExempt=%d", suite.Name, executed, failed, goportSumSkipReasons(skipReasons), goportSumSkipReasons(flagExempt))
+	t.Logf("goport decTest %s: executed=%d failed=%d skipped=%d flagExempt=%d total=%d", suite.Name, executed, failed, goportSumSkipReasons(skipReasons), goportSumSkipReasons(flagExempt), expected.Cases)
 	return failed
 }
 

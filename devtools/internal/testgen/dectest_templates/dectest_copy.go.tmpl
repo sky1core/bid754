@@ -26,67 +26,64 @@ func executeDecTestCopyOperation(tc decTestCase, testType string) (decTestExecRe
 
 	switch testType {
 	case "decimal32":
-		result, err := executeDecimal32CopyOperation(op, tc.Operands, rndMode)
-		return decTestExecResult{Result: result}, err
+		return executeDecimal32CopyOperation(op, tc.Operands, rndMode)
 	case "decimal64":
-		result, err := executeDecimal64CopyOperation(op, tc.Operands, rndMode)
-		return decTestExecResult{Result: result}, err
+		return executeDecimal64CopyOperation(op, tc.Operands, rndMode)
 	case "decimal128":
-		result, err := executeDecimal128CopyOperation(op, tc.Operands, rndMode)
-		return decTestExecResult{Result: result}, err
+		return executeDecimal128CopyOperation(op, tc.Operands, rndMode)
 	default:
 		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, tc.Operation)
 	}
 }
 
-func executeDecimal32CopyOperation(op string, operands []string, rndMode int) (string, error) {
-	a, _ := parseDecTestDecimal32Operand(operands[0], rndMode)
+func executeDecimal32CopyOperation(op string, operands []string, rndMode int) (decTestExecResult, error) {
+	a, flags := parseDecTestDecimal32Operand(operands[0], rndMode)
 	switch op {
 	case "copy":
-		return a.Copy().String(), nil
+		return decTestExecResult{Result: a.Copy().String(), Flags: flags}, nil
 	case "copyabs":
-		return a.Abs().String(), nil
+		return decTestExecResult{Result: a.Abs().String(), Flags: flags}, nil
 	case "copynegate":
-		return a.Negate().String(), nil
+		return decTestExecResult{Result: a.Negate().String(), Flags: flags}, nil
 	case "copysign":
-		b, _ := parseDecTestDecimal32Operand(operands[1], rndMode)
-		return a.CopySign(b).String(), nil
+		b, secondFlags := parseDecTestDecimal32Operand(operands[1], rndMode)
+		return decTestExecResult{Result: a.CopySign(b).String(), Flags: flags | secondFlags}, nil
 	default:
-		return "", fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
-func executeDecimal64CopyOperation(op string, operands []string, rndMode int) (string, error) {
-	a, _ := parseDecTestDecimal64Operand(operands[0], rndMode)
+func executeDecimal64CopyOperation(op string, operands []string, rndMode int) (decTestExecResult, error) {
+	a, flags := parseDecTestDecimal64Operand(operands[0], rndMode)
 	switch op {
 	case "copy":
-		return a.Copy().String(), nil
+		return decTestExecResult{Result: a.Copy().String(), Flags: flags}, nil
 	case "copyabs":
-		return a.Abs().String(), nil
+		return decTestExecResult{Result: a.Abs().String(), Flags: flags}, nil
 	case "copynegate":
-		return a.Negate().String(), nil
+		return decTestExecResult{Result: a.Negate().String(), Flags: flags}, nil
 	case "copysign":
-		b, _ := parseDecTestDecimal64Operand(operands[1], rndMode)
-		return a.CopySign(b).String(), nil
+		b, secondFlags := parseDecTestDecimal64Operand(operands[1], rndMode)
+		return decTestExecResult{Result: a.CopySign(b).String(), Flags: flags | secondFlags}, nil
 	default:
-		return "", fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 
-func executeDecimal128CopyOperation(op string, operands []string, rndMode int) (string, error) {
-	a, _ := parseDecTestDecimal128Operand(operands[0], rndMode)
+func executeDecimal128CopyOperation(op string, operands []string, rndMode int) (decTestExecResult, error) {
+	a, flags := parseDecTestDecimal128Operand(operands[0], rndMode)
 	switch op {
 	case "copy":
-		return a.Copy().String(), nil
+		return decTestExecResult{Result: a.Copy().String(), Flags: flags}, nil
 	case "copyabs":
-		return a.Abs().String(), nil
+		return decTestExecResult{Result: a.Abs().String(), Flags: flags}, nil
 	case "copynegate":
-		return a.Negate().String(), nil
+		return decTestExecResult{Result: a.Negate().String(), Flags: flags}, nil
 	case "copysign":
-		b, _ := parseDecTestDecimal128Operand(operands[1], rndMode)
-		return a.CopySign(b).String(), nil
+		b, secondFlags := parseDecTestDecimal128Operand(operands[1], rndMode)
+		return decTestExecResult{Result: a.CopySign(b).String(), Flags: flags | secondFlags}, nil
 	default:
-		return "", fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
+		return decTestExecResult{}, fmt.Errorf("%w: %s", errUnsupportedDecTestOperation, op)
 	}
 }
 

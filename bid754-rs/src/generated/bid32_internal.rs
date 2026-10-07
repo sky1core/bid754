@@ -291,6 +291,9 @@ pub(crate) fn get_bid32_uf(mut sgn: u32, mut expon: i64, mut coeff: u64, mut R: 
     let mut extra_digits: i64 = 0;
     let mut amount: i64 = 0;
     let mut amount2: i64 = 0;
+    if (((expon < 0) && (coeff == 0)) && (R == 0)) {
+        return sgn;
+    }
     if (coeff > 9999999) {
         expon = expon.wrapping_add(1);
         coeff = 1000000;

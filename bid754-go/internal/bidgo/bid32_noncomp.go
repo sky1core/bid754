@@ -3,8 +3,6 @@
 
 package bidgo
 
-var bid32_mult_factor = [7]uint64{1, 10, 100, 1000, 10000, 100000, 1000000}
-
 // Bid32IsSigned returns 1 if x has sign bit set.
 func Bid32IsSigned(x uint32) int {
 	if (x & MASK_SIGN32) == MASK_SIGN32 {

@@ -816,6 +816,24 @@ func tier1ArithmeticSemanticCorpus() (tier1ArithmeticSemanticSpec, error) {
 			}
 		}
 	}
+	for _, sign := range []uint64{0, 0x8000000000000000} {
+		for _, expAndShift := range [][2]int64{{6109, 3}, {6110, 2}, {6111, 1}} {
+			field := uint64(6176 + expAndShift[0])
+			for _, coeff := range []bid128BidCodecValue{
+				{hi: 0x314dc6448d92, lo: 0xffffffffffffffff},
+				{hi: 0x314dc6448d93, lo: 0},
+				{hi: 0x314dc6448d93, lo: 1},
+				{hi: 0x314dc6448d93, lo: 0x38c15b09ffffffff},
+				{hi: 0x314dc6448d93, lo: 0x38c15b0a00000000},
+				{hi: 0x314dc6448d93, lo: 0x38c15b0a00000001},
+			} {
+				result.scale128 = append(result.scale128, tier1ArithmeticScale128Spec{
+					x:        bid128BidCodecValue{hi: sign | field<<49 | coeff.hi, lo: coeff.lo},
+					exponent: int(expAndShift[1]),
+				})
+			}
+		}
+	}
 	for _, width := range []int{32, 64, 128} {
 		triples, err := modeTernaryDiscriminantOperands("FMA", width)
 		if err != nil {

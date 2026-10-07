@@ -104,7 +104,7 @@ impl Decimal128 {
     /// recognized by parse_decimal128_nan) is constructed directly,
     /// without calling the port or raising flags. Malformed syntax, a NaN payload
     /// that does not fit this width, or a finite literal whose written quantum
-    /// or coefficient the port would otherwise coerce with zero status returns
+    /// or coefficient cannot be represented returns
     /// canonical quiet NaN plus INVALID_OPERATION. Valid finite input retains
     /// the port's overflow/underflow/inexact result and flags.
     pub fn parse_raw(s: &str) -> (Decimal128, ExceptionFlags) {
@@ -120,7 +120,7 @@ impl Decimal128 {
         if invalid_bid_string_input(s, result_is_nan(value.0)) {
             return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION);
         }
-        if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, -6176, 6111, 34) {
+        if bid_finite_literal_cohort_unrepresentable(s, -6176, 6111, 34, raw == 0) {
             return (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION);
         }
         (value, flags)
@@ -128,8 +128,8 @@ impl Decimal128 {
 
     /// Parses a decimal string literal, returning the value and the
     /// exception flags raised while parsing on success. Mirrors the Go
-    /// NewDecimal128WithFlags Ok/Err decision, including rejection of a cohort
-    /// the port would silently coerce with zero status; on Err the flags are
+    /// NewDecimal128WithFlags Ok/Err decision, including rejection of an
+    /// unrepresentable written cohort; on Err the flags are
     /// meaningless (matching the Go signature's discarded-on-error contract),
     /// so they are not returned at all.
     pub fn parse_with_flags(s: &str) -> Result<(Decimal128, ExceptionFlags), ParseDecimalError> {
@@ -143,8 +143,8 @@ impl Decimal128 {
     /// Parses a decimal string literal rounding excess precision with an
     /// explicit mode, returning the value and the exception flags raised
     /// while parsing on success. Mirrors the Go NewDecimal128WithMode Ok/Err
-    /// decision (error iff the input string is rejected, including a cohort
-    /// the port would silently coerce with zero status); on Err the flags are
+    /// decision (error iff the input string is rejected, including an
+    /// unrepresentable written cohort); on Err the flags are
     /// meaningless (matching the Go signature's discarded-on-error contract),
     /// so they are not returned at all.
     pub fn parse_with_mode(s: &str, mode: RoundingMode) -> Result<(Decimal128, ExceptionFlags), ParseDecimalError> {
@@ -154,7 +154,7 @@ impl Decimal128 {
             (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION)
         } else {
             let (bits, raw) = crate::generated::bid128_string::bid128_from_string(s, super::types::to_bidgo_rounding(mode));
-            if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, -6176, 6111, 34) {
+            if bid_finite_literal_cohort_unrepresentable(s, -6176, 6111, 34, raw == 0) {
                 (Decimal128(super::types::bid_uint128_to_le_bytes(crate::gen_types::BID_UINT128 { lo: 0, hi: 0x7c00_0000_0000_0000 })), ExceptionFlags::INVALID_OPERATION)
             } else {
                 (Decimal128(super::types::bid_uint128_to_le_bytes(bits)), ExceptionFlags::from_bidgo(raw))
@@ -1139,21 +1139,22 @@ fn parse_bid_finite_literal(input: &str) -> Option<BidFiniteLiteral> {
 }
 
 /// Detects a numeric finite literal whose requested quantum or coefficient
-/// cannot be encoded by this width. Callers additionally require a zero raw
-/// status word, so explicitly flagged port rounding/range behavior remains
-/// unchanged.
+/// cannot be encoded by this width. Zero's written cohort is checked even if
+/// the port incorrectly raises status while packing exact zero.
 fn bid_finite_literal_cohort_unrepresentable(
     input: &str,
     min: i64,
     max: i64,
     precision: usize,
+    raw_status_exact: bool,
 ) -> bool {
     let Some(BidFiniteLiteral { quantum: Some(quantum), coefficient_digits }) =
         parse_bid_finite_literal(input)
     else {
         return false;
     };
-    coefficient_digits > precision || quantum < BigInt::from(min) || quantum > BigInt::from(max)
+    (coefficient_digits == 0 || raw_status_exact)
+        && (coefficient_digits > precision || quantum < BigInt::from(min) || quantum > BigInt::from(max))
 }
 
 /// Constructs a 128-bit NaN directly from the public NaN-literal grammar

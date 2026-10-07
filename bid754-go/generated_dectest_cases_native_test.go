@@ -31,11 +31,12 @@ var expectedGeneratedDectestSuiteCoverage = []generatedDectestSuiteCoverage{
 		Cases: 11940,
 		SkipReasons: map[string]int{
 			"fma_nan_payload_precedence":                              13,
-			"fma_unsupported_rounding":                                58,
+			"fma_unsupported_rounding":                                56,
 			"ignored_operation_apply":                                 4,
 			"minmax_nan_payload_precedence":                           8,
 			"minmax_zero_tie":                                         50,
 			"nexttoward_nan_payload_precedence":                       2,
+			"null_reference_operand":                                  40,
 			"remainder_gda_division_impossible_context_semantics":     7,
 			"remainder_nan_payload_precedence":                        1,
 			"remaindernear_gda_division_impossible_context_semantics": 7,
@@ -54,11 +55,12 @@ var expectedGeneratedDectestSuiteCoverage = []generatedDectestSuiteCoverage{
 			"minmax_nan_payload_precedence":                           8,
 			"minmax_zero_tie":                                         50,
 			"nexttoward_nan_payload_precedence":                       2,
+			"null_reference_operand":                                  40,
 			"remainder_gda_division_impossible_context_semantics":     7,
 			"remainder_nan_payload_precedence":                        1,
 			"remaindernear_gda_division_impossible_context_semantics": 7,
 			"remaindernear_nan_payload_precedence":                    1,
-			"tagged_literal":                                          43,
+			"tagged_literal":                                          3,
 		},
 	},
 	{
@@ -67,8 +69,9 @@ var expectedGeneratedDectestSuiteCoverage = []generatedDectestSuiteCoverage{
 		Cases: 7490,
 		SkipReasons: map[string]int{
 			"ignored_operation_apply": 20,
+			"null_reference_operand":  14,
 			"precision_over_general":  81,
-			"tagged_literal":          24,
+			"tagged_literal":          10,
 		},
 	},
 }
@@ -94,6 +97,14 @@ func TestGeneratedDectestSuites(t *testing.T) {
 		})
 	}
 
+	if len(totals) != len(expectedGeneratedDectestSuiteCoverage) {
+		t.Fatalf("native decTest executed suite count = %d, want %d", len(totals), len(expectedGeneratedDectestSuiteCoverage))
+	}
+	for i, total := range totals {
+		if total.Name != expectedGeneratedDectestSuiteCoverage[i].Name {
+			t.Fatalf("native decTest executed suite[%d] = %q, want %q", i, total.Name, expectedGeneratedDectestSuiteCoverage[i].Name)
+		}
+	}
 	if err := decTestFailureError(totals); err != nil {
 		t.Fatal(err)
 	}
@@ -205,6 +216,9 @@ func runGeneratedDectestSuite(t *testing.T, suite testspec.GeneratedDectestSuite
 	}
 	expected := expectedGeneratedDectestCoverageForSuite(t, suite.Name)
 	assertGeneratedDectestSkipReasons(t, suite.Name, skipReasons, expected.SkipReasons)
-	t.Logf("%s: passed=%d failed=%d skipped=%d", suite.Name, result.Passed, result.Failed, result.Skipped)
+	if result.Passed+result.Failed+result.Skipped != expected.Cases {
+		t.Fatalf("native decTest %s accounted cases = %d, want %d", suite.Name, result.Passed+result.Failed+result.Skipped, expected.Cases)
+	}
+	t.Logf("native decTest %s: passed=%d failed=%d skipped=%d total=%d", suite.Name, result.Passed, result.Failed, result.Skipped, expected.Cases)
 	return result
 }

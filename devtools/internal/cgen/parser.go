@@ -485,14 +485,18 @@ func (p *parser) parseValue() (Value, error) {
 }
 
 func (p *parser) parseExpr() (*big.Int, error) {
-	left, err := p.parseShift()
+	return p.parseShift()
+}
+
+func (p *parser) parseAdd() (*big.Int, error) {
+	left, err := p.parseTerm()
 	if err != nil {
 		return nil, err
 	}
 	for p.peek(tokenPlus) || p.peek(tokenMinus) {
 		op := p.tokens[p.pos].typ
 		p.pos++
-		right, err := p.parseShift()
+		right, err := p.parseTerm()
 		if err != nil {
 			return nil, err
 		}
@@ -506,13 +510,13 @@ func (p *parser) parseExpr() (*big.Int, error) {
 }
 
 func (p *parser) parseShift() (*big.Int, error) {
-	left, err := p.parseTerm()
+	left, err := p.parseAdd()
 	if err != nil {
 		return nil, err
 	}
 	for p.peek(tokenShl) {
 		p.pos++
-		right, err := p.parseTerm()
+		right, err := p.parseAdd()
 		if err != nil {
 			return nil, err
 		}

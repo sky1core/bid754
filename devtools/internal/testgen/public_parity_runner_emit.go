@@ -392,10 +392,12 @@ var publicParityStringCases = []struct {
 	signaling       bool
 	nanMinWidth     int
 	cohortMinWidth  int
+	zeroLiteral bool
 }{
 `)
 	for _, sc := range publicParityStringCorpusCases {
-		fmt.Fprintf(b, "\t{%q, %q, %v, %d, %d},\n", sc.Input, sc.Kind, sc.Signaling, sc.NaNMinWidth, sc.CohortMinWidth)
+		cohort, finite := publicParityFiniteCohort(sc.Input)
+		fmt.Fprintf(b, "\t{%q, %q, %v, %d, %d, %v},\n", sc.Input, sc.Kind, sc.Signaling, sc.NaNMinWidth, sc.CohortMinWidth, finite && cohort.CoefficientDigits == 0)
 	}
 	b.WriteString("}\n\n")
 }
@@ -1689,9 +1691,9 @@ func emitFuncString(b *strings.Builder, u parityUnit) error {
 		fmt.Fprintf(b, "\t\t\t}\n")
 		fmt.Fprintf(b, "\t\t} else {\n")
 		emitGenericPortNamed(b, "\t\t\t", u.Port, []string{"sc.input"}, "0", true, "pr", "prf")
-		fmt.Fprintf(b, "\t\t\tsilentCohortCoercion := sc.kind == \"cohort_coercion\" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > %d) && prf == 0\n", w)
+		fmt.Fprintf(b, "\t\t\trejectedCohort := sc.kind == \"cohort_coercion\" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > %d) && (sc.zeroLiteral || prf == 0)\n", w)
 		fmt.Fprintf(b, "\t\t\tmalformedInput := sc.kind == \"blank\" || sc.kind == \"invalid_syntax\"\n")
-		fmt.Fprintf(b, "\t\t\tif malformedInput || silentCohortCoercion {\n")
+		fmt.Fprintf(b, "\t\t\tif malformedInput || rejectedCohort {\n")
 		if err := emitRawRejectedStringCheck(b, "\t\t\t\t", u); err != nil {
 			return err
 		}
@@ -1729,8 +1731,8 @@ func emitFuncString(b *strings.Builder, u parityUnit) error {
 		fmt.Fprintf(b, "\t\tdefault:\n")
 		emitGenericPortNamed(b, "\t\t\t", u.Port, []string{"sc.input"}, "0", true, "pr", "prf")
 		fmt.Fprintf(b, "\t\t\tportFlags := mapPortFlagsForParity(prf)\n")
-		fmt.Fprintf(b, "\t\t\tsilentCohortCoercion := sc.kind == \"cohort_coercion\" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > %d) && prf == 0\n", w)
-		fmt.Fprintf(b, "\t\t\tshouldError := (%s) || silentCohortCoercion\n", prIsNaN)
+		fmt.Fprintf(b, "\t\t\trejectedCohort := sc.kind == \"cohort_coercion\" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > %d) && (sc.zeroLiteral || prf == 0)\n", w)
+		fmt.Fprintf(b, "\t\t\tshouldError := (%s) || rejectedCohort\n", prIsNaN)
 		if u.StringKind == "direct" {
 			fmt.Fprintf(b, "\t\t\tshouldError = shouldError || portFlags&(FlagInvalidOperation|FlagOverflow|FlagUnderflow|FlagInexact) != 0\n")
 		}
@@ -1800,9 +1802,9 @@ func emitFuncStringMode(b *strings.Builder, u parityUnit) error {
 	fmt.Fprintf(b, "\t\t\t\t\t}\n\t\t\t\t}\n")
 	fmt.Fprintf(b, "\t\t\tdefault:\n")
 	emitGenericPortNamed(b, "\t\t\t\t", u.Port, []string{"sc.input"}, "mode.port", true, "pr", "prf")
-	fmt.Fprintf(b, "\t\t\t\tsilentCohortCoercion := sc.kind == \"cohort_coercion\" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > %d) && prf == 0\n", w)
+	fmt.Fprintf(b, "\t\t\t\trejectedCohort := sc.kind == \"cohort_coercion\" && (sc.cohortMinWidth == 0 || sc.cohortMinWidth > %d) && (sc.zeroLiteral || prf == 0)\n", w)
 	fmt.Fprintf(b, "\t\t\t\tswitch {\n")
-	fmt.Fprintf(b, "\t\t\t\tcase (%s) || silentCohortCoercion:\n", prIsNaN)
+	fmt.Fprintf(b, "\t\t\t\tcase (%s) || rejectedCohort:\n", prIsNaN)
 	fmt.Fprintf(b, "\t\t\t\t\tif err == nil {\n\t\t\t\t\t\tt.Errorf(\"public parity %s: input %%q mode %%v: rejected NaN or unrepresentable cohort result must error\", sc.input, mode.pub)\n\t\t\t\t\t}\n", u.Symbol)
 	if err := emitStringZeroResultCheck(b, "\t\t\t\t\t", u, true); err != nil {
 		return err

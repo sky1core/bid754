@@ -20,27 +20,35 @@ import (
 )
 
 type anchors struct {
-	Tier1ArithmeticStructured       map[string]uint64 `json:"tier1_arithmetic_long_structured_comparisons_by_width"`
-	Tier1ArithmeticRandomCasesPerOp map[string]uint64 `json:"tier1_arithmetic_long_random_cases_per_operation_by_width"`
-	Tier1ArithmeticRandomOperations uint64            `json:"tier1_arithmetic_long_random_operations"`
-	Tier1CCComparisonStructured     map[string]uint64 `json:"tier1_compare_conversion_long_comparison_structured_by_width"`
-	Tier1CCComparisonRandom         map[string]uint64 `json:"tier1_compare_conversion_long_comparison_random_by_width"`
-	Tier1CCConversionStructured     uint64            `json:"tier1_compare_conversion_long_conversion_structured"`
-	Tier1CCConversionRandom         uint64            `json:"tier1_compare_conversion_long_conversion_random"`
-	ReadtestCasesTotal              uint64            `json:"readtest_cases_total"`
-	ReadtestNativeCompareSkipCases  uint64            `json:"readtest_native_compare_skip_cases"`
-	GoportReadtestExecutedCases     uint64            `json:"goport_readtest_executed_cases"`
-	FFIBitcompareCasesTotal         uint64            `json:"ffi_bitcompare_cases_total"`
-	DecnumberDiffStructured         map[string]uint64 `json:"decnumber_differential_structured_comparisons_by_width"`
-	DecnumberDiffStructuredExcluded map[string]uint64 `json:"decnumber_differential_structured_fma_excluded_by_width"`
-	DecnumberDiffStructuredKnown    map[string]uint64 `json:"decnumber_differential_structured_known_divergences_by_width"`
-	DecnumberDiffRandom             map[string]uint64 `json:"decnumber_differential_random_comparisons_by_width"`
-	DecnumberDiffRandomExcluded     map[string]uint64 `json:"decnumber_differential_random_fma_excluded_by_width"`
-	DecnumberDiffRandomKnown        map[string]uint64 `json:"decnumber_differential_random_known_divergences_by_width"`
-	D32ExhaustiveLanes              uint64            `json:"d32_exhaustive_unary_lanes"`
-	D32ExhaustiveCasesPerLane       uint64            `json:"d32_exhaustive_unary_cases_per_lane"`
-	D32ExhaustiveTotalComparisons   uint64            `json:"d32_exhaustive_unary_total_comparisons"`
-	D32ExhaustiveDigestByLane       map[string]uint64 `json:"d32_exhaustive_unary_result_digest_by_lane"`
+	Tier1ArithmeticStructured           map[string]uint64 `json:"tier1_arithmetic_long_structured_comparisons_by_width"`
+	Tier1ArithmeticRandomCasesPerOp     map[string]uint64 `json:"tier1_arithmetic_long_random_cases_per_operation_by_width"`
+	Tier1ArithmeticRandomOperations     uint64            `json:"tier1_arithmetic_long_random_operations"`
+	Tier1ArithmeticStructuredDeviations *uint64           `json:"tier1_arithmetic_long_intel003_structured_deviations"`
+	Tier1ArithmeticRandomDeviations     *uint64           `json:"tier1_arithmetic_long_intel003_random_deviations"`
+	Tier1CCComparisonStructured         map[string]uint64 `json:"tier1_compare_conversion_long_comparison_structured_by_width"`
+	Tier1CCComparisonRandom             map[string]uint64 `json:"tier1_compare_conversion_long_comparison_random_by_width"`
+	Tier1CCConversionStructured         uint64            `json:"tier1_compare_conversion_long_conversion_structured"`
+	Tier1CCConversionRandom             uint64            `json:"tier1_compare_conversion_long_conversion_random"`
+	ReadtestCasesTotal                  uint64            `json:"readtest_cases_total"`
+	ReadtestNativeCompareSkipCases      uint64            `json:"readtest_native_compare_skip_cases"`
+	GoportReadtestExecutedCases         uint64            `json:"goport_readtest_executed_cases"`
+	DectestSuiteCases                   map[string]uint64 `json:"dectest_suite_cases"`
+	NativeDectestSkippedCases           map[string]uint64 `json:"native_dectest_skipped_cases"`
+	GoportDectestExecutedCases          map[string]uint64 `json:"goport_dectest_executed_cases"`
+	GoportDectestSkippedCases           map[string]uint64 `json:"goport_dectest_skipped_cases"`
+	GoportDectestFlagExemptCases        map[string]uint64 `json:"goport_dectest_flag_exempt_cases"`
+	FFIBitcompareCasesTotal             uint64            `json:"ffi_bitcompare_cases_total"`
+	FFIQuantumSteeringDeviations        *uint64           `json:"ffi_intel006_independent_cases"`
+	DecnumberDiffStructured             map[string]uint64 `json:"decnumber_differential_structured_comparisons_by_width"`
+	DecnumberDiffStructuredExcluded     map[string]uint64 `json:"decnumber_differential_structured_fma_excluded_by_width"`
+	DecnumberDiffStructuredKnown        map[string]uint64 `json:"decnumber_differential_structured_known_divergences_by_width"`
+	DecnumberDiffRandom                 map[string]uint64 `json:"decnumber_differential_random_comparisons_by_width"`
+	DecnumberDiffRandomExcluded         map[string]uint64 `json:"decnumber_differential_random_fma_excluded_by_width"`
+	DecnumberDiffRandomKnown            map[string]uint64 `json:"decnumber_differential_random_known_divergences_by_width"`
+	D32ExhaustiveLanes                  uint64            `json:"d32_exhaustive_unary_lanes"`
+	D32ExhaustiveCasesPerLane           uint64            `json:"d32_exhaustive_unary_cases_per_lane"`
+	D32ExhaustiveTotalComparisons       uint64            `json:"d32_exhaustive_unary_total_comparisons"`
+	D32ExhaustiveDigestByLane           map[string]uint64 `json:"d32_exhaustive_unary_result_digest_by_lane"`
 }
 
 // sentinels mirrors the routing-sentinel row pin file; the row counts are
@@ -57,7 +65,7 @@ func main() {
 	anchorsPath := flag.String("anchors", "verification_anchors.json", "path to verification_anchors.json")
 	sentinelsPath := flag.String("sentinels", "verification_sentinels.json", "path to verification_sentinels.json (routing-sentinel row pins)")
 	logPath := flag.String("log", "", "path to the captured gate log")
-	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-ffi, decnumber-differential, d32-exhaustive, d32-exhaustive-rust")
+	domain := flag.String("domain", "", "gate domain: tier1-arithmetic-go, tier1-arithmetic-rust, tier1-compare-conversion-go, tier1-compare-conversion-rust, goport-readtest, native-readtest, native-dectest, goport-dectest, native-ffi, decnumber-differential, d32-exhaustive, d32-exhaustive-rust")
 	passes := flag.String("passes", "", "comma-separated top-level Go test names that must have '--- PASS:' evidence")
 	flag.Parse()
 	if *logPath == "" || (*domain == "" && *passes == "") {
@@ -90,34 +98,17 @@ func main() {
 		widths := []string{"32", "64", "128"}
 		switch *domain {
 		case "tier1-arithmetic-go":
-			required = append(required,
-				topLevelPass("TestTier1ArithmeticCorpusContract"),
-				topLevelPass("TestTier1ArithmeticRoutingSentinels"),
-				topLevelPass("TestTier1ArithmeticStructuredNativeDifferential"),
-				topLevelPass("TestTier1ArithmeticDeterministicRandomNativeDifferential"),
-				sentinelCountEvidence(*sentinelsPath, "Tier 1 arithmetic routing sentinels"),
-			)
-			for _, w := range widths {
-				structured := a.Tier1ArithmeticStructured["decimal"+w]
-				random := a.Tier1ArithmeticRandomCasesPerOp["decimal"+w] * a.Tier1ArithmeticRandomOperations
-				required = append(required,
-					countLine(fmt.Sprintf("decimal%s structured exact comparisons: %d/%d", w, structured, structured)),
-					countLine(fmt.Sprintf("decimal%s deterministic random exact comparisons: %d/%d", w, random, random)),
-				)
+			arithmeticEvidence, err := tier1ArithmeticEvidence(a, *sentinelsPath, false)
+			if err != nil {
+				fail("Tier 1 arithmetic evidence: %v", err)
 			}
+			required = append(required, arithmeticEvidence...)
 		case "tier1-arithmetic-rust":
-			required = append(required,
-				countLine("test result: ok. 4 passed; 0 failed;"),
-				sentinelCountEvidence(*sentinelsPath, "Rust Tier 1 arithmetic routing sentinels"),
-			)
-			for _, w := range widths {
-				structured := a.Tier1ArithmeticStructured["decimal"+w]
-				random := a.Tier1ArithmeticRandomCasesPerOp["decimal"+w] * a.Tier1ArithmeticRandomOperations
-				required = append(required,
-					countLine(fmt.Sprintf("Rust Decimal%s structured Tier 1 exact comparisons: %d/%d", w, structured, structured)),
-					countLine(fmt.Sprintf("Rust Decimal%s random Tier 1 exact comparisons: %d/%d", w, random, random)),
-				)
+			arithmeticEvidence, err := tier1ArithmeticEvidence(a, *sentinelsPath, true)
+			if err != nil {
+				fail("Tier 1 arithmetic evidence: %v", err)
 			}
+			required = append(required, arithmeticEvidence...)
 		case "tier1-compare-conversion-go":
 			required = append(required,
 				topLevelPass("TestTier1QuietComparisonSemanticMatrix"),
@@ -159,6 +150,18 @@ func main() {
 				fail("native readtest evidence: %v", err)
 			}
 			required = append(required, nativeEvidence...)
+		case "native-dectest":
+			nativeEvidence, err := nativeDectestEvidence(a)
+			if err != nil {
+				fail("native decTest evidence: %v", err)
+			}
+			required = append(required, nativeEvidence...)
+		case "goport-dectest":
+			goportEvidence, err := goportDectestEvidence(a)
+			if err != nil {
+				fail("Go-port decTest evidence: %v", err)
+			}
+			required = append(required, goportEvidence...)
 		case "goport-readtest":
 			goportEvidence, err := goportReadtestEvidence(a)
 			if err != nil {
@@ -259,6 +262,9 @@ type evidence struct {
 
 func topLevelPass(name string) evidence { return evidence{kind: "pass", literal: name} }
 func countLine(literal string) evidence { return evidence{kind: "count", literal: literal} }
+func rustTestRun(name string) evidence {
+	return evidence{kind: "rust-test", literal: "test " + name + " ... "}
+}
 
 // countLineRejectingPrefix is countLine restricted to occurrences that are
 // not immediately preceded by reject.
@@ -269,6 +275,75 @@ func compactSummary(rootTest, literal string) evidence {
 	return evidence{kind: "compact-summary", literal: literal, rootTest: rootTest}
 }
 
+func tier1ArithmeticEvidence(a anchors, sentinelsPath string, rust bool) ([]evidence, error) {
+	if a.Tier1ArithmeticStructuredDeviations == nil || a.Tier1ArithmeticRandomDeviations == nil {
+		return nil, fmt.Errorf("INTEL-BID-003 deviation anchors are missing")
+	}
+	structuredDeviations := *a.Tier1ArithmeticStructuredDeviations
+	randomDeviations := *a.Tier1ArithmeticRandomDeviations
+	if a.Tier1ArithmeticRandomOperations == 0 {
+		return nil, fmt.Errorf("Tier 1 arithmetic random operation count must be positive")
+	}
+	for _, w := range []string{"32", "64", "128"} {
+		key := "decimal" + w
+		structured := a.Tier1ArithmeticStructured[key]
+		perOp := a.Tier1ArithmeticRandomCasesPerOp[key]
+		if structured == 0 || perOp == 0 || perOp > ^uint64(0)/a.Tier1ArithmeticRandomOperations {
+			return nil, fmt.Errorf("invalid Tier 1 arithmetic comparison anchors for %s", key)
+		}
+	}
+	structured128 := a.Tier1ArithmeticStructured["decimal128"]
+	random128 := a.Tier1ArithmeticRandomCasesPerOp["decimal128"] * a.Tier1ArithmeticRandomOperations
+	if structuredDeviations == 0 || structuredDeviations > structured128 || randomDeviations > random128 {
+		return nil, fmt.Errorf("invalid INTEL-BID-003 deviation anchors")
+	}
+
+	required := []evidence{countLine("INTEL-BID-003 witness: C comparisons=90 independent deviations=90")}
+	if rust {
+		required = append(required,
+			countLine("test result: ok. 5 passed; 0 failed;"),
+			rustTestRun("tier1_arithmetic_scaleb_intel003_witness"),
+			sentinelCountEvidence(sentinelsPath, "Rust Tier 1 arithmetic routing sentinels"),
+		)
+	} else {
+		required = append(required,
+			topLevelPass("TestTier1ArithmeticCorpusContract"),
+			topLevelPass("TestTier1ArithmeticRoutingSentinels"),
+			topLevelPass("TestTier1ArithmeticScaleBIntel003Witness"),
+			topLevelPass("TestTier1ArithmeticStructuredNativeDifferential"),
+			topLevelPass("TestTier1ArithmeticDeterministicRandomNativeDifferential"),
+			sentinelCountEvidence(sentinelsPath, "Tier 1 arithmetic routing sentinels"),
+		)
+	}
+	for _, w := range []string{"32", "64"} {
+		structured := a.Tier1ArithmeticStructured["decimal"+w]
+		random := a.Tier1ArithmeticRandomCasesPerOp["decimal"+w] * a.Tier1ArithmeticRandomOperations
+		if rust {
+			required = append(required,
+				countLine(fmt.Sprintf("Rust Decimal%s structured Tier 1 exact comparisons: %d/%d", w, structured, structured)),
+				countLine(fmt.Sprintf("Rust Decimal%s random Tier 1 exact comparisons: %d/%d", w, random, random)),
+			)
+		} else {
+			required = append(required,
+				countLine(fmt.Sprintf("decimal%s structured exact comparisons: %d/%d", w, structured, structured)),
+				countLine(fmt.Sprintf("decimal%s deterministic random exact comparisons: %d/%d", w, random, random)),
+			)
+		}
+	}
+	if rust {
+		required = append(required,
+			countLine(fmt.Sprintf("Rust Decimal128 structured Tier 1 comparisons: C exact=%d independent INTEL-BID-003=%d total=%d/%d", structured128-structuredDeviations, structuredDeviations, structured128, structured128)),
+			countLine(fmt.Sprintf("Rust Decimal128 random Tier 1 comparisons: C exact=%d independent INTEL-BID-003=%d total=%d/%d", random128-randomDeviations, randomDeviations, random128, random128)),
+		)
+	} else {
+		required = append(required,
+			countLine(fmt.Sprintf("decimal128 structured comparisons: C exact=%d independent INTEL-BID-003=%d total=%d/%d", structured128-structuredDeviations, structuredDeviations, structured128, structured128)),
+			countLine(fmt.Sprintf("decimal128 deterministic random comparisons: C exact=%d independent INTEL-BID-003=%d total=%d/%d", random128-randomDeviations, randomDeviations, random128, random128)),
+		)
+	}
+	return required, nil
+}
+
 func nativeReadtestEvidence(a anchors) ([]evidence, error) {
 	return compactGoSubtestEvidence(
 		"TestGeneratedReadCases",
@@ -276,6 +351,52 @@ func nativeReadtestEvidence(a anchors) ([]evidence, error) {
 		a.ReadtestCasesTotal,
 		a.ReadtestNativeCompareSkipCases,
 	)
+}
+
+func nativeDectestEvidence(a anchors) ([]evidence, error) {
+	suites := []string{"Decimal32", "Decimal64", "Decimal128", "General"}
+	if len(a.DectestSuiteCases) != len(suites) || len(a.NativeDectestSkippedCases) != len(suites) {
+		return nil, fmt.Errorf("native decTest requires case and skip anchors for all four suites")
+	}
+	required := []evidence{
+		topLevelPass("TestGeneratedDectestSuites"),
+		topLevelPass("TestGeneratedDectestPlusMinusQuantumStrengthGoPort"),
+		topLevelPass("TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter"),
+		topLevelPass("TestNativeDectestRunnerRejectsPartialExecution"),
+	}
+	for _, suite := range suites {
+		cases := a.DectestSuiteCases[suite]
+		skipped, ok := a.NativeDectestSkippedCases[suite]
+		if cases == 0 || !ok || skipped >= cases {
+			return nil, fmt.Errorf("native decTest %s requires positive executed coverage below the raw case count", suite)
+		}
+		required = append(required, countLine(fmt.Sprintf("native decTest %s: passed=%d failed=0 skipped=%d total=%d", suite, cases-skipped, skipped, cases)))
+	}
+	return required, nil
+}
+
+func goportDectestEvidence(a anchors) ([]evidence, error) {
+	suites := []string{"Decimal32", "Decimal64", "Decimal128"}
+	if len(a.DectestSuiteCases) != 4 || len(a.GoportDectestExecutedCases) != len(suites) || len(a.GoportDectestSkippedCases) != len(suites) || len(a.GoportDectestFlagExemptCases) != len(suites) {
+		return nil, fmt.Errorf("Go-port decTest requires case, execution, skip and flag-exemption anchors")
+	}
+	required := []evidence{
+		topLevelPass("TestGeneratedDectestSuitesGoPort"),
+		topLevelPass("TestGeneratedDectestPlusMinusQuantumStrengthGoPort"),
+		topLevelPass("TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter"),
+		topLevelPass("TestGoportDectestRunnerRejectsPartialExecution"),
+	}
+	for _, suite := range suites {
+		cases := a.DectestSuiteCases[suite]
+		executed := a.GoportDectestExecutedCases[suite]
+		skipped, hasSkipped := a.GoportDectestSkippedCases[suite]
+		exempt, hasExempt := a.GoportDectestFlagExemptCases[suite]
+		if executed == 0 || executed > cases || !hasSkipped || skipped != cases-executed || !hasExempt || exempt > executed {
+			return nil, fmt.Errorf("Go-port decTest %s requires positive and consistent execution coverage", suite)
+		}
+		required = append(required, countLine(fmt.Sprintf("goport decTest %s: executed=%d failed=0 skipped=%d flagExempt=%d total=%d", suite, executed, skipped, exempt, cases)))
+	}
+	return required, nil
 }
 
 func goportReadtestEvidence(a anchors) ([]evidence, error) {
@@ -288,6 +409,9 @@ func goportReadtestEvidence(a anchors) ([]evidence, error) {
 }
 
 func nativeFFIEvidence(a anchors, sentinelsPath string) ([]evidence, error) {
+	if a.FFIQuantumSteeringDeviations == nil || *a.FFIQuantumSteeringDeviations == 0 || *a.FFIQuantumSteeringDeviations >= a.FFIBitcompareCasesTotal {
+		return nil, fmt.Errorf("native FFI independent quantum count must be positive and below the total")
+	}
 	required, err := compactGoSubtestEvidence(
 		"TestGeneratedFFIBitCompareSubset",
 		"native FFI",
@@ -302,6 +426,9 @@ func nativeFFIEvidence(a anchors, sentinelsPath string) ([]evidence, error) {
 	// log line so the gate cannot silently drop them.
 	required = append(required,
 		topLevelPass("TestGeneratedMixedFormatFFIRoutingSentinels"),
+		topLevelPass("TestGeneratedFFIQuantumSteeringAdjudicationStrength"),
+		topLevelPass("TestGeneratedFFIQuantumSteeringSamples"),
+		countLine(fmt.Sprintf("FFI comparisons: C exact=%d independent INTEL-BID-006=%d total=%d/%d", a.FFIBitcompareCasesTotal-*a.FFIQuantumSteeringDeviations, *a.FFIQuantumSteeringDeviations, a.FFIBitcompareCasesTotal, a.FFIBitcompareCasesTotal)),
 		mixedFFIRoutingSentinelCountEvidence(sentinelsPath, "mixed-format FFI routing sentinels"),
 	)
 	return required, nil
@@ -457,6 +584,8 @@ func (e evidence) matchesLine(line string) bool {
 	switch e.kind {
 	case "pass":
 		return strings.HasPrefix(line, "--- PASS: "+e.literal+" (")
+	case "rust-test":
+		return strings.HasPrefix(line, e.literal)
 	case "compact-summary":
 		return line == e.literal
 	default:

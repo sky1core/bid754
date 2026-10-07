@@ -521,9 +521,10 @@ generated verification domain outside the generated path (a hand-edited file
 checked against the real artifacts by a devtools test).
 `devtools/internal/tablecrosscheck` compares the c-tablegen Go output against
 the table literals inside `bid754-go/internal/bidgo` value by value. That
-comparison is an independent value anchor for hand-ported tables; for the
-c-tablegen-owned `tables_binarydecimal.go`, it is a closed-world value census,
-while `make verify-generated` supplies byte reproducibility.
+comparison checks every runtime table against its pinned C value and verifies
+that each declaration belongs to its manifest-declared generated file.
+`make verify-generated` supplies byte reproducibility for all three generated
+Go runtime table files.
 
 `devtools/verification_sentinels.json` adds independent hand-maintained pin
 families of two kinds. The routing-sentinel arrays — the Tier 1 long runners,

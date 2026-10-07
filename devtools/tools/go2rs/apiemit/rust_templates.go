@@ -2185,7 +2185,7 @@ impl @SELF@ {
     /// recognized by parse_decimal@DIGITS@_nan) is constructed directly,
     /// without calling the port or raising flags. Malformed syntax, a NaN payload
     /// that does not fit this width, or a finite literal whose written quantum
-    /// or coefficient the port would otherwise coerce with zero status returns
+    /// or coefficient cannot be represented returns
     /// canonical quiet NaN plus INVALID_OPERATION. Valid finite input retains
     /// the port's overflow/underflow/inexact result and flags.
     pub fn parse_raw(s: &str) -> (@SELF@, ExceptionFlags) {
@@ -2201,7 +2201,7 @@ impl @SELF@ {
         if invalid_bid_string_input(s, result_is_nan(value.0)) {
             return (@QNAN@, ExceptionFlags::INVALID_OPERATION);
         }
-        if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, @MINQ@, @MAXQ@, @PRECISION@) {
+        if bid_finite_literal_cohort_unrepresentable(s, @MINQ@, @MAXQ@, @PRECISION@, raw == 0) {
             return (@QNAN@, ExceptionFlags::INVALID_OPERATION);
         }
         (value, flags)

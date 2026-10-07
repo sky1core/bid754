@@ -167,6 +167,7 @@ func LoadGenerated(indexPath string) (SharedSpec, error) {
 				InputTypes:              append([]string(nil), shard.InputTypes...),
 				CompareGroup:            shard.CompareGroup,
 				NativeCompareSkipReason: shard.NativeCompareSkipReason,
+				InitialStatus:           shard.InitialStatus,
 				Operands:                tc.Operands,
 				Expected:                tc.Expected,
 				Status:                  tc.Status,
@@ -286,6 +287,7 @@ func groupReadtestShards(cases []GeneratedReadCase) ([]ReadtestShard, error) {
 				InputTypes:              append([]string(nil), tc.InputTypes...),
 				CompareGroup:            tc.CompareGroup,
 				NativeCompareSkipReason: tc.NativeCompareSkipReason,
+				InitialStatus:           tc.InitialStatus,
 			},
 			Cases: []ReadtestShardCase{readtestShardCaseOf(tc)},
 		})
@@ -316,6 +318,7 @@ func verifyReadtestShardConstants(header ReadtestShardHeader, tc GeneratedReadCa
 		header.OutputType != tc.OutputType ||
 		!equalStringSlices(header.InputTypes, tc.InputTypes) ||
 		header.CompareGroup != tc.CompareGroup ||
+		header.InitialStatus != tc.InitialStatus ||
 		header.NativeCompareSkipReason != tc.NativeCompareSkipReason {
 		return fmt.Errorf("readtest case %q breaks the constant header fields of suite %q", tc.ID, tc.Suite)
 	}

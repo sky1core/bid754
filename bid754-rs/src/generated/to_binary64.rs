@@ -340,10 +340,11 @@ pub(crate) fn bid128_to_binary128_port(mut x: BID_UINT128, mut rnd_mode: i64) ->
         }
         if (d >= 64) {
             d = d.wrapping_sub(64);
-            z.w2 = z.w3;
-            z.w3 = z.w4;
-            z.w4 = z.w5;
-            z.w5 = 0;
+            let (__go2rs_rhs_4271436_0, __go2rs_rhs_4271436_1, __go2rs_rhs_4271436_2, __go2rs_rhs_4271436_3) = (z.w3, z.w4, z.w5, 0);
+            z.w2 = __go2rs_rhs_4271436_0;
+            z.w3 = __go2rs_rhs_4271436_1;
+            z.w4 = __go2rs_rhs_4271436_2;
+            z.w5 = __go2rs_rhs_4271436_3;
         }
         e_out = 1;
         if (d > 0) {

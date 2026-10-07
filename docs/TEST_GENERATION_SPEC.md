@@ -191,8 +191,8 @@ path.
 - The Go-port runner may not replace these comparisons with float tolerance or
   a decTest cohort comparator.
 
-Rows added because IEEE 754 requires behavior absent from pinned Intel inputs
-enter through manifest-declared readtest blocks:
+Rows covering registered corrections absent from pinned Intel inputs enter
+through manifest-declared readtest blocks:
 
 - `cmatch` rows keep native C comparison;
 - `cdiverge` rows are allowed only for deviations registered in
@@ -277,22 +277,12 @@ produce a finite signed zero. These cases stay explicitly classified before
 execution and counted in the generated inventory.
 
 `toeng` is value-compared because engineering rendering can deliberately choose
-a different cohort representation. A flag exemption is allowed only as a named
-operation-family classification that is implemented and tested in generator
-code, emitted in the generated inventory, counted outside generation, and applied
-after all condition tokens have been validated. It never turns an unrecognized
-condition into a skip.
+a different cohort representation.
 
-The only permitted portable flag-exemption class is
-`from_string_zero_low_clamp_divergence`. It applies only to `tosci`/`toeng`
-rows with `Clamped`-only conditions and a zero expected result whose negative
-exponent identifies a low-side operand-parse clamp. The exemption reflects the
-measured decNumber-versus-Intel behavior: decNumber projects to no BID flag,
-while the mechanically ported Intel parse raises inexact and underflow. It
-waives only flag comparison; every otherwise-applicable value and quantum
-assertion remains. High-side zero clamps and arithmetic-result zero clamps stay
-flag-compared. Adding or widening an exemption class requires a specification
-change, not only a generator or anchor update.
+No portable flag-exemption class is permitted. Exact-zero operand parsing,
+including low-side and high-side cohort clamps, remains flag-compared.
+Adding an exemption class requires a specification change, not only a
+generator or anchor update.
 
 ## C FFI Exact Bit-Compare Contract
 
@@ -310,6 +300,12 @@ For every selected case:
 - result bits compare exactly for decimal and binary results;
 - scalar results compare exactly; and
 - exception flags compare exactly whenever the C signature exposes flags.
+
+The registered INTEL-BID-006 finite steering-layout cases compare the Go
+result against the independent quantum expectation and the native C result
+against the recorded erroneous behavior, including flags on both sides.
+These cases execute without skips and are counted separately from C-equal
+comparisons. Matching quantum neighbors retain ordinary C comparison.
 
 The deterministic corpus must include format-correct special values,
 canonical/non-canonical boundaries, directional operand combinations, and

@@ -12,9 +12,28 @@ import (
 )
 
 type decTestExecResult struct {
-	Result string
-	Flags  ExceptionFlags
+	Result     string
+	Flags      ExceptionFlags
+	Conditions decTestConditionSet
 }
+
+type decTestConditionSet uint32
+
+const (
+	decTestConversionSyntax decTestConditionSet = 1 << iota
+	decTestDivisionByZero
+	decTestDivisionImpossible
+	decTestDivisionUndefined
+	decTestInsufficientStorage
+	decTestInexact
+	decTestInvalidOperation
+	decTestOverflow
+	decTestClamped
+	decTestRounded
+	decTestSubnormal
+	decTestUnderflow
+	decTestUnknownCondition
+)
 
 // decTestCase represents a single test case from IBM decTest
 type decTestCase struct {
@@ -387,6 +406,9 @@ func normalizeDecTestOperation(op string) string {
 }
 
 func decTestSkipReason(ignoredOperations []string, tc decTestCase, testType string) (string, bool) {
+	if hasNullReferenceDecTestOperand(tc.Operands) {
+		return "null_reference_operand", true
+	}
 	if shouldSkipDectestIgnoredOperation(ignoredOperations, tc.Operation) {
 		return "ignored_operation_" + normalizeDecTestOperation(tc.Operation), true
 	}
@@ -405,6 +427,9 @@ func shouldSkipDecTestCase(tc decTestCase, testType string) bool {
 }
 
 func decTestCaseSkipReason(tc decTestCase, testType string) (string, bool) {
+	if hasNullReferenceDecTestOperand(tc.Operands) {
+		return "null_reference_operand", true
+	}
 	if (testType == "general" || testType == "decimal128") && usesTaggedDecTestLiteral(tc) {
 		return "tagged_literal", true
 	}
@@ -451,6 +476,15 @@ func decTestCaseSkipReason(tc decTestCase, testType string) (string, bool) {
 		return "unsupported_test_type", true
 	}
 	return "", false
+}
+
+func hasNullReferenceDecTestOperand(operands []string) bool {
+	for _, operand := range operands {
+		if strings.Trim(operand, "'\"") == "#" {
+			return true
+		}
+	}
+	return false
 }
 
 func unsupportedFMADecTestReason(tc decTestCase, testType string) (string, bool) {
@@ -916,16 +950,24 @@ func testWithDecTestV2(testDir string) error {
 }
 
 func decTestFailureError(suites []decTestSuiteTotals) error {
+	if len(suites) == 0 {
+		return fmt.Errorf("decTest execution is empty")
+	}
 	totalFailed := 0
+	totalExecuted := 0
 	parts := make([]string, 0, len(suites))
 
 	for _, suite := range suites {
+		totalExecuted += suite.Passed + suite.Failed
 		totalFailed += suite.Failed
 		if suite.Failed > 0 {
 			parts = append(parts, fmt.Sprintf("%s=%d", suite.Name, suite.Failed))
 		}
 	}
 
+	if totalExecuted == 0 {
+		return fmt.Errorf("decTest execution is empty")
+	}
 	if totalFailed == 0 {
 		return nil
 	}
@@ -939,6 +981,47 @@ func compareDecTestFlags(expected []string, actual ExceptionFlags) bool {
 		return false
 	}
 	return expectedFlags == actual
+}
+
+func compareDecTestConditions(expected []string, actual decTestConditionSet) bool {
+	expectedConditions, ok := parseDecTestConditions(expected)
+	return ok && expectedConditions == actual
+}
+
+func parseDecTestConditions(flags []string) (decTestConditionSet, bool) {
+	var parsed decTestConditionSet
+	for _, flag := range flags {
+		switch normalizeDecTestFlag(flag) {
+		case "", "none", "noflags":
+		case "conversionsyntax":
+			parsed |= decTestConversionSyntax
+		case "divisionbyzero":
+			parsed |= decTestDivisionByZero
+		case "divisionimpossible":
+			parsed |= decTestDivisionImpossible
+		case "divisionundefined":
+			parsed |= decTestDivisionUndefined
+		case "insufficientstorage":
+			parsed |= decTestInsufficientStorage
+		case "inexact":
+			parsed |= decTestInexact
+		case "invalidoperation":
+			parsed |= decTestInvalidOperation
+		case "overflow":
+			parsed |= decTestOverflow
+		case "clamped":
+			parsed |= decTestClamped
+		case "rounded":
+			parsed |= decTestRounded
+		case "subnormal":
+			parsed |= decTestSubnormal
+		case "underflow":
+			parsed |= decTestUnderflow
+		default:
+			return 0, false
+		}
+	}
+	return parsed, true
 }
 
 func compareDecTestBIDFiveFlags(expected []string, actual ExceptionFlags) bool {

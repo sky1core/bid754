@@ -1,0 +1,37 @@
+{
+  "suite": "numeric_boundary_bid64_from_string_zero_cohort_cdiverge",
+  "group": "decimal64_ieee754_regressions",
+  "format": "decimal64",
+  "header": "third_party/intel_dfp/TESTS/readtest.h",
+  "source": "testdata/readtest_numeric_boundary_bid64_from_string_zero_cohort_cdiverge.in",
+  "function": "bid64_from_string",
+  "kind": "from_string",
+  "output_type": "OP_DEC64",
+  "input_types": [
+    "OP_DEC64"
+  ],
+  "compare_group": "CMP_FUZZYSTATUS",
+  "native_compare_skip_reason": "pinned Intel BID C from_string raises Underflow|Inexact or produces a minimum nonzero coefficient for exact written zero outside the finite cohort range; IEEE 754 requires exact signed zero without flags in the raw parser",
+  "cases": [
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_2","line":2,"operands":["0e-415"],"expected":"[0000000000000000]","status":"00","rounding":0},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_3","line":3,"operands":["0e-415"],"expected":"[0000000000000000]","status":"00","rounding":1},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_4","line":4,"operands":["0e-415"],"expected":"[0000000000000000]","status":"00","rounding":2},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_5","line":5,"operands":["0e-415"],"expected":"[0000000000000000]","status":"00","rounding":3},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_6","line":6,"operands":["0e-415"],"expected":"[0000000000000000]","status":"00","rounding":4},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_7","line":7,"operands":["0e-10000"],"expected":"[0000000000000000]","status":"00","rounding":0},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_8","line":8,"operands":["0e-10000"],"expected":"[0000000000000000]","status":"00","rounding":1},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_9","line":9,"operands":["0e-10000"],"expected":"[0000000000000000]","status":"00","rounding":2},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_10","line":10,"operands":["0e-10000"],"expected":"[0000000000000000]","status":"00","rounding":3},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_11","line":11,"operands":["0e-10000"],"expected":"[0000000000000000]","status":"00","rounding":4},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_12","line":12,"operands":["-0e-415"],"expected":"[8000000000000000]","status":"00","rounding":0},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_13","line":13,"operands":["-0e-415"],"expected":"[8000000000000000]","status":"00","rounding":1},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_14","line":14,"operands":["-0e-415"],"expected":"[8000000000000000]","status":"00","rounding":2},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_15","line":15,"operands":["-0e-415"],"expected":"[8000000000000000]","status":"00","rounding":3},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_16","line":16,"operands":["-0e-415"],"expected":"[8000000000000000]","status":"00","rounding":4},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_17","line":17,"operands":["-0e-10000"],"expected":"[8000000000000000]","status":"00","rounding":0},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_18","line":18,"operands":["-0e-10000"],"expected":"[8000000000000000]","status":"00","rounding":1},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_19","line":19,"operands":["-0e-10000"],"expected":"[8000000000000000]","status":"00","rounding":2},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_20","line":20,"operands":["-0e-10000"],"expected":"[8000000000000000]","status":"00","rounding":3},
+    {"id":"numeric_boundary_bid64_from_string_zero_cohort_cdiverge_line_21","line":21,"operands":["-0e-10000"],"expected":"[8000000000000000]","status":"00","rounding":4}
+  ]
+}

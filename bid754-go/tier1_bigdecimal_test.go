@@ -431,6 +431,21 @@ func FuzzTier1BigDecimal(f *testing.F) {
 		f.Add(data)
 	}
 	var s *tier1Session
+	scaleb, err := tier1ScaleBBoundaryCases()
+	if err != nil {
+		f.Fatal(err)
+	}
+	for i, c := range scaleb {
+		data := make([]byte, tier1InputSize)
+		data[4] = 0x40
+		for mode, name := range finiteModes {
+			if name == c.Mode {
+				data[2] = byte(mode)
+			}
+		}
+		binary.LittleEndian.PutUint64(data[5:13], uint64(i))
+		f.Add(data)
+	}
 	f.Cleanup(func() {
 		if s != nil {
 			if err := s.close(); err != nil {

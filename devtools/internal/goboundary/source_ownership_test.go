@@ -123,6 +123,7 @@ var approvedDefaultProductCompilationUnits = map[string][]string{
 		"tables_round.go",
 		"tables_round128_fma.go",
 		"tables_round_const128.go",
+		"tables_runtime_generated.go",
 		"tables_tostring.go",
 		"to_bid12864.go",
 		"to_bid3264.go",

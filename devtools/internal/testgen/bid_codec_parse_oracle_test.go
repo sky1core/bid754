@@ -59,7 +59,7 @@ func TestBidCodecParseOracleSelection(t *testing.T) {
 	if got := fmt.Sprintf("%x", hash.Sum(nil)); got != anchors.BidCodecParseOracleSHA256 {
 		t.Errorf("parse oracle tuple hash=%s, anchored=%s", got, anchors.BidCodecParseOracleSHA256)
 	}
-	t.Logf("independent Intel C parse tuples=%d by_width=%v tuple_sha256=%x", len(rows), counts, hash.Sum(nil))
+	t.Logf("pinned Intel C with registered IEEE parse corrections tuples=%d by_width=%v tuple_sha256=%x", len(rows), counts, hash.Sum(nil))
 }
 
 func TestBidCodecPublicParseGeneratedOutputs(t *testing.T) {
@@ -197,6 +197,117 @@ func TestBidCodecParseOracleOfficialModePairs(t *testing.T) {
 		t.Logf("d%d official_source_rows=%d unique_classes=%v pair_mask=%03x", width, sourceCounts[width], classes[width], coverage[width])
 		if coverage[width] != 0x3ff {
 			t.Errorf("d%d not all 10 mode pairs separated", width)
+		}
+	}
+}
+
+func TestBidCodecParseOracleIEEEUnderflowAndZero(t *testing.T) {
+	type expectation struct {
+		input string
+		width int
+		mode  int
+		lo    uint64
+		hi    uint64
+		flags uint32
+	}
+	rows := []expectation{
+		{"1e-102", 32, 2, 1, 0, 0x30},
+		{"-1e-102", 32, 1, 0x80000001, 0, 0x30},
+		{"1e-102", 32, 0, 0, 0, 0x30},
+		{"1e-399", 64, 2, 1, 0, 0x30},
+		{"-1e-399", 64, 1, 0x8000000000000001, 0, 0x30},
+		{"0." + strings.Repeat("0", 100) + "14999999", 32, 0, 1, 0, 0x30},
+		{"14999999e-108", 32, 0, 1, 0, 0x30},
+		{"-0." + strings.Repeat("0", 100) + "14999999", 32, 0, 0x80000001, 0, 0x30},
+		{"0." + strings.Repeat("0", 894) + "12345678901234567", 64, 0, 0, 0, 0x30},
+		{"-0." + strings.Repeat("0", 894) + "12345678901234567", 64, 1, 0x8000000000000001, 0, 0x30},
+		{"0e-6211", 128, 2, 0, 0, 0},
+		{"-0e-6211", 128, 1, 0, 0x8000000000000000, 0},
+	}
+	request := make([]bidCodecParseExpectation, len(rows))
+	for i, row := range rows {
+		request[i] = bidCodecParseExpectation{Input: row.input, Width: row.width, Mode: row.mode}
+	}
+	got, err := bidCodecRunParseOracle(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range rows {
+		if got[i].Lo != want.lo || got[i].Hi != want.hi || got[i].Flags != want.flags {
+			t.Errorf("d%d %q mode=%d: got=%016x:%016x flags=%02x, want=%016x:%016x flags=%02x", want.width, want.input, want.mode, got[i].Hi, got[i].Lo, got[i].Flags, want.hi, want.lo, want.flags)
+		}
+	}
+	for _, input := range []string{"0e-6211", "-0e-6211", "0e-399", "-0e-399"} {
+		width := 128
+		if strings.Contains(input, "399") {
+			width = 32
+		}
+		if bidCodecPublicFiniteCohortFits(input, width) || !bidCodecFiniteLiteralIsZero(input) {
+			t.Errorf("d%d %q: out-of-range zero cohort selected for public parse", width, input)
+		}
+	}
+	for _, row := range bidCodecRoundedInputs() {
+		if bidCodecFiniteLiteralIsZero(row.Input) && !bidCodecPublicFiniteCohortFits(row.Input, row.Width) {
+			t.Errorf("d%d %q: invalid zero cohort retained in public rounded oracle", row.Width, row.Input)
+		}
+	}
+	wrongSign := bidCodecParseExpectation{Input: "-0e-6211", Width: 128, Mode: 0}
+	if err := bidCodecApplyTinyParseDeviation(&wrongSign); err != nil {
+		t.Fatal(err)
+	}
+	if wrongSign.Lo != 0 || wrongSign.Hi != 0x8000000000000000 || wrongSign.Flags != 0 {
+		t.Errorf("negative written zero corrected to %016x:%016x flags=%02x", wrongSign.Hi, wrongSign.Lo, wrongSign.Flags)
+	}
+}
+
+func TestNumericBoundaryReadtestSources(t *testing.T) {
+	root := filepath.Join("..", "..")
+	manifest, err := LoadManifest(filepath.Join(root, "testgen_manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	total := 0
+	for _, read := range manifest.ReadTests {
+		if !strings.HasPrefix(read.Name, "numeric_boundary_") && read.Name != "bid32_from_string_underflow_boundary_cdiverge" {
+			continue
+		}
+		if read.CompareGroup != "CMP_FUZZYSTATUS" || strings.HasSuffix(read.Name, "_cdiverge") != (read.NativeCompareSkipReason != "") {
+			t.Errorf("readtest %q has incorrect comparator or C skip contract", read.Name)
+		}
+		cases, skips, err := parseReadtestSubset(filepath.Join(root, read.Source), read)
+		if err != nil {
+			t.Errorf("readtest %q: %v", read.Name, err)
+			continue
+		}
+		if len(cases) == 0 || len(skips) != 0 {
+			t.Errorf("readtest %q parsed=%d skips=%v", read.Name, len(cases), skips)
+		}
+		total += len(cases)
+	}
+	if total != 4888 {
+		t.Errorf("numeric boundary rows parsed=%d, want 4888", total)
+	}
+}
+
+func TestTinyParseDeviationPreservesExactCohorts(t *testing.T) {
+	for _, tc := range []struct {
+		width  int
+		input  string
+		lo, hi uint64
+	}{
+		{32, "1e-100", 0x00800001, 0},
+		{64, "1e-397", 0x0020000000000001, 0},
+		{128, "1e-6175", 1, 0x0002000000000000},
+	} {
+		for mode := 0; mode < 5; mode++ {
+			row := bidCodecParseExpectation{Width: tc.width, Input: tc.input, Mode: mode, Lo: tc.lo, Hi: tc.hi}
+			want := row
+			if err := bidCodecApplyTinyParseDeviation(&row); err != nil {
+				t.Fatal(err)
+			}
+			if row != want {
+				t.Errorf("d%d mode%d: exact cohort changed: got %+v want %+v", tc.width, mode, row, want)
+			}
 		}
 	}
 }

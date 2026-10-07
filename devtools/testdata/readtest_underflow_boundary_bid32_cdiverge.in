@@ -1,0 +1,5 @@
+-- Independent rounding gives the toward-zero coefficient 999999 at Emin.
+-- Pinned Intel BID C returns 1000000 with Underflow|Inexact for both rows.
+
+bid32_from_string 3 99999995E-103 [000f423f] 30
+bid32_from_string 3 999999995E-104 [000f423f] 30

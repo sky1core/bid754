@@ -280,11 +280,6 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 					dround = 0
 					coefficient_x++
 					rounded_up = 1
-					// line 459-462
-					if coefficient_x == 10000000000000000 {
-						coefficient_x = 1000000000000000
-						add_expon++
-					}
 				}
 			}
 		}
@@ -302,9 +297,15 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 		if rounded != 0 {
 			pfpsf |= BID_INEXACT_EXCEPTION
 		}
-		res = fast_get_BID64_check_OF_withFlags(sign_x,
-			add_expon+DECIMAL_EXPONENT_BIAS,
-			coefficient_x, rnd_mode, &pfpsf)
+		expon := add_expon + DECIMAL_EXPONENT_BIAS
+		if expon < 0 {
+			if rounded_up != 0 {
+				coefficient_x--
+			}
+			res = get_BID64_UF_withFlags(sign_x, expon, coefficient_x, rounded, rnd_mode, &pfpsf)
+		} else {
+			res = fast_get_BID64_check_OF_withFlags(sign_x, expon, coefficient_x, rnd_mode, &pfpsf)
+		}
 		return
 	}
 
@@ -374,7 +375,6 @@ func bid64_from_string(str string, rnd_mode int) (res uint64, pfpsf uint32) {
 		if rounded_up != 0 {
 			coefficient_x--
 		}
-		rnd_mode = 0
 		res = get_BID64_UF_withFlags(sign_x, expon_x, coefficient_x, rounded, rnd_mode, &pfpsf)
 		return
 	}
@@ -461,6 +461,9 @@ func get_BID64_UF_withFlags(sgn uint64, expon int, coeff uint64, R uint64, rmode
 	var _C64, remainder_h, QH, carry, CY uint64
 	var extra_digits, amount, amount2 int
 	var status uint32
+	if expon < 0 && coeff == 0 && R == 0 {
+		return sgn
+	}
 
 	// underflow
 	if expon+MAX_FORMAT_DIGITS < 0 {

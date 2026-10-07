@@ -33,6 +33,27 @@ func TestParseInitializerEvaluatesExpressions(t *testing.T) {
 	}
 }
 
+func TestParseTableFileCExpressionPrecedence(t *testing.T) {
+	dir := t.TempDir()
+	source := "const unsigned long long shifts[] = {1ULL << 2 + 1, 1ULL + 2 << 1, 16ULL - 1 << 1, 1ULL << (2 + 1), (1ULL << 2) + 1, 1ULL << 2 << 1, 9ULL - 3 - 2};"
+	if err := os.WriteFile(filepath.Join(dir, "shifts.c"), []byte(source), 0600); err != nil {
+		t.Fatal(err)
+	}
+	table, err := ParseTableFile(dir, TableSpec{Name: "shifts", Source: "shifts.c"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []int64{8, 6, 30, 8, 5, 8, 4}
+	if len(table.Value.Elements) != len(want) {
+		t.Fatalf("entries = %d, want %d", len(table.Value.Elements), len(want))
+	}
+	for i, value := range want {
+		if got := table.Value.Elements[i].Number; got.Cmp(big.NewInt(value)) != 0 {
+			t.Errorf("entry %d = %s, want %d", i, got, value)
+		}
+	}
+}
+
 func TestParseTableFileBidShortRecipScale(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
 	table, err := ParseTableFile(repoRoot, TableSpec{
@@ -269,6 +290,8 @@ func TestGeneratedArtifactsStayInSync(t *testing.T) {
 	assertFileMatches(t, goPath, generated.Go)
 	assertFileMatches(t, rustPath, generated.Rust)
 	assertFileMatches(t, bidgoPath, generated.Bidgo)
+	assertFileMatches(t, filepath.Join(repoRoot, manifest.RuntimeOutput), generated.Runtime)
+	assertFileMatches(t, filepath.Join(repoRoot, manifest.RuntimeRound128Output), generated.RuntimeRound128)
 
 	goSource := string(generated.Go)
 	for _, want := range []string{
@@ -365,7 +388,7 @@ func TestLoadManifestRequiresPositiveExpectedShape(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(dir, tc.name+".json")
-			body := `{"go_package":"p","go_output":"g","rust_output":"r","bidgo_output":"b","bidgo_source":"s","tables":[` + tc.table + `]}`
+			body := `{"go_package":"p","go_output":"g","rust_output":"r","bidgo_output":"b","bidgo_source":"s","runtime_output":"runtime.go","runtime_round128_output":"round128.go","tables":[` + tc.table + `]}`
 			if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 				t.Fatalf("write manifest: %v", err)
 			}

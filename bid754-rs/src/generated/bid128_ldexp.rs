@@ -64,7 +64,7 @@ pub(crate) fn bid128_ldexp_port(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i6
         return (res, pfpsf);
     }
     if (exp64 > 0x2fff) {
-        if (CX.hi < 0x314dc6448d93) {
+        if ((CX.hi < 0x314dc6448d93) || (((CX.hi == 0x314dc6448d93) && (CX.lo < 0x38c15b0a00000000)))) {
             loop {
                 CBID_X8.hi = (((go_checked_shl_u64(CX.hi, go_shift_count_u64((3) as u64)))) | ((go_checked_shr_u64(CX.lo, go_shift_count_u64((61) as u64)))));
                 CBID_X8.lo = (go_checked_shl_u64(CX.lo, go_shift_count_u64((3) as u64)));
@@ -73,7 +73,7 @@ pub(crate) fn bid128_ldexp_port(mut x: BID_UINT128, mut n: i64, mut rnd_mode: i6
                 CX = __add_128_128(CX2, CBID_X8);
                 exponent_x = exponent_x.wrapping_sub(1);
                 exp64 = exp64.wrapping_sub(1);
-                if (!(((CX.hi < 0x314dc6448d93) && (exp64 > 0x2fff)))) {
+                if (!(((((CX.hi < 0x314dc6448d93) || (((CX.hi == 0x314dc6448d93) && (CX.lo < 0x38c15b0a00000000))))) && (exp64 > 0x2fff)))) {
                     break;
                 }
             }

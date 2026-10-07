@@ -1012,6 +1012,7 @@ func validateGeneratedFFIMainLoopBody(fset *token.FileSet, fn *ast.FuncDecl, exp
 		t.Fatalf("validate generated FFI probe contract: %v", err)
 	}
 
+	nativeMatches, quantumDeviations := 0, 0
 	for _, tc := range spec.FFICases {
 		tc := tc
 		t.Run(tc.ID, func(t *testing.T) {
@@ -1020,6 +1021,14 @@ func validateGeneratedFFIMainLoopBody(fset *token.FileSet, fn *ast.FuncDecl, exp
 			if err != nil {
 				t.Fatalf("runGeneratedFFICase(%s): %v", tc.ID, err)
 			}
+			if handled, err := adjudicateGeneratedFFIQuantumSteering(tc, gotNative, gotExposed); handled {
+				if err != nil {
+					t.Fatal(err)
+				}
+				quantumDeviations++
+				return
+			}
+			nativeMatches++
 			if gotNative != gotExposed {
 				t.Fatalf("%s %s(%s): C=%s exposed=%s", tc.Declaration, tc.Function, strings.Join(tc.Operands, ", "), gotNative, gotExposed)
 			}
@@ -1046,6 +1055,10 @@ func validateGeneratedFFIMainLoopBody(fset *token.FileSet, fn *ast.FuncDecl, exp
 	if err := probeTracker.validateCanonicalDiscrimination(); err != nil {
 		t.Fatal(err)
 	}
+	if quantumDeviations != 2 || nativeMatches+quantumDeviations != len(spec.FFICases) {
+		t.Fatalf("FFI comparison counts: C exact=%d independent INTEL-BID-006=%d total=%d", nativeMatches, quantumDeviations, len(spec.FFICases))
+	}
+	t.Logf("FFI comparisons: C exact=%d independent INTEL-BID-006=%d total=%d/%d", nativeMatches, quantumDeviations, nativeMatches+quantumDeviations, len(spec.FFICases))
 }`, "@@FFI_TOTAL@@", strconv.Itoa(expectedFFICaseCount))
 	return validateGeneratedExactFunctionBody(fset, fn, expectedBody)
 }
@@ -1097,7 +1110,7 @@ func assertGeneratedFFIMainLoopMutationsRejected(t *testing.T, source []byte, ex
 			name: "live self compare",
 			apply: func(t *testing.T, fn *ast.FuncDecl) {
 				_, closure := requireGeneratedFFIMainLoopNodes(t, fn)
-				comparison := closure.Body.List[3].(*ast.IfStmt).Cond.(*ast.BinaryExpr)
+				comparison := closure.Body.List[requireGeneratedFFIStmtIndex(t, closure.Body.List, "C comparison", isGeneratedFFICComparison)].(*ast.IfStmt).Cond.(*ast.BinaryExpr)
 				comparison.Y = ast.NewIdent("gotNative")
 			},
 		},
@@ -1106,20 +1119,45 @@ func assertGeneratedFFIMainLoopMutationsRejected(t *testing.T, source []byte, ex
 			apply: func(t *testing.T, fn *ast.FuncDecl) {
 				_, closure := requireGeneratedFFIMainLoopNodes(t, fn)
 				statements := closure.Body.List
-				original := statements[3].(*ast.IfStmt)
+				index := requireGeneratedFFIStmtIndex(t, statements, "C comparison", isGeneratedFFICComparison)
+				original := statements[index].(*ast.IfStmt)
 				dead := &ast.IfStmt{Cond: ast.NewIdent("false"), Body: &ast.BlockStmt{List: []ast.Stmt{original}}}
 				live := &ast.IfStmt{
 					Cond: &ast.BinaryExpr{X: ast.NewIdent("gotNative"), Op: token.NEQ, Y: ast.NewIdent("gotNative")},
 					Body: original.Body,
 				}
-				closure.Body.List = append(append(append([]ast.Stmt(nil), statements[:3]...), dead, live), statements[4:]...)
+				closure.Body.List = append(append(append([]ast.Stmt(nil), statements[:index]...), dead, live), statements[index+1:]...)
+			},
+		},
+		{
+			name: "adjudication error ignored",
+			apply: func(t *testing.T, fn *ast.FuncDecl) {
+				_, closure := requireGeneratedFFIMainLoopNodes(t, fn)
+				adjudication := closure.Body.List[requireGeneratedFFIStmtIndex(t, closure.Body.List, "quantum adjudication", func(stmt ast.Stmt) bool {
+					return generatedFFIIfInitCalls(stmt, "adjudicateGeneratedFFIQuantumSteering")
+				})].(*ast.IfStmt)
+				guardIndex := requireGeneratedFFIStmtIndex(t, adjudication.Body.List, "adjudication error guard", isGeneratedFFIErrorGuard)
+				adjudication.Body.List[guardIndex].(*ast.IfStmt).Cond = ast.NewIdent("false")
+			},
+		},
+		{
+			name: "all cases bypass C comparison",
+			apply: func(t *testing.T, fn *ast.FuncDecl) {
+				_, closure := requireGeneratedFFIMainLoopNodes(t, fn)
+				adjudication := closure.Body.List[requireGeneratedFFIStmtIndex(t, closure.Body.List, "quantum adjudication", func(stmt ast.Stmt) bool {
+					return generatedFFIIfInitCalls(stmt, "adjudicateGeneratedFFIQuantumSteering")
+				})].(*ast.IfStmt)
+				adjudication.Cond = ast.NewIdent("true")
 			},
 		},
 		{
 			name: "canonical record deleted",
 			apply: func(t *testing.T, fn *ast.FuncDecl) {
 				_, closure := requireGeneratedFFIMainLoopNodes(t, fn)
-				closure.Body.List = append([]ast.Stmt(nil), closure.Body.List[:len(closure.Body.List)-1]...)
+				index := requireGeneratedFFIStmtIndex(t, closure.Body.List, "canonical record", func(stmt ast.Stmt) bool {
+					return generatedFFIIfInitCalls(stmt, "probeTracker.recordCanonicalResult")
+				})
+				closure.Body.List = append(append([]ast.Stmt(nil), closure.Body.List[:index]...), closure.Body.List[index+1:]...)
 			},
 		},
 		{
@@ -1127,23 +1165,35 @@ func assertGeneratedFFIMainLoopMutationsRejected(t *testing.T, source []byte, ex
 			apply: func(t *testing.T, fn *ast.FuncDecl) {
 				_, closure := requireGeneratedFFIMainLoopNodes(t, fn)
 				statements := closure.Body.List
-				record := statements[len(statements)-1]
-				withoutRecord := append([]ast.Stmt(nil), statements[:len(statements)-1]...)
-				closure.Body.List = append(append(append([]ast.Stmt(nil), withoutRecord[:2]...), record), withoutRecord[2:]...)
+				index := requireGeneratedFFIStmtIndex(t, statements, "canonical record", func(stmt ast.Stmt) bool {
+					return generatedFFIIfInitCalls(stmt, "probeTracker.recordCanonicalResult")
+				})
+				record := statements[index]
+				withoutRecord := append(append([]ast.Stmt(nil), statements[:index]...), statements[index+1:]...)
+				runIndex := requireGeneratedFFIStmtIndex(t, withoutRecord, "FFI execution", func(stmt ast.Stmt) bool {
+					return generatedFFIAssignmentCalls(stmt, "runGeneratedFFICase")
+				})
+				closure.Body.List = append(append(append([]ast.Stmt(nil), withoutRecord[:runIndex+1]...), record), withoutRecord[runIndex+1:]...)
 			},
 		},
 		{
 			name: "final discrimination deleted",
 			apply: func(t *testing.T, fn *ast.FuncDecl) {
-				fn.Body.List = append([]ast.Stmt(nil), fn.Body.List[:len(fn.Body.List)-1]...)
+				index := requireGeneratedFFIStmtIndex(t, fn.Body.List, "final discrimination", func(stmt ast.Stmt) bool {
+					return generatedFFIIfInitCalls(stmt, "probeTracker.validateCanonicalDiscrimination")
+				})
+				fn.Body.List = append(append([]ast.Stmt(nil), fn.Body.List[:index]...), fn.Body.List[index+1:]...)
 			},
 		},
 		{
 			name: "final discrimination moved inside case range",
 			apply: func(t *testing.T, fn *ast.FuncDecl) {
 				caseRange, _ := requireGeneratedFFIMainLoopNodes(t, fn)
-				final := fn.Body.List[len(fn.Body.List)-1]
-				fn.Body.List = append([]ast.Stmt(nil), fn.Body.List[:len(fn.Body.List)-1]...)
+				index := requireGeneratedFFIStmtIndex(t, fn.Body.List, "final discrimination", func(stmt ast.Stmt) bool {
+					return generatedFFIIfInitCalls(stmt, "probeTracker.validateCanonicalDiscrimination")
+				})
+				final := fn.Body.List[index]
+				fn.Body.List = append(append([]ast.Stmt(nil), fn.Body.List[:index]...), fn.Body.List[index+1:]...)
 				caseRange.Body.List = append(caseRange.Body.List, final)
 			},
 		},
@@ -1163,29 +1213,90 @@ func assertGeneratedFFIMainLoopMutationsRejected(t *testing.T, source []byte, ex
 
 func requireGeneratedFFIMainLoopNodes(t *testing.T, fn *ast.FuncDecl) (*ast.RangeStmt, *ast.FuncLit) {
 	t.Helper()
-	if len(fn.Body.List) < 10 {
-		t.Fatalf("%s top-level statements = %d, want at least 10", fn.Name.Name, len(fn.Body.List))
-	}
-	caseRange, ok := fn.Body.List[8].(*ast.RangeStmt)
-	if !ok {
-		t.Fatalf("%s statement 8 is %T, want case range", fn.Name.Name, fn.Body.List[8])
-	}
-	if len(caseRange.Body.List) < 2 {
-		t.Fatalf("%s case range statements = %d, want at least 2", fn.Name.Name, len(caseRange.Body.List))
-	}
-	runStmt, ok := caseRange.Body.List[1].(*ast.ExprStmt)
-	if !ok {
-		t.Fatalf("%s case range run statement is %T", fn.Name.Name, caseRange.Body.List[1])
-	}
-	runCall, ok := runStmt.X.(*ast.CallExpr)
-	if !ok || len(runCall.Args) != 2 {
-		t.Fatalf("%s case range t.Run expression is %T with invalid args", fn.Name.Name, runStmt.X)
+	index := requireGeneratedFFIStmtIndex(t, fn.Body.List, "FFI case range", func(stmt ast.Stmt) bool {
+		caseRange, ok := stmt.(*ast.RangeStmt)
+		return ok && generatedFFIExprIs(caseRange.X, "spec.FFICases")
+	})
+	caseRange := fn.Body.List[index].(*ast.RangeStmt)
+	runIndex := requireGeneratedFFIStmtIndex(t, caseRange.Body.List, "case subtest", func(stmt ast.Stmt) bool {
+		expr, ok := stmt.(*ast.ExprStmt)
+		if !ok {
+			return false
+		}
+		call, ok := expr.X.(*ast.CallExpr)
+		return ok && generatedFFIExprIs(call.Fun, "t.Run")
+	})
+	runCall := caseRange.Body.List[runIndex].(*ast.ExprStmt).X.(*ast.CallExpr)
+	if len(runCall.Args) != 2 {
+		t.Fatalf("%s t.Run args = %d, want 2", fn.Name.Name, len(runCall.Args))
 	}
 	closure, ok := runCall.Args[1].(*ast.FuncLit)
 	if !ok {
 		t.Fatalf("%s t.Run callback is %T, want func literal", fn.Name.Name, runCall.Args[1])
 	}
 	return caseRange, closure
+}
+
+func requireGeneratedFFIStmtIndex(t *testing.T, statements []ast.Stmt, label string, matches func(ast.Stmt) bool) int {
+	t.Helper()
+	index := -1
+	for i, stmt := range statements {
+		if !matches(stmt) {
+			continue
+		}
+		if index >= 0 {
+			t.Fatalf("multiple %s statements", label)
+		}
+		index = i
+	}
+	if index < 0 {
+		t.Fatalf("missing %s statement", label)
+	}
+	return index
+}
+
+func generatedFFIExprIs(expr ast.Expr, name string) bool {
+	switch expr := expr.(type) {
+	case *ast.Ident:
+		return expr.Name == name
+	case *ast.SelectorExpr:
+		prefix, suffix, ok := strings.Cut(name, ".")
+		return ok && generatedFFIExprIs(expr.X, prefix) && expr.Sel.Name == suffix
+	default:
+		return false
+	}
+}
+
+func generatedFFIAssignmentCalls(stmt ast.Stmt, name string) bool {
+	assignment, ok := stmt.(*ast.AssignStmt)
+	if !ok || len(assignment.Rhs) != 1 {
+		return false
+	}
+	call, ok := assignment.Rhs[0].(*ast.CallExpr)
+	return ok && generatedFFIExprIs(call.Fun, name)
+}
+
+func generatedFFIIfInitCalls(stmt ast.Stmt, name string) bool {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	return ok && generatedFFIAssignmentCalls(ifStmt.Init, name)
+}
+
+func isGeneratedFFICComparison(stmt ast.Stmt) bool {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	if !ok {
+		return false
+	}
+	comparison, ok := ifStmt.Cond.(*ast.BinaryExpr)
+	return ok && comparison.Op == token.NEQ && generatedFFIExprIs(comparison.X, "gotNative") && generatedFFIExprIs(comparison.Y, "gotExposed")
+}
+
+func isGeneratedFFIErrorGuard(stmt ast.Stmt) bool {
+	ifStmt, ok := stmt.(*ast.IfStmt)
+	if !ok {
+		return false
+	}
+	comparison, ok := ifStmt.Cond.(*ast.BinaryExpr)
+	return ok && comparison.Op == token.NEQ && generatedFFIExprIs(comparison.X, "err") && generatedFFIExprIs(comparison.Y, "nil")
 }
 
 func expectedMixedDecimalCallArgs(shape expectedFFIMixedDecimalShape, native bool) []string {

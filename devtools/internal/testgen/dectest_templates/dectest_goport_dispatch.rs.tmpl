@@ -1088,37 +1088,8 @@ fn dectest_goport_scaleb_exponent_literal(input: &str) -> Option<i64> {
     trimmed.parse::<i64>().ok()
 }
 
-/// dectest_goport_flag_exempt_reason is the runtime mirror of the
-/// generator-side generatedDectestGoportFlagExemptReason. The exact
-/// Clamped-only predicate rejects every other recognized or unrecognized
-/// condition. The caller additionally parses Conditions first for every case
-/// that reaches execution so an unknown token is reported as a harness error.
-pub(crate) fn dectest_goport_flag_exempt_reason(tc: &DecTestCase) -> Option<String> {
-    let op = normalize_dec_test_operation(&tc.operation);
-    if op != "tosci" && op != "toeng" {
-        return None;
-    }
-    if !dectest_goport_has_only_clamped_condition(&tc.flags) {
-        return None;
-    }
-    if let Some(q) = quantum_parse(&tc.result) {
-        if q.coeff == "0" && q.exponent < 0 {
-            return Some("from_string_zero_low_clamp_divergence".to_string());
-        }
-    }
+pub(crate) fn dectest_goport_flag_exempt_reason(_tc: &DecTestCase) -> Option<String> {
     None
-}
-
-fn dectest_goport_has_only_clamped_condition(flags: &[String]) -> bool {
-    let mut clamped = false;
-    for flag in flags {
-        match normalize_dec_test_flag(flag).as_str() {
-            "" | "none" | "noflags" => continue,
-            "clamped" => clamped = true,
-            _ => return false,
-        }
-    }
-    clamped
 }
 
 // ============================================================================

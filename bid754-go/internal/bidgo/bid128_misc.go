@@ -193,7 +193,8 @@ func Bid128Scalbn(x BID_UINT128, n int, rnd_mode int, pfpsf *uint32) BID_UINT128
 	}
 	// check for overflow
 	if exp64 > int64(DECIMAL_MAX_EXPON_128) {
-		if CX.hi < 0x314dc6448d93 {
+		if CX.hi < 0x314dc6448d93 ||
+			(CX.hi == 0x314dc6448d93 && CX.lo < 0x38c15b0a00000000) {
 			// try to normalize coefficient
 			for {
 				CBID_X8.hi = (CX.hi << 3) | (CX.lo >> 61)
@@ -204,7 +205,9 @@ func Bid128Scalbn(x BID_UINT128, n int, rnd_mode int, pfpsf *uint32) BID_UINT128
 
 				exponent_x--
 				exp64--
-				if !(CX.hi < 0x314dc6448d93 && exp64 > int64(DECIMAL_MAX_EXPON_128)) {
+				if !((CX.hi < 0x314dc6448d93 ||
+					(CX.hi == 0x314dc6448d93 && CX.lo < 0x38c15b0a00000000)) &&
+					exp64 > int64(DECIMAL_MAX_EXPON_128)) {
 					break
 				}
 			}
@@ -218,7 +221,9 @@ func Bid128Scalbn(x BID_UINT128, n int, rnd_mode int, pfpsf *uint32) BID_UINT128
 	}
 	// exponent < 0
 	// the BID pack routine will round the coefficient
-	res = bid_get_BID128(sign_x, exponent_x, CX, rnd_mode, pfpsf)
+	var operationFlags uint32
+	res = bid_get_BID128(sign_x, exponent_x, CX, rnd_mode, &operationFlags)
+	*pfpsf |= operationFlags
 	return res
 }
 

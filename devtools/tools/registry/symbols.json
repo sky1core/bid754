@@ -1223,82 +1223,80 @@
     "bid32_mult_factor": {
       "element_type": "u64",
       "length": 7,
-      "go_file": "bid32_noncomp.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Ex128m128": {
       "element_type": "i32",
       "length": 37,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Ex128m128_for64": {
       "element_type": "u32",
       "length": 19,
-      "go_file": "convert64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Ex192m192": {
       "element_type": "i32",
       "length": 56,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Ex256m256": {
       "element_type": "i32",
       "length": 75,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Ex64m64": {
       "element_type": "u32",
       "length": 17,
-      "go_file": "tables_round.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Kx128": {
       "element_type": "BID_UINT128",
       "length": 37,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Kx128_for64": {
       "element_type": "BID_UINT128",
       "length": 19,
-      "go_file": "convert64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Kx192": {
       "element_type": "BID_UINT192",
       "length": 56,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Kx256": {
       "element_type": "BID_UINT256",
       "length": 75,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_Kx64": {
       "element_type": "u64",
       "length": 17,
-      "go_file": "tables_round.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_bid_bid_recip_scale32": {
       "element_type": "i32",
-      "length": -1,
-      "go_file": "bid32_div.go",
-      "exported": false,
-      "is_slice": true
+      "length": 9,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_bid_reciprocals10_32": {
       "element_type": "u64",
-      "length": -1,
-      "go_file": "bid32_div.go",
-      "exported": false,
-      "is_slice": true
+      "length": 9,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_breakpoints_binary128": {
       "element_type": "BID_UINT128",
@@ -1321,22 +1319,20 @@
     "bid_convert_table": {
       "element_type": "[[u32; 2]; 128]",
       "length": 5,
-      "go_file": "tables.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_estimate_bin_expon": {
       "element_type": "i32",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 17,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_estimate_decimal_digits": {
       "element_type": "i32",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 129,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_exponents_binary128": {
       "element_type": "i32",
@@ -1358,136 +1354,134 @@
     },
     "bid_factors": {
       "element_type": "[i8; 2]",
-      "length": 1025,
-      "go_file": "tables.go",
+      "length": 1024,
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_factors32": {
       "element_type": "[i32; 2]",
-      "length": -1,
-      "go_file": "bid32_div.go",
-      "exported": false,
-      "is_slice": true
+      "length": 1024,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_half128": {
       "element_type": "u64",
       "length": 37,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_half128_for64": {
       "element_type": "u64",
       "length": 19,
-      "go_file": "convert64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_half192": {
       "element_type": "u64",
       "length": 56,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_half256": {
       "element_type": "u64",
       "length": 75,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_half64": {
       "element_type": "u64",
       "length": 17,
-      "go_file": "tables_round.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_mask128": {
       "element_type": "u64",
       "length": 37,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_mask128_for64": {
       "element_type": "u64",
       "length": 19,
-      "go_file": "convert64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_mask192": {
       "element_type": "u64",
       "length": 56,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_mask256": {
       "element_type": "u64",
       "length": 75,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_mask64": {
       "element_type": "u64",
       "length": 17,
-      "go_file": "tables_round.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_maskhigh128": {
       "element_type": "u64",
       "length": 34,
-      "go_file": "tables_intconv.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_maskhigh128_round64": {
       "element_type": "u64",
       "length": 22,
-      "go_file": "round_integral64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_midi_tbl": {
       "element_type": "[u8; 3]",
       "length": 1000,
-      "go_file": "tables_tostring.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_midpoint128": {
       "element_type": "BID_UINT128",
       "length": 19,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_midpoint192": {
       "element_type": "BID_UINT192",
       "length": 20,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_midpoint256": {
       "element_type": "BID_UINT256",
       "length": 19,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_midpoint64": {
       "element_type": "u64",
       "length": 19,
-      "go_file": "tables_round.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_mult_factor": {
       "element_type": "u64",
       "length": 16,
-      "go_file": "noncomp64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_mult_factor32": {
       "element_type": "u32",
-      "length": -1,
-      "go_file": "bid32_minmax.go",
-      "exported": false,
-      "is_slice": true
+      "length": 7,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_mult_factor_minmax": {
       "element_type": "u64",
       "length": 16,
-      "go_file": "minmax64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_multipliers1_binary128": {
@@ -1528,75 +1522,68 @@
     },
     "bid_nr_digits": {
       "element_type": "DEC_DIGITS",
-      "length": 114,
-      "go_file": "tables_intconv.go",
+      "length": 113,
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_onehalf128": {
       "element_type": "u64",
       "length": 34,
-      "go_file": "tables_intconv.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_onehalf128_round64": {
       "element_type": "u64",
       "length": 22,
-      "go_file": "round_integral64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_packed_10000_zeros": {
       "element_type": "u8",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 1250,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_power10_index_binexp": {
       "element_type": "u64",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 64,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_power10_index_binexp_128": {
       "element_type": "BID_UINT128",
-      "length": -1,
-      "go_file": "bid128_div.go",
-      "exported": false,
-      "is_slice": true
+      "length": 125,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_power10_table_128": {
       "element_type": "BID_UINT128",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 39,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_recip_scale": {
       "element_type": "i32",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 36,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_reciprocals10_128": {
       "element_type": "BID_UINT128",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 36,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_reciprocals10_64": {
       "element_type": "u64",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 18,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_round_const_table": {
       "element_type": "[u64; 19]",
       "length": 6,
-      "go_file": "tables.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_round_const_table_128": {
@@ -1614,21 +1601,20 @@
     "bid_shiftright128": {
       "element_type": "i32",
       "length": 34,
-      "go_file": "tables_intconv.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_shiftright128_round64": {
       "element_type": "i32",
       "length": 22,
-      "go_file": "round_integral64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_short_recip_scale": {
       "element_type": "i32",
-      "length": -1,
-      "go_file": "tables.go",
-      "exported": false,
-      "is_slice": true
+      "length": 18,
+      "go_file": "tables_runtime_generated.go",
+      "exported": false
     },
     "bid_ten2k128": {
       "element_type": "BID_UINT128",
@@ -1640,73 +1626,73 @@
     "bid_ten2k256": {
       "element_type": "BID_UINT256",
       "length": 39,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2k64": {
       "element_type": "u64",
       "length": 20,
-      "go_file": "tables_round.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mk128": {
       "element_type": "BID_UINT128",
       "length": 34,
-      "go_file": "tables_intconv.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mk128trunc": {
       "element_type": "BID_UINT128",
       "length": 34,
-      "go_file": "tables_intconv.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mk64": {
       "element_type": "u64",
       "length": 16,
-      "go_file": "tables_intconv.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mk64_round64": {
       "element_type": "u64",
       "length": 16,
-      "go_file": "round_integral64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mxtrunc128": {
       "element_type": "BID_UINT128",
       "length": 37,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mxtrunc128_for64": {
       "element_type": "BID_UINT128",
       "length": 19,
-      "go_file": "convert64.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mxtrunc192": {
       "element_type": "BID_UINT192",
       "length": 56,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mxtrunc256": {
       "element_type": "BID_UINT256",
       "length": 75,
-      "go_file": "tables_round128_fma.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "bid_ten2mxtrunc64": {
       "element_type": "u64",
       "length": 17,
-      "go_file": "tables_round.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     },
     "mod10_18_tbl": {
       "element_type": "[u64; 128]",
       "length": 9,
-      "go_file": "tables_tostring.go",
+      "go_file": "tables_runtime_generated.go",
       "exported": false
     }
   },
@@ -16584,16 +16570,6 @@
       ],
       "go_file": "bid128_to_binary.go",
       "go_name": "lt128",
-      "exported": false,
-      "group": "misc"
-    },
-    "make_bid_round_const_table_128": {
-      "params": null,
-      "returns": [
-        "[[BID_UINT128; 36]; 6]"
-      ],
-      "go_file": "tables_round_const128.go",
-      "go_name": "make_bid_round_const_table_128",
       "exported": false,
       "group": "misc"
     },

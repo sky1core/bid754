@@ -2310,11 +2310,12 @@
       "cases": 11940,
       "skip_reasons": {
         "fma_nan_payload_precedence": 13,
-        "fma_unsupported_rounding": 58,
+        "fma_unsupported_rounding": 56,
         "ignored_operation_apply": 4,
         "minmax_nan_payload_precedence": 8,
         "minmax_zero_tie": 50,
         "nexttoward_nan_payload_precedence": 2,
+        "null_reference_operand": 40,
         "remainder_gda_division_impossible_context_semantics": 7,
         "remainder_nan_payload_precedence": 1,
         "remaindernear_gda_division_impossible_context_semantics": 7,
@@ -2332,11 +2333,12 @@
         "minmax_nan_payload_precedence": 8,
         "minmax_zero_tie": 50,
         "nexttoward_nan_payload_precedence": 2,
+        "null_reference_operand": 40,
         "remainder_gda_division_impossible_context_semantics": 7,
         "remainder_nan_payload_precedence": 1,
         "remaindernear_gda_division_impossible_context_semantics": 7,
         "remaindernear_nan_payload_precedence": 1,
-        "tagged_literal": 43
+        "tagged_literal": 3
       }
     },
     {
@@ -2344,8 +2346,9 @@
       "cases": 7490,
       "skip_reasons": {
         "ignored_operation_apply": 20,
+        "null_reference_operand": 14,
         "precision_over_general": 81,
-        "tagged_literal": 24
+        "tagged_literal": 10
       }
     }
   ],
@@ -2356,9 +2359,6 @@
       "skip_reasons": {
         "conversion_syntax_divergence": 99,
         "unsupported_rounding": 22
-      },
-      "flag_exemptions": {
-        "from_string_zero_low_clamp_divergence": 2
       }
     },
     {
@@ -2378,9 +2378,6 @@
         "scaleb_non_integer_exponent_operand": 38,
         "tagged_literal": 42,
         "unsupported_rounding": 294
-      },
-      "flag_exemptions": {
-        "from_string_zero_low_clamp_divergence": 2
       }
     },
     {
@@ -2400,9 +2397,6 @@
         "scaleb_non_integer_exponent_operand": 38,
         "tagged_literal": 43,
         "unsupported_rounding": 218
-      },
-      "flag_exemptions": {
-        "from_string_zero_low_clamp_divergence": 2
       }
     }
   ],
@@ -14540,12 +14534,42 @@
     "readtest/bid32_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid32_from_string_ieee754_overflow_cmatch.json",
     "readtest/bid32_from_string_underflow_boundary_cmatch.json",
+    "readtest/bid32_from_string_underflow_boundary_cdiverge.json",
     "readtest/bid64_from_string_ieee754_overflow_cdiverge.json",
     "readtest/bid64_from_string_ieee754_overflow_cmatch.json",
     "readtest/bid128_from_string_ieee754_overflow_cmatch.json",
     "readtest/bid32_from_string_ieee754_exponent_cdiverge.json",
     "readtest/bid64_from_string_ieee754_exponent_cdiverge.json",
-    "readtest/bid128_from_string_ieee754_exponent_cdiverge.json"
+    "readtest/bid128_from_string_ieee754_exponent_cdiverge.json",
+    "readtest/numeric_boundary_bid128_fma_cmatch.json",
+    "readtest/numeric_boundary_bid128_fma_missing_overflow_cdiverge.json",
+    "readtest/numeric_boundary_bid128_fma_overflow_sign_cdiverge.json",
+    "readtest/numeric_boundary_bid128_fma_premature_overflow_cdiverge.json",
+    "readtest/numeric_boundary_bid128_from_string_cmatch.json",
+    "readtest/numeric_boundary_bid128_from_string_zero_cohort_cdiverge.json",
+    "readtest/numeric_boundary_bid128_ldexp_cmatch.json",
+    "readtest/numeric_boundary_bid128_ldexp_threshold_cdiverge.json",
+    "readtest/numeric_boundary_bid128_scalbln_cmatch.json",
+    "readtest/numeric_boundary_bid128_scalbln_sticky_inexact_cdiverge.json",
+    "readtest/numeric_boundary_bid128_scalbln_sticky_status_cmatch.json",
+    "readtest/numeric_boundary_bid128_scalbln_threshold_cdiverge.json",
+    "readtest/numeric_boundary_bid128_scalbn_cmatch.json",
+    "readtest/numeric_boundary_bid128_scalbn_sticky_inexact_cdiverge.json",
+    "readtest/numeric_boundary_bid128_scalbn_sticky_status_cmatch.json",
+    "readtest/numeric_boundary_bid128_scalbn_threshold_cdiverge.json",
+    "readtest/numeric_boundary_bid32_from_string_cmatch.json",
+    "readtest/numeric_boundary_bid32_from_string_carry_underflow_cdiverge.json",
+    "readtest/numeric_boundary_bid32_from_string_directed_underflow_cdiverge.json",
+    "readtest/numeric_boundary_bid32_from_string_fixed_point_underflow_cdiverge.json",
+    "readtest/numeric_boundary_bid32_from_string_zero_cohort_cdiverge.json",
+    "readtest/numeric_boundary_bid32_nextafter_cmatch.json",
+    "readtest/numeric_boundary_bid32_quantum_cmatch.json",
+    "readtest/numeric_boundary_bid32_quantum_quantum_steering_cdiverge.json",
+    "readtest/numeric_boundary_bid64_from_string_cmatch.json",
+    "readtest/numeric_boundary_bid64_from_string_carry_underflow_cdiverge.json",
+    "readtest/numeric_boundary_bid64_from_string_directed_underflow_cdiverge.json",
+    "readtest/numeric_boundary_bid64_from_string_long_fraction_cdiverge.json",
+    "readtest/numeric_boundary_bid64_from_string_zero_cohort_cdiverge.json"
   ],
   "ffi_shard_files": [
     "ffi/bid32_add.json",

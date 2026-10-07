@@ -1230,7 +1230,7 @@ static void bid754_generated_readtest_bid128_round_integral_zero(unsigned char o
 static void bid754_generated_readtest_bid128_scalbln(unsigned char out_result[16], const unsigned char* v0, long v1, int rounding_mode, _IDEC_flags* out_flags) {
 	BID_UINT128 in_v0;
 	memcpy(&in_v0, v0, 16);
-	_IDEC_flags flags = 0;
+	_IDEC_flags flags = *out_flags;
 	BID_UINT128 result = bid128_scalbln(in_v0, v1, (_IDEC_round)rounding_mode, &flags);
 	memcpy(out_result, &result, 16);
 	if (out_flags) { *out_flags = flags; }
@@ -1239,7 +1239,7 @@ static void bid754_generated_readtest_bid128_scalbln(unsigned char out_result[16
 static void bid754_generated_readtest_bid128_scalbn(unsigned char out_result[16], const unsigned char* v0, int v1, int rounding_mode, _IDEC_flags* out_flags) {
 	BID_UINT128 in_v0;
 	memcpy(&in_v0, v0, 16);
-	_IDEC_flags flags = 0;
+	_IDEC_flags flags = *out_flags;
 	BID_UINT128 result = bid128_scalbn(in_v0, v1, (_IDEC_round)rounding_mode, &flags);
 	memcpy(out_result, &result, 16);
 	if (out_flags) { *out_flags = flags; }
@@ -5890,6 +5890,13 @@ func nativeReadtestGeneratedBID64(function string, rounding int, operands []stri
 }
 
 func nativeReadtestGeneratedBID128(function string, rounding int, operands []string) ([16]byte, readtestSecondaryOutput, string, error) {
+	return nativeReadtestGeneratedBID128WithStatus(function, rounding, operands, 0)
+}
+
+func nativeReadtestGeneratedBID128WithStatus(function string, rounding int, operands []string, initialStatus uint32) ([16]byte, readtestSecondaryOutput, string, error) {
+	if initialStatus & ^uint32(0x3d) != 0 || (initialStatus != 0 && function != "bid128_scalbn" && function != "bid128_scalbln") {
+		return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("unsupported initial status %x for %s", initialStatus, function)
+	}
 	switch function {
 	case "bid128_abs":
 		if len(operands) != 1 {
@@ -6431,7 +6438,7 @@ func nativeReadtestGeneratedBID128(function string, rounding int, operands []str
 		if err != nil {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", err
 		}
-		var flags C._IDEC_flags
+		flags := C._IDEC_flags(initialStatus)
 		var result [16]byte
 		C.bid754_generated_readtest_bid128_scalbln((*C.uchar)(unsafe.Pointer(&result[0])), (*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.long(arg1Raw), C.int(rounding), &flags)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil
@@ -6447,7 +6454,7 @@ func nativeReadtestGeneratedBID128(function string, rounding int, operands []str
 		if err != nil {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", err
 		}
-		var flags C._IDEC_flags
+		flags := C._IDEC_flags(initialStatus)
 		var result [16]byte
 		C.bid754_generated_readtest_bid128_scalbn((*C.uchar)(unsafe.Pointer(&result[0])), (*C.uchar)(unsafe.Pointer(&arg0Raw[0])), C.int(arg1Raw), C.int(rounding), &flags)
 		return result, readtestNoSecondaryOutput(), formatReadtestStatus(uint32(flags)), nil

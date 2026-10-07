@@ -17,9 +17,9 @@ import (
 // boundaries intentionally differ from the codec fromString schema. The maps
 // below pin, per record, the expected PUBLIC observation class:
 //
-//   - "exact":    Direct succeeds; WithFlags succeeds with zero flags and the
-//                 same bits; WithMode(NearestEven) matches WithFlags; and the
-//                 public render/parse closure holds (Direct(v.String()) == v).
+//   - "exact":    Direct, WithFlags, and all five WithMode lanes match
+//                 independently encoded bits with zero flags; public
+//                 render/parse preserves the raw bits.
 //   - "rounded":  Direct errors (exact-only contract); WithFlags succeeds with
 //                 independent Intel C result bits and exact flags; all five
 //                 WithMode rounding modes match their independent expectations.
@@ -149,10 +149,8 @@ func buildBidCodecGoFullFromStringClasses() map[string]string {
 // int32-extreme exponent rows are range excursions ("rounded"), the extreme
 // zero-cohort row and the trailing-whitespace grammar row are "rejected"
 // (surrounding-whitespace trim is codec grammar, not public Go grammar; the
-// zero asymmetry — 0E+2147483647 rejected, 0E-2147483648 rounded — follows the
-// pinned port behavior of clamping high zero exponents with exact status while
-// raising underflow+inexact at the low extreme, exactly like the hand-pinned
-// "0e91"/"0e-398" boundary rows), and the representable rows are "exact" with
+// zero cohort must fit the destination width at either exponent extreme),
+// and the representable rows are "exact" with
 // the public render/parse closure asserted. NaN payload 10^33-1 fits only
 // Decimal128, so that row is width-dependent.
 var bidCodecGoFullStringVectorClasses = buildBidCodecGoFullStringVectorClasses()
@@ -166,7 +164,7 @@ func buildBidCodecGoFullStringVectorClasses() map[string][3]string {
 		"1E-2147483648":                        {"rounded", "rounded", "rounded"},
 		"0.1E-2147483647":                      {"rounded", "rounded", "rounded"},
 		"0E+2147483647":                        {"rejected", "rejected", "rejected"},
-		"0E-2147483648":                        {"rounded", "rounded", "rounded"},
+		"0E-2147483648":                        {"rejected", "rejected", "rejected"},
 		"10E2147483647":                        {"rounded", "rounded", "rounded"},
 		"1.0E2147483648":                       {"rounded", "rounded", "rounded"},
 		"0.001E2147483649":                     {"rounded", "rounded", "rounded"},
@@ -354,6 +352,16 @@ func bidCodecGoFullStringClassElems() string {
 	for _, sv := range bidCodecGoFullStringVectorRecords() {
 		classes := bidCodecGoFullStringVectorClasses[sv.Input]
 		fmt.Fprintf(&b, "\n\t%q: {%q, %q, %q},", sv.Input, classes[0], classes[1], classes[2])
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+func bidCodecRustFullParseStringClassElems() string {
+	var b strings.Builder
+	for _, sv := range bidCodecGoFullStringVectorRecords() {
+		classes := bidCodecGoFullStringVectorClasses[sv.Input]
+		fmt.Fprintf(&b, "\n    (%s, [%s, %s, %s]),", rustStringLiteral(sv.Input), rustStringLiteral(classes[0]), rustStringLiteral(classes[1]), rustStringLiteral(classes[2]))
 	}
 	b.WriteString("\n")
 	return b.String()

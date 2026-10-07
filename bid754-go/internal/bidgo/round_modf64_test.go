@@ -2,7 +2,6 @@ package bidgo
 
 import (
 	"bufio"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,14 +9,7 @@ import (
 )
 
 func TestBid64RoundIntegralZeroIntelReadtest(t *testing.T) {
-	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
-
-	file, err := os.Open(testFile)
-	if err != nil {
-		t.Skipf("Intel test file not found: %v", err)
-		return
-	}
-	defer file.Close()
+	file := openAuxIntelReadtest(t)
 
 	hexPattern := regexp.MustCompile(`^\[([0-9a-fA-F]+)\]$`)
 
@@ -58,6 +50,7 @@ func TestBid64RoundIntegralZeroIntelReadtest(t *testing.T) {
 		}
 	}
 
+	finishAuxIntelReadtest(t, scanner, "bid64_round_integral_zero", passed, failed)
 	t.Logf("bid64_round_integral_zero: %d passed, %d failed, %d skipped", passed, failed, skipped)
 	if failed > 0 {
 		t.Fatalf("bid64_round_integral_zero: %d tests failed", failed)
@@ -65,14 +58,7 @@ func TestBid64RoundIntegralZeroIntelReadtest(t *testing.T) {
 }
 
 func TestBid64ModfIntelReadtest(t *testing.T) {
-	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
-
-	file, err := os.Open(testFile)
-	if err != nil {
-		t.Skipf("Intel test file not found: %v", err)
-		return
-	}
-	defer file.Close()
+	file := openAuxIntelReadtest(t)
 
 	hexPattern := regexp.MustCompile(`^\[([0-9a-fA-F]+)\]$`)
 
@@ -120,6 +106,7 @@ func TestBid64ModfIntelReadtest(t *testing.T) {
 		}
 	}
 
+	finishAuxIntelReadtest(t, scanner, "bid64_modf", passed, failed)
 	t.Logf("bid64_modf: %d passed, %d failed, %d skipped", passed, failed, skipped)
 	if failed > 0 {
 		t.Fatalf("bid64_modf: %d tests failed", failed)

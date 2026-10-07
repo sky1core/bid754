@@ -176,8 +176,8 @@ func TestBidCodecGoFullExpectationTablesClosedWorld(t *testing.T) {
 			stringClassCounts[class]++
 		}
 	}
-	if stringClassCounts["exact"] != 112 || stringClassCounts["rounded"] != 54 || stringClassCounts["rejected"] != 20 {
-		t.Fatalf("go_full string_vectors per-width class partition = %v, want exact=112 rounded=54 rejected=20", stringClassCounts)
+	if stringClassCounts["exact"] != 112 || stringClassCounts["rounded"] != 51 || stringClassCounts["rejected"] != 23 {
+		t.Fatalf("go_full string_vectors per-width class partition = %v, want exact=112 rounded=51 rejected=23", stringClassCounts)
 	}
 
 	consumed, skipped := bidCodecGoFullRejectCounts()
@@ -526,11 +526,12 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	assertGeneratedDectestRuntimeSkipInventory(t, dectestRuntimeSkipInventory, "Decimal32", 909, map[string]int{})
 	assertGeneratedDectestRuntimeSkipInventory(t, dectestRuntimeSkipInventory, "Decimal64", 11940, map[string]int{
 		"fma_nan_payload_precedence":                              13,
-		"fma_unsupported_rounding":                                58,
+		"fma_unsupported_rounding":                                56,
 		"ignored_operation_apply":                                 4,
 		"minmax_nan_payload_precedence":                           8,
 		"minmax_zero_tie":                                         50,
 		"nexttoward_nan_payload_precedence":                       2,
+		"null_reference_operand":                                  40,
 		"remainder_gda_division_impossible_context_semantics":     7,
 		"remainder_nan_payload_precedence":                        1,
 		"remaindernear_gda_division_impossible_context_semantics": 7,
@@ -544,25 +545,27 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		"minmax_nan_payload_precedence":                           8,
 		"minmax_zero_tie":                                         50,
 		"nexttoward_nan_payload_precedence":                       2,
+		"null_reference_operand":                                  40,
 		"remainder_gda_division_impossible_context_semantics":     7,
 		"remainder_nan_payload_precedence":                        1,
 		"remaindernear_gda_division_impossible_context_semantics": 7,
 		"remaindernear_nan_payload_precedence":                    1,
-		"tagged_literal":                                          43,
+		"tagged_literal":                                          3,
 	})
 	assertGeneratedDectestRuntimeSkipInventory(t, dectestRuntimeSkipInventory, "General", 7490, map[string]int{
 		"ignored_operation_apply": 20,
+		"null_reference_operand":  14,
 		"precision_over_general":  81,
-		"tagged_literal":          24,
+		"tagged_literal":          10,
 	})
 	if len(spec.ReadCases) == 0 {
 		t.Fatal("expected generated read cases")
 	}
-	// 86930 = 86702 exact-comparator surface (profile + IEEE regression rows
-	// + the underflow-boundary C-match and exponent-cancellation regression rows)
+	// 91816 = 91588 exact-comparator surface, including the generated numeric
+	// boundary families and earlier IEEE regression rows
 	// + 228 Tier 3 fmod CMP_RELATIVEERR duplicate rows (59 + 79 + 90).
-	if len(spec.ReadCases) != 86930 {
-		t.Fatalf("generated read case count = %d, want pinned current-surface plus regression case count 86930", len(spec.ReadCases))
+	if len(spec.ReadCases) != 91816 {
+		t.Fatalf("generated read case count = %d, want pinned current-surface plus regression case count 91816", len(spec.ReadCases))
 	}
 	assertGeneratedReadtestProfileInventory(t, spec)
 	expectedReads := make(map[string]ReadTestSpec)
@@ -621,6 +624,9 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 		if tc.Function == "" || tc.Status == "" {
 			t.Fatalf("generated read case function/status = %q/%q, want non-empty function and status", tc.Function, tc.Status)
 		}
+		if tc.InitialStatus != read.InitialStatus {
+			t.Fatalf("generated initial status = %x, manifest = %x for %s", tc.InitialStatus, read.InitialStatus, tc.ID)
+		}
 		if tc.Group != read.Group {
 			t.Fatalf("generated read case group = %q, want profile group %q", tc.Group, read.Group)
 		}
@@ -649,29 +655,29 @@ func TestGeneratedSharedSpecStaysInSync(t *testing.T) {
 	// same source rows the CMP_FUZZYSTATUS fmod suites keep unchanged.
 	assertCountMap(t, "generated readtest case compare groups", readCaseCompareCounts, map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 85675,
+		"CMP_FUZZYSTATUS": 90561,
 		"CMP_RELATIVEERR": 228,
 	})
 	assertCountMap(t, "generated readtest case formats", readCaseFormatCounts, map[string]int{
-		"decimal32":  20932,
-		"decimal64":  21790,
-		"decimal128": 44071,
+		"decimal32":  23248,
+		"decimal64":  23100,
+		"decimal128": 45331,
 		"status":     137,
 	})
 	assertCountMap(t, "generated readtest case kinds", readCaseKindCounts, map[string]int{
-		"unary_op":       61366,
-		"binary_op":      23256,
-		"ternary_op":     1817,
-		"from_string":    291,
+		"unary_op":       62262,
+		"binary_op":      24176,
+		"ternary_op":     2137,
+		"from_string":    3041,
 		"to_string":      63,
 		"status_control": 137,
 	})
 	assertCountMap(t, "generated readtest case groups", readCaseGroupCounts, map[string]int{
 		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
-		"decimal32_ieee754_regressions":  26,
-		"decimal64_ieee754_regressions":  16,
-		"decimal128_ieee754_regressions": 16,
+		"decimal32_ieee754_regressions":  2342,
+		"decimal64_ieee754_regressions":  1326,
+		"decimal128_ieee754_regressions": 1276,
 		"decimal64_operations":           21689,
 		"decimal64_strings":              85,
 		"decimal128_operations":          43954,

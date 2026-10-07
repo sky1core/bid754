@@ -160,9 +160,17 @@ pub fn bid32_next_after(mut x: u32, mut y: u32) -> (u32, u32) {
         }
         return (res, pfpsf);
     }
+    if ((x & 0x7c000000) == 0x78000000) {
+        x &= (4160749568 as u32);
+    } else if (((x & 0x60000000) == 0x60000000) && ((((x & 0x1fffff) | 0x800000)) > 9999999)) {
+        x = ((x & 0x80000000) | ((go_checked_shl_u32((x & 0x1fe00000), go_shift_count_u64((2) as u64)))));
+    }
+    if ((y & 0x7c000000) == 0x78000000) {
+        y &= (4160749568 as u32);
+    }
     let (mut eqRes, _) = bid32_quiet_equal(x, y);
     if (eqRes != 0) {
-        res = y;
+        res = ((y & 0x80000000) | (x & !0x80000000));
         return (res, pfpsf);
     }
     let (mut lessRes, _) = bid32_quiet_greater(x, y);
@@ -174,7 +182,7 @@ pub fn bid32_next_after(mut x: u32, mut y: u32) -> (u32, u32) {
     if ((((x & 0x78000000) != 0x78000000)) && (((res & 0x78000000) == 0x78000000))) {
         pfpsf |= (40 as u32);
     }
-    let mut tmp1: u32 = (0x00784000 as u32);
+    let mut tmp1: u32 = (0x000f4240 as u32);
     let mut tmp2 = (res & 0x7fffffff);
     let (mut gtRes, _) = bid32_quiet_greater(tmp1, tmp2);
     let (mut neRes, _) = bid32_quiet_not_equal(x, res);

@@ -2,7 +2,6 @@ package bidgo
 
 import (
 	"bufio"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,14 +9,7 @@ import (
 )
 
 func testBid64RoundIntegralUnaryIntelReadtest(t *testing.T, prefix string, fn func(uint64) (uint64, uint32)) {
-	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
-
-	file, err := os.Open(testFile)
-	if err != nil {
-		t.Skipf("Intel test file not found: %v", err)
-		return
-	}
-	defer file.Close()
+	file := openAuxIntelReadtest(t)
 
 	hexPattern := regexp.MustCompile(`^\[([0-9a-fA-F]+)\]$`)
 
@@ -58,6 +50,7 @@ func testBid64RoundIntegralUnaryIntelReadtest(t *testing.T, prefix string, fn fu
 		}
 	}
 
+	finishAuxIntelReadtest(t, scanner, prefix, passed, failed)
 	t.Logf("%s: %d passed, %d failed, %d skipped", prefix, passed, failed, skipped)
 	if failed > 0 {
 		t.Fatalf("%s: %d tests failed", prefix, failed)
@@ -65,14 +58,7 @@ func testBid64RoundIntegralUnaryIntelReadtest(t *testing.T, prefix string, fn fu
 }
 
 func TestBid64RoundIntegralExactIntelReadtest(t *testing.T) {
-	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
-
-	file, err := os.Open(testFile)
-	if err != nil {
-		t.Skipf("Intel test file not found: %v", err)
-		return
-	}
-	defer file.Close()
+	file := openAuxIntelReadtest(t)
 
 	hexPattern := regexp.MustCompile(`^\[([0-9a-fA-F]+)\]$`)
 
@@ -118,6 +104,7 @@ func TestBid64RoundIntegralExactIntelReadtest(t *testing.T) {
 		}
 	}
 
+	finishAuxIntelReadtest(t, scanner, "bid64_round_integral_exact", passed, failed)
 	t.Logf("bid64_round_integral_exact: %d passed, %d failed, %d skipped", passed, failed, skipped)
 	if failed > 0 {
 		t.Fatalf("bid64_round_integral_exact: %d tests failed", failed)
@@ -125,14 +112,7 @@ func TestBid64RoundIntegralExactIntelReadtest(t *testing.T) {
 }
 
 func TestBid64NearbyIntIntelReadtest(t *testing.T) {
-	testFile := "../../../devtools/third_party/intel_dfp/TESTS/readtest.in"
-
-	file, err := os.Open(testFile)
-	if err != nil {
-		t.Skipf("Intel test file not found: %v", err)
-		return
-	}
-	defer file.Close()
+	file := openAuxIntelReadtest(t)
 
 	hexPattern := regexp.MustCompile(`^\[([0-9a-fA-F]+)\]$`)
 
@@ -178,6 +158,7 @@ func TestBid64NearbyIntIntelReadtest(t *testing.T) {
 		}
 	}
 
+	finishAuxIntelReadtest(t, scanner, "bid64_nearbyint", passed, failed)
 	t.Logf("bid64_nearbyint: %d passed, %d failed, %d skipped", passed, failed, skipped)
 	if failed > 0 {
 		t.Fatalf("bid64_nearbyint: %d tests failed", failed)

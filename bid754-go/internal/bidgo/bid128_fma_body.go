@@ -94,7 +94,8 @@ func bid_fma_delta_ge_zero(
 		(p34 == delta && e3+6176 < p34-q3) { // Case (1''A)
 
 		// check for overflow
-		if (q3+e3) > (p34+expmax) && p34 <= delta-1 {
+		if (q3+e3) > (p34+expmax) && p34 <= delta-1 &&
+			!(p_sign != z_sign && q3+e3 == p34+expmax+1 && delta == p34+1) {
 			if rnd_mode == BID_ROUNDING_TO_NEAREST {
 				res.hi = z_sign | 0x7800000000000000
 				res.lo = 0x0000000000000000
@@ -253,6 +254,11 @@ func bid_fma_delta_ge_zero(
 				z_sign != p_sign) {
 			*pfpsf |= BID_UNDERFLOW_EXCEPTION
 		}
+		if e3 > expmax && rnd_mode == BID_ROUNDING_TO_NEAREST {
+			res.hi = z_sign | 0x7800000000000000
+			res.lo = 0
+			*pfpsf |= BID_INEXACT_EXCEPTION | BID_OVERFLOW_EXCEPTION
+		}
 		if rnd_mode != BID_ROUNDING_TO_NEAREST {
 			bid_rounding_correction(rnd_mode,
 				is_inexact_lt_midpoint,
@@ -401,10 +407,7 @@ func bid_fma_delta_ge_zero(
 				C3, C4,
 				lt_half_ulp, eq_half_ulp, gt_half_ulp,
 				rnd_mode, pfpsf) {
-				// The helper took one of the Intel C e3 > expmax overflow exits
-				// ("BID_SWAP128 (res); BID_RETURN (res)", bid128_fma.c lines
-				// 2117-2136 and 2245-2264): res is final and the Case (1''B)
-				// reassembly below must not run, exactly as in the C source.
+				// res is final; reassembly below would corrupt the overflow result.
 				*ptr_is_midpoint_lt_even = is_midpoint_lt_even
 				*ptr_is_midpoint_gt_even = is_midpoint_gt_even
 				*ptr_is_inexact_lt_midpoint = is_inexact_lt_midpoint
@@ -611,10 +614,7 @@ func bid_fma_delta_lt_zero(
 
 // bid_fma_case1ppB_psign_ne_zsign handles Case (1”B) when p_sign != z_sign.
 // Ported from the corresponding Case (1”B) branch in Intel bid128_fma.c.
-// It returns true when it took one of the Intel C e3 > expmax overflow exits
-// ("BID_SWAP128 (res); BID_RETURN (res)", bid128_fma.c lines 2117-2136 and
-// 2245-2264): res is then final and the caller must not run the shared
-// Case (1”B) reassembly that follows in the C source (line 2324).
+// It returns true when res is final and the caller must not reassemble it.
 func bid_fma_case1ppB_psign_ne_zsign(
 	p34 int, res *BID_UINT128,
 	ptr_is_midpoint_lt_even, ptr_is_midpoint_gt_even,
@@ -750,6 +750,7 @@ func bid_fma_case1ppB_psign_ne_zsign(
 							res.lo = 0x0000000000000000
 							*pfpsf |= (BID_INEXACT_EXCEPTION | BID_OVERFLOW_EXCEPTION)
 						} else {
+							res.hi |= z_sign
 							bid_rounding_correction(rnd_mode,
 								is_inexact_lt_midpoint,
 								is_inexact_gt_midpoint,
@@ -775,6 +776,26 @@ func bid_fma_case1ppB_psign_ne_zsign(
 					}
 					z_exp = res.hi & MASK_EXP_128
 				}
+			}
+			if e3 > expmax {
+				if rnd_mode == BID_ROUNDING_TO_NEAREST {
+					res.hi = z_sign | 0x7800000000000000
+					res.lo = 0
+					*pfpsf |= BID_INEXACT_EXCEPTION | BID_OVERFLOW_EXCEPTION
+				} else {
+					bid_rounding_correction(rnd_mode,
+						is_inexact_lt_midpoint,
+						is_inexact_gt_midpoint,
+						is_midpoint_lt_even,
+						is_midpoint_gt_even, e3, res, pfpsf)
+				}
+				*ptr_is_midpoint_lt_even = is_midpoint_lt_even
+				*ptr_is_midpoint_gt_even = is_midpoint_gt_even
+				*ptr_is_inexact_lt_midpoint = is_inexact_lt_midpoint
+				*ptr_is_inexact_gt_midpoint = is_inexact_gt_midpoint
+				*z_exp_ptr = z_exp
+				*e3_ptr = e3
+				return true
 			}
 		} else { // e3 = emin
 			if gt_half_ulp != 0 {

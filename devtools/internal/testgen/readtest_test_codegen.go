@@ -515,7 +515,7 @@ func generatedReadCaseOperationBits(tc testspec.GeneratedReadCase) (string, read
 		}
 		return fmt.Sprintf("[%016x]", raw), sec, status, nil
 	case "decimal128":
-		raw, sec, status, err := nativeReadtestGeneratedBID128(tc.Function, tc.Rounding, tc.Operands)
+		raw, sec, status, err := nativeReadtestGeneratedBID128WithStatus(tc.Function, tc.Rounding, tc.Operands, tc.InitialStatus)
 		if err != nil {
 			return "", readtestNoSecondaryOutput(), "", err
 		}

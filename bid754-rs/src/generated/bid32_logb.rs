@@ -68,8 +68,7 @@ pub fn bid32_logb(mut x: u32) -> (u32, u32) {
     let mut res: u32 = 0;
     let mut pfpsf: u32 = 0;
     let (mut sign_x, mut exponent_x, mut coefficient_x, mut valid) = unpack_bid32(x);
-    _ = sign_x;
-    _ = exponent_x;
+    let (__go2rs_rhs_689825_0, __go2rs_rhs_689825_1) = (sign_x, exponent_x);
     if (!valid) {
         if ((x & 0x78000000) == 0x78000000) {
             if ((x & 0x7e000000) == 0x7e000000) {

@@ -476,12 +476,12 @@ var parseBoundaryPins = map[string]parseBoundaryPin{
 		raw128hi: 0x3324000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x0, direct128: true, withFlags128: true,
 	},
 	"0e-398": {
-		raw32: 0x00000000, rawFlags32: 0x3, direct32: false, withFlags32: true,
+		raw32: 0x7c000000, rawFlags32: 0x10, direct32: false, withFlags32: false,
 		raw64: 0x0000000000000000, rawFlags64: 0x0, direct64: true, withFlags64: true,
 		raw128hi: 0x2d24000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x0, direct128: true, withFlags128: true,
 	},
 	"0e-399": {
-		raw32: 0x00000000, rawFlags32: 0x3, direct32: false, withFlags32: true,
+		raw32: 0x7c000000, rawFlags32: 0x10, direct32: false, withFlags32: false,
 		raw64: 0x7c00000000000000, rawFlags64: 0x10, direct64: false, withFlags64: false,
 		raw128hi: 0x2d22000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x0, direct128: true, withFlags128: true,
 	},
@@ -496,13 +496,13 @@ var parseBoundaryPins = map[string]parseBoundaryPin{
 		raw128hi: 0x7c00000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x10, direct128: false, withFlags128: false,
 	},
 	"-0e-6176": {
-		raw32: 0x80000000, rawFlags32: 0x3, direct32: false, withFlags32: true,
-		raw64: 0x8000000000000000, rawFlags64: 0x3, direct64: false, withFlags64: true,
+		raw32: 0x7c000000, rawFlags32: 0x10, direct32: false, withFlags32: false,
+		raw64: 0x7c00000000000000, rawFlags64: 0x10, direct64: false, withFlags64: false,
 		raw128hi: 0x8000000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x0, direct128: true, withFlags128: true,
 	},
 	"0e-6177": {
-		raw32: 0x00000000, rawFlags32: 0x3, direct32: false, withFlags32: true,
-		raw64: 0x0000000000000000, rawFlags64: 0x3, direct64: false, withFlags64: true,
+		raw32: 0x7c000000, rawFlags32: 0x10, direct32: false, withFlags32: false,
+		raw64: 0x7c00000000000000, rawFlags64: 0x10, direct64: false, withFlags64: false,
 		raw128hi: 0x7c00000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x10, direct128: false, withFlags128: false,
 	},
 	"9999999": {
@@ -721,14 +721,14 @@ var parseBoundaryPins = map[string]parseBoundaryPin{
 		raw128hi: 0x7c00000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x10, direct128: false, withFlags128: false,
 	},
 	"0e_int64min": {
-		raw32: 0x00000000, rawFlags32: 0x3, direct32: false, withFlags32: true,
-		raw64: 0x0000000000000000, rawFlags64: 0x3, direct64: false, withFlags64: true,
-		raw128hi: 0x0000000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x3, direct128: false, withFlags128: true,
+		raw32: 0x7c000000, rawFlags32: 0x10, direct32: false, withFlags32: false,
+		raw64: 0x7c00000000000000, rawFlags64: 0x10, direct64: false, withFlags64: false,
+		raw128hi: 0x7c00000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x10, direct128: false, withFlags128: false,
 	},
 	"0e_int64min-1": {
-		raw32: 0x00000000, rawFlags32: 0x3, direct32: false, withFlags32: true,
-		raw64: 0x0000000000000000, rawFlags64: 0x3, direct64: false, withFlags64: true,
-		raw128hi: 0x0000000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x3, direct128: false, withFlags128: true,
+		raw32: 0x7c000000, rawFlags32: 0x10, direct32: false, withFlags32: false,
+		raw64: 0x7c00000000000000, rawFlags64: 0x10, direct64: false, withFlags64: false,
+		raw128hi: 0x7c00000000000000, raw128lo: 0x0000000000000000, rawFlags128: 0x10, direct128: false, withFlags128: false,
 	},
 	"0e_uint64max+1": {
 		raw32: 0x7c000000, rawFlags32: 0x10, direct32: false, withFlags32: false,
@@ -1094,7 +1094,7 @@ var parseBoundaryModePins = map[parseBoundaryModeKey]parseBoundaryModePin{
 		v128hi: 0x3102000000000000, v128lo: 0x0000000000000001, f128: 0x0, ok128: true,
 	},
 	parseBoundaryModeKey{"1e-102", RoundTowardPositive}: {
-		v32: 0x00000000, f32: 0x3, ok32: true,
+		v32: 0x00000001, f32: 0x3, ok32: true,
 		v64: 0x2500000000000001, f64: 0x0, ok64: true,
 		v128hi: 0x2f74000000000000, v128lo: 0x0000000000000001, f128: 0x0, ok128: true,
 	},

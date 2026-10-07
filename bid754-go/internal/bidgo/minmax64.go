@@ -3,15 +3,6 @@ package bidgo
 // bid64_minmax.c 기계적 포팅
 // Intel BID 라이브러리의 min/max 함수들
 
-// bid_mult_factor for minmax (local copy, same as noncomp64.go)
-var bid_mult_factor_minmax = [16]uint64{
-	1, 10, 100, 1000,
-	10000, 100000, 1000000, 10000000,
-	100000000, 1000000000, 10000000000, 100000000000,
-	1000000000000, 10000000000000,
-	100000000000000, 1000000000000000,
-}
-
 // Bid64MinNum - returns the minimum of two numbers
 // Intel bid64_minnum 기계적 포팅
 func Bid64MinNum(x, y uint64) (uint64, uint32) {

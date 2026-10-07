@@ -206,6 +206,27 @@
       ]
     },
     {
+      "name": "bid32_from_string_underflow_boundary_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_underflow_boundary_bid32_cdiverge.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid32_from_string double-rounds these toward-zero tiny decimal inputs to coefficient 1000000; IEEE 754 requires the singly rounded coefficient 999999 with Underflow|Inexact",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        3
+      ]
+    },
+    {
       "name": "bid64_from_string_ieee754_overflow_cdiverge",
       "group": "decimal64_ieee754_regressions",
       "format": "decimal64",
@@ -339,6 +360,735 @@
       ],
       "rounding_modes": [
         0
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_fma_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_fma_cmatch.in",
+      "function": "bid128_fma",
+      "kind": "ternary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_DEC128",
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00",
+        "20",
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_fma_missing_overflow_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_fma_missing_overflow_cdiverge.in",
+      "function": "bid128_fma",
+      "kind": "ternary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_DEC128",
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid128_fma packs an out-of-range exponent after exact subtraction without raising Overflow|Inexact; IEEE 754 requires the mode-dependent overflow result and flags",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_fma_overflow_sign_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_fma_overflow_sign_cdiverge.in",
+      "function": "bid128_fma",
+      "kind": "ternary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_DEC128",
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid128_fma reads the overflow sign before assembling the negative result; IEEE 754 requires a negative directed overflow result with Overflow|Inexact",
+      "statuses": [
+        "28"
+      ],
+      "rounding_modes": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_fma_premature_overflow_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_fma_premature_overflow_cdiverge.in",
+      "function": "bid128_fma",
+      "kind": "ternary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_DEC128",
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid128_fma overflows a near-maximum finite subtraction before rounding; IEEE 754 requires maximum finite with Inexact and no Overflow",
+      "statuses": [
+        "20"
+      ],
+      "rounding_modes": [
+        0,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_from_string_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_from_string_cmatch.in",
+      "function": "bid128_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_from_string_zero_cohort_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_from_string_zero_cohort_cdiverge.in",
+      "function": "bid128_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C from_string raises Underflow|Inexact or produces a minimum nonzero coefficient for exact written zero outside the finite cohort range; IEEE 754 requires exact signed zero without flags in the raw parser",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_ldexp_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_ldexp_cmatch.in",
+      "function": "bid128_ldexp",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_INT32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00",
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_ldexp_threshold_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_ldexp_threshold_cdiverge.in",
+      "function": "bid128_ldexp",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_INT32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid128_scalbn/scalbln/ldexp compares only the upper coefficient limb at the 10^33 normalization threshold and falsely overflows an exactly representable finite result",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbln_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbln_cmatch.in",
+      "function": "bid128_scalbln",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_LINT"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00",
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbln_sticky_inexact_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbln_sticky_inexact_cdiverge.in",
+      "function": "bid128_scalbln",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_LINT"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "INTEL-BID-012: pinned Intel BID C bid128_scalbn/scalbln treats prior Inexact as current-operation Inexact and raises Underflow for an exact subnormal; IEEE 754 sections 7.5 and 7.6 require no new Underflow and retention of existing status",
+      "initial_status": 32,
+      "statuses": [
+        "20"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbln_sticky_status_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbln_sticky_status_cmatch.in",
+      "function": "bid128_scalbln",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_LINT"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "initial_status": 32,
+      "statuses": [
+        "20",
+        "21",
+        "28",
+        "30"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbln_threshold_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbln_threshold_cdiverge.in",
+      "function": "bid128_scalbln",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_LINT"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid128_scalbn/scalbln/ldexp compares only the upper coefficient limb at the 10^33 normalization threshold and falsely overflows an exactly representable finite result",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbn_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbn_cmatch.in",
+      "function": "bid128_scalbn",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_INT32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00",
+        "28"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbn_sticky_inexact_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbn_sticky_inexact_cdiverge.in",
+      "function": "bid128_scalbn",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_INT32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "INTEL-BID-012: pinned Intel BID C bid128_scalbn/scalbln treats prior Inexact as current-operation Inexact and raises Underflow for an exact subnormal; IEEE 754 sections 7.5 and 7.6 require no new Underflow and retention of existing status",
+      "initial_status": 32,
+      "statuses": [
+        "20"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbn_sticky_status_cmatch",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbn_sticky_status_cmatch.in",
+      "function": "bid128_scalbn",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_INT32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "initial_status": 32,
+      "statuses": [
+        "20",
+        "21",
+        "28",
+        "30"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid128_scalbn_threshold_cdiverge",
+      "group": "decimal128_ieee754_regressions",
+      "format": "decimal128",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid128_scalbn_threshold_cdiverge.in",
+      "function": "bid128_scalbn",
+      "kind": "binary_op",
+      "output_type": "OP_DEC128",
+      "input_types": [
+        "OP_DEC128",
+        "OP_INT32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid128_scalbn/scalbln/ldexp compares only the upper coefficient limb at the 10^33 normalization threshold and falsely overflows an exactly representable finite result",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_from_string_cmatch",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_from_string_cmatch.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00",
+        "20",
+        "28",
+        "30"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_from_string_carry_underflow_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_from_string_carry_underflow_cdiverge.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "INTEL-BID-013: pinned Intel BID C from_string normalizes a delayed directed-rounding carry before testing tininess and omits Underflow; IEEE 754 section 7.5 requires Underflow|Inexact for the inexact tiny input",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_from_string_directed_underflow_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_from_string_directed_underflow_cdiverge.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C from_string forces nearest rounding in tiny-input packing instead of the requested mode; IEEE 754 requires the correctly rounded signed result with Underflow|Inexact",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_from_string_fixed_point_underflow_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_from_string_fixed_point_underflow_cdiverge.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C bid32_from_string passes a pre-rounded coefficient to a nearest-only packer in the no-exponent path, causing double rounding, loss of requested rounding mode, or loss of original tininess; IEEE 754 requires one correctly directed rounding of the exact input with Underflow|Inexact",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_from_string_zero_cohort_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_from_string_zero_cohort_cdiverge.in",
+      "function": "bid32_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C from_string raises Underflow|Inexact or produces a minimum nonzero coefficient for exact written zero outside the finite cohort range; IEEE 754 requires exact signed zero without flags in the raw parser",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_nextafter_cmatch",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_nextafter_cmatch.in",
+      "function": "bid32_nextafter",
+      "kind": "binary_op",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32",
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00",
+        "30"
+      ],
+      "rounding_modes": [
+        0
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_quantum_cmatch",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_quantum_cmatch.in",
+      "function": "bid32_quantum",
+      "kind": "unary_op",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid32_quantum_quantum_steering_cdiverge",
+      "group": "decimal32_ieee754_regressions",
+      "format": "decimal32",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid32_quantum_quantum_steering_cdiverge.in",
+      "function": "bid32_quantum",
+      "kind": "unary_op",
+      "output_type": "OP_DEC32",
+      "input_types": [
+        "OP_DEC32"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "INTEL-BID-006: pinned Intel BID C bid32_quantum tests a 64-bit steering mask against a 32-bit operand and extracts the wrong finite exponent; bid754 uses the encoded Decimal32 exponent",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid64_from_string_cmatch",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid64_from_string_cmatch.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "statuses": [
+        "00",
+        "20",
+        "28",
+        "30"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid64_from_string_carry_underflow_cdiverge",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid64_from_string_carry_underflow_cdiverge.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "INTEL-BID-013: pinned Intel BID C from_string normalizes a delayed directed-rounding carry before testing tininess and omits Underflow; IEEE 754 section 7.5 requires Underflow|Inexact for the inexact tiny input",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid64_from_string_directed_underflow_cdiverge",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid64_from_string_directed_underflow_cdiverge.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C from_string forces nearest rounding in tiny-input packing instead of the requested mode; IEEE 754 requires the correctly rounded signed result with Underflow|Inexact",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid64_from_string_long_fraction_cdiverge",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid64_from_string_long_fraction_cdiverge.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "INTEL-BID-009: pinned Intel BID C bid64_from_string passes a tiny no-exponent input through an overflow-only packer; IEEE 754 requires rounding the exact input and raising Underflow|Inexact",
+      "statuses": [
+        "30"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "numeric_boundary_bid64_from_string_zero_cohort_cdiverge",
+      "group": "decimal64_ieee754_regressions",
+      "format": "decimal64",
+      "header": "third_party/intel_dfp/TESTS/readtest.h",
+      "source": "testdata/readtest_numeric_boundary_bid64_from_string_zero_cohort_cdiverge.in",
+      "function": "bid64_from_string",
+      "kind": "from_string",
+      "output_type": "OP_DEC64",
+      "input_types": [
+        "OP_DEC64"
+      ],
+      "compare_group": "CMP_FUZZYSTATUS",
+      "native_compare_skip_reason": "pinned Intel BID C from_string raises Underflow|Inexact or produces a minimum nonzero coefficient for exact written zero outside the finite cohort range; IEEE 754 requires exact signed zero without flags in the raw parser",
+      "statuses": [
+        "00"
+      ],
+      "rounding_modes": [
+        0,
+        1,
+        2,
+        3,
+        4
       ]
     }
   ],

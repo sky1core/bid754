@@ -7,12 +7,14 @@ import (
 )
 
 type Manifest struct {
-	GoPackage   string      `json:"go_package"`
-	GoOutput    string      `json:"go_output"`
-	RustOutput  string      `json:"rust_output"`
-	BidgoOutput string      `json:"bidgo_output"`
-	BidgoSource string      `json:"bidgo_source"`
-	Tables      []TableSpec `json:"tables"`
+	GoPackage             string      `json:"go_package"`
+	GoOutput              string      `json:"go_output"`
+	RustOutput            string      `json:"rust_output"`
+	BidgoOutput           string      `json:"bidgo_output"`
+	BidgoSource           string      `json:"bidgo_source"`
+	RuntimeOutput         string      `json:"runtime_output"`
+	RuntimeRound128Output string      `json:"runtime_round128_output"`
+	Tables                []TableSpec `json:"tables"`
 }
 
 type TableSpec struct {
@@ -26,7 +28,15 @@ type TableSpec struct {
 	// the manifest so that a truncated or partially parsed initializer cannot
 	// silently produce an empty or short table: ParseTableFile fails when the
 	// parsed shape does not match this pin.
-	ExpectedShape []int `json:"expected_shape"`
+	ExpectedShape []int         `json:"expected_shape"`
+	Runtime       []RuntimeSpec `json:"runtime,omitempty"`
+}
+
+type RuntimeSpec struct {
+	Name            string `json:"name"`
+	Scalar          string `json:"scalar"`
+	Prefix          int    `json:"prefix,omitempty"`
+	ExtraNearestRow bool   `json:"extra_nearest_row,omitempty"`
 }
 
 func LoadManifest(path string) (Manifest, error) {
@@ -54,6 +64,9 @@ func LoadManifest(path string) (Manifest, error) {
 	if manifest.BidgoSource == "" {
 		return manifest, fmt.Errorf("manifest %q: bidgo_source is required", path)
 	}
+	if manifest.RuntimeOutput == "" || manifest.RuntimeRound128Output == "" {
+		return manifest, fmt.Errorf("manifest %q: runtime output paths are required", path)
+	}
 	if len(manifest.Tables) == 0 {
 		return manifest, fmt.Errorf("manifest %q: tables must not be empty", path)
 	}
@@ -68,6 +81,14 @@ func LoadManifest(path string) (Manifest, error) {
 		for d, n := range table.ExpectedShape {
 			if n <= 0 {
 				return manifest, fmt.Errorf("manifest %q: table %q expected_shape[%d] = %d must be > 0", path, table.Name, d, n)
+			}
+		}
+		if len(table.Runtime) == 0 {
+			return manifest, fmt.Errorf("manifest %q: table %q has no runtime targets", path, table.Name)
+		}
+		for _, target := range table.Runtime {
+			if target.Name == "" || target.Scalar == "" || target.Prefix < 0 {
+				return manifest, fmt.Errorf("manifest %q: table %q has an invalid runtime target", path, table.Name)
 			}
 		}
 	}

@@ -1089,37 +1089,8 @@ fn dectest_goport_scaleb_exponent_literal(input: &str) -> Option<i64> {
     trimmed.parse::<i64>().ok()
 }
 
-/// dectest_goport_flag_exempt_reason is the runtime mirror of the
-/// generator-side generatedDectestGoportFlagExemptReason. The exact
-/// Clamped-only predicate rejects every other recognized or unrecognized
-/// condition. The caller additionally parses Conditions first for every case
-/// that reaches execution so an unknown token is reported as a harness error.
-pub(crate) fn dectest_goport_flag_exempt_reason(tc: &DecTestCase) -> Option<String> {
-    let op = normalize_dec_test_operation(&tc.operation);
-    if op != "tosci" && op != "toeng" {
-        return None;
-    }
-    if !dectest_goport_has_only_clamped_condition(&tc.flags) {
-        return None;
-    }
-    if let Some(q) = quantum_parse(&tc.result) {
-        if q.coeff == "0" && q.exponent < 0 {
-            return Some("from_string_zero_low_clamp_divergence".to_string());
-        }
-    }
+pub(crate) fn dectest_goport_flag_exempt_reason(_tc: &DecTestCase) -> Option<String> {
     None
-}
-
-fn dectest_goport_has_only_clamped_condition(flags: &[String]) -> bool {
-    let mut clamped = false;
-    for flag in flags {
-        match normalize_dec_test_flag(flag).as_str() {
-            "" | "none" | "noflags" => continue,
-            "clamped" => clamped = true,
-            _ => return false,
-        }
-    }
-    clamped
 }
 
 // ============================================================================
@@ -2265,21 +2236,21 @@ const EXPECTED_COVERAGE: &[SuiteCoverage] = &[
         cases: 909,
         executed: 788,
         skip_reasons: &[("conversion_syntax_divergence", 99), ("unsupported_rounding", 22)],
-        flag_exempt: &[("from_string_zero_low_clamp_divergence", 2)],
+        flag_exempt: &[],
     },
     SuiteCoverage {
         name: "Decimal64",
         cases: 11940,
         executed: 11066,
         skip_reasons: &[("abs_nan_operand_gda_propagation", 4), ("binary_op_nan_payload_precedence", 28), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("fma_nan_payload_precedence", 13), ("ignored_operation_apply", 4), ("minmax_equal_operand_cohort_unspecified", 216), ("remainder_gda_division_impossible_context_semantics", 7), ("remaindernear_gda_division_impossible_context_semantics", 7), ("scaleb_exponent_out_of_gda_range", 4), ("scaleb_non_integer_exponent_operand", 38), ("tagged_literal", 42), ("unsupported_rounding", 294)],
-        flag_exempt: &[("from_string_zero_low_clamp_divergence", 2)],
+        flag_exempt: &[],
     },
     SuiteCoverage {
         name: "Decimal128",
         cases: 12313,
         executed: 11147,
         skip_reasons: &[("abs_nan_operand_gda_propagation", 4), ("binary_op_nan_payload_precedence", 28), ("compare_nan_operand", 118), ("conversion_syntax_divergence", 99), ("fma_nan_payload_precedence", 13), ("ignored_operation_apply", 371), ("minmax_equal_operand_cohort_unspecified", 216), ("remainder_gda_division_impossible_context_semantics", 7), ("remaindernear_gda_division_impossible_context_semantics", 7), ("scaleb_exponent_out_of_gda_range", 4), ("scaleb_non_integer_exponent_operand", 38), ("tagged_literal", 43), ("unsupported_rounding", 218)],
-        flag_exempt: &[("from_string_zero_low_clamp_divergence", 2)],
+        flag_exempt: &[],
     },
 ];
 

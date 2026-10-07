@@ -222,7 +222,7 @@ func bidCodecBuildParseOracleRows() ([]bidCodecParseExpectation, []bidCodecOffic
 			input string
 		}{item.Width, item.Input}]
 		for _, row := range group {
-			if row.Flags == 0 && !bidCodecPublicFiniteCohortFits(item.Input, item.Width) {
+			if (row.Flags == 0 || bidCodecFiniteLiteralIsZero(item.Input)) && !bidCodecPublicFiniteCohortFits(item.Input, item.Width) {
 				item.Classification = "public_exact_cohort_reject_c_legacy"
 				break
 			}
@@ -339,6 +339,9 @@ func bidCodecRunParseOracle(rows []bidCodecParseExpectation) ([]bidCodecParseExp
 			return nil, fmt.Errorf("codec parse row %d: unexpected Intel flags %#x", i, rows[i].Flags)
 		}
 		bidCodecApplyDirectedOverflowDeviation(&rows[i])
+		if err := bidCodecApplyTinyParseDeviation(&rows[i]); err != nil {
+			return nil, fmt.Errorf("codec parse oracle row %d: %w", i, err)
+		}
 	}
 	return rows, nil
 }
@@ -412,6 +415,141 @@ func bidCodecApplyDirectedOverflowDeviation(row *bidCodecParseExpectation) {
 	} else {
 		row.Lo = refEncode64(c)
 	}
+}
+
+func bidCodecFiniteLiteralIsZero(input string) bool {
+	m := bidCodecPublicFinitePattern.FindStringSubmatch(input)
+	return m != nil && strings.Trim(strings.ReplaceAll(m[1], ".", ""), "0") == ""
+}
+
+func bidCodecApplyTinyParseDeviation(row *bidCodecParseExpectation) error {
+	m := bidCodecPublicFinitePattern.FindStringSubmatch(row.Input)
+	if m == nil {
+		return nil
+	}
+	negative := strings.HasPrefix(strings.TrimLeft(row.Input, " \t"), "-")
+	digits := strings.TrimLeft(strings.ReplaceAll(m[1], ".", ""), "0")
+	minQuantum, maxQuantum, precision := int64(-101), int64(90), 7
+	switch row.Width {
+	case 64:
+		minQuantum, maxQuantum, precision = -398, 369, 16
+	case 128:
+		minQuantum, maxQuantum, precision = -6176, 6111, 34
+	}
+	quantum := new(big.Int)
+	if m[2] != "" {
+		if _, ok := quantum.SetString(m[2], 10); !ok {
+			return fmt.Errorf("invalid finite exponent %q", m[2])
+		}
+	}
+	if point := strings.IndexByte(m[1], '.'); point >= 0 {
+		quantum.Sub(quantum, big.NewInt(int64(len(m[1])-point-1)))
+	}
+	if digits == "" {
+		zeroQuantum := minQuantum
+		if quantum.Cmp(big.NewInt(maxQuantum)) > 0 {
+			zeroQuantum = maxQuantum
+		} else if quantum.Cmp(big.NewInt(minQuantum)) >= 0 {
+			zeroQuantum = quantum.Int64()
+		}
+		c := bidCodecRefComponents{Sign: negative, Kind: bidCodecRefZero, Exponent: int32(zeroQuantum)}
+		if row.Flags == 0 {
+			switch row.Width {
+			case 32:
+				decoded := refDecode32(uint32(row.Lo))
+				if decoded.Kind == bidCodecRefZero && decoded.Sign == negative {
+					return nil
+				}
+			case 64:
+				decoded := refDecode64(row.Lo)
+				if decoded.Kind == bidCodecRefZero && decoded.Sign == negative {
+					return nil
+				}
+			case 128:
+				decoded := refDecode128(row.Lo, row.Hi)
+				if decoded.Kind == bidCodecRefZero && decoded.Sign == negative {
+					return nil
+				}
+			}
+		}
+		switch row.Width {
+		case 32:
+			row.Lo, row.Hi = uint64(refEncode32(c)), 0
+		case 64:
+			row.Lo, row.Hi = refEncode64(c), 0
+		case 128:
+			row.Lo, row.Hi = refEncode128(c)
+		}
+		row.Flags = 0
+		return nil
+	}
+	if quantum.Cmp(big.NewInt(minQuantum)) >= 0 {
+		return nil
+	}
+	adjusted := new(big.Int).Add(quantum, big.NewInt(int64(len(digits)-1)))
+	if adjusted.Cmp(big.NewInt(minQuantum+int64(precision)-1)) >= 0 {
+		return nil
+	}
+	shift := new(big.Int).Sub(big.NewInt(minQuantum), quantum)
+	coeff := new(big.Int)
+	if _, ok := coeff.SetString(digits, 10); !ok {
+		return fmt.Errorf("invalid finite coefficient")
+	}
+	quotient, remainder := new(big.Int), new(big.Int)
+	denominator := big.NewInt(1)
+	tooSmall := shift.Sign() > 0 && shift.Cmp(big.NewInt(int64(len(digits)+1))) > 0
+	if tooSmall {
+		remainder.Set(coeff)
+	} else if shift.Sign() > 0 {
+		denominator.Exp(big.NewInt(10), shift, nil)
+		quotient.QuoRem(coeff, denominator, remainder)
+	} else {
+		power := new(big.Int).Neg(shift)
+		quotient.Mul(coeff, new(big.Int).Exp(big.NewInt(10), power, nil))
+	}
+	inexact := remainder.Sign() != 0
+	if inexact {
+		roundUp := false
+		switch row.Mode {
+		case 0, 4:
+			if !tooSmall {
+				twice := new(big.Int).Lsh(remainder, 1)
+				cmp := twice.Cmp(denominator)
+				roundUp = cmp > 0 || cmp == 0 && (row.Mode == 4 || quotient.Bit(0) != 0)
+			}
+		case 1:
+			roundUp = negative
+		case 2:
+			roundUp = !negative
+		case 3:
+		default:
+			return fmt.Errorf("invalid rounding mode %d", row.Mode)
+		}
+		if roundUp {
+			quotient.Add(quotient, big.NewInt(1))
+		}
+	}
+	c := bidCodecRefComponents{Sign: negative, Kind: bidCodecRefNormal, Coefficient: quotient, Exponent: int32(minQuantum)}
+	if quotient.Sign() == 0 {
+		c.Kind = bidCodecRefZero
+	}
+	var lo, hi uint64
+	switch row.Width {
+	case 32:
+		lo = uint64(refEncode32(c))
+	case 64:
+		lo = refEncode64(c)
+	case 128:
+		lo, hi = refEncode128(c)
+	}
+	flags := uint32(0)
+	if inexact {
+		flags = 0x30
+	}
+	if row.Lo != lo || row.Hi != hi || row.Flags != flags {
+		row.Lo, row.Hi, row.Flags = lo, hi, flags
+	}
+	return nil
 }
 
 func bidCodecParseExpectationLiterals(rows []bidCodecParseExpectation, rust bool) (string, string) {

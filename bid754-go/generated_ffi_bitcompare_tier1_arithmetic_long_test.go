@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/bits"
 	"os"
 	"strconv"
 	"strings"
@@ -24,7 +25,7 @@ const (
 	tier1ArithmeticSemanticRounded128Count       = uint64(20)
 	tier1ArithmeticSemanticScale32Count          = uint64(4)
 	tier1ArithmeticSemanticScale64Count          = uint64(4)
-	tier1ArithmeticSemanticScale128Count         = uint64(4)
+	tier1ArithmeticSemanticScale128Count         = uint64(40)
 	tier1ArithmeticSemanticRemainder32Count      = uint64(4)
 	tier1ArithmeticSemanticRemainder64Count      = uint64(4)
 	tier1ArithmeticSemanticRemainder128Count     = uint64(4)
@@ -681,11 +682,101 @@ func tier1ArithmeticLegsScale128(t *testing.T, x Decimal128BID, exponent int64, 
 	return
 }
 
-func tier1ArithmeticCheckScale128(t *testing.T, x Decimal128BID, exponent int64, mode tier1ArithmeticMode) {
-	native, port, public, unknownPublicFlags := tier1ArithmeticLegsScale128(t, x, exponent, mode)
-	if unknownPublicFlags != 0 || native != port || native != public {
-		t.Fatalf("decimal128 scaleB mismatch: x=%x exponent=%d mode=%s C=%s port=%s public=%s unknown_public_flags=%s", x, exponent, mode.name, native, port, public, unknownPublicFlags)
+func tier1ArithmeticScale128Intel003Expected(t *testing.T, x Decimal128BID, exponent int64, mode tier1ArithmeticMode) (actualExpected, nativeExpected string, applies bool) {
+	t.Helper()
+	raw := x.ToBytes()
+	lo := binary.LittleEndian.Uint64(raw[0:8])
+	hi := binary.LittleEndian.Uint64(raw[8:16])
+	coeffHi := hi & 0x0001ffffffffffff
+	if hi&0x6000000000000000 == 0x6000000000000000 || coeffHi != 0x314dc6448d93 || lo >= 0x38c15b0a00000000 ||
+		exponent <= 0 || exponent > 12288 || int64((hi>>49)&0x3fff)+exponent != 12288 {
+		return "", "", false
 	}
+	loCarry, wantLo := bits.Mul64(lo, 10)
+	hiOverflow, hiProduct := bits.Mul64(coeffHi, 10)
+	wantHi, carry := bits.Add64(hiProduct, loCarry, 0)
+	if hiOverflow != 0 || carry != 0 {
+		t.Fatal("INTEL-BID-003 exact coefficient multiplication exceeded 128 bits")
+	}
+	sign := hi & 0x8000000000000000
+	actualExpected = fmt.Sprintf("%s/00000000", formatFFIUint128Bits(tier1ArithmeticDecimal128(tier1Arithmetic128Words{
+		lo: wantLo, hi: sign | uint64(12287)<<49 | wantHi,
+	})))
+	toInfinity := mode.native == 0 || mode.native == 4 ||
+		(mode.native == 2 && sign == 0) || (mode.native == 1 && sign != 0)
+	nativeWords := tier1Arithmetic128Words{lo: 0x378d8e63ffffffff, hi: sign | 0x5fffed09bead87c0}
+	if toInfinity {
+		nativeWords = tier1Arithmetic128Words{hi: sign | 0x7800000000000000}
+	}
+	nativeExpected = fmt.Sprintf("%s/00000028", formatFFIUint128Bits(tier1ArithmeticDecimal128(nativeWords)))
+	return actualExpected, nativeExpected, true
+}
+
+func tier1ArithmeticVerifyScale128(native, port, public, wantNative, wantActual string, unknownPublicFlags ExceptionFlags) error {
+	if unknownPublicFlags != 0 || native != wantNative || port != wantActual || public != wantActual {
+		return fmt.Errorf("C=%s want_C=%s port=%s public=%s want_actual=%s unknown_public_flags=%s", native, wantNative, port, public, wantActual, unknownPublicFlags)
+	}
+	return nil
+}
+
+func tier1ArithmeticCheckScale128(t *testing.T, x Decimal128BID, exponent int64, mode tier1ArithmeticMode) bool {
+	native, port, public, unknownPublicFlags := tier1ArithmeticLegsScale128(t, x, exponent, mode)
+	wantActual, wantNative, deviation := tier1ArithmeticScale128Intel003Expected(t, x, exponent, mode)
+	if !deviation {
+		wantActual, wantNative = native, native
+	}
+	if err := tier1ArithmeticVerifyScale128(native, port, public, wantNative, wantActual, unknownPublicFlags); err != nil {
+		t.Fatalf("decimal128 scaleB mismatch: x=%x exponent=%d mode=%s: %v", x, exponent, mode.name, err)
+	}
+	return deviation
+}
+
+func TestTier1ArithmeticScaleBIntel003Witness(t *testing.T) {
+	coeffs := [...]tier1Arithmetic128Words{
+		{hi: 0x314dc6448d92, lo: 0xffffffffffffffff},
+		{hi: 0x314dc6448d93, lo: 0},
+		{hi: 0x314dc6448d93, lo: 1},
+		{hi: 0x314dc6448d93, lo: 0x38c15b09ffffffff},
+		{hi: 0x314dc6448d93, lo: 0x38c15b0a00000000},
+		{hi: 0x314dc6448d93, lo: 0x38c15b0a00000001},
+	}
+	var cComparisons, deviations uint64
+	for _, sign := range []uint64{0, 0x8000000000000000} {
+		for _, expAndShift := range [][2]int64{{6109, 3}, {6110, 2}, {6111, 1}} {
+			for index, coeff := range coeffs {
+				x := tier1ArithmeticDecimal128(tier1Arithmetic128Words{
+					lo: coeff.lo, hi: sign | uint64(6176+expAndShift[0])<<49 | coeff.hi,
+				})
+				for _, mode := range tier1ArithmeticModes {
+					native, port, public, unknown := tier1ArithmeticLegsScale128(t, x, expAndShift[1], mode)
+					wantActual, wantNative, applies := tier1ArithmeticScale128Intel003Expected(t, x, expAndShift[1], mode)
+					if applies != (index >= 1 && index <= 3) {
+						t.Fatalf("INTEL-BID-003 predicate x=%x exponent=%d mode=%s applies=%t", x, expAndShift[1], mode.name, applies)
+					}
+					if !applies {
+						cComparisons++
+						wantActual, wantNative = native, native
+					} else {
+						deviations++
+					}
+					if err := tier1ArithmeticVerifyScale128(native, port, public, wantNative, wantActual, unknown); err != nil {
+						t.Fatalf("INTEL-BID-003 witness x=%x exponent=%d mode=%s: %v", x, expAndShift[1], mode.name, err)
+					}
+					if applies {
+						if tier1ArithmeticVerifyScale128(native, native, public, wantNative, wantActual, unknown) == nil ||
+							tier1ArithmeticVerifyScale128(native, port, strings.Replace(public, "/00000000", "/00000020", 1), wantNative, wantActual, unknown) == nil ||
+							tier1ArithmeticVerifyScale128(port, port, public, wantNative, wantActual, unknown) == nil {
+							t.Fatal("INTEL-BID-003 witness accepted a wrong result, flag, or native observation")
+						}
+					}
+				}
+			}
+		}
+	}
+	if cComparisons != 90 || deviations != 90 {
+		t.Fatalf("INTEL-BID-003 witness C comparisons=%d deviations=%d, want 90 each", cComparisons, deviations)
+	}
+	t.Logf("INTEL-BID-003 witness: C comparisons=%d independent deviations=%d", cComparisons, deviations)
 }
 
 func tier1ArithmeticVisitPairs32(visit func(uint32, uint32)) {
@@ -1096,12 +1187,15 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 				caseIndex++
 			}
 		}
+		var deviations uint64
 		for _, words := range tier1ArithmeticBoundary128 {
 			x := tier1ArithmeticDecimal128(words)
 			for _, exponent := range tier1ArithmeticScaleExponentValues {
 				for _, mode := range tier1ArithmeticModes {
 					if shard.owns(caseIndex) {
-						tier1ArithmeticCheckScale128(t, x, exponent, mode)
+						if tier1ArithmeticCheckScale128(t, x, exponent, mode) {
+							deviations++
+						}
 					}
 					caseIndex++
 				}
@@ -1110,7 +1204,9 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 		for _, tc := range tier1ArithmeticSemanticScale128Cases {
 			for _, mode := range tier1ArithmeticModes {
 				if shard.owns(caseIndex) {
-					tier1ArithmeticCheckScale128(t, tier1ArithmeticDecimal128(tc.x), tc.exponent, mode)
+					if tier1ArithmeticCheckScale128(t, tier1ArithmeticDecimal128(tc.x), tc.exponent, mode) {
+						deviations++
+					}
 				}
 				caseIndex++
 			}
@@ -1118,7 +1214,10 @@ func TestTier1ArithmeticStructuredNativeDifferential(t *testing.T) {
 		if caseIndex != tier1ArithmeticStructuredComparisons128 {
 			t.Fatalf("decimal128 structured comparisons=%d want=%d", caseIndex, tier1ArithmeticStructuredComparisons128)
 		}
-		t.Logf("decimal128 structured exact comparisons: %d/%d", shard.ownedCount(caseIndex), caseIndex)
+		if shard.count == 1 && deviations < 90 {
+			t.Fatalf("decimal128 structured INTEL-BID-003 deviations=%d want at least 90", deviations)
+		}
+		t.Logf("decimal128 structured comparisons: C exact=%d independent INTEL-BID-003=%d total=%d/%d", shard.ownedCount(caseIndex)-deviations, deviations, shard.ownedCount(caseIndex), caseIndex)
 	})
 }
 
@@ -2143,12 +2242,15 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 				comparison++
 			}
 		}
+		var deviations uint64
 		seed := tier1ArithmeticScaleSeed128
 		for i := uint64(0); i < tier1ArithmeticRandomCasesPerOp128; i++ {
 			if shard.owns(comparison) {
 				x := tier1ArithmeticDecimal128(tier1ArithmeticRandomScaleOperand128(seed, i, int64(tier1ArithmeticScaleFiniteTransitionLimit128)))
 				exponent := tier1ArithmeticRandomScaleExponent(seed, i, 2, int64(tier1ArithmeticScaleFiniteTransitionLimit128))
-				tier1ArithmeticCheckScale128(t, x, exponent, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))])
+				if tier1ArithmeticCheckScale128(t, x, exponent, tier1ArithmeticModes[i%uint64(len(tier1ArithmeticModes))]) {
+					deviations++
+				}
 			}
 			comparison++
 		}
@@ -2186,7 +2288,7 @@ func TestTier1ArithmeticDeterministicRandomNativeDifferential(t *testing.T) {
 		if comparison != tier1ArithmeticRandomComparisons128 {
 			t.Fatalf("decimal128 random comparisons=%d want=%d", comparison, tier1ArithmeticRandomComparisons128)
 		}
-		t.Logf("decimal128 deterministic random exact comparisons: %d/%d", shard.ownedCount(comparison), comparison)
+		t.Logf("decimal128 deterministic random comparisons: C exact=%d independent INTEL-BID-003=%d total=%d/%d", shard.ownedCount(comparison)-deviations, deviations, shard.ownedCount(comparison), comparison)
 	})
 }
 
@@ -2805,6 +2907,42 @@ var tier1ArithmeticSemanticScale128Cases = []tier1ArithmeticSemanticScale128{
 	{x: tier1Arithmetic128Words{lo: 0x112210f47de98115, hi: 0xb040000000000000}, exponent: 6127},
 	{x: tier1Arithmetic128Words{lo: 0x112210f47de98115, hi: 0x3040000000000000}, exponent: -6195},
 	{x: tier1Arithmetic128Words{lo: 0x0000000000000005, hi: 0x303e000000000000}, exponent: -6176},
+	{x: tier1Arithmetic128Words{lo: 0xffffffffffffffff, hi: 0x5ffa314dc6448d92}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000000, hi: 0x5ffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x5ffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b09ffffffff, hi: 0x5ffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000000, hi: 0x5ffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000001, hi: 0x5ffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0xffffffffffffffff, hi: 0x5ffc314dc6448d92}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000000, hi: 0x5ffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x5ffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b09ffffffff, hi: 0x5ffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000000, hi: 0x5ffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000001, hi: 0x5ffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0xffffffffffffffff, hi: 0x5ffe314dc6448d92}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000000, hi: 0x5ffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0x5ffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b09ffffffff, hi: 0x5ffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000000, hi: 0x5ffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000001, hi: 0x5ffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0xffffffffffffffff, hi: 0xdffa314dc6448d92}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000000, hi: 0xdffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0xdffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b09ffffffff, hi: 0xdffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000000, hi: 0xdffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000001, hi: 0xdffa314dc6448d93}, exponent: 3},
+	{x: tier1Arithmetic128Words{lo: 0xffffffffffffffff, hi: 0xdffc314dc6448d92}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000000, hi: 0xdffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0xdffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b09ffffffff, hi: 0xdffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000000, hi: 0xdffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000001, hi: 0xdffc314dc6448d93}, exponent: 2},
+	{x: tier1Arithmetic128Words{lo: 0xffffffffffffffff, hi: 0xdffe314dc6448d92}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000000, hi: 0xdffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x0000000000000001, hi: 0xdffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b09ffffffff, hi: 0xdffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000000, hi: 0xdffe314dc6448d93}, exponent: 1},
+	{x: tier1Arithmetic128Words{lo: 0x38c15b0a00000001, hi: 0xdffe314dc6448d93}, exponent: 1},
 }
 
 var tier1ArithmeticSemanticFma32Cases = []tier1ArithmeticTriple32{

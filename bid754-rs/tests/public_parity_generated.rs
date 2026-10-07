@@ -401,58 +401,59 @@ struct StringCase {
     signaling: bool,
     nan_min_width: u32,
     cohort_min_width: u32,
+    zero_literal: bool,
 }
 
 const STRING_CASES: &[StringCase] = &[
-    StringCase { input: "0", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "-0", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1000000.0", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 64 },
-    StringCase { input: "1.2345678901234567890123456789012345", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e91", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 64 },
-    StringCase { input: "3.14159265", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e6145", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "0e-102", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 64 },
-    StringCase { input: "1e370", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 128 },
-    StringCase { input: "0e-399", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 128 },
-    StringCase { input: "9999999999999999999999999999999999", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e6112", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "0e-6177", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e100", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e-100", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "12345678901234567890.12345", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "Infinity", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "-Infinity", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "inf", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1000000000000000.0", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 128 },
-    StringCase { input: "1000000000000000000000000000000000.0", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "-0.1", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e-6177", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "abc", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1.2.3", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "\nnan", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "1e5x", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "nan(123)", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "nan ", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: ".", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "+.", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "-.", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: ".e1", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "nan9999999999999999999999999999999999", kind: "nan_literal", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "snan9999999999999999999999999999999999", kind: "nan_literal", signaling: true, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "", kind: "blank", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "   ", kind: "blank", signaling: false, nan_min_width: 0, cohort_min_width: 0 },
-    StringCase { input: "nan", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0 },
-    StringCase { input: "-nan", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0 },
-    StringCase { input: "NaN1000000", kind: "nan_literal", signaling: false, nan_min_width: 64, cohort_min_width: 0 },
-    StringCase { input: "qnan", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0 },
-    StringCase { input: "SNaN1000000000000000", kind: "nan_literal", signaling: true, nan_min_width: 128, cohort_min_width: 0 },
-    StringCase { input: "snan", kind: "nan_literal", signaling: true, nan_min_width: 32, cohort_min_width: 0 },
-    StringCase { input: " \t-snan", kind: "nan_literal", signaling: true, nan_min_width: 32, cohort_min_width: 0 },
-    StringCase { input: "NaN123", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0 },
-    StringCase { input: "SNaN42", kind: "nan_literal", signaling: true, nan_min_width: 32, cohort_min_width: 0 },
-    StringCase { input: "qnan999999", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0 },
+    StringCase { input: "0", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: true },
+    StringCase { input: "-0", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: true },
+    StringCase { input: "1", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1000000.0", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 64, zero_literal: false },
+    StringCase { input: "1.2345678901234567890123456789012345", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1e91", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 64, zero_literal: false },
+    StringCase { input: "3.14159265", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1e6145", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "0e-102", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 64, zero_literal: true },
+    StringCase { input: "1e370", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 128, zero_literal: false },
+    StringCase { input: "0e-399", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 128, zero_literal: true },
+    StringCase { input: "9999999999999999999999999999999999", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1e6112", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "0e-6177", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: true },
+    StringCase { input: "1e100", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1e-100", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "12345678901234567890.12345", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "Infinity", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "-Infinity", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "inf", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1000000000000000.0", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 128, zero_literal: false },
+    StringCase { input: "1000000000000000000000000000000000.0", kind: "cohort_coercion", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "-0.1", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1e-6177", kind: "port", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "abc", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1.2.3", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "\nnan", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1e", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "1e5x", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "nan(123)", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "nan ", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: ".", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "+.", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "-.", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: ".e1", kind: "invalid_syntax", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "nan9999999999999999999999999999999999", kind: "nan_literal", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "snan9999999999999999999999999999999999", kind: "nan_literal", signaling: true, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "", kind: "blank", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "   ", kind: "blank", signaling: false, nan_min_width: 0, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "nan", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "-nan", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "NaN1000000", kind: "nan_literal", signaling: false, nan_min_width: 64, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "qnan", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "SNaN1000000000000000", kind: "nan_literal", signaling: true, nan_min_width: 128, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "snan", kind: "nan_literal", signaling: true, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: " \t-snan", kind: "nan_literal", signaling: true, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "NaN123", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "SNaN42", kind: "nan_literal", signaling: true, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
+    StringCase { input: "qnan999999", kind: "nan_literal", signaling: false, nan_min_width: 32, cohort_min_width: 0, zero_literal: false },
 ];
 
 fn parity_add128_ddbidwith_mode(failures: &mut Vec<String>) -> usize {
@@ -8856,14 +8857,14 @@ fn parity_new_decimal128(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::generated::bid128_string::bid128_from_string(sc.input, BIDGO_ROUND_NEAREST_EVEN);
                 let pr_is_nan = bid754::generated::bid128_internal::bid128_is_na_n(pr) != 0;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 128)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let loss_mask = bid754::ExceptionFlags::INVALID_OPERATION.bits()
                     | bid754::ExceptionFlags::OVERFLOW.bits()
                     | bid754::ExceptionFlags::UNDERFLOW.bits()
                     | bid754::ExceptionFlags::INEXACT.bits();
-                let should_error = pr_is_nan || port_flags & loss_mask != 0 || silent_cohort_coercion;
+                let should_error = pr_is_nan || port_flags & loss_mask != 0 || rejected_cohort;
                 match got {
                     Ok(pv) if should_error => {
                         failures.push(format!("public parity NewDecimal128: input {:?}: expected an exact-representation error, got Ok({:?}) with port flags {:#x}", sc.input, pv.to_le_bytes(), port_flags));
@@ -8923,14 +8924,14 @@ fn parity_new_decimal128_biddirect(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::generated::bid128_string::bid128_from_string(sc.input, BIDGO_ROUND_NEAREST_EVEN);
                 let pr_is_nan = bid754::generated::bid128_internal::bid128_is_na_n(pr) != 0;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 128)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let loss_mask = bid754::ExceptionFlags::INVALID_OPERATION.bits()
                     | bid754::ExceptionFlags::OVERFLOW.bits()
                     | bid754::ExceptionFlags::UNDERFLOW.bits()
                     | bid754::ExceptionFlags::INEXACT.bits();
-                let should_error = pr_is_nan || port_flags & loss_mask != 0 || silent_cohort_coercion;
+                let should_error = pr_is_nan || port_flags & loss_mask != 0 || rejected_cohort;
                 match got {
                     Ok(pv) if should_error => {
                         failures.push(format!("public parity NewDecimal128BIDDirect: input {:?}: expected an exact-representation error, got Ok({:?}) with port flags {:#x}", sc.input, pv.to_le_bytes(), port_flags));
@@ -9074,12 +9075,12 @@ fn parity_new_decimal128_with_flags(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::generated::bid128_string::bid128_from_string(sc.input, BIDGO_ROUND_NEAREST_EVEN);
                 let pr_is_nan = bid754::generated::bid128_internal::bid128_is_na_n(pr) != 0;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 128)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let should_error = pr_is_nan
                     || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                    || silent_cohort_coercion;
+                    || rejected_cohort;
                 match got {
                     Ok((pv, pf)) if should_error => {
                         failures.push(format!("public parity NewDecimal128WithFlags: input {:?}: expected an error, got Ok(({:?}, {:#x}))", sc.input, pv.to_le_bytes(), pf.bits()));
@@ -9146,12 +9147,12 @@ fn parity_new_decimal128_with_mode(failures: &mut Vec<String>) -> usize {
                     let (pr, praw) = bid754::generated::bid128_string::bid128_from_string(sc.input, port_mode);
                     let pr_is_nan = bid754::generated::bid128_internal::bid128_is_na_n(pr) != 0;
                     let port_flags = map_port_flags(praw);
-                    let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                    let rejected_cohort = sc.kind == "cohort_coercion"
                         && (sc.cohort_min_width == 0 || sc.cohort_min_width > 128)
-                        && praw == 0;
+                        && (sc.zero_literal || praw == 0);
                     let should_error = pr_is_nan
                         || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                        || silent_cohort_coercion;
+                        || rejected_cohort;
                     match got {
                         Ok((pv, pf)) if should_error => {
                             failures.push(format!("public parity NewDecimal128WithMode: input {:?} mode {:?}: expected an error, got Ok(({:?}, {:#x}))", sc.input, mode, pv.to_le_bytes(), pf.bits()));
@@ -9243,14 +9244,14 @@ fn parity_new_decimal32(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::generated::bid32_string::bid32_from_string_raw(sc.input, BIDGO_ROUND_NEAREST_EVEN);
                 let pr_is_nan = bid754::generated::bid32_exports::bid32_is_na_n(pr);
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 32)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let loss_mask = bid754::ExceptionFlags::INVALID_OPERATION.bits()
                     | bid754::ExceptionFlags::OVERFLOW.bits()
                     | bid754::ExceptionFlags::UNDERFLOW.bits()
                     | bid754::ExceptionFlags::INEXACT.bits();
-                let should_error = pr_is_nan || port_flags & loss_mask != 0 || silent_cohort_coercion;
+                let should_error = pr_is_nan || port_flags & loss_mask != 0 || rejected_cohort;
                 match got {
                     Ok(pv) if should_error => {
                         failures.push(format!("public parity NewDecimal32: input {:?}: expected an exact-representation error, got Ok({:#x}) with port flags {:#x}", sc.input, pv.to_bits(), port_flags));
@@ -9310,14 +9311,14 @@ fn parity_new_decimal32_biddirect(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::generated::bid32_string::bid32_from_string_raw(sc.input, BIDGO_ROUND_NEAREST_EVEN);
                 let pr_is_nan = bid754::generated::bid32_exports::bid32_is_na_n(pr);
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 32)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let loss_mask = bid754::ExceptionFlags::INVALID_OPERATION.bits()
                     | bid754::ExceptionFlags::OVERFLOW.bits()
                     | bid754::ExceptionFlags::UNDERFLOW.bits()
                     | bid754::ExceptionFlags::INEXACT.bits();
-                let should_error = pr_is_nan || port_flags & loss_mask != 0 || silent_cohort_coercion;
+                let should_error = pr_is_nan || port_flags & loss_mask != 0 || rejected_cohort;
                 match got {
                     Ok(pv) if should_error => {
                         failures.push(format!("public parity NewDecimal32BIDDirect: input {:?}: expected an exact-representation error, got Ok({:#x}) with port flags {:#x}", sc.input, pv.to_bits(), port_flags));
@@ -9481,12 +9482,12 @@ fn parity_new_decimal32_with_flags(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::generated::bid32_string::bid32_from_string_raw(sc.input, BIDGO_ROUND_NEAREST_EVEN);
                 let pr_is_nan = bid754::generated::bid32_exports::bid32_is_na_n(pr);
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 32)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let should_error = pr_is_nan
                     || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                    || silent_cohort_coercion;
+                    || rejected_cohort;
                 match got {
                     Ok((pv, pf)) if should_error => {
                         failures.push(format!("public parity NewDecimal32WithFlags: input {:?}: expected an error, got Ok(({:#x}, {:#x}))", sc.input, pv.to_bits(), pf.bits()));
@@ -9553,12 +9554,12 @@ fn parity_new_decimal32_with_mode(failures: &mut Vec<String>) -> usize {
                     let (pr, praw) = bid754::generated::bid32_string::bid32_from_string_raw(sc.input, port_mode);
                     let pr_is_nan = bid754::generated::bid32_exports::bid32_is_na_n(pr);
                     let port_flags = map_port_flags(praw);
-                    let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                    let rejected_cohort = sc.kind == "cohort_coercion"
                         && (sc.cohort_min_width == 0 || sc.cohort_min_width > 32)
-                        && praw == 0;
+                        && (sc.zero_literal || praw == 0);
                     let should_error = pr_is_nan
                         || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                        || silent_cohort_coercion;
+                        || rejected_cohort;
                     match got {
                         Ok((pv, pf)) if should_error => {
                             failures.push(format!("public parity NewDecimal32WithMode: input {:?} mode {:?}: expected an error, got Ok(({:#x}, {:#x}))", sc.input, mode, pv.to_bits(), pf.bits()));
@@ -9650,14 +9651,14 @@ fn parity_new_decimal64(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::bid64_from_string_raw(sc.input, 0);
                 let pr_is_nan = bid754::generated::noncomp64::bid64_is_na_n(pr) != 0;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 64)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let loss_mask = bid754::ExceptionFlags::INVALID_OPERATION.bits()
                     | bid754::ExceptionFlags::OVERFLOW.bits()
                     | bid754::ExceptionFlags::UNDERFLOW.bits()
                     | bid754::ExceptionFlags::INEXACT.bits();
-                let should_error = pr_is_nan || port_flags & loss_mask != 0 || silent_cohort_coercion;
+                let should_error = pr_is_nan || port_flags & loss_mask != 0 || rejected_cohort;
                 match got {
                     Ok(pv) if should_error => {
                         failures.push(format!("public parity NewDecimal64: input {:?}: expected an exact-representation error, got Ok({:#x}) with port flags {:#x}", sc.input, pv.to_bits(), port_flags));
@@ -9717,14 +9718,14 @@ fn parity_new_decimal64_biddirect(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::bid64_from_string_raw(sc.input, 0);
                 let pr_is_nan = bid754::generated::noncomp64::bid64_is_na_n(pr) != 0;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 64)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let loss_mask = bid754::ExceptionFlags::INVALID_OPERATION.bits()
                     | bid754::ExceptionFlags::OVERFLOW.bits()
                     | bid754::ExceptionFlags::UNDERFLOW.bits()
                     | bid754::ExceptionFlags::INEXACT.bits();
-                let should_error = pr_is_nan || port_flags & loss_mask != 0 || silent_cohort_coercion;
+                let should_error = pr_is_nan || port_flags & loss_mask != 0 || rejected_cohort;
                 match got {
                     Ok(pv) if should_error => {
                         failures.push(format!("public parity NewDecimal64BIDDirect: input {:?}: expected an exact-representation error, got Ok({:#x}) with port flags {:#x}", sc.input, pv.to_bits(), port_flags));
@@ -9878,12 +9879,12 @@ fn parity_new_decimal64_with_flags(failures: &mut Vec<String>) -> usize {
                 let (pr, praw) = bid754::bid64_from_string_raw(sc.input, 0);
                 let pr_is_nan = bid754::generated::noncomp64::bid64_is_na_n(pr) != 0;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > 64)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let should_error = pr_is_nan
                     || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                    || silent_cohort_coercion;
+                    || rejected_cohort;
                 match got {
                     Ok((pv, pf)) if should_error => {
                         failures.push(format!("public parity NewDecimal64WithFlags: input {:?}: expected an error, got Ok(({:#x}, {:#x}))", sc.input, pv.to_bits(), pf.bits()));
@@ -9950,12 +9951,12 @@ fn parity_new_decimal64_with_mode(failures: &mut Vec<String>) -> usize {
                     let (pr, praw) = bid754::bid64_from_string_raw(sc.input, port_mode as i32);
                     let pr_is_nan = bid754::generated::noncomp64::bid64_is_na_n(pr) != 0;
                     let port_flags = map_port_flags(praw);
-                    let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                    let rejected_cohort = sc.kind == "cohort_coercion"
                         && (sc.cohort_min_width == 0 || sc.cohort_min_width > 64)
-                        && praw == 0;
+                        && (sc.zero_literal || praw == 0);
                     let should_error = pr_is_nan
                         || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                        || silent_cohort_coercion;
+                        || rejected_cohort;
                     match got {
                         Ok((pv, pf)) if should_error => {
                             failures.push(format!("public parity NewDecimal64WithMode: input {:?} mode {:?}: expected an error, got Ok(({:#x}, {:#x}))", sc.input, mode, pv.to_bits(), pf.bits()));
@@ -10038,11 +10039,11 @@ fn parity_parse_decimal128_bidraw(failures: &mut Vec<String>) -> usize {
             }
         } else {
             let (pr, praw) = bid754::generated::bid128_string::bid128_from_string(sc.input, BIDGO_ROUND_NEAREST_EVEN);
-            let silent_cohort_coercion = sc.kind == "cohort_coercion"
+            let rejected_cohort = sc.kind == "cohort_coercion"
                 && (sc.cohort_min_width == 0 || sc.cohort_min_width > 128)
-                && praw == 0;
+                && (sc.zero_literal || praw == 0);
             let malformed_input = sc.kind == "blank" || sc.kind == "invalid_syntax";
-            if malformed_input || silent_cohort_coercion {
+            if malformed_input || rejected_cohort {
                 if pv.to_le_bytes() != [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x7c] {
                     failures.push(format!("public parity ParseDecimal128BIDRaw: input {:?}: rejected-input result bits {:?}, want canonical qNaN {:?}", sc.input, pv.to_le_bytes(), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x7c]));
                 }
@@ -10088,11 +10089,11 @@ fn parity_parse_decimal32_bidraw(failures: &mut Vec<String>) -> usize {
             }
         } else {
             let (pr, praw) = bid754::generated::bid32_string::bid32_from_string_raw(sc.input, BIDGO_ROUND_NEAREST_EVEN);
-            let silent_cohort_coercion = sc.kind == "cohort_coercion"
+            let rejected_cohort = sc.kind == "cohort_coercion"
                 && (sc.cohort_min_width == 0 || sc.cohort_min_width > 32)
-                && praw == 0;
+                && (sc.zero_literal || praw == 0);
             let malformed_input = sc.kind == "blank" || sc.kind == "invalid_syntax";
-            if malformed_input || silent_cohort_coercion {
+            if malformed_input || rejected_cohort {
                 if pv.to_bits() != 0x7c00_0000u32 {
                     failures.push(format!("public parity ParseDecimal32BIDRaw: input {:?}: rejected-input result bits {:#x}, want canonical qNaN {:#x}", sc.input, pv.to_bits(), 0x7c00_0000u32));
                 }
@@ -10138,11 +10139,11 @@ fn parity_parse_decimal64_bidraw(failures: &mut Vec<String>) -> usize {
             }
         } else {
             let (pr, praw) = bid754::bid64_from_string_raw(sc.input, 0);
-            let silent_cohort_coercion = sc.kind == "cohort_coercion"
+            let rejected_cohort = sc.kind == "cohort_coercion"
                 && (sc.cohort_min_width == 0 || sc.cohort_min_width > 64)
-                && praw == 0;
+                && (sc.zero_literal || praw == 0);
             let malformed_input = sc.kind == "blank" || sc.kind == "invalid_syntax";
-            if malformed_input || silent_cohort_coercion {
+            if malformed_input || rejected_cohort {
                 if pv.to_bits() != 0x7c00_0000_0000_0000u64 {
                     failures.push(format!("public parity ParseDecimal64BIDRaw: input {:?}: rejected-input result bits {:#x}, want canonical qNaN {:#x}", sc.input, pv.to_bits(), 0x7c00_0000_0000_0000u64));
                 }

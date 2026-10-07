@@ -260,6 +260,9 @@ pub(crate) fn handle_uf_128(mut sgn: u64, mut expon: i64, mut CQ: BID_UINT128, m
     let mut amount: i64 = 0;
     let mut rmode: u64 = 0;
     let mut status: u32 = 0;
+    if ((CQ.hi == 0) && (CQ.lo == 0)) {
+        return BID_UINT128 { hi: sgn, ..Default::default() };
+    }
     if ((expon.wrapping_add(34)) < 0) {
         (*fpsc) |= (48 as u32);
         res.hi = sgn;
@@ -706,8 +709,9 @@ pub(crate) fn bid128_div_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mo
                         tdigit[0] = tdigit[0].wrapping_sub(100000000);
                         tdigit[1] = tdigit[1].wrapping_add(1);
                     }
-                    j = (j.wrapping_add(1));
-                    QX32 = (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64)));
+                    let (__go2rs_rhs_232718_0, __go2rs_rhs_232718_1) = ((j.wrapping_add(1)), (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64))));
+                    j = __go2rs_rhs_232718_0;
+                    QX32 = __go2rs_rhs_232718_1;
                 }
                 if (tdigit[1] >= 100000000) {
                     tdigit[1] = tdigit[1].wrapping_sub(100000000);
@@ -759,8 +763,9 @@ pub(crate) fn bid128_div_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_mo
                         tdigit[0] = tdigit[0].wrapping_sub(100000000);
                         tdigit[1] = tdigit[1].wrapping_add(1);
                     }
-                    j = (j.wrapping_add(1));
-                    QX32 = (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64)));
+                    let (__go2rs_rhs_234090_0, __go2rs_rhs_234090_1) = ((j.wrapping_add(1)), (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64))));
+                    j = __go2rs_rhs_234090_0;
+                    QX32 = __go2rs_rhs_234090_1;
                 }
                 if (tdigit[1] >= 100000000) {
                     tdigit[1] = tdigit[1].wrapping_sub(100000000);

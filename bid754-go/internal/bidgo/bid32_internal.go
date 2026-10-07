@@ -339,6 +339,9 @@ func get_BID32_UF(sgn uint32, expon int, coeff uint64, R uint32, rmode int, pfps
 	var _C64, remainder_h uint64
 	var r, mask uint32
 	var extra_digits, amount, amount2 int
+	if expon < 0 && coeff == 0 && R == 0 {
+		return sgn
+	}
 
 	if coeff > 9999999 {
 		expon++

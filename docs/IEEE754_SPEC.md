@@ -302,7 +302,10 @@ the encoding interpretation differs from C, it is a bug.
 In principle, the Go mechanical port in this repository must match the
 behavior of pinned Intel BID C. However, only where the pinned C implementation
 conflicts with an IEEE 754-2019 `shall` requirement may an intentional
-deviation that follows IEEE behavior be made. All intentional deviations are
+deviation that follows IEEE behavior be made, with the sole optional-helper
+exception of the Decimal32 quantum correction registered below as
+INTEL-BID-006. This exception does not make quantum mandatory or expand the
+public API. All intentional deviations are
 registered in this section. Any C mismatch not registered here is a bug.
 
 Registration requirements:
@@ -348,6 +351,74 @@ Currently registered deviations:
    rows skip native comparison. Generated string tests and public-path
    regression families cover neighboring lengths, signs, exponent spellings,
    rounding modes, exact results, and unrepresentable written cohorts.
+
+3. Decimal128 `scalbn` / `scalbln` / `ldexp` normalization
+   ([INTEL-BID-003](INTEL_BID_ISSUES.md#intel-bid-003-d128-scaleb-false-overflow)):
+   §5.3.3 scaleB must preserve an exactly representable scaled value. The
+   `10^33` coefficient comparison uses both limbs. Pinned C compares only
+   the upper limb and can overflow `(10^33-1)E6111` scaled by ten, although
+   `(10^34-10)E6111` is exact and requires no exception.
+
+4. Decimal128 fused multiply-add overflow
+   (INTEL-BID-004/005/011 in [the issue register](INTEL_BID_ISSUES.md)):
+   §5.4.1 requires a single rounding of the exact fused result; §7.4
+   determines the overflow result and flags. Opposite-sign subtraction must
+   finish before classifying overflow, the exact-subtraction branch must
+   check the exponent bound, and directed overflow correction must receive
+   the result sign. In particular, `1E35 * 1E6110 - 9E6110` rounds to maximum
+   finite with Inexact under nearest rounding, while
+   `1E35 * 1E6111 - 10E6111` overflows. The negative counterparts and all
+   five rounding modes follow the same exact-result rule.
+
+5. Decimal32/64 character conversion at underflow
+   (INTEL-BID-007/008/009 in [the issue register](INTEL_BID_ISSUES.md)):
+   §5.4.2 and §4 require the requested rounding direction and a single
+   rounding of the complete decimal sequence. Exponent notation must not
+   reset the rounding mode. The no-exponent path passes the unrounded
+   coefficient and discarded-tail information to the underflow packer;
+   Decimal64 must not send a negative biased exponent to its overflow-only
+   packer. Equivalent exponent and fixed-point spellings have the same
+   numerical result and IEEE flags.
+   For INTEL-BID-013, delayed directed-rounding carry normalization is
+   deferred until packing. This preserves the original exponent for §7.5
+   tininess detection: an inexact tiny input that rounds to the minimum
+   normal value still raises Underflow and Inexact.
+
+6. Decimal32/64/128 exact-zero packing
+   ([INTEL-BID-010](INTEL_BID_ISSUES.md#intel-bid-010-exact-zero-underflow-packing)):
+   §5.4.2 conversion of an exact zero remains zero, without Underflow or
+   Inexact. The extreme-underflow packer checks zero before choosing a
+   directed minimum subnormal or setting range flags. Pinned Decimal32/64 C
+   also raises Underflow/Inexact for `0e-109` / `0e-415`, even though its
+   mode-reset bug leaves the numerical result at zero. Public rejection of an
+   unrepresentable written zero cohort is a separate bid754 input contract.
+
+7. Decimal32 quantum
+   ([INTEL-BID-006](INTEL_BID_ISSUES.md#intel-bid-006-d32-quantum-steering-mask)):
+   the optional helper returns positive `1Eexp` for a finite operand with
+   encoded quantum exponent `exp`, including either BID coefficient layout
+   and noncanonical finite encodings. Pinned C uses a 64-bit steering mask
+   on a 32-bit operand and reads the wrong exponent for the alternate
+   layout. This registered exception corrects only finite exponent extraction;
+   the existing special-value behavior and zero exception flags are preserved.
+
+8. Decimal128 `scalbn` / `scalbln` accumulated status
+   ([INTEL-BID-012](INTEL_BID_ISSUES.md#intel-bid-012-prior-inexact-causes-false-scaleb-underflow)):
+   §7.5 does not raise Underflow for an exact subnormal result under default
+   exception handling, and §7.6 retains flags raised by earlier operations.
+   The final scaleB packer receives fresh operation-local status; its flags
+   are then accumulated into the caller's status word. Pinned C instead uses
+   prior Inexact to raise Underflow when scaling `10E-6176` by `10^-1`.
+   The `numeric_boundary_bid128_scalbn_sticky_inexact_cdiverge` and
+   `numeric_boundary_bid128_scalbln_sticky_inexact_cdiverge` manifest blocks
+   carry initial status `0x20`, independent expected results, and measured
+   native-comparison skip reasons. Matching exact-zero, inexact-underflow,
+   overflow, and NaN neighbors retain native comparison.
+
+The boundary families for items 3–7 are checked against direct pinned-C
+execution. Their [generated boundary inputs](../devtools/scripts/generate_numeric_regressions.py)
+and [manifest blocks](../devtools/testgen_manifest.json) separate matching neighbors
+from deviations; only the measured mismatches skip native comparison.
 
 ## decTest
 

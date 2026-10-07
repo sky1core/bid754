@@ -30,15 +30,15 @@ type goportReadCaseCounts struct {
 }
 
 var expectedGoportReadCaseCounts = goportReadCaseCounts{
-	Total:         86930,
-	Decimal32:     20932,
-	Decimal64:     21790,
-	Decimal128:    44071,
-	FromString:    291,
+	Total:         91816,
+	Decimal32:     23248,
+	Decimal64:     23100,
+	Decimal128:    45331,
+	FromString:    3041,
 	ToString:      63,
-	UnaryOp:       61366,
-	BinaryOp:      23256,
-	TernaryOp:     1817,
+	UnaryOp:       62262,
+	BinaryOp:      24176,
+	TernaryOp:     2137,
 	StatusControl: 137,
 	Functions: map[string]int{
 		"bid128_abs":                         21,
@@ -48,12 +48,12 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid128_copySign":                    36,
 		"bid128_div":                         324,
 		"bid128_fdim":                        586,
-		"bid128_fma":                         299,
+		"bid128_fma":                         619,
 		"bid128_fmod":                        180,
 		"bid128_frexp":                       47,
 		"bid128_from_int32":                  20,
 		"bid128_from_int64":                  20,
-		"bid128_from_string":                 86,
+		"bid128_from_string":                 146,
 		"bid128_from_uint32":                 20,
 		"bid128_from_uint64":                 20,
 		"bid128_ilogb":                       78,
@@ -67,7 +67,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid128_isSigned":                    15,
 		"bid128_isSubnormal":                 27,
 		"bid128_isZero":                      23,
-		"bid128_ldexp":                       505,
+		"bid128_ldexp":                       685,
 		"bid128_llquantexp":                  8,
 		"bid128_llrint":                      135,
 		"bid128_llround":                     346,
@@ -111,8 +111,8 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid128_round_integral_positive":     53,
 		"bid128_round_integral_zero":         51,
 		"bid128_sameQuantum":                 40,
-		"bid128_scalbln":                     57,
-		"bid128_scalbn":                      621,
+		"bid128_scalbln":                     407,
+		"bid128_scalbn":                      971,
 		"bid128_signaling_greater":           248,
 		"bid128_signaling_greater_equal":     239,
 		"bid128_signaling_greater_unordered": 239,
@@ -243,7 +243,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid32_frexp":                        49,
 		"bid32_from_int32":                   125,
 		"bid32_from_int64":                   120,
-		"bid32_from_string":                  116,
+		"bid32_from_string":                  1496,
 		"bid32_from_uint32":                  120,
 		"bid32_from_uint64":                  114,
 		"bid32_ilogb":                        73,
@@ -273,13 +273,13 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid32_nan":                          3,
 		"bid32_nearbyint":                    126,
 		"bid32_negate":                       23,
-		"bid32_nextafter":                    52,
+		"bid32_nextafter":                    92,
 		"bid32_nextdown":                     26,
 		"bid32_nexttoward":                   45,
 		"bid32_nextup":                       25,
 		"bid32_quantexp":                     64,
 		"bid32_quantize":                     61,
-		"bid32_quantum":                      15,
+		"bid32_quantum":                      911,
 		"bid32_quiet_equal":                  308,
 		"bid32_quiet_greater":                308,
 		"bid32_quiet_greater_equal":          308,
@@ -413,7 +413,7 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid64_frexp":                        45,
 		"bid64_from_int32":                   20,
 		"bid64_from_int64":                   122,
-		"bid64_from_string":                  89,
+		"bid64_from_string":                  1399,
 		"bid64_from_uint32":                  20,
 		"bid64_from_uint64":                  111,
 		"bid64_ilogb":                        72,
@@ -601,20 +601,20 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 		"bid_testSavedFlags":                 19,
 	},
 	Groups: map[string]int{
-		"decimal128_ieee754_regressions": 16,
+		"decimal128_ieee754_regressions": 1276,
 		"decimal128_operations":          43954,
 		"decimal128_strings":             101,
-		"decimal32_ieee754_regressions":  26,
+		"decimal32_ieee754_regressions":  2342,
 		"decimal32_operations":           20796,
 		"decimal32_strings":              110,
-		"decimal64_ieee754_regressions":  16,
+		"decimal64_ieee754_regressions":  1326,
 		"decimal64_operations":           21689,
 		"decimal64_strings":              85,
 		"status_control_operations":      137,
 	},
 	CompareGroups: map[string]int{
 		"CMP_EQUALSTATUS": 1027,
-		"CMP_FUZZYSTATUS": 85675,
+		"CMP_FUZZYSTATUS": 90561,
 		"CMP_RELATIVEERR": 228,
 	},
 }
@@ -626,8 +626,8 @@ var expectedGoportReadCaseCounts = goportReadCaseCounts{
 // Rows carrying a native-compare skip reason (cdiverge) pin intended IEEE
 // behavior, so they must execute and pass here too.
 const (
-	expectedGoportExecutedReadCases         = 86930
-	expectedGoportCDivergeExecutedReadCases = 11
+	expectedGoportExecutedReadCases         = 91816
+	expectedGoportCDivergeExecutedReadCases = 1507
 )
 
 // goportReadtestStringBackend routes the readtest.c check_results string
@@ -963,7 +963,7 @@ func goportReadCaseOperationBits(tc testspec.GeneratedReadCase) (string, readtes
 		}
 		return fmt.Sprintf("[%016x]", raw), sec, status, nil
 	case "decimal128":
-		raw, sec, status, err := goportReadtestGeneratedBID128(tc.Function, tc.Rounding, tc.Operands)
+		raw, sec, status, err := goportReadtestGeneratedBID128WithStatus(tc.Function, tc.Rounding, tc.Operands, tc.InitialStatus)
 		if err != nil {
 			return "", readtestNoSecondaryOutput(), "", err
 		}

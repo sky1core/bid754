@@ -1,23 +1,5 @@
-// Package tablecrosscheck cross-checks the c-tablegen output package
-// (devtools/generated/go, generated from pinned Intel BID C) against the
-// corresponding table literals inside bid754-go/internal/bidgo.
-//
-// bid754-go is zero-dependency and bidgo is an internal package, so the bidgo
-// values cannot be imported here. Instead this test type-checks the bidgo
-// package from source with go/types and evaluates the table initializer
-// literals as exact constants. The c-tablegen Go output thereby remains an
-// independent value anchor for hand-ported bidgo tables. For the c-tablegen-
-// generated tables_binarydecimal.go output, this check supplies the closed-
-// world value census; make verify-generated supplies byte reproducibility.
-//
-// The check is exhaustive in both directions:
-//   - every tablegen_manifest.json table must be anchored by at least one
-//     mapping entry, and
-//   - every bidgo package-level var initialized with a composite literal must
-//     have a mapping entry (a value comparison or a documented exclusion).
-//     No size threshold is applied: the smallest real Intel table in the
-//     package has 7 scalar leaves, so any threshold would create a coverage gap
-//     for bidgo copies of small Intel tables.
+// Package tablecrosscheck checks pinned C table values and generated bidgo
+// declaration ownership without importing the internal bidgo package.
 package tablecrosscheck
 
 import (
@@ -58,24 +40,14 @@ type tableMapping struct {
 	// differ); it cannot be caught structurally because Go offers no way to
 	// resolve a package-level var from its name at run time.
 	goName string
-	// generated is the c-tablegen output value; nil only for excluded entries.
+	// generated is the c-tablegen output value.
 	generated any
-	// excludedReason documents bidgo vars whose value cannot be statically
-	// compared, and why. Empty for compared tables.
-	excludedReason string
 	// pinnedGeneratedLeaves / pinnedBidgoLeaves must both be set when the two
 	// sides intentionally hold a different number of scalar leaves. The common
 	// prefix is compared and both totals are asserted exactly. When zero, the
 	// two sides must have identical leaf counts.
 	pinnedGeneratedLeaves int
 	pinnedBidgoLeaves     int
-	// pinnedGeneratedRowLen / pinnedBidgoRowLen must both be set (together
-	// with the pinned leaf totals) when the two sides slice the same Intel
-	// rows at different row widths, so a flat prefix comparison would
-	// misalign. Rows are then compared pairwise over the common column
-	// prefix.
-	pinnedGeneratedRowLen int
-	pinnedBidgoRowLen     int
 }
 
 // bidgoTableMappings maps every bidgo package-level composite-literal table
@@ -93,40 +65,29 @@ func bidgoTableMappings() map[string]tableMapping {
 		"bid_Ex192m192":               {goName: "BidEx192M192", generated: generatedtables.BidEx192M192},
 		"bid_Ex256m256":               {goName: "BidEx256M256", generated: generatedtables.BidEx256M256},
 		"bid_Ex64m64":                 {goName: "BidEx64M64", generated: generatedtables.BidEx64M64},
-		// Intel C declares 1024 rows; bidgo declares [1025] with the same 1024
-		// literal rows, leaving one zero-valued check row at index 1024.
-		"bid_factors": {goName: "BidFactors", generated: generatedtables.BidFactors, pinnedGeneratedLeaves: 2048, pinnedBidgoLeaves: 2050},
-		// bid_factors32 in bid32_div.go is a second hand-ported copy of the
-		// same Intel C bid_factors[1024][2] table (declared as [][2]int
-		// instead of int8 pairs), used on the live bid32_div trailing-zero
-		// path.
-		"bid_factors32":   {goName: "BidFactors", generated: generatedtables.BidFactors},
-		"bid_half128":     {goName: "BidHalf128", generated: generatedtables.BidHalf128},
-		"bid_half192":     {goName: "BidHalf192", generated: generatedtables.BidHalf192},
-		"bid_half256":     {goName: "BidHalf256", generated: generatedtables.BidHalf256},
-		"bid_half64":      {goName: "BidHalf64", generated: generatedtables.BidHalf64},
-		"bid_Kx128":       {goName: "BidKx128", generated: generatedtables.BidKx128},
-		"bid_Kx192":       {goName: "BidKx192", generated: generatedtables.BidKx192},
-		"bid_Kx256":       {goName: "BidKx256", generated: generatedtables.BidKx256},
-		"bid_Kx64":        {goName: "BidKx64", generated: generatedtables.BidKx64},
-		"bid_maskhigh128": {goName: "BidMaskHigh128", generated: generatedtables.BidMaskHigh128},
-		"bid_mask128":     {goName: "BidMask128", generated: generatedtables.BidMask128},
-		"bid_mask192":     {goName: "BidMask192", generated: generatedtables.BidMask192},
-		"bid_mask256":     {goName: "BidMask256", generated: generatedtables.BidMask256},
-		"bid_mask64":      {goName: "BidMask64", generated: generatedtables.BidMask64},
-		"bid_midi_tbl":    {goName: "BidMidiTbl", generated: generatedtables.BidMidiTbl},
-		"bid_midpoint128": {goName: "BidMidpoint128", generated: generatedtables.BidMidpoint128},
-		"bid_midpoint192": {goName: "BidMidpoint192", generated: generatedtables.BidMidpoint192},
-		"bid_midpoint256": {goName: "BidMidpoint256", generated: generatedtables.BidMidpoint256},
-		"bid_midpoint64":  {goName: "BidMidpoint64", generated: generatedtables.BidMidpoint64},
-		// Intel C ends the table with a commented-out 114th row ("114-bit n <
-		// 10^35"); the active C array has 113 rows. bidgo ported that
-		// commented-out row as a live 114th entry. Indexing never reaches it
-		// (nr_bits <= 113 for coefficients below 10^34), so the prefix
-		// comparison plus both pinned lengths covers the live surface.
-		"bid_nr_digits":  {goName: "BidNrDigits", generated: generatedtables.BidNrDigits, pinnedGeneratedLeaves: 452, pinnedBidgoLeaves: 456},
-		"mod10_18_tbl":   {goName: "Mod10_18Tbl", generated: generatedtables.Mod10_18Tbl},
-		"bid_onehalf128": {goName: "BidOneHalf128", generated: generatedtables.BidOneHalf128},
+		"bid_factors":                 {goName: "BidFactors", generated: generatedtables.BidFactors},
+		"bid_factors32":               {goName: "BidFactors", generated: generatedtables.BidFactors},
+		"bid_half128":                 {goName: "BidHalf128", generated: generatedtables.BidHalf128},
+		"bid_half192":                 {goName: "BidHalf192", generated: generatedtables.BidHalf192},
+		"bid_half256":                 {goName: "BidHalf256", generated: generatedtables.BidHalf256},
+		"bid_half64":                  {goName: "BidHalf64", generated: generatedtables.BidHalf64},
+		"bid_Kx128":                   {goName: "BidKx128", generated: generatedtables.BidKx128},
+		"bid_Kx192":                   {goName: "BidKx192", generated: generatedtables.BidKx192},
+		"bid_Kx256":                   {goName: "BidKx256", generated: generatedtables.BidKx256},
+		"bid_Kx64":                    {goName: "BidKx64", generated: generatedtables.BidKx64},
+		"bid_maskhigh128":             {goName: "BidMaskHigh128", generated: generatedtables.BidMaskHigh128},
+		"bid_mask128":                 {goName: "BidMask128", generated: generatedtables.BidMask128},
+		"bid_mask192":                 {goName: "BidMask192", generated: generatedtables.BidMask192},
+		"bid_mask256":                 {goName: "BidMask256", generated: generatedtables.BidMask256},
+		"bid_mask64":                  {goName: "BidMask64", generated: generatedtables.BidMask64},
+		"bid_midi_tbl":                {goName: "BidMidiTbl", generated: generatedtables.BidMidiTbl},
+		"bid_midpoint128":             {goName: "BidMidpoint128", generated: generatedtables.BidMidpoint128},
+		"bid_midpoint192":             {goName: "BidMidpoint192", generated: generatedtables.BidMidpoint192},
+		"bid_midpoint256":             {goName: "BidMidpoint256", generated: generatedtables.BidMidpoint256},
+		"bid_midpoint64":              {goName: "BidMidpoint64", generated: generatedtables.BidMidpoint64},
+		"bid_nr_digits":               {goName: "BidNrDigits", generated: generatedtables.BidNrDigits},
+		"mod10_18_tbl":                {goName: "Mod10_18Tbl", generated: generatedtables.Mod10_18Tbl},
+		"bid_onehalf128":              {goName: "BidOneHalf128", generated: generatedtables.BidOneHalf128},
 		// bid_onehalf128_round64 / bid_shiftright128_round64 /
 		// bid_maskhigh128_round64 in round_integral64.go are local copies of
 		// the first 22 entries of the Intel bid128.c tables (the 64-bit
@@ -150,8 +111,8 @@ func bidgoTableMappings() map[string]tableMapping {
 		// bidgo declares one extra trailing rounding-mode row.
 		"bid_round_const_table": {goName: "BidRoundConstTable", generated: generatedtables.BidRoundConstTable, pinnedGeneratedLeaves: 95, pinnedBidgoLeaves: 114},
 		"bid_round_const_table_128": {
-			goName:         "BidRoundConstTable128",
-			excludedReason: "bidgo computes this table at init via make_bid_round_const_table_128(); there is no static literal to extract. Its only input, bid_power10_table_128, is value-compared above.",
+			goName: "BidRoundConstTable128", generated: generatedtables.BidRoundConstTable128,
+			pinnedGeneratedLeaves: 360, pinnedBidgoLeaves: 432,
 		},
 		"bid_shiftright128":     {goName: "BidShiftRight128", generated: generatedtables.BidShiftRight128},
 		"bid_short_recip_scale": {goName: "BidShortRecipScale", generated: generatedtables.BidShortRecipScale},
@@ -167,6 +128,7 @@ func bidgoTableMappings() map[string]tableMapping {
 		// bid_ten2mk64_round64; comparing the literal here anchors both
 		// names.
 		"bid_ten2mk64_round64": {goName: "BidTen2MK64", generated: generatedtables.BidTen2MK64},
+		"bid_ten2mk64":         {goName: "BidTen2MK64", generated: generatedtables.BidTen2MK64},
 		// bid_round128_19_38_for64 in convert64.go carries local copies of
 		// the first 19 rows of the Intel bid_round.c bid_round128_19_38
 		// tables (the uint64 input path only needs 1 <= x <= 19).
@@ -191,6 +153,56 @@ func bidgoTableMappings() map[string]tableMapping {
 	}
 }
 
+func TestRuntimeTablesAreGeneratedFromManifest(t *testing.T) {
+	manifest, err := cgen.LoadManifest(tablegenManifestRel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.RuntimeOutput == "" || manifest.RuntimeRound128Output == "" {
+		t.Fatal("runtime output paths are missing from tablegen manifest")
+	}
+	mappings := bidgoTableMappings()
+	type origin struct{ goName, path string }
+	declared := map[string]origin{}
+	for _, table := range manifest.Tables {
+		for _, runtime := range table.Runtime {
+			path := manifest.RuntimeOutput
+			if table.Source == manifest.BidgoSource {
+				path = manifest.BidgoOutput
+			}
+			if runtime.Name == "bid_round_const_table_128" {
+				path = manifest.RuntimeRound128Output
+			}
+			if prior, ok := declared[runtime.Name]; ok {
+				t.Errorf("runtime table %q has duplicate manifest owners %q and %q", runtime.Name, prior.goName, table.GoName)
+			}
+			declared[runtime.Name] = origin{table.GoName, path}
+			mapping, ok := mappings[runtime.Name]
+			if !ok {
+				t.Errorf("runtime table %q has no value cross-check", runtime.Name)
+			} else if mapping.goName != table.GoName {
+				t.Errorf("runtime table %q maps to %q, manifest says %q", runtime.Name, mapping.goName, table.GoName)
+			}
+		}
+	}
+	pkg := bidgoPkg(t)
+	for name, mapping := range mappings {
+		origin, ok := declared[name]
+		if !ok {
+			t.Errorf("runtime table %q (%s) has no manifest generation target", name, mapping.goName)
+			continue
+		}
+		got := filepath.Clean(pkg.fset.Position(pkg.decls[name].Pos()).Filename)
+		want := filepath.Clean(filepath.Join("../..", origin.path))
+		if got != want {
+			t.Errorf("runtime table %q declared in %q, expected generated file %q", name, got, want)
+		}
+		if _, ok := pkg.decls[name].(*ast.CompositeLit); !ok {
+			t.Errorf("runtime table %q is not a generated literal", name)
+		}
+	}
+}
+
 func TestCTablegenOutputMatchesBidgoPortedTables(t *testing.T) {
 	manifest, err := cgen.LoadManifest(tablegenManifestRel)
 	if err != nil {
@@ -208,12 +220,8 @@ func TestCTablegenOutputMatchesBidgoPortedTables(t *testing.T) {
 
 	referencedGoNames := map[string]bool{}
 	for bidgoVar, mapping := range mappings {
-		if mapping.excludedReason == "" && (mapping.generated == nil || mapping.goName == "") {
-			t.Errorf("mapping entry %q must either compare a generated value under a manifest go_name or carry an exclusion reason", bidgoVar)
-			continue
-		}
-		if mapping.excludedReason != "" && mapping.generated != nil {
-			t.Errorf("mapping entry %q has both a generated value and an exclusion reason", bidgoVar)
+		if mapping.generated == nil || mapping.goName == "" {
+			t.Errorf("mapping entry %q must compare a generated value under a manifest go_name", bidgoVar)
 			continue
 		}
 		if mapping.goName != "" {
@@ -225,18 +233,18 @@ func TestCTablegenOutputMatchesBidgoPortedTables(t *testing.T) {
 	}
 	for goName := range manifestGoNames {
 		if !referencedGoNames[goName] {
-			t.Errorf("tablegen manifest table %q has no bidgo mapping entry; add a comparison or a documented exclusion", goName)
+			t.Errorf("tablegen manifest table %q has no bidgo value mapping", goName)
 		}
 	}
 
 	pkg := bidgoPkg(t)
 
 	// Exhaustive set over bidgo: every package-level composite-literal var is a
-	// potential bidgo table and must be mapped or excluded; every
+	// potential bidgo table and must be mapped; every
 	// mapping key must still exist as a bidgo package-level var.
 	for _, varName := range pkg.compositeLitVarNames() {
 		if _, ok := mappings[varName]; !ok {
-			t.Errorf("bidgo package-level composite-literal var %q has no cross-check mapping entry; add a value comparison against the c-tablegen output or a documented exclusion", varName)
+			t.Errorf("bidgo package-level composite-literal var %q has no c-tablegen value mapping", varName)
 		}
 	}
 	for bidgoVar := range mappings {
@@ -257,9 +265,6 @@ func TestCTablegenOutputMatchesBidgoPortedTables(t *testing.T) {
 	for _, bidgoVar := range bidgoVars {
 		mapping := mappings[bidgoVar]
 		t.Run(bidgoVar, func(t *testing.T) {
-			if mapping.excludedReason != "" {
-				t.Skipf("excluded from static value comparison: %s", mapping.excludedReason)
-			}
 			genLeaves := flattenGeneratedValue(t, reflect.ValueOf(mapping.generated))
 			portLeaves := pkg.flattenVar(t, bidgoVar)
 
@@ -275,11 +280,6 @@ func TestCTablegenOutputMatchesBidgoPortedTables(t *testing.T) {
 					mapping.goName, len(genLeaves), bidgoVar, len(portLeaves))
 			}
 
-			if mapping.pinnedGeneratedRowLen != 0 || mapping.pinnedBidgoRowLen != 0 {
-				compareRowPrefix(t, mapping, bidgoVar, genLeaves, portLeaves)
-				return
-			}
-
 			n := len(genLeaves)
 			if len(portLeaves) < n {
 				n = len(portLeaves)
@@ -291,45 +291,6 @@ func TestCTablegenOutputMatchesBidgoPortedTables(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// compareRowPrefix compares two tables that slice the same Intel rows at
-// different row widths: each common row is compared over the common column
-// prefix. Both row lengths and both leaf totals must be pinned.
-func compareRowPrefix(t *testing.T, mapping tableMapping, bidgoVar string, genLeaves, portLeaves []*big.Int) {
-	t.Helper()
-	if mapping.pinnedGeneratedRowLen <= 0 || mapping.pinnedBidgoRowLen <= 0 ||
-		mapping.pinnedGeneratedLeaves == 0 || mapping.pinnedBidgoLeaves == 0 {
-		t.Fatalf("row-prefix mapping for %q must pin both row lengths and both leaf totals", bidgoVar)
-	}
-	if mapping.pinnedGeneratedLeaves%mapping.pinnedGeneratedRowLen != 0 {
-		t.Fatalf("pinned generated leaves %d not divisible by pinned generated row length %d",
-			mapping.pinnedGeneratedLeaves, mapping.pinnedGeneratedRowLen)
-	}
-	if mapping.pinnedBidgoLeaves%mapping.pinnedBidgoRowLen != 0 {
-		t.Fatalf("pinned bidgo leaves %d not divisible by pinned bidgo row length %d",
-			mapping.pinnedBidgoLeaves, mapping.pinnedBidgoRowLen)
-	}
-	genRows := mapping.pinnedGeneratedLeaves / mapping.pinnedGeneratedRowLen
-	portRows := mapping.pinnedBidgoLeaves / mapping.pinnedBidgoRowLen
-	rows := genRows
-	if portRows < rows {
-		rows = portRows
-	}
-	cols := mapping.pinnedGeneratedRowLen
-	if mapping.pinnedBidgoRowLen < cols {
-		cols = mapping.pinnedBidgoRowLen
-	}
-	for r := 0; r < rows; r++ {
-		for c := 0; c < cols; c++ {
-			gen := genLeaves[r*mapping.pinnedGeneratedRowLen+c]
-			port := portLeaves[r*mapping.pinnedBidgoRowLen+c]
-			if gen.Cmp(port) != 0 {
-				t.Fatalf("value mismatch at row %d column %d: generated %s = %s, bidgo %s = %s",
-					r, c, mapping.goName, gen, bidgoVar, port)
-			}
-		}
 	}
 }
 

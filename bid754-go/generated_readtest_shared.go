@@ -389,7 +389,7 @@ func readtestIntegerPrefix(input string) (string, int, error) {
 }
 
 func formatReadtestStatus(flags uint32) string {
-	return fmt.Sprintf("%02X", flags&0xFF)
+	return fmt.Sprintf("%02X", flags)
 }
 
 // normalizeReadtestBits canonicalizes a readtest bit literal for comparison.

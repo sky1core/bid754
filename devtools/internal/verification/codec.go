@@ -21,7 +21,9 @@ func checkCodecEvidence(root, log string) error {
 		GoParseSkipped    int            `json:"bid_codec_reject_vectors_go_full_channel_skipped"`
 		GoParseString     int            `json:"bid_codec_string_vectors_go_full_consumed"`
 		RustParseReject   int            `json:"bid_codec_reject_vectors_rust_full_parse_consumed"`
+		RustParseString   int            `json:"bid_codec_string_vectors_rust_full_parse_consumed"`
 		RustParseSkipped  int            `json:"bid_codec_reject_vectors_rust_full_parse_channel_skipped"`
+		ExactWidthCases   int            `json:"bid_codec_exact_parse_width_cases"`
 		ParseOracleTuples int            `json:"bid_codec_parse_oracle_tuples"`
 	}
 	raw, err := os.ReadFile(filepath.Join(root, "devtools/verification_anchors.json"))
@@ -38,7 +40,7 @@ func checkCodecEvidence(root, log string) error {
 		}
 		canonical += anchors.Canonical[width]
 	}
-	if anchors.Total <= 0 || anchors.RejectTotal <= 0 || anchors.ParseOracleTuples <= 0 {
+	if anchors.Total <= 0 || anchors.RejectTotal <= 0 || anchors.ParseOracleTuples <= 0 || anchors.GoParseString <= 0 || anchors.RustParseString <= 0 || anchors.ExactWidthCases <= 0 {
 		return fmt.Errorf("missing codec total anchors")
 	}
 	sections := []struct{ language, heading string }{
@@ -73,11 +75,14 @@ func checkCodecEvidence(root, log string) error {
 		part := log[start+len(marker) : end]
 		patterns := []string{}
 		if section.language == "go_parse" {
-			patterns = append(patterns, fmt.Sprintf(`go_full reject_vectors: consumed=%d channel_skipped=%d\b`, anchors.GoParseReject, anchors.GoParseSkipped), fmt.Sprintf(`go_full string_vectors: consumed=%d\b`, anchors.GoParseString))
+			patterns = append(patterns, fmt.Sprintf(`go_full reject_vectors: consumed=%d channel_skipped=%d\b`, anchors.GoParseReject, anchors.GoParseSkipped), fmt.Sprintf(`go_full string_vectors: consumed=%d exact_width_cases=%d\b`, anchors.GoParseString, anchors.ExactWidthCases))
 			patterns = append(patterns, fmt.Sprintf(`parse oracle tuples=%d comparator baseline/bits/flags and all-mode-pair checks executed\b`, anchors.ParseOracleTuples), `(?m)^--- PASS: TestGoFullBidCodecParseComparatorStrength \(`)
+			patterns = append(patterns, fmt.Sprintf(`go_full exact comparator fault witnesses=%d same-wrong-result injected_failures=6\b`, anchors.ExactWidthCases), `(?m)^--- PASS: TestGoFullBidCodecExactComparatorStrength \(`)
 		} else if section.language == "rust_parse" {
 			patterns = append(patterns, fmt.Sprintf(`rust_full_parse reject_vectors: consumed=%d channel_skipped=%d\b`, anchors.RustParseReject, anchors.RustParseSkipped))
-			patterns = append(patterns, fmt.Sprintf(`rust_full_parse rounded oracle tuples=%d\b`, anchors.ParseOracleTuples), `(?m)^test test_rust_full_parse_comparator_strength \.\.\. ok$`, `test result: ok\. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;`)
+			patterns = append(patterns, fmt.Sprintf(`rust_full_parse string_vectors: consumed=%d exact_width_cases=%d\b`, anchors.RustParseString, anchors.ExactWidthCases), `(?m)^test test_rust_full_parse_string_vectors \.\.\. ok$`)
+			patterns = append(patterns, fmt.Sprintf(`rust_full_parse exact comparator fault witnesses=%d same-wrong-result injected_failures=6\b`, anchors.ExactWidthCases), `(?m)^test test_rust_full_parse_exact_comparator_strength \.\.\. ok$`)
+			patterns = append(patterns, fmt.Sprintf(`rust_full_parse rounded oracle tuples=%d\b`, anchors.ParseOracleTuples), `(?m)^test test_rust_full_parse_comparator_strength \.\.\. ok$`, `test result: ok\. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;`)
 		} else {
 			consumed, stringsCount := anchors.RejectConsumed[section.language], anchors.StringConsumed[section.language]
 			if consumed <= 0 || stringsCount <= 0 {

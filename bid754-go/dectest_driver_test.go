@@ -9,6 +9,44 @@ import (
 	"testing"
 )
 
+func TestNativeDectestNullReferenceOperandClassification(t *testing.T) {
+	if reason, ok := decTestSkipReason([]string{"apply"}, decTestCase{Operation: "apply", Operands: []string{"#"}}, "decimal64"); !ok || reason != "null_reference_operand" {
+		t.Fatalf("ignored operation with null operand = %q/%v", reason, ok)
+	}
+	for _, testType := range []string{"decimal32", "decimal64", "decimal128", "general"} {
+		for _, tc := range []struct {
+			name     string
+			operands []string
+			result   string
+			want     string
+		}{
+			{name: "first", operands: []string{"#", "1"}, result: "NaN", want: "null_reference_operand"},
+			{name: "second", operands: []string{"1", "#"}, result: "NaN", want: "null_reference_operand"},
+			{name: "quoted", operands: []string{"'#'", "1"}, result: "NaN", want: "null_reference_operand"},
+			{name: "finite", operands: []string{"1", "2"}, result: "3"},
+			{name: "nan", operands: []string{"NaN", "1"}, result: "NaN"},
+			{name: "invalid string", operands: []string{"'1..2'", "1"}, result: "NaN"},
+			{name: "tagged operand", operands: []string{"32#1", "1"}, result: "NaN", want: "tagged_literal"},
+			{name: "DPD tagged operand", operands: []string{"#A23003D0", "1"}, result: "NaN", want: "tagged_literal"},
+			{name: "tagged result", operands: []string{"1", "2"}, result: "32#3", want: "tagged_literal"},
+			{name: "hash result", operands: []string{"1", "2"}, result: "#", want: "tagged_literal"},
+		} {
+			t.Run(testType+"/"+tc.name, func(t *testing.T) {
+				got, ok := decTestCaseSkipReason(decTestCase{Operation: "add", Operands: tc.operands, Result: tc.result, Precision: 7}, testType)
+				if tc.want == "tagged_literal" && (testType == "decimal32" || testType == "decimal64") {
+					if got == "null_reference_operand" {
+						t.Fatal("tagged token classified as null reference")
+					}
+					return
+				}
+				if ok != (tc.want != "") || got != tc.want {
+					t.Fatalf("reason = %q/%v, want %q", got, ok, tc.want)
+				}
+			})
+		}
+	}
+}
+
 func TestDecTestFailureErrorNoFailures(t *testing.T) {
 	err := decTestFailureError([]decTestSuiteTotals{
 		{Name: "Decimal32", Passed: 10, Failed: 0, Skipped: 0},
@@ -16,6 +54,14 @@ func TestDecTestFailureErrorNoFailures(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
+	}
+}
+
+func TestDecTestFailureErrorRejectsEmptyExecution(t *testing.T) {
+	for _, suites := range [][]decTestSuiteTotals{nil, {{Name: "Decimal32"}}, {{Name: "Decimal64", Skipped: 1}}} {
+		if err := decTestFailureError(suites); err == nil {
+			t.Fatalf("empty execution accepted: %+v", suites)
+		}
 	}
 }
 

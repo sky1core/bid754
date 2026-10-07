@@ -46,7 +46,8 @@ func Bid128Ldexp(x BID_UINT128, n int, rnd_mode int) (BID_UINT128, uint32) {
 	}
 	// check for overflow
 	if exp64 > DECIMAL_MAX_EXPON_128 {
-		if CX.hi < 0x314dc6448d93 {
+		if CX.hi < 0x314dc6448d93 ||
+			(CX.hi == 0x314dc6448d93 && CX.lo < 0x38c15b0a00000000) {
 			// try to normalize coefficient
 			for {
 				CBID_X8.hi = (CX.hi << 3) | (CX.lo >> 61)
@@ -58,7 +59,9 @@ func Bid128Ldexp(x BID_UINT128, n int, rnd_mode int) (BID_UINT128, uint32) {
 				exponent_x--
 				exp64--
 
-				if !(CX.hi < 0x314dc6448d93 && exp64 > DECIMAL_MAX_EXPON_128) {
+				if !((CX.hi < 0x314dc6448d93 ||
+					(CX.hi == 0x314dc6448d93 && CX.lo < 0x38c15b0a00000000)) &&
+					exp64 > DECIMAL_MAX_EXPON_128) {
 					break
 				}
 			}

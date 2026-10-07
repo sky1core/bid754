@@ -914,8 +914,8 @@ func emitParseModeOp(b *strings.Builder, method string, op decOp, w widthSpec) {
     /// Parses a decimal string literal rounding excess precision with an
     /// explicit mode, returning the value and the exception flags raised
     /// while parsing on success. Mirrors the Go NewDecimal%sWithMode Ok/Err
-    /// decision (error iff the input string is rejected, including a cohort
-    /// the port would silently coerce with zero status); on Err the flags are
+    /// decision (error iff the input string is rejected, including an
+    /// unrepresentable written cohort); on Err the flags are
     /// meaningless (matching the Go signature's discarded-on-error contract),
     /// so they are not returned at all.
     pub fn %s(s: &str, mode: RoundingMode) -> Result<(%s, ExceptionFlags), ParseDecimalError> {
@@ -925,7 +925,7 @@ func emitParseModeOp(b *strings.Builder, method string, op decOp, w widthSpec) {
             (%s, ExceptionFlags::INVALID_OPERATION)
         } else {
             let (bits, raw) = crate::generated::%s::%s(s, super::types::to_bidgo_rounding(mode));
-            if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, %s, %s, %s) {
+            if bid_finite_literal_cohort_unrepresentable(s, %s, %s, %s, raw == 0) {
                 (%s, ExceptionFlags::INVALID_OPERATION)
             } else {
                 (%s, ExceptionFlags::from_bidgo(raw))
@@ -947,8 +947,8 @@ func emitParseWithFlagsOp(b *strings.Builder, method string, w widthSpec) {
 	fmt.Fprintf(b, `
     /// Parses a decimal string literal, returning the value and the
     /// exception flags raised while parsing on success. Mirrors the Go
-    /// NewDecimal%sWithFlags Ok/Err decision, including rejection of a cohort
-    /// the port would silently coerce with zero status; on Err the flags are
+    /// NewDecimal%sWithFlags Ok/Err decision, including rejection of an
+    /// unrepresentable written cohort; on Err the flags are
     /// meaningless (matching the Go signature's discarded-on-error contract),
     /// so they are not returned at all.
     pub fn %s(s: &str) -> Result<(%s, ExceptionFlags), ParseDecimalError> {
@@ -1105,7 +1105,7 @@ fn result_is_nan(bits: %s) -> bool {
 // validBIDFiniteLiteral/parseBIDFiniteLiteral/
 // unrepresentableBIDStringFlags helpers exactly: reject invalid-operation
 // status on an error-returning parser, require complete finite syntax, detect
-// an otherwise-silent cohort coercion, and make an error-only parse fail
+// an unrepresentable written cohort, and make an error-only parse fail
 // on inexact/range flags.
 // The text is identical across every width's file, but stays private per
 // wrapper file.
@@ -1228,21 +1228,22 @@ fn parse_bid_finite_literal(input: &str) -> Option<BidFiniteLiteral> {
 }
 
 /// Detects a numeric finite literal whose requested quantum or coefficient
-/// cannot be encoded by this width. Callers additionally require a zero raw
-/// status word, so explicitly flagged port rounding/range behavior remains
-/// unchanged.
+/// cannot be encoded by this width. Zero's written cohort is checked even if
+/// the port incorrectly raises status while packing exact zero.
 fn bid_finite_literal_cohort_unrepresentable(
     input: &str,
     min: i64,
     max: i64,
     precision: usize,
+    raw_status_exact: bool,
 ) -> bool {
     let Some(BidFiniteLiteral { quantum: Some(quantum), coefficient_digits }) =
         parse_bid_finite_literal(input)
     else {
         return false;
     };
-    coefficient_digits > precision || quantum < BigInt::from(min) || quantum > BigInt::from(max)
+    (coefficient_digits == 0 || raw_status_exact)
+        && (coefficient_digits > precision || quantum < BigInt::from(min) || quantum > BigInt::from(max))
 }
 `)
 }

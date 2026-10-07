@@ -4,69 +4,58 @@ import (
 	"bytes"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
 
-// TestMarkerLinesMatchPattern proves every marker line this package can emit
-// is discoverable by the coverage check's regex. A marker variant that stops
-// matching Pattern would make its generator's outputs invisible to
-// check_generated_marker_coverage.sh.
-func TestMarkerLinesMatchPattern(t *testing.T) {
-	re := regexp.MustCompile(Pattern)
-	lines := map[string]string{
-		"Line":               Line("testgen"),
-		"Line with source":   Line("go2rs from bid128_add.go"),
-		"HashLine":           HashLine("testgen"),
-		"DotLine":            DotLine("tools/codegen"),
-		"DotLine with flags": DotLine("tools/codegen --target=readtest-rust"),
+func TestEmittedMarkersAreDiscoveredByCoverageChecker(t *testing.T) {
+	root := t.TempDir()
+	scripts := filepath.Join(root, "devtools", "scripts")
+	if err := os.MkdirAll(scripts, 0o755); err != nil {
+		t.Fatal(err)
 	}
-	for name, line := range lines {
-		if strings.Contains(line, "\n") {
-			t.Errorf("%s output %q spans multiple lines; markers must be a single line", name, line)
-			continue
+	for _, name := range []string{"generated_artifacts.py", "check_generated_marker_coverage.sh"} {
+		body, err := os.ReadFile(filepath.Join("..", "..", "scripts", name))
+		if err != nil {
+			t.Fatal(err)
 		}
-		if !re.MatchString(line) {
-			t.Errorf("%s output %q does not match coverage Pattern %q", name, line, Pattern)
+		if err := os.WriteFile(filepath.Join(scripts, name), body, 0o755); err != nil {
+			t.Fatal(err)
 		}
 	}
-}
-
-// TestPatternMatchesCoverageScript pins Pattern to the marker_regex used by
-// devtools/scripts/check_generated_marker_coverage.sh. If either side changes
-// without the other, generators and the coverage check drift apart and newly
-// generated artifacts can escape verification.
-func TestPatternMatchesCoverageScript(t *testing.T) {
-	scriptPath := filepath.Join("..", "..", "scripts", "check_generated_marker_coverage.sh")
-	data, err := os.ReadFile(scriptPath)
-	if err != nil {
-		t.Fatalf("ReadFile(%q): %v", scriptPath, err)
+	if err := os.WriteFile(filepath.Join(scripts, "generated_marker_exceptions.txt"), nil, 0o644); err != nil {
+		t.Fatal(err)
 	}
-	const prefix = "marker_regex='"
-	var scriptPattern string
-	var found bool
-	for _, line := range strings.Split(string(data), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, prefix) {
-			continue
+	markers := map[string]string{"line.go": Line("testgen"), "source.go": Line("go2rs from bid128_add.go"), "hash.py": HashLine("testgen"), "dot.go": DotLine("tools/codegen"), "flags.go": DotLine("tools/codegen --target=readtest-rust")}
+	for name, marker := range markers {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(marker+"\n"), 0o644); err != nil {
+			t.Fatal(err)
 		}
-		if found {
-			t.Fatalf("%s defines marker_regex more than once", scriptPath)
-		}
-		rest := strings.TrimPrefix(trimmed, prefix)
-		if !strings.HasSuffix(rest, "'") {
-			t.Fatalf("%s marker_regex line %q is not a simple single-quoted assignment", scriptPath, trimmed)
-		}
-		scriptPattern = strings.TrimSuffix(rest, "'")
-		found = true
 	}
-	if !found {
-		t.Fatalf("%s does not define marker_regex; the coverage check contract moved", scriptPath)
+	manifest := filepath.Join(root, "devtools", "generated_artifacts.json")
+	if err := os.WriteFile(manifest, []byte(`{"files":["line.go"],"directories":[]}`), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	if scriptPattern != Pattern {
-		t.Fatalf("marker regex drift:\n  script  (%s): %q\n  genmarker.Pattern: %q\nchange both sides together", scriptPath, scriptPattern, Pattern)
+	git := exec.Command("git", "init", "-q", root)
+	if out, err := git.CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v %s", err, out)
+	}
+	check := func() ([]byte, error) {
+		cmd := exec.Command("bash", filepath.Join(scripts, "check_generated_marker_coverage.sh"))
+		cmd.Dir = root
+		return cmd.CombinedOutput()
+	}
+	out, err := check()
+	if err == nil || !bytes.Contains(out, []byte("dot.go")) || !bytes.Contains(out, []byte("hash.py")) || !bytes.Contains(out, []byte("source.go")) || !bytes.Contains(out, []byte("flags.go")) {
+		t.Fatalf("unregistered emitted variants not discovered: %v\n%s", err, out)
+	}
+	if err := os.WriteFile(manifest, []byte(`{"files":["line.go","source.go","hash.py","dot.go","flags.go"],"directories":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := check(); err != nil {
+		t.Fatalf("registered emitted variants rejected: %v\n%s", err, out)
 	}
 }
 

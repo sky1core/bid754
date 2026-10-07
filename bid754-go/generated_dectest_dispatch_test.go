@@ -77,9 +77,9 @@ func getTestFiles(dir, pattern string) ([]string, error) {
 func runDecTestCaseV2(tc decTestCase, testType string) error {
 	switch normalizeDecTestOperation(tc.Operation) {
 	case "class":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestClassOperation, generatedDectestCompareTokenResult, generatedDectestFlagCheckNone)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestClassOperation, generatedDectestCompareTokenResult, generatedDectestFlagCheckBIDFive)
 	case "samequantum":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestSameQuantumOperation, generatedDectestCompareTokenResult, generatedDectestFlagCheckNone)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestSameQuantumOperation, generatedDectestCompareTokenResult, generatedDectestFlagCheckBIDFive)
 	case "nexttoward":
 		return runGeneratedDectestCase(tc, testType, -1, executeDecTestNextTowardOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "nextplus", "nextminus":
@@ -101,7 +101,7 @@ func runDecTestCaseV2(tc decTestCase, testType string) error {
 	case "remainder":
 		return runGeneratedDectestCase(tc, testType, -1, executeDecTestRemainderOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "copy", "copyabs", "copynegate", "copysign":
-		return runGeneratedDectestCase(tc, testType, -1, executeDecTestCopyOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckNone)
+		return runGeneratedDectestCase(tc, testType, -1, executeDecTestCopyOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckBIDFive)
 	case "add", "subtract", "multiply", "divide", "quantize":
 		return runGeneratedDectestCase(tc, testType, 2, executeDecTestOperation, generatedDectestCompareDecimalResult, generatedDectestFlagCheckNative)
 	case "compare", "comparesig":
@@ -142,8 +142,8 @@ func runGeneratedDectestCase(
 			return fmt.Errorf("flag mismatch: expected %v, got %s", tc.Flags, execResult.Flags.String())
 		}
 	case generatedDectestFlagCheckNative:
-		if supportsDecTestFlagVerification() && !compareDecTestFlags(tc.Flags, execResult.Flags) {
-			return fmt.Errorf("flag mismatch: expected %v, got %s", tc.Flags, execResult.Flags.String())
+		if supportsDecTestFlagVerification() && !compareDecTestConditions(tc.Flags, execResult.Conditions) {
+			return fmt.Errorf("condition mismatch: expected %v, got %d", tc.Flags, execResult.Conditions)
 		}
 	default:
 		return fmt.Errorf("unsupported generated decTest flag check mode: %d", flagCheck)

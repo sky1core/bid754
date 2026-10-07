@@ -380,10 +380,6 @@ pub(crate) fn bid32_from_string_raw_port(ps: impl AsRef<str>, mut rnd_mode: i64)
                     dround = 0;
                     coefficient_x = coefficient_x.wrapping_add(1);
                     rounded_up = 1;
-                    if (coefficient_x == 10000000) {
-                        coefficient_x = 1000000;
-                        add_expon = add_expon.wrapping_add(1);
-                    }
                 }
             }
         }
@@ -399,7 +395,15 @@ pub(crate) fn bid32_from_string_raw_port(ps: impl AsRef<str>, mut rnd_mode: i64)
         if (rounded != 0) {
             pfpsf |= 32;
         }
-        res = (get_bid32_flags((sign_x as u32), (add_expon.wrapping_add(101)), coefficient_x, rnd_mode, (&mut pfpsf)) as u64);
+        let mut expon = (add_expon.wrapping_add(101));
+        if (expon < 0) {
+            if (rounded_up != 0) {
+                coefficient_x = coefficient_x.wrapping_sub(1);
+            }
+            res = (get_bid32_uf((sign_x as u32), expon, coefficient_x, (rounded as u32), rnd_mode, (&mut pfpsf)) as u64);
+        } else {
+            res = (get_bid32_flags((sign_x as u32), expon, coefficient_x, rnd_mode, (&mut pfpsf)) as u64);
+        }
         return ((res as u32), pfpsf);
     }
     c = s.as_bytes()[idx as usize];
@@ -448,7 +452,6 @@ pub(crate) fn bid32_from_string_raw_port(ps: impl AsRef<str>, mut rnd_mode: i64)
         if (rounded_up != 0) {
             coefficient_x = coefficient_x.wrapping_sub(1);
         }
-        rnd_mode = 0;
         res = (get_bid32_uf((sign_x as u32), expon_x, coefficient_x, (rounded as u32), rnd_mode, (&mut pfpsf)) as u64);
         return ((res as u32), pfpsf);
     }

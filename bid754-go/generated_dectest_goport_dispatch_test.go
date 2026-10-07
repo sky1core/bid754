@@ -409,62 +409,8 @@ func dectestGoportExpectedFlags(tc decTestCase) (ExceptionFlags, bool) {
 	return parsed & dectestGoportBIDFlagMask, true
 }
 
-// dectestGoportFlagExemptReason classifies executed cases whose expected flags
-// are NOT compared (value and quantum still are), each a documented
-// decNumber-vs-Intel-BID semantic divergence, never a port defect class. It
-// must stay in lockstep with the generator-side
-// generatedDectestGoportFlagExemptReason so the live recount matches the
-// pinned verification.
-//
-//   - from_string_zero_low_clamp_divergence: a string-conversion (tosci/toeng)
-//     case whose zero operand carries an exponent below the format minimum,
-//     clamped upward on parse (e.g. toSci 0e-10000 -> 0E-398 Clamped).
-//     decNumber raises only Clamped (projecting to None on the five-flag
-//     surface) while the Intel BID from_string path the port mechanically
-//     reproduces raises Inexact|Underflow for the same low clamp (measured:
-//     the port raised exactly Inexact|Underflow on every case in this class,
-//     and the readtest string domain pins from_string against Intel
-//     bit-for-bit). The class is deliberately this narrow: the measured
-//     complement — high-side zero clamps (toSci 0e+10000 -> 0E+369 Clamped)
-//     and every arithmetic-result zero clamp (divide 0E-390 1000E+13 ->
-//     0E-398 Clamped, multiply 0E-260 1000E-260 -> 0E-398 Clamped, and the
-//     finite/Inf divide family) — matched decNumber exactly (both sides
-//     quiet on the five-flag surface), so those stay flag-compared. Keyed
-//     statically off a tosci/toeng op, clamped-only Conditions (nothing
-//     projecting onto the five-flag surface), and a zero expected result
-//     with a negative exponent (the low-side clamp).
-//
-// Exemption never skips condition-token validation: this classifier itself
-// accepts only the registered Clamped-only shape, and the runner also parses
-// and validates the expected Conditions before consulting it for every case
-// that reaches execution.
-func dectestGoportFlagExemptReason(tc decTestCase) (string, bool) {
-	op := normalizeDecTestOperation(tc.Operation)
-	if op != "tosci" && op != "toeng" {
-		return "", false
-	}
-	if !dectestGoportHasOnlyClampedCondition(tc.Flags) {
-		return "", false
-	}
-	if q, ok := dectestGoportQuantumParse(tc.Result); ok && q.coeff == "0" && q.exponent < 0 {
-		return "from_string_zero_low_clamp_divergence", true
-	}
+func dectestGoportFlagExemptReason(_ decTestCase) (string, bool) {
 	return "", false
-}
-
-func dectestGoportHasOnlyClampedCondition(flags []string) bool {
-	clamped := false
-	for _, flag := range flags {
-		switch normalizeDecTestFlag(flag) {
-		case "", "none", "noflags":
-			continue
-		case "clamped":
-			clamped = true
-		default:
-			return false
-		}
-	}
-	return clamped
 }
 
 // dectestGoportQuantum is one cohort member: sign, integer coefficient (leading

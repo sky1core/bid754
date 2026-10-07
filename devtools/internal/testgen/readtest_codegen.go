@@ -392,6 +392,9 @@ func generateReadtestNativeDispatch(reads []ReadTestSpec, symbols map[string]sym
 	goCode.WriteString("\tdefault:\n\t\treturn 0, readtestNoSecondaryOutput(), \"\", fmt.Errorf(\"unsupported generated readtest decimal64 function %q\", function)\n\t}\n}\n\n")
 
 	goCode.WriteString("func nativeReadtestGeneratedBID128(function string, rounding int, operands []string) ([16]byte, readtestSecondaryOutput, string, error) {\n")
+	goCode.WriteString("\treturn nativeReadtestGeneratedBID128WithStatus(function, rounding, operands, 0)\n}\n\n")
+	goCode.WriteString("func nativeReadtestGeneratedBID128WithStatus(function string, rounding int, operands []string, initialStatus uint32) ([16]byte, readtestSecondaryOutput, string, error) {\n")
+	goCode.WriteString("\tif initialStatus & ^uint32(0x3d) != 0 || (initialStatus != 0 && function != \"bid128_scalbn\" && function != \"bid128_scalbln\") {\n\t\treturn [16]byte{}, readtestNoSecondaryOutput(), \"\", fmt.Errorf(\"unsupported initial status %x for %s\", initialStatus, function)\n\t}\n")
 	goCode.WriteString("\tswitch function {\n")
 	for _, dispatch := range decimalOps128 {
 		goCase, err := emitReadtestGoCase("128", "[16]byte", dispatch, true)
@@ -933,7 +936,7 @@ func readtestIntegerPrefix(input string) (string, int, error) {
 }
 
 func formatReadtestStatus(flags uint32) string {
-	return fmt.Sprintf("%02X", flags&0xFF)
+	return fmt.Sprintf("%02X", flags)
 }
 
 // normalizeReadtestBits canonicalizes a readtest bit literal for comparison.
@@ -1671,6 +1674,9 @@ func emitReadtestCWrapper128(dispatch readtestDispatchSpec, withSecondary bool) 
 	params = append(params, "_IDEC_flags* out_flags")
 	buf.WriteString(fmt.Sprintf("static void bid754_generated_readtest_%s(%s) {\n", dispatch.Function, strings.Join(params, ", ")))
 	for _, line := range setup {
+		if (dispatch.Function == "bid128_scalbn" || dispatch.Function == "bid128_scalbln") && line == "_IDEC_flags flags = 0;" {
+			line = "_IDEC_flags flags = *out_flags;"
+		}
 		buf.WriteString("\t")
 		buf.WriteString(line)
 		buf.WriteString("\n")
@@ -1941,7 +1947,11 @@ func emitReadtestGoCase(bits string, goType string, dispatch readtestDispatchSpe
 	if needsCleanup {
 		buf.WriteString("\t\tdefer cleanup()\n")
 	}
-	buf.WriteString("\t\tvar flags C._IDEC_flags\n")
+	if dispatch.Function == "bid128_scalbn" || dispatch.Function == "bid128_scalbln" {
+		buf.WriteString("\t\tflags := C._IDEC_flags(initialStatus)\n")
+	} else {
+		buf.WriteString("\t\tvar flags C._IDEC_flags\n")
+	}
 	secExpr := ""
 	if withSecondary {
 		secExpr = "readtestNoSecondaryOutput()"

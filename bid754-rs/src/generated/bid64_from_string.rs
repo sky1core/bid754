@@ -225,10 +225,6 @@ pub(crate) fn bid64_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) ->
                     dround = 0;
                     coefficient_x = coefficient_x.wrapping_add(1);
                     rounded_up = 1;
-                    if (coefficient_x == 10000000000000000) {
-                        coefficient_x = 1000000000000000;
-                        add_expon = add_expon.wrapping_add(1);
-                    }
                 }
             }
         }
@@ -240,7 +236,15 @@ pub(crate) fn bid64_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) ->
         if (rounded != 0) {
             pfpsf |= 32;
         }
-        res = fast_get_bid64_check_of_with_flags(sign_x, (add_expon.wrapping_add(0x18e)), coefficient_x, rnd_mode, (&mut pfpsf));
+        let mut expon = (add_expon.wrapping_add(0x18e));
+        if (expon < 0) {
+            if (rounded_up != 0) {
+                coefficient_x = coefficient_x.wrapping_sub(1);
+            }
+            res = get_bid64_uf_with_flags(sign_x, expon, coefficient_x, rounded, rnd_mode, (&mut pfpsf));
+        } else {
+            res = fast_get_bid64_check_of_with_flags(sign_x, expon, coefficient_x, rnd_mode, (&mut pfpsf));
+        }
         return (res, pfpsf);
     }
     if ((c != b'E') && (c != b'e')) {
@@ -288,7 +292,6 @@ pub(crate) fn bid64_from_string_port(str: impl AsRef<str>, mut rnd_mode: i64) ->
         if (rounded_up != 0) {
             coefficient_x = coefficient_x.wrapping_sub(1);
         }
-        rnd_mode = 0;
         res = get_bid64_uf_with_flags(sign_x, expon_x, coefficient_x, rounded, rnd_mode, (&mut pfpsf));
         return (res, pfpsf);
     }
@@ -367,6 +370,9 @@ pub(crate) fn get_bid64_uf_with_flags(mut sgn: u64, mut expon: i64, mut coeff: u
     let mut amount: i64 = 0;
     let mut amount2: i64 = 0;
     let mut status: u32 = 0;
+    if (((expon < 0) && (coeff == 0)) && (R == 0)) {
+        return sgn;
+    }
     if ((expon.wrapping_add(16)) < 0) {
         (*pfpsf) |= (48 as u32);
         if ((rmode == 1) && (sgn != 0)) {

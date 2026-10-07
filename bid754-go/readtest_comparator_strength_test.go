@@ -364,6 +364,18 @@ func TestReadtestSecondaryOutputComparatorIsExact(t *testing.T) {
 // (or fails to equate spelling variants of the same flags) breaks the
 // expected_status != *pfpsf mirror of readtest.c.
 func TestReadtestStatusComparatorDistinguishesFlags(t *testing.T) {
+	for bit := uint(0); bit < 32; bit++ {
+		flags := uint32(1) << bit
+		formatted := formatReadtestStatus(flags)
+		want := fmt.Sprintf("%02X", flags)
+		if formatted != want || normalizeReadtestStatus(formatted) == "00" {
+			t.Errorf("status bit %d lost: formatted=%q, want %q", bit, formatted, want)
+		}
+		combined, err := readtestCombineStatus(formatted, "20")
+		if err != nil || normalizeReadtestStatus(combined) != normalizeReadtestStatus(fmt.Sprintf("%02X", flags|0x20)) {
+			t.Errorf("status bit %d accumulation: %q, %v", bit, combined, err)
+		}
+	}
 	if normalizeReadtestStatus("00") == normalizeReadtestStatus("20") {
 		t.Error("status 00 and 20 normalized equal — status gate no longer distinguishes flags")
 	}

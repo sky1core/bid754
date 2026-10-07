@@ -240,7 +240,8 @@
       "comparison": "anchors-and-reproducibility",
       "evidence": {
         "patterns": [
-          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/testgen\\s"
+          "(?m)^ok\\s+github.com/sky1core/bid754/devtools/internal/testgen\\s",
+          "(?m)^GENERATED-COMPARE checked=[1-9][0-9]*$"
         ]
       }
     },
@@ -550,7 +551,10 @@
       "prerequisites": [],
       "comparison": "readtest-value-status",
       "evidence": {
-        "domain": "goport-readtest"
+        "domain": "goport-readtest",
+        "passes": [
+          "TestReadtestScaleBInitialStatus"
+        ]
       }
     },
     {
@@ -565,11 +569,7 @@
       ],
       "comparison": "decimal-value-five-flags",
       "evidence": {
-        "passes": [
-          "TestGeneratedDectestSuitesGoPort",
-          "TestGeneratedDectestPlusMinusQuantumStrengthGoPort",
-          "TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter"
-        ]
+        "domain": "goport-dectest"
       }
     },
     {
@@ -587,7 +587,10 @@
           "(?m)^test generated_dectest_suites_go_port \\.\\.\\. ok$",
           "(?m)^test test_generated_bid_string_vectors \\.\\.\\. ok$",
           "(?m)^test test_bid_codec_vectors_encode_decode \\.\\.\\. ok$",
-          "(?m)^test generated_public_api_parity \\.\\.\\. ok$"
+          "(?m)^test generated_public_api_parity \\.\\.\\. ok$",
+          "(?m)^test readtest_ieee754_regressions \\.\\.\\. ok$",
+          "(?m)^test test_rust_full_parse_string_vectors \\.\\.\\. ok$",
+          "(?m)^test test_rust_full_parse_exact_comparator_strength \\.\\.\\. ok$"
         ]
       }
     },
@@ -637,7 +640,7 @@
       "prerequisites": [
         "native"
       ],
-      "comparison": "c-oracle-bits-flags",
+      "comparison": "c-oracle-and-registered-independent-bits-flags",
       "evidence": {
         "domain": "native-ffi"
       }
@@ -655,7 +658,7 @@
       "prerequisites": [
         "native"
       ],
-      "comparison": "c-oracle-bits-flags",
+      "comparison": "c-oracle-bits-flags-and-independent-registered-deviations",
       "evidence": {
         "domain": "tier1-arithmetic-go"
       }
@@ -709,7 +712,7 @@
       "prerequisites": [
         "native"
       ],
-      "comparison": "c-oracle-bits-flags",
+      "comparison": "c-oracle-bits-flags-and-independent-registered-deviations",
       "evidence": {
         "domain": "tier1-arithmetic-rust"
       }
@@ -763,11 +766,7 @@
       ],
       "comparison": "decnumber-value-flags",
       "evidence": {
-        "passes": [
-          "TestGeneratedDectestSuites",
-          "TestGeneratedDectestPlusMinusQuantumStrengthGoPort",
-          "TestGeneratedDectestPlusMinusQuantumStrengthUnaryAdapter"
-        ]
+        "domain": "native-dectest"
       }
     },
     {
@@ -1068,11 +1067,15 @@
           "TestTier1OracleProtocols",
           "TestJavaProbeWitnesses",
           "TestJavaProbeRejectsMalformedRequests",
-          "TestTier1MetamorphicProperties"
+          "TestTier1MetamorphicProperties",
+          "TestTier1ScaleBBoundaryGo",
+          "TestTier1ScaleBBoundaryBigDecimal",
+          "TestTier1ScaleBBoundaryFuzzSeeds"
         ],
         "patterns": [
           "TIER1-BIGDECIMAL seeds=754,2019,57025 cases=14040 checked=[1-9][0-9]* excluded=.* observations=[1-9][0-9]* cells=585 java_cells=585",
-          "TIER1-PROPERTIES comparisons=1596"
+          "TIER1-PROPERTIES comparisons=1596",
+          "TIER1-SCALEB-BIGDECIMAL cases=5400 checked=[1-9][0-9]*"
         ]
       }
     },

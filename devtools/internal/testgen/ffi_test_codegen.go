@@ -443,6 +443,89 @@ func TestGeneratedFFIProbeValidatorRejectsMutations(t *testing.T) {
 	testGeneratedFFIProbeValidatorRejectsMutations(t, spec.FFICases)
 }
 
+func adjudicateGeneratedFFIQuantumSteering(tc testspec.GeneratedFFICase, native, exposed string) (bool, error) {
+	if tc.Function != "bid32_quantum" {
+		return false, nil
+	}
+	if len(tc.Operands) != 1 || len(tc.Operands[0]) != 8 || tc.Rounding != 0 {
+		return true, fmt.Errorf("INTEL-BID-006 malformed FFI quantum case %s", tc.ID)
+	}
+	x, err := strconv.ParseUint(tc.Operands[0], 16, 32)
+	if err != nil {
+		return true, fmt.Errorf("INTEL-BID-006 parse FFI quantum operand %s: %w", tc.ID, err)
+	}
+	if x&0x78000000 == 0x78000000 || x&0x60000000 != 0x60000000 {
+		return false, nil
+	}
+	correct := fmt.Sprintf("%08x/00000000", ((x>>21)&0xff)<<23|1)
+	pinnedC := fmt.Sprintf("%08x/00000000", ((x>>23)&0xff)<<23|1)
+	if native != pinnedC || exposed != correct || native == exposed {
+		return true, fmt.Errorf("INTEL-BID-006 %s: pinned C=%s want=%s, Go port=%s want=%s", tc.ID, native, pinnedC, exposed, correct)
+	}
+	return true, nil
+}
+
+func TestGeneratedFFIQuantumSteeringAdjudicationStrength(t *testing.T) {
+	tc := testspec.GeneratedFFICase{ID: "quantum_steering", Function: "bid32_quantum", Operands: []string{"60000000"}}
+	if handled, err := adjudicateGeneratedFFIQuantumSteering(tc, "60000001/00000000", "00000001/00000000"); !handled || err != nil {
+		t.Fatalf("correct divergence rejected: handled=%v err=%v", handled, err)
+	}
+	for _, pair := range [][2]string{
+		{"60000001/00000000", "00800001/00000000"},
+		{"60000001/00000000", "00000001/00000020"},
+		{"60000001/00000020", "00000001/00000000"},
+		{"60000001/00000000", "60000001/00000000"},
+	} {
+		if handled, err := adjudicateGeneratedFFIQuantumSteering(tc, pair[0], pair[1]); !handled || err == nil {
+			t.Fatalf("wrong result or flags accepted: %v, handled=%v err=%v", pair, handled, err)
+		}
+	}
+	for _, malformed := range []testspec.GeneratedFFICase{
+		{ID: "missing", Function: "bid32_quantum"},
+		{ID: "hex", Function: "bid32_quantum", Operands: []string{"zzzzzzzz"}},
+		{ID: "mode", Function: "bid32_quantum", Operands: []string{"60000000"}, Rounding: 1},
+	} {
+		if handled, err := adjudicateGeneratedFFIQuantumSteering(malformed, "", ""); !handled || err == nil {
+			t.Fatalf("malformed case accepted: %+v", malformed)
+		}
+	}
+	for _, operand := range []string{"00000000", "78000000", "7c000001"} {
+		tc.Operands = []string{operand}
+		if handled, err := adjudicateGeneratedFFIQuantumSteering(tc, "", ""); handled || err != nil {
+			t.Fatalf("matching neighbor adjudicated: %s", operand)
+		}
+	}
+}
+
+func TestGeneratedFFIQuantumSteeringSamples(t *testing.T) {
+	requireNative(t)
+	spec := loadGeneratedFFISpecForTest(t)
+	adjudicated := 0
+	matched := 0
+	for _, tc := range spec.FFICases {
+		if tc.Function != "bid32_quantum" {
+			continue
+		}
+		native, exposed, err := runGeneratedFFICase(generatedFFICase(tc))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if handled, err := adjudicateGeneratedFFIQuantumSteering(tc, native, exposed); handled {
+			if err != nil {
+				t.Fatal(err)
+			}
+			adjudicated++
+		} else if native != exposed {
+			t.Fatalf("matching C/Go quantum neighbor %s diverged: C=%s Go=%s", tc.ID, native, exposed)
+		} else {
+			matched++
+		}
+	}
+	if adjudicated != 2 || matched != 46 {
+		t.Fatalf("INTEL-BID-006 FFI sample counts: adjudicated=%d matched=%d, want 2 and 46", adjudicated, matched)
+	}
+}
+
 func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	requireNative(t)
 	if testing.Short() {
@@ -462,6 +545,7 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 		t.Fatalf("validate generated FFI probe contract: %v", err)
 	}
 
+	nativeMatches, quantumDeviations := 0, 0
 	for _, tc := range spec.FFICases {
 		tc := tc
 			t.Run(tc.ID, func(t *testing.T) {
@@ -470,6 +554,14 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 			if err != nil {
 				t.Fatalf("runGeneratedFFICase(%s): %v", tc.ID, err)
 			}
+			if handled, err := adjudicateGeneratedFFIQuantumSteering(tc, gotNative, gotExposed); handled {
+				if err != nil {
+					t.Fatal(err)
+				}
+				quantumDeviations++
+				return
+			}
+			nativeMatches++
 			if gotNative != gotExposed {
 				t.Fatalf("%s %s(%s): C=%s exposed=%s", tc.Declaration, tc.Function, strings.Join(tc.Operands, ", "), gotNative, gotExposed)
 			}
@@ -496,6 +588,10 @@ func TestGeneratedFFIBitCompareSubset(t *testing.T) {
 	if err := probeTracker.validateCanonicalDiscrimination(); err != nil {
 		t.Fatal(err)
 	}
+	if quantumDeviations != 2 || nativeMatches+quantumDeviations != len(spec.FFICases) {
+		t.Fatalf("FFI comparison counts: C exact=%d independent INTEL-BID-006=%d total=%d", nativeMatches, quantumDeviations, len(spec.FFICases))
+	}
+	t.Logf("FFI comparisons: C exact=%d independent INTEL-BID-006=%d total=%d/%d", nativeMatches, quantumDeviations, nativeMatches+quantumDeviations, len(spec.FFICases))
 }
 
 func assertGeneratedFFICoverage(t *testing.T, cases []testspec.GeneratedFFICase) {

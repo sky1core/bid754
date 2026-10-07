@@ -27,8 +27,11 @@ import (
 // passes silently; this test compares the checked-in generated artifacts
 // against the external anchors instead.
 type verificationAnchors struct {
-	CodecParserResourceCases   map[string]int `json:"codec_parser_resource_cases"`
-	FiniteReferenceCalibration struct {
+	RustIEEEReadtestRegressionsTotal             int            `json:"rust_ieee_readtest_regressions_total"`
+	RustIEEEReadtestRegressionsByFunction        map[string]int `json:"rust_ieee_readtest_regressions_by_function"`
+	RustIEEEReadtestRegressionsNativeDivergences int            `json:"rust_ieee_readtest_regressions_native_divergences"`
+	CodecParserResourceCases                     map[string]int `json:"codec_parser_resource_cases"`
+	FiniteReferenceCalibration                   struct {
 		ReadtestByWidth                map[string]int `json:"readtest_by_width"`
 		ReadtestExcludedDecimalText    int            `json:"readtest_excluded_decimal_text"`
 		ReadtestExcludedNonfiniteInput int            `json:"readtest_excluded_nonfinite_input"`
@@ -45,6 +48,7 @@ type verificationAnchors struct {
 	ReadtestProfileRowSkipReasons                map[string]int               `json:"readtest_profile_row_skip_reasons"`
 	GoportReadtestExecutedCases                  int                          `json:"goport_readtest_executed_cases"`
 	FFIBitcompareCasesTotal                      int                          `json:"ffi_bitcompare_cases_total"`
+	FFIQuantumSteeringDeviations                 int                          `json:"ffi_intel006_independent_cases"`
 	FFIProfileFunctionsTotal                     int                          `json:"ffi_profile_functions_total"`
 	FFIProfileFunctionsIncluded                  int                          `json:"ffi_profile_functions_included"`
 	FFIProfileFunctionsExcluded                  int                          `json:"ffi_profile_functions_excluded"`
@@ -56,6 +60,8 @@ type verificationAnchors struct {
 	Tier1ArithmeticSemanticFma                   map[string]uint64            `json:"tier1_arithmetic_long_semantic_fma_triples_by_width"`
 	Tier1ArithmeticSemanticSqrt                  map[string]uint64            `json:"tier1_arithmetic_long_semantic_sqrt_cases_by_width"`
 	Tier1ArithmeticStructuredCases               map[string]uint64            `json:"tier1_arithmetic_long_structured_comparisons_by_width"`
+	Tier1ArithmeticIntel003StructuredDeviations  uint64                       `json:"tier1_arithmetic_long_intel003_structured_deviations"`
+	Tier1ArithmeticIntel003RandomDeviations      uint64                       `json:"tier1_arithmetic_long_intel003_random_deviations"`
 	Tier1ArithmeticRandomOperations              uint64                       `json:"tier1_arithmetic_long_random_operations"`
 	Tier1ArithmeticRandomCasesPerOp              map[string]uint64            `json:"tier1_arithmetic_long_random_cases_per_operation_by_width"`
 	Tier1ArithmeticScaleFiniteTransitionLimits   map[string]uint64            `json:"tier1_arithmetic_long_scale_finite_transition_limit_by_width"`
@@ -92,6 +98,7 @@ type verificationAnchors struct {
 	Tier1CompareConversionTotal                  uint64                       `json:"tier1_compare_conversion_long_conversion_total"`
 	Tier1CompareConversionLongConsumers          uint64                       `json:"tier1_compare_conversion_long_consumers"`
 	DectestSuiteCases                            map[string]int               `json:"dectest_suite_cases"`
+	NativeDectestSkippedCases                    map[string]int               `json:"native_dectest_skipped_cases"`
 	GoportDectestExecutedCases                   map[string]int               `json:"goport_dectest_executed_cases"`
 	GoportDectestSkippedCases                    map[string]int               `json:"goport_dectest_skipped_cases"`
 	GoportDectestFlagExemptCases                 map[string]int               `json:"goport_dectest_flag_exempt_cases"`
@@ -114,6 +121,9 @@ type verificationAnchors struct {
 	BidCodecRejectGoFullChannelSkipped           int                          `json:"bid_codec_reject_vectors_go_full_channel_skipped"`
 	BidCodecRejectRustFullParseConsumed          int                          `json:"bid_codec_reject_vectors_rust_full_parse_consumed"`
 	BidCodecRejectRustFullParseChannelSkipped    int                          `json:"bid_codec_reject_vectors_rust_full_parse_channel_skipped"`
+	BidCodecExactParseWidthCases                 int                          `json:"bid_codec_exact_parse_width_cases"`
+	BidCodecExactParseByWidth                    map[string]int               `json:"bid_codec_exact_parse_by_width"`
+	BidCodecStringRustFullParseConsumed          int                          `json:"bid_codec_string_vectors_rust_full_parse_consumed"`
 	BidCodecStringGoFullConsumed                 int                          `json:"bid_codec_string_vectors_go_full_consumed"`
 	BidCodecStringVectorsTotal                   int                          `json:"bid_codec_string_vectors_total"`
 	BidCodecStringConsumedByLanguage             map[string]int               `json:"bid_codec_string_vectors_consumed_by_language"`
@@ -1060,6 +1070,25 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	if len(spec.FFICases) != anchors.FFIBitcompareCasesTotal {
 		t.Errorf("generated FFI bit-compare case total = %d, anchor = %d", len(spec.FFICases), anchors.FFIBitcompareCasesTotal)
 	}
+	quantumDeviations := 0
+	for _, tc := range spec.FFICases {
+		if tc.Function != "bid32_quantum" {
+			continue
+		}
+		if len(tc.Operands) != 1 {
+			t.Fatalf("invalid quantum operand count: %s", tc.ID)
+		}
+		bits, err := strconv.ParseUint(tc.Operands[0], 16, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bits&0x60000000 == 0x60000000 && bits&0x78000000 != 0x78000000 {
+			quantumDeviations++
+		}
+	}
+	if quantumDeviations == 0 || quantumDeviations != anchors.FFIQuantumSteeringDeviations {
+		t.Errorf("FFI independent quantum cases = %d, anchor = %d", quantumDeviations, anchors.FFIQuantumSteeringDeviations)
+	}
 	// FFI profile census: the case total above says how much the domain runs;
 	// these say which of the pinned Intel symbols it runs on and, for the rest,
 	// under which classification they are accounted. Pinning the
@@ -1578,6 +1607,16 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 		if inventory.Cases != want {
 			t.Errorf("dectest suite %q case count = %d, anchor = %d", inventory.Suite, inventory.Cases, want)
 		}
+		skipped := 0
+		for _, count := range inventory.SkipReasons {
+			skipped += count
+		}
+		if expected, ok := anchors.NativeDectestSkippedCases[inventory.Suite]; !ok || skipped != expected {
+			t.Errorf("native dectest suite %q skipped = %d, anchor = %d (present=%t)", inventory.Suite, skipped, expected, ok)
+		}
+	}
+	if len(anchors.NativeDectestSkippedCases) != len(spec.DectestRuntimeSkipInventory) {
+		t.Errorf("native dectest skip anchor suite count = %d, inventory = %d", len(anchors.NativeDectestSkippedCases), len(spec.DectestRuntimeSkipInventory))
 	}
 
 	// Goport decTest leg: executed and skipped per fixed-width suite, pinned outside
@@ -2043,6 +2082,9 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 	if goFullSkipped != anchors.BidCodecRejectGoFullChannelSkipped {
 		t.Errorf("go_full recomputed reject channel-skipped = %d, anchor = %d", goFullSkipped, anchors.BidCodecRejectGoFullChannelSkipped)
 	}
+	if len(vectors.StringVectors) != anchors.BidCodecStringRustFullParseConsumed {
+		t.Errorf("rust_full_parse string vectors = %d, anchor = %d", len(vectors.StringVectors), anchors.BidCodecStringRustFullParseConsumed)
+	}
 	if len(vectors.StringVectors) != anchors.BidCodecStringGoFullConsumed {
 		t.Errorf("go_full string_vectors consumed anchor = %d, want the ungated record total %d",
 			anchors.BidCodecStringGoFullConsumed, len(vectors.StringVectors))
@@ -2097,6 +2139,21 @@ func TestVerificationAnchorsMatchGeneratedArtifacts(t *testing.T) {
 			t.Errorf("language %q missing from anchor string consumed-by-language map", lang)
 		}
 	}
+
+	t.Run("ExactPublicParseExpectations", func(t *testing.T) {
+		rows, err := bidCodecExactParseExpectations()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(rows) != anchors.BidCodecExactParseWidthCases {
+			t.Fatalf("exact public parse width cases=%d anchor=%d", len(rows), anchors.BidCodecExactParseWidthCases)
+		}
+		byWidth := map[string]int{}
+		for _, row := range rows {
+			byWidth[fmt.Sprintf("bid%d", row.Width)]++
+		}
+		assertCountMap(t, "exact public parse widths", byWidth, anchors.BidCodecExactParseByWidth)
+	})
 
 	// Public-API routing gate: the census inventory (symbol/mapped/excluded counts)
 	// and the generated parity runner (wrapper/case constants) both pin the same
@@ -2570,6 +2627,12 @@ var implementationExclusionRules = []struct {
 	{"bid754-go/internal/bidgo/tables_binarydecimal.go", func(r string) bool {
 		return r == "bid754-go/internal/bidgo/tables_binarydecimal.go"
 	}},
+	{"bid754-go/internal/bidgo/tables_runtime_generated.go", func(r string) bool {
+		return r == "bid754-go/internal/bidgo/tables_runtime_generated.go"
+	}},
+	{"bid754-go/internal/bidgo/tables_round_const128.go", func(r string) bool {
+		return r == "bid754-go/internal/bidgo/tables_round_const128.go"
+	}},
 	{"devtools/generated/go/intel_dfp_tables.go", func(r string) bool { return r == "devtools/generated/go/intel_dfp_tables.go" }},
 	{"bid754-rs/src/gen_types.rs", func(r string) bool { return r == "bid754-rs/src/gen_types.rs" }},
 	{"bid754-rs/src/gen_constants.rs", func(r string) bool { return r == "bid754-rs/src/gen_constants.rs" }},
@@ -2618,7 +2681,7 @@ func classifyVerificationArtifact(rel string) (bucket, exclusionRule string) {
 		"bid754-go/internal/testspec/spec_io.go",
 		"bid754-go/internal/testspec/spec_io_strict_test.go":
 		return "spec_loader", ""
-	case "bid754-rs/ffi-verify/tests/readtest_generated.rs":
+	case "bid754-rs/ffi-verify/tests/readtest_generated.rs", "bid754-rs/tests/readtest_regressions_generated.rs":
 		return "rust_readtest_runner", ""
 	case "bid754-rs/ffi-verify/tests/tier1_arithmetic_long_generated.rs",
 		"bid754-rs/ffi-verify/tests/tier1_compare_conversion_long_generated.rs":

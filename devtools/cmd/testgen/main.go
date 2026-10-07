@@ -11,6 +11,7 @@ import (
 
 func main() {
 	publicParseOnly := flag.Bool("bid-codec-public-parse-only", false, "regenerate only the Go and Rust public BID codec parse harnesses")
+	rustReadtestRegressionsOnly := flag.Bool("rust-readtest-regressions-only", false, "regenerate only the Rust portable IEEE readtest regression runner from the checked-in shared spec")
 	manifestPath := flag.String("manifest", "testgen_manifest.json", "path to the shared test generation manifest")
 	printSentinelAnchors := flag.Bool("print-sentinel-anchors", false,
 		"print the proposed verification_sentinels.json routing-sentinel rows to stdout and exit; writes no file and reads no anchor")
@@ -24,6 +25,20 @@ func main() {
 	if *publicParseOnly {
 		if err := testgen.WriteBidCodecPublicParseOracleOutputs("."); err != nil {
 			log.Fatal(err)
+		}
+		return
+	}
+	if *rustReadtestRegressionsOnly {
+		repoRoot, err := filepath.Abs(".")
+		if err != nil {
+			log.Fatalf("resolve repo root: %v", err)
+		}
+		spec, err := testgen.LoadGenerated(filepath.Join(repoRoot, "generated/testspec/spec_index.json"))
+		if err != nil {
+			log.Fatalf("load generated shared spec: %v", err)
+		}
+		if err := testgen.WriteReadtestRustRegressionsOutput(repoRoot, spec); err != nil {
+			log.Fatalf("write Rust readtest regressions: %v", err)
 		}
 		return
 	}
@@ -85,6 +100,9 @@ func main() {
 	}
 	if err := testgen.WriteReadtestGoportOutputs(repoRoot, manifest, spec); err != nil {
 		log.Fatalf("write generated readtest goport outputs: %v", err)
+	}
+	if err := testgen.WriteReadtestRustRegressionsOutput(repoRoot, spec); err != nil {
+		log.Fatalf("write Rust readtest regressions: %v", err)
 	}
 	// Write the decTest executor/dispatch set before generators that compile the
 	// sibling bid754-go module. Removing a generated executor and its dispatch

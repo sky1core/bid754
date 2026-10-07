@@ -103,7 +103,7 @@ impl Decimal64 {
     /// recognized by parse_decimal64_nan) is constructed directly,
     /// without calling the port or raising flags. Malformed syntax, a NaN payload
     /// that does not fit this width, or a finite literal whose written quantum
-    /// or coefficient the port would otherwise coerce with zero status returns
+    /// or coefficient cannot be represented returns
     /// canonical quiet NaN plus INVALID_OPERATION. Valid finite input retains
     /// the port's overflow/underflow/inexact result and flags.
     pub fn parse_raw(s: &str) -> (Decimal64, ExceptionFlags) {
@@ -119,7 +119,7 @@ impl Decimal64 {
         if invalid_bid_string_input(s, result_is_nan(value.0)) {
             return (Decimal64(0x7c00_0000_0000_0000), ExceptionFlags::INVALID_OPERATION);
         }
-        if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, -398, 369, 16) {
+        if bid_finite_literal_cohort_unrepresentable(s, -398, 369, 16, raw == 0) {
             return (Decimal64(0x7c00_0000_0000_0000), ExceptionFlags::INVALID_OPERATION);
         }
         (value, flags)
@@ -127,8 +127,8 @@ impl Decimal64 {
 
     /// Parses a decimal string literal, returning the value and the
     /// exception flags raised while parsing on success. Mirrors the Go
-    /// NewDecimal64WithFlags Ok/Err decision, including rejection of a cohort
-    /// the port would silently coerce with zero status; on Err the flags are
+    /// NewDecimal64WithFlags Ok/Err decision, including rejection of an
+    /// unrepresentable written cohort; on Err the flags are
     /// meaningless (matching the Go signature's discarded-on-error contract),
     /// so they are not returned at all.
     pub fn parse_with_flags(s: &str) -> Result<(Decimal64, ExceptionFlags), ParseDecimalError> {
@@ -142,8 +142,8 @@ impl Decimal64 {
     /// Parses a decimal string literal rounding excess precision with an
     /// explicit mode, returning the value and the exception flags raised
     /// while parsing on success. Mirrors the Go NewDecimal64WithMode Ok/Err
-    /// decision (error iff the input string is rejected, including a cohort
-    /// the port would silently coerce with zero status); on Err the flags are
+    /// decision (error iff the input string is rejected, including an
+    /// unrepresentable written cohort); on Err the flags are
     /// meaningless (matching the Go signature's discarded-on-error contract),
     /// so they are not returned at all.
     pub fn parse_with_mode(s: &str, mode: RoundingMode) -> Result<(Decimal64, ExceptionFlags), ParseDecimalError> {
@@ -153,7 +153,7 @@ impl Decimal64 {
             (Decimal64(0x7c00_0000_0000_0000), ExceptionFlags::INVALID_OPERATION)
         } else {
             let (bits, raw) = crate::generated::bid64_from_string::bid64_from_string(s, super::types::to_bidgo_rounding(mode));
-            if raw == 0 && bid_finite_literal_cohort_unrepresentable(s, -398, 369, 16) {
+            if bid_finite_literal_cohort_unrepresentable(s, -398, 369, 16, raw == 0) {
                 (Decimal64(0x7c00_0000_0000_0000), ExceptionFlags::INVALID_OPERATION)
             } else {
                 (Decimal64(bits), ExceptionFlags::from_bidgo(raw))
@@ -1132,21 +1132,22 @@ fn parse_bid_finite_literal(input: &str) -> Option<BidFiniteLiteral> {
 }
 
 /// Detects a numeric finite literal whose requested quantum or coefficient
-/// cannot be encoded by this width. Callers additionally require a zero raw
-/// status word, so explicitly flagged port rounding/range behavior remains
-/// unchanged.
+/// cannot be encoded by this width. Zero's written cohort is checked even if
+/// the port incorrectly raises status while packing exact zero.
 fn bid_finite_literal_cohort_unrepresentable(
     input: &str,
     min: i64,
     max: i64,
     precision: usize,
+    raw_status_exact: bool,
 ) -> bool {
     let Some(BidFiniteLiteral { quantum: Some(quantum), coefficient_digits }) =
         parse_bid_finite_literal(input)
     else {
         return false;
     };
-    coefficient_digits > precision || quantum < BigInt::from(min) || quantum > BigInt::from(max)
+    (coefficient_digits == 0 || raw_status_exact)
+        && (coefficient_digits > precision || quantum < BigInt::from(min) || quantum > BigInt::from(max))
 }
 
 /// Constructs a Decimal64 NaN directly from the public NaN-literal grammar (mirrors

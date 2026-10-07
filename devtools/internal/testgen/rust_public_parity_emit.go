@@ -947,12 +947,14 @@ struct StringCase {
     signaling: bool,
     nan_min_width: u32,
     cohort_min_width: u32,
+    zero_literal: bool,
 }
 
 const STRING_CASES: &[StringCase] = &[
 `)
 	for _, sc := range publicParityStringCorpusCases {
-		fmt.Fprintf(b, "    StringCase { input: %q, kind: %q, signaling: %v, nan_min_width: %d, cohort_min_width: %d },\n", sc.Input, sc.Kind, sc.Signaling, sc.NaNMinWidth, sc.CohortMinWidth)
+		cohort, finite := publicParityFiniteCohort(sc.Input)
+		fmt.Fprintf(b, "    StringCase { input: %q, kind: %q, signaling: %v, nan_min_width: %d, cohort_min_width: %d, zero_literal: %v },\n", sc.Input, sc.Kind, sc.Signaling, sc.NaNMinWidth, sc.CohortMinWidth, finite && cohort.CoefficientDigits == 0)
 	}
 	b.WriteString("];\n\n")
 }
@@ -2054,12 +2056,12 @@ func emitParseMode(b *strings.Builder, row rustParityInventoryRow, w parityWidth
                     let (pr, praw) = @FROMSTR@;
                     let pr_is_nan = @NANEXPR@;
                     let port_flags = map_port_flags(praw);
-                    let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                    let rejected_cohort = sc.kind == "cohort_coercion"
                         && (sc.cohort_min_width == 0 || sc.cohort_min_width > @WIDTH@)
-                        && praw == 0;
+                        && (sc.zero_literal || praw == 0);
                     let should_error = pr_is_nan
                         || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                        || silent_cohort_coercion;
+                        || rejected_cohort;
                     match got {
                         Ok((pv, pf)) if should_error => {
                             failures.push(format!("public parity @SYM@: input {:?} mode {:?}: expected an error, got Ok((@FMTSPEC@, {:#x}))", sc.input, mode, @PVBITS@, pf.bits()));
@@ -2833,14 +2835,14 @@ func emitParse(b *strings.Builder, row rustParityInventoryRow, w parityWidth) (s
                 let (pr, praw) = @FROMSTR@;
                 let pr_is_nan = @NANEXPR@;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > @WIDTH@)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let loss_mask = bid754::ExceptionFlags::INVALID_OPERATION.bits()
                     | bid754::ExceptionFlags::OVERFLOW.bits()
                     | bid754::ExceptionFlags::UNDERFLOW.bits()
                     | bid754::ExceptionFlags::INEXACT.bits();
-                let should_error = pr_is_nan || port_flags & loss_mask != 0 || silent_cohort_coercion;
+                let should_error = pr_is_nan || port_flags & loss_mask != 0 || rejected_cohort;
                 match got {
                     Ok(pv) if should_error => {
                         failures.push(format!("public parity @SYM@: input {:?}: expected an exact-representation error, got Ok(@FMTSPEC@) with port flags {:#x}", sc.input, @PVBITS@, port_flags));
@@ -2902,11 +2904,11 @@ func emitParseRaw(b *strings.Builder, row rustParityInventoryRow, w parityWidth)
             }
         } else {
             let (pr, praw) = @FROMSTR@;
-            let silent_cohort_coercion = sc.kind == "cohort_coercion"
+            let rejected_cohort = sc.kind == "cohort_coercion"
                 && (sc.cohort_min_width == 0 || sc.cohort_min_width > @WIDTH@)
-                && praw == 0;
+                && (sc.zero_literal || praw == 0);
             let malformed_input = sc.kind == "blank" || sc.kind == "invalid_syntax";
-            if malformed_input || silent_cohort_coercion {
+            if malformed_input || rejected_cohort {
                 if @PVBITS@ != @QNANBITS@ {
                     failures.push(format!("public parity @SYM@: input {:?}: rejected-input result bits @FMTSPEC@, want canonical qNaN @FMTSPEC@", sc.input, @PVBITS@, @QNANBITS@));
                 }
@@ -2975,12 +2977,12 @@ func emitParseWithFlags(b *strings.Builder, row rustParityInventoryRow, w parity
                 let (pr, praw) = @FROMSTR@;
                 let pr_is_nan = @NANEXPR@;
                 let port_flags = map_port_flags(praw);
-                let silent_cohort_coercion = sc.kind == "cohort_coercion"
+                let rejected_cohort = sc.kind == "cohort_coercion"
                     && (sc.cohort_min_width == 0 || sc.cohort_min_width > @WIDTH@)
-                    && praw == 0;
+                    && (sc.zero_literal || praw == 0);
                 let should_error = pr_is_nan
                     || port_flags & bid754::ExceptionFlags::INVALID_OPERATION.bits() != 0
-                    || silent_cohort_coercion;
+                    || rejected_cohort;
                 match got {
                     Ok((pv, pf)) if should_error => {
                         failures.push(format!("public parity @SYM@: input {:?}: expected an error, got Ok((@FMTSPEC@, {:#x}))", sc.input, @PVBITS@, pf.bits()));

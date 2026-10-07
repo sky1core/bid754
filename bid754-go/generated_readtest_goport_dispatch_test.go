@@ -1401,6 +1401,13 @@ func goportReadtestGeneratedBID64(function string, rounding int, operands []stri
 }
 
 func goportReadtestGeneratedBID128(function string, rounding int, operands []string) ([16]byte, readtestSecondaryOutput, string, error) {
+	return goportReadtestGeneratedBID128WithStatus(function, rounding, operands, 0)
+}
+
+func goportReadtestGeneratedBID128WithStatus(function string, rounding int, operands []string, initialStatus uint32) ([16]byte, readtestSecondaryOutput, string, error) {
+	if initialStatus & ^uint32(0x3d) != 0 || (initialStatus != 0 && function != "bid128_scalbn" && function != "bid128_scalbln") {
+		return [16]byte{}, readtestNoSecondaryOutput(), "", fmt.Errorf("unsupported initial status %x for %s", initialStatus, function)
+	}
 	switch function {
 	case "bid128_abs":
 		if len(operands) != 1 {
@@ -1877,7 +1884,7 @@ func goportReadtestGeneratedBID128(function string, rounding int, operands []str
 		if err != nil {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", err
 		}
-		var flags uint32
+		flags := initialStatus
 		result := bidgo.Bid128Scalbln(goportReadtestToBidgo128(arg0Raw), arg1Raw, rounding, &flags)
 		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid128_scalbn":
@@ -1892,7 +1899,7 @@ func goportReadtestGeneratedBID128(function string, rounding int, operands []str
 		if err != nil {
 			return [16]byte{}, readtestNoSecondaryOutput(), "", err
 		}
-		var flags uint32
+		flags := initialStatus
 		result := bidgo.Bid128Scalbn(goportReadtestToBidgo128(arg0Raw), int(int32(arg1Raw)), rounding, &flags)
 		return goportReadtestFromBidgo128(result), readtestNoSecondaryOutput(), formatReadtestStatus(flags), nil
 	case "bid128_sqrt":

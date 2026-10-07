@@ -2,6 +2,45 @@ package testgen
 
 import "testing"
 
+func TestGeneratedDectestNullReferenceOperandClassification(t *testing.T) {
+	if reason, ok := generatedDectestSkipReason(GeneratedDectestSuite{IgnoredOperations: []string{"apply"}, TestType: "decimal64"}, parsedCase{Operation: "apply", Operands: []string{"#"}}); !ok || reason != "null_reference_operand" {
+		t.Fatalf("ignored operation with null operand = %q/%v", reason, ok)
+	}
+	for _, testType := range []string{"decimal32", "decimal64", "decimal128", "general"} {
+		for _, tc := range []struct {
+			name     string
+			operands []string
+			result   string
+			want     string
+		}{
+			{name: "first operand", operands: []string{"#", "1"}, result: "NaN", want: "null_reference_operand"},
+			{name: "second operand", operands: []string{"1", "#"}, result: "NaN", want: "null_reference_operand"},
+			{name: "quoted operand", operands: []string{"'#'", "1"}, result: "NaN", want: "null_reference_operand"},
+			{name: "finite", operands: []string{"1", "2"}, result: "3"},
+			{name: "nan", operands: []string{"NaN", "1"}, result: "NaN"},
+			{name: "invalid string", operands: []string{"'1..2'", "1"}, result: "NaN"},
+			{name: "tagged operand", operands: []string{"32#1", "1"}, result: "NaN", want: "tagged_literal"},
+			{name: "DPD tagged operand", operands: []string{"#A23003D0", "1"}, result: "NaN", want: "tagged_literal"},
+			{name: "tagged result", operands: []string{"1", "2"}, result: "32#3", want: "tagged_literal"},
+			{name: "hash result", operands: []string{"1", "2"}, result: "#", want: "tagged_literal"},
+			{name: "embedded hash", operands: []string{"'#x'", "1"}, result: "NaN", want: "tagged_literal"},
+		} {
+			t.Run(testType+"/"+tc.name, func(t *testing.T) {
+				got, ok := generatedDectestCaseSkipReason(parsedCase{Operation: "add", Operands: tc.operands, Result: tc.result, Precision: 7}, testType)
+				if tc.want == "tagged_literal" && (testType == "decimal32" || testType == "decimal64") {
+					if got == "null_reference_operand" {
+						t.Fatal("tagged token classified as null reference")
+					}
+					return
+				}
+				if ok != (tc.want != "") || got != tc.want {
+					t.Fatalf("reason = %q/%v, want %q", got, ok, tc.want)
+				}
+			})
+		}
+	}
+}
+
 func TestGeneratedDectestCaseSkipReasonIsEmptyWhenCaseIsNotSkipped(t *testing.T) {
 	for _, tc := range []struct {
 		name      string

@@ -102,6 +102,31 @@ func tier1Sample(data []byte) (tier1ref.Case, error) {
 		}
 		return c, tier1ref.Validate(c)
 	}
+	if data[4]&0x40 != 0 {
+		cases, err := tier1ScaleBBoundaryCases()
+		if err != nil {
+			return tier1ref.Case{}, err
+		}
+		c := cases[binary.LittleEndian.Uint64(data[5:13])%uint64(len(cases))]
+		c.Mode = finiteModes[data[2]%5]
+		c.Operands = append([]string(nil), c.Operands...)
+		hiText, loText, wide := strings.Cut(c.Operands[0], ":")
+		if !wide {
+			loText, hiText = hiText, "0"
+		}
+		hi, err := strconv.ParseUint(hiText, 16, 64)
+		if err != nil {
+			return c, err
+		}
+		lo, err := strconv.ParseUint(loText, 16, 64)
+		if err != nil {
+			return c, err
+		}
+		hi ^= binary.LittleEndian.Uint64(data[21:29])
+		lo ^= binary.LittleEndian.Uint64(data[13:21])
+		c.Operands[0] = tier1Raw(c.Width, hi, lo)
+		return c, tier1ref.Validate(c)
+	}
 	width := []int{32, 64, 128}[data[1]%3]
 	op := tier1Ops[int(data[0])%len(tier1Ops)]
 	targets := tier1Targets(op, width)

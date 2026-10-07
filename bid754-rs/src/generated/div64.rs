@@ -212,8 +212,9 @@ pub(crate) fn bid64_div_port(mut x: u64, mut y: u64, mut rndMode: i64) -> u64 {
                     tdigit[0] = tdigit[0].wrapping_sub(100000000);
                     tdigit[1] = tdigit[1].wrapping_add(1);
                 }
-                j = (j.wrapping_add(1));
-                QX32 = (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64)));
+                let (__go2rs_rhs_995531_0, __go2rs_rhs_995531_1) = ((j.wrapping_add(1)), (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64))));
+                j = __go2rs_rhs_995531_0;
+                QX32 = __go2rs_rhs_995531_1;
             }
             let mut digit = tdigit[0];
             if ((digit == 0) && (tdigit[1] == 0)) {
@@ -477,8 +478,9 @@ pub(crate) fn bid64_div_with_flags_port(mut x: u64, mut y: u64, mut rndMode: i64
                     tdigit[0] = tdigit[0].wrapping_sub(100000000);
                     tdigit[1] = tdigit[1].wrapping_add(1);
                 }
-                j = (j.wrapping_add(1));
-                QX32 = (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64)));
+                let (__go2rs_rhs_1003895_0, __go2rs_rhs_1003895_1) = ((j.wrapping_add(1)), (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64))));
+                j = __go2rs_rhs_1003895_0;
+                QX32 = __go2rs_rhs_1003895_1;
             }
             let mut digit = tdigit[0];
             if ((digit == 0) && (tdigit[1] == 0)) {
@@ -766,8 +768,9 @@ pub(crate) fn bid64qq_div_port(mut x: BID_UINT128, mut y: BID_UINT128, mut rnd_m
                         tdigit[0] = tdigit[0].wrapping_sub(100000000);
                         tdigit[1] = tdigit[1].wrapping_add(1);
                     }
-                    j = (j.wrapping_add(1));
-                    QX32 = (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64)));
+                    let (__go2rs_rhs_1012242_0, __go2rs_rhs_1012242_1) = ((j.wrapping_add(1)), (go_checked_shr_u32(QX32, go_shift_count_u64((7) as u64))));
+                    j = __go2rs_rhs_1012242_0;
+                    QX32 = __go2rs_rhs_1012242_1;
                 }
                 digit = tdigit[0];
                 if ((digit == 0) && (tdigit[1] == 0)) {

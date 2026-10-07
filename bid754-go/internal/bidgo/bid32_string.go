@@ -418,10 +418,6 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 					dround = 0
 					coefficient_x++
 					rounded_up = 1
-					if coefficient_x == 10000000 {
-						coefficient_x = 1000000
-						add_expon++
-					}
 				}
 			}
 		}
@@ -439,7 +435,15 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 		if rounded != 0 {
 			pfpsf |= BID_INEXACT_EXCEPTION
 		}
-		res = uint64(get_BID32_flags(uint32(sign_x), add_expon+DECIMAL_EXPONENT_BIAS_32, coefficient_x, rnd_mode, &pfpsf))
+		expon := add_expon + DECIMAL_EXPONENT_BIAS_32
+		if expon < 0 {
+			if rounded_up != 0 {
+				coefficient_x--
+			}
+			res = uint64(get_BID32_UF(uint32(sign_x), expon, coefficient_x, uint32(rounded), rnd_mode, &pfpsf))
+		} else {
+			res = uint64(get_BID32_flags(uint32(sign_x), expon, coefficient_x, rnd_mode, &pfpsf))
+		}
 		return uint32(res), pfpsf
 	}
 
@@ -495,7 +499,6 @@ func Bid32FromStringRaw(ps string, rnd_mode int) (uint32, uint32) {
 		if rounded_up != 0 {
 			coefficient_x--
 		}
-		rnd_mode = 0
 		res = uint64(get_BID32_UF(uint32(sign_x), expon_x, coefficient_x, uint32(rounded), rnd_mode, &pfpsf))
 		return uint32(res), pfpsf
 	}

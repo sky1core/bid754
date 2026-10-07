@@ -66,14 +66,14 @@ var dectestDispatchSpecs = []dectestDispatchSpec{
 		Arity:         -1,
 		Executor:      "executeDecTestClassOperation",
 		ResultCompare: "generatedDectestCompareTokenResult",
-		FlagCheck:     "generatedDectestFlagCheckNone",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"samequantum"},
 		Arity:         -1,
 		Executor:      "executeDecTestSameQuantumOperation",
 		ResultCompare: "generatedDectestCompareTokenResult",
-		FlagCheck:     "generatedDectestFlagCheckNone",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"nexttoward"},
@@ -150,7 +150,7 @@ var dectestDispatchSpecs = []dectestDispatchSpec{
 		Arity:         -1,
 		Executor:      "executeDecTestCopyOperation",
 		ResultCompare: "generatedDectestCompareDecimalResult",
-		FlagCheck:     "generatedDectestFlagCheckNone",
+		FlagCheck:     "generatedDectestFlagCheckBIDFive",
 	},
 	{
 		Operations:    []string{"add", "subtract", "multiply", "divide", "quantize"},
@@ -494,8 +494,8 @@ func runGeneratedDectestCase(
 			return fmt.Errorf("flag mismatch: expected %v, got %s", tc.Flags, execResult.Flags.String())
 		}
 	case generatedDectestFlagCheckNative:
-		if supportsDecTestFlagVerification() && !compareDecTestFlags(tc.Flags, execResult.Flags) {
-			return fmt.Errorf("flag mismatch: expected %v, got %s", tc.Flags, execResult.Flags.String())
+		if supportsDecTestFlagVerification() && !compareDecTestConditions(tc.Flags, execResult.Conditions) {
+			return fmt.Errorf("condition mismatch: expected %v, got %d", tc.Flags, execResult.Conditions)
 		}
 	default:
 		return fmt.Errorf("unsupported generated decTest flag check mode: %d", flagCheck)
@@ -578,6 +578,14 @@ func TestGeneratedDectestSuites(t *testing.T) {
 		})
 	}
 
+	if len(totals) != len(expectedGeneratedDectestSuiteCoverage) {
+		t.Fatalf("native decTest executed suite count = %d, want %d", len(totals), len(expectedGeneratedDectestSuiteCoverage))
+	}
+	for i, total := range totals {
+		if total.Name != expectedGeneratedDectestSuiteCoverage[i].Name {
+			t.Fatalf("native decTest executed suite[%d] = %q, want %q", i, total.Name, expectedGeneratedDectestSuiteCoverage[i].Name)
+		}
+	}
 	if err := decTestFailureError(totals); err != nil {
 		t.Fatal(err)
 	}
@@ -689,7 +697,10 @@ func runGeneratedDectestSuite(t *testing.T, suite testspec.GeneratedDectestSuite
 	}
 	expected := expectedGeneratedDectestCoverageForSuite(t, suite.Name)
 	assertGeneratedDectestSkipReasons(t, suite.Name, skipReasons, expected.SkipReasons)
-	t.Logf("%s: passed=%d failed=%d skipped=%d", suite.Name, result.Passed, result.Failed, result.Skipped)
+	if result.Passed+result.Failed+result.Skipped != expected.Cases {
+		t.Fatalf("native decTest %s accounted cases = %d, want %d", suite.Name, result.Passed+result.Failed+result.Skipped, expected.Cases)
+	}
+	t.Logf("native decTest %s: passed=%d failed=%d skipped=%d total=%d", suite.Name, result.Passed, result.Failed, result.Skipped, expected.Cases)
 	return result
 }
 `)

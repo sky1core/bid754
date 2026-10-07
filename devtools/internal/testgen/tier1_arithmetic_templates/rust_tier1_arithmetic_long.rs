@@ -514,10 +514,87 @@ fn legs_scale128(x: Words, exponent: i64, mode: Mode) -> (Words, u32, Words, u32
     (c128_words(native), native_flags, decimal128_words(public), public_raw_flags(flags))
 }
 
-fn check_scale128(x: Words, exponent: i64, mode: Mode) {
+fn scale128_intel003_expected(x: Words, exponent: i64, mode: Mode) -> Option<((Words, u32), (Words, u32))> {
+    let coeff_hi = x.hi & 0x0001ffffffffffff;
+    if x.hi & 0x6000000000000000 == 0x6000000000000000 || coeff_hi != 0x314dc6448d93 ||
+        x.lo >= 0x38c15b0a00000000 || exponent <= 0 || exponent > 12288 ||
+        ((x.hi >> 49) & 0x3fff) as i64 + exponent != 12288 {
+        return None;
+    }
+    let coeff = ((coeff_hi as u128) << 64) | x.lo as u128;
+    let scaled = coeff * 10;
+    let sign = x.hi & 0x8000000000000000;
+    let actual = Words { lo: scaled as u64, hi: sign | (12287u64 << 49) | (scaled >> 64) as u64 };
+    let to_infinity = mode.native == 0 || mode.native == 4 ||
+        (mode.native == 2 && sign == 0) || (mode.native == 1 && sign != 0);
+    let native = if to_infinity {
+        Words { lo: 0, hi: sign | 0x7800000000000000 }
+    } else {
+        Words { lo: 0x378d8e63ffffffff, hi: sign | 0x5fffed09bead87c0 }
+    };
+    Some(((actual, 0), (native, 0x28)))
+}
+
+fn verify_scale128(native: (Words, u32), public: (Words, u32), want_native: (Words, u32), want_actual: (Words, u32)) -> Result<(), &'static str> {
+    if native != want_native { return Err("native observation"); }
+    if public != want_actual { return Err("actual result or flags"); }
+    Ok(())
+}
+
+fn check_scale128(x: Words, exponent: i64, mode: Mode) -> bool {
     let (native, native_flags, public, public_flags) = legs_scale128(x, exponent, mode);
-    assert_eq!((public, public_flags), (native, native_flags),
-        "Decimal128 scaleB mismatch x={x:?} exponent={exponent} mode={}", mode.name);
+    let observed_native = (native, native_flags);
+    let observed_public = (public, public_flags);
+    let expected = scale128_intel003_expected(x, exponent, mode);
+    let (want_actual, want_native) = expected.unwrap_or((observed_native, observed_native));
+    if let Err(reason) = verify_scale128(observed_native, observed_public, want_native, want_actual) {
+        panic!("Decimal128 scaleB {reason} mismatch x={x:?} exponent={exponent} mode={} C={observed_native:?} public={observed_public:?} want_C={want_native:?} want_actual={want_actual:?}", mode.name);
+    }
+    expected.is_some()
+}
+
+#[test]
+fn tier1_arithmetic_scaleb_intel003_witness() {
+    let coeffs = [
+        Words { hi: 0x314dc6448d92, lo: 0xffffffffffffffff },
+        Words { hi: 0x314dc6448d93, lo: 0 },
+        Words { hi: 0x314dc6448d93, lo: 1 },
+        Words { hi: 0x314dc6448d93, lo: 0x38c15b09ffffffff },
+        Words { hi: 0x314dc6448d93, lo: 0x38c15b0a00000000 },
+        Words { hi: 0x314dc6448d93, lo: 0x38c15b0a00000001 },
+    ];
+    let mut c_comparisons = 0;
+    let mut deviations = 0;
+    for sign in [0, 0x8000000000000000u64] {
+        for (exp, shift) in [(6109, 3), (6110, 2), (6111, 1)] {
+            for (index, coeff) in coeffs.iter().enumerate() {
+                let x = Words { lo: coeff.lo, hi: sign | (((6176 + exp) as u64) << 49) | coeff.hi };
+                for mode in MODES {
+                    let (native, native_flags, public, public_flags) = legs_scale128(x, shift, mode);
+                    let expected = scale128_intel003_expected(x, shift, mode);
+                    assert_eq!(expected.is_some(), (1..=3).contains(&index), "INTEL-BID-003 predicate x={x:?} shift={shift} mode={}", mode.name);
+                    let observed_native = (native, native_flags);
+                    let observed_public = (public, public_flags);
+                    let (want_actual, want_native) = if let Some(expected) = expected {
+                        deviations += 1;
+                        expected
+                    } else {
+                        c_comparisons += 1;
+                        (observed_native, observed_native)
+                    };
+                    assert!(verify_scale128(observed_native, observed_public, want_native, want_actual).is_ok(),
+                        "INTEL-BID-003 witness x={x:?} shift={shift} mode={} C={observed_native:?} public={observed_public:?} want_C={want_native:?} want_actual={want_actual:?}", mode.name);
+                    if expected.is_some() {
+                        assert!(verify_scale128(observed_native, observed_native, want_native, want_actual).is_err());
+                        assert!(verify_scale128(observed_native, (public, public_flags | 0x20), want_native, want_actual).is_err());
+                        assert!(verify_scale128(observed_public, observed_public, want_native, want_actual).is_err());
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!((c_comparisons, deviations), (90, 90));
+    eprintln!("INTEL-BID-003 witness: C comparisons={c_comparisons} independent deviations={deviations}");
 }
 
 fn visit_pairs32(mut visit: impl FnMut(u32, u32)) {
@@ -792,10 +869,12 @@ fn tier1_arithmetic_structured_native_differential() {
     }
     for &x in BOUNDARY128 { for &mode in &MODES { if shard.owns(count) { check_sqrt128(x, mode); } count += 1; } }
     for &x in SEMANTIC_SQRT128 { for &mode in &MODES { if shard.owns(count) { check_sqrt128(x, mode); } count += 1; } }
-    for &x in BOUNDARY128 { for &exponent in &SCALE_EXPONENTS { for &mode in &MODES { if shard.owns(count) { check_scale128(x, exponent, mode); } count += 1; } } }
-    for &tc in SEMANTIC_SCALE128 { for &mode in &MODES { if shard.owns(count) { check_scale128(tc.x, tc.exponent, mode); } count += 1; } }
+    let mut deviations = 0;
+    for &x in BOUNDARY128 { for &exponent in &SCALE_EXPONENTS { for &mode in &MODES { if shard.owns(count) { deviations += u64::from(check_scale128(x, exponent, mode)); } count += 1; } } }
+    for &tc in SEMANTIC_SCALE128 { for &mode in &MODES { if shard.owns(count) { deviations += u64::from(check_scale128(tc.x, tc.exponent, mode)); } count += 1; } }
     assert_eq!(count, STRUCTURED128_COUNT);
-    eprintln!("Rust Decimal128 structured Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
+    if shard.count == 1 { assert!(deviations >= 90, "Decimal128 structured INTEL-BID-003 deviations={deviations}, want at least 90"); }
+    eprintln!("Rust Decimal128 structured Tier 1 comparisons: C exact={} independent INTEL-BID-003={deviations} total={}/{}", shard.owned_count(count) - deviations, shard.owned_count(count), count);
 }
 
 fn splitmix64(mut value: u64) -> u64 {
@@ -1214,9 +1293,10 @@ fn tier1_arithmetic_deterministic_random_native_differential() {
             count += 1;
         }
     }
+    let mut deviations = 0;
     let seed = SCALE_SEED128;
     for i in 0..RANDOM_CASES128 {
-        if shard.owns(count) { check_scale128(random_scale_operand128(seed, i, SCALE_FINITE_TRANSITION_LIMIT128 as i64), random_scale_exponent(seed, i, 2, SCALE_FINITE_TRANSITION_LIMIT128 as i64), MODES[i as usize % MODES.len()]); }
+        if shard.owns(count) { deviations += u64::from(check_scale128(random_scale_operand128(seed, i, SCALE_FINITE_TRANSITION_LIMIT128 as i64), random_scale_exponent(seed, i, 2, SCALE_FINITE_TRANSITION_LIMIT128 as i64), MODES[i as usize % MODES.len()])); }
         count += 1;
     }
     for i in 0..RANDOM_CASES128 {
@@ -1243,7 +1323,7 @@ fn tier1_arithmetic_deterministic_random_native_differential() {
     }
     assert_eq!(scale_tuple_hash_mix(digest, consumed), RANDOM_STREAM_HASH128, "Decimal128 random differential consumed-stream hash drift");
     assert_eq!(count, RANDOM128_COUNT);
-    eprintln!("Rust Decimal128 random Tier 1 exact comparisons: {}/{}", shard.owned_count(count), count);
+    eprintln!("Rust Decimal128 random Tier 1 comparisons: C exact={} independent INTEL-BID-003={deviations} total={}/{}", shard.owned_count(count) - deviations, shard.owned_count(count), count);
 }
 
 // Routing sentinels: generator-selected known-answer rows that bind the

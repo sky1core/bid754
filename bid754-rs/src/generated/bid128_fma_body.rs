@@ -80,23 +80,12 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
     let mut ind: i64 = 0;
     let mut x0: i64 = 0;
     let mut tmp_sign: u64 = 0;
-    _ = is_midpoint_lt_even0;
-    _ = is_midpoint_gt_even0;
-    _ = is_inexact_lt_midpoint0;
-    _ = is_inexact_gt_midpoint0;
-    _ = is_tiny;
-    _ = x0;
-    _ = R128;
-    _ = R192;
-    _ = R256;
-    _ = R64;
-    _ = P128;
-    _ = P192;
-    _ = ind;
-    _ = tmp_sign;
+    let (__go2rs_rhs_270990_0, __go2rs_rhs_270990_1, __go2rs_rhs_270990_2, __go2rs_rhs_270990_3, __go2rs_rhs_270990_4, __go2rs_rhs_270990_5) = (is_midpoint_lt_even0, is_midpoint_gt_even0, is_inexact_lt_midpoint0, is_inexact_gt_midpoint0, is_tiny, x0);
+    let (__go2rs_rhs_271116_0, __go2rs_rhs_271116_1, __go2rs_rhs_271116_2) = (R128, R192, R256);
+    let (__go2rs_rhs_271144_0, __go2rs_rhs_271144_1, __go2rs_rhs_271144_2, __go2rs_rhs_271144_3, __go2rs_rhs_271144_4) = (R64, P128, P192, ind, tmp_sign);
     'done: {
     if ((p34 <= (delta.wrapping_sub(1))) || (((p34 == delta) && ((e3.wrapping_add(6176)) < (p34.wrapping_sub(q3)))))) {
-        if ((((q3.wrapping_add(e3))) > ((p34.wrapping_add(0x17df)))) && (p34 <= (delta.wrapping_sub(1)))) {
+        if (((((q3.wrapping_add(e3))) > ((p34.wrapping_add(0x17df)))) && (p34 <= (delta.wrapping_sub(1)))) && (!((((p_sign != z_sign) && ((q3.wrapping_add(e3)) == ((p34.wrapping_add(0x17df)).wrapping_add(1)))) && (delta == (p34.wrapping_add(1))))))) {
             if (rnd_mode == 0) {
                 res.hi = (z_sign | 0x7800000000000000);
                 res.lo = 0x0000000000000000;
@@ -231,6 +220,11 @@ pub(crate) fn bid_fma_delta_ge_zero(mut p34: i64, res: &mut BID_UINT128, ptr_is_
         }
         if ((((e3 == -6176) && (((q3.wrapping_add(scale))) < p34))) || ((((((e3 == -6176) && (((q3.wrapping_add(scale))) == p34)) && ((res.hi & 0x1ffffffffffff) == 0x0000314dc6448d93)) && (res.lo == 0x38c15b0a00000000)) && (z_sign != p_sign)))) {
             (*pfpsf) |= 16;
+        }
+        if ((e3 > 0x17df) && (rnd_mode == 0)) {
+            res.hi = (z_sign | 0x7800000000000000);
+            res.lo = 0;
+            (*pfpsf) |= (40 as u32);
         }
         if (rnd_mode != 0) {
             bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
@@ -588,6 +582,7 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
                             res.lo = 0x0000000000000000;
                             (*pfpsf) |= (40 as u32);
                         } else {
+                            res.hi |= z_sign;
                             bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
                         }
                         (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
@@ -605,6 +600,22 @@ pub(crate) fn bid_fma_case1pp_b_psign_ne_zsign(mut p34: i64, res: &mut BID_UINT1
                     }
                     z_exp = (res.hi & 0x7ffe000000000000);
                 }
+            }
+            if (e3 > 0x17df) {
+                if (rnd_mode == 0) {
+                    res.hi = (z_sign | 0x7800000000000000);
+                    res.lo = 0;
+                    (*pfpsf) |= (40 as u32);
+                } else {
+                    bid_rounding_correction(rnd_mode, is_inexact_lt_midpoint, is_inexact_gt_midpoint, is_midpoint_lt_even, is_midpoint_gt_even, e3, res, pfpsf);
+                }
+                (*ptr_is_midpoint_lt_even) = is_midpoint_lt_even;
+                (*ptr_is_midpoint_gt_even) = is_midpoint_gt_even;
+                (*ptr_is_inexact_lt_midpoint) = is_inexact_lt_midpoint;
+                (*ptr_is_inexact_gt_midpoint) = is_inexact_gt_midpoint;
+                (*z_exp_ptr) = z_exp;
+                (*e3_ptr) = e3;
+                return true;
             }
         } else {
             if (gt_half_ulp != 0) {

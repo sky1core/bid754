@@ -13,9 +13,11 @@ import (
 )
 
 type Generated struct {
-	Go    []byte
-	Rust  []byte
-	Bidgo []byte
+	Go              []byte
+	Rust            []byte
+	Bidgo           []byte
+	Runtime         []byte
+	RuntimeRound128 []byte
 }
 
 func Generate(repoRoot string, manifest Manifest) (Generated, error) {
@@ -35,6 +37,9 @@ func Generate(repoRoot string, manifest Manifest) (Generated, error) {
 	var bidgoTables []Table
 	for _, table := range tables {
 		if table.Spec.Source == manifest.BidgoSource {
+			if len(table.Spec.Runtime) != 1 || table.Spec.Runtime[0].Name != table.Spec.Name || table.Spec.Runtime[0].Scalar != bidgoScalarFor(table.CType) || table.Spec.Runtime[0].Prefix != 0 || table.Spec.Runtime[0].ExtraNearestRow {
+				return Generated{}, fmt.Errorf("binary runtime target for %s does not match its generated declaration", table.Spec.Name)
+			}
 			bidgoTables = append(bidgoTables, table)
 		}
 	}
@@ -46,7 +51,15 @@ func Generate(repoRoot string, manifest Manifest) (Generated, error) {
 		return Generated{}, err
 	}
 
-	return Generated{Go: goData, Rust: rustData, Bidgo: bidgoData}, nil
+	runtimeData, err := renderRuntimeTables(tables, manifest.BidgoSource, false)
+	if err != nil {
+		return Generated{}, err
+	}
+	round128Data, err := renderRuntimeTables(tables, manifest.BidgoSource, true)
+	if err != nil {
+		return Generated{}, err
+	}
+	return Generated{Go: goData, Rust: rustData, Bidgo: bidgoData, Runtime: runtimeData, RuntimeRound128: round128Data}, nil
 }
 
 func WriteOutputs(repoRoot string, manifest Manifest, generated Generated) error {
@@ -58,6 +71,80 @@ func WriteOutputs(repoRoot string, manifest Manifest, generated Generated) error
 	}
 	if err := writeFile(filepath.Join(repoRoot, manifest.BidgoOutput), generated.Bidgo); err != nil {
 		return err
+	}
+	if err := writeFile(filepath.Join(repoRoot, manifest.RuntimeOutput), generated.Runtime); err != nil {
+		return err
+	}
+	if err := writeFile(filepath.Join(repoRoot, manifest.RuntimeRound128Output), generated.RuntimeRound128); err != nil {
+		return err
+	}
+	return nil
+}
+
+func renderRuntimeTables(tables []Table, binarySource string, round128Only bool) ([]byte, error) {
+	var b bytes.Buffer
+	b.WriteString(genmarker.Line("c-tablegen") + "\n")
+	b.WriteString("// Source tables come from pinned Intel DFP C files.\n\npackage bidgo\n\n")
+	for _, table := range tables {
+		if table.Spec.Source == binarySource {
+			continue
+		}
+		for _, target := range table.Spec.Runtime {
+			if (target.Name == "bid_round_const_table_128") != round128Only {
+				continue
+			}
+			value := table.Value
+			dims := append([]int(nil), table.Dims...)
+			if target.Prefix > 0 {
+				if len(dims) != 1 || target.Prefix > dims[0] {
+					return nil, fmt.Errorf("invalid prefix %d for %s", target.Prefix, target.Name)
+				}
+				value.Elements = value.Elements[:target.Prefix]
+				dims[0] = target.Prefix
+			}
+			if target.ExtraNearestRow {
+				if len(dims) != 2 || dims[0] != 5 {
+					return nil, fmt.Errorf("invalid extra rounding row for %s", target.Name)
+				}
+				value.Elements = append(append([]Value(nil), value.Elements...), value.Elements[0])
+				dims[0]++
+			}
+			if err := checkRuntimeScalar(table, target); err != nil {
+				return nil, err
+			}
+			runtimeTable := table
+			runtimeTable.Dims = dims
+			runtimeTable.Value = value
+			b.WriteString(fmt.Sprintf("// %s comes from %s:%s.\n", target.Name, table.SourceRel, table.Spec.Name))
+			base := target.Scalar
+			for i := len(dims) - 1; i >= 0; i-- {
+				base = fmt.Sprintf("[%d]%s", dims[i], base)
+			}
+			b.WriteString(fmt.Sprintf("var %s = %s%s\n\n", target.Name, base, renderBidgoValue(runtimeTable, value, 0, 0)))
+		}
+	}
+	formatted, err := format.Source(b.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("format runtime tables: %w", err)
+	}
+	return formatted, nil
+}
+
+func checkRuntimeScalar(table Table, target RuntimeSpec) error {
+	if target.Scalar == "DEC_DIGITS" {
+		if table.CType != "DEC_DIGITS" {
+			return fmt.Errorf("%s cannot use DEC_DIGITS for %s", target.Name, table.CType)
+		}
+		return nil
+	}
+	if fixedWordArity(table.CType) > 0 {
+		if target.Scalar != table.CType {
+			return fmt.Errorf("%s cannot use %s for %s", target.Name, target.Scalar, table.CType)
+		}
+		return nil
+	}
+	if target.Scalar != "int" && target.Scalar != "int8" && target.Scalar != "uint8" && target.Scalar != "byte" && target.Scalar != "uint32" && target.Scalar != "uint64" {
+		return fmt.Errorf("unsupported runtime scalar %q for %s", target.Scalar, target.Name)
 	}
 	return nil
 }
@@ -183,6 +270,11 @@ func bidgoScalarFor(cType string) string {
 func renderBidgoValue(table Table, v Value, indent int, depth int) string {
 	if depth == len(table.Dims) {
 		switch table.CType {
+		case "DEC_DIGITS":
+			if len(v.Elements) != 4 || !allScalar(v.Elements) {
+				panic("DEC_DIGITS value does not have four scalar fields")
+			}
+			return fmt.Sprintf("{digits: %s, threshold_hi: %s, threshold_lo: %s, digits1: %s}", v.Elements[0].Number, v.Elements[1].Number, v.Elements[2].Number, v.Elements[3].Number)
 		case "BID_UINT128":
 			if len(v.Elements) != 2 || !allScalar(v.Elements) {
 				panic("BID_UINT128 value does not have two scalar limbs")

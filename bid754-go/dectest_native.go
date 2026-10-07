@@ -20,6 +20,10 @@ package bid754
 #include <stdlib.h>
 #include <string.h>
 
+#if !DECEXTFLAG
+#error Native decTest requires distinct GDA condition bits
+#endif
+
 static enum rounding bid754_rounding_mode(const char* rounding) {
 	if (strcmp(rounding, "half_up") == 0) return DEC_ROUND_HALF_UP;
 	if (strcmp(rounding, "half_down") == 0) return DEC_ROUND_HALF_DOWN;
@@ -133,6 +137,7 @@ static int bid754_general_read(
 
 	if (strcmp(op, "tointegral") == 0) {
 		decNumber res;
+		ctx.status = 0;
 		decNumberToIntegralValue(&res, &value, &ctx);
 		*status = (unsigned int)ctx.status;
 		decNumberToString(&res, out);
@@ -140,6 +145,7 @@ static int bid754_general_read(
 	}
 	if (strcmp(op, "tointegralx") == 0) {
 		decNumber res;
+		ctx.status = 0;
 		decNumberToIntegralExact(&res, &value, &ctx);
 		*status = (unsigned int)ctx.status;
 		decNumberToString(&res, out);
@@ -262,79 +268,6 @@ static int bid754_decimal32_read(
 	return 2;
 }
 
-static int bid754_decimal64_op(
-	const char* op,
-	const char* operand1,
-	const char* operand2,
-	const char* rounding,
-	unsigned int* status,
-	char* out,
-	size_t outSize
-) {
-	decContext ctx;
-	decimal64 lhs64, rhs64, out64;
-	decNumber lhs, rhs, res;
-	*status = 0;
-
-	decContextDefault(&ctx, DEC_INIT_DECIMAL64);
-	ctx.round = bid754_rounding_mode(rounding);
-	ctx.traps = 0;
-
-	decimal64FromString(&lhs64, operand1, &ctx);
-	if (ctx.status & DEC_Conversion_syntax) {
-		*status = (unsigned int)ctx.status;
-		strcpy(out, "NaN");
-		return 0;
-	}
-	ctx.status = 0;
-	decimal64FromString(&rhs64, operand2, &ctx);
-	if (ctx.status & DEC_Conversion_syntax) {
-		*status = (unsigned int)ctx.status;
-		strcpy(out, "NaN");
-		return 0;
-	}
-	ctx.status = 0;
-
-	decimal64ToNumber(&lhs64, &lhs);
-	decimal64ToNumber(&rhs64, &rhs);
-
-	if (strcmp(op, "add") == 0) {
-		decNumberAdd(&res, &lhs, &rhs, &ctx);
-	} else if (strcmp(op, "subtract") == 0 || strcmp(op, "sub") == 0) {
-		decNumberSubtract(&res, &lhs, &rhs, &ctx);
-	} else if (strcmp(op, "multiply") == 0 || strcmp(op, "mul") == 0) {
-		decNumberMultiply(&res, &lhs, &rhs, &ctx);
-	} else if (strcmp(op, "divide") == 0 || strcmp(op, "div") == 0) {
-		decNumberDivide(&res, &lhs, &rhs, &ctx);
-	} else if (strcmp(op, "quantize") == 0) {
-		decNumberQuantize(&res, &lhs, &rhs, &ctx);
-	} else if (strcmp(op, "compare") == 0) {
-		decNumberCompare(&res, &lhs, &rhs, &ctx);
-	} else if (strcmp(op, "comparesig") == 0) {
-		decNumberCompareSignal(&res, &lhs, &rhs, &ctx);
-	} else {
-		return 2;
-	}
-
-	if (decNumberIsInfinite(&res) && (ctx.status & DEC_Overflow) &&
-		(strcmp(rounding, "down") == 0 ||
-		 strcmp(rounding, "05up") == 0 ||
-		 (strcmp(rounding, "ceiling") == 0 && decNumberIsNegative(&res)) ||
-		 (strcmp(rounding, "floor") == 0 && !decNumberIsNegative(&res)))) {
-		decNumber maxDn;
-		decNumberFromString(&maxDn, "9.999999999999999E+384", &ctx);
-		if (decNumberIsNegative(&res)) {
-			maxDn.bits |= DECNEG;
-		}
-		decimal64FromNumber(&out64, &maxDn, &ctx);
-	} else {
-		decimal64FromNumber(&out64, &res, &ctx);
-	}
-	*status = (unsigned int)ctx.status;
-	decimal64ToString(&out64, out);
-	return 0;
-}
-
 static int bid754_decimal64_read(
 	const char* op,
 	const char* operand,
@@ -420,8 +353,6 @@ func executeNativeDecTestOperation(tc nativeDecTestRequest, testType string) (na
 	switch testType {
 	case "decimal32":
 		rc = C.bid754_decimal32_op(op, operand1, operand2, &status, out, C.size_t(len(buf)))
-	case "decimal64":
-		rc = C.bid754_decimal64_op(op, operand1, operand2, rounding, &status, out, C.size_t(len(buf)))
 	default:
 		rc = C.bid754_general_op(
 			op,
@@ -444,6 +375,7 @@ func executeNativeDecTestOperation(tc nativeDecTestRequest, testType string) (na
 		return nativeDecTestResult{
 			Result: C.GoString(out),
 			Flags:  flags,
+			Status: uint32(status),
 		}, nil
 	case 1:
 		return nativeDecTestResult{}, fmt.Errorf("invalid decimal input")
@@ -493,6 +425,7 @@ func executeNativeDecTestReadOperation(tc nativeDecTestRequest, testType string)
 		return nativeDecTestResult{
 			Result: C.GoString(out),
 			Flags:  flags,
+			Status: uint32(status),
 		}, nil
 	case 2:
 		return nativeDecTestResult{}, fmt.Errorf("%w: %s", errNativeUnsupportedDecTestOperation, tc.Operation)
@@ -519,10 +452,7 @@ func statusToExceptionFlags(status uint32) ExceptionFlags {
 	if status&uint32(C.DEC_Division_by_zero) != 0 {
 		flags |= FlagDivisionByZero
 	}
-	if status&uint32(C.DEC_Invalid_operation) != 0 {
-		flags |= FlagInvalidOperation
-	}
-	if status&uint32(C.DEC_Conversion_syntax) != 0 {
+	if status&uint32(C.DEC_Invalid_operation|C.DEC_Conversion_syntax|C.DEC_Division_impossible|C.DEC_Division_undefined|C.DEC_Insufficient_storage) != 0 {
 		flags |= FlagInvalidOperation
 	}
 	if status&uint32(C.DEC_Subnormal) != 0 {
@@ -535,6 +465,19 @@ func statusToExceptionFlags(status uint32) ExceptionFlags {
 		flags |= FlagClamped
 	}
 	return flags
+}
+
+var nativeStatusConditionBits = struct {
+	ConversionSyntax, DivisionByZero, DivisionImpossible, DivisionUndefined uint32
+	InsufficientStorage, Inexact, InvalidOperation, Overflow                uint32
+	Clamped, Rounded, Subnormal, Underflow                                  uint32
+}{
+	uint32(C.DEC_Conversion_syntax), uint32(C.DEC_Division_by_zero),
+	uint32(C.DEC_Division_impossible), uint32(C.DEC_Division_undefined),
+	uint32(C.DEC_Insufficient_storage), uint32(C.DEC_Inexact),
+	uint32(C.DEC_Invalid_operation), uint32(C.DEC_Overflow),
+	uint32(C.DEC_Clamped), uint32(C.DEC_Rounded),
+	uint32(C.DEC_Subnormal), uint32(C.DEC_Underflow),
 }
 
 type nativeDecTestRequest struct {
@@ -550,6 +493,7 @@ type nativeDecTestRequest struct {
 type nativeDecTestResult struct {
 	Result string
 	Flags  ExceptionFlags
+	Status uint32
 }
 
 var errNativeUnsupportedDecTestOperation = errors.New("unsupported decTest operation")

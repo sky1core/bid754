@@ -485,7 +485,7 @@ func parseDecimal32BIDPublicMode(s string, rndMode int) (Decimal32BID, Exception
 	if !ok {
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
-	if rawStatus == bidgo.BID_EXACT_STATUS && literal.cohortUnrepresentable(decimal32MinQuantum, decimal32MaxQuantum, decimal32Precision) {
+	if (literal.coefficientDigits == 0 || rawStatus == bidgo.BID_EXACT_STATUS) && literal.cohortUnrepresentable(decimal32MinQuantum, decimal32MaxQuantum, decimal32Precision) {
 		return canonicalQNaN32BID(), FlagInvalidOperation
 	}
 	return result, flags
@@ -903,7 +903,7 @@ func parseDecimal64BIDPublicMode(s string, rndMode int) (Decimal64BID, Exception
 	if !ok {
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
-	if rawStatus == bidgo.BID_EXACT_STATUS && literal.cohortUnrepresentable(decimal64MinQuantum, decimal64MaxQuantum, decimal64Precision) {
+	if (literal.coefficientDigits == 0 || rawStatus == bidgo.BID_EXACT_STATUS) && literal.cohortUnrepresentable(decimal64MinQuantum, decimal64MaxQuantum, decimal64Precision) {
 		return canonicalQNaN64BID(), FlagInvalidOperation
 	}
 	return result, flags
@@ -1652,7 +1652,7 @@ func parseDecimal128BIDPublicMode(s string, rndMode int) (Decimal128BID, Excepti
 	if !ok {
 		return canonicalQNaN128BID(), FlagInvalidOperation
 	}
-	if rawStatus == bidgo.BID_EXACT_STATUS && literal.cohortUnrepresentable(decimal128MinQuantum, decimal128MaxQuantum, decimal128Precision) {
+	if (literal.coefficientDigits == 0 || rawStatus == bidgo.BID_EXACT_STATUS) && literal.cohortUnrepresentable(decimal128MinQuantum, decimal128MaxQuantum, decimal128Precision) {
 		return canonicalQNaN128BID(), FlagInvalidOperation
 	}
 	return result, flags

@@ -17,15 +17,6 @@ const (
 	MASK_BINARY_OR2_64       uint64 = 0x0020000000000000
 )
 
-// bid_mult_factor for subnormal detection
-var bid_mult_factor = [16]uint64{
-	1, 10, 100, 1000,
-	10000, 100000, 1000000, 10000000,
-	100000000, 1000000000, 10000000000, 100000000000,
-	1000000000000, 10000000000000,
-	100000000000000, 1000000000000000,
-}
-
 // Bid64IsSigned - returns 1 if x is negative, 0 otherwise
 // Intel bid64_isSigned 기계적 포팅
 func Bid64IsSigned(x uint64) int {
